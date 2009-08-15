@@ -30,7 +30,7 @@
 % INPUT/OUTPUT FILENAME PREFIX
 %-------------------------------------------------------------------------------
 
-filerootIN  = '../data/comobrescia';
+filerootIN  = '../data/data_goGPS/ultresc';
 filerootOUT = '../data/out';
 
 i = 1;
