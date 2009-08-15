@@ -113,11 +113,6 @@ XM = 4398306.3892;
 YM =  704149.9356;
 ZM = 4550154.8609;
 
-% G+ permanent station:
-% XM = 4639899.73028;
-% YM = 1033225.67662;
-% ZM = 4238448.44868;
-
 %Como permanent station antenna - TPSCR3_GGD CONE - phase center
 % L1: EAST=+0.0008, NORTH=-0.0004, h=0.0615
 % L2: EAST=+0.0003, NORTH=+0,      h=0.0948
