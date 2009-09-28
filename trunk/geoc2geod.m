@@ -1,4 +1,4 @@
-function [phiD, lambdaD, h] = geoc2geod(phiC, lambdaC, r, a, e);
+function [phiD, lambdaD, h] = geoc2geod(phiC, lambdaC, r, a, e)
 
 % SYNTAX:
 %   [phiD, lambdaD, h] = geoc2geod(phiC, lambdaC, r, a, e);
