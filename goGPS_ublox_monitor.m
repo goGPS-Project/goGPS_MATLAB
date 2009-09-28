@@ -287,7 +287,7 @@ while flag
                 lock_R = cell_rover{3,i}(:,7);
 
                 %manage "nearly null" data
-                ph_R(find(ph_R < 1e-100)) = 0;
+                ph_R(find(abs(ph_R) < 1e-100)) = 0;
 
                 %counter increment
                 t = t+1;

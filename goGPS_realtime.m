@@ -564,7 +564,7 @@ while flag
                     %snr_R(:,index) = 9*ones(32,1);
 
                     %manage "nearly null" data
-                    pos = find(ph_R(:,index) < 1e-100);
+                    pos = find(abs(ph_R(:,index)) < 1e-100);
                     ph_R(pos,index) = 0;
                     
                     type = [type 'RXM-RAW '];
@@ -792,7 +792,7 @@ while flag
                 %snr_M(:,index) = 9*ones(32,1);
 
                 %manage "nearly null" data
-                pos = find(ph_M(:,index) < 1e-100);
+                pos = find(abs(ph_M(:,index)) < 1e-100);
                 ph_M(pos,index) = 0;
 
                 type = [type num2str(cell_master{1,i}) ' '];
