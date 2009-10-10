@@ -248,8 +248,15 @@ pid = zeros(p_max,1);
 window = 20;
 
 %reference circle (for covariance plot)
-alpha = 0.05;                       % significance level
-r = sqrt(chi2inv(1-alpha,2));       % circle radius
+try
+    % if Statistics Toolbox is installed
+    alpha = 0.05;                       % significance level
+    r = sqrt(chi2inv(1-alpha,2));       % circle radius
+catch
+    % if Statistics Toolbox is not installed,
+    % then alpha = 0.05, chi2inv(1-alpha,2) = 5.991
+    r = sqrt(5.991);
+end
 theta = (0 : 2*pi/100 : 2*pi)';     % angle values
 x_circle(:,1) = r * cos(theta);     % x-coordinate of the circle
 x_circle(:,2) = r * sin(theta);     % y-coordinate of the circle

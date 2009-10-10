@@ -58,7 +58,13 @@ rho = 90-el;
 
 x = rho .* cos(theta);
 y = rho .* sin(theta);
-D = squareform(pdist([x y])) + 180*eye(length(rho));
+try
+    % if Statistics Toolbox is installed
+    D = squareform(pdist([x y])) + 180*eye(length(rho));
+catch
+    % if Statistics Toolbox is not installed
+    D = [];
+end
 
 X = x(:,ones(length(x),1));
 Y = y(:,ones(length(y),1));
@@ -92,8 +98,6 @@ for i = 1: length(sat)
    %h = text(rho(i)*cos(theta(i)),rho(i)*sin(theta(i)),num2str(sat(i)));
    set(h,'Color','k')
    set(h,'FontWeight','bold')
-end;
+end
 title('sky plot')
 hold off
-
-%-------------------------------------------------------------------------------

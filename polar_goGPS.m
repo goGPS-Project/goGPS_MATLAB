@@ -1,4 +1,4 @@
-function polar(theta,rho,flag,line_style,cutoff)
+function polar_goGPS(theta,rho,flag,line_style,cutoff)
 %POLAR  Polar coordinate plot.
 %   POLAR(THETA, RHO) makes a plot using polar coordinates of
 %   the angle THETA, in radians, versus the radius RHO.
