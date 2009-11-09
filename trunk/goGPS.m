@@ -7,15 +7,14 @@
 %                    %%%%%  %%%%%   %%%%%  %     %%%%%
 %
 %
-%---------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha 		  			
-% 		 				
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini* 	   			
-% 	 	    
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy 	 	  		
+%----------------------------------------------------------------------------------------------
+%                           goGPS v0.1 pre-alpha
 %
-%   (ASCII-art borrowed from http://patorjk.com/software/taag/)
-%---------------------------------------------------------------------------------------------
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
+%----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -106,7 +105,9 @@ else
 
    flag_cov = 0;    % plot error ellipse --> no=0, yes=1
    
-   flag_COM = 0;    % u-blox COM automatic detection
+   flag_COM = 0;    % u-blox COM automatic detection --> no=0, yes=1
+   
+   flag_NTRIP = 1;  % use NTRIP --> no=0, yes=1
 
    %----------------------------------------------------------------------------------------------
    % GLOBAL VARIABLE INITIALIZATION / USER-DEFINED SETTINGS
@@ -804,7 +805,7 @@ elseif (mode == 6)
 
 elseif (mode == 11)
 
-    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
+    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: UBLOX MONITORING
@@ -823,7 +824,7 @@ elseif (mode == 12)
 
 elseif (mode == 13)
 
-    goGPS_master_monitor(filerootOUT);
+    goGPS_master_monitor(filerootOUT, flag_NTRIP);
     
     %interrupt execution
     break
@@ -1158,3 +1159,5 @@ toc
 %      __/\\_____\\\__\//\\\__/\\\___\/\\\_______\/\\\__\/\\\_____________/\\\______\//\\\__  
 %       _\//\\\\\\\\____\///\\\\\/____\//\\\\\\\\\\\\/___\/\\\____________\///\\\\\\\\\\\/___ 
 %        __\////////_______\/////_______\////////////_____\///_______________\///////////_____
+%
+%(ASCII-art from http://patorjk.com/software/taag/)

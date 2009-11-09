@@ -7,9 +7,10 @@
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -269,7 +270,8 @@ id_ellipse = [];
 %-------------------------------------------------------------------------------
 
 global COMportR
-global ntrip_ip ntrip_port ntrip_user ntrip_pw ntrip_mountpoint
+global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
+global server_delay
 global nmea_init
 
 if (mode == 11 | mode == 12) & flag_COM == 1
@@ -278,18 +280,24 @@ if (mode == 11 | mode == 12) & flag_COM == 1
 
    if (isempty(COMportR))
         %Override rover data input port
-        COMportR = 'COM6';
+        COMportR = 'COM8';
    end
 else
-    COMportR = 'COM6';
+    COMportR = 'COM8';
 end
 
+%MASTER/NTRIP connection parameters
+master_ip = 'xxx.xxx.xxx.xxx';
+master_port = 2101;
+
 %NTRIP parameters
-ntrip_ip = 'xxx.xxx.xxx.xxx';
-ntrip_port = 2101;
 ntrip_user = 'uuuuuu';
 ntrip_pw = 'ppppp';
 ntrip_mountpoint = 'mmmmmmm';
+
+%server waiting time (to check if packet transmission is finished)
+% ( 0 < waiting time < 1, depending on server speed)
+server_delay = 0.05;
 
 %Initial NMEA sentence required by some NTRIP casters
 nmea_init = NMEA_string_generator([XM YM ZM],5);
@@ -321,8 +329,8 @@ global link_filename kml_filename
 
 %path to link to Google Earth executable
 current_path = pwd;
-current_path(find(current_path == '\')) = '/';
-GE_path = [current_path '/../data/google_earth/googleearth.exe.lnk'];
+current_path(current_path == '\') = '/';
+GE_path = ['"' current_path '/../data/google_earth/googleearth.exe.lnk"'];
 
 %KML file append(1) or re-write(0)
 GE_append = 0;

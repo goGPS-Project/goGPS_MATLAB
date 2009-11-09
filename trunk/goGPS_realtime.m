@@ -1,4 +1,4 @@
-function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
+function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov,
@@ -10,6 +10,7 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, ref_
 %   flag_ms = plot master station flag
 %   flag_ge =  google earth flag
 %   flag_cov = plot error ellipse flag
+%   flag_NTRIP = use/don't use NTRIP flag
 %   ref_path = reference path
 %   mat_path = reference path adjacency matrix
 %   pos_M = master station position (X,Y,Z)
@@ -26,9 +27,10 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, ref_
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -46,7 +48,7 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, ref_
 %----------------------------------------------------------------------------------------------
 
 global o1 o2 nN
-global COMportR ntrip_ip ntrip_port nmea_init connection_delay
+global COMportR master_ip master_port nmea_init server_delay connection_delay
 global link_filename kml_filename
 global azR elR distR azM elM distM
 global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
@@ -57,7 +59,7 @@ global master rover
 %------------------------------------------------------
 
 %dep_master = [];     % master binary stream save
-%dep_rover = [];      % rover binary stream save
+%dep_rover  = [];      % rover binary stream save
 
 %dep_Eph    = [];     % Kalman filter input save
 
@@ -156,7 +158,7 @@ nN = 32;
 
 ntripstring = NTRIP_string_generator(nmea_init);
 
-master = tcpip(ntrip_ip,ntrip_port);
+master = tcpip(master_ip,master_port);
 set(master,'InputBufferSize', 5096);
 fopen(master);
 fwrite(master,ntripstring);
@@ -564,7 +566,7 @@ while flag
                     %snr_R(:,index) = 9*ones(32,1);
 
                     %manage "nearly null" data
-                    pos = find(abs(ph_R(:,index)) < 1e-100);
+                    pos = abs(ph_R(:,index)) < 1e-100;
                     ph_R(pos,index) = 0;
                     
                     type = [type 'RXM-RAW '];
@@ -638,7 +640,7 @@ while flag
     %ephemerides update cycle
     conf_eph = (sum(abs(Eph),1) == 0);
     
-    [snr_sorted, sat_index] = sort(snr_R(:, index),1,'descend');
+    [~, sat_index] = sort(snr_R(:, index),1,'descend');
     clear snr_sorted
 
     conf_sat_eph = conf_sat_eph(sat_index);
@@ -691,7 +693,7 @@ while flag
     test_master = 0;
 
     %maximum master waiting time
-    dtMax_master = 0.7;
+    dtMax_master = 0.6;
 
     %multiple condition: while (I have not received the 1002/1004 message for the time_GPS epoch) AND (time is not expired)
     while (test_master == 0) & (current_time-start_time-step_time < dtMax_master)
@@ -701,7 +703,7 @@ while flag
 
         %TCP-IP port check
         master_1 = get(master,'BytesAvailable');
-        pause(0.05);
+        pause(server_delay);
         master_2 = get(master,'BytesAvailable');
 
         %check if package writing is finished
@@ -713,13 +715,30 @@ while flag
             data_master = data_master (:);                    %transpose (8bit x N matrix)
             data_master = data_master';                       %conversion to string (8N bit vector)
             %dep_master = strcat(dep_master,data_master);
+            
+            pos = 1;
+            sixofeight = [];
+            is_rtcm2 = 1;
+            
+            while (pos + 7 <= length(data_master))
+                if (~strcmp(data_master(pos:pos+1),'01'))
+                    is_rtcm2 = 0;
+                    break
+                end
+                sixofeight = [sixofeight fliplr(data_master(pos+2:pos+7))];
+                pos = pos + 8;
+            end
 
-            cell_master = [cell_master decode_rtcm(data_master)];   %RTCM decoding and appending
+            if(is_rtcm2)
+                cell_master = [cell_master decode_rtcm2(sixofeight,time_GPS)]; %RTCM 2 decoding
+            else
+                cell_master = [cell_master decode_rtcm3(data_master)];         %RTCM 3 decoding and appending
+            end
         end
 
-        %detect the last read 1002/1004 message
+        %detect the last read 19/1002/1004 message
         i = size(cell_master,2);
-        while (i > 0) & (cell_master{1,i} ~= 1002) & (cell_master{1,i} ~= 1004)
+        while (i > 0) & (isempty(cell_master{1,i}) | ((cell_master{1,i} ~= 19) & (cell_master{1,i} ~= 1002) & (cell_master{1,i} ~= 1004)))
             i = i - 1;
         end
 
@@ -772,56 +791,127 @@ while flag
 
     %read message type
     type = '';
+    
+    pos_ph = [];
 
     for i = 1 : size(cell_master,2)
-
-        %1002/1004 message data save
-        if (cell_master{1,i} == 1002)  | (cell_master{1,i} == 1004)
-
-            %buffer index computation
-            index = time_GPS - round(cell_master{2,i}(2)) + 1;
-
-            if (index <= B)
-
-                %buffer writing
-                tick_M(index)  = 1;
-                time_M(index)  = cell_master{2,i}(2);
-                pr_M(:,index)  = cell_master{3,i}(:,2);
-                ph_M(:,index)  = cell_master{3,i}(:,3);
-                snr_M(:,index) = cell_master{3,i}(:,5);
-                %snr_M(:,index) = 9*ones(32,1);
-
-                %manage "nearly null" data
-                pos = find(abs(ph_M(:,index)) < 1e-100);
-                ph_M(pos,index) = 0;
-
-                type = [type num2str(cell_master{1,i}) ' '];
-
+        
+        if (~isempty(cell_master{1,i}))
+            switch cell_master{1,i}
+                
+                %message 18 (RTCM2)
+                case 18
+                    
+                    %buffer index computation
+                    index = time_GPS - round(cell_master{2,i}(2)) + 1;
+                    
+                    pos_ph = [pos_ph index];
+                    
+                    if (index <= B)
+                        
+                        %%buffer writing
+                        %tick_M(index) = 1;
+                        %time_M(index) = cell_master{2,i}(2);
+                        %
+                        %if L1
+                        if (cell_master{2,i}(1) == 0)
+                            
+                            ph_M(:,index) = cell_master{3,i}(:,7);
+                            
+                            %manage "nearly null" data
+                            ph_M(abs(ph_M) < 1e-100) = 0;
+                        end
+                        
+                        type = [type '18 '];
+                    end
+                    
+                %message 19 (RTCM2)
+                case 19
+                    
+                    %buffer index computation
+                    index = time_GPS - round(cell_master{2,i}(2)) + 1;
+                    
+                    if (index <= B)
+                        
+                        %buffer writing
+                        tick_M(index) = 1;
+                        time_M(index) = cell_master{2,i}(2);
+                        
+                        %if L1
+                        if (cell_master{2,i}(1) == 0)
+                            pr_M(:,index) = cell_master{3,i}(:,7);
+                        end
+                        
+                        type = [type '19 '];
+                    end
+                    
+                %message 3 (RTCM2)
+                case 3
+                    
+                    coordX_M = cell_master{2,i}(1);
+                    coordY_M = cell_master{2,i}(2);
+                    coordZ_M = cell_master{2,i}(3);
+                    pos_M = [coordX_M; coordY_M; coordZ_M];
+                    
+                    type = [type '3 '];
+                    
+                %message 1002/1004 (RTCM3)
+                case {1002, 1004}
+                    
+                    %buffer index computation
+                    index = time_GPS - round(cell_master{2,i}(2)) + 1;
+                    
+                    if (index <= B)
+                        
+                        %buffer writing
+                        tick_M(index)  = 1;
+                        time_M(index)  = cell_master{2,i}(2);
+                        pr_M(:,index)  = cell_master{3,i}(:,2);
+                        ph_M(:,index)  = cell_master{3,i}(:,3);
+                        snr_M(:,index) = cell_master{3,i}(:,5);
+                        %snr_M(:,index) = 9*ones(32,1);
+                        
+                        %manage "nearly null" data
+                        pos = abs(ph_M(:,index)) < 1e-100;
+                        ph_M(pos,index) = 0;
+                        
+                        type = [type num2str(cell_master{1,i}) ' '];
+                        
+                    end
+                    
+                %message 1006 (RTCM3)
+                case 1006
+                    
+                    coordX_M = cell_master{2,i}(8);
+                    coordY_M = cell_master{2,i}(9);
+                    coordZ_M = cell_master{2,i}(10);
+                    height_M = cell_master{2,i}(11);
+                    pos_M = [coordX_M; coordY_M; coordZ_M];
+                    
+                    type = [type '1006 '];
+                    
+                %message 1019 (RTCM3)
+                case 1019
+                    
+                    %satellite number
+                    sat = cell_master{2,i}(1);
+                    
+                    Eph(:,sat) = cell_master{2,i}(:);
+                    
+                    type = [type '1019 '];
+                    
             end
-
-            %1006 message data save
-        elseif (cell_master{1,i} == 1006)
-
-            coordX_M = cell_master{2,i}(8);
-            coordY_M = cell_master{2,i}(9);
-            coordZ_M = cell_master{2,i}(10);
-            height_M = cell_master{2,i}(11);
-            pos_M = [coordX_M; coordY_M; coordZ_M];
-
-            type = [type '1006 '];
-
-            %1019 message data save
-        elseif (cell_master{1,i} == 1019)
-
-            %satellite number
-            sat = cell_master{2,i}(1);
-
-            Eph(:,sat) = cell_master{2,i}(:);
-
-            type = [type '1019 '];
-
         end
     end
+    
+    %Resolution of 2^24 cy carrier phase ambiguity
+    %caused by 32-bit data field restrictions (RTCM2)
+    if(test_master & is_rtcm2 & pr_M(pos_ph))
+        ambig = 2^23;
+        n = floor( (pr_M(:,pos_ph)/lambda1-ph_M(pos_ph) / ambig + 0.5 ));
+        ph_M(pos_ph) = ph_M(pos_ph) + n*ambig;
+    end
+
 
     %execution time computation (end of master decoding)
     dt_decM = etime(clock,t0);
@@ -833,7 +923,7 @@ while flag
 
     %visualization
     if ~isempty(type)
-        i = min(b,B);                        %pointer to the buffer of to the last buffer cell
+        i = min(b,B);                        %pointer to the last buffer cell
         sat_pr = find(pr_M(:,i) ~= 0);       %satellites with code available
         sat_ph = find(ph_M(:,i) ~= 0);       %satellites with phase available
         sat = union(sat_pr,sat_ph);          %satellites with code or phase available
@@ -914,8 +1004,8 @@ while flag
             data = clock;
 
             %satellites with observations available
-            satObs_R = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) );
-            satObs_M = find( (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0) );
+            %satObs_R = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) );
+            %satObs_M = find( (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0) );
 
             %satellites with ephemerides available
             satEph = find(sum(abs(Eph))~=0);
@@ -940,7 +1030,7 @@ while flag
             %if all the visible satellites ephemerides have been transmitted
             %and if the total number of satellites is >= 4
             if (ismember(satObs,satEph)) & (length(satObs) >= 4)
-%             if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
+            %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
 
                 %input data save
                 t0 = clock;
@@ -1028,9 +1118,11 @@ while flag
                 fprintf('vel = %.4f km/h\n', vel_t*3.6);
 
                 %send a new NMEA string
-                nmea_update = sprintf('%s\r\n',NMEA_string_generator([pos_t(1); pos_t(2); pos_t(3)],sum(abs(conf_sat))));
-                fwrite(master,nmea_update);
-                fprintf('NMEA sent\n');
+                if (flag_NTRIP)
+                    nmea_update = sprintf('%s\r\n',NMEA_string_generator([pos_t(1); pos_t(2); pos_t(3)],sum(abs(conf_sat))));
+                    fwrite(master,nmea_update);
+                    fprintf('NMEA sent\n');
+                end
 
                 %counter increment
                 t = t + 1;
@@ -1048,7 +1140,7 @@ while flag
                 if strcmp(IPaddressM,'127.0.0.1')
 
                     %close master connection
-                    fclose(master)
+                    fclose(master);
 
                     %visualization
                     fprintf('wait for reconnection...\n');
@@ -1061,11 +1153,13 @@ while flag
                     pause(connection_delay); %wait a bit for the connection to be re-established
 
                     %start a new connection
-                    ntripstring = NTRIP_string_generator(nmea_init);
-                    master = tcpip(ntrip_ip,ntrip_port);
+                    master = tcpip(master_ip,master_port);
                     set(master,'InputBufferSize', 5096);
-                    fopen(master)
-                    fwrite(master,ntripstring);
+                    fopen(master);
+					if (flag_NTRIP)
+					    ntripstring = NTRIP_string_generator(nmea_init);
+                        fwrite(master,ntripstring);
+					end
 
                     %wait until the buffer writing is started before continuing
                     while get(master,'BytesAvailable') == 0, end;
@@ -1168,7 +1262,7 @@ while flag
                 fprintf('vel = %.4f km/h\n', vel_t*3.6);
 
                 %send a new NMEA string every 10 epochs
-                if (mod(t,10) == 0)
+                if (flag_NTRIP) & (mod(t,10) == 0)
                     nmea_update = sprintf('%s\r\n',NMEA_string_generator([pos_t(1); pos_t(2); pos_t(3)],sum(abs(conf_sat))));
                     fwrite(master,nmea_update);
                     fprintf('NMEA sent\n');
@@ -1287,7 +1381,7 @@ while flag
                     fprintf('vel = %.4f km/h\n', vel_t*3.6);
 
                     %send a new NMEA string every 10 epochs
-                    if (mod(t,10) == 0)
+                    if (flag_NTRIP) & (mod(t,10) == 0)
                         nmea_update = sprintf('%s\r\n',NMEA_string_generator([pos_t(1); pos_t(2); pos_t(3)],sum(abs(conf_sat))));
                         fwrite(master,nmea_update);
                         fprintf('NMEA sent\n');
@@ -1406,7 +1500,7 @@ while flag
                     fprintf('vel = %.4f km/h\n', vel_t*3.6);
 
                     %send a new NMEA string every 10 epochs
-                    if (mod(t,10) == 0)
+                    if (flag_NTRIP) & (mod(t,10) == 0)
                         nmea_update = sprintf('%s\r\n',NMEA_string_generator([pos_t(1); pos_t(2); pos_t(3)],sum(abs(conf_sat))));
                         fwrite(master,nmea_update);
                         fprintf('NMEA sent\n');
@@ -1460,14 +1554,16 @@ while flag
                             lastB = 1;
 
                             %close the old connection
-                            fclose(master)
+                            fclose(master);
 
                             %start a new connection
-                            ntripstring = NTRIP_string_generator(nmea_init);
-                            master = tcpip(ntrip_ip,ntrip_port);
+                            master = tcpip(master_ip,master_port);
                             set(master,'InputBufferSize', 5096);
-                            fopen(master)
-                            fwrite(master,ntripstring)
+                            fopen(master);
+							if (flag_NTRIP)
+							    ntripstring = NTRIP_string_generator(nmea_init);
+                                fwrite(master,ntripstring);
+							end
                             %pause(connection_delay);
 
                         end
@@ -1577,7 +1673,7 @@ while flag
                         fprintf('vel = %.4f km/h\n', vel_t*3.6);
 
                         %send a new NMEA string every 10 epochs
-                        if (mod(t,10) == 0)
+                        if (flag_NTRIP) & (mod(t,10) == 0)
                             nmea_update = sprintf('%s\r\n',NMEA_string_generator([pos_t(1); pos_t(2); pos_t(3)],sum(abs(conf_sat))));
                             fwrite(master,nmea_update);
                             fprintf('NMEA sent\n');
@@ -1706,7 +1802,7 @@ while flag
                     end
 
                     %send a new NMEA string every 10 epochs
-                    if (mod(t,10) == 0)
+                    if (flag_NTRIP) & (mod(t,10) == 0)
                         nmea_update = sprintf('%s\r\n',NMEA_string_generator([pos_t(1); pos_t(2); pos_t(3)],sum(abs(conf_sat))));
                         fwrite(master,nmea_update);
                         fprintf('NMEA sent\n');
