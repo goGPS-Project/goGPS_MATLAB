@@ -39,7 +39,7 @@ function rtplot_googleearth_cov (t, pos_R, covpos_R, link_filename, kml_filename
 
 global a e
 global conf_sat
-global GE_path GE_append
+global GE_append
 global x_circle
 
 %rover position coordinates X Y Z
@@ -98,8 +98,8 @@ if (t == 1)
 
     %run google earth (in background)
     current_path = pwd;
-    current_path(find(current_path == '\')) = '/';
-    [command] = sprintf([GE_path ' %s/%s &'],current_path,link_filename);
+    current_path(current_path == '\') = '/';
+    [command] = sprintf('"%s/%s"&',current_path,link_filename);
     system(command);
     %pause(5);
 end

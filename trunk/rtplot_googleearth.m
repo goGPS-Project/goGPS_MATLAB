@@ -37,7 +37,7 @@ function rtplot_googleearth (t, pos_R, link_filename, kml_filename, data)
 %----------------------------------------------------------------------------------------------
 
 global conf_sat
-global GE_path GE_append
+global GE_append
 
 %rover position coordinates X Y Z
 X = pos_R(1);
@@ -73,7 +73,7 @@ if (t == 1)
     %run google earth (in background)
     current_path = pwd;
     current_path(current_path == '\') = '/';
-    [command] = sprintf([GE_path ' "%s/%s" &'],current_path,link_filename);
+    [command] = sprintf('"%s/%s"&',current_path,link_filename);
     system(command);
     %pause(5);
 end

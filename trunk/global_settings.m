@@ -324,13 +324,8 @@ connection_delay = 5;
 % GOOGLE EARTH
 %-------------------------------------------------------------------------------
 
-global GE_path GE_append
+global GE_append
 global link_filename kml_filename
-
-%path to link to Google Earth executable
-current_path = pwd;
-current_path(current_path == '\') = '/';
-GE_path = ['"' current_path '/../data/google_earth/googleearth.exe.lnk"'];
 
 %KML file append(1) or re-write(0)
 GE_append = 0;
