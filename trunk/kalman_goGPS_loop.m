@@ -37,9 +37,10 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -150,8 +151,8 @@ for i = 1:size(sat_pr)
 end
 
 %removal of satellites with elevation or SNR lower than the respective threshold
-sat_pr(find(ismember(sat_pr,bad_sat) == 1)) = [];
-sat(find(ismember(sat,bad_sat) == 1)) = [];
+sat_pr(ismember(sat_pr,bad_sat) == 1) = [];
+sat(ismember(sat,bad_sat) == 1) = [];
 
 %previous pivot 
 if (pivot ~= 0)
@@ -416,17 +417,17 @@ if (nsat >= min_nsat)
 
             %weight vectors (signal-to-noise ratio)
             q_R = 10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1);
-            q_R(find(snr_R >= snr_1)) = 1;
+            q_R(snr_R >= snr_1) = 1;
             q_M = 10.^(-(snr_M-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_M-snr_1)+1);
-            q_M(find(snr_M >= snr_1)) = 1;
+            q_M(snr_M >= snr_1) = 1;
 
         elseif (weights == 3)
 
             %weight vectors (elevation and signal-to-noise ratio)
             q_R = 1 ./ (sin(elR * pi/180).^2) .* (10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1));
-            q_R(find(snr_R >= snr_1)) = 1;
+            q_R(snr_R >= snr_1) = 1;
             q_M = 1 ./ (sin(elM * pi/180).^2) .* (10.^(-(snr_M-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_M-snr_1)+1));
-            q_M(find(snr_M >= snr_1)) = 1;
+            q_M(snr_M >= snr_1) = 1;
 
         end
 
@@ -434,8 +435,8 @@ if (nsat >= min_nsat)
         q_MP = q_M(pivot,1);                  % MASTER-PIVOT
         q_RS = q_R(sat_pr);                   % ROVER-generic satellite 
         q_MS = q_M(sat_pr);                   % MASTER-generic satellite 
-        q_RS(find(sat_pr==pivot)) = [];       % ROVER-generic satellite (without pivot)
-        q_MS(find(sat_pr==pivot)) = [];       % MASTER-generic satellite (without pivot)
+        q_RS(sat_pr==pivot) = [];       % ROVER-generic satellite (without pivot)
+        q_MS(sat_pr==pivot) = [];       % MASTER-generic satellite (without pivot)
 
         %measurement noise covariance matrix
         %code-code or phase-phase co-factor matrix Q construction

@@ -37,9 +37,10 @@ function [data] = decode_RXM_EPH(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -69,13 +70,13 @@ data{1} = 'RXM-EPH';
 
 %satellite SVN (4 bytes)
 SVN = msg(pos:pos+31); pos = pos + 32;
-SVN = fliplr(reshape(SVN,8,[]));                            % byte order inversion (little endian)
+SVN = fliplr(reshape(SVN,8,[]));                  % byte order inversion (little endian)
 SVN = SVN(:)';
 SVN = bin2dec((SVN(1:32)));
 
 %Hand-Over Word
 HOW = msg(pos:pos+31); pos = pos + 32;
-HOW = fliplr(reshape(HOW,8,[]));                            % byte order inversion (little endian)
+HOW = fliplr(reshape(HOW,8,[]));                  % byte order inversion (little endian)
 HOW = HOW(:)';
 
 HOW = bin2dec(HOW(28:30));

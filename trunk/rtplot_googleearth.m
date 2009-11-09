@@ -16,9 +16,10 @@ function rtplot_googleearth (t, pos_R, link_filename, kml_filename, data)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -71,8 +72,8 @@ if (t == 1)
 
     %run google earth (in background)
     current_path = pwd;
-    current_path(find(current_path == '\')) = '/';
-    [command] = sprintf([GE_path ' %s/%s &'],current_path,link_filename);
+    current_path(current_path == '\') = '/';
+    [command] = sprintf([GE_path ' "%s/%s" &'],current_path,link_filename);
     system(command);
     %pause(5);
 end
