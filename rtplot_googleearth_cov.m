@@ -17,9 +17,10 @@ function rtplot_googleearth_cov (t, pos_R, covpos_R, link_filename, kml_filename
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

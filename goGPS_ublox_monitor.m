@@ -12,9 +12,10 @@ function goGPS_ublox_monitor(filerootOUT)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -287,7 +288,7 @@ while flag
                 lock_R = cell_rover{3,i}(:,7);
 
                 %manage "nearly null" data
-                ph_R(find(abs(ph_R) < 1e-100)) = 0;
+                ph_R(abs(ph_R) < 1e-100) = 0;
 
                 %counter increment
                 t = t+1;

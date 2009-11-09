@@ -17,10 +17,10 @@ function MQ_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, phase)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-%
+% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
