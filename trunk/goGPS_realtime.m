@@ -191,8 +191,7 @@ while (~reply_save)
     reply_save = ublox_CFG_CFG(rover, 'save');
 
     if (tries > 10)
-        fclose(rover);
-        error('It was not possible to save the receiver configuration.');
+        disp('It was not possible to save the receiver configuration.');
     end
 end
 
@@ -693,7 +692,7 @@ while flag
     test_master = 0;
 
     %maximum master waiting time
-    dtMax_master = 0.6;
+    dtMax_master = 0.7;
 
     %multiple condition: while (I have not received the 1002/1004 message for the time_GPS epoch) AND (time is not expired)
     while (test_master == 0) & (current_time-start_time-step_time < dtMax_master)
@@ -743,7 +742,7 @@ while flag
         end
 
         %check the exit condition
-        if (i > 0) & (cell_master{2,i}(2) == time_GPS)
+        if (i > 0) & (round(cell_master{2,i}(2)) == time_GPS)
             test_master = 1;
         end
 
@@ -835,7 +834,7 @@ while flag
                         
                         %buffer writing
                         tick_M(index) = 1;
-                        time_M(index) = cell_master{2,i}(2);
+                        time_M(index) = round(cell_master{2,i}(2));
                         
                         %if L1
                         if (cell_master{2,i}(1) == 0)
@@ -1897,13 +1896,12 @@ fprintf('Restoring saved u-blox receiver configuration...\n');
 reply_load = 0;
 tries = 0;
 
-while (~reply_load)
+while (reply_save & ~reply_load)
     tries = tries + 1;
     reply_load = ublox_CFG_CFG(rover, 'load');
 
     if (tries > 10)
-        fclose(rover);
-        error('It was not possible to reload the receiver previous configuration.');
+        disp('It was not possible to reload the receiver previous configuration.');
     end
 end
 
