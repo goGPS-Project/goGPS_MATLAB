@@ -41,11 +41,11 @@ function [data] = decode_rtcm3(msg)
 %----------------------------------------------------------------------------------------------
 
 preamble = '11010011';      % FIXED transport layer header (8 bit)
-reserved = '000000';        % reserved field (6 bit). It could change in the future!
+% reserved = '000000';        % reserved field (6 bit). It could change in the future!
 
-codeBIN = [preamble reserved];      % binary initial stream
+% codeBIN = [preamble reserved];      % binary initial stream
 
-pos = findstr(msg, codeBIN);        % message initial index
+pos = findstr(msg, preamble);        % message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE IDENTIFICATION
@@ -63,9 +63,7 @@ if ~isempty(pos)
     % counter initialization
     i = 0;
 
-    while (pos <= length(msg)) & (strcmp(msg(pos:pos+13),codeBIN))
-
-        %msg(pos:pos+13)
+    while (pos <= length(msg)) & (strcmp(msg(pos:pos+7),preamble))
 
         % counter increment
         i = i + 1;
@@ -178,9 +176,6 @@ if ~isempty(pos)
         while (mod(pos,8) ~= 1)
             pos = pos + 1;
         end
-
-        %msg(pos:pos+13)
-        %pause
 
     end
 end
