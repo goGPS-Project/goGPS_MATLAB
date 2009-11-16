@@ -38,7 +38,7 @@ global master_ip ntrip_user ntrip_pw ntrip_mountpoint
 % ENCODE USER AND PASSWORD (BASE 64 ENCODING)
 %-------------------------------------------------------------------------------
 
-encoded_auth = base64encode(sprintf('%s:%s',ntrip_user,ntrip_pw));
+encoded_auth = base64encode(sprintf('%s:%s',ntrip_user,ntrip_pw),'');
 
 %-------------------------------------------------------------------------------
 % NTRIP STRING GENERATION
