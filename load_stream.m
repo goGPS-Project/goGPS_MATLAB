@@ -1,8 +1,8 @@
-function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, Eph_M, ...
+function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
           loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot)
 
 % SYNTAX:
-%   [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, Eph_M, ...
+%   [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
 %    loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot);
 %
 % INPUT:
@@ -16,7 +16,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, Ep
 %   pr1_M    = MASTER-SATELLITE code-pseudorange (carrier L1)
 %   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
 %   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
-%   Eph_M    = matrix of 21 parameters each satellite (MASTER)
+%   Eph      = matrix of 21 ephemerides for each satellite
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
 %   data_rover_all  = ROVER overall stream 
@@ -27,7 +27,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, Ep
 %   by the permanent station (MASTER) in RTCM format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -48,6 +48,8 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, Ep
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+global lambda1
 
 %ROVER stream reading
 data_rover_all = [];                                                 %overall stream
@@ -74,28 +76,51 @@ end
 if ~isempty(data_rover_all)
 
     %displaying
-    fprintf(['Decoding rover data \n']);
+    fprintf('Decoding rover data \n');
 
     %message decoding
     [cell_rover] = decode_ublox(data_rover_all);
 
     %initialization (to make the writing faster)
     Ncell  = size(cell_rover,2);                          %number of read RTCM packets
-    time_R = zeros(Ncell,1);                              %GPS time
+    time_R = zeros(Ncell,1);                              %GPS time of week
     pr1_R  = zeros(32,Ncell);                             %code observations
     ph1_R  = zeros(32,Ncell);                             %phase observations
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
+    Eph_R  = zeros(21,32,Ncell);                          %ephemerides
 
     i = 1;
     for j = 1 : Ncell
         if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
-
+            
             time_R(i) = round(cell_rover{2,j}(1));
             pr1_R(:,i) = cell_rover{3,j}(:,2);
             ph1_R(:,i) = cell_rover{3,j}(:,1);
             snr_R(:,i) = cell_rover{3,j}(:,6);
-
+            
+            %manage "nearly null" data
+            pos = abs(ph1_R(:,i)) < 1e-100;
+            ph1_R(pos,i) = 0;
+            
+            %phase rollover adjustement
+            pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
+            if(sum(pos) ~= 0)
+                ambig = 2^23;
+                n = floor( (pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
+                ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
+            end
+            
             i = i + 1;
+
+            Eph_R(:,:,i) = Eph_R(:,:,i-1);                %previous epoch ephemerides copying
+            
+        elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
+
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            
+            Eph_R(:,sat,i) = cell_rover{2,j}(:);
+
         end
     end
     
@@ -103,9 +128,7 @@ if ~isempty(data_rover_all)
     time_R(i:end)  = [];
     pr1_R(:,i:end) = [];
     ph1_R(:,i:end) = [];
-
-    %manage "nearly null" data
-    ph1_R(find(ph1_R < 1e-100)) = 0;
+    Eph_R(:,:,i:end) = [];
 
 else
     %displaying
@@ -115,6 +138,7 @@ else
     pr1_R  = [];                         %code observations
     ph1_R  = [];                         %phase observations
     snr_R  = [];                         %signal-to-noise ratio
+    Eph_R  = [];                         %ephemerides
 
 end
 
@@ -145,10 +169,27 @@ end
 if ~isempty(data_master_all)
 
     %displaying
-    fprintf(['Decoding master data \n']);
+    fprintf('Decoding master data \n');
+    
+    pos = 1;
+    sixofeight = [];
+    is_rtcm2 = 1;
+    
+    while (pos + 7 <= length(data_master_all))
+        if (~strcmp(data_master_all(pos:pos+1),'01'))
+            is_rtcm2 = 0;
+            break
+        end
+        sixofeight = [sixofeight fliplr(data_master_all(pos+2:pos+7))];
+        pos = pos + 8;
+    end
 
     %stream decodification
-    [cell_master] = decode_rtcm(data_master_all);
+    if(is_rtcm2)
+        [cell_master] = decode_rtcm2(sixofeight);
+    else
+        [cell_master] = decode_rtcm3(data_master_all);
+    end
 
     %initialization (to make the writing faster)
     Ncell  = size(cell_master,2);                         %number of read RTCM packets
@@ -156,11 +197,15 @@ if ~isempty(data_master_all)
     pr1_M  = zeros(32,Ncell);                             %code observations
     ph1_M  = zeros(32,Ncell);                             %phase observations
     snr_M  = zeros(32,Ncell);                             %signal-to-noise ratio
+    pos_M  = zeros(3,Ncell);                              %master station position
     Eph_M  = zeros(21,32,Ncell);                          %ephemerides
 
     i = 1;
     for j = 1 : Ncell
-        if (cell_master{1,j} == 1002) | (cell_master{1,j} == 1004) %RTCM 1002 or 1004 message
+        if (cell_master{1,j} == 3)
+        elseif (cell_master{1,j} == 18)
+        elseif (cell_master{1,j} == 19)
+        elseif (cell_master{1,j} == 1002) | (cell_master{1,j} == 1004) %RTCM 1002 or 1004 message
 
             time_M(i)  = cell_master{2,j}(2);             %GPS time logging
             pr1_M(:,i) = cell_master{3,j}(:,2);           %code observations logging
@@ -169,8 +214,32 @@ if ~isempty(data_master_all)
 
             i = i+1;                                      %epoch counter increase
 
-            Eph_M(:,:,i)   = Eph_M(:,:,i-1);              %previous epoch ephemerides copying
-
+            %if a master position update message arrived before this
+            %observation message (and it's not the first one)
+            if (i > 2) & (pos_M(:,i-1) ~= pos_M(:,i-2))
+                pos_M(:,i) = pos_M(:,i-1);                %move the updated position to the correct epoch
+                pos_M(:,i-1) = pos_M(:,i-2);              %restore the position at the previous epoch
+            else
+                pos_M(:,i) = pos_M(:,i-1);
+            end
+            Eph_M(:,:,i) = Eph_M(:,:,i-1);                %previous epoch ephemerides copying
+            
+        elseif (cell_master{1,j} == 1005)                 %RTCM 1005 message
+            
+            coordX_M = cell_master{2,j}(8);
+            coordY_M = cell_master{2,j}(9);
+            coordZ_M = cell_master{2,j}(10);
+            
+            pos_M(:,i) = [coordX_M; coordY_M; coordZ_M];
+            
+        elseif (cell_master{1,j} == 1006)                 %RTCM 1006 message
+            
+            coordX_M = cell_master{2,j}(8);
+            coordY_M = cell_master{2,j}(9);
+            coordZ_M = cell_master{2,j}(10);
+            
+            pos_M(:,i) = [coordX_M; coordY_M; coordZ_M];
+            
         elseif (cell_master{1,j} == 1019)                 %RTCM 1019 message
 
             sat = cell_master{2,j}(1);                    %satellite number
@@ -183,9 +252,10 @@ if ~isempty(data_master_all)
     pr1_M(:,i:end) = [];
     ph1_M(:,i:end) = [];
     snr_M(:,i:end) = [];
+    pos_M(:,i:end) = [];
     Eph_M(:,:,i:end) = [];
 
-    ph1_M(find(ph1_M < 1e-100)) = 0;
+    ph1_M(ph1_M < 1e-100) = 0;
 
 else
     %displaying
@@ -195,6 +265,7 @@ else
     pr1_M  = [];                         %code observations
     ph1_M  = [];                         %phase observations
     snr_M  = [];                         %signal-to-noise ratio
+    pos_M  = [];                         %master station position
     Eph_M  = [];                         %ephemerides
 end
 
@@ -204,18 +275,20 @@ if ~isempty(time_R) & ~isempty(time_M)
 
     %initial synchronization
     while (time_R(1) < time_M(1))
-        time_R(1)  = [];                         %GPS time
-        pr1_R(:,1) = [];                         %code observations
-        ph1_R(:,1) = [];                         %phase observations
-        snr_R(:,1) = [];                         %signal-to-noise ratio
+        time_R(1)    = [];                         %GPS time
+        pr1_R(:,1)   = [];                         %code observations
+        ph1_R(:,1)   = [];                         %phase observations
+        snr_R(:,1)   = [];                         %signal-to-noise ratio
+        Eph_R(:,:,1) = [];                         %ephemerides
     end
 
     while (time_M(1) < time_R(1))
-        time_M(1)  = [];                         %GPS time
-        pr1_M(:,1) = [];                         %code observations
-        ph1_M(:,1) = [];                         %phase observations
-        snr_M(:,1) = [];                         %signal-to-noise ratio
-        Eph_M(:,1) = [];                         %ephemerides
+        time_M(1)    = [];                         %GPS time
+        pr1_M(:,1)   = [];                         %code observations
+        ph1_M(:,1)   = [];                         %phase observations
+        snr_M(:,1)   = [];                         %signal-to-noise ratio
+        pos_M(:,1)   = [];                         %master station position
+        Eph_M(:,:,1) = [];                         %ephemerides
     end
 
 end
@@ -242,12 +315,15 @@ if ~isempty(time_GPS)
             pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
             ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
             snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
+            
+            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(21,32,1), Eph_R(:,:,pos+1:end));
         end
     else
         time_R = time_GPS;
         pr1_R  = zeros(32,length(time_GPS));
         ph1_R  = zeros(32,length(time_GPS));
         snr_R  = zeros(32,length(time_GPS));
+        Eph_R  = zeros(21,32,length(time_GPS));
     end
 
     if ~isempty(time_M)
@@ -261,6 +337,7 @@ if ~isempty(time_GPS)
             pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
             ph1_M  = [ph1_M(:,1:pos)  zeros(32,1)    ph1_M(:,pos+1:end)];
             snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
+            pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
 
             Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(21,32,1), Eph_M(:,:,pos+1:end));
         end
@@ -269,6 +346,7 @@ if ~isempty(time_GPS)
         pr1_M  = zeros(32,length(time_GPS));
         ph1_M  = zeros(32,length(time_GPS));
         snr_M  = zeros(32,length(time_GPS));
+        pos_M  = zeros(3,length(time_GPS));
         Eph_M  = zeros(21,32,length(time_GPS));
     end
 
@@ -277,4 +355,9 @@ else
     loss_M = [];          %losses of signal (MASTER)    
 end
 
-%-------------------------------------------------------------------------------
+%if ephemerides coming from RTCM stream are not available, use rover ones
+if (~Eph_M)
+    Eph = Eph_R;
+else
+    Eph = Eph_M;
+end

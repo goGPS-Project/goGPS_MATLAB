@@ -5,7 +5,7 @@
 %   User-defined global settings.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -31,8 +31,14 @@
 % INPUT/OUTPUT FILENAME PREFIX
 %-------------------------------------------------------------------------------
 
-filerootIN  = '../data/data_goGPS/ultresc';
-filerootOUT = '../data/out';
+folderIN  = '../data';
+folderOUT = '../data';
+
+prefixIN  = 'yamatogawa_10';
+prefixOUT = 'out';
+
+filerootIN  = [folderIN '/' prefixIN];
+filerootOUT = [folderOUT '/' prefixOUT];
 
 i = 1;
 j = length(filerootOUT);
@@ -99,11 +105,6 @@ filename_ref = '../data/data_RINEX/basket/refBASKET.mat';
 % MASTER STATION POSITION
 %-------------------------------------------------------------------------------
 
-global XM YM ZM
-global phiM lamM hM
-global EST_M NORD_M
-global NM MM RM
-
 %Como permanent station (marker, January 2008):
 %XM = 4398306.2420;
 %YM =  704149.9120;
@@ -118,16 +119,17 @@ ZM = 4550154.8609;
 % L1: EAST=+0.0008, NORTH=-0.0004, h=0.0615
 % L2: EAST=+0.0003, NORTH=+0,      h=0.0948
 
-%Master position in geodetic coordinates
-%'a' and 'e' are global vars, but should be passed as parameters
-[phiM, lamM, hM] = cart2geod(XM, YM, ZM);
+% %Kyoto permanent station
+% XM = -3747500.8900;
+% YM =  3646525.7300;
+% ZM =  3640308.6100;
 
-%Master position in UTM coordinates (East, North, h)
-[EST_M, NORD_M] = geod2plan(phiM, lamM);
-
-NM = a / sqrt(1 - e^2 * (sin(phiM))^2);
-MM = NM * (1 - e^2) / (1 - e^2 * (sin(phiM))^2);
-RM = sqrt(NM*MM);
+%set master station position manually
+if (~flag_ms_rtcm)
+    pos_M = [XM; YM; ZM];
+else
+    pos_M = [];
+end
 
 %-------------------------------------------------------------------------------
 % KALMAN FILTER
@@ -135,7 +137,7 @@ RM = sqrt(NM*MM);
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
-global min_nsat cutoff cutoff_init snr_threshold weights order o1 o2 o3
+global min_nsat cutoff snr_threshold weights order o1 o2 o3
 
 %variance of initial state
 sigmaq0 = 1e2;
@@ -155,10 +157,11 @@ sigmaq_cod2 = 0.16;
 %(maximize to obtain a code-based solution)
 % sigmaq_ph = 0.000004;
 sigmaq_ph = 0.001;
-%sigmaq_ph = 0.001e30;
+% sigmaq_ph = 0.001e30;
 
 %variance of ambiguity combinations [cycles]
-sigmaq0_N = 10;
+%sigmaq0_N = 10;
+sigmaq0_N = 1000;
 
 %variance of DEM height [m^2]
 %(maximize to disable DEM usage)
@@ -169,10 +172,10 @@ sigmaq_dtm = 1e30;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 15;
+cutoff = 10;
 
 %initialization cut-off [degrees]
-cutoff_init = 15;
+% cutoff_init = 15;
 
 %signal-to-noise ratio threshold [dB]
 snr_threshold = 0;
@@ -199,7 +202,7 @@ o3 = order*3;
 global h_antenna
 
 %antenna height from the ground [m]
-h_antenna = 0;
+h_antenna = 1;
 % h_antenna = 1.07;
 
 %-------------------------------------------------------------------------------
@@ -245,6 +248,9 @@ p_max = 200;
 %trajectory point id
 pid = zeros(p_max,1);
 
+%master station point id
+msid = [];
+
 %dimension of the time windows (ambiguity plot)
 window = 20;
 
@@ -272,7 +278,7 @@ id_ellipse = [];
 global COMportR
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
 global server_delay
-global nmea_init
+global nmea_init nmea_update_rate
 
 if (mode == 11 | mode == 12) & flag_COM == 1
    %detect u-blox COM port
@@ -280,36 +286,40 @@ if (mode == 11 | mode == 12) & flag_COM == 1
 
    if (isempty(COMportR))
         %Override rover data input port
-        COMportR = 'COM8';
+        COMportR = 'COM7';
    end
 else
-    COMportR = 'COM8';
+    COMportR = 'COM7';
 end
 
-%MASTER/NTRIP connection parameters
-master_ip = 'xxx.xxx.xxx.xxx';
-master_port = 2101;
-
-%NTRIP parameters
-ntrip_user = 'uuuuuu';
-ntrip_pw = 'ppppp';
-ntrip_mountpoint = 'mmmmmmm';
+% %MASTER/NTRIP connection parameters
+% master_ip = 'xxx.xxx.xxx.xxx';
+% master_port = 2101;
+% 
+% %NTRIP parameters
+% ntrip_user = 'uuuuuu';
+% ntrip_pw = 'ppppp';
+% ntrip_mountpoint = 'mmmmmmm';
 
 %server waiting time (to check if packet transmission is finished)
-% ( 0 < waiting time < 1, depending on server speed)
 server_delay = 0.05;
 
 %Initial NMEA sentence required by some NTRIP casters
-nmea_init = NMEA_string_generator([XM YM ZM],5);
 
-% %approximate coordinates to initialize NMEA string
-% phiApp = 45.00;
-% lamApp = 9.00;
-% hApp = 200;
-%
-% [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a, f);
-%
-% nmea_init = NMEA_string_generator([XApp YApp ZApp],0);
+% %use permanent station coordinates
+% nmea_init = NMEA_string_generator([XM YM ZM],5);
+
+%set approximate coordinates manually to initialize NMEA string
+phiApp = 34.5922;
+lamApp = 135.5059;
+hApp = 20;
+
+[XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a, f);
+
+nmea_init = NMEA_string_generator([XApp YApp ZApp],10);
+
+%NMEA update rate (waiting time for sending a new $GGA string to NTRIP caster)
+nmea_update_rate = 10; %[sec]
 
 %-------------------------------------------------------------------------------
 % INTERNET CONNECTION
@@ -324,11 +334,7 @@ connection_delay = 5;
 % GOOGLE EARTH
 %-------------------------------------------------------------------------------
 
-global GE_append
 global link_filename kml_filename
-
-%KML file append(1) or re-write(0)
-GE_append = 0;
 
 %files used by Google Earth
 link_filename = '../data/google_earth/link.kml';

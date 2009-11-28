@@ -1,5 +1,42 @@
 function [parity, decoded_word] = check_parity(precbits, word)
 
+% SYNTAX:
+%   [parity, decoded_word] = check_parity(precbits, word)
+%
+% INPUT:
+%   precbits = two last bits of the previous message
+%   word = word to be checked and decoded
+%
+% OUTPUT:
+%   parity = boolean variable to check parity (1: OK, 0: not OK)
+%   decoded_word = decoded word
+%
+% DESCRIPTION:
+%   GPS parity checking and decoding algorithm (used also for RTCM2.x data).
+
+%----------------------------------------------------------------------------------------------
+%                           goGPS v0.1 alpha
+%
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Media Center, Osaka City University, Japan
+%----------------------------------------------------------------------------------------------
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%----------------------------------------------------------------------------------------------
+
 parity = 0;
 decoded_word = '';
 precbits_dec = zeros(1,2);

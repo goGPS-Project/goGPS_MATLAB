@@ -26,7 +26,7 @@ function kalman_goGPS_vinc_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   (X,Y,Z). Constrained path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

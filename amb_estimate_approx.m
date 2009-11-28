@@ -30,7 +30,7 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_
 %   rounded position.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

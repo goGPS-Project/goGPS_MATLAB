@@ -26,7 +26,7 @@ function [dist,proj] = ref_3d_projection(ref,EST,NORD,h)
 %               1 0 0 0 1 0 ];
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

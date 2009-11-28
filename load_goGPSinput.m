@@ -1,9 +1,9 @@
 function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
-          snr_R, snr_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (fileroot)
+          snr_R, snr_M, pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (fileroot)
 
 % SYNTAX:
 %   [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
-%    snr_R, snr_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (fileroot);
+%    snr_R, snr_M, pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (fileroot);
 %
 % INPUT:
 %   fileroot = name of the file to be read
@@ -16,6 +16,9 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %   pr1_M    = MASTER-SATELLITE code-pseudorange (carrier L1)
 %   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
 %   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
+%   snr_R    = ROVER signal-to-noise ratio
+%   snr_M    = MASTER signal-to-noise ratio
+%   pos_M    = MASTER station coordinates
 %   Eph      = matrix of 21 parameters each satellite (MASTER)
 %   delay    = delay in observations processing
 %   loss_R   = flag for the ROVER loss of signal
@@ -25,7 +28,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %   Kalman filter input data reading.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -57,6 +60,7 @@ ph1_M = [];                            %MASTER phase observations
 ph1_R = [];                            %ROVER phase observations
 snr_M = [];                            %MASTER signal-to-noise ratio
 snr_R = [];                            %ROVER signal-to-noise ratio
+pos_M = [];                            %MASTER station coordinates
 
 %observations reading
 i = 0;                                                              %epoch counter
@@ -67,7 +71,7 @@ while ~isempty(d)
     fprintf(['Reading: ' fileroot '_obs_' hour_str '.bin\n']);
     num_bytes = d.bytes;                                            %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / (3+32*6);                               %file size (number of packets)
+    num_packs = num_words / (3+32*6+3);                               %file size (number of packets)
     fid_obs = fopen([fileroot '_obs_' hour_str '.bin']);            %file opening
     buf_obs = fread(fid_obs,num_words,'double');                    %file reading
     fclose(fid_obs);                                                %file closing
@@ -80,7 +84,8 @@ while ~isempty(d)
     ph1_R    = [ph1_R     zeros(32,num_packs)];
     snr_M    = [snr_M     zeros(32,num_packs)];
     snr_R    = [snr_R     zeros(32,num_packs)];
-    for j = 0 : (3+32*6) : num_words-1
+    pos_M    = [pos_M;    zeros(3,num_packs)];
+    for j = 0 : (3+32*6+3) : num_words-1
         i = i+1;                                                    %epoch counter increase
         time_GPS(i,1) = buf_obs(j + 1);                             %observations logging
         time_M(i,1)   = buf_obs(j + 2);
@@ -91,6 +96,7 @@ while ~isempty(d)
         ph1_R(:,i)    = buf_obs(j + [100:131]);
         snr_M(:,i)    = buf_obs(j + [132:163]);
         snr_R(:,i)    = buf_obs(j + [164:195]);
+        pos_M(:,i)    = buf_obs(j + [196:198]);
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string
@@ -119,7 +125,7 @@ while ~isempty(d)
     for j = 0 : (1+672) : num_words-1
         i = i+1;                                                    %epoch counter increase
         %time_GPS(i,1) = buf_eph(j + 1);                            %GPS time logging
-        Eph(:,:,i) = reshape(buf_eph(j + [2:673]), [21,32]);        %ephemerides concatenation
+        Eph(:,:,i) = reshape(buf_eph(j + [2:673]), [21,32]);          %ephemerides concatenation
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string
@@ -139,5 +145,3 @@ delay(pos) = -1;                          %delay corrections in case of losses
 
 pos = find(time_M == 0);                  %MASTER epochs with losses
 loss_M(pos) = 1;                          %flag for MASTER losses
-
-%-------------------------------------------------------------------------------

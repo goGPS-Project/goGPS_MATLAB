@@ -17,7 +17,7 @@ function [EST, NORD, h] = cart2plan(X, Y, Z)
 %   Conversion from cartesian coordinates to planimetric coordinates (UTM WGS84).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

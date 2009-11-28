@@ -23,7 +23,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_cod_loop
 %   Standalone positioning using code.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -103,8 +103,6 @@ end
 j = 1;
 bad_sat = [];
 
-max_elR = 0;
-
 for i = 1:size(sat)
 
     %satellite position correction (clock and Earth rotation)
@@ -121,7 +119,7 @@ for i = 1:size(sat)
 end
 
 %removal of satellites with elevation or SNR lower than the respective threshold
-sat(find(ismember(sat,bad_sat) == 1)) = [];
+sat(ismember(sat,bad_sat) == 1) = [];
 
 %previous pivot 
 if (pivot ~= 0)
@@ -129,7 +127,7 @@ if (pivot ~= 0)
 end
 
 %current pivot
-[max_elR, i] = max(elR(sat));
+[~, i] = max(elR(sat));
 pivot = sat(i);
 
 %----------------------------------------------------------------------------------------
@@ -148,7 +146,6 @@ conf_cs = zeros(32,1);
 
 %number of visible satellites
 nsat = size(sat,1);
-n = nsat - 1;
 
 %------------------------------------------------------------------------------------
 % OBSERVATION EQUATIONS
@@ -192,7 +189,7 @@ if (length(sat) < length(sat_old))
     sat_dead = setdiff(sat_old,sat);
 
     %print the lost satellites
-    ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')];
+    ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')]; %#ok<VUNUS>
 end
 
 %search for a new satellite
@@ -204,7 +201,7 @@ if (length(sat) > length(sat_old))
     sat_born = setdiff(sat,sat_old);
 
     %print the new satellites
-    ['New satellites at time ' num2str(time) ': ' num2str(sat_born')];
+    ['New satellites at time ' num2str(time) ': ' num2str(sat_born')]; %#ok<VUNUS>
 end
 
 %------------------------------------------------------------------------------------
@@ -217,7 +214,7 @@ if (pivot ~= pivot_old)
     check_pivot = 1;
 
     %print the PIVOT change
-    ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)];
+    ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)]; %#ok<VUNUS>
 end
 
 %----------------------------------------------------------------------------------------

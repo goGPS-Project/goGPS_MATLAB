@@ -27,7 +27,7 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   Kalman filter output data reading.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -50,7 +50,7 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %----------------------------------------------------------------------------------------------
 
 %global variables loading
-global o1 o2 o3 nN
+global o1 o3 nN
 
 %-------------------------------------------------------------------------------
 

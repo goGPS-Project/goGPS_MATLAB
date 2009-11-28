@@ -35,7 +35,7 @@ function [data] = decode_RXM_EPH(msg)
 %   RXM-EPH binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

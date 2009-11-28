@@ -37,7 +37,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop .
 %   Constrained path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

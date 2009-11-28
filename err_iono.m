@@ -18,7 +18,7 @@ function [ionocorr] = err_iono(ionoparams, Lat, Lon, Az, El, T)
 %   Computation of the pseudorange correction due to ionospheric refraction.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 %

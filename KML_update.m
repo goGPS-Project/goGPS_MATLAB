@@ -1,13 +1,15 @@
-function KML_update (filename,lam,phi,h,nsat,date)
+function KML_update (lamR,phiR,hR,lamM,phiM,hM,nsat,date)
 
 % SYNTAX:
-%   KML_update (filename,lam,phi,h,nsat,date);
+%   KML_update (lamR,phiR,hR,lamM,phiM,hM,nsat,date);
 %
 % INPUT:
-%   filename = name of the file with extension
-%   lam = longitude [degrees]
-%   phi = latitude [degrees]
-%   h = orthometric height [m]
+%   lamR = rover longitude [degrees]
+%   phiR = rover latitude [degrees]
+%   hR   = rover orthometric height [m]
+%   lamM = master longitude [degrees]
+%   phiM = master latitude [degrees]
+%   hM   = master orthometric height [m]
 %   nsat = number of visible satellites
 %   date = date expressed as [year,month,day,hour,minutes,seconds)
 %
@@ -15,7 +17,7 @@ function KML_update (filename,lam,phi,h,nsat,date)
 %   Update a KML file (Goole Earth).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -48,23 +50,38 @@ z_pos = 'clampedToGround';
 %z_pos = 'absolute';
 
 %URL to load the icon for the points
-icon = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
+iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
+
+%URL to load the icon for the master station position
+iconM = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
 
 %string representing the ARGB color of the points
 if (nsat >= 4)
-    point_color = 'FFF5005A';
+    point_colorR = 'FFF5005A';
 else
-    point_color = 'FF0000FF';
+    point_colorR = 'FF0000FF';
 end
 
 %point size
-scale = 0.4;
+scaleR = 0.4;
 
 %label color
-label_color = point_color;
+label_colorR = point_colorR;
 
 %label size
-label_scale = 0.7;
+label_scaleR = 0.7;
+
+%string representing the ARGB color of the points
+point_colorM = 'FF00FFFF';
+
+%point size
+scaleM = 0.8;
+
+%label color
+label_colorM = point_colorM;
+
+%label size
+label_scaleM = 0.7;
 
 %-------------------------------------------------------------------------------
 % FORMAT DATE FOR KML
@@ -78,34 +95,34 @@ minute = num2str(date(1,5));
 second = num2str(floor(date(1,6)));
 
 %[second] = num2str(floor(str2double(second)));
-[null, ncifre] = size(year);
+[~, ncifre] = size(year);
 if (ncifre == 1)
     [year] = sprintf('200%s',year);
 elseif (ncifre == 2)
     [year] = sprintf('20%s',year);
 end
 
-[null, ncifre] = size(month);
+[~, ncifre] = size(month);
 if (ncifre == 1)
     [month] = sprintf('0%s',month);
 end
 
-[null, ncifre] = size(day);
+[~, ncifre] = size(day);
 if (ncifre == 1)
     [day] = sprintf('0%s',day);
 end
 
-[null, ncifre] = size(hour);
+[~, ncifre] = size(hour);
 if (ncifre == 1)
     [hour] = sprintf('0%s',hour);
 end
 
-[null, ncifre] = size(minute);
+[~, ncifre] = size(minute);
 if (ncifre == 1)
     [minute] = sprintf('0%s',minute);
 end
 
-[null, ncifre] = size(second);
+[~, ncifre] = size(second);
 if (ncifre == 1)
     [second] = sprintf('0%s',second);
 end
@@ -116,10 +133,10 @@ end
 % FILE UPDATE
 %-------------------------------------------------------------------------------
 
-fkml=fopen(filename,'r+t');
+fkml=fopen(kml_store,'r+t');
 
 while (fkml == -1)
-    fkml=fopen(filename,'r+t');
+    fkml=fopen(kml_store,'r+t');
 end
 
 fseek(fkml,-20,1);
@@ -128,31 +145,51 @@ fseek(fkml,-20,1);
 % INSERTION OF A POINT
 %-------------------------------------------------------------------------------
 
+% fprintf(fkml, '      <Placemark>\n');
+% fprintf(fkml, '        <name>Master station</name>\n');
+% fprintf(fkml, '        <Point>\n');
+% fprintf(fkml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
+% fprintf(fkml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM,phiM,hM);
+% fprintf(fkml, '        </Point>\n');
+% fprintf(fkml, '        <Snippet></Snippet>\n');
+% fprintf(fkml, '        <Style>\n');
+% fprintf(fkml, '          <IconStyle>\n');
+% fprintf(fkml, '            <Icon>\n');
+% fprintf(fkml, '              <href>%s</href>\n',iconM);
+% fprintf(fkml, '            </Icon>\n');
+% fprintf(fkml, '            <color>%s</color>\n',point_colorM);
+% fprintf(fkml, '            <colorMode>normal</colorMode>\n');
+% fprintf(fkml, '            <scale>%.2f</scale>\n',scaleM);
+% fprintf(fkml, '          </IconStyle>\n');
+% fprintf(fkml, '          <LabelStyle>\n');
+% fprintf(fkml, '            <color>%s</color>\n',label_colorM);
+% fprintf(fkml, '            <scale>%s</scale>\n',label_scaleM);
+% fprintf(fkml, '          </LabelStyle>\n');
+% fprintf(fkml, '        </Style>\n');
+% fprintf(fkml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation:</i> %.1f m<br/> <i>Time:</i> %s-%s-%s %s:%s:%s]]></description>\n',phiM,lamM,hM,year,month,day,hour,minute,second);
+% fprintf(fkml, '      </Placemark>\n');
 fprintf(fkml, '      <Placemark>\n');
 fprintf(fkml, '        <name>%d</name>\n', nsat);
 fprintf(fkml, '        <Point>\n');
 fprintf(fkml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-fprintf(fkml, '          <coordinates>%.6f,%.6f,%.6f</coordinates>\n',lam,phi,h);
+fprintf(fkml, '          <coordinates>%.6f,%.6f,%.6f</coordinates>\n',lamR,phiR,hR);
 fprintf(fkml, '        </Point>\n');
 fprintf(fkml, '        <Snippet></Snippet>\n');
 fprintf(fkml, '        <Style>\n');
 fprintf(fkml, '          <IconStyle>\n');
 fprintf(fkml, '            <Icon>\n');
-fprintf(fkml, '              <href>%s</href>\n',icon);
+fprintf(fkml, '              <href>%s</href>\n',iconR);
 fprintf(fkml, '            </Icon>\n');
-fprintf(fkml, '            <color>%s</color>\n',point_color);
+fprintf(fkml, '            <color>%s</color>\n',point_colorR);
 fprintf(fkml, '            <colorMode>normal</colorMode>\n');
-fprintf(fkml, '            <scale>%.2f</scale>\n',scale);
+fprintf(fkml, '            <scale>%.2f</scale>\n',scaleR);
 fprintf(fkml, '          </IconStyle>\n');
 fprintf(fkml, '          <LabelStyle>\n');
-fprintf(fkml, '            <color>%s</color>\n',label_color);
-fprintf(fkml, '            <scale>%s</scale>\n',label_scale);
+fprintf(fkml, '            <color>%s</color>\n',label_colorR);
+fprintf(fkml, '            <scale>%s</scale>\n',label_scaleR);
 fprintf(fkml, '          </LabelStyle>\n');
 fprintf(fkml, '        </Style>\n');
-fprintf(fkml, '        <TimeStamp>\n');
-fprintf(fkml, '          <when>%s</when>\n',datekml);
-fprintf(fkml, '        </TimeStamp>\n');
-fprintf(fkml, '        <description><![CDATA[ <i>Latitude:</i> %.6f &#176;<br/> <i>Longitude:</i> %.6f &#176;<br/> <i>Elevation:</i> %.1f m<br/> <i>Satellites:</i> %d <br/> <i>Time:</i> %s-%s-%s %s:%s:%s]]></description>\n',phi,lam,h,nsat,year,month,day,hour,minute,second);
+fprintf(fkml, '        <description><![CDATA[ <i>Latitude:</i> %.6f &#176;<br/> <i>Longitude:</i> %.6f &#176;<br/> <i>Elevation:</i> %.1f m<br/> <i>Satellites:</i> %d <br/> <i>Time:</i> %s-%s-%s %s:%s:%s]]></description>\n',phiR,lamR,hR,nsat,year,month,day,hour,minute,second);
 fprintf(fkml, '      </Placemark>\n');
-fprintf(fkml, '  </Document>\n</kml>');
+% fprintf(fkml, '  </Document>\n</kml>');
 fclose(fkml);

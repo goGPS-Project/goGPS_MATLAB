@@ -1,11 +1,12 @@
-function rtplot_matlab (t, pos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix)
+function rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, matrix, flag_amb)
 
 % SYNTAX:
-%   rtplot_matlab (t, pos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix);
+%   rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, matrix);
 %
 % INPUT:
 %   t = survey time (t=1,2,...)
-%   pos_R = ROVER assessed position (X,Y,Z)
+%   pos_R = ROVER position (X,Y,Z)
+%   pos_M = MASTER station position (X,Y,Z)
 %   check_on = boolean variable for satellite birth
 %   check_off = boolean variable for satellite death
 %   check_pivot = boolean variable for change of pivot
@@ -13,13 +14,14 @@ function rtplot_matlab (t, pos_R, check_on, check_off, check_pivot, check_cs, or
 %   origin = boolean variable for displaying the axes origin or not
 %   ref = reference path
 %   matrix = adjacency matrix
+%   flag_amb = boolean variable for displaying ambiguities or not
 %
 % DESCRIPTION:
 %   Real-time plot of the assessed ROVER path with respect to 
 %   a reference path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -42,25 +44,38 @@ function rtplot_matlab (t, pos_R, check_on, check_off, check_pivot, check_cs, or
 %----------------------------------------------------------------------------------------------
 
 global pivot
-global EST_M NORD_M
-global pid p_max
+global msid pid p_max
 
 %-------------------------------------------------------------------------------
 % REFERENCE DISPLAY (DEMO)
 %-------------------------------------------------------------------------------
 
-subplot(2,3,[1 2 4 5])
+if (nargin == 11 & flag_amb)
+    if (t == 1)
+        figure('Units','normalized','Position',[0 0 1 1])
+    end
+    subplot(5,3,[1 2 3 4 5 6])
+else
+    subplot(2,3,[1 2 4 5])
+end
+
+if (origin & sum(abs(pos_M)) ~= 0)
+
+    %Master position in UTM coordinates (East, North, h)
+    [EST_M, NORD_M] = cart2plan(pos_M(1), pos_M(2), pos_M(3));
+
+    %master station plot
+    if (isempty(msid))
+        msid = plot(EST_M, NORD_M, 'xm', 'LineWidth', 2);
+    else
+        set(msid, 'XData', EST_M, 'YData', NORD_M);
+    end
+end
 
 if (t == 1)
-    if (origin == 1)
-        plot(0, 0, 'xm', 'LineWidth', 2);
-    end
-    
     if ~isempty(ref) % & ~isempty(matrix)
        hold on
        [EST_ref, NORD_ref, h_ref] = cart2plan(ref(:,1), ref(:,2), ref(:,3));
-       EST_ref = EST_ref - EST_M;
-       NORD_ref = NORD_ref - NORD_M;
 
        plot(EST_ref, NORD_ref, 'm', 'LineWidth', 2);
        for i = 1 : length(EST_ref)-1
@@ -80,24 +95,17 @@ if (t == 1)
 end
 
 %-------------------------------------------------------------------------------
-% REAL-TIME DISPLAY (SIMULATED)
+% REAL-TIME DISPLAY
 %-------------------------------------------------------------------------------
 
 X = pos_R(1);
 Y = pos_R(2);
 Z = pos_R(3);
 
-%conversion from cartesian to geodetic coordinates
-[phi, lam, h] = cart2geod(X, Y, Z);
-
 %conversion into metric coordinates
-[EST, NORD] = geod2plan(phi,lam);
+[EST, NORD] = cart2plan(X, Y, Z);
 
-%permanent station origin translation
-EST = EST - EST_M;
-NORD = NORD - NORD_M;
-
-%color choise
+%color choice
 if (pivot == 0)
     pcol = 'y';
 elseif check_cs
@@ -112,7 +120,7 @@ else
     pcol = 'b';
 end
 
-%plotting  of path with Kalman filter
+%Kalman filter path plot
 if (t <= p_max)
     pid(t) = plot(EST, NORD, ['.' pcol]);
 else

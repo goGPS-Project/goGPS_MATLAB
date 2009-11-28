@@ -17,7 +17,7 @@ function [col_L1, col_L2, col_P1_C1, col_P2] = obs_type_find(Obs_types)
 %   code observations (C1/P1, P2).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

@@ -31,7 +31,7 @@ function [slip, N_slip, sat_slip] = cycle_slip_kalman(posM, posR, N_kalman, ...
 %   range on the basis of the Kalman filter.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -83,7 +83,7 @@ for i = 1 : nsat
     %satellite position (with clock error and Earth rotation corrections)
     posS = sat_corr(Eph, sat(i), time, pr_Rsat(i), posR);
 
-    %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
+    %estimation of ROVER-SATELLITE and MASTER-SATELLITE pseudoranges
     pr_RS_stim = sqrt(sum((posR - posS).^2));
     pr_MS_stim = sqrt(sum((posM - posS).^2));
 
@@ -115,10 +115,10 @@ for i = 1 : nsat
         %cycle-slip detected
         %['Detected CYCLE-SLIP for the satellite ' num2str(sat(i)) ' at epoch ' num2str(time)];
 
-        %save of the new phase ambiguity estimation
+        %save the new phase ambiguity estimation
         N_slip = [N_slip; N_stim(i)];
 
-        %save of the slipped satellite
+        %save the slipped satellite
         sat_slip = [sat_slip; sat(i)];
 
         %flag identifying a cycle-slip

@@ -13,7 +13,6 @@ function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 %   time = GPS time
 %   sat = visible satellite configuration
 %   pivot = pivot satellite
-%   cutoff = cut-off on satellite elevation [degrees]
 %   Eph = ephemerides matrix
 %   iono = ionospheric parameters
 %
@@ -32,7 +31,7 @@ function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 %   Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -56,7 +55,7 @@ function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 
 %variable initialization
 global a f
-global cutoff_init
+global cutoff
 
 %rover position coordinates X Y Z
 X_R = posR(1);
@@ -64,7 +63,7 @@ Y_R = posR(2);
 Z_R = posR(3);
 
 %conversion from cartesian to geodetic coordinates
-[phi_R, lam_R, h_R] = cart2geod(X_R, Y_R, Z_R);
+[~, ~, h_R] = cart2geod(X_R, Y_R, Z_R);
 
 %master position coordinates X Y Z
 X_M = posM(1);
@@ -72,7 +71,7 @@ Y_M = posM(2);
 Z_M = posM(3);
 
 %conversion from cartesian to geodetic coordinates
-[phi_M, lam_M, h_M] = cart2geod(X_M, Y_M, Z_M);
+[~, ~, h_M] = cart2geod(X_M, Y_M, Z_M);
 
 %number of visible satellites
 nsat = size(sat,1);
@@ -95,14 +94,14 @@ prMP_obs = pr1_M(i);
 if (nargin == 9)
 
    %ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
-   [azR, elR, distR] = topocent(posR, posP', a, f);
-   [azM, elM, distM] = topocent(posM, posP', a, f);
+   [azR, elR] = topocent(posR, posP', a, f);
+   [azM, elM] = topocent(posM, posP', a, f);
    err_tropo_RP = err_tropo(elR, h_R);
    err_tropo_MP = err_tropo(elM, h_M);
 
    %ROVER-PIVOT and MASTER-PIVOT ionospheric error computation
-   [phiR, lamR, hR] = cart2geod(posR(1), posR(2), posR(3));
-   [phiM, lamM, hM] = cart2geod(posM(1), posM(2), posM(3));
+   [phiR, lamR] = cart2geod(posR(1), posR(2), posR(3));
+   [phiM, lamM] = cart2geod(posM(1), posM(2), posM(3));
    phiR = phiR * 180 / pi;
    lamR = lamR * 180 / pi;
    phiM = phiM * 180 / pi;
@@ -125,11 +124,11 @@ for i = 1 : nsat
         posS = sat_corr(Eph, sat(i), time, pr1_R(i), posR);
 
         %computation of the satellite azimuth and elevation
-        [azR, elR, distR] = topocent(posR, posS', a, f);
-        [azM, elM, distM] = topocent(posM, posS', a, f);
+        [azR, elR] = topocent(posR, posS', a, f);
+        [azM, elM] = topocent(posM, posS', a, f);
 
         %cut-off threshold to eliminate too low satellite observations
-        if (abs(elR) > cutoff_init)
+        if (abs(elR) > cutoff)
 
             %computation of ROVER-PIVOT and MASTER-PIVOT approximated pseudoranges
             prRS_app = sqrt(sum((posR - posS).^2));

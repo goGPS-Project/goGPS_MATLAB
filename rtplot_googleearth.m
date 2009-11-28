@@ -1,20 +1,19 @@
-function rtplot_googleearth (t, pos_R, link_filename, kml_filename, data)
+function rtplot_googleearth (t, pos_R, pos_M, date)
 
 % SYNTAX:
-%   rtplot_googleearth (t, pos_R, link_filename, kml_filename, data);
+%   rtplot_googleearth (t, pos_R, pos_M, date);
 %
 % INPUT:
 %   t = epoch (t=1,2,...)
 %   pos_R = ROVER position (X,Y,Z)
-%   link_filename = name of the file used for the Google Earth link
-%   kml_filename = name of the .KML file
-%   data = date expressed as [year,month,day,hour,minutes,seconds)
+%   pos_M = MASTER position (X,Y,Z)
+%   date = date expressed as [year,month,day,hour,minutes,seconds)
 %
 % DESCRIPTION:
-%   Real-time representation of the ROVER position using Google Earth.
+%   Real-time visualization on Google Earth.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -37,19 +36,31 @@ function rtplot_googleearth (t, pos_R, link_filename, kml_filename, data)
 %----------------------------------------------------------------------------------------------
 
 global conf_sat
-global GE_append
+global link_filename kml_filename
 
 %rover position coordinates X Y Z
-X = pos_R(1);
-Y = pos_R(2);
-Z = pos_R(3);
+XR = pos_R(1);
+YR = pos_R(2);
+ZR = pos_R(3);
 
 %conversion from cartesian to geodetic coordinates
-[phi, lam, h] = cart2geod(X, Y, Z);
+[phiR, lamR, hR] = cart2geod(XR, YR, ZR);
 
 %conversion from radians to degrees
-lam = lam*180/pi;
-phi = phi*180/pi;
+lamR = lamR*180/pi;
+phiR = phiR*180/pi;
+
+%master position coordinates X Y Z
+XM = pos_M(1);
+YM = pos_M(2);
+ZM = pos_M(3);
+
+%conversion from cartesian to geodetic coordinates
+[phiM, lamM, hM] = cart2geod(XM, YM, ZM);
+
+%conversion from radians to degrees
+lamM = lamM*180/pi;
+phiM = phiM*180/pi;
 
 %-------------------------------------------------------------------------------
 % INITIALIZATION LINK FILE, KML FILE AND GOOGLE EARTH LAUNCH
@@ -58,9 +69,9 @@ phi = phi*180/pi;
 if (t == 1)
 
     %creation of the file to be used as a link to the kml file
-    KML_link_write(link_filename,lam,phi,h);
+    KML_link_write(link_filename,lamR,phiR,hR);
 
-    %initialization of the kml file
+    %initialization of the kml file for real-time display
     fkml=fopen(kml_filename, 'wt');
     fprintf(fkml, '<?xml version="1.0" standalone="yes"?>\n');
     fprintf(fkml, '<kml creator="goGPS" xmlns="http://earth.google.com/kml/2.2">\n');
@@ -69,23 +80,17 @@ if (t == 1)
     fprintf(fkml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
     fprintf(fkml, '  </Document>\n</kml>');
     fclose(fkml);
-
+    
     %run google earth (in background)
     current_path = pwd;
     current_path(current_path == '\') = '/';
     [command] = sprintf('"%s/%s"&',current_path,link_filename);
     system(command);
-    %pause(5);
 end
 
 %-------------------------------------------------------------------------------
-% KML FILE UPDATE / RE-WRITE
+% KML FILE WRITING
 %-------------------------------------------------------------------------------
 
-if (GE_append == 0)
-    %re-writing kml file shows just the current position
-    KML_write(kml_filename,lam,phi,h,sum(abs(conf_sat)),data);
-else
-   %updating keeps memory of all the plotted positions (kml file can become too big)
-   KML_update(kml_filename,lam,phi,h,sum(abs(conf_sat)),data);
-end
+%re-writing kml file to show current position in real-time
+KML_write(lamR,phiR,hR,lamM,phiM,hM,sum(abs(conf_sat)),date);

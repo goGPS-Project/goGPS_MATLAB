@@ -28,7 +28,7 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pos_R, pos_M, pr_Rsat, pr
 %   and code observations (satellite-receiver distance).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
