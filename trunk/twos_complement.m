@@ -13,7 +13,7 @@ function [out] = twos_complement(in)
 %   Two's complement to signed decimal
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

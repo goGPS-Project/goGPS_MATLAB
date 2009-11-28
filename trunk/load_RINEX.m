@@ -2,12 +2,12 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
           Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
           pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
           Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-          time_GPS, data] = ...
+          time_GPS, date] = ...
           load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav)
 
 % SYNTAX:
 %   [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%   Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, time_GPS, data] = ...
+%   Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, time_GPS, date] = ...
 %   load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav);
 %
 % INPUT:
@@ -30,14 +30,14 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   iono_R = matrix containing ionosphere parameters (ROVER)
 %   iono_M = matrix containing ionosphere parameters (MASTER)
 %   time_GPS = GPS time of ROVER observations
-%   data = date (year,month,day,hour,minute,second)
+%   date = date (year,month,day,hour,minute,second)
 %
 % DESCRIPTION:
 %   Parse RINEX files (both observation and navigation) for both the ROVER
 %   and the MASTER. Select epochs they have in common.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -105,10 +105,10 @@ num_type_obs_R = size(obs_typ_R,2)/2;
 num_type_obs_M = size(obs_typ_M,2)/2;
 
 %detect the observation column index (ROVER) P-C1 L1 P2 L2
-[col_ph1_R, col_ph2_R, col_cod1_R, col_cod2_R] = obs_type_find(obs_typ_R);
+[col_ph1_R, col_ph2_R, col_cod1_R, col_cod2_R] = obs_type_find(obs_typ_R); %#ok<NASGU,ASGLU>
 
 %detect the observation column index (ROVER) P-C1 L1 P2 L2
-[col_ph1_M, col_ph2_M, col_cod1_M, col_cod2_M] = obs_type_find(obs_typ_M);
+[col_ph1_M, col_ph2_M, col_cod1_M, col_cod2_M] = obs_type_find(obs_typ_M); %#ok<NASGU,ASGLU>
 
 %jump the RINEX header
 RINEX_jump_hdr(FR_oss);
@@ -117,7 +117,7 @@ RINEX_jump_hdr(FM_oss);
 %-------------------------------------------------------------------------------
 
 %read data for the first epoch (ROVER)
-[time_GPS_R, sat_R, sat_RS, sat_RR, data_R] = RINEX_get_epoch(FR_oss);
+[time_GPS_R, sat_R, sat_RS, sat_RR, date_R] = RINEX_get_epoch(FR_oss);
 
 %number of satellites (ROVER)
 num_sat_R = size(sat_R,1);
@@ -127,13 +127,13 @@ num_sat_RR = size(sat_RR,1);
 %read ROVER observations
 [mat_oss_R, snr_R_single] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_ph1_R);
 %[mat_oss_R, snr_R_single] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_cod1_R);
-[mat_oss_RS, snr_RS_single] = RINEX_get_obs(FR_oss, num_sat_RS, num_type_obs_R, col_ph1_R);
-[mat_oss_RR, snr_RR_single] = RINEX_get_obs(FR_oss, num_sat_RR, num_type_obs_R, col_ph1_R);
+[mat_oss_RS, snr_RS_single] = RINEX_get_obs(FR_oss, num_sat_RS, num_type_obs_R, col_ph1_R); %#ok<NASGU>
+[mat_oss_RR, snr_RR_single] = RINEX_get_obs(FR_oss, num_sat_RR, num_type_obs_R, col_ph1_R); %#ok<NASGU>
 
 %-------------------------------------------------------------------------------
 
 %read data for the first epoch (MASTER)
-[time_GPS_M, sat_M, sat_MS, sat_MR, data_M] = RINEX_get_epoch(FM_oss);
+[time_GPS_M, sat_M, sat_MS, sat_MR, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
 
 %number of satellites (MASTER)
 num_sat_M = size(sat_M,1);
@@ -142,15 +142,15 @@ num_sat_MR = size(sat_MR,1);
 
 %read MASTER observations
 [mat_oss_M, snr_M_single] = RINEX_get_obs(FM_oss, num_sat_M, num_type_obs_M, col_ph1_M);
-[mat_oss_MS, snr_MS_single] = RINEX_get_obs(FM_oss, num_sat_MS, num_type_obs_M, col_ph1_M);
-[mat_oss_MR, snr_MR_single] = RINEX_get_obs(FM_oss, num_sat_MR, num_type_obs_M, col_ph1_M);
+[mat_oss_MS, snr_MS_single] = RINEX_get_obs(FM_oss, num_sat_MS, num_type_obs_M, col_ph1_M); %#ok<NASGU>
+[mat_oss_MR, snr_MR_single] = RINEX_get_obs(FM_oss, num_sat_MR, num_type_obs_M, col_ph1_M); %#ok<NASGU>
 
 %-------------------------------------------------------------------------------
 
 while (time_GPS_M < time_GPS_R)
 
     %read data for the current epoch (MASTER)
-    [time_GPS_M, sat_M, sat_MS, sat_MR, data_M] = RINEX_get_epoch(FM_oss);
+    [time_GPS_M, sat_M, sat_MS, sat_MR, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
 
     %number of satellites (MASTER)
     num_sat_M = size(sat_M,1);
@@ -159,15 +159,15 @@ while (time_GPS_M < time_GPS_R)
 
     %read MASTER observations
     [mat_oss_M, snr_M_single] = RINEX_get_obs(FM_oss, num_sat_M, num_type_obs_M, col_ph1_M);
-    [mat_oss_MS, snr_MS_single] = RINEX_get_obs(FM_oss, num_sat_MS, num_type_obs_M, col_ph1_M);
-    [mat_oss_MR, snr_MR_single] = RINEX_get_obs(FM_oss, num_sat_MR, num_type_obs_M, col_ph1_M);
+    [mat_oss_MS, snr_MS_single] = RINEX_get_obs(FM_oss, num_sat_MS, num_type_obs_M, col_ph1_M); %#ok<NASGU>
+    [mat_oss_MR, snr_MR_single] = RINEX_get_obs(FM_oss, num_sat_MR, num_type_obs_M, col_ph1_M); %#ok<NASGU>
 end
 
 %-------------------------------------------------------------------------------
 
 k = 1;
 time_GPS(1,1) = time_GPS_R;
-data(1,:) = data_R(1,:);
+date(1,:) = date_R(1,:);
 
 while (~feof(FR_oss))
 
@@ -212,7 +212,7 @@ while (~feof(FR_oss))
 %         snr_RR(sat_R,k) = snr_RR_single(:,1);
 
         %read data for the current epoch (ROVER)
-        [time_GPS_R, sat_R, sat_RS, sat_RR, data_R] = RINEX_get_epoch(FR_oss);
+        [time_GPS_R, sat_R, sat_RS, sat_RR, date_R] = RINEX_get_epoch(FR_oss);
 
         %number of satellites (ROVER)
         num_sat_R = size(sat_R,1);
@@ -222,8 +222,8 @@ while (~feof(FR_oss))
         %read ROVER observations
         [mat_oss_R, snr_R_single] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_ph1_R);
         %[mat_oss_R, snr_R_single] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_cod1_R);
-        [mat_oss_RS, snr_RS_single] = RINEX_get_obs(FR_oss, num_sat_RS, num_type_obs_R, col_ph1_R);
-        [mat_oss_RR, snr_RR_single] = RINEX_get_obs(FR_oss, num_sat_RR, num_type_obs_R, col_ph1_R);
+        [mat_oss_RS, snr_RS_single] = RINEX_get_obs(FR_oss, num_sat_RS, num_type_obs_R, col_ph1_R); %#ok<NASGU>
+        [mat_oss_RR, snr_RR_single] = RINEX_get_obs(FR_oss, num_sat_RR, num_type_obs_R, col_ph1_R); %#ok<NASGU>
 
     end
 
@@ -244,7 +244,7 @@ while (~feof(FR_oss))
 %         snr_MR(sat_M,k) = snr_MR_single(:,1);
 
         %read data for the current epoch (MASTER)
-        [time_GPS_M, sat_M, sat_MS, sat_MR, data_M] = RINEX_get_epoch(FM_oss);
+        [time_GPS_M, sat_M, sat_MS, sat_MR, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
 
         %number of satellites (MASTER)
         num_sat_M = size(sat_M,1);
@@ -253,14 +253,14 @@ while (~feof(FR_oss))
 
         %read ROVER observations
         [mat_oss_M, snr_M_single] = RINEX_get_obs(FM_oss, num_sat_M, num_type_obs_M, col_ph1_M);
-        [mat_oss_MS, snr_MS_single] = RINEX_get_obs(FM_oss, num_sat_MS, num_type_obs_M, col_ph1_M);
-        [mat_oss_MR, snr_MR_single] = RINEX_get_obs(FM_oss, num_sat_MR, num_type_obs_M, col_ph1_M);
+        [mat_oss_MS, snr_MS_single] = RINEX_get_obs(FM_oss, num_sat_MS, num_type_obs_M, col_ph1_M); %#ok<NASGU>
+        [mat_oss_MR, snr_MR_single] = RINEX_get_obs(FM_oss, num_sat_MR, num_type_obs_M, col_ph1_M); %#ok<NASGU>
 
     end
 
     k = k+1;
     time_GPS(k,1) = time_GPS(k-1,1) + 1;
-    data(k,:) = data_R(1,:);
+    date(k,:) = date_R(1,:);
 
 end
 

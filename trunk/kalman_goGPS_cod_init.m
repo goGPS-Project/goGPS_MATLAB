@@ -20,7 +20,7 @@ function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   Code-only Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -80,7 +80,7 @@ I = eye(o3);
 Cvv = zeros(o3);
 Cvv(o1,o1) = sigmaq_velx;
 Cvv(o2,o2) = sigmaq_vely;
-Cvv(o3,o3) = sigmaq_velz;
+Cvv(o3,o3) = sigmaq_velz; %#ok<NASGU>
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE SELECTION
@@ -133,7 +133,7 @@ sat = intersect(sat,sat_cutoff);
 pivot_old = 0;
 
 %actual pivot 
-[max_elR, i] = max(elR(sat));
+[~, i] = max(elR(sat));
 pivot = sat(i);
 %pivot = find(elR == max(elR));
 
@@ -142,14 +142,11 @@ pivot = sat(i);
 %--------------------------------------------------------------------------------------------
 
 %satellite configuration
-conf_sat(:,1) = zeros(32,1);
+conf_sat = zeros(32,1);
 conf_sat(sat,1) = +1;
 
-%no cycle-slips working with code only
+%no cycle-slips when working with code only
 conf_cs = zeros(32,1);
-
-%number of visible satellites  (NOT USED)
-nsat = size(sat,1);
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER INITIAL STATE
@@ -166,9 +163,9 @@ pr2_Msat_init = pr2_Msat(sat);
 
 %ROVER positioning by code double differences
 if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat_init, pos_M, pr1_Msat_init, time, sat, pivot, Eph, iono);
+    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat_init, pos_M, pr1_Msat_init, time, sat, pivot, Eph, iono); %#ok<NASGU>
 else
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat_init, pos_M, pr2_Msat_init, time, sat, pivot, Eph, iono);
+    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat_init, pos_M, pr2_Msat_init, time, sat, pivot, Eph, iono); %#ok<NASGU>
 end
 
 %second iteration to improve the accuracy 

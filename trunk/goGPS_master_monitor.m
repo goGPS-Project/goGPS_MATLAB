@@ -11,7 +11,7 @@ function goGPS_master_monitor(filerootOUT, flag_NTRIP)
 %   Master station monitor: stream reading, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -33,7 +33,8 @@ function goGPS_master_monitor(filerootOUT, flag_NTRIP)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global master_ip master_port nmea_init
+global master_ip master_port
+global nmea_init nmea_update_rate
 global master
 global lambda1 lambda2
 global server_delay
@@ -133,7 +134,7 @@ while (master_1 ~= master_2) | (master_1 == 0)
 end
 
 %clear TCP/IP port (data not decoded)
-data_master = fread(master,master_1,'uint8');
+data_master = fread(master,master_1,'uint8'); %#ok<NASGU>
 
 %set starting time
 safety_lag = 0.1;                       %safety lag on MASTER data reading
@@ -154,7 +155,7 @@ t = 0;
 f1 = figure;
 set(f1, 'position', [800 600 240 80], 'menubar' , 'none', 'name', 'MASTER monitor');
 h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
-    'callback', 'setappdata(gcf, ''run'', 0)');
+    'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
 flag = 1;
 setappdata(gcf, 'run', flag);
 
@@ -194,7 +195,7 @@ while flag
             sixofeight = [sixofeight fliplr(data_master(pos+2:pos+7))];
             pos = pos + 8;
         end
-        
+
         if(is_rtcm2)
             [cell_master] = decode_rtcm2(sixofeight);
             
@@ -299,24 +300,24 @@ while flag
             if (time_19P ~= time_M)
                 pr2_M = zeros(32,1);
             end
-            
-            %Resolution of 2^24 cy carrier phase ambiguity
+
+            %Resolution of 2^23 cy carrier phase ambiguity
             %caused by 32-bit data field restrictions
-            
+
             pos = find(ph1_M & pr1_M);
             if (~isempty(pos))
                 ambig = 2^23;
                 n = floor( (pr1_M(pos)/lambda1-ph1_M(pos)) / ambig + 0.5 );
                 ph1_M(pos) = ph1_M(pos) + n*ambig;
             end
-            
+
             pos = find(ph2_M & pr1_M);            
             if (~isempty(pos))
                 ambig = 2^23;
                 n = floor( (pr1_M(pos)/lambda2-ph2_M(pos)) / ambig + 0.5 );
                 ph2_M(pos) = ph2_M(pos) + n*ambig;
             end
-            
+
             %visualization
             fprintf('\n');
             fprintf('master: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, master_1, master_2);
@@ -395,7 +396,7 @@ while flag
                     type = [type '1002 '];
                     n02 = n02 + 1;
                     
-                    %1003 message data save
+                %1003 message data save
                 elseif (cell_master{1,i} == 1003)
                     
                     time_M  = cell_master{2,i}(2);
@@ -422,7 +423,7 @@ while flag
                     type = [type '1003 '];
                     n03 = n03 + 1;
                     
-                    %1004 message data save
+                %1004 message data save
                 elseif (cell_master{1,i} == 1004)
                     
                     time_M  = cell_master{2,i}(2);
@@ -449,7 +450,7 @@ while flag
                     type = [type '1004 '];
                     n04 = n04 + 1;
                     
-                    %1005 message data save
+                %1005 message data save
                 elseif (cell_master{1,i} == 1005)
                     
                     coordX_M = cell_master{2,i}(8);
@@ -459,7 +460,7 @@ while flag
                     type = [type '1005 '];
                     n05 = n05 + 1;
                     
-                    %1006 message data save
+                %1006 message data save
                 elseif (cell_master{1,i} == 1006)
                     
                     coordX_M = cell_master{2,i}(8);
@@ -470,7 +471,7 @@ while flag
                     type = [type '1006 '];
                     n06 = n06 + 1;
                     
-                    %1007 message data save
+                %1007 message data save
                 elseif (cell_master{1,i} == 1007)
                     
                     setup_ant_M = cell_master{2,i}(2);
@@ -479,7 +480,7 @@ while flag
                     type = [type '1007 '];
                     n07 = n07 + 1;
                     
-                    %1008 message data save
+                %1008 message data save
                 elseif (cell_master{1,i} == 1008)
                     
                     setup_ant_M  = cell_master{2,i}(2);
@@ -489,7 +490,7 @@ while flag
                     type = [type '1008 '];
                     n08 = n08 + 1;
                     
-                    %1010 message data save
+                %1010 message data save
                 elseif (cell_master{1,i} == 1010)
                     
                     time_M_GLO  = cell_master{2,i}(2);
@@ -504,7 +505,7 @@ while flag
                     type = [type '1010 '];
                     n10 = n10 + 1;
                     
-                    %1011 message data save
+                %1011 message data save
                 elseif (cell_master{1,i} == 1011)
                     
                     time_M_GLO  = cell_master{2,i}(2);
@@ -524,7 +525,7 @@ while flag
                     type = [type '1011 '];
                     n11 = n11 + 1;
                     
-                    %1012 message data save
+                %1012 message data save
                 elseif (cell_master{1,i} == 1012)
                     
                     time_M_GLO  = cell_master{2,i}(2);
@@ -544,7 +545,7 @@ while flag
                     type = [type '1012 '];
                     n12 = n12 + 1;
                     
-                    %1019 message data save
+                %1019 message data save
                 elseif (cell_master{1,i} == 1019)
                     
                     %satellite number
@@ -713,8 +714,8 @@ while flag
             
         end
         
-        %send a new NMEA string every 10 epochs
-        if (flag_NTRIP) & (mod(current_time-start_time,10) < 1)
+        %send a new NMEA string
+        if (flag_NTRIP) & (mod(current_time-start_time,nmea_update_rate) < 1)
             if (nmea_sent == 0)
                 nmea_update = sprintf('%s\r\n',nmea_init);
                 fwrite(master,nmea_update);

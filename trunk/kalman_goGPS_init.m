@@ -25,7 +25,7 @@ function kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   initial position (X,Y,Z).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -109,7 +109,7 @@ I = eye(o3+nN);
 Cvv = zeros(o3+nN);
 Cvv(o1,o1) = sigmaq_velx;
 Cvv(o2,o2) = sigmaq_vely;
-Cvv(o3,o3) = sigmaq_velz;
+Cvv(o3,o3) = sigmaq_velz; %#ok<NASGU>
 
 %--------------------------------------------------------------------------------------------
 % SELECTION OF THE SATELLITES
@@ -175,10 +175,10 @@ pivot_old = 0;
 
 %actual pivot 
 if ~isempty(sat)
-    [max_elR, i] = max(elR(sat));
+    [max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
 else
-    [max_elR, i] = max(elR(sat_pr));
+    [max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
     pivot = sat_pr(i);
 end
 %pivot = find(elR == max(elR));
@@ -195,9 +195,6 @@ conf_sat(sat) = +1;
 %cycle-slip configuration (no cycle-slip)
 conf_cs = zeros(32,1);
 
-%number of visible satellites  (NOT USED)
-nsat = size(sat_pr,1);
-
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER INITIAL STATE
 %--------------------------------------------------------------------------------------------
@@ -212,15 +209,15 @@ Z_om_1 = zeros(o1-1,1);
 %ROVER positioning with code double differences
 if (phase(1) == 1)
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph);
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
     else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph, iono);
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
     end
 else
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph);
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
     else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph, iono);
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
     end
 end
 
@@ -260,14 +257,14 @@ end
 
 if (length(phase) == 2)
     N_stim = [N1_stim; N2_stim];
-    sigmaq_N = [sigmaq_N1; sigmaq_N2];
+    sigmaq_N = [sigmaq_N1; sigmaq_N2]; %#ok<NASGU>
 else
     if (phase == 1)
         N_stim = N1_stim;
-        sigmaq_N = sigmaq_N1;
+        sigmaq_N = sigmaq_N1; %#ok<NASGU>
     else
         N_stim = N2_stim;
-        sigmaq_N = sigmaq_N2;
+        sigmaq_N = sigmaq_N2; %#ok<NASGU>
     end
 end
 

@@ -14,7 +14,7 @@ function nmeastring = NMEA_string_generator(pos_R,nsat)
 %   Returns a $GPGGA sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -106,7 +106,7 @@ end
 %-----------------------------------------------------------------------------------------------
 
 surv_type = '1'; %0 = not valid, 1 = GPS, 2 = DGPS
-HDOP = '0.19';   %fake HDOP value: to be changed
+HDOP = '1';      %fake HDOP value: to be changed
 h_unit = 'M';
 
 if (nargin > 1)
@@ -126,17 +126,17 @@ hour = num2str(current_date(1,4));
 minute = num2str(current_date(1,5));
 second = num2str(floor(current_date(1,6)));
 
-[null, ncifre] = size(hour);
+[~, ncifre] = size(hour);
 if (ncifre == 1)
     [hour] = sprintf('0%s',hour);
 end
 
-[null, ncifre] = size(minute);
+[~, ncifre] = size(minute);
 if (ncifre == 1)
     [minute] = sprintf('0%s',minute);
 end
 
-[null, ncifre] = size(second);
+[~, ncifre] = size(second);
 if (ncifre == 1)
     [second] = sprintf('0%s',second);
 end

@@ -26,7 +26,7 @@ function [data] = decode_1017(msg)
 %   RTCM format 1017 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %

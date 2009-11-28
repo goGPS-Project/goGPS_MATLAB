@@ -18,7 +18,7 @@ function MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, phase)
 %   Differential code positioning by least squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -45,9 +45,9 @@ global cutoff
 global Xhat_t_t Cee conf_sat pivot
 global o1 o2 o3
 global azR elR distR
+global sigmaq0
 
-%least-squares cutoff
-cutoff = 15;
+cov_pos_MQ = [];
 
 %----------------%
 %--- BANCROFT ---%

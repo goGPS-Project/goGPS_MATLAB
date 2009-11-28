@@ -17,7 +17,7 @@ function [phi, lam, h] = cart2geod(X, Y, Z)
 %   Conversion from cartesian coordinates to geodetic coordinates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

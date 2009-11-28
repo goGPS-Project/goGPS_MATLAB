@@ -30,7 +30,7 @@ function [A, ddc_app, ddc, ddp] = input_kalman_vinc(posR, pr_Rsat, ph_Rsat, ...
 %   Constrained path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

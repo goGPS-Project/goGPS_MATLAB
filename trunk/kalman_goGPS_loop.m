@@ -1,6 +1,6 @@
 function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
          (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ph1_Rsat, ph1_Msat, ...
-         pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, snr_R, snr_M, phase)
+         pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, snr_R, snr_M, phase) %#ok<INUSL>
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
@@ -35,7 +35,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
 %   Addition and loss of satellites, cycle slips e pivot changes are considered.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -161,10 +161,10 @@ end
 
 %current pivot
 if ~isempty(sat)
-    [max_elR, i] = max(elR(sat));
+    [~, i] = max(elR(sat));
     pivot = sat(i);
 else
-    [max_elR, i] = max(elR(sat_pr));
+    [~, i] = max(elR(sat_pr));
     pivot = sat_pr(i);
 end
 %pivot = find(elR == max(elR));
@@ -196,18 +196,18 @@ if (length(sat_pr) >= 4)
 
     pos_R = X_t1_t([1,o1+1,o2+1]);
 
-    %ROVER positioning with code double differences
-    if (phase(1) == 1)
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph);
-    else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph);
-    end
-
-    if (phase(1) == 1)
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph);
-    else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph);
-    end
+%     %ROVER positioning with code double differences
+%     if (phase(1) == 1)
+%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+%     else
+%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+%     end
+% 
+%     if (phase(1) == 1)
+%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+%     else
+%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+%     end
 
 else
     pos_R = X_t1_t([1,o1+1,o2+1]);
@@ -226,7 +226,7 @@ Z_app = pos_R(3);
 [phi_app, lam_app, h_app] = cart2geod(X_app, Y_app, Z_app);
 
 %projection to UTM coordinates
-[E_app, N_app, M, nord_sud] = geod2plan(phi_app, lam_app);
+[E_app, N_app] = geod2plan(phi_app, lam_app);
 
 %dtm tile detection (in which the approximated position lies)
 [tile_row,tile_col] = find ( (E_app > tile_georef(:,:,1)) & (E_app <= tile_georef(:,:,4)) & (N_app >= tile_georef(:,:,3)) & (N_app < tile_georef(:,:,2)));
@@ -499,7 +499,7 @@ if (nsat >= min_nsat)
         end
 
         %display lost satellites
-        ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')];
+        ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')]; %#ok<VUNUS>
     end
 
     %search for a new satellite
@@ -517,8 +517,8 @@ if (nsat >= min_nsat)
         sigmaq_pos_R = sigmaq_pos_R([1,o1+1,o2+1]);
 
         %N combination estimation
-        [comb_N1, sigmaq_N1] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1);
-        [comb_N2, sigmaq_N2] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2);
+        [comb_N1, sigmaq_N1] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1); %#ok<NASGU>
+        [comb_N2, sigmaq_N2] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2); %#ok<NASGU>
         %[comb_N1, sigmaq_N1] = amb_estimate_approx(X_t1_t([1,o1+1,o2+1]), pos_M, sigmaq_pos_R, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1);
         %[comb_N2, sigmaq_N2] = amb_estimate_approx(X_t1_t([1,o1+1,o2+1]), pos_M, sigmaq_pos_R, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2);
 
@@ -548,7 +548,7 @@ if (nsat >= min_nsat)
         end
 
         %display new satellites
-        ['New satellites at time ' num2str(time) ': ' num2str(sat_born')];
+        ['New satellites at time ' num2str(time) ': ' num2str(sat_born')]; %#ok<VUNUS>
     end
 
     %------------------------------------------------------------------------------------
@@ -589,7 +589,7 @@ if (nsat >= min_nsat)
         Cee = A*Cee*A';
 
         %display the PIVOT change
-        ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)];
+        ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)]; %#ok<VUNUS>
     end
 
     %------------------------------------------------------------------------------------

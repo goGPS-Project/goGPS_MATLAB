@@ -16,7 +16,7 @@ function rtplot_skyplot (az, el, obs, pivot)
 %   Real time skyplot.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -46,7 +46,6 @@ el = el(sat);
 obs = obs(sat);
 
 %-------------------------------------------------------------------------------
-
 subplot(2,3,3)
 
 %theta =   0° --> NORTH
@@ -81,7 +80,7 @@ for i = 1: length(sat)
       set(p,'MarkerSize',8,'LineWidth',1);
    end
    if ~isempty(D)
-      [minD, d] = min(D(:,i));
+      [~, d] = min(D(:,i));
    else
       d = 1;
    end

@@ -19,13 +19,13 @@ function [data] = decode_RXM_RAW(msg)
 %          3.4) SV   = space vehicle number 
 %          3.5) MQI  = measurement quality index
 %          3.6) CNO  = signal-to-noise ratio (in dbHz)
-%          3.7) LLI  = signal loss index
+%          3.7) LLI  = loss of lock indicator
 %
 % DESCRIPTION:
 %   RXM-RAW binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -149,13 +149,6 @@ for j = 1 : NSV
     % exclude EGNOS satellites (SV = 121, 122, etc.)
     if (SV <= 32)
         
-        % resolution of 2^24 cy carrier phase ambiguity
-        if (L1<1e7)
-            ambig = 2^23;
-            n = floor( (C1/lambda1-L1) / ambig + 0.5 );
-            L1 = L1 + n*ambig;
-        end
-
         % phase, code and doppler measure save
         CPM = L1;
         PRM = C1;

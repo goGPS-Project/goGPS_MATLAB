@@ -14,7 +14,7 @@ function [Cyy] = global2localCov(Cxx, X)
 %   Covariance propagation from Earth-fixed reference frame to local-level reference frame
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -42,7 +42,7 @@ Cyy = zeros(size(Cxx));
 for i = 1 : size(X,2)
 
     %geodetic coordinates
-    [phi, lam, h] = cart2geod(X(1,i), X(2,i), X(3,i));
+    [phi, lam, h] = cart2geod(X(1,i), X(2,i), X(3,i)); %#ok<NASGU>
 
     %rotation matrix from global to local reference system
     R = [-sin(lam) cos(lam) 0;

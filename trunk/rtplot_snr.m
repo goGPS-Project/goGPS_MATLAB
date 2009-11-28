@@ -1,17 +1,16 @@
-function rtplot_snr(snr,cod)
+function rtplot_snr(snr)
 
 % SYNTAX:
 %   rtplot_snr (snr);
 %
 % INPUT:
 %   snr = signal-to-noise ratio
-%   cod = code (RINEX=0, RTCM/UBLOX=1) 
 %
 % DESCRIPTION:
 %   Real time bar graph of signal-to-noise ratio.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -40,13 +39,8 @@ snr = snr(sat);
 
 if ~isempty(sat)
     barh(1:1:size(sat),snr)
-    if (cod == 0)
-        axis([0 10 0 size(sat,1)+1])
-        set(gca,'XTick',[0 2 4 6 8 10])
-    else
-        axis([0 60 0 size(sat,1)+1])
-        set(gca,'XTick',[0 10 20 30 40 50 60])
-    end
+    axis([0 60 0 size(sat,1)+1])
+    set(gca,'XTick',[0 10 20 30 40 50 60])
     set(gca,'YTickLabel',sat)
     grid on
 end

@@ -18,7 +18,7 @@ function [matrix_oss, snr] = RINEX_get_obs(file_RINEX, num_sat, num_type_oss, co
 %   Acquisition of signal-to-noise ratio.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

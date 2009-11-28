@@ -15,7 +15,7 @@ function [data, nmea_string] = decode_ublox(msg)
 %   u-blox UBX messages decoding (also in sequence).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %

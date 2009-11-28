@@ -1,6 +1,6 @@
 function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ...
          (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, pr2_Rsat, pr2_Msat, ...
-		 snr_R, snr_M, phase)
+		 snr_R, snr_M, phase) %#ok<INUSL>
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ...
@@ -31,7 +31,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ..
 %   Code double differences.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -55,7 +55,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ..
 
 global a f
 
-global sigmaq_velx sigmaq_vely sigmaq_velz
+global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz
 global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
@@ -112,8 +112,6 @@ end
 j = 1;
 bad_sat = [];
 
-max_elR = 0;
-
 for i = 1:size(sat)
 
     %satellite position correction (clock and Earth rotation)
@@ -130,7 +128,7 @@ for i = 1:size(sat)
 end
 
 %removal of satellites with elevation or SNR lower than the respective threshold
-sat(find(ismember(sat,bad_sat) == 1)) = [];
+sat(ismember(sat,bad_sat) == 1) = [];
 
 %previous pivot 
 if (pivot ~= 0)
@@ -138,7 +136,7 @@ if (pivot ~= 0)
 end
 
 %current pivot
-[max_elR, i] = max(elR(sat));
+[~, i] = max(elR(sat));
 pivot = sat(i);
 
 %----------------------------------------------------------------------------------------
@@ -152,12 +150,11 @@ sat_old = find(conf_sat == 1);
 conf_sat = zeros(32,1);
 conf_sat(sat) = +1;
 
-%no cycle-slips working with code only
+%no cycle-slips when working with code only
 conf_cs = zeros(32,1);
 
 %number of visible satellites
 nsat = size(sat,1);
-n = nsat - 1;
 
 %------------------------------------------------------------------------------------
 % OBSERVATION EQUATIONS
@@ -177,6 +174,10 @@ if (nsat >= min_nsat)
         [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr1_Rsat_kalman, pos_M, pr1_Msat_kalman, time, sat, pivot, Eph, iono);
     else
         [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr2_Rsat_kalman, pos_M, pr2_Msat_kalman, time, sat, pivot, Eph, iono);
+    end
+    
+    if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
+        cov_pos_R = sigmaq0 * eye(3);
     end
 
     %zeroes vector useful in matrix definitions
@@ -207,7 +208,7 @@ if (length(sat) < length(sat_old))
     sat_dead = setdiff(sat_old,sat);
 
     %print the lost satellites
-    ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')];
+    ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')]; %#ok<VUNUS>
 end
 
 %search for a new satellite
@@ -219,7 +220,7 @@ if (length(sat) > length(sat_old))
     sat_born = setdiff(sat,sat_old);
 
     %print the new satellites
-    ['New satellites at time ' num2str(time) ': ' num2str(sat_born')];
+    ['New satellites at time ' num2str(time) ': ' num2str(sat_born')]; %#ok<VUNUS>
 end
 
 %------------------------------------------------------------------------------------
@@ -232,7 +233,7 @@ if (pivot ~= pivot_old)
     check_pivot = 1;
 
     %print the PIVOT change
-    ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)];
+    ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)]; %#ok<VUNUS>
 end
 
 %----------------------------------------------------------------------------------------

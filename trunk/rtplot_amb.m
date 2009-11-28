@@ -1,24 +1,20 @@
-function rtplot_amb (t, delta, stima_amb, sigma_amb, cs, fig)
+function rtplot_amb (t, delta, stima_amb, sigma_amb, cs)
 
 % SYNTAX:
-%   rtplot_amb (t, pos_R, check_on, check_off, check_pivot, check_cs, nomefile);
+%   rtplot_amb (t, delta, stima_amb, sigma_amb, cs)
 %
 % INPUT:
 %   t = survey time (t=1,2,...)
-%   pos_R = ROVER assessed position (X,Y,Z)
-%   check_on = boolean variable for satellite birth
-%   check_off = boolean variable for satellite death
-%   check_pivot = boolean variable for change of pivot
-%   check_cs = boolean variable for cycle-slip
-%   fig = figure number
-%   nomefile = name of file with path recall
+%   delta =
+%   stima_amb =
+%   sigma_amb =
+%   cs = boolean variable for cycle-slip
 %
 % DESCRIPTION:
-%   Real-time plot of the assessed ROVER path with respect to 
-%   a reference path.
+%   Real-time plot of ambiguities.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -40,8 +36,6 @@ function rtplot_amb (t, delta, stima_amb, sigma_amb, cs, fig)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-figure(fig)
-
 if (t == 1)
 
    sat = find(stima_amb ~= 0);                  % satellites in view (not pivot)
@@ -50,7 +44,7 @@ if (t == 1)
    dt = (1 : delta)';
 
    for i = 1 : nsat
-      subfig(i) = subplot(round(nsat/2),2,i);
+      subfig(i) = subplot(5,3,i+6);
 
       %assessed N combination
       plot(t, stima_amb(sat(i)), 'b.-');
@@ -76,7 +70,19 @@ else
    b2 = zeros(32,delta);
    b3 = zeros(32,delta);
 
-   subfig = get(fig,'Children');
+   subfig = get(1,'Children');
+   i = 1;
+   for j = 1 : length(subfig)
+       subfigTitle = get(get(subfig(j),'Title'),'String');
+       if (length(subfigTitle) < 9 | ~strcmp(subfigTitle(1:9),'SATELLITE'))
+           handleOff(i) = subfig(j);
+           set(subfig(j),'HandleVisibility','off');
+           i = i + 1;
+       end
+   end
+   
+   subfig = get(1,'Children');
+
    tLim = get(subfig(1),'XLim');
    dt = (tLim(1) : tLim(2))'; 
 
@@ -118,7 +124,7 @@ else
 
    for i = 1 : nsat
 
-      subfig(i) = subplot(round(nsat/2),2,i);
+      subfig(i) = subplot(5,3,i+6);
 
       j = find(b1(sat(i),:) ~= 0);
       k = find(b3(sat(i),:) ~= 0);
@@ -142,6 +148,10 @@ else
       ax = axis;
       axis([dt(1) dt(delta) floor(ax(3)) ceil(ax(4))]);
       title(['SATELLITE ',num2str(sat(i))]);
+   end
+   
+   for i = 1 : length(handleOff)
+       set(handleOff(i),'HandleVisibility','on');
    end
 end
 

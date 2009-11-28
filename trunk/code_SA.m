@@ -20,7 +20,7 @@ function [xR, Cxx, A] = code_SA(posR, pr1_R, time, Eph, iono)
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 pre-alpha
+%                           goGPS v0.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -43,7 +43,7 @@ function [xR, Cxx, A] = code_SA(posR, pr1_R, time, Eph, iono)
 %----------------------------------------------------------------------------------------------
 
 global a f v_light
-global cutoff_init
+global cutoff
 
 %number of visible satellites
 sat = find(pr1_R ~= 0);
@@ -66,7 +66,7 @@ for i = 1 : length(sat)
     [azR, elR, distR] = topocent(posR, posS', a, f);
 
     %cut-off threshold to eliminate too low satellite observations
-    if (abs(elR) > cutoff_init)
+    if (abs(elR) > cutoff)
 
         %computation of ROVER-SATELLITE approximated pseudorange
         prRS_app = sqrt(sum((posR - posS).^2));
