@@ -382,18 +382,20 @@ end
 %------------------------------------------------------
 
 %load u-blox saved configuration
-fprintf('Restoring saved u-blox receiver configuration...\n');
-
-reply_load = 0;
-tries = 0;
-
-while (reply_save & ~reply_load)
-    tries = tries + 1;
-    reply_load = ublox_CFG_CFG(rover, 'load');
-
-    if (tries > 10)
-        disp('It was not possible to reload the receiver previous configuration.');
-        break
+if (reply_save)
+    fprintf('Restoring saved u-blox receiver configuration...\n');
+    
+    reply_load = 0;
+    tries = 0;
+    
+    while (~reply_load)
+        tries = tries + 1;
+        reply_load = ublox_CFG_CFG(rover, 'load');
+        
+        if (tries > 10)
+            disp('It was not possible to reload the receiver previous configuration.');
+            break
+        end
     end
 end
 
