@@ -52,18 +52,28 @@ tic
 % INTERFACE TYPE DEFINITION
 %----------------------------------------------------------------------------------------------
 
-mode_user = 0;  % user interface type
+mode_user = 1;  % user interface type
                 % mode_user=0 --> use text interface
-                % mode_user=1 --> use GUI (to be implemented)
+                % mode_user=1 --> use GUI
 
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
+%initialization of global variables/constants
+global_init;
+
+global o1 o2 o3 h_antenna
+
 if (mode_user == 1)
-    
-    %To be implemented
-    
+
+    [mode, mode_vinc, mode_data, mode_ref, flag_ms_rtcm, flag_ms, flag_ge, flag_cov, flag_COM, flag_NTRIP, flag_amb, ...
+        filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, filename_ref, ...
+        pos_M] = goGPS_gui;
+
+    if (isempty(mode))
+        return
+    end
 else
     
     %-------------------------------------------------------------------------------------------
@@ -82,7 +92,7 @@ else
                      % mode=8  --> ....
                      % mode=9  --> ....
                      % REAL-TIME
-                     % mode=11 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT (WITH BUFFER)
+                     % mode=11 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
                      % mode=12 --> U-BLOX MONITORING
                      % mode=13 --> MASTER MONITORING
     
@@ -111,14 +121,11 @@ else
     
     flag_NTRIP = 1;  % use NTRIP --> no=0, yes=1
     
-    flag_amb = 0;    % plot ambiguities
+    flag_amb = 0;    % plot ambiguities (only in post-processing)
     
     %----------------------------------------------------------------------------------------------
-    % GLOBAL VARIABLE INITIALIZATION / USER-DEFINED SETTINGS
+    % USER-DEFINED SETTINGS
     %----------------------------------------------------------------------------------------------
-    
-    %initialization of global variables/constants
-    global_init;
     
     %User-defined global settings
     global_settings;
@@ -374,16 +381,16 @@ else %real-time
 end
 
 %check if MASTER position is available
-if (~flag_ms_rtcm)
-    pos_M(1,1:length(time_GPS)) = XM;
-    pos_M(2,1:length(time_GPS)) = YM;
-    pos_M(3,1:length(time_GPS)) = ZM;
+if (mode < 12) & (~flag_ms_rtcm)
+    pos_M(1,1:length(time_GPS)) = pos_M(1);
+    pos_M(2,1:length(time_GPS)) = pos_M(2);
+    pos_M(3,1:length(time_GPS)) = pos_M(3);
 elseif (mode < 10) & (sum(abs(pos_M)) == 0 | isempty(pos_M))
-    pos_M(1,1:length(time_GPS)) = XM;
-    pos_M(2,1:length(time_GPS)) = YM;
-    pos_M(3,1:length(time_GPS)) = ZM;
+    pos_M(1,1:length(time_GPS)) = pos_M(1);
+    pos_M(2,1:length(time_GPS)) = pos_M(2);
+    pos_M(3,1:length(time_GPS)) = pos_M(3);
     fprintf('Master position not found, thus it is set to user-defined values:\n');
-    fprintf(' X=%.4f, Y=%.4f, Z=%.4f km\n', XM/1000, YM/1000, ZM/1000);
+    fprintf(' X=%.4f, Y=%.4f, Z=%.4f km\n', pos_M(1,1)/1000, pos_M(2,1)/1000, pos_M(3,1)/1000);
 end
 
 %----------------------------------------------------------------------------------------------

@@ -52,7 +52,8 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
        ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
        ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
        ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
-       ~isempty(dir([filerootOUT '_NMEA*.txt'])) )
+       ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
+       ~isempty(dir([filerootOUT '.kml'])) )
    
    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
    i = i + 1;
@@ -74,24 +75,21 @@ if (mode_data == 0)
     %---------------------------------------------------------------------------
 
     %check the file existence
-    if (fopen(filename_R_obs,'r') == -1)
+    if (~exist(filename_R_obs,'file'))
         error('Warning: ROVER observation file not found.');
     end
 
-    if (fopen(filename_R_nav,'r') == -1)
+    if (~exist(filename_R_nav,'file'))
         error('Warning: ROVER navigation file not found.');
     end
 
-    if (fopen(filename_M_obs,'r') == -1)
+    if (~exist(filename_M_obs,'file'))
         error('Warning: MASTER observation file not found.');
     end
 
-    if (fopen(filename_M_nav,'r') == -1)
+    if (~exist(filename_M_nav,'file'))
         error('Warning: MASTER navigation file not found.');
     end
-
-    %close all temporarily opened files
-    fclose('all');
 
 end
 
@@ -118,11 +116,6 @@ ZM = 4550154.8609;
 %Como permanent station antenna - TPSCR3_GGD CONE - phase center
 % L1: EAST=+0.0008, NORTH=-0.0004, h=0.0615
 % L2: EAST=+0.0003, NORTH=+0,      h=0.0948
-
-% %Kyoto permanent station
-% XM = -3747500.8900;
-% YM =  3646525.7300;
-% ZM =  3640308.6100;
 
 %set master station position manually
 if (~flag_ms_rtcm)
@@ -160,7 +153,6 @@ sigmaq_ph = 0.001;
 % sigmaq_ph = 0.001e30;
 
 %variance of ambiguity combinations [cycles]
-%sigmaq0_N = 10;
 sigmaq0_N = 1000;
 
 %variance of DEM height [m^2]
@@ -203,7 +195,6 @@ global h_antenna
 
 %antenna height from the ground [m]
 h_antenna = 1;
-% h_antenna = 1.07;
 
 %-------------------------------------------------------------------------------
 % DTM (SET PATH AND LOAD PARAMETER FILES)
@@ -235,50 +226,14 @@ else
 end
 
 %-------------------------------------------------------------------------------
-% MATLAB DISPLAY
-%-------------------------------------------------------------------------------
-
-global p_max pid
-global window
-global x_circle id_ellipse
-
-%maximum number of drawn trajectory points
-p_max = 200;
-
-%trajectory point id
-pid = zeros(p_max,1);
-
-%master station point id
-msid = [];
-
-%dimension of the time windows (ambiguity plot)
-window = 20;
-
-%reference circle (for covariance plot)
-try
-    % if Statistics Toolbox is installed
-    alpha = 0.05;                       % significance level
-    r = sqrt(chi2inv(1-alpha,2));       % circle radius
-catch
-    % if Statistics Toolbox is not installed,
-    % then alpha = 0.05, chi2inv(1-alpha,2) = 5.991
-    r = sqrt(5.991);
-end
-theta = (0 : 2*pi/100 : 2*pi)';     % angle values
-x_circle(:,1) = r * cos(theta);     % x-coordinate of the circle
-x_circle(:,2) = r * sin(theta);     % y-coordinate of the circle
-
-%error ellipse identifier
-id_ellipse = [];
-
-%-------------------------------------------------------------------------------
 % COMMUNICATION INTERFACES
 %-------------------------------------------------------------------------------
 
 global COMportR
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
-global server_delay
-global nmea_init nmea_update_rate
+global nmea_init
+
+manCOMport = 'COM8';
 
 if (mode == 11 | mode == 12) & flag_COM == 1
    %detect u-blox COM port
@@ -286,10 +241,10 @@ if (mode == 11 | mode == 12) & flag_COM == 1
 
    if (isempty(COMportR))
         %Override rover data input port
-        COMportR = 'COM7';
+        COMportR = manCOMport;
    end
 else
-    COMportR = 'COM7';
+    COMportR = manCOMport;
 end
 
 % %MASTER/NTRIP connection parameters
@@ -301,14 +256,6 @@ end
 % ntrip_pw = 'ppppp';
 % ntrip_mountpoint = 'mmmmmmm';
 
-%server waiting time (to check if packet transmission is finished)
-server_delay = 0.05;
-
-%Initial NMEA sentence required by some NTRIP casters
-
-% %use permanent station coordinates
-% nmea_init = NMEA_string_generator([XM YM ZM],5);
-
 %set approximate coordinates manually to initialize NMEA string
 phiApp = 34.5922;
 lamApp = 135.5059;
@@ -316,26 +263,5 @@ hApp = 20;
 
 [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a, f);
 
+%Initial NMEA sentence required by some NTRIP casters
 nmea_init = NMEA_string_generator([XApp YApp ZApp],10);
-
-%NMEA update rate (waiting time for sending a new $GGA string to NTRIP caster)
-nmea_update_rate = 10; %[sec]
-
-%-------------------------------------------------------------------------------
-% INTERNET CONNECTION
-%-------------------------------------------------------------------------------
-
-global connection_delay
-
-%waiting time for the Internet connection to be established
-connection_delay = 5;
-
-%-------------------------------------------------------------------------------
-% GOOGLE EARTH
-%-------------------------------------------------------------------------------
-
-global link_filename kml_filename
-
-%files used by Google Earth
-link_filename = '../data/google_earth/link.kml';
-kml_filename = '../data/google_earth/goGPS.kml';
