@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 11-Dec-2009 16:45:12
+% Last Modified by GUIDE v2.5 21-Dec-2009 15:46:47
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -206,7 +206,7 @@ varargout{19} = pos_M;
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
-global min_nsat cutoff snr_threshold weights order o1 o2 o3
+global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global h_antenna
 global tile_header tile_georef dtm_dir
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
@@ -224,7 +224,7 @@ if (get(handles.toggle_std_phase,'Value'))
 else
     sigmaq_ph = 1e30;
 end
-sigmaq0_N = str2double(get(handles.var_amb,'String'));
+sigmaq0_N = 1000;
 if (get(handles.toggle_std_dtm,'Value'))
     sigmaq_dtm = str2double(get(handles.std_dtm,'String'))^2;
 else
@@ -233,6 +233,7 @@ end
 min_nsat = str2double(get(handles.min_sat,'String'));
 cutoff = str2double(get(handles.cut_off,'String'));
 snr_threshold = str2double(get(handles.snr_thres,'String'));
+cs_threshold = str2double(get(handles.cs_thresh,'String'));
 if (get(handles.weight_select, 'SelectedObject') == handles.weight_0)
     weights = 0;
 elseif (get(handles.weight_select, 'SelectedObject') == handles.weight_1)
@@ -242,6 +243,10 @@ elseif (get(handles.weight_select, 'SelectedObject') == handles.weight_2)
 elseif (get(handles.weight_select, 'SelectedObject') == handles.weight_3)
     weights = 3;
 end
+snr_a = 30;
+snr_0 = 10;
+snr_1 = 50;
+snr_A = 30;
 dyn_mod_Callback(handles.dyn_mod, eventdata, handles);
 o1 = order;
 o2 = order*2;
@@ -338,7 +343,7 @@ state.toggle_std_phase = get(handles.toggle_std_phase,'Value');
 state.toggle_std_dtm = get(handles.toggle_std_dtm,'Value');
 state.std_init = get(handles.std_init,'String');
 state.std_vel = get(handles.std_vel,'String');
-state.var_amb = get(handles.var_amb,'String');
+state.cs_thresh = get(handles.cs_thresh,'String');
 state.cut_off = get(handles.cut_off,'String');
 state.snr_thres = get(handles.snr_thres,'String');
 state.antenna_h = get(handles.antenna_h,'String');
@@ -407,7 +412,7 @@ set(handles.toggle_std_phase,'Value', state.toggle_std_phase);
 set(handles.toggle_std_dtm,'Value', state.toggle_std_dtm);
 set(handles.std_init,'String', state.std_init);
 set(handles.std_vel,'String', state.std_vel);
-set(handles.var_amb,'String', state.var_amb);
+set(handles.cs_thresh,'String', state.cs_thresh);
 set(handles.cut_off,'String', state.cut_off);
 set(handles.snr_thres,'String', state.snr_thres);
 set(handles.antenna_h,'String', state.antenna_h);
@@ -459,7 +464,7 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     set(handles.kalman_ls, 'Enable', 'off');
     set(handles.kalman_ls, 'Value', 1);
     set(handles.code_dd_sa, 'Enable', 'off');
-    set(handles.code_dd_sa, 'Value', 1);
+    set(handles.code_dd_sa, 'Value', 3);
     set(handles.rinex_files, 'Enable', 'off');
     set(handles.gogps_data, 'Enable', 'off');
     set(handles.data_streams, 'Enable', 'off');
@@ -589,25 +594,15 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     toggle_std_dtm_Callback(handles.toggle_std_dtm, eventdata, handles);
     
     constraint_Callback(handles.constraint, eventdata, handles);
-    
-    set(handles.var_amb, 'Enable', 'on');
-    set(handles.text_var_amb, 'Enable', 'on');
-    set(handles.text_var_amb_unit, 'Enable', 'on');
+    code_dd_sa_Callback(handles.code_dd_sa, eventdata, handles);
+
     set(handles.cut_off, 'Enable', 'on');
     set(handles.text_cut_off, 'Enable', 'on');
     set(handles.text_cut_off_unit, 'Enable', 'on');
-    set(handles.snr_thres, 'Enable', 'on');
-    set(handles.text_snr_thres, 'Enable', 'on');
-    set(handles.text_snr_thres_unit, 'Enable', 'on');
     set(handles.min_sat, 'Enable', 'on');
     set(handles.text_min_sat, 'Enable', 'on');
     set(handles.dyn_mod, 'Enable', 'on');
-    set(handles.text_dyn_mod, 'Enable', 'on');
-    set(handles.weight_0, 'Enable', 'on');
-    set(handles.weight_1, 'Enable', 'on');
-    set(handles.weight_2, 'Enable', 'on');
-    set(handles.weight_3, 'Enable', 'on');
-    
+    set(handles.text_dyn_mod, 'Enable', 'on');   
 else
     cell_contents = cell(2,1);
     cell_contents{1} = 'Code stand-alone';
@@ -615,6 +610,8 @@ else
     old_value = get(handles.code_dd_sa, 'Value');
     if (old_value == 3), set(handles.code_dd_sa, 'Value', 2); end
     set(handles.code_dd_sa, 'String', cell_contents);
+    
+    code_dd_sa_Callback(handles.code_dd_sa, eventdata, handles);
     
     %disable Kalman filters settings
     set(handles.std_X, 'Enable', 'off');
@@ -641,12 +638,9 @@ else
     set(handles.text_std_init_unit, 'Enable', 'off');
     set(handles.text_std_dtm_unit, 'Enable', 'off');
     set(handles.text_std_vel_unit, 'Enable', 'off');
-    set(handles.var_amb, 'Enable', 'off');
-    set(handles.text_var_amb, 'Enable', 'off');
-    set(handles.text_var_amb_unit, 'Enable', 'off');
-    set(handles.snr_thres, 'Enable', 'off');
-    set(handles.text_snr_thres, 'Enable', 'off');
-    set(handles.text_snr_thres_unit, 'Enable', 'off');
+    set(handles.cs_thresh, 'Enable', 'off');
+    set(handles.text_cs_thresh, 'Enable', 'off');
+    set(handles.text_cs_thresh_unit, 'Enable', 'off');
     set(handles.min_sat, 'Enable', 'off');
     set(handles.text_min_sat, 'Enable', 'off');
     set(handles.antenna_h, 'Enable', 'off');
@@ -657,10 +651,6 @@ else
     set(handles.browse_dtm_path, 'Enable', 'off');
     set(handles.dyn_mod, 'Enable', 'off');
     set(handles.text_dyn_mod, 'Enable', 'off');
-    set(handles.weight_0, 'Enable', 'off');
-    set(handles.weight_1, 'Enable', 'off');
-    set(handles.weight_2, 'Enable', 'off');
-    set(handles.weight_3, 'Enable', 'off');
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -686,14 +676,43 @@ function code_dd_sa_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from code_dd_sa
 contents = cellstr(get(hObject,'String'));
 if (strcmp(contents{get(hObject,'Value')},'Code and phase'))
+    set(handles.plot_amb, 'Enable', 'on');
+    set(handles.cs_thresh, 'Enable', 'on');
+    set(handles.text_cs_thresh, 'Enable', 'on');
+    set(handles.text_cs_thresh_unit, 'Enable', 'on');
     set(handles.toggle_std_phase, 'Enable', 'on');
     toggle_std_phase_Callback(handles.toggle_std_phase, eventdata, handles);
+    set(handles.snr_thres, 'Enable', 'on');
+    set(handles.text_snr_thres, 'Enable', 'on');
+    set(handles.text_snr_thres_unit, 'Enable', 'on');
+    set(handles.weight_0, 'Enable', 'on');
+    set(handles.weight_1, 'Enable', 'on');
+    set(handles.weight_2, 'Enable', 'on');
+    set(handles.weight_3, 'Enable', 'on');
 else
+    set(handles.plot_amb, 'Enable', 'off');
+    set(handles.cs_thresh, 'Enable', 'off');
+    set(handles.text_cs_thresh, 'Enable', 'off');
+    set(handles.text_cs_thresh_unit, 'Enable', 'off');
     set(handles.toggle_std_phase, 'Enable', 'off');
     set(handles.std_phase, 'Enable', 'off');
     set(handles.text_std_phase_unit, 'Enable', 'off');
     if (strcmp(contents{get(hObject,'Value')},'Code double difference'))
+        set(handles.snr_thres, 'Enable', 'on');
+        set(handles.text_snr_thres, 'Enable', 'on');
+        set(handles.text_snr_thres_unit, 'Enable', 'on');
+        set(handles.weight_0, 'Enable', 'on');
+        set(handles.weight_1, 'Enable', 'on');
+        set(handles.weight_2, 'Enable', 'on');
+        set(handles.weight_3, 'Enable', 'on');
     else
+        set(handles.snr_thres, 'Enable', 'off');
+        set(handles.text_snr_thres, 'Enable', 'off');
+        set(handles.text_snr_thres_unit, 'Enable', 'off');
+        set(handles.weight_0, 'Enable', 'off');
+        set(handles.weight_1, 'Enable', 'off');
+        set(handles.weight_2, 'Enable', 'off');
+        set(handles.weight_3, 'Enable', 'off');
     end
 end
 
@@ -741,6 +760,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.text_gogps_data_output_prefix, 'Enable', 'on');
     
     set(handles.master_pos, 'Enable', 'on');
+    set(handles.master_pos, 'Value', 1);
     master_pos_Callback(handles.master_pos, eventdata, handles);
     
     kalman_ls_Callback(handles.kalman_ls, eventdata, handles);
@@ -806,9 +826,9 @@ else
     set(handles.text_std_init_unit, 'Enable', 'off');
     set(handles.text_std_dtm_unit, 'Enable', 'off');
     set(handles.text_std_vel_unit, 'Enable', 'off');
-    set(handles.var_amb, 'Enable', 'off');
-    set(handles.text_var_amb, 'Enable', 'off');
-    set(handles.text_var_amb_unit, 'Enable', 'off');
+    set(handles.cs_thresh, 'Enable', 'off');
+    set(handles.text_cs_thresh, 'Enable', 'off');
+    set(handles.text_cs_thresh_unit, 'Enable', 'off');
     set(handles.cut_off, 'Enable', 'off');
     set(handles.text_cut_off, 'Enable', 'off');
     set(handles.text_cut_off_unit, 'Enable', 'off');
@@ -930,10 +950,12 @@ function constraint_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of constraint
 if (get(hObject,'Value'))
+    set(handles.err_ellipse, 'Enable', 'off');
     set(handles.std_vel, 'Enable', 'on');
     set(handles.text_std_vel, 'Enable', 'on');
     set(handles.text_std_vel_unit, 'Enable', 'on');
 else
+    set(handles.err_ellipse, 'Enable', 'on');
     set(handles.std_vel, 'Enable', 'off');
     set(handles.text_std_vel, 'Enable', 'off');
     set(handles.text_std_vel_unit, 'Enable', 'off');
@@ -1645,18 +1667,18 @@ end
 
 
 
-function var_amb_Callback(hObject, eventdata, handles)
-% hObject    handle to var_amb (see GCBO)
+function cs_thresh_Callback(hObject, eventdata, handles)
+% hObject    handle to cs_thresh (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of var_amb as text
-%        str2double(get(hObject,'String')) returns contents of var_amb as a double
+% Hints: get(hObject,'String') returns contents of cs_thresh as text
+%        str2double(get(hObject,'String')) returns contents of cs_thresh as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function var_amb_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to var_amb (see GCBO)
+function cs_thresh_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to cs_thresh (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

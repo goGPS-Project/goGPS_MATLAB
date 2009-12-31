@@ -66,7 +66,7 @@ for i = 1 : length(sat)
     [azR, elR, distR] = topocent(posR, posS', a, f);
 
     %cut-off threshold to eliminate too low satellite observations
-    if (abs(elR) > cutoff)
+    if (elR > cutoff)
 
         %computation of ROVER-SATELLITE approximated pseudorange
         prRS_app = sqrt(sum((posR - posS).^2));

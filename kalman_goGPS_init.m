@@ -1,23 +1,25 @@
 function kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-         ph1_Rsat, ph1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, phase)
+         ph1_Rsat, ph1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, snr_R, snr_M, phase)
 
 % SYNTAX:
 %   kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-%   ph1_Rsat, ph1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, phase)
+%   ph1_Rsat, ph1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, snr_R, snr_M, phase)
 %
 % INPUT:
 %   pos_M = master known position (X,Y,Z)
 %   time = GPS time
 %   Eph = satellites ephemerides 
 %   iono =  ionospheric parameters (vector of zeroes if not available)
-%   pr1_Rsat = code pseudorange ROVER-SATELLITE (carrier L1)
-%   pr1_Msat = code pseudorange MASTER-SATELLITE (carrier L1)
-%   ph1_Rsat = phase observation ROVER-SATELLITE (carrier L1)
-%   ph1_Msat = phase observation MASTER-SATELLITE (carrier L1)
-%   pr2_Rsat = code pseudorange ROVER-SATELLITE (carrier L2)
-%   pr2_Msat = code pseudorange MASTER-SATELLITE (carrier L2)
-%   ph2_Rsat = phase observation ROVER-SATELLITE (carrier L2)
-%   ph2_Msat = phase observation MASTER-SATELLITE (carrier L2)
+%   pr1_Rsat = ROVER-SATELLITE code pseudorange (carrier L1)
+%   pr1_Msat = MASTER-SATELLITE code pseudorange (carrier L1)
+%   ph1_Rsat = ROVER-SATELLITE phase observation (carrier L1)
+%   ph1_Msat = MASTER-SATELLITE phase observation (carrier L1)
+%   pr2_Rsat = ROVER-SATELLITE code pseudorange (carrier L2)
+%   pr2_Msat = MASTER-SATELLITE code pseudorange (carrier L2)
+%   ph2_Rsat = ROVER-SATELLITE phase observation (carrier L2)
+%   ph2_Msat = MASTER-SATELLITE phase observation (carrier L2)
+%   snr_R = ROVER-SATELLITE signal-to-noise ratio
+%   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   phase = carrier L1 (phase=1) carrier L2 (phase=2)
 %
 % DESCRIPTION:
@@ -53,7 +55,7 @@ function kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 
 global a f
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq0_N
-global cutoff o1 o2 o3 nN
+global cutoff snr_threshold o1 o2 o3 nN
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
@@ -165,8 +167,8 @@ distM = zeros(32,1);
 %azimuth, elevation, MASTER-SATELLITE distance computation
 [azM(sat_pr), elM(sat_pr), distM(sat_pr)] = topocent(pos_M, pos_SAT, a, f);
 
-%elevation cut-off 
-sat_cutoff = find(elR > cutoff);
+%elevation cut-off and signal-to-noise ratio threshold
+sat_cutoff = find(elR > cutoff | (snr_R ~= 0 & snr_R < snr_threshold));
 sat_pr = intersect(sat_pr,sat_cutoff);
 sat = intersect(sat,sat_cutoff);
 
@@ -209,15 +211,15 @@ Z_om_1 = zeros(o1-1,1);
 %ROVER positioning with code double differences
 if (phase(1) == 1)
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
     else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
     end
 else
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
     else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
     end
 end
 
@@ -225,15 +227,15 @@ end
 %obtained in the previous step (from some meters to some centimeters)
 if (phase(1) == 1)
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph);
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
     else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph, iono);
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
     end
 else
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph);
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
     else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph, iono);
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
     end
 end
 
@@ -242,35 +244,50 @@ if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
 end
 sigmaq_pos_R = diag(cov_pos_R);
 
-%satellite combinations initialization: initialized value
-%if the satellite is visible, 0 if the satellite is not visible
-N1_stim = zeros(32,1);
-N2_stim = zeros(32,1);
-sigmaq_N1 = zeros(32,1);
-sigmaq_N2 = zeros(32,1);
+% %ambiguity combinations initialization: initialized value
+% %if the satellite is visible, 0 if the satellite is not visible
+% comb_N1_app = zeros(32,1);
+% comb_N2_app = zeros(32,1);
+% %sigmaq_comb_N1 = zeros(32,1);
+% %sigmaq_comb_N2 = zeros(32,1);
+% 
+% %approximate values for ambiguity combinations (double differences)
+% if ~isempty(sat)
+%     [comb_N1_app(sat), null_sigmaq_N1_stim] = amb_estimate_observ(pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), pivot, sat, 1);
+%     [comb_N2_app(sat), null_sigmaq_N2_stim] = amb_estimate_observ(pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), pivot, sat, 2);
+% end
+% 
+% if (length(phase) == 2)
+%     comb_N_app = [comb_N1_app; comb_N2_app];
+%     %sigmaq_comb_N = [sigmaq_comb_N1; sigmaq_comb_N2];
+% else
+%     if (phase == 1)
+%         comb_N_app = comb_N1_app;
+%         %sigmaq_comb_N = sigmaq_comb_N1;
+%     else
+%         comb_N_app = comb_N2_app;
+%         %sigmaq_comb_N = sigmaq_comb_N2;
+%     end
+% end
 
-%computation of the phase double differences in order to estimate N
-if ~isempty(sat)
-    [N1_stim(sat), sigmaq_N1(sat)] = amb_estimate_observ(pos_R, pos_M, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1);
-    [N2_stim(sat), sigmaq_N2(sat)] = amb_estimate_observ(pos_R, pos_M, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2);
-end
+comb_N_stim = zeros(32,1);
+sigmaq_comb_N = zeros(32,1);
 
-if (length(phase) == 2)
-    N_stim = [N1_stim; N2_stim];
-    sigmaq_N = [sigmaq_N1; sigmaq_N2]; %#ok<NASGU>
+%N combination estimation (least squares)
+if (phase(1) == 1)
+    [null_pos_R, null_cov_pos_R, comb_N_stim(sat), cov_comb_N_stim] = code_phase_double_diff(pos_R, pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono, 1);
 else
-    if (phase == 1)
-        N_stim = N1_stim;
-        sigmaq_N = sigmaq_N1; %#ok<NASGU>
-    else
-        N_stim = N2_stim;
-        sigmaq_N = sigmaq_N2; %#ok<NASGU>
-    end
+    [null_pos_R, null_cov_pos_R, comb_N_stim(sat), cov_comb_N_stim] = code_phase_double_diff(pos_R, pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono, 2);
 end
+
+if isempty(cov_comb_N_stim) %if it was not possible to compute the covariance matrix
+    cov_comb_N_stim = sigmaq0_N * eye(length(sat));
+end
+sigmaq_comb_N(sat) = diag(cov_comb_N_stim);
 
 %initialization of the initial point with 6(positions and velocities) + 
 %32 or 64 (N combinations) variables
-Xhat_t_t = [pos_R(1); Z_om_1; pos_R(2); Z_om_1; pos_R(3); Z_om_1; N_stim];
+Xhat_t_t = [pos_R(1); Z_om_1; pos_R(2); Z_om_1; pos_R(3); Z_om_1; comb_N_stim];
 
 %point estimation at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
@@ -288,4 +305,5 @@ Cee(o2+1,o2+1) = sigmaq_pos_R(3);
 Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
-Cee(o3+1:o3+nN,o3+1:o3+nN) = sigmaq0_N * eye(nN);
+Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigmaq_comb_N);
+% Cee(o3+1:o3+nN,o3+1:o3+nN) = sigmaq0_N * eye(nN);

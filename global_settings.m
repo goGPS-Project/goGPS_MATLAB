@@ -130,7 +130,7 @@ end
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
-global min_nsat cutoff snr_threshold weights order o1 o2 o3
+global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 
 %variance of initial state
 sigmaq0 = 1e2;
@@ -172,12 +172,21 @@ cutoff = 10;
 %signal-to-noise ratio threshold [dB]
 snr_threshold = 0;
 
+%cycle slip threshold [cycles]
+cs_threshold = 3;
+
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
 %          - weights=1: weight based on satellite elevation
 %          - weights=2: weight based on signal-to-noise ratio
 %          - weights=3: weight based on combined elevation and signal-to-noise ratio
 weights = 3;
+
+%weight function parameters
+snr_a = 30;
+snr_0 = 10;
+snr_1 = 50;
+snr_A = 30;
 
 %order of the dynamic model polynomial
 order = 2;
@@ -250,7 +259,7 @@ end
 % %MASTER/NTRIP connection parameters
 % master_ip = 'xxx.xxx.xxx.xxx';
 % master_port = 2101;
-% 
+
 % %NTRIP parameters
 % ntrip_user = 'uuuuuu';
 % ntrip_pw = 'ppppp';
