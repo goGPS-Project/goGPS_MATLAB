@@ -67,7 +67,7 @@ for j = 1 : Ncell
         pos = abs(ph1_R(:,i)) < 1e-100;
         ph1_R(pos,i) = 0;
         
-        %phase rollover adjustement
+        %phase adjustement
         pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
         if(sum(pos) ~= 0)
             ambig = 2^23;
