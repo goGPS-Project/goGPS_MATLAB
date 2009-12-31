@@ -95,34 +95,34 @@ minute = num2str(date(1,5));
 second = num2str(floor(date(1,6)));
 
 %[second] = num2str(floor(str2double(second)));
-[~, ncifre] = size(year);
+[null, ncifre] = size(year);
 if (ncifre == 1)
     [year] = sprintf('200%s',year);
 elseif (ncifre == 2)
     [year] = sprintf('20%s',year);
 end
 
-[~, ncifre] = size(month);
+[null, ncifre] = size(month);
 if (ncifre == 1)
     [month] = sprintf('0%s',month);
 end
 
-[~, ncifre] = size(day);
+[null, ncifre] = size(day);
 if (ncifre == 1)
     [day] = sprintf('0%s',day);
 end
 
-[~, ncifre] = size(hour);
+[null, ncifre] = size(hour);
 if (ncifre == 1)
     [hour] = sprintf('0%s',hour);
 end
 
-[~, ncifre] = size(minute);
+[null, ncifre] = size(minute);
 if (ncifre == 1)
     [minute] = sprintf('0%s',minute);
 end
 
-[~, ncifre] = size(second);
+[null, ncifre] = size(second);
 if (ncifre == 1)
     [second] = sprintf('0%s',second);
 end

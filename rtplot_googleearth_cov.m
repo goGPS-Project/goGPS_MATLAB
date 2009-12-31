@@ -38,7 +38,7 @@ function rtplot_googleearth_cov (t, pos_R, pos_M, covpos_R, date)
 
 global a e
 global conf_sat
-global link_filename
+global link_filename kml_filename
 global x_circle
 
 %rover position coordinates X Y Z

@@ -126,17 +126,17 @@ hour = num2str(current_date(1,4));
 minute = num2str(current_date(1,5));
 second = num2str(floor(current_date(1,6)));
 
-[~, ncifre] = size(hour);
+[null, ncifre] = size(hour);
 if (ncifre == 1)
     [hour] = sprintf('0%s',hour);
 end
 
-[~, ncifre] = size(minute);
+[null, ncifre] = size(minute);
 if (ncifre == 1)
     [minute] = sprintf('0%s',minute);
 end
 
-[~, ncifre] = size(second);
+[null, ncifre] = size(second);
 if (ncifre == 1)
     [second] = sprintf('0%s',second);
 end

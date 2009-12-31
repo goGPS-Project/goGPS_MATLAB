@@ -1,10 +1,9 @@
-function KML_write_cov (filename,lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date)
+function KML_write_cov (lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date)
 
 % SYNTAX:
-%   KML_write_cov (filename,lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date);
+%   KML_write_cov (lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date);
 %
 % INPUT:
-%   filename = name of the file with extension
 %   lamR = rover longitude [degrees]
 %   phiR = rover latitude [degrees]
 %   hR   = rover orthometric height [m]
@@ -40,6 +39,8 @@ function KML_write_cov (filename,lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+global kml_filename
 
 %-------------------------------------------------------------------------------
 % PARAMETERS FOR THE KML FILE
@@ -96,34 +97,34 @@ hour = num2str(date(1,4));
 minute = num2str(date(1,5));
 second = num2str(floor(date(1,6)));
 
-[~, ncifre] = size(year);
+[null, ncifre] = size(year);
 if (ncifre == 1)
     [year] = sprintf('200%s',year);
 elseif (ncifre == 2)
     [year] = sprintf('20%s',year);
 end
 
-[~, ncifre] = size(month);
+[null, ncifre] = size(month);
 if (ncifre == 1)
     [month] = sprintf('0%s',month);
 end
 
-[~, ncifre] = size(day);
+[null, ncifre] = size(day);
 if (ncifre == 1)
     [day] = sprintf('0%s',day);
 end
 
-[~, ncifre] = size(hour);
+[null, ncifre] = size(hour);
 if (ncifre == 1)
     [hour] = sprintf('0%s',hour);
 end
 
-[~, ncifre] = size(minute);
+[null, ncifre] = size(minute);
 if (ncifre == 1)
     [minute] = sprintf('0%s',minute);
 end
 
-[~, ncifre] = size(second);
+[null, ncifre] = size(second);
 if (ncifre == 1)
     [second] = sprintf('0%s',second);
 end
@@ -132,16 +133,16 @@ end
 % FILE WRITING
 %-------------------------------------------------------------------------------
 
-fkml=fopen(filename,'wt');
+fkml=fopen(kml_filename,'wt');
 
 while (fkml == -1)
-    fkml=fopen(filename,'wt');
+    fkml=fopen(kml_filename,'wt');
 end
 
 fprintf(fkml, '<?xml version="1.0" standalone="yes"?>\n');
 fprintf(fkml, '<kml creator="goGPS" xmlns="http://earth.google.com/kml/2.2">\n');
 fprintf(fkml, '  <Document>\n');
-fprintf(fkml, '    <name><![CDATA[%s]]></name>\n', filename);
+fprintf(fkml, '    <name><![CDATA[%s]]></name>\n', kml_filename);
 fprintf(fkml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
 fprintf(fkml, '      <Placemark>\n');
 fprintf(fkml, '        <name>Master station</name>\n');

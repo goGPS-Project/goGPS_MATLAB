@@ -33,8 +33,8 @@ dtr = pi/180;
 
 %conversion from geocentric cartesian to geodetic coordinates
 [phi, lambda, h] = cart2geod(Xr(1), Xr(2), Xr(3));
-phi = phi * 180 / pi;
-lambda = lambda * 180 / pi;
+phi = phi / dtr;
+lambda = lambda / dtr;
    
 %new origin of the reference system
 X0(:,1) = Xr(1) * ones(size(Xs,1),1);
