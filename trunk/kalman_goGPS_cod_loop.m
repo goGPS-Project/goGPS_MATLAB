@@ -1,6 +1,6 @@
 function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ...
          (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, pr2_Rsat, pr2_Msat, ...
-		 snr_R, snr_M, phase) %#ok<INUSL>
+		 snr_R, snr_M, phase)
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ...
@@ -136,7 +136,7 @@ if (pivot ~= 0)
 end
 
 %current pivot
-[~, i] = max(elR(sat));
+[null_max_elR, i] = max(elR(sat));
 pivot = sat(i);
 
 %----------------------------------------------------------------------------------------
@@ -163,17 +163,11 @@ nsat = size(sat,1);
 %if the number of visible satellites is equal or greater than min_nsat
 if (nsat >= min_nsat)
 
-    %code pseudoranges to be used in the Kalman filter
-    pr1_Rsat_kalman = pr1_Rsat(sat);
-    pr1_Msat_kalman = pr1_Msat(sat);
-    pr2_Rsat_kalman = pr2_Rsat(sat);
-    pr2_Msat_kalman = pr2_Msat(sat);
-
     %ROVER positioning by means of code double differences
     if (phase(1) == 1)
-        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr1_Rsat_kalman, pos_M, pr1_Msat_kalman, time, sat, pivot, Eph, iono);
+        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
     else
-        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr2_Rsat_kalman, pos_M, pr2_Msat_kalman, time, sat, pivot, Eph, iono);
+        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
     end
     
     if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
@@ -203,24 +197,12 @@ end
 if (length(sat) < length(sat_old))
 
     check_off = 1;
-
-    %save of the lost satellites
-    sat_dead = setdiff(sat_old,sat);
-
-    %print the lost satellites
-    ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')]; %#ok<VUNUS>
 end
 
 %search for a new satellite
 if (length(sat) > length(sat_old))
 
     check_on = 1;
-
-    %save the new satellites
-    sat_born = setdiff(sat,sat_old);
-
-    %print the new satellites
-    ['New satellites at time ' num2str(time) ': ' num2str(sat_born')]; %#ok<VUNUS>
 end
 
 %------------------------------------------------------------------------------------
@@ -231,9 +213,6 @@ end
 if (pivot ~= pivot_old)
 
     check_pivot = 1;
-
-    %print the PIVOT change
-    ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)]; %#ok<VUNUS>
 end
 
 %----------------------------------------------------------------------------------------

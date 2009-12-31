@@ -1,11 +1,12 @@
-function rtplot_skyplot (az, el, obs, pivot)
+function rtplot_skyplot (t, az, el, obs, pivot)
 
 % SYNTAX:
-%   rtplot_skyplot (az, el, obs, pivot);
+%   rtplot_skyplot (t, az, el, obs, pivot);
 %
 % INPUT:
-%   az  = azimuth               [degrees]
-%   el  = elevation             [degrees]
+%   t   = survey time (t=1,2,...)
+%   az  = azimuth     [degrees]
+%   el  = elevation   [degrees]
 %   obs = kind of observation
 %            0 = not used
 %           +1 = code & phase
@@ -39,65 +40,198 @@ function rtplot_skyplot (az, el, obs, pivot)
 %----------------------------------------------------------------------------------------------
 
 global cutoff
+global satid labid pivid
 
-sat = find(el > 0);
-az = az(sat);
-el = el(sat);
-obs = obs(sat);
+%----------------------------------------------------------------------------------------------
+% SKY-PLOT BACKGROUND
+%----------------------------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------------
+% location on the screen
 subplot(2,3,3)
+
+if (t == 1)
+
+    % define radial limits and step
+    rmin = 0;
+    rmax = 90;
+    rinc = 15;
+
+    % make a bounding box
+    hhh = plot([-rmax -rmax rmax rmax],[-rmax rmax rmax -rmax]);
+    set(gca,'dataaspectratio',[1 1 1],'plotboxaspectratiomode','auto')
+    delete(hhh);
+    hold on
+
+    % define a circle
+    th = 0:pi/50:2*pi;
+    xunit = cos(th);
+    yunit = sin(th);
+
+    % plot white circle background
+    patch('xdata',xunit*rmax,'ydata',yunit*rmax, ...
+        'edgecolor','k','facecolor','w', ...
+        'handlevisibility','off');
+
+    % draw radial circles
+    for i=0:rinc:90
+        hhh = plot(xunit*i,yunit*i,':','color','k', ...
+            'linewidth',1,'handlevisibility','off');
+    end
+    set(hhh,'linestyle','-') % make outer circle solid
+
+    hhh = plot(xunit*(90-cutoff),yunit*(90-cutoff),':','color','r', ...
+        'linewidth',1,'handlevisibility','off');
+    set(hhh,'linestyle','-') % make cutoff circle in red
+
+    % plot spokes
+    th = (1:4)*pi/4;
+    cst = cos(th);
+    snt = sin(th);
+    cs = [-cst; cst];
+    sn = [-snt; snt];
+    plot(rmax*cs,rmax*sn,':','color','k','linewidth',1,...
+        'handlevisibility','off')
+
+    % annotate spokes in degrees
+    rt = 1.1*rmax;
+    loc{1} = char('NE');  loc{2} = char('SW');
+    loc{3} = char('N');   loc{4} = char('S');
+    loc{5} = char('NW');  loc{6} = char('SE');
+    loc{7} = char('W');   loc{8} = char('E');
+    for i = 1:length(th)
+        text(rt*cst(i),rt*snt(i),loc{2*i-1},...
+            'horizontalalignment','center',...
+            'handlevisibility','off');
+        text(-rt*cst(i),-rt*snt(i),loc{2*i},...
+            'horizontalalignment','center',...
+            'handlevisibility','off')
+    end
+
+    % set axis limits
+    axis(rmax*[-1 1 -1.15 1.15]);
+
+    % no background
+    set(gca,'dataaspectratio',[1 1 1])
+    axis off
+
+    % write the title
+    title('sky plot')
+
+end
+
+%----------------------------------------------------------------------------------------------
+% COMPUTATION OF POLAR/CARTESIAN COORDINATES
+%----------------------------------------------------------------------------------------------
 
 %theta =   0° --> NORTH
 %theta =  90° --> EAST
 %theta = 180° --> SOUTH
 %theta = -90° --> WEST
 
+% polar coordinates
 theta = (90-az) * pi/180;
 rho = 90-el;
 
+% cartesian coordinates
 x = rho .* cos(theta);
 y = rho .* sin(theta);
+
+%----------------------------------------------------------------------------------------------
+% PLOT OF SATELLITE POINTS
+%----------------------------------------------------------------------------------------------
+
+% visible satellites
+sat = [];
+
+for i = 1 : 32
+
+    if (el(i) > 0)
+
+        sat = [sat; i];
+
+        if (satid(i) == 0)
+            satid(i) = plot(x(i), y(i), '.');
+            set(satid(i), 'MarkerSize', 15);
+        else
+            set(satid(i), 'XData', x(i), 'YData', y(i));
+        end
+
+        if (obs(i) == 1)
+            set(satid(i), 'Color', 'b');
+        elseif (obs(i) == -1)
+            set(satid(i), 'Color', 'g');
+        else % if (obs(i) == 0)
+            set(satid(i), 'Color', 'm');
+        end
+
+        if (i == pivot)
+            if (pivid ~= 0)
+                delete(pivid);
+            end
+            pivid = plot(x(i), y(i), 'ok');
+            set(pivid, 'MarkerSize', 8, 'LineWidth', 1);
+        end
+
+    elseif (satid(i) > 0)
+
+        delete(satid(i))
+        satid(i) = 0;
+
+    end
+end
+
+%----------------------------------------------------------------------------------------------
+% SELECTION OF SATELLITE INFORMATION
+%----------------------------------------------------------------------------------------------
+
+rho = rho(sat);
+theta = theta(sat);
+
+x = x(sat);
+y = y(sat);
+
+%----------------------------------------------------------------------------------------------
+% PLOT OF SATELLITE LABELS
+%----------------------------------------------------------------------------------------------
+
+% delete previous labels and re-initialize them
+delete(labid(find(labid > 0)));
+labid = zeros(32,1);
+
 try
     % if Statistics Toolbox is installed
-    D = squareform(pdist([x y])) + 180*eye(length(rho));
+    D = squareform(pdist([x y])) + 180*eye(length(sat));
 catch
     % if Statistics Toolbox is not installed
     D = [];
 end
 
-X = x(:,ones(length(x),1));
-Y = y(:,ones(length(y),1));
+X = x(:,ones(length(sat),1));
+Y = y(:,ones(length(sat),1));
 dX = X-X';
 dY = Y-Y';
 
-polar_goGPS(theta,rho,obs,'.',cutoff);
+for i = 1 : length(sat)
 
-hold on
-for i = 1: length(sat)
-   if (sat(i) == pivot)
-      p = plot(rho(i)*cos(theta(i)),rho(i)*sin(theta(i)),'ok');
-      set(p,'MarkerSize',8,'LineWidth',1);
-   end
-   if ~isempty(D)
-      [~, d] = min(D(:,i));
-   else
-      d = 1;
-   end
-   alpha = atan2(dY(d,i),dX(d,i));
-   %[sat(i) sat(d) minD alpha*180/pi]
-   if (cos(alpha) < 0)
-      h = text(rho(i)*cos(theta(i))-10*cos(alpha)-6,rho(i)*sin(theta(i))-10*sin(alpha),num2str(sat(i)));
-   else
-      if (sat(i) < 10)
-         h = text(rho(i)*cos(theta(i))-10*cos(alpha),rho(i)*sin(theta(i))-10*sin(alpha),num2str(sat(i)));
-      else
-         h = text(rho(i)*cos(theta(i))-10*cos(alpha)-2,rho(i)*sin(theta(i))-10*sin(alpha),num2str(sat(i)));
-      end
-   end
-   %h = text(rho(i)*cos(theta(i)),rho(i)*sin(theta(i)),num2str(sat(i)));
-   set(h,'Color','k')
-   set(h,'FontWeight','bold')
+    if ~isempty(D)
+        [null, d] = min(D(:,i));
+    else
+        d = 1;
+    end
+
+    alpha = atan2(dY(d,i),dX(d,i));
+    %[sat(i) sat(d) minD alpha*180/pi]
+
+    if (cos(alpha) < 0)
+        labid(sat(i)) = text(x(i)-10*cos(alpha)-6,y(i)-10*sin(alpha),num2str(sat(i)));
+    else
+        if (sat(i) < 10)
+            labid(sat(i)) = text(x(i)-10*cos(alpha),y(i)-10*sin(alpha),num2str(sat(i)));
+        else
+            labid(sat(i)) = text(x(i)-10*cos(alpha)-2,y(i)-10*sin(alpha),num2str(sat(i)));
+        end
+    end
+    %labid(sat(i)) = text(x(i),y(i),num2str(sat(i)));
+    set(labid(sat(i)),'Color','k')
+    set(labid(sat(i)),'FontWeight','bold')
 end
-title('sky plot')
-hold off

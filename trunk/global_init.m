@@ -173,6 +173,7 @@ connection_delay = 5;
 %-------------------------------------------------------------------------------
 
 global p_max pid
+global satid labid pivid
 global window
 global x_circle id_ellipse
 
@@ -181,6 +182,11 @@ p_max = 200;
 
 %trajectory point id
 pid = zeros(p_max,1);
+
+%sky-plot id
+satid = zeros(32,1);
+labid = zeros(32,1);
+pivid = 0;
 
 %master station point id
 msid = [];

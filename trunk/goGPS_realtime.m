@@ -344,7 +344,7 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
 end
 
 %positioning by Bancroft algorithm
-[pos_R, ~] = input_bancroft(pr_R(satObs,1), satObs, time_GPS, Eph);
+[pos_R, null] = input_bancroft(pr_R(satObs,1), satObs, time_GPS, Eph);
 
 fprintf('ROVER approximate position computed using %d satellites\n', sum(pr_R ~= 0));
 
@@ -690,7 +690,7 @@ while flag
                     pos = abs(ph_R(:,index)) < 1e-100;
                     ph_R(pos,index) = 0;
                     
-                    %phase rollover adjustement
+                    %phase adjustement
                     pos = abs(ph_R(:,index)) > 0 & abs(ph_R(:,index)) < 1e7;
                     ambig = 2^23;
                     n = floor( (pr_R(pos,index)/lambda1-ph_R(pos,index)) / ambig + 0.5 );
@@ -772,7 +772,7 @@ while flag
         %ephemerides update cycle
         conf_eph = (sum(abs(Eph),1) == 0);
         
-        [~, sat_index] = sort(snr_R(:, index),1,'descend');
+        [null, sat_index] = sort(snr_R(:, index),1,'descend');
         clear snr_sorted
         
         conf_sat_eph = conf_sat_eph(sat_index);
@@ -1263,7 +1263,7 @@ while flag
                 %Kalman filter
                 t0 = clock;
                 if (mode_vinc == 0)
-                    kalman_goGPS_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, 1);
+                    kalman_goGPS_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,1), snr_M(:,1), 1);
                 else
                     kalman_goGPS_vinc_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, 1, ref_path);
                 end
@@ -1301,7 +1301,7 @@ while flag
                     t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                     t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                 end
-                t0 = clock; rtplot_skyplot (azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                 t0 = clock; rtplot_snr (snr_R(:,1)); dt_snr = etime(clock,t0);
 
                 %computation time save
@@ -1463,7 +1463,7 @@ while flag
                     t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                     t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                 end
-                t0 = clock; rtplot_skyplot (azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                 t0 = clock; rtplot_snr (zeros(32,1)); dt_snr = etime(clock,t0);
 
                 %computation time save
@@ -1584,7 +1584,7 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    t0 = clock; rtplot_skyplot (azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                     t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
 
                     %computation time save
@@ -1705,7 +1705,7 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    t0 = clock; rtplot_skyplot (azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                     t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
 
                     %computation time save
@@ -1881,7 +1881,7 @@ while flag
                             t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                             t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                         end
-                        t0 = clock; rtplot_skyplot (azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                        t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                         t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
 
                         %computation time save
@@ -2002,7 +2002,7 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    t0 = clock; rtplot_skyplot (azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                     t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
 
                     %computation time save

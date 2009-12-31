@@ -127,7 +127,7 @@ if (pivot ~= 0)
 end
 
 %current pivot
-[~, i] = max(elR(sat));
+[null_max_elR, i] = max(elR(sat));
 pivot = sat(i);
 
 %----------------------------------------------------------------------------------------

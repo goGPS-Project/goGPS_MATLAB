@@ -1,9 +1,9 @@
-function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pos_R, pos_M, pr_Rsat, pr_Msat, ...
-         ph_Rsat, ph_Msat, Eph, time, pivot, sat, phase)
+function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
+         ph_Rsat, ph_Msat, pivot, sat, phase)
 
 % SYNTAX:
-%   [N_stim, sigmaq_N_stim] = amb_estimate_observ(pos_R, pos_M, pr_Rsat, pr_Msat, ...
-%   ph_Rsat, ph_Msat, Eph, time, pivot, sat, phase);
+%   [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
+%   ph_Rsat, ph_Msat, pivot, sat, phase);
 %
 % INPUT:
 %   pos_R = ROVER assessed position (X,Y,Z) (not used)
@@ -19,12 +19,12 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pos_R, pos_M, pr_Rsat, pr
 %   phase = carrier L1 (phase=1), carrier L2 (phase=2)
 %
 % OUTPUT:
-%   N_stim = linear combination of initial integer ambiguity estimate
-%   sigmaq_N_stim = assessed variances of initial integer ambiguity
+%   N_stim = linear combination ambiguity estimate
+%   sigmaq_N_stim = assessed variances of combined ambiguity
 %
 % DESCRIPTION:
-%   Linear combination estimation (double differences) of phase initial
-%   integer ambiguity (and of their error variance) by using both phase 
+%   Estimation of combined (double difference) phase 
+%   ambiguities (and of their error variance) by using both phase 
 %   and code observations (satellite-receiver distance).
 
 %----------------------------------------------------------------------------------------------
@@ -53,18 +53,19 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pos_R, pos_M, pr_Rsat, pr
 %variables initialization
 global lambda1
 global lambda2
+global sigmaq_cod1
 
 %code observation variance [m^2]
-sigmaq_cod = 1;
+% sigmaq_cod = 1;
 
 %PIVOT position research
 i = find(pivot == sat);
 
-%code observations
+%pivot code observations
 pr_RP = pr_Rsat(i);
 pr_MP = pr_Msat(i);
 
-%phase observations
+%pivot phase observations
 ph_RP = ph_Rsat(i);
 ph_MP = ph_Msat(i);
 
@@ -74,13 +75,13 @@ comb_pr = (pr_Rsat - pr_Msat) - (pr_RP - pr_MP);
 %observed phase double differences
 comb_ph = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
 
-%linear combination of initial integer ambiguity estimate
+%linear combination of initial ambiguity estimate
 if (phase == 1)
    N_stim = ((comb_pr - comb_ph * lambda1)) / lambda1;
-   sigmaq_N_stim = 4*sigmaq_cod / lambda1^2;
+   sigmaq_N_stim = 4*sigmaq_cod1 / lambda1^2;
 else
    N_stim = ((comb_pr - comb_ph * lambda2)) / lambda2;
-   sigmaq_N_stim = 4*sigmaq_cod / lambda2^2;
+   sigmaq_N_stim = 4*sigmaq_cod1 / lambda2^2;
 end
 
 %-------------------------------------------------------------------------------

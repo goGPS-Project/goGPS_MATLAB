@@ -1,15 +1,17 @@
 function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
-         (posR, pr1_R, posM, pr1_M, time, sat, pivot, Eph, iono)
+         (pos_R, pr_R, snr_R, pos_M, pr_M, snr_M, time, sat, pivot, Eph, iono)
 
 % SYNTAX:
 %   [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
-%   (posR, pr1_R, posM, pr1_M, time, sat, pivot, Eph, iono);
+%   (pos_R, pr_R, snr_R, pos_M, pr_M, snr_M, time, sat, pivot, Eph, iono);
 %
 % INPUT:
-%   posR = ROVER position (X,Y,Z)
-%   pr1_R = ROVER-SATELLITE code pseudorange
-%   posM = MASTER position (X,Y,Z)
-%   pr1_M = MASTER-SATELLITE code pseudorange
+%   pos_R = ROVER position (X,Y,Z)
+%   pr_R = ROVER-SATELLITE code pseudorange
+%   snr_R = ROVER-SATELLITE signal-to-noise ratio
+%   pos_M = MASTER position (X,Y,Z)
+%   pr_M = MASTER-SATELLITE code pseudorange
+%   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   time = GPS time
 %   sat = visible satellite configuration
 %   pivot = pivot satellite
@@ -55,23 +57,22 @@ function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 
 %variable initialization
 global a f
-global cutoff
 
 %rover position coordinates X Y Z
-X_R = posR(1);
-Y_R = posR(2);
-Z_R = posR(3);
+X_R = pos_R(1);
+Y_R = pos_R(2);
+Z_R = pos_R(3);
 
 %conversion from cartesian to geodetic coordinates
-[~, ~, h_R] = cart2geod(X_R, Y_R, Z_R);
+[null_phi_R, null_lam_R, h_R] = cart2geod(X_R, Y_R, Z_R);
 
 %master position coordinates X Y Z
-X_M = posM(1);
-Y_M = posM(2);
-Z_M = posM(3);
+X_M = pos_M(1);
+Y_M = pos_M(2);
+Z_M = pos_M(3);
 
 %conversion from cartesian to geodetic coordinates
-[~, ~, h_M] = cart2geod(X_M, Y_M, Z_M);
+[null_phi_M, null_lam_M, h_M] = cart2geod(X_M, Y_M, Z_M);
 
 %number of visible satellites
 nsat = size(sat,1);
@@ -80,34 +81,39 @@ nsat = size(sat,1);
 i = find(pivot == sat);
 
 %PIVOT position (with clock error and Earth rotation corrections)
-posP = sat_corr(Eph, sat(i), time, pr1_R(i), posR);
+posP = sat_corr(Eph, sat(i), time, pr_R(i), pos_R);
 
 %computation of ROVER-PIVOT and MASTER-PIVOT approximated pseudoranges
-prRP_app = sqrt(sum((posR - posP).^2));
-prMP_app = sqrt(sum((posM - posP).^2));
+prRP_app = sqrt(sum((pos_R - posP).^2));
+prMP_app = sqrt(sum((pos_M - posP).^2));
 
-%observed code pseudorange
-prRP_obs = pr1_R(i);
-prMP_obs = pr1_M(i);
+%ROVER-PIVOT and MASTER-PIVOT observed code pseudoranges
+prRP_obs = pr_R(i);
+prMP_obs = pr_M(i);
+
+%ROVER-satellite and MASTER-satellite elevation initialization
+elR = zeros(nsat,1);
+elM = zeros(nsat,1);
+
+%ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
+[azR, elR(i)] = topocent(pos_R, posP', a, f);
+[azM, elM(i)] = topocent(pos_M, posP', a, f);
 
 %atmospheric error computation
-if (nargin == 9)
+if (nargin == 11)
 
-   %ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
-   [azR, elR] = topocent(posR, posP', a, f);
-   [azM, elM] = topocent(posM, posP', a, f);
-   err_tropo_RP = err_tropo(elR, h_R);
-   err_tropo_MP = err_tropo(elM, h_M);
+   err_tropo_RP = err_tropo(elR(i), h_R);
+   err_tropo_MP = err_tropo(elM(i), h_M);
 
    %ROVER-PIVOT and MASTER-PIVOT ionospheric error computation
-   [phiR, lamR] = cart2geod(posR(1), posR(2), posR(3));
-   [phiM, lamM] = cart2geod(posM(1), posM(2), posM(3));
+   [phiR, lamR] = cart2geod(pos_R(1), pos_R(2), pos_R(3));
+   [phiM, lamM] = cart2geod(pos_M(1), pos_M(2), pos_M(3));
    phiR = phiR * 180 / pi;
    lamR = lamR * 180 / pi;
    phiM = phiM * 180 / pi;
    lamM = lamM * 180 / pi;
-   err_iono_RP = err_iono(iono, phiR, lamR, azR, elR, time);
-   err_iono_MP = err_iono(iono, phiM, lamM, azM, elM, time);
+   err_iono_RP = err_iono(iono, phiR, lamR, azR, elR(i), time);
+   err_iono_MP = err_iono(iono, phiM, lamM, azM, elM(i), time);
 end
 
 A = [];
@@ -121,52 +127,50 @@ for i = 1 : nsat
     if (sat(i) ~= pivot)
 
         %satellite position (with clock error and Earth rotation corrections)
-        posS = sat_corr(Eph, sat(i), time, pr1_R(i), posR);
+        posS = sat_corr(Eph, sat(i), time, pr_R(i), pos_R);
 
         %computation of the satellite azimuth and elevation
-        [azR, elR] = topocent(posR, posS', a, f);
-        [azM, elM] = topocent(posM, posS', a, f);
-
-        %cut-off threshold to eliminate too low satellite observations
-        if (abs(elR) > cutoff)
-
-            %computation of ROVER-PIVOT and MASTER-PIVOT approximated pseudoranges
-            prRS_app = sqrt(sum((posR - posS).^2));
-            prMS_app = sqrt(sum((posM - posS).^2));
-
-            %observed code pseudoranges
-            prRS_obs = pr1_R(i);
-            prMS_obs = pr1_M(i);
-
-            %design matrix computation
-            A = [A; (((posR(1) - posS(1)) / prRS_app) - ((posR(1) - posP(1)) / prRP_app)) ...
-                    (((posR(2) - posS(2)) / prRS_app) - ((posR(2) - posP(2)) / prRP_app)) ...
-                    (((posR(3) - posS(3)) / prRS_app) - ((posR(3) - posP(3)) / prRP_app))];
-
-            %computation of crossed approximated pseudoranges
-            comb_pr_app = [comb_pr_app; (prRS_app - prMS_app) - (prRP_app - prMP_app)];
-
-            %computation of crossed observed pseudoranges
-            comb_pr_obs = [comb_pr_obs; (prRS_obs - prMS_obs) - (prRP_obs - prMP_obs)];
-
-            %computation of crossed atmospheric errors
-            if (nargin == 9)
-
-                %computation of tropospheric errors
-                err_tropo_RS = err_tropo(elR, h_R);
-                err_tropo_MS = err_tropo(elM, h_M);
-
-                %computation of ionospheric errors
-                err_iono_RS = err_iono(iono, phiR, lamR, azR, elR, time);
-                err_iono_MS = err_iono(iono, phiM, lamM, azM, elM, time);
-
-                %computation of crossed tropospheric errors
-                tr = [tr; (err_tropo_RS - err_tropo_MS) - (err_tropo_RP - err_tropo_MP)];
-
-                %computation of crossed ionospheric errors
-                io = [io; (err_iono_RS - err_iono_MS) - (err_iono_RP - err_iono_MP)];
-            end
+        [azR, elR(i)] = topocent(pos_R, posS', a, f);
+        [azM, elM(i)] = topocent(pos_M, posS', a, f);
+        
+        
+        %computation of ROVER-PIVOT and MASTER-PIVOT approximated pseudoranges
+        prRS_app = sqrt(sum((pos_R - posS).^2));
+        prMS_app = sqrt(sum((pos_M - posS).^2));
+        
+        %observed code pseudoranges
+        prRS_obs = pr_R(i);
+        prMS_obs = pr_M(i);
+        
+        %design matrix computation
+        A = [A; (((pos_R(1) - posS(1)) / prRS_app) - ((pos_R(1) - posP(1)) / prRP_app)) ...
+                (((pos_R(2) - posS(2)) / prRS_app) - ((pos_R(2) - posP(2)) / prRP_app)) ...
+                (((pos_R(3) - posS(3)) / prRS_app) - ((pos_R(3) - posP(3)) / prRP_app))];
+        
+        %computation of crossed approximated pseudoranges
+        comb_pr_app = [comb_pr_app; (prRS_app - prMS_app) - (prRP_app - prMP_app)];
+        
+        %computation of crossed observed pseudoranges
+        comb_pr_obs = [comb_pr_obs; (prRS_obs - prMS_obs) - (prRP_obs - prMP_obs)];
+        
+        %computation of crossed atmospheric errors
+        if (nargin == 11)
+            
+            %computation of tropospheric errors
+            err_tropo_RS = err_tropo(elR(i), h_R);
+            err_tropo_MS = err_tropo(elM(i), h_M);
+            
+            %computation of ionospheric errors
+            err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
+            err_iono_MS = err_iono(iono, phiM, lamM, azM, elM(i), time);
+            
+            %computation of crossed tropospheric errors
+            tr = [tr; (err_tropo_RS - err_tropo_MS) - (err_tropo_RP - err_tropo_MP)];
+            
+            %computation of crossed ionospheric errors
+            io = [io; (err_iono_RS - err_iono_MS) - (err_iono_RP - err_iono_MP)];
         end
+        
     end
 end
 
@@ -174,7 +178,7 @@ end
 b = comb_pr_app;
 
 %correction of the b known term
-if (nargin == 9)
+if (nargin == 11)
    b = b + tr - io;
 end
 
@@ -188,11 +192,11 @@ n = length(y0);
 m = 3;
 
 %observation covariance matrix
-Q = 2*ones(n) + 2*eye(n);
+Q = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot);
 
 %least squares solution
 x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
-xR = posR + x;
+xR = pos_R + x;
 
 %estimation of the variance of the observation error
 y_stim = A*x + b;
