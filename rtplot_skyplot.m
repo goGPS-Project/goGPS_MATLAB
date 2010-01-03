@@ -7,7 +7,7 @@ function rtplot_skyplot (t, az, el, obs, pivot)
 %   t   = survey time (t=1,2,...)
 %   az  = azimuth     [degrees]
 %   el  = elevation   [degrees]
-%   obs = kind of observation
+%   obs = observation type
 %            0 = not used
 %           +1 = code & phase
 %           -1 = only code
@@ -223,12 +223,12 @@ for i = 1 : length(sat)
     %[sat(i) sat(d) minD alpha*180/pi]
 
     if (cos(alpha) < 0)
-        labid(sat(i)) = text(x(i)-10*cos(alpha)-6,y(i)-10*sin(alpha),num2str(sat(i)));
+        labid(sat(i)) = text(x(i)-10*cos(alpha)-6,y(i)-10*sin(alpha),sprintf('%d',sat(i)));
     else
         if (sat(i) < 10)
-            labid(sat(i)) = text(x(i)-10*cos(alpha),y(i)-10*sin(alpha),num2str(sat(i)));
+            labid(sat(i)) = text(x(i)-10*cos(alpha),y(i)-10*sin(alpha),sprintf('%d',sat(i)));
         else
-            labid(sat(i)) = text(x(i)-10*cos(alpha)-2,y(i)-10*sin(alpha),num2str(sat(i)));
+            labid(sat(i)) = text(x(i)-10*cos(alpha)-2,y(i)-10*sin(alpha),sprintf('%d',sat(i)));
         end
     end
     %labid(sat(i)) = text(x(i),y(i),num2str(sat(i)));
