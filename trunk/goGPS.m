@@ -68,7 +68,7 @@ global o1 o2 o3 h_antenna
 if (mode_user == 1)
 
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_rtcm, flag_ms, flag_ge, flag_cov, flag_COM, flag_NTRIP, flag_amb, ...
-        filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, filename_ref, ...
+        flag_cpu, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, filename_ref, ...
         pos_M] = goGPS_gui;
 
     if (isempty(mode))
@@ -80,7 +80,7 @@ else
     % DEFINITION OF THE FUNCTIONING MODE (TEXTUAL INTERFACE)
     %-------------------------------------------------------------------------------------------
     
-    mode =    1;     % functioning mode
+    mode =   11;     % functioning mode
                      % POST-PROCESSING
                      % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
                      % mode=2  --> KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT (to be implemented)
@@ -122,6 +122,8 @@ else
     flag_NTRIP = 1;  % use NTRIP --> no=0, yes=1
     
     flag_amb = 0;    % plot ambiguities (only in post-processing)
+    
+    flag_cpu = 0;    % save CPU (don't draw skyplot and SNR graph)
     
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -425,8 +427,12 @@ if (mode == 1) & (mode_vinc == 0)
     if (flag_amb == 1)
         rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
     else
-        rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-        rtplot_snr (snr_R(:,1));
+        if (flag_cpu == 0)
+            rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+            rtplot_snr (snr_R(:,1));
+        else
+            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+        end
     end
     
     for t = 2 : length(time_GPS)
@@ -454,9 +460,13 @@ if (mode == 1) & (mode_vinc == 0)
             rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
             pause(0.1);
         else
-            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-            rtplot_snr (snr_R(:,t));
-            pause(0.0001);
+            if (flag_cpu == 0)
+                rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                rtplot_snr (snr_R(:,t));
+            else
+                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+            end
+            pause(0.01);
         end
 
     end
@@ -496,8 +506,12 @@ elseif (mode == 1) & (mode_vinc == 1)
     if (flag_amb == 1)
         rtplot_amb (1, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
     else
-        rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-        rtplot_snr (snr_R(:,1));
+        if (flag_cpu == 0)
+            rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+            rtplot_snr (snr_R(:,1));
+        else
+            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+        end
     end
     
     for t = 2 : length(time_GPS)
@@ -520,9 +534,13 @@ elseif (mode == 1) & (mode_vinc == 1)
             rtplot_amb (t, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
             pause(0.1);
         else
-            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-            rtplot_snr (snr_R(:,t));
-            pause(0.0001);
+            if (flag_cpu == 0)
+                rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                rtplot_snr (snr_R(:,t));
+            else
+                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+            end
+            pause(0.01);
         end
 
     end
@@ -576,8 +594,12 @@ elseif (mode == 3)
         if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
         rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
     end
-    rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-    rtplot_snr (snr_R(:,1));
+    if (flag_cpu == 0)
+        rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+        rtplot_snr (snr_R(:,1));
+    else
+        rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+    end
     
     for t = 2 : length(time_GPS)
         
@@ -602,10 +624,14 @@ elseif (mode == 3)
             if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
         end
-        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-        rtplot_snr (snr_R(:,t));
+        if (flag_cpu == 0)
+            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+            rtplot_snr (snr_R(:,t));
+        else
+            rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+        end
         
-        pause(0.0001);
+        pause(0.01);
     end
     
     fclose(fid_kal);
@@ -649,8 +675,12 @@ elseif (mode == 4)
         if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
         rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
     end
-    rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-    rtplot_snr (snr_R(:,1));
+    if (flag_cpu == 0)
+        rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+        rtplot_snr (snr_R(:,1));
+    else
+        rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+    end
     
     for t = 2 : length(time_GPS)
         
@@ -675,10 +705,14 @@ elseif (mode == 4)
             if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
         end
-        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-        rtplot_snr (snr_R(:,t));
+        if (flag_cpu == 0)
+            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+            rtplot_snr (snr_R(:,t));
+        else
+            rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+        end
         
-        pause(0.0001);
+        pause(0.01);
     end
     
     fclose(fid_kal);
@@ -722,8 +756,12 @@ elseif (mode == 5)
         if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
         rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
     end
-    rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-    rtplot_snr (snr_R(:,1));
+    if (flag_cpu == 0)
+        rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+        rtplot_snr (snr_R(:,1));
+    else
+        rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+    end
     
     for t = 2 : length(time_GPS)
         
@@ -748,10 +786,14 @@ elseif (mode == 5)
             if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
         end
-        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-        rtplot_snr (snr_R(:,t));
+        if (flag_cpu == 0)
+            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+            rtplot_snr (snr_R(:,t));
+        else
+            rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+        end
         
-        pause(0.0001);
+        pause(0.01);
     end
     
     fclose(fid_kal);
@@ -795,8 +837,12 @@ elseif (mode == 6)
         if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
         rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
     end
-    rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-    rtplot_snr (snr_R(:,1));
+    if (flag_cpu == 0)
+        rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+        rtplot_snr (snr_R(:,1));
+    else
+        rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+    end
     
     for t = 2 : length(time_GPS)
         
@@ -821,9 +867,13 @@ elseif (mode == 6)
             if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
         end
-        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-        rtplot_snr (snr_R(:,t));
-        pause(0.0001);
+        if (flag_cpu == 0)
+            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+            rtplot_snr (snr_R(:,t));
+        else
+            rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+        end
+        pause(0.01);
     end
     
     fclose(fid_kal);

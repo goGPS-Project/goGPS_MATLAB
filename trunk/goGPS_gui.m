@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 21-Dec-2009 15:46:47
+% Last Modified by GUIDE v2.5 02-Jan-2010 12:43:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -92,7 +92,7 @@ function varargout = goGPS_gui_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(19,1);
+    varargout = cell(20,1);
     return
 end
 contents_mode = cellstr(get(handles.mode,'String'));
@@ -140,6 +140,7 @@ flag_cov = get(handles.err_ellipse,'Value');
 flag_COM = get(handles.u_com_detect,'Value');
 flag_NTRIP = get(handles.use_ntrip,'Value');
 flag_amb = get(handles.plot_amb,'Value');
+flag_cpu = get(handles.no_skyplot_snr,'Value');
 filerootIN = get(handles.gogps_data_input,'String');
 filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
 filerootIN(filerootIN == '\') = '/';
@@ -195,14 +196,15 @@ varargout{8} = flag_cov;
 varargout{9} = flag_COM;
 varargout{10} = flag_NTRIP;
 varargout{11} = flag_amb;
-varargout{12} = filerootIN;
-varargout{13} = filerootOUT;
-varargout{14} = filename_R_obs;
-varargout{15} = filename_R_nav;
-varargout{16} = filename_M_obs;
-varargout{17} = filename_M_nav;
-varargout{18} = filename_ref;
-varargout{19} = pos_M;
+varargout{12} = flag_cpu;
+varargout{13} = filerootIN;
+varargout{14} = filerootOUT;
+varargout{15} = filename_R_obs;
+varargout{16} = filename_R_nav;
+varargout{17} = filename_M_obs;
+varargout{18} = filename_M_nav;
+varargout{19} = filename_ref;
+varargout{20} = pos_M;
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -310,6 +312,7 @@ state.err_ellipse = get(handles.err_ellipse, 'Value');
 state.u_com_detect = get(handles.u_com_detect, 'Value');
 state.use_ntrip = get(handles.use_ntrip, 'Value');
 state.plot_amb = get(handles.plot_amb, 'Value');
+state.no_skyplot_snr = get(handles.no_skyplot_snr, 'Value');
 state.RINEX_rover_obs = get(handles.RINEX_rover_obs,'String');
 state.RINEX_rover_nav = get(handles.RINEX_rover_nav,'String');
 state.RINEX_master_obs = get(handles.RINEX_master_obs,'String');
@@ -379,6 +382,7 @@ set(handles.err_ellipse, 'Value', state.err_ellipse);
 set(handles.u_com_detect, 'Value', state.u_com_detect);
 set(handles.use_ntrip, 'Value', state.use_ntrip);
 set(handles.plot_amb, 'Value', state.plot_amb);
+set(handles.no_skyplot_snr, 'Value', state.no_skyplot_snr);
 set(handles.RINEX_rover_obs,'String', state.RINEX_rover_obs);
 set(handles.RINEX_rover_nav,'String', state.RINEX_rover_nav);
 set(handles.RINEX_master_obs,'String', state.RINEX_master_obs);
@@ -2306,3 +2310,12 @@ function exit_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 close(gcf)
+
+
+% --- Executes on button press in no_skyplot_snr.
+function no_skyplot_snr_Callback(hObject, eventdata, handles)
+% hObject    handle to no_skyplot_snr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of no_skyplot_snr
