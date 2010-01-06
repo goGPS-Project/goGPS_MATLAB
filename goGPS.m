@@ -886,7 +886,7 @@ elseif (mode == 6)
     
 elseif (mode == 11)
     
-    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
+    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, flag_cpu, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
     
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: UBLOX MONITORING

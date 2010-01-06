@@ -1,4 +1,4 @@
-function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
+function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, flag_cpu, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov,
@@ -12,6 +12,7 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag
 %   flag_cov = plot error ellipse flag
 %   flag_NTRIP = use/don't use NTRIP flag
 %   flag_ms_rtcm = use/don't use RTCM master position
+%   flag_cpu = use/don't use CPU saving mode (no skyplot, no SNR graph)
 %   ref_path = reference path
 %   mat_path = reference path adjacency matrix
 %   pos_M = master station position (X,Y,Z)
@@ -1301,8 +1302,12 @@ while flag
                     t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                     t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                 end
-                t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                t0 = clock; rtplot_snr (snr_R(:,1)); dt_snr = etime(clock,t0);
+                if (flag_cpu == 0)
+                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                    t0 = clock; rtplot_snr (snr_R(:,1)); dt_snr = etime(clock,t0);
+                else
+                     t0 = clock; rttext_sat (t, azR, elR, snr_R(:,1), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
+                end
 
                 %computation time save
                 fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
@@ -1463,8 +1468,12 @@ while flag
                     t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                     t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                 end
-                t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                t0 = clock; rtplot_snr (zeros(32,1)); dt_snr = etime(clock,t0);
+                if (flag_cpu == 0)
+                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                    t0 = clock; rtplot_snr (zeros(32,1)); dt_snr = etime(clock,t0);
+                else
+                    t0 = clock; rttext_sat (t, azR, elR, zeros(32,1), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
+                end
 
                 %computation time save
                 fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
@@ -1584,8 +1593,12 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                    t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
+                    if (flag_cpu == 0)
+                        t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                        t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
+                    else
+                        t0 = clock; rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
+                    end
 
                     %computation time save
                     fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
@@ -1705,8 +1718,12 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                    t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
+                    if (flag_cpu == 0)
+                        t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                        t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
+                    else
+                        t0 = clock; rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
+                    end
 
                     %computation time save
                     fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
@@ -1881,8 +1898,12 @@ while flag
                             t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                             t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                         end
-                        t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                        t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
+                        if (flag_cpu == 0)
+                            t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                            t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
+                        else
+                            t0 = clock; rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
+                        end
 
                         %computation time save
                         fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
@@ -2002,8 +2023,12 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                    t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
+                    if (flag_cpu == 0)
+                        t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
+                        t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
+                    else
+                        t0 = clock; rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
+                    end
 
                     %computation time save
                     fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');

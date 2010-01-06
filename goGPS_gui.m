@@ -680,7 +680,10 @@ function code_dd_sa_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from code_dd_sa
 contents = cellstr(get(hObject,'String'));
 if (strcmp(contents{get(hObject,'Value')},'Code and phase'))
-    set(handles.plot_amb, 'Enable', 'on');
+    check_mode = cellstr(get(handles.mode,'String'));
+    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
+        set(handles.plot_amb, 'Enable', 'on');
+    end
     set(handles.cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh_unit, 'Enable', 'on');
@@ -756,6 +759,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.com_select, 'Enable', 'on');
     set(handles.text_com_select, 'Enable', 'on');
     set(handles.use_ntrip, 'Enable', 'on');
+    set(handles.no_skyplot_snr, 'Enable', 'on');
     
     set(handles.gogps_data_output, 'Enable', 'on');
     set(handles.text_gogps_data_output, 'Enable', 'on');
@@ -796,6 +800,7 @@ else
     set(handles.plot_master, 'Enable', 'off');
     set(handles.err_ellipse, 'Enable', 'off');
     set(handles.google_earth, 'Enable', 'off');
+    set(handles.no_skyplot_snr, 'Enable', 'off');
     set(handles.gogps_data_output, 'Enable', 'off');
     set(handles.text_gogps_data_output, 'Enable', 'off');
     set(handles.browse_gogps_data_output, 'Enable', 'off');

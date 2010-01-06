@@ -61,26 +61,39 @@ end
 % DISPLAY SATELLITE CONFIGURATION
 %----------------------------------------------------------------------------------------------
 
-vert_pos = 0.90;
+vert_pos = 0.95;
 
 for i = 1 : 32
 
     if (el(i) > 0)
-        
+
         sat_string = [sprintf('%02d',i) '     ' sprintf('%05.2f',el(i)) '    ' sprintf('%06.2f',az(i)) '   ' sprintf('%d',snr(i))];
+
+        vert_pos = vert_pos - 0.05;
 
         if (satid(i) == 0)
             satid(i) = text(0.0,vert_pos,sat_string);
         else
             set(satid(i),'String',sat_string)
+            set(satid(i),'Position',[0 vert_pos 0])
         end
-        
-        vert_pos = vert_pos - 0.05;
 
         if (obs(i) == 0); set(satid(i),'Color',[0.6 0.6 0.6]); end
         if (obs(i) == 1); set(satid(i),'Color','b'); end
         if (obs(i) == -1); set(satid(i),'Color','g'); end
         if (i == pivot); set(satid(i), 'Color', 'm'); end
+
+    elseif (satid(i) > 0)
+
+        delete(satid(i))
+        satid(i) = 0;
+        
+        for j = i+1 : 32
+            if (satid(j) > 0)
+                pos = get(satid(j),'Position');
+                set(satid(j),'Position',[0 pos(2)+0.05 0]);
+            end
+        end
 
     end
 end
