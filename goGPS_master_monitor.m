@@ -153,7 +153,8 @@ t = 0;
 
 %loop control initialization
 f1 = figure;
-set(f1, 'position', [800 600 240 80], 'menubar' , 'none', 'name', 'MASTER monitor');
+s1 = get(0,'ScreenSize');
+set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'MASTER monitor');
 h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
     'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
 flag = 1;
