@@ -165,7 +165,7 @@ for i = 1 : tile_row_num
         end
 
         %save the tile in a .mat file only if it contains at least one non-null cell
-        if (~isempty(find(tile ~= -9999, 1)))
+        if (~isempty(find(tile ~= nodata, 1)))
             save(strcat(dtm_dir_path, '/tiles/tile_', num2str(i), '_', num2str(j)), 'tile', '-V6');
         end
 

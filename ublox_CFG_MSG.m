@@ -82,7 +82,12 @@ if (reply_1 ~= 0)
 end
 
 % send message
-fwrite(serialObj, codeDEC, 'uint8', 'async');
+try
+    fwrite(serialObj, codeDEC, 'uint8', 'async');
+catch
+    pause(0.1)
+    fwrite(serialObj, codeDEC, 'uint8', 'async');
+end
 
 reply_1 = 0;
 reply_2 = 0;

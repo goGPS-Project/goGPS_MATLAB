@@ -101,10 +101,12 @@ tries = 0;
 
 while (~reply_save)
     tries = tries + 1;
-    if (tries > 10)
+    if (tries > 3)
         disp('It was not possible to save the receiver configuration.');
         break
     end
+    fclose(rover);
+    fopen(rover);
     reply_save = ublox_CFG_CFG(rover, 'save');
 end
 
@@ -393,7 +395,7 @@ if (reply_save)
         tries = tries + 1;
         reply_load = ublox_CFG_CFG(rover, 'load');
         
-        if (tries > 10)
+        if (tries > 3)
             disp('It was not possible to reload the receiver previous configuration.');
             break
         end

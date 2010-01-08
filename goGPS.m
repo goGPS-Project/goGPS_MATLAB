@@ -12,7 +12,7 @@
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% *  Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 % ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
@@ -80,7 +80,7 @@ else
     % DEFINITION OF THE FUNCTIONING MODE (TEXTUAL INTERFACE)
     %-------------------------------------------------------------------------------------------
     
-    mode =   11;     % functioning mode
+    mode =   1;      % functioning mode
                      % POST-PROCESSING
                      % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
                      % mode=2  --> KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT (to be implemented)
@@ -115,7 +115,7 @@ else
     
     flag_ge = 0;     % use google earth --> no=0, yes=1
     
-    flag_cov = 1;    % plot error ellipse --> no=0, yes=1
+    flag_cov = 0;    % plot error ellipse --> no=0, yes=1
     
     flag_COM = 0;    % u-blox COM automatic detection --> no=0, yes=1
     
@@ -263,8 +263,6 @@ if (mode < 10) %post-processing
         ph2_R = zeros(size(ph1_R));
         
         %complete/partial path
-        %tMin = 689;
-        %tMax = 1466;
         tMin = 1;
         tMax = 1e30;
         tMin = max(tMin,1);
@@ -346,7 +344,7 @@ if (mode < 10) %post-processing
         
         %complete/partial path
         tMin = 1;
-        tMax = 190e30;
+        tMax = 1e30;
         tMin = max(tMin,1);
         tMax = min(tMax,length(time_GPS));
         time_GPS = time_GPS(tMin:tMax);
@@ -501,7 +499,7 @@ elseif (mode == 1) & (mode_vinc == 1)
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
     
-    if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], date(1,:)), end;
+    if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), date(1,:)), end;
     rtplot_matlab (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
     if (flag_amb == 1)
         rtplot_amb (1, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
@@ -528,7 +526,7 @@ elseif (mode == 1) & (mode_vinc == 1)
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
         
-        if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], date(t,:)), end;
+        if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date(t,:)), end;
         rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
         if (flag_amb == 1)
             rtplot_amb (t, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
@@ -930,7 +928,7 @@ end
 
 %reading of the file with Kalman filter results
 [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-    conf_sat, conf_cs, pivot] = load_goGPSoutput (filerootOUT, mode_vinc);
+    conf_sat, conf_cs, pivot] = load_goGPSoutput (filerootOUT, mode, mode_vinc);
 
 %variable saving for final graphical representations
 nObs = size(Xhat_t_t,2);
@@ -938,14 +936,14 @@ pos_KAL = zeros(3,nObs);
 estim_amb = zeros(32,nObs);
 sigma_amb = zeros(32,nObs);
 for i = 1 : nObs
-    if (mode_vinc == 0)
-        pos_KAL(:,i) = [Xhat_t_t(1,i); Xhat_t_t(o1+1,i); Xhat_t_t(o2+1,i)];
-        estim_amb(:,i) = Xhat_t_t(o3+1:o3+32,i);
-        sigma_amb(:,i) = sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32,i)));
-    else
+    if (mode == 1 & mode_vinc == 1)
         pos_KAL(:,i) = [Yhat_t_t(1,i); Yhat_t_t(2,i); Yhat_t_t(3,i)];
         estim_amb(:,i) = Xhat_t_t(o1+1:o1+32,i);
         sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32,i)));
+    else
+        pos_KAL(:,i) = [Xhat_t_t(1,i); Xhat_t_t(o1+1,i); Xhat_t_t(o2+1,i)];
+        estim_amb(:,i) = Xhat_t_t(o3+1:o3+32,i);
+        sigma_amb(:,i) = sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32,i)));
     end
 end
 
