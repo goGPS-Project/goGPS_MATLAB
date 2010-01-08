@@ -981,10 +981,14 @@ if (get(hObject,'Value'))
     set(handles.ref_path_input, 'Enable', 'on');
     set(handles.text_ref_path_input, 'Enable', 'on');
     set(handles.browse_ref_path_input, 'Enable', 'on');
+    set(handles.constraint, 'Enable', 'on');
 else
     set(handles.ref_path_input, 'Enable', 'off');
     set(handles.text_ref_path_input, 'Enable', 'off');
     set(handles.browse_ref_path_input, 'Enable', 'off');
+    set(handles.constraint, 'Value', 0);
+    constraint_Callback(handles.constraint, eventdata, handles);
+    set(handles.constraint, 'Enable', 'off');
 end
 
 % --- Executes on button press in plot_master.

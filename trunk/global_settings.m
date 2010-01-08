@@ -31,10 +31,10 @@
 % INPUT/OUTPUT FILENAME PREFIX
 %-------------------------------------------------------------------------------
 
-folderIN  = '../data';
+folderIN  = '../data/data_goGPS';
 folderOUT = '../data';
 
-prefixIN  = 'yamatogawa_10';
+prefixIN  = 'yamatogawa';
 prefixOUT = 'out';
 
 filerootIN  = [folderIN '/' prefixIN];
@@ -133,7 +133,7 @@ global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 
 %variance of initial state
-sigmaq0 = 1e2;
+sigmaq0 = 9;
 
 %variance of velocity coordinates [m^2/s^2]
 sigmaq_velx = 1e-1;
@@ -164,7 +164,7 @@ sigmaq_dtm = 1e30;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 10;
+cutoff = 0;
 
 %initialization cut-off [degrees]
 % cutoff_init = 15;
@@ -173,14 +173,14 @@ cutoff = 10;
 snr_threshold = 0;
 
 %cycle slip threshold [cycles]
-cs_threshold = 3;
+cs_threshold = 10;
 
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
 %          - weights=1: weight based on satellite elevation
 %          - weights=2: weight based on signal-to-noise ratio
 %          - weights=3: weight based on combined elevation and signal-to-noise ratio
-weights = 3;
+weights = 2;
 
 %weight function parameters
 snr_a = 30;
@@ -219,7 +219,7 @@ global tile_georef
 global dtm_dir
 
 %folder containing DTM files
-dtm_dir = '../data/dtm/20m';
+dtm_dir = '../data/dtm';
 
 fid = fopen([dtm_dir '/tiles/tile_header.mat'],'r');
 if (fid ~= -1)
@@ -259,7 +259,7 @@ end
 % %MASTER/NTRIP connection parameters
 % master_ip = 'xxx.xxx.xxx.xxx';
 % master_port = 2101;
-
+% 
 % %NTRIP parameters
 % ntrip_user = 'uuuuuu';
 % ntrip_pw = 'ppppp';
