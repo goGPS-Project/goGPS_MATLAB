@@ -1,9 +1,9 @@
 function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-         pr2_Rsat, pr2_Msat, snr_R, snr_M, phase)
+         pr2_Rsat, pr2_Msat, phase)
 
 % SYNTAX:
 %   kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-%   pr2_Rsat, pr2_Msat, snr_R, snr_M, phase);
+%   pr2_Rsat, pr2_Msat, phase);
 %
 % INPUT:
 %   pos_M = MASTER position (X,Y,Z)
@@ -14,20 +14,17 @@ function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   pr1_Msat = MASTER-SATELLITE code pseudorange (L1 carrier)
 %   pr2_Rsat = ROVER-SATELLITE code pseudorange (L2 carrier)
 %   pr2_Msat = MASTER-SATELLITE code pseudorange (L2 carrier)
-%   snr_R = ROVER-SATELLITE signal-to-noise ratio
-%   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   phase = L1 carrier (phase=1) L2 carrier (phase=2)
 %
 % DESCRIPTION:
 %   Code-only Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -82,7 +79,7 @@ I = eye(o3);
 Cvv = zeros(o3);
 Cvv(o1,o1) = sigmaq_velx;
 Cvv(o2,o2) = sigmaq_vely;
-Cvv(o3,o3) = sigmaq_velz; %#ok<NASGU>
+Cvv(o3,o3) = sigmaq_velz;
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE SELECTION
@@ -135,19 +132,23 @@ sat = intersect(sat,sat_cutoff);
 pivot_old = 0;
 
 %actual pivot 
-[null_max_elR, i] = max(elR(sat));
+[max_elR, i] = max(elR(sat));
 pivot = sat(i);
+%pivot = find(elR == max(elR));
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE CONFIGURATION
 %--------------------------------------------------------------------------------------------
 
 %satellite configuration
-conf_sat = zeros(32,1);
+conf_sat(:,1) = zeros(32,1);
 conf_sat(sat,1) = +1;
 
-%no cycle-slips when working with code only
+%no cycle-slips working with code only
 conf_cs = zeros(32,1);
+
+%number of visible satellites  (NOT USED)
+nsat = size(sat,1);
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER INITIAL STATE
@@ -156,19 +157,25 @@ conf_cs = zeros(32,1);
 %zero vector useful in matrix definitions
 Z_om_1 = zeros(o1-1,1);
 
+%available observations
+pr1_Rsat_init = pr1_Rsat(sat);
+pr1_Msat_init = pr1_Msat(sat);
+pr2_Rsat_init = pr2_Rsat(sat);
+pr2_Msat_init = pr2_Msat(sat);
+
 %ROVER positioning by code double differences
 if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono); %#ok<NASGU>
+    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat_init, pos_M, pr1_Msat_init, time, sat, pivot, Eph, iono);
 else
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono); %#ok<NASGU>
+    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat_init, pos_M, pr2_Msat_init, time, sat, pivot, Eph, iono);
 end
 
 %second iteration to improve the accuracy 
 %obtained in the previous step (from some meters to some centimeters)
 if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat_init, pos_M, pr1_Msat_init, time, sat, pivot, Eph, iono);
 else
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat_init, pos_M, pr2_Msat_init, time, sat, pivot, Eph, iono);
 end
 
 if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix

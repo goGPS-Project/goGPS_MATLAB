@@ -19,7 +19,7 @@ function [Az, El, D] = topocent(Xr, Xs, a, f)
 %   the receiver.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
 % Copyright (C) Kai Borre 
 % Kai Borre 09-26-97
@@ -33,8 +33,8 @@ dtr = pi/180;
 
 %conversion from geocentric cartesian to geodetic coordinates
 [phi, lambda, h] = cart2geod(Xr(1), Xr(2), Xr(3));
-phi = phi / dtr;
-lambda = lambda / dtr;
+phi = phi * 180 / pi;
+lambda = lambda * 180 / pi;
    
 %new origin of the reference system
 X0(:,1) = Xr(1) * ones(size(Xs,1),1);

@@ -1,25 +1,25 @@
-function rtplot_googleearth_cov (t, pos_R, pos_M, covpos_R, date)
+function rtplot_googleearth_cov (t, pos_R, covpos_R, link_filename, kml_filename, data)
 
 % SYNTAX:
-%   rtplot_googleearth_cov (t, pos_R, pos_M, covpos_R, date);
+%   rtplot_googleearth_cov (t, pos_R, covpos_R, link_filename, kml_filename, data);
 %
 % INPUT:
 %   t = epoch (t=1,2,...)
 %   pos_R = ROVER position (X,Y,Z)
-%   pos_M = MASTER position (X,Y,Z)
 %   covpos_R = ROVER position covariance matrix
-%   date = date expressed as [year,month,day,hour,minutes,seconds)
+%   link_filename = name of the file used for the Google Earth link
+%   kml_filename = name of the .KML file
+%   data = date expressed as [year,month,day,hour,minutes,seconds)
 %
 % DESCRIPTION:
-%   Real-time visualization on Google Earth.
+%   Real-time representation of the ROVER position using Google Earth.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -38,32 +38,24 @@ function rtplot_googleearth_cov (t, pos_R, pos_M, covpos_R, date)
 
 global a e
 global conf_sat
-global link_filename kml_filename
+global GE_path GE_append
 global x_circle
 
 %rover position coordinates X Y Z
-XR = pos_R(1);
-YR = pos_R(2);
-ZR = pos_R(3);
+X = pos_R(1);
+Y = pos_R(2);
+Z = pos_R(3);
 
 %conversion from cartesian to geodetic coordinates
-[phiR, lamR, hR] = cart2geod(XR, YR, ZR);
-
-%rover position coordinates X Y Z
-XM = pos_M(1);
-YM = pos_M(2);
-ZM = pos_M(3);
-
-%conversion from cartesian to geodetic coordinates
-[phiM, lamM, hM] = cart2geod(XM, YM, ZM);
+[phi, lam, h] = cart2geod(X, Y, Z);
 
 %computation of the Earth local radius
-NM = a / sqrt(1 - e^2 * (sin(phiR))^2);
-MM = NM * (1 - e^2) / (1 - e^2 * (sin(phiR))^2);
+NM = a / sqrt(1 - e^2 * (sin(phi))^2);
+MM = NM * (1 - e^2) / (1 - e^2 * (sin(phi))^2);
 RM = sqrt(NM*MM);
 
 %conversion into metric coordinates
-[EST, NORD] = geod2plan(phiR,lamR);
+[EST, NORD] = geod2plan(phi,lam);
 
 %covariance propagation
 covpos_R = global2localCov(covpos_R, pos_R);
@@ -75,15 +67,13 @@ for j = 1 : size(x_circle,1)        % ellipse computation
     %approximate conversion to geodetic coordinates
     delta(1,:) = x_ellipse(j,:) - [EST, NORD];
     deltaPhi = delta(1,2) / RM;
-    deltaLam = delta(1,1) / (RM * cos(phiR));
-    geod_ellipse(j,:) = [deltaLam, deltaPhi] + [lamR, phiR];
+    deltaLam = delta(1,1) / (RM * cos(phi));
+    geod_ellipse(j,:) = [deltaLam, deltaPhi] + [lam, phi];
 end
 
 %conversion from radians to degrees
-lamR = lamR*180/pi;
-phiR = phiR*180/pi;
-lamM = lamM*180/pi;
-phiM = phiM*180/pi;
+lam = lam*180/pi;
+phi = phi*180/pi;
 geod_ellipse(:,:) = geod_ellipse(:,:)*180/pi;
 
 %-------------------------------------------------------------------------------
@@ -93,7 +83,7 @@ geod_ellipse(:,:) = geod_ellipse(:,:)*180/pi;
 if (t == 1)
 
     %creation of the file to be used as a link to the kml file
-    KML_link_write(link_filename,lamR,phiR,hR);
+    KML_link_write(link_filename,lam,phi,h);
 
     %initialization of the kml file
     fkml=fopen(kml_filename, 'wt');
@@ -107,15 +97,20 @@ if (t == 1)
 
     %run google earth (in background)
     current_path = pwd;
-    current_path(current_path == '\') = '/';
-    [command] = sprintf('"%s/%s"&',current_path,link_filename);
+    current_path(find(current_path == '\')) = '/';
+    [command] = sprintf([GE_path ' %s/%s &'],current_path,link_filename);
     system(command);
     %pause(5);
 end
 
 %-------------------------------------------------------------------------------
-% KML FILE WRITING
+% KML FILE UPDATE / RE-WRITE
 %-------------------------------------------------------------------------------
 
-%re-writing kml file to show current position in real-time
-KML_write_cov(lamR,phiR,hR,lamM,phiM,hM,geod_ellipse,sum(abs(conf_sat)),date);
+if (GE_append == 0)
+    %re-writing kml file shows just the current position
+    KML_write_cov(kml_filename,lam,phi,h,geod_ellipse,sum(abs(conf_sat)),data);
+else
+   %updating keeps memory of all the plotted positions (kml file can become too big)
+   KML_update(kml_filename,lam,phi,h,sum(abs(conf_sat)),data);
+end

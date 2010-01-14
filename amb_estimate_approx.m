@@ -20,22 +20,21 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_
 %   phase = carrier L1 (phase=1), carrier L2 (phase=2)
 %
 % OUTPUT:
-%   N_stim = linear combination of ambiguity estimate
-%   sigmaq_N_stim = assessed variances of combined ambiguity
+%   N_stim = linear combination of initial integer ambiguity estimate
+%   sigmaq_N_stim = assessed variances of initial integer ambiguity
 %
 % DESCRIPTION:
-%   Estimation of combined (double difference) phase ambiguities
-%   (and of their error variance) by using both phase observations
-%   and satellite-receiver distance, based on the ROVER
-%   approximate position.
+%   Linear combination estimation (double differences) of phase initial
+%   integer ambiguity (and of their error variance) by using both phase
+%   observations and satellite-receiver distance, based on the ROVER
+%   rounded position.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -62,7 +61,7 @@ i = find(pivot == sat);
 %PIVOT position correction (clock and rotation)
 Rot_Xpivot = sat_corr(Eph, sat(i), time, pr_Rsat(i), pos_R);
 
-%ROVER,MASTER-PIVOT approximate pseudorange estimate
+%ROVER,MASTER-PIVOT rounded pseudorange estimate
 pr_stim_RP = sqrt(sum((pos_R - Rot_Xpivot).^2));
 pr_stim_MP = sqrt(sum((pos_M - Rot_Xpivot).^2));
 
@@ -70,7 +69,7 @@ pr_stim_MP = sqrt(sum((pos_M - Rot_Xpivot).^2));
 ph_RP = ph_Rsat(i);
 ph_MP = ph_Msat(i);
 
-%loop on all used satellites
+%all considered satellites evaluation
 for m = 1 : size(sat,1)
 
     %new satellites position correction (clock and Earth rotation)
@@ -87,7 +86,7 @@ comb_pr = (pr_stim_Rsat - pr_stim_Msat) - (pr_stim_RP - pr_stim_MP);
 %observed phase pseudorange double differences
 comb_ph = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
 
-%linear combination of initial ambiguity estimate
+%linear combination of initial integer ambiguity estimate
 if (phase == 1)
    N_stim = ((comb_pr - comb_ph * lambda1)) / lambda1;
    sigmaq_N_stim = sum(sigmaq_pos_R) / lambda1^2;

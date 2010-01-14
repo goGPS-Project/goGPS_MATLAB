@@ -1,5 +1,5 @@
 function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-          conf_sat, conf_cs, pivot] = load_goGPSoutput (fileroot, mode, mode_vinc)
+          conf_sat, conf_cs, pivot] = load_goGPSoutput (fileroot, mode_vinc)
 
 % SYNTAX:
 %   [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
@@ -7,7 +7,6 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %
 % INPUT:
 %   fileroot  = name of the file to be read
-%   mode      = functioning mode
 %   mode_vinc = navigation mode (free=0, constrained=1)
 %
 % OUTPUT:
@@ -28,12 +27,11 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   Kalman filter output data reading.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -51,7 +49,7 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %----------------------------------------------------------------------------------------------
 
 %global variables loading
-global o1 o3 nN
+global o1 o2 o3 nN
 
 %-------------------------------------------------------------------------------
 
@@ -61,7 +59,32 @@ Yhat_t_t = [];                     %receiver positions estimate
 Cee = [];                          %estimation error covariance matrix
 
 %lettura file
-if (mode == 1 & mode_vinc == 1)
+if (mode_vinc == 0)
+    i = 0;                                                              %epoch counter
+    hour = 0;                                                           %hour index (integer)
+    hour_str = num2str(hour,'%02d');                                    %hour index (string)
+    d = dir([fileroot '_kal_' hour_str '.bin']);                        %file to be read
+    while ~isempty(d)
+        fprintf(['Reading: ' fileroot '_kal_' hour_str '.bin\n']);
+        num_bytes = d.bytes;                                            %file size (number of bytes)
+        num_words = num_bytes / 8;                                      %file size (number of words)
+        dim_packs = (o3+nN)+(o3+nN)^2;                                  %packets size
+        num_packs = num_words / dim_packs;                              %file size (number of packets)
+        fid_kal = fopen([fileroot '_kal_' hour_str '.bin'],'r+');       %file opening
+        buf_kal = fread(fid_kal,num_words,'double');                    %file reading
+        fclose(fid_kal);                                                %file closing
+        Xhat_t_t = [Xhat_t_t  zeros(o3+nN,num_packs)];                  %observations concatenation
+        Cee = cat(3,Cee,zeros(o3+nN,o3+nN,num_packs));
+        for j = 0 : dim_packs : num_words-1
+            i = i+1;                                                    %epoch counter increase
+            Xhat_t_t(:,i) = buf_kal(j + [1:o3+nN]);                     %observations logging
+            Cee(:,:,i) = reshape(buf_kal(j + [o3+nN+1:dim_packs]), o3+nN, o3+nN);
+        end
+        hour = hour+1;                                                  %hour increase
+        hour_str = num2str(hour,'%02d');                                %conversion into a string
+        d = dir([fileroot '_kal_' hour_str '.bin']);                    %file to be read
+    end
+else
     i = 0;                                                              %epoch counter
     hour = 0;                                                           %hour index (integer)
     hour_str = num2str(hour,'%02d');                                    %hour index (string)
@@ -83,31 +106,6 @@ if (mode == 1 & mode_vinc == 1)
             Xhat_t_t(:,i) = buf_kal(j + [1:o1+nN]);                     %observations logging
             Yhat_t_t(:,i) = buf_kal(j + [o1+nN+1:o1+nN+3]);
             Cee(:,:,i) = reshape(buf_kal(j + [o1+nN+4:dim_packs]), o1+nN, o1+nN);
-        end
-        hour = hour+1;                                                  %hour increase
-        hour_str = num2str(hour,'%02d');                                %conversion into a string
-        d = dir([fileroot '_kal_' hour_str '.bin']);                    %file to be read
-    end
-else
-    i = 0;                                                              %epoch counter
-    hour = 0;                                                           %hour index (integer)
-    hour_str = num2str(hour,'%02d');                                    %hour index (string)
-    d = dir([fileroot '_kal_' hour_str '.bin']);                        %file to be read
-    while ~isempty(d)
-        fprintf(['Reading: ' fileroot '_kal_' hour_str '.bin\n']);
-        num_bytes = d.bytes;                                            %file size (number of bytes)
-        num_words = num_bytes / 8;                                      %file size (number of words)
-        dim_packs = (o3+nN)+(o3+nN)^2;                                  %packets size
-        num_packs = num_words / dim_packs;                              %file size (number of packets)
-        fid_kal = fopen([fileroot '_kal_' hour_str '.bin'],'r+');       %file opening
-        buf_kal = fread(fid_kal,num_words,'double');                    %file reading
-        fclose(fid_kal);                                                %file closing
-        Xhat_t_t = [Xhat_t_t  zeros(o3+nN,num_packs)];                  %observations concatenation
-        Cee = cat(3,Cee,zeros(o3+nN,o3+nN,num_packs));
-        for j = 0 : dim_packs : num_words-1
-            i = i+1;                                                    %epoch counter increase
-            Xhat_t_t(:,i) = buf_kal(j + [1:o3+nN]);                     %observations logging
-            Cee(:,:,i) = reshape(buf_kal(j + [o3+nN+1:dim_packs]), o3+nN, o3+nN);
         end
         hour = hour+1;                                                  %hour increase
         hour_str = num2str(hour,'%02d');                                %conversion into a string

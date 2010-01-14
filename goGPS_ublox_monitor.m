@@ -10,12 +10,11 @@ function goGPS_ublox_monitor(filerootOUT)
 %   u-blox receiver monitor: stream reading, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -101,13 +100,12 @@ tries = 0;
 
 while (~reply_save)
     tries = tries + 1;
-    if (tries > 3)
-        disp('It was not possible to save the receiver configuration.');
-        break
-    end
-    fclose(rover);
-    fopen(rover);
     reply_save = ublox_CFG_CFG(rover, 'save');
+
+    if (tries > 10)
+        fclose(rover);
+        error('It was not possible to save the receiver configuration.');
+    end
 end
 
 % disable all NMEA messages
@@ -185,7 +183,7 @@ while (rover_1 ~= rover_2) | (rover_1 == 0)
 end
 
 %clear the serial port (data not decoded)
-data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
+data_rover = fread(rover,rover_1,'uint8');
 
 %--------------------------------------------------------
 % read 1st message (used only for synchronization)
@@ -216,7 +214,7 @@ while (rover_1 ~= rover_2) | (rover_1 == 0)
 end
 
 %clear the serial port (data not decoded)
-data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
+data_rover = fread(rover,rover_1,'uint8');
 
 %set the starting time
 safety_lag = 0.1;                       %safety lag on ROVER data reading
@@ -235,10 +233,9 @@ t = 0;
 
 %loop control initialization
 f1 = figure;
-s1 = get(0,'ScreenSize');
-set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'UBLOX monitor');
+set(f1, 'position', [800 600 240 80], 'menubar' , 'none', 'name', 'UBLOX monitor');
 h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
-    'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
+    'callback', 'setappdata(gcf, ''run'', 0)');
 flag = 1;
 setappdata(gcf, 'run', flag);
 
@@ -290,7 +287,7 @@ while flag
                 lock_R = cell_rover{3,i}(:,7);
 
                 %manage "nearly null" data
-                ph_R(abs(ph_R) < 1e-100) = 0;
+                ph_R(find(ph_R < 1e-100)) = 0;
 
                 %counter increment
                 t = t+1;
@@ -345,7 +342,7 @@ while flag
             if (i < length(time_R)), fprintf(' DELAYED\n'); else fprintf('\n'); end
             fprintf('Epoch %3d:  GPStime=%d:%.3f (%d satellites)\n', t, week_R, time_R, length(sat));
             for j = 1 : length(sat)
-                fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
+                fprintf('   SAT %02d:  P1=%11.2f  L1=%012.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
                     sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
             end
         end
@@ -385,20 +382,18 @@ end
 %------------------------------------------------------
 
 %load u-blox saved configuration
-if (reply_save)
-    fprintf('Restoring saved u-blox receiver configuration...\n');
-    
-    reply_load = 0;
-    tries = 0;
-    
-    while (~reply_load)
-        tries = tries + 1;
-        reply_load = ublox_CFG_CFG(rover, 'load');
-        
-        if (tries > 3)
-            disp('It was not possible to reload the receiver previous configuration.');
-            break
-        end
+fprintf('Restoring saved u-blox receiver configuration...\n');
+
+reply_load = 0;
+tries = 0;
+
+while (~reply_load)
+    tries = tries + 1;
+    reply_load = ublox_CFG_CFG(rover, 'load');
+
+    if (tries > 10)
+        fclose(rover);
+        error('It was not possible to reload the receiver previous configuration.');
     end
 end
 

@@ -12,12 +12,11 @@ function dtm_bulk_load(dtm_dir_path, tile_size)
 %   passed in input, saves them in .MAT binary format and splits them in tiles.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -165,7 +164,7 @@ for i = 1 : tile_row_num
         end
 
         %save the tile in a .mat file only if it contains at least one non-null cell
-        if (~isempty(find(tile ~= nodata, 1)))
+        if (~isempty(find(tile ~= -9999, 1)))
             save(strcat(dtm_dir_path, '/tiles/tile_', num2str(i), '_', num2str(j)), 'tile', '-V6');
         end
 

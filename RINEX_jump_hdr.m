@@ -10,12 +10,11 @@ function RINEX_jump_hdr(fid)
 %   Parse a RINEX observation file until the tag 'END OF HEADER' is found.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %
 % Partially based on ANHEADER.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------

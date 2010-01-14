@@ -10,12 +10,11 @@ function [ntripstring] = NTRIP_string_generator(nmeastring)
 %   Builds the string used to connect to a positioning service by means of NTRIP.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -32,13 +31,13 @@ function [ntripstring] = NTRIP_string_generator(nmeastring)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global master_ip ntrip_user ntrip_pw ntrip_mountpoint
+global ntrip_ip ntrip_user ntrip_pw ntrip_mountpoint
 
 %-------------------------------------------------------------------------------
 % ENCODE USER AND PASSWORD (BASE 64 ENCODING)
 %-------------------------------------------------------------------------------
 
-encoded_auth = base64encode(sprintf('%s:%s',ntrip_user,ntrip_pw),'');
+encoded_auth = base64encode(sprintf('%s:%s',ntrip_user,ntrip_pw));
 
 %-------------------------------------------------------------------------------
 % NTRIP STRING GENERATION
@@ -50,4 +49,4 @@ else
     nmeastring = sprintf('%s\r\n',nmeastring);
 end
     
-ntripstring = sprintf('GET /%s HTTP/1.1\r\nHost: %s\r\nNtrip-Version: Ntrip/2.0\r\nUser-Agent: NTRIP goGPS\r\nConnection: close\r\nAuthorization: Basic %s\r\n\r\n%s\r\n', ntrip_mountpoint, master_ip, encoded_auth, nmeastring);
+ntripstring = sprintf('GET /%s HTTP/1.1\r\nHost: %s\r\nNtrip-Version: Ntrip/2.0\r\nUser-Agent: NTRIP goGPS\r\nConnection: close\r\nAuthorization: Basic %s\r\n\r\n%s\r\n', ntrip_mountpoint, ntrip_ip, encoded_auth, nmeastring);

@@ -1,12 +1,11 @@
-function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix, flag_amb)
+function rtplot_matlab_cov (t, pos_R, covpos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix)
 
 % SYNTAX:
-%   rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix);
+%   rtplot_matlab_cov (t, pos_R, covpos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix);
 %
 % INPUT:
 %   t = survey time (t=1,2,...)
-%   pos_R = ROVER position (X,Y,Z)
-%   pos_M = MASTER station position (X,Y,Z)
+%   pos_R = ROVER assessed position (X,Y,Z)
 %   covpos_R = ROVER position covariance matrix
 %   check_on = boolean variable for satellite birth
 %   check_off = boolean variable for satellite death
@@ -15,19 +14,17 @@ function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, chec
 %   origin = boolean variable for displaying the axes origin or not
 %   ref = reference path
 %   matrix = adjacency matrix
-%   flag_amb = boolean variable for displaying ambiguities or not
 %
 % DESCRIPTION:
 %   Real-time plot of the assessed ROVER path with respect to 
 %   a reference path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -45,39 +42,26 @@ function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, chec
 %----------------------------------------------------------------------------------------------
 
 global pivot
-global msid pid p_max
+global EST_M NORD_M
+global pid p_max
 global x_circle id_ellipse
 
 %-------------------------------------------------------------------------------
 % REFERENCE DISPLAY (DEMO)
 %-------------------------------------------------------------------------------
 
-if (nargin == 12 & flag_amb)
-    if (t == 1)
-        figure('Units','normalized','Position',[0 0 1 1])
-    end
-    subplot(5,3,[1 2 3 4 5 6])
-else
-    subplot(2,3,[1 2 4 5])
-end
-
-if (origin & sum(abs(pos_M)) ~= 0)
-
-    %Master position in UTM coordinates (East, North, h)
-    [EST_M, NORD_M] = cart2plan(pos_M(1), pos_M(2), pos_M(3));
-
-    %master station plot
-    if (isempty(msid))
-        msid = plot(EST_M, NORD_M, 'xm', 'LineWidth', 2);
-    else
-        set(msid, 'XData', EST_M, 'YData', NORD_M);
-    end
-end
+subplot(2,3,[1 2 4 5])
 
 if (t == 1)
+    if (origin == 1)
+        plot(0, 0, 'xm', 'LineWidth', 2);
+    end
+    
     if ~isempty(ref) % & ~isempty(matrix)
        hold on
-       [EST_ref, NORD_ref, h_ref] = cart2plan(ref(:,1), ref(:,2), ref(:,3)); %#ok<NASGU>
+       [EST_ref, NORD_ref, h_ref] = cart2plan(ref(:,1), ref(:,2), ref(:,3));
+       EST_ref = EST_ref - EST_M;
+       NORD_ref = NORD_ref - NORD_M;
 
        plot(EST_ref, NORD_ref, 'm', 'LineWidth', 2);
        for i = 1 : length(EST_ref)-1
@@ -97,17 +81,24 @@ if (t == 1)
 end
 
 %-------------------------------------------------------------------------------
-% REAL-TIME DISPLAY
+% REAL-TIME DISPLAY (SIMULATED)
 %-------------------------------------------------------------------------------
 
 X = pos_R(1);
 Y = pos_R(2);
 Z = pos_R(3);
 
-%conversion into metric coordinates
-[EST, NORD] = cart2plan(X, Y, Z);
+%conversion from cartesian to geodetic coordinates
+[phi, lam, h] = cart2geod(X, Y, Z);
 
-%color choice
+%conversion into metric coordinates
+[EST, NORD] = geod2plan(phi,lam);
+
+%permanent station origin translation
+EST = EST - EST_M;
+NORD = NORD - NORD_M;
+
+%color choise
 if (pivot == 0)
     pcol = 'y';
 elseif check_cs
@@ -122,7 +113,7 @@ else
     pcol = 'b';
 end
 
-%Kalman filter path plot
+%plotting  of path with Kalman filter
 if (t <= p_max)
     pid(t) = plot(EST, NORD, ['.' pcol]);
 else
@@ -140,7 +131,7 @@ for j = 1 : size(x_circle,1)        % ellipse computation
     x_ellipse(j,:) = x_circle(j,:) * T + [EST, NORD];
 end
 
-%ellipse plot
+%ellipse plotting 
 if ~isempty(id_ellipse), delete(id_ellipse); end;
 id_ellipse = plot(x_ellipse(:,1),x_ellipse(:,2), pcol);
 

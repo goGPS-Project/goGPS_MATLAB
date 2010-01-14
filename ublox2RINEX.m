@@ -11,12 +11,11 @@ function ublox2RINEX(msg, filename)
 %   Conversion from ublox binary message to RINEX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -33,63 +32,15 @@ function ublox2RINEX(msg, filename)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% global XM YM ZM
-global lambda1
+global XM YM ZM
 
 %----------------------------------------------------------------------------------------------
 
 %message decoding
-[cell_rover] = decode_ublox(msg);
-
-%initialization (to make the writing faster)
-Ncell  = size(cell_rover,2);                          %number of read RTCM packets
-time_R = zeros(Ncell,1);                              %GPS time of week
-week_R = zeros(Ncell,1);                              %GPS week
-ph1_R  = zeros(32,Ncell);                             %phase observations
-pr1_R  = zeros(32,Ncell);                             %code observations
-dop_R  = zeros(32,Ncell);                             %doppler measurements
-snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
-lock_R = zeros(32,Ncell);                             %loss of lock indicator
-
-i = 1;
-for j = 1 : Ncell
-    if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
-        
-        time_R(i)   = round(cell_rover{2,j}(1));
-        week_R(i)   = cell_rover{2,j}(2);
-        ph1_R(:,i)  = cell_rover{3,j}(:,1);
-        pr1_R(:,i)  = cell_rover{3,j}(:,2);
-        dop_R(:,i)  = cell_rover{3,j}(:,3);
-        snr_R(:,i)  = cell_rover{3,j}(:,6);
-        lock_R(:,i) = cell_rover{3,j}(:,7);
-        
-        %manage "nearly null" data
-        pos = abs(ph1_R(:,i)) < 1e-100;
-        ph1_R(pos,i) = 0;
-        
-        %phase adjustement
-        pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
-        if(sum(pos) ~= 0)
-            ambig = 2^23;
-            n = floor( (pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
-            ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
-        end
-        
-        i = i + 1;
-    end
-end
-
-%residual data erase (after initialization)
-time_R(i:end)  = [];
-week_R(i:end)  = [];
-ph1_R(:,i:end) = [];
-pr1_R(:,i:end) = [];
-dop_R(:,i:end) = [];
-snr_R(:,i:end) = [];
-lock_R(:,i:end) = [];
+[TOW, WEEK, NSV, RES, CPM, PRM, DOM, MQI, CNO, LLI] = decode_ublox(msg);
 
 %date decoding
-date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+DAT = datevec(TOW/(3600*24) + 7*WEEK + datenum([1980,1,6,0,0,0]));
 
 %----------------------------------------------------------------------------------------------
 
@@ -98,45 +49,44 @@ fid = fopen(filename,'w');
 
 %write header
 fprintf(fid,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
-fprintf(fid,'goGPS               Geomatics Lab.                          PGM / RUN BY / DATE \n');
+fprintf(fid,'goGPS               Geomatics Lab.      %11s         PGM / RUN BY / DATE \n', date);
 fprintf(fid,'Antenna marker                                              MARKER NAME         \n'); 
 fprintf(fid,'Geomatics Lab.      Politecnico Milano                      OBSERVER / AGENCY   \n');
-fprintf(fid,'                    ublox                                   REC # / TYPE / VERS \n');
+fprintf(fid,'                    ublox AEK-4T                            REC # / TYPE / VERS \n');
 fprintf(fid,'                    ANN-MS                                  ANT # / TYPE        \n');
-% fprintf(fid,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
-fprintf(fid,'        0.0000        0.0000        0.0000                  APPROX POSITION XYZ \n');
+fprintf(fid,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
 fprintf(fid,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
 fprintf(fid,'     2     0                                                WAVELENGTH FACT L1/2\n');
 fprintf(fid,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
 fprintf(fid,'     1                                                      INTERVAL            \n');
 fprintf(fid,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
-        date(1,1), date(1,2), date(1,3), date(1,4), date(1,5), date(1,6));
+        DAT(1,1), DAT(1,2), DAT(1,3), DAT(1,4), DAT(1,5), DAT(1,6));
 fprintf(fid,'                                                            END OF HEADER       \n');
 
 %-------------------------------------------------------------------------------
 
 %number of records
-N = length(time_R);
+N = length(TOW);
 
 %write data
 for i = 1 : N
-    sat = find(pr1_R(:,i) ~= 0);
+    sat = find(PRM(:,i) ~= 0);
     n = length(sat);
     fprintf(fid,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
-            date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), n);
+            DAT(i,1)-2000, DAT(i,2), DAT(i,3), DAT(i,4), DAT(i,5), round(DAT(i,6)), n);
     for j = 1 : n
         fprintf(fid,'G%02d',sat(j));
     end
     fprintf(fid,'\n');
     for j = 1 : n
-        fprintf(fid,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-        if (ph1_R(sat(j),i) > 1e-100)
-            fprintf(fid,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+        fprintf(fid,'%14.3f %1d',PRM(sat(j),i),floor(CNO(sat(j),i)/6));
+        if (CPM(sat(j),i) > 1e-100)
+            fprintf(fid,'%14.3f%1d%1d',CPM(sat(j),i),LLI(sat(j),i),floor(CNO(sat(j),i)/6));
         else
             fprintf(fid,'                ');
         end
-        fprintf(fid,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-        fprintf(fid,'%14.3f %1d',dop_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+        fprintf(fid,'%14.3f %1d',CNO(sat(j),i),floor(CNO(sat(j),i)/6));
+        fprintf(fid,'%14.3f %1d',DOM(sat(j),i),floor(CNO(sat(j),i)/6));
         fprintf(fid,'\n');
     end    
 end

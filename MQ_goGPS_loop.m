@@ -1,7 +1,7 @@
-function MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, phase)
+function MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, phase)
 
 % SYNTAX:
-%   MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, phase);
+%   MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, phase);
 %
 % INPUT:
 %   time = GPS time
@@ -11,8 +11,6 @@ function MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, sn
 %   pr1_M = MASTER code observations (L1 carrier)
 %   pr2_R = ROVER code observations (L2 carrier)
 %   pr2_M = MASTER code observations (L2 carrier)
-%   snr_R = ROVER-SATELLITE signal-to-noise ratio
-%   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -20,12 +18,12 @@ function MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, sn
 %   Differential code positioning by least squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+%
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -47,9 +45,9 @@ global cutoff
 global Xhat_t_t Cee conf_sat pivot
 global o1 o2 o3
 global azR elR distR
-global sigmaq0
 
-cov_pos_MQ = [];
+%least-squares cutoff
+cutoff = 15;
 
 %----------------%
 %--- BANCROFT ---%
@@ -118,13 +116,21 @@ if (size(sat_R,1) >= 4)
    conf_sat = zeros(32,1);
    conf_sat(sat) = +1;
    conf_sat(elR<cutoff) = 0;
+   
+   if (phase == 1)
+      pr1_init_R = pr1_R(sat);
+      pr1_init_M = pr1_M(sat);
+   else
+      pr2_init_R = pr2_R(sat);
+      pr2_init_M = pr2_M(sat);
+   end
 
    if (size(sat,1) >= 4)
 
       if (phase == 1)
-         [pos_MQ, cov_pos_MQ] = code_double_diff(pos_BAN(1:3), pr1_R(sat), snr_R(sat), pos_M, pr1_M(sat), snr_M(sat), time, sat, pivot, Eph_R);
+         [pos_MQ, cov_pos_MQ] = code_double_diff(pos_BAN(1:3), pr1_init_R, pos_M, pr1_init_M, time, sat, pivot, Eph_R);
       else
-         [pos_MQ, cov_pos_MQ] = code_double_diff(pos_BAN(1:3), pr2_R(sat), snr_R(sat), pos_M, pr2_M(sat), snr_M(sat), time, sat, pivot, Eph_R);
+         [pos_MQ, cov_pos_MQ] = code_double_diff(pos_BAN(1:3), pr2_init_R, pos_M, pr2_init_M, time, sat, pivot, Eph_R);
       end
    else
       fprintf('Less than 4 satellites in common\n');

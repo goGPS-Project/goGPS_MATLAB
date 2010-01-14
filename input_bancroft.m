@@ -17,7 +17,7 @@ function [pos, B] = input_bancroft(pr, sv, time, Eph)
 %   Prepare input for Bancroft algorithm and run the algorithm.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
 % Copyright (C) Kai Borre 
 % Kai Borre and C.C. Goad 11-24-96

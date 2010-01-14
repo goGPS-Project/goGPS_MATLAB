@@ -5,12 +5,11 @@
 %   User-defined global settings.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -31,14 +30,8 @@
 % INPUT/OUTPUT FILENAME PREFIX
 %-------------------------------------------------------------------------------
 
-folderIN  = '../data/data_goGPS';
-folderOUT = '../data';
-
-prefixIN  = 'yamatogawa';
-prefixOUT = 'out';
-
-filerootIN  = [folderIN '/' prefixIN];
-filerootOUT = [folderOUT '/' prefixOUT];
+filerootIN  = '../data/data_goGPS/ultresc';
+filerootOUT = '../data/out';
 
 i = 1;
 j = length(filerootOUT);
@@ -52,8 +45,7 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
        ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
        ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
        ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
-       ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
-       ~isempty(dir([filerootOUT '.kml'])) )
+       ~isempty(dir([filerootOUT '_NMEA*.txt'])) )
    
    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
    i = i + 1;
@@ -75,21 +67,24 @@ if (mode_data == 0)
     %---------------------------------------------------------------------------
 
     %check the file existence
-    if (~exist(filename_R_obs,'file'))
+    if (fopen(filename_R_obs,'r') == -1)
         error('Warning: ROVER observation file not found.');
     end
 
-    if (~exist(filename_R_nav,'file'))
+    if (fopen(filename_R_nav,'r') == -1)
         error('Warning: ROVER navigation file not found.');
     end
 
-    if (~exist(filename_M_obs,'file'))
+    if (fopen(filename_M_obs,'r') == -1)
         error('Warning: MASTER observation file not found.');
     end
 
-    if (~exist(filename_M_nav,'file'))
+    if (fopen(filename_M_nav,'r') == -1)
         error('Warning: MASTER navigation file not found.');
     end
+
+    %close all temporarily opened files
+    fclose('all');
 
 end
 
@@ -102,6 +97,11 @@ filename_ref = '../data/data_RINEX/basket/refBASKET.mat';
 %-------------------------------------------------------------------------------
 % MASTER STATION POSITION
 %-------------------------------------------------------------------------------
+
+global XM YM ZM
+global phiM lamM hM
+global EST_M NORD_M
+global NM MM RM
 
 %Como permanent station (marker, January 2008):
 %XM = 4398306.2420;
@@ -117,12 +117,16 @@ ZM = 4550154.8609;
 % L1: EAST=+0.0008, NORTH=-0.0004, h=0.0615
 % L2: EAST=+0.0003, NORTH=+0,      h=0.0948
 
-%set master station position manually
-if (~flag_ms_rtcm)
-    pos_M = [XM; YM; ZM];
-else
-    pos_M = [];
-end
+%Master position in geodetic coordinates
+%'a' and 'e' are global vars, but should be passed as parameters
+[phiM, lamM, hM] = cart2geod(XM, YM, ZM);
+
+%Master position in UTM coordinates (East, North, h)
+[EST_M, NORD_M] = geod2plan(phiM, lamM);
+
+NM = a / sqrt(1 - e^2 * (sin(phiM))^2);
+MM = NM * (1 - e^2) / (1 - e^2 * (sin(phiM))^2);
+RM = sqrt(NM*MM);
 
 %-------------------------------------------------------------------------------
 % KALMAN FILTER
@@ -130,10 +134,10 @@ end
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
-global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
+global min_nsat cutoff cutoff_init snr_threshold weights order o1 o2 o3
 
 %variance of initial state
-sigmaq0 = 9;
+sigmaq0 = 1e2;
 
 %variance of velocity coordinates [m^2/s^2]
 sigmaq_velx = 1e-1;
@@ -150,10 +154,10 @@ sigmaq_cod2 = 0.16;
 %(maximize to obtain a code-based solution)
 % sigmaq_ph = 0.000004;
 sigmaq_ph = 0.001;
-% sigmaq_ph = 0.001e30;
+%sigmaq_ph = 0.001e30;
 
 %variance of ambiguity combinations [cycles]
-sigmaq0_N = 1000;
+sigmaq0_N = 10;
 
 %variance of DEM height [m^2]
 %(maximize to disable DEM usage)
@@ -164,29 +168,20 @@ sigmaq_dtm = 1e30;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 0;
+cutoff = 15;
 
 %initialization cut-off [degrees]
-% cutoff_init = 15;
+cutoff_init = 15;
 
 %signal-to-noise ratio threshold [dB]
 snr_threshold = 0;
-
-%cycle slip threshold [cycles]
-cs_threshold = 10;
 
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
 %          - weights=1: weight based on satellite elevation
 %          - weights=2: weight based on signal-to-noise ratio
 %          - weights=3: weight based on combined elevation and signal-to-noise ratio
-weights = 2;
-
-%weight function parameters
-snr_a = 30;
-snr_0 = 10;
-snr_1 = 50;
-snr_A = 30;
+weights = 3;
 
 %order of the dynamic model polynomial
 order = 2;
@@ -203,7 +198,8 @@ o3 = order*3;
 global h_antenna
 
 %antenna height from the ground [m]
-h_antenna = 1;
+h_antenna = 0;
+% h_antenna = 1.07;
 
 %-------------------------------------------------------------------------------
 % DTM (SET PATH AND LOAD PARAMETER FILES)
@@ -219,7 +215,7 @@ global tile_georef
 global dtm_dir
 
 %folder containing DTM files
-dtm_dir = '../data/dtm';
+dtm_dir = '../data/dtm/20m';
 
 fid = fopen([dtm_dir '/tiles/tile_header.mat'],'r');
 if (fid ~= -1)
@@ -235,14 +231,39 @@ else
 end
 
 %-------------------------------------------------------------------------------
+% MATLAB DISPLAY
+%-------------------------------------------------------------------------------
+
+global p_max pid
+global window
+global x_circle id_ellipse
+
+%maximum number of drawn trajectory points
+p_max = 200;
+
+%trajectory point id
+pid = zeros(p_max,1);
+
+%dimension of the time windows (ambiguity plot)
+window = 20;
+
+%reference circle (for covariance plot)
+alpha = 0.05;                       % significance level
+r = sqrt(chi2inv(1-alpha,2));       % circle radius
+theta = (0 : 2*pi/100 : 2*pi)';     % angle values
+x_circle(:,1) = r * cos(theta);     % x-coordinate of the circle
+x_circle(:,2) = r * sin(theta);     % y-coordinate of the circle
+
+%error ellipse identifier
+id_ellipse = [];
+
+%-------------------------------------------------------------------------------
 % COMMUNICATION INTERFACES
 %-------------------------------------------------------------------------------
 
 global COMportR
-global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
+global ntrip_ip ntrip_port ntrip_user ntrip_pw ntrip_mountpoint
 global nmea_init
-
-manCOMport = 'COM8';
 
 if (mode == 11 | mode == 12) & flag_COM == 1
    %detect u-blox COM port
@@ -250,27 +271,55 @@ if (mode == 11 | mode == 12) & flag_COM == 1
 
    if (isempty(COMportR))
         %Override rover data input port
-        COMportR = manCOMport;
+        COMportR = 'COM6';
    end
 else
-    COMportR = manCOMport;
+    COMportR = 'COM6';
 end
 
-% %MASTER/NTRIP connection parameters
-% master_ip = 'xxx.xxx.xxx.xxx';
-% master_port = 2101;
-% 
-% %NTRIP parameters
-% ntrip_user = 'uuuuuu';
-% ntrip_pw = 'ppppp';
-% ntrip_mountpoint = 'mmmmmmm';
-
-%set approximate coordinates manually to initialize NMEA string
-phiApp = 34.5922;
-lamApp = 135.5059;
-hApp = 20;
-
-[XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a, f);
+%NTRIP parameters
+ntrip_ip = 'xxx.xxx.xxx.xxx';
+ntrip_port = 2101;
+ntrip_user = 'uuuuuu';
+ntrip_pw = 'ppppp';
+ntrip_mountpoint = 'mmmmmmm';
 
 %Initial NMEA sentence required by some NTRIP casters
-nmea_init = NMEA_string_generator([XApp YApp ZApp],10);
+nmea_init = NMEA_string_generator([XM YM ZM],5);
+
+% %approximate coordinates to initialize NMEA string
+% phiApp = 45.00;
+% lamApp = 9.00;
+% hApp = 200;
+%
+% [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a, f);
+%
+% nmea_init = NMEA_string_generator([XApp YApp ZApp],0);
+
+%-------------------------------------------------------------------------------
+% INTERNET CONNECTION
+%-------------------------------------------------------------------------------
+
+global connection_delay
+
+%waiting time for the Internet connection to be established
+connection_delay = 5;
+
+%-------------------------------------------------------------------------------
+% GOOGLE EARTH
+%-------------------------------------------------------------------------------
+
+global GE_path GE_append
+global link_filename kml_filename
+
+%path to link to Google Earth executable
+current_path = pwd;
+current_path(find(current_path == '\')) = '/';
+GE_path = [current_path '/../data/google_earth/googleearth.exe.lnk'];
+
+%KML file append(1) or re-write(0)
+GE_append = 0;
+
+%files used by Google Earth
+link_filename = '../data/google_earth/link.kml';
+kml_filename = '../data/google_earth/goGPS.kml';

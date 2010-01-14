@@ -19,7 +19,7 @@ function [X, tcorr] = sat_corr(Eph, sat, time, pr_Rsat, pos_R)
 %   the satellite clock error and the Earth rotation.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
 % Copyright (C) Kai Borre 
 % Kai Borre and C.C. Goad 11-24-96

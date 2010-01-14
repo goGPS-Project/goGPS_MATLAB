@@ -15,7 +15,7 @@ function [satp] = sat_pos(t, Eph)
 %   of its ephemerides .
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
 % Copyright (C) Kai Borre 
 % Kai Borre 04-09-96

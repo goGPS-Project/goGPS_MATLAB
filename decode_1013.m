@@ -22,12 +22,11 @@ function [data] = decode_1013(msg)
 %   RTCM format 1013 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

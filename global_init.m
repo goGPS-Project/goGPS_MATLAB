@@ -5,12 +5,11 @@
 %   Global variables initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -146,77 +145,3 @@ global Y_t1_t
 % REAL-TIME MANAGEMENT
 %-------------------------------------------------------------------------------
 global master rover
-
-%-------------------------------------------------------------------------------
-% MASTER STATION
-%-------------------------------------------------------------------------------
-
-global server_delay nmea_update_rate
-
-%server waiting time (to check if packet transmission is finished)
-server_delay = 0.05;
-
-%NMEA update rate (waiting time for sending a new $GGA string to NTRIP caster)
-nmea_update_rate = 10; %[sec]
-
-%-------------------------------------------------------------------------------
-% INTERNET CONNECTION
-%-------------------------------------------------------------------------------
-
-global connection_delay
-
-%waiting time for the Internet connection to be established
-connection_delay = 5;
-
-%-------------------------------------------------------------------------------
-% MATLAB DISPLAY
-%-------------------------------------------------------------------------------
-
-global p_max pid
-global satid labid pivid
-global window
-global x_circle id_ellipse
-
-%maximum number of drawn trajectory points
-p_max = 200;
-
-%trajectory point id
-pid = zeros(p_max,1);
-
-%sky-plot id
-satid = zeros(32,1);
-labid = zeros(32,1);
-pivid = 0;
-
-%master station point id
-msid = [];
-
-%dimension of the time windows (ambiguity plot)
-window = 20;
-
-%reference circle (for covariance plot)
-try
-    % if Statistics Toolbox is installed
-    alpha = 0.05;                       % significance level
-    r = sqrt(chi2inv(1-alpha,2));       % circle radius
-catch
-    % if Statistics Toolbox is not installed,
-    % then alpha = 0.05, chi2inv(1-alpha,2) = 5.991
-    r = sqrt(5.991);
-end
-theta = (0 : 2*pi/100 : 2*pi)';     % angle values
-x_circle(:,1) = r * cos(theta);     % x-coordinate of the circle
-x_circle(:,2) = r * sin(theta);     % y-coordinate of the circle
-
-%error ellipse identifier
-id_ellipse = [];
-
-%-------------------------------------------------------------------------------
-% GOOGLE EARTH
-%-------------------------------------------------------------------------------
-
-global link_filename kml_filename
-
-%files used by Google Earth
-link_filename = '../data/google_earth/link.kml';
-kml_filename = '../data/google_earth/goGPS.kml';

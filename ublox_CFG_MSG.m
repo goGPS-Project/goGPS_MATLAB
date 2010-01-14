@@ -17,12 +17,11 @@ function [reply] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 %   Poll, enable or disable u-blox messages.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -82,12 +81,7 @@ if (reply_1 ~= 0)
 end
 
 % send message
-try
-    fwrite(serialObj, codeDEC, 'uint8', 'async');
-catch
-    pause(0.1)
-    fwrite(serialObj, codeDEC, 'uint8', 'async');
-end
+fwrite(serialObj, codeDEC, 'uint8', 'async');
 
 reply_1 = 0;
 reply_2 = 0;

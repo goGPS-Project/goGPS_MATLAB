@@ -31,12 +31,11 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ..
 %   Code double differences.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -55,7 +54,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ..
 
 global a f
 
-global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz
+global sigmaq_velx sigmaq_vely sigmaq_velz
 global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
@@ -112,6 +111,8 @@ end
 j = 1;
 bad_sat = [];
 
+max_elR = 0;
+
 for i = 1:size(sat)
 
     %satellite position correction (clock and Earth rotation)
@@ -128,7 +129,7 @@ for i = 1:size(sat)
 end
 
 %removal of satellites with elevation or SNR lower than the respective threshold
-sat(ismember(sat,bad_sat) == 1) = [];
+sat(find(ismember(sat,bad_sat) == 1)) = [];
 
 %previous pivot 
 if (pivot ~= 0)
@@ -136,7 +137,7 @@ if (pivot ~= 0)
 end
 
 %current pivot
-[null_max_elR, i] = max(elR(sat));
+[max_elR, i] = max(elR(sat));
 pivot = sat(i);
 
 %----------------------------------------------------------------------------------------
@@ -150,11 +151,12 @@ sat_old = find(conf_sat == 1);
 conf_sat = zeros(32,1);
 conf_sat(sat) = +1;
 
-%no cycle-slips when working with code only
+%no cycle-slips working with code only
 conf_cs = zeros(32,1);
 
 %number of visible satellites
 nsat = size(sat,1);
+n = nsat - 1;
 
 %------------------------------------------------------------------------------------
 % OBSERVATION EQUATIONS
@@ -163,15 +165,17 @@ nsat = size(sat,1);
 %if the number of visible satellites is equal or greater than min_nsat
 if (nsat >= min_nsat)
 
+    %code pseudoranges to be used in the Kalman filter
+    pr1_Rsat_kalman = pr1_Rsat(sat);
+    pr1_Msat_kalman = pr1_Msat(sat);
+    pr2_Rsat_kalman = pr2_Rsat(sat);
+    pr2_Msat_kalman = pr2_Msat(sat);
+
     %ROVER positioning by means of code double differences
     if (phase(1) == 1)
-        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr1_Rsat_kalman, pos_M, pr1_Msat_kalman, time, sat, pivot, Eph, iono);
     else
-        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
-    end
-    
-    if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
-        cov_pos_R = sigmaq0 * eye(3);
+        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr2_Rsat_kalman, pos_M, pr2_Msat_kalman, time, sat, pivot, Eph, iono);
     end
 
     %zeroes vector useful in matrix definitions
@@ -197,12 +201,24 @@ end
 if (length(sat) < length(sat_old))
 
     check_off = 1;
+
+    %save of the lost satellites
+    sat_dead = setdiff(sat_old,sat);
+
+    %print the lost satellites
+    ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')];
 end
 
 %search for a new satellite
 if (length(sat) > length(sat_old))
 
     check_on = 1;
+
+    %save the new satellites
+    sat_born = setdiff(sat,sat_old);
+
+    %print the new satellites
+    ['New satellites at time ' num2str(time) ': ' num2str(sat_born')];
 end
 
 %------------------------------------------------------------------------------------
@@ -213,6 +229,9 @@ end
 if (pivot ~= pivot_old)
 
     check_pivot = 1;
+
+    %print the PIVOT change
+    ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)];
 end
 
 %----------------------------------------------------------------------------------------

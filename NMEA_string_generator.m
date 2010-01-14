@@ -14,12 +14,11 @@ function nmeastring = NMEA_string_generator(pos_R,nsat)
 %   Returns a $GPGGA sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -106,7 +105,7 @@ end
 %-----------------------------------------------------------------------------------------------
 
 surv_type = '1'; %0 = not valid, 1 = GPS, 2 = DGPS
-HDOP = '1';      %fake HDOP value: to be changed
+HDOP = '0.19';   %fake HDOP value: to be changed
 h_unit = 'M';
 
 if (nargin > 1)

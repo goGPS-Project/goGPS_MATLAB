@@ -1,7 +1,7 @@
-function [data] = decode_rtcm3(msg)
+function [data] = decode_rtcm(msg)
 
 % SYNTAX:
-%   [data] = decode_rtcm3(msg)
+%   [data] = decode_rtcm(msg)
 %
 % INPUT:
 %   msg = binary message received from the master station
@@ -14,12 +14,11 @@ function [data] = decode_rtcm3(msg)
 %   RTCM 3.1 binary messages decoding (also in sequence).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 pre-alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -41,11 +40,11 @@ function [data] = decode_rtcm3(msg)
 %----------------------------------------------------------------------------------------------
 
 preamble = '11010011';      % FIXED transport layer header (8 bit)
-% reserved = '000000';        % reserved field (6 bit). It could change in the future!
+reserved = '000000';        % reserved field (6 bit). It could change in the future!
 
-% codeBIN = [preamble reserved];      % binary initial stream
+codeBIN = [preamble reserved];      % binary initial stream
 
-pos = findstr(msg, preamble);        % message initial index
+pos = findstr(msg, codeBIN);        % message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE IDENTIFICATION
@@ -63,7 +62,9 @@ if ~isempty(pos)
     % counter initialization
     i = 0;
 
-    while (pos <= length(msg)) & (strcmp(msg(pos:pos+7),preamble))
+    while (pos <= length(msg)) & (strcmp(msg(pos:pos+13),codeBIN))
+
+        %msg(pos:pos+13)
 
         % counter increment
         i = i + 1;
@@ -176,6 +177,9 @@ if ~isempty(pos)
         while (mod(pos,8) ~= 1)
             pos = pos + 1;
         end
+
+        %msg(pos:pos+13)
+        %pause
 
     end
 end
