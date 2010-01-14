@@ -184,24 +184,12 @@ end
 if (length(sat) < length(sat_old))
 
     check_off = 1;
-
-    %save of the lost satellites
-    sat_dead = setdiff(sat_old,sat);
-
-    %print the lost satellites
-    ['Lost satellites at time ' num2str(time) ': ' num2str(sat_dead')]; %#ok<VUNUS>
 end
 
 %search for a new satellite
 if (length(sat) > length(sat_old))
 
     check_on = 1;
-
-    %save the new satellites
-    sat_born = setdiff(sat,sat_old);
-
-    %print the new satellites
-    ['New satellites at time ' num2str(time) ': ' num2str(sat_born')]; %#ok<VUNUS>
 end
 
 %------------------------------------------------------------------------------------
@@ -212,9 +200,6 @@ end
 if (pivot ~= pivot_old)
 
     check_pivot = 1;
-
-    %print the PIVOT change
-    ['PIVOT change at time ' num2str(time) ' from ' num2str(pivot_old) ' to ' num2str(pivot)]; %#ok<VUNUS>
 end
 
 %----------------------------------------------------------------------------------------
