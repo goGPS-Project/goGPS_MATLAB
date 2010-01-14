@@ -64,7 +64,7 @@ Y_R = pos_R(2);
 Z_R = pos_R(3);
 
 %conversion from cartesian to geodetic coordinates
-[null_phi_R, null_lam_R, h_R] = cart2geod(X_R, Y_R, Z_R);
+[phiR, lamR, hR] = cart2geod(X_R, Y_R, Z_R);
 
 %master position coordinates X Y Z
 X_M = pos_M(1);
@@ -72,7 +72,13 @@ Y_M = pos_M(2);
 Z_M = pos_M(3);
 
 %conversion from cartesian to geodetic coordinates
-[null_phi_M, null_lam_M, h_M] = cart2geod(X_M, Y_M, Z_M);
+[phiM, lamM, hM] = cart2geod(X_M, Y_M, Z_M);
+
+%radians to degrees
+phiR = phiR * 180 / pi;
+lamR = lamR * 180 / pi;
+phiM = phiM * 180 / pi;
+lamM = lamM * 180 / pi;
 
 %number of visible satellites
 nsat = size(sat,1);
@@ -102,16 +108,10 @@ elM = zeros(nsat,1);
 %atmospheric error computation
 if (nargin == 11)
 
-   err_tropo_RP = err_tropo(elR(i), h_R);
-   err_tropo_MP = err_tropo(elM(i), h_M);
+   err_tropo_RP = err_tropo(elR(i), hR);
+   err_tropo_MP = err_tropo(elM(i), hM);
 
    %ROVER-PIVOT and MASTER-PIVOT ionospheric error computation
-   [phiR, lamR] = cart2geod(pos_R(1), pos_R(2), pos_R(3));
-   [phiM, lamM] = cart2geod(pos_M(1), pos_M(2), pos_M(3));
-   phiR = phiR * 180 / pi;
-   lamR = lamR * 180 / pi;
-   phiM = phiM * 180 / pi;
-   lamM = lamM * 180 / pi;
    err_iono_RP = err_iono(iono, phiR, lamR, azR, elR(i), time);
    err_iono_MP = err_iono(iono, phiM, lamM, azM, elM(i), time);
 end
@@ -157,8 +157,8 @@ for i = 1 : nsat
         if (nargin == 11)
             
             %computation of tropospheric errors
-            err_tropo_RS = err_tropo(elR(i), h_R);
-            err_tropo_MS = err_tropo(elM(i), h_M);
+            err_tropo_RS = err_tropo(elR(i), hR);
+            err_tropo_MS = err_tropo(elM(i), hM);
             
             %computation of ionospheric errors
             err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
