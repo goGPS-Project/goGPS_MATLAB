@@ -198,7 +198,6 @@ else
     [max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
     pivot = sat_pr(i);
 end
-%pivot = find(elR == max(elR));
 
 %--------------------------------------------------------------------------------------------
 % SATELLITES CONFIGURATION
@@ -218,6 +217,8 @@ conf_cs = zeros(32,1);
 
 %vectors of zeros useful for matrix declaration
 Z_om_1 = zeros(o1-1,1);
+comb_N_stim = zeros(32,1);
+sigmaq_comb_N = zeros(32,1);
 
 %ROVER positioning by means of code double differences
 if (phase(1) == 1)
@@ -234,8 +235,7 @@ else
     end
 end
 
-%required re-estimate because only at the previous step a positioning
-%precision in the order of centimeters can be obtained. 
+%re-estimate to obtain better accuracy 
 if (phase(1) == 1)
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available; they are set equal to zero
         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
@@ -292,50 +292,10 @@ else
     s_R = s0(i);
     pos_R = ref(i,:);
 
-%     d1 = sqrt(sum((ref(i,:) - pos_R_proj(i,:)).^2));
-%     d2 = sqrt(sum((ref(i+1,:) - pos_R_proj(i,:)).^2));
-% 
-%     if (d1 < d2)
-%         s_R = s0(i);
-%         pos_R = ref(i,:);
-%     else
-%         s_R = s0(i+1);
-%         pos_R = ref(i+1,:);
-%     end
-
 end
 
 %propagated error
 sigmaq_s_R = (ax(i)^2*sigmaq_pos_R(1) + ay(i)^2*sigmaq_pos_R(2) + az(i)^2*sigmaq_pos_R(3)) ./ (ax(i)^2 + ay(i)^2 + az(i)^2)^2;
-
-% %satellites combinations initialization: initialized value
-% %if the satellite is in view, 0 if it is not
-% comb_N1_app = zeros(32,1);
-% comb_N2_app = zeros(32,1);
-% %sigmaq_comb_N1 = zeros(32,1);
-% %sigmaq_comb_N2 = zeros(32,1);
-% 
-% %phase double differences estimate, so to estimate the N values
-% if ~isempty(sat)
-%     [comb_N1_app(sat), null_sigmaq_N1_stim] = amb_estimate_observ(pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), pivot, sat, 1);
-%     [comb_N2_app(sat), null_sigmaq_N2_stim] = amb_estimate_observ(pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), pivot, sat, 2);
-% end
-% 
-% if (length(phase) == 2)
-%     comb_N_app = [comb_N1_app; comb_N2_app];
-%     %sigmaq_comb_N = [sigmaq_comb_N1; sigmaq_comb_N2];
-% else
-%     if (phase == 1)
-%         comb_N_app = comb_N1_app;
-%         %sigmaq_comb_N = sigmaq_comb_N1;
-%     else
-%         comb_N_app = comb_N2_app;
-%         %sigmaq_comb_N = sigmaq_comb_N2;
-%     end
-% end
-
-comb_N_stim = zeros(32,1);
-sigmaq_comb_N = zeros(32,1);
 
 %N combination estimation (least squares)
 if (phase(1) == 1)
@@ -386,4 +346,3 @@ Cee(:,:) = zeros(o1+nN);
 Cee(1,1) = sigmaq_s_R;
 Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+1:o1+nN,o1+1:o1+nN) = diag(sigmaq_comb_N);
-% Cee(o1+1:o1+nN,o1+1:o1+nN) = sigmaq0_N * eye(nN);
