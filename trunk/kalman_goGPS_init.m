@@ -183,7 +183,6 @@ else
     [max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
     pivot = sat_pr(i);
 end
-%pivot = find(elR == max(elR));
 
 %--------------------------------------------------------------------------------------------
 % SATELLITES CONFIGURATION
@@ -201,12 +200,10 @@ conf_cs = zeros(32,1);
 % KALMAN FILTER INITIAL STATE
 %--------------------------------------------------------------------------------------------
 
-%%%%%%%%%%%%
-%pos_R0 = pos_R;
-%%%%%%%%%%%%
-
 %zeroes vectors useful in the matrices definition 
 Z_om_1 = zeros(o1-1,1);
+comb_N_stim = zeros(32,1);
+sigmaq_comb_N = zeros(32,1);
 
 %ROVER positioning with code double differences
 if (phase(1) == 1)
@@ -223,62 +220,17 @@ else
     end
 end
 
-%second iteration to improve the accuracy 
-%obtained in the previous step (from some meters to some centimeters)
+%ROVER positioning improvement with code and phase double differences
 if (phase(1) == 1)
-    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
-    else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
-    end
+    [pos_R, cov_pos_R, comb_N_stim(sat), cov_comb_N_stim] = code_phase_double_diff(pos_R, pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono, 1);
 else
-    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
-    else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
-    end
+    [pos_R, cov_pos_R, comb_N_stim(sat), cov_comb_N_stim] = code_phase_double_diff(pos_R, pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono, 2);
 end
 
 if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
     cov_pos_R = sigmaq0 * eye(3);
 end
 sigmaq_pos_R = diag(cov_pos_R);
-
-% %ambiguity combinations initialization: initialized value
-% %if the satellite is visible, 0 if the satellite is not visible
-% comb_N1_app = zeros(32,1);
-% comb_N2_app = zeros(32,1);
-% %sigmaq_comb_N1 = zeros(32,1);
-% %sigmaq_comb_N2 = zeros(32,1);
-% 
-% %approximate values for ambiguity combinations (double differences)
-% if ~isempty(sat)
-%     [comb_N1_app(sat), null_sigmaq_N1_stim] = amb_estimate_observ(pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), pivot, sat, 1);
-%     [comb_N2_app(sat), null_sigmaq_N2_stim] = amb_estimate_observ(pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), pivot, sat, 2);
-% end
-% 
-% if (length(phase) == 2)
-%     comb_N_app = [comb_N1_app; comb_N2_app];
-%     %sigmaq_comb_N = [sigmaq_comb_N1; sigmaq_comb_N2];
-% else
-%     if (phase == 1)
-%         comb_N_app = comb_N1_app;
-%         %sigmaq_comb_N = sigmaq_comb_N1;
-%     else
-%         comb_N_app = comb_N2_app;
-%         %sigmaq_comb_N = sigmaq_comb_N2;
-%     end
-% end
-
-comb_N_stim = zeros(32,1);
-sigmaq_comb_N = zeros(32,1);
-
-%N combination estimation (least squares)
-if (phase(1) == 1)
-    [null_pos_R, null_cov_pos_R, comb_N_stim(sat), cov_comb_N_stim] = code_phase_double_diff(pos_R, pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono, 1);
-else
-    [null_pos_R, null_cov_pos_R, comb_N_stim(sat), cov_comb_N_stim] = code_phase_double_diff(pos_R, pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono, 2);
-end
 
 if isempty(cov_comb_N_stim) %if it was not possible to compute the covariance matrix
     cov_comb_N_stim = sigmaq0_N * eye(length(sat));
@@ -306,4 +258,3 @@ Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
 Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigmaq_comb_N);
-% Cee(o3+1:o3+nN,o3+1:o3+nN) = sigmaq0_N * eye(nN);
