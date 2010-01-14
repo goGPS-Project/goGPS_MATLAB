@@ -464,6 +464,14 @@ function mode_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from mode
 contents = cellstr(get(hObject,'String'));
 if (strcmp(contents{get(hObject,'Value')},'Real-time'))
+    try
+        instrhwinfo;
+    catch
+        warndlg('Instrument Control Toolbox is needed to run goGPS in real-time mode.', 'Warning');
+        set(handles.mode, 'Value', 2);
+        mode_Callback(hObject, eventdata, handles);
+        return
+    end
     set(handles.nav_mon, 'Enable', 'on');
     set(handles.kalman_ls, 'Enable', 'off');
     set(handles.kalman_ls, 'Value', 1);

@@ -132,6 +132,15 @@ else
     %User-defined global settings
     global_settings;
     
+    %Check availability of Instrument Control Toolbox
+    if (mode > 10)
+        try
+            instrhwinfo;
+        catch
+            error('Instrument Control Toolbox is needed to run goGPS in real-time mode.');
+        end
+    end
+    
 end
 
 %-------------------------------------------------------------------------------------------
