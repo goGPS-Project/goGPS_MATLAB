@@ -2317,8 +2317,11 @@ function com_select_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-serialInfo = instrhwinfo('serial');
-set(hObject, 'String', serialInfo.AvailableSerialPorts);
+try
+    serialInfo = instrhwinfo('serial');
+    set(hObject, 'String', serialInfo.AvailableSerialPorts);
+catch
+end
 
 
 % --- Executes on button press in exit.
