@@ -95,28 +95,38 @@ NSV = data{2}(4);
 
 %data decoding for each satellite
 for i = 1 : NSV
-
+    
     %satellite number
     SV = bin2dec(msg(pos:pos+5));  pos = pos + 6;
-
-    %code type (C/A=0, P=1)
-    DF010 = bin2dec(msg(pos));  pos = pos + 1;
-
-    %L1 pseudorange
-    DF011 = bin2dec(msg(pos:pos+23));  pos = pos + 24;
-
-    %L1 phaserange - L1 pseudorange
-    DF012 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
-
-    %lock-time index (see Table 4.3-2 on RTCM manual)
-    DF013 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
-
-    %---------------------------------------------------------
-
-    %data output save
-    data{3}(SV,1) = DF010;
-    data{3}(SV,2) = (DF011 * 0.02);
-    data{3}(SV,3) = (data{3}(SV,2) + (DF012*0.0005)) / lambda1;
-    data{3}(SV,4) = DF013;
+    
+    %if GPS satellite
+    if (SV >= 1 & SV <= 32)
+        
+        %code type (C/A=0, P=1)
+        DF010 = bin2dec(msg(pos));  pos = pos + 1;
+        
+        %L1 pseudorange
+        DF011 = bin2dec(msg(pos:pos+23));  pos = pos + 24;
+        
+        %L1 phaserange - L1 pseudorange
+        DF012 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
+        
+        %lock-time index (see Table 4.3-2 on RTCM manual)
+        DF013 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
+        
+        %---------------------------------------------------------
+        
+        %data output save
+        data{3}(SV,1) = DF010;
+        data{3}(SV,2) = (DF011 * 0.02);
+        data{3}(SV,3) = (data{3}(SV,2) + (DF012*0.0005)) / lambda1;
+        data{3}(SV,4) = DF013;
+        
+    else %SBAS satellites
+        
+        %do not store SBAS satellite information
+        pos = pos + 52;
+        
+    end
 
 end
