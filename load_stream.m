@@ -92,7 +92,6 @@ if ~isempty(data_rover_all)
     i = 1;
     for j = 1 : Ncell
         if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
-            
             time_R(i) = round(cell_rover{2,j}(1));
             pr1_R(:,i) = cell_rover{3,j}(:,2);
             ph1_R(:,i) = cell_rover{3,j}(:,1);
