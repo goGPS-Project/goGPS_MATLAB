@@ -41,7 +41,7 @@ global lambda1
 %message decoding
 [cell_rover] = decode_ublox(msg);
 
-%initialization (to make the writing faster)
+%initialization (to make writing faster)
 Ncell  = size(cell_rover,2);                          %number of read RTCM packets
 time_R = zeros(Ncell,1);                              %GPS time of week
 week_R = zeros(Ncell,1);                              %GPS week
