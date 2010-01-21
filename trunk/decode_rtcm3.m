@@ -41,11 +41,11 @@ function [data] = decode_rtcm3(msg)
 %----------------------------------------------------------------------------------------------
 
 preamble = '11010011';      % FIXED transport layer header (8 bit)
-reserved = '000000';        % reserved field (6 bit). It could change in the future!
+%reserved = '000000';        % reserved field (6 bit). It could change in the future!
 
-codeBIN = [preamble reserved];      % binary initial stream
+%codeBIN = [preamble reserved];      % binary initial stream
 
-pos_all = findstr(msg, codeBIN);    % message initial index
+pos_all = findstr(msg, preamble);    % message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE IDENTIFICATION
@@ -60,120 +60,126 @@ if ~isempty(pos_all)
     % counter initialization
     i = 1;
     
-    while (i <= length(pos_all)) & (pos_all(i) <= length(msg)) & (strcmp(msg(pos_all(i):pos_all(i)+13),codeBIN))
+    while (i <= length(pos_all)) & (pos_all(i)+14<= length(msg)) & (strcmp(msg(pos_all(i):pos_all(i)+7),preamble))
 
         % next message
         pos = pos_all(i);
-        
+
         % skip the "preamble" (8 bit) and "reserved" (6 bit) fields
         pos = pos + 14;
-
+        
         if (pos + 9 <= length(msg))
-
+            
             % message length (10 bit)
             LEN = bin2dec(msg(pos:pos+9));  pos = pos + 10;
 
-            if (pos + 8*LEN - 1 <= length(msg))
+            if (pos + 8*LEN + 23 <= length(msg))
+                
+                %CRC check
+                CRC_comp = crc24q(msg(pos_all(i):pos + 8*LEN - 1));
+                CRC_read = msg(pos + 8*LEN:pos + 8*LEN + 23);
 
-                % message number (12 bit)
-                DF002 = bin2dec(msg(pos:pos+11));
+                if (strcmp(CRC_comp, CRC_read))
 
-                % message identification
-                switch DF002
+                    % message number (12 bit)
+                    DF002 = bin2dec(msg(pos:pos+11));
+
+                    % message identification
+                    switch DF002
+                        
+                        % GPS observations on L1 carrier
+                        case 1001
+                            [data(:,i)] = decode_1001(msg(pos:pos+8*LEN-1));
+                            
+                            % GPS observations on L1 carrier
+                        case 1002
+                            [data(:,i)] = decode_1002(msg(pos:pos+8*LEN-1));
+                            
+                            % GPS observations on L1/L2 carrier
+                        case 1003
+                            [data(:,i)] = decode_1003(msg(pos:pos+8*LEN-1));
+                            
+                            % GPS observations on L1/L2 carrier
+                        case 1004
+                            [data(:,i)] = decode_1004(msg(pos:pos+8*LEN-1));
+                            
+                            % master station coordinates
+                        case 1005
+                            [data(:,i)] = decode_1005(msg(pos:pos+8*LEN-1));
+                            
+                            % master station coordinates + antenna height
+                        case 1006
+                            [data(:,i)] = decode_1006(msg(pos:pos+8*LEN-1));
+                            
+                            % antenna description
+                        case 1007
+                            [data(:,i)] = decode_1007(msg(pos:pos+8*LEN-1));
+                            
+                            % antenna description + serial number
+                        case 1008
+                            [data(:,i)] = decode_1008(msg(pos:pos+8*LEN-1));
+                            
+                            % GLONASS observations on L1 carrier
+                        case 1009
+                            [data(:,i)] = decode_1009(msg(pos:pos+8*LEN-1));
+                            
+                            % GLONASS observations on L1 carrier
+                        case 1010
+                            [data(:,i)] = decode_1010(msg(pos:pos+8*LEN-1));
+                            
+                            % GLONASS observations on L1/L2 carrier
+                        case 1011
+                            [data(:,i)] = decode_1011(msg(pos:pos+8*LEN-1));
+                            
+                            % GLONASS observations on L1/L2 carrier
+                        case 1012
+                            [data(:,i)] = decode_1012(msg(pos:pos+8*LEN-1));
+                            
+                            % system parameters
+                        case 1013
+                            [data(:,i)] = decode_1013(msg(pos:pos+8*LEN-1));
+                            
+                            % auxiliary network information
+                        case 1014
+                            [data(:,i)] = decode_1014(msg(pos:pos+8*LEN-1));
+                            
+                            % ionospheric correction differences
+                        case 1015
+                            [data(:,i)] = decode_1015(msg(pos:pos+8*LEN-1));
+                            
+                            % geometric correction differences
+                        case 1016
+                            [data(:,i)] = decode_1016(msg(pos:pos+8*LEN-1));
+                            
+                            % combined ionospheric and geometric correction differences
+                        case 1017
+                            [data(:,i)] = decode_1017(msg(pos:pos+8*LEN-1));
+                            
+                            % other informations: satellite ephemerides
+                        case 1019
+                            [data(:,i)] = decode_1019(msg(pos:pos+8*LEN-1));
+                            
+                            %GLONASS ephemerides
+                        case 1020
+                            [data(:,i)] = decode_1020(msg(pos:pos+8*LEN-1));
+                    end
                     
-                    % GPS observations on L1 carrier
-                    case 1001
-                        [data(:,i)] = decode_1001(msg(pos:pos+8*LEN-1));
-
-                    % GPS observations on L1 carrier
-                    case 1002
-                        [data(:,i)] = decode_1002(msg(pos:pos+8*LEN-1));
-                        
-                    % GPS observations on L1/L2 carrier
-                    case 1003
-                        [data(:,i)] = decode_1003(msg(pos:pos+8*LEN-1));
-
-                    % GPS observations on L1/L2 carrier
-                    case 1004
-                        [data(:,i)] = decode_1004(msg(pos:pos+8*LEN-1));
-
-                    % master station coordinates
-                    case 1005
-                        [data(:,i)] = decode_1005(msg(pos:pos+8*LEN-1));
-
-                    % master station coordinates + antenna height
-                    case 1006
-                        [data(:,i)] = decode_1006(msg(pos:pos+8*LEN-1));
-
-                    % antenna description
-                    case 1007
-                        [data(:,i)] = decode_1007(msg(pos:pos+8*LEN-1));
-
-                    % antenna description + serial number
-                    case 1008
-                        [data(:,i)] = decode_1008(msg(pos:pos+8*LEN-1));
-                        
-                    % GLONASS observations on L1 carrier
-                    case 1009
-                        [data(:,i)] = decode_1009(msg(pos:pos+8*LEN-1));
-
-                    % GLONASS observations on L1 carrier
-                    case 1010
-                        [data(:,i)] = decode_1010(msg(pos:pos+8*LEN-1));
-                        
-                    % GLONASS observations on L1/L2 carrier
-                    case 1011
-                        [data(:,i)] = decode_1011(msg(pos:pos+8*LEN-1));
-
-                    % GLONASS observations on L1/L2 carrier
-                    case 1012
-                        [data(:,i)] = decode_1012(msg(pos:pos+8*LEN-1));
-                        
-                    % system parameters
-                    case 1013
-                        [data(:,i)] = decode_1013(msg(pos:pos+8*LEN-1));
-                        
-                    % auxiliary network information
-                    case 1014
-                        [data(:,i)] = decode_1014(msg(pos:pos+8*LEN-1));
-                        
-                    % ionospheric correction differences
-                    case 1015
-                        [data(:,i)] = decode_1015(msg(pos:pos+8*LEN-1));
+                    pos = pos + 8*LEN;
                     
-                    % geometric correction differences
-                    case 1016
-                        [data(:,i)] = decode_1016(msg(pos:pos+8*LEN-1));
-                        
-                    % combined ionospheric and geometric correction differences
-                    case 1017
-                        [data(:,i)] = decode_1017(msg(pos:pos+8*LEN-1));
+                    % skip the 24 bits of CRC
+                    pos = pos + 24;
+                    
+                    % message ending byte
+                    while (mod(pos,8) ~= 1)
+                        pos = pos + 1;
+                    end
 
-                    % other informations: satellite ephemerides
-                    case 1019
-                        [data(:,i)] = decode_1019(msg(pos:pos+8*LEN-1));
-                        
-                    %GLONASS ephemerides    
-                    case 1020
-                        [data(:,i)] = decode_1020(msg(pos:pos+8*LEN-1));
                 end
-
+                
             end
 
-            pos = pos + 8*LEN;
-
-        else
-            pos = pos + 10;
         end
 
-        % skip the 24 bits of CRC
-        pos = pos + 24;
-
-        % message ending byte
-        while (mod(pos,8) ~= 1)
-            pos = pos + 1;
-        end
-        
         % counter increment
         i = i + 1;
 
