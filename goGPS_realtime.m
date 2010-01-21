@@ -184,6 +184,7 @@ while (~reply_save)
         disp('It was not possible to save the receiver configuration.');
         break
     end
+    stopasync(rover);
     fclose(rover);
     fopen(rover);
     reply_save = ublox_CFG_CFG(rover, 'save');
@@ -467,7 +468,9 @@ while (current_time-start_time < dtime)
 end
 
 %DEBUG tick(0) bug
-fprintf('WARNING! Master connection delay=%d sec\n', dtime - 1);
+if (dtime - 1) > 1
+    fprintf('WARNING! Master connection delay=%d sec\n', dtime - 1);
+end
 
 %GPS epoch increment
 time_GPS = time_GPS + dtime;
