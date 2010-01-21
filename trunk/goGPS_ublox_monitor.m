@@ -105,6 +105,7 @@ while (~reply_save)
         disp('It was not possible to save the receiver configuration.');
         break
     end
+    stopasync(rover);
     fclose(rover);
     fopen(rover);
     reply_save = ublox_CFG_CFG(rover, 'save');
