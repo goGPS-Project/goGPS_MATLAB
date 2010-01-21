@@ -97,7 +97,7 @@ end
 try
     fwrite(serialObj, codeDEC, 'uint8', 'async');
 catch
-    pause(0.1)
+    stopasync(serialObj);
     fwrite(serialObj, codeDEC, 'uint8', 'async');
 end
 
