@@ -160,7 +160,7 @@ if ~isempty(pos)
                         % RTK uncorrected carrier phases
                         case 18
                             [data(:,i)] = decode_18(msg(pos-2:pos+n_words*30-1), n_words, modz);
-                            if(nargin >= 2)
+                            if(nargin == 2)
                                 sec_of_hour = data{2,i}(2);
                                 sec_of_week = time_GPS - mod(time_GPS,3600) + sec_of_hour;
                                 data{2,i}(2) = sec_of_week;
@@ -169,7 +169,7 @@ if ~isempty(pos)
                         % RTK uncorrected pseudoranges
                         case 19
                             [data(:,i)] = decode_19(msg(pos-2:pos+n_words*30-1), n_words, modz);
-                            if(nargin >= 2)
+                            if(nargin == 2)
                                 sec_of_hour = data{2,i}(2);
                                 sec_of_week = time_GPS - mod(time_GPS,3600) + sec_of_hour;
                                 data{2,i}(2) = sec_of_week;

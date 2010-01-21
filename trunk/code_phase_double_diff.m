@@ -117,7 +117,7 @@ elM = zeros(nsat,1);
 [azM, elM(i)] = topocent(pos_M, posP', a, f);
 
 %atmospheric error computation
-if (nargin == 14)
+if (nargin >= 13)
 
    %ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
    err_tropo_RP = err_tropo(elR(i), hR);
@@ -142,7 +142,7 @@ for j = 1 : nsat
         prRS_app(j) = sqrt(sum((pos_R_app - posS(j,:)').^2));
         prMS_app(j) = sqrt(sum((pos_M - posS(j,:)').^2));
         
-        if (nargin == 14)
+        if (nargin >= 13)
 
             %computation of tropospheric errors
             err_tropo_RS(j) = err_tropo(elR(j), hR);
@@ -183,7 +183,7 @@ for j = 1 : nsat
         comb_pr_obs = [comb_pr_obs; (prRS_obs - prMS_obs) - (prRP_obs - prMP_obs)];
         
         %computation of crossed atmospheric errors
-        if (nargin == 14)
+        if (nargin >= 13)
             
             %computation of crossed tropospheric errors
             tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
@@ -224,7 +224,7 @@ for j = 1 : nsat
         comb_pr_obs = [comb_pr_obs; ((phRS_obs - phMS_obs) - (phRP_obs - phMP_obs)) * lambda];
         
         %computation of crossed atmospheric errors
-        if (nargin == 14)
+        if (nargin >= 13)
             
             %computation of crossed tropospheric errors
             tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
@@ -240,7 +240,7 @@ end
 b = comb_pr_app;
 
 %correction of the b known term
-if (nargin == 14)
+if (nargin >= 13)
    b = b + tr - io;
 end
 
