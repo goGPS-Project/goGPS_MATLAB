@@ -68,8 +68,8 @@ global o1 o2 o3 h_antenna
 if (mode_user == 1)
 
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_rtcm, flag_ms, flag_ge, flag_cov, flag_COM, flag_NTRIP, flag_amb, ...
-        flag_cpu, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, filename_ref, ...
-        pos_M] = goGPS_gui;
+        flag_cpu, flag_RINEX, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, ...
+        filename_ref, pos_M] = goGPS_gui;
 
     if (isempty(mode))
         return
@@ -124,6 +124,8 @@ else
     flag_amb = 0;    % plot ambiguities (only in post-processing)
     
     flag_cpu = 0;    % save CPU (don't draw skyplot and SNR graph)
+    
+    flag_RINEX = 0;  % generate a RINEX file for the rover data
     
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -925,7 +927,7 @@ end
 
 %stream reading
 % [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-%  Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
+%  pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
 
 %---------------------------------
 
@@ -1055,7 +1057,15 @@ fclose(fid_plan);
 % RINEX FILE SAVING
 %----------------------------------------------------------------------------------------------
 
-% ublox2RINEX(stream_R, [filerootOUT '_rover_RINEX.txt']);
+if (flag_RINEX & mode_data > 0)
+    
+    if (mode_data == 1)
+        [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
+            pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
+    end
+
+    ublox2RINEX(stream_R, [filerootOUT '_rover_RINEX.txt']);
+end
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
