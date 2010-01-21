@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 02-Jan-2010 12:43:18
+% Last Modified by GUIDE v2.5 18-Jan-2010 11:23:29
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -92,7 +92,7 @@ function varargout = goGPS_gui_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(20,1);
+    varargout = cell(21,1);
     return
 end
 contents_mode = cellstr(get(handles.mode,'String'));
@@ -141,6 +141,7 @@ flag_COM = get(handles.u_com_detect,'Value');
 flag_NTRIP = get(handles.use_ntrip,'Value');
 flag_amb = get(handles.plot_amb,'Value');
 flag_cpu = get(handles.no_skyplot_snr,'Value');
+flag_RINEX = get(handles.rinex_out,'Value');
 filerootIN = get(handles.gogps_data_input,'String');
 filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
 filerootIN(filerootIN == '\') = '/';
@@ -197,14 +198,15 @@ varargout{9} = flag_COM;
 varargout{10} = flag_NTRIP;
 varargout{11} = flag_amb;
 varargout{12} = flag_cpu;
-varargout{13} = filerootIN;
-varargout{14} = filerootOUT;
-varargout{15} = filename_R_obs;
-varargout{16} = filename_R_nav;
-varargout{17} = filename_M_obs;
-varargout{18} = filename_M_nav;
-varargout{19} = filename_ref;
-varargout{20} = pos_M;
+varargout{13} = flag_RINEX;
+varargout{14} = filerootIN;
+varargout{15} = filerootOUT;
+varargout{16} = filename_R_obs;
+varargout{17} = filename_R_nav;
+varargout{18} = filename_M_obs;
+varargout{19} = filename_M_nav;
+varargout{20} = filename_ref;
+varargout{21} = pos_M;
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -313,6 +315,7 @@ state.u_com_detect = get(handles.u_com_detect, 'Value');
 state.use_ntrip = get(handles.use_ntrip, 'Value');
 state.plot_amb = get(handles.plot_amb, 'Value');
 state.no_skyplot_snr = get(handles.no_skyplot_snr, 'Value');
+state.rinex_out = get(handles.rinex_out, 'Value');
 state.RINEX_rover_obs = get(handles.RINEX_rover_obs,'String');
 state.RINEX_rover_nav = get(handles.RINEX_rover_nav,'String');
 state.RINEX_master_obs = get(handles.RINEX_master_obs,'String');
@@ -383,6 +386,7 @@ set(handles.u_com_detect, 'Value', state.u_com_detect);
 set(handles.use_ntrip, 'Value', state.use_ntrip);
 set(handles.plot_amb, 'Value', state.plot_amb);
 set(handles.no_skyplot_snr, 'Value', state.no_skyplot_snr);
+set(handles.rinex_out, 'Value', state.rinex_out);
 set(handles.RINEX_rover_obs,'String', state.RINEX_rover_obs);
 set(handles.RINEX_rover_nav,'String', state.RINEX_rover_nav);
 set(handles.RINEX_master_obs,'String', state.RINEX_master_obs);
@@ -484,6 +488,7 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     nav_mon_Callback(handles.nav_mon, eventdata, handles);
     
     set(handles.plot_amb, 'Enable', 'off');
+    set(handles.rinex_out, 'Enable', 'on');
     
     %disable file input fields
     set(handles.RINEX_rover_obs, 'Enable', 'off');
@@ -768,6 +773,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.text_com_select, 'Enable', 'on');
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
+    set(handles.rinex_out, 'Enable', 'on');
     
     set(handles.gogps_data_output, 'Enable', 'on');
     set(handles.text_gogps_data_output, 'Enable', 'on');
@@ -893,6 +899,7 @@ else
         set(handles.com_select, 'Enable', 'on');
         set(handles.text_com_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'off');
+        set(handles.rinex_out, 'Enable', 'on');
         
         %disable approximate position
         set(handles.text_approx_pos, 'Enable', 'off');
@@ -924,6 +931,7 @@ else
         set(handles.com_select, 'Enable', 'off');
         set(handles.text_com_select, 'Enable', 'off');
         set(handles.use_ntrip, 'Enable', 'on');
+        set(handles.rinex_out, 'Enable', 'off');
         
         %enable master connection
         set(handles.IP_address, 'Enable', 'on');
@@ -1556,6 +1564,8 @@ if (hObject == handles.rinex_files)
     set(handles.browse_gogps_input, 'Enable', 'off');
     set(handles.text_gogps_input, 'Enable', 'off');
     
+    set(handles.rinex_out, 'Enable', 'off');
+    
     contents = cellstr(get(handles.mode,'String'));
     if (strcmp(contents{get(handles.mode,'Value')},'Post-processing'))
         set(handles.master_pos, 'Enable', 'off');
@@ -1580,6 +1590,8 @@ else
     set(handles.gogps_data_input, 'Enable', 'on');
     set(handles.browse_gogps_input, 'Enable', 'on');
     set(handles.text_gogps_input, 'Enable', 'on');
+    
+    set(handles.rinex_out, 'Enable', 'on');
     
     set(handles.master_pos, 'Enable', 'on');
     set(handles.master_pos, 'Value', 1);
@@ -2243,8 +2255,6 @@ function go_button_Callback(hObject, eventdata, handles)
 % hObject    handle to go_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
 saveState(handles,'../data/settings/last_settings.mat');
 
 uiresume(handles.main_panel);
@@ -2339,3 +2349,12 @@ function no_skyplot_snr_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of no_skyplot_snr
+
+
+% --- Executes on button press in rinex_out.
+function rinex_out_Callback(hObject, eventdata, handles)
+% hObject    handle to rinex_out (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of rinex_out
