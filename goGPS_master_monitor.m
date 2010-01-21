@@ -583,7 +583,7 @@ while flag
                 
                 fprintf('Epoch %3d: GPStime=%.3f (%d satellites)\n', t, time_M, length(sat));
                 for i = 1 : length(sat)
-                    fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  SNR=%2d  LOCK=%3d\n', sat(i), pr_M(sat(i)), ph_M(sat(i)), snr_M(sat(i)), lock_M(sat(i)));
+                    fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  SNR=%5.2f  LOCK=%3d\n', sat(i), pr_M(sat(i)), ph_M(sat(i)), snr_M(sat(i)), lock_M(sat(i)));
                 end
             end
             
@@ -657,7 +657,7 @@ while flag
                 
                 fprintf('Epoch %3d: GPStime=%.3f (%d satellites)\n', t, time_M, length(sat));
                 for i = 1 : length(sat)
-                    fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  SNR=%2d  LOCK=%3d\n', sat(i), pr_M_GLO(sat(i)), ph_M_GLO(sat(i)), snr_M_GLO(sat(i)), lock_M_GLO(sat(i)));
+                    fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  SNR=%5.2f  LOCK=%3d\n', sat(i), pr_M_GLO(sat(i)), ph_M_GLO(sat(i)), snr_M_GLO(sat(i)), lock_M_GLO(sat(i)));
                 end
             end
             
@@ -674,11 +674,11 @@ while flag
                 fprintf('Epoch %3d: GLONASStime=%.3f\n', t, time_M_GLO);
                 fprintf('GLONASS L1 (%d satellites)\n', length(sat1));
                 for i = 1 : length(sat1)
-                    fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  SNR=%2d  LOCK=%3d\n', sat1(i), pr1_M_GLO(sat1(i)), ph1_M_GLO(sat1(i)), snr1_M_GLO(sat1(i)), lock1_M_GLO(sat1(i)));
+                    fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  SNR=%5.2f  LOCK=%3d\n', sat1(i), pr1_M_GLO(sat1(i)), ph1_M_GLO(sat1(i)), snr1_M_GLO(sat1(i)), lock1_M_GLO(sat1(i)));
                 end
                 fprintf('GLONASS L2 (%d satellites)\n', length(sat2));
                 for i = 1 : length(sat2)
-                    fprintf('   SAT %02d:  P2=%11.2f  L2=%12.2f  SNR=%2d  LOCK=%3d\n', sat2(i), pr2_M_GLO(sat2(i)), ph2_M_GLO(sat2(i)), snr2_M_GLO(sat2(i)), lock2_M_GLO(sat2(i)));
+                    fprintf('   SAT %02d:  P2=%11.2f  L2=%12.2f  SNR=%5.2f  LOCK=%3d\n', sat2(i), pr2_M_GLO(sat2(i)), ph2_M_GLO(sat2(i)), snr2_M_GLO(sat2(i)), lock2_M_GLO(sat2(i)));
                 end
             end
             
@@ -695,11 +695,11 @@ while flag
                 fprintf('Epoch %3d: GLONASStime=%.3f\n', t, time_M_GLO);
                 fprintf('GLONASS L1 (%d satellites)\n', length(sat1));
                 for i = 1 : length(sat1)
-                    fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  SNR=%2d  LOCK=%3d\n', sat1(i), pr1_M_GLO(sat1(i)), ph1_M_GLO(sat1(i)), snr1_M_GLO(sat1(i)), lock1_M_GLO(sat1(i)));
+                    fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  SNR=%5.2f  LOCK=%3d\n', sat1(i), pr1_M_GLO(sat1(i)), ph1_M_GLO(sat1(i)), snr1_M_GLO(sat1(i)), lock1_M_GLO(sat1(i)));
                 end
                 fprintf('GLONASS L2 (%d satellites)\n', length(sat2));
                 for i = 1 : length(sat2)
-                    fprintf('   SAT %02d:  P2=%11.2f  L2=%12.2f  SNR=%2d  LOCK=%3d\n', sat2(i), pr2_M_GLO(sat2(i)), ph2_M_GLO(sat2(i)), snr2_M_GLO(sat2(i)), lock2_M_GLO(sat2(i)));
+                    fprintf('   SAT %02d:  P2=%11.2f  L2=%12.2f  SNR=%5.2f  LOCK=%3d\n', sat2(i), pr2_M_GLO(sat2(i)), ph2_M_GLO(sat2(i)), snr2_M_GLO(sat2(i)), lock2_M_GLO(sat2(i)));
                 end
             end
             
