@@ -38,7 +38,8 @@ T = Tr - 0.0065*h;
 
 H = Hr*exp(-0.0006396*h);
 
-i=1;
+i = 1;
+B = [];
 
 while i < 9
     if (h >= h_a(i)) & (h <= h_a(i+1))
@@ -51,4 +52,8 @@ end
 e= 0.01*H*exp(-37.2465+0.213166*T-0.000256908*T^2);
 
 %tropospheric error
-tropocorr = ((0.002277/sin(elev*pi/180)) * (P - (B/(tan(elev*pi/180))^2)) + (0.002277/sin(elev*pi/180)) * (1255/T + 0.05) * e);
+if(~isempty(B))
+    tropocorr = ((0.002277/sin(elev*pi/180)) * (P - (B/(tan(elev*pi/180))^2)) + (0.002277/sin(elev*pi/180)) * (1255/T + 0.05) * e);
+else
+    tropocorr = zeros(length(elev));
+end
