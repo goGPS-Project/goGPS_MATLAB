@@ -81,4 +81,9 @@ codeDEC = [codeDEC; CK_A; CK_B];
 % end
 
 % send message
-fwrite(serialObj, codeDEC, 'uint8', 'async');
+try
+    fwrite(serialObj, codeDEC, 'uint8', 'async');
+catch
+    stopasync(serialObj);
+    fwrite(serialObj, codeDEC, 'uint8', 'async');
+end
