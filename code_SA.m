@@ -86,10 +86,10 @@ for i = 1 : length(sat)
         y0 = [y0; prRS_obs + v_light*dtS];
 
         %computation of atmospheric errors
-        if (nargin == 6)
+        if (nargin == 5)
 
             %computation of tropospheric errors
-            err_tropo_RS = err_tropo(elR);
+            err_tropo_RS = err_tropo(elR, hR);
 
             %computation of ionospheric errors
             err_iono_RS = err_iono(iono, phiR, lamR, azR, elR, time);
@@ -104,7 +104,7 @@ for i = 1 : length(sat)
 end
 
 %correction of the b known term
-if (nargin == 6)
+if (nargin == 5)
    b = b + tr - io;
 end
 
