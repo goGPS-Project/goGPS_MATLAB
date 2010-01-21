@@ -50,4 +50,4 @@ else
     nmeastring = sprintf('%s\r\n',nmeastring);
 end
     
-ntripstring = sprintf('GET /%s HTTP/1.1\r\nHost: %s\r\nNtrip-Version: Ntrip/2.0\r\nUser-Agent: NTRIP goGPS\r\nConnection: close\r\nAuthorization: Basic %s\r\n\r\n%s\r\n', ntrip_mountpoint, master_ip, encoded_auth, nmeastring);
+ntripstring = sprintf('GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: NTRIP goGPS\r\nConnection: close\r\nAuthorization: Basic %s\r\n\r\n%s\r\n', ntrip_mountpoint, master_ip, encoded_auth, nmeastring);
