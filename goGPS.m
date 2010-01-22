@@ -978,7 +978,7 @@ if (mode < 12)
     %file saving
     fid_geod = fopen([filerootOUT '_geod.txt'], 'wt');
     for i = 1 : length(phi_KAL)
-        fprintf(fid_geod, '%.8f\t%.8f\t%.4f\n', phi_KAL(i), lam_KAL(i), h_KAL(i));
+        fprintf(fid_geod, '%.8f\t%.8f\t%.3f\n', phi_KAL(i), lam_KAL(i), h_KAL(i));
     end
     fclose(fid_geod);
 end
@@ -1050,7 +1050,7 @@ if (mode < 12)
     %data saving
     fid_plan = fopen([filerootOUT '_plan.txt'], 'wt');
     for i = 1 : length(EST_KAL)
-        fprintf(fid_plan, '%.8f\t%.8f\t%.4f\n', EST_KAL(i), NORD_KAL(i), h_KAL(i));
+        fprintf(fid_plan, '%.3f\t%.3f\t%.3f\n', EST_KAL(i), NORD_KAL(i), h_KAL(i));
     end
     fclose(fid_plan);
 end
