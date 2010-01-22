@@ -81,7 +81,7 @@ end
 
 %if ionosphere parameters were not found
 if (ioparam == 0)
-    error('Warning: ionosphere parameters not found in navigation file %s',file_nav);
+    fprintf('Warning: ionosphere parameters not found in navigation file %s',file_nav);
 end
 
 answer = [];
