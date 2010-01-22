@@ -905,9 +905,6 @@ elseif (mode == 12)
     
     goGPS_ublox_monitor(filerootOUT);
     
-    %interrupt execution
-    break
-    
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: MASTER MONITORING
 %----------------------------------------------------------------------------------------------
@@ -915,155 +912,166 @@ elseif (mode == 12)
 elseif (mode == 13)
     
     goGPS_master_monitor(filerootOUT, flag_NTRIP);
-    
-    %interrupt execution
-    break
-    
+
 end
 
 %----------------------------------------------------------------------------------------------
 % INPUT/OUTPUT DATA FILE READING
 %----------------------------------------------------------------------------------------------
 
-%stream reading
-% [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-%  pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
-
-%---------------------------------
-
-%observation file (OBS) and ephemerides file (EPH) reading
-%[time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-% pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (filerootOUT);
-
-%---------------------------------
-
-%reading of the file with Kalman filter results
-[Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-    conf_sat, conf_cs, pivot] = load_goGPSoutput (filerootOUT, mode, mode_vinc);
-
-%variable saving for final graphical representations
-nObs = size(Xhat_t_t,2);
-pos_KAL = zeros(3,nObs);
-estim_amb = zeros(32,nObs);
-sigma_amb = zeros(32,nObs);
-for i = 1 : nObs
-    if (mode == 1 & mode_vinc == 1)
-        pos_KAL(:,i) = [Yhat_t_t(1,i); Yhat_t_t(2,i); Yhat_t_t(3,i)];
-        estim_amb(:,i) = Xhat_t_t(o1+1:o1+32,i);
-        sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32,i)));
-    else
-        pos_KAL(:,i) = [Xhat_t_t(1,i); Xhat_t_t(o1+1,i); Xhat_t_t(o2+1,i)];
-        estim_amb(:,i) = Xhat_t_t(o3+1:o3+32,i);
-        sigma_amb(:,i) = sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32,i)));
+if (mode < 12)
+    %stream reading
+    % [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
+    %  pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
+    
+    %---------------------------------
+    
+    %observation file (OBS) and ephemerides file (EPH) reading
+    %[time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
+    % pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (filerootOUT);
+    
+    %---------------------------------
+    
+    %reading of the file with Kalman filter results
+    [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
+        conf_sat, conf_cs, pivot] = load_goGPSoutput (filerootOUT, mode, mode_vinc);
+    
+    %variable saving for final graphical representations
+    nObs = size(Xhat_t_t,2);
+    pos_KAL = zeros(3,nObs);
+    estim_amb = zeros(32,nObs);
+    sigma_amb = zeros(32,nObs);
+    for i = 1 : nObs
+        if (mode == 1 & mode_vinc == 1)
+            pos_KAL(:,i) = [Yhat_t_t(1,i); Yhat_t_t(2,i); Yhat_t_t(3,i)];
+            estim_amb(:,i) = Xhat_t_t(o1+1:o1+32,i);
+            sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32,i)));
+        else
+            pos_KAL(:,i) = [Xhat_t_t(1,i); Xhat_t_t(o1+1,i); Xhat_t_t(o2+1,i)];
+            estim_amb(:,i) = Xhat_t_t(o3+1:o3+32,i);
+            sigma_amb(:,i) = sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32,i)));
+        end
     end
 end
 
 %----------------------------------------------------------------------------------------------
 
 %computation and visualization time reading
-[dt_acqR, dt_decR, dt_acqM, dt_decM, dt_saveI, dt_kal, dt_saveO, ...
-    dt_plot, dt_ge, dt_sky, dt_snr] = load_goGPStime (filerootOUT);
+% [dt_acqR, dt_decR, dt_acqM, dt_decM, dt_saveI, dt_kal, dt_saveO, ...
+%     dt_plot, dt_ge, dt_sky, dt_snr] = load_goGPStime (filerootOUT);
 
 %----------------------------------------------------------------------------------------------
 % GEODETIC COORDINATES SAVING (TEXT FILE)
 %----------------------------------------------------------------------------------------------
 
-%cartesian coordinates (X,Y,Z)
-X_KAL = pos_KAL(1,:)';
-Y_KAL = pos_KAL(2,:)';
-Z_KAL = pos_KAL(3,:)';
-
-%coordinate transformation
-[phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
-phi_KAL = phi_KAL * 180/pi;
-lam_KAL = lam_KAL * 180/pi;
-
-%file saving
-fid_geod = fopen([filerootOUT '_geod.txt'], 'wt');
-for i = 1 : length(phi_KAL)
-    fprintf(fid_geod, '%.8f\t%.8f\t%.4f\n', phi_KAL(i), lam_KAL(i), h_KAL(i));
+if (mode < 12)
+    %cartesian coordinates (X,Y,Z)
+    X_KAL = pos_KAL(1,:)';
+    Y_KAL = pos_KAL(2,:)';
+    Z_KAL = pos_KAL(3,:)';
+    
+    %coordinate transformation
+    [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
+    phi_KAL = phi_KAL * 180/pi;
+    lam_KAL = lam_KAL * 180/pi;
+    
+    %file saving
+    fid_geod = fopen([filerootOUT '_geod.txt'], 'wt');
+    for i = 1 : length(phi_KAL)
+        fprintf(fid_geod, '%.8f\t%.8f\t%.4f\n', phi_KAL(i), lam_KAL(i), h_KAL(i));
+    end
+    fclose(fid_geod);
 end
-fclose(fid_geod);
 
 %----------------------------------------------------------------------------------------------
 % GOOGLE EARTH FILE SAVING (KML FILE)
 %----------------------------------------------------------------------------------------------
 
-%"clampedToGround" plots the points attached to the ground
-%"absolute" uses the height defined in the tag <coordinates>;
-%N.B. Google Earth uses orthometric heights
-z_pos = 'clampedToGround';
-%z_pos = 'absolute';
-%URL to load the icon for the points
-iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
-point_colorR = 'FFF5005A';
-%point size
-scaleR = 0.4;
-
-%file saving (Google Earth KML)
-fid_kml = fopen([filerootOUT '.kml'], 'wt');
-fprintf(fid_kml, '<?xml version="1.0" standalone="yes"?>\n');
-fprintf(fid_kml, '<kml creator="goGPS" xmlns="http://earth.google.com/kml/2.2">\n');
-fprintf(fid_kml, '  <Document>\n');
-fprintf(fid_kml, '    <name><![CDATA[%s]]></name>\n', [filerootOUT '.kml']);
-fprintf(fid_kml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
-for i = 1 : length(phi_KAL)
-    fprintf(fid_kml, '      <Placemark>\n');
-    fprintf(fid_kml, '        <Point>\n');
-    fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-    fprintf(fid_kml, '          <coordinates>%.6f,%.6f,%.6f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
-    fprintf(fid_kml, '        </Point>\n');
-    fprintf(fid_kml, '        <Snippet></Snippet>\n');
-    fprintf(fid_kml, '        <Style>\n');
-    fprintf(fid_kml, '          <IconStyle>\n');
-    fprintf(fid_kml, '            <Icon>\n');
-    fprintf(fid_kml, '              <href>%s</href>\n',iconR);
-    fprintf(fid_kml, '            </Icon>\n');
-    fprintf(fid_kml, '            <color>%s</color>\n',point_colorR);
-    fprintf(fid_kml, '            <colorMode>normal</colorMode>\n');
-    fprintf(fid_kml, '            <scale>%.2f</scale>\n',scaleR);
-    fprintf(fid_kml, '          </IconStyle>\n');
-    fprintf(fid_kml, '        </Style>\n');
-    fprintf(fid_kml, '      </Placemark>\n');
+if (mode < 12)
+    %"clampedToGround" plots the points attached to the ground
+    %"absolute" uses the height defined in the tag <coordinates>;
+    %N.B. Google Earth uses orthometric heights
+    z_pos = 'clampedToGround';
+    %z_pos = 'absolute';
+    %URL to load the icon for the points
+    iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
+    point_colorR = 'FFF5005A';
+    %point size
+    scaleR = 0.4;
+    
+    %file saving (Google Earth KML)
+    fid_kml = fopen([filerootOUT '.kml'], 'wt');
+    fprintf(fid_kml, '<?xml version="1.0" standalone="yes"?>\n');
+    fprintf(fid_kml, '<kml creator="goGPS" xmlns="http://earth.google.com/kml/2.2">\n');
+    fprintf(fid_kml, '  <Document>\n');
+    fprintf(fid_kml, '    <name><![CDATA[%s]]></name>\n', [filerootOUT '.kml']);
+    fprintf(fid_kml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
+    for i = 1 : length(phi_KAL)
+        fprintf(fid_kml, '      <Placemark>\n');
+        fprintf(fid_kml, '        <Point>\n');
+        fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
+        fprintf(fid_kml, '          <coordinates>%.6f,%.6f,%.6f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
+        fprintf(fid_kml, '        </Point>\n');
+        fprintf(fid_kml, '        <Snippet></Snippet>\n');
+        fprintf(fid_kml, '        <Style>\n');
+        fprintf(fid_kml, '          <IconStyle>\n');
+        fprintf(fid_kml, '            <Icon>\n');
+        fprintf(fid_kml, '              <href>%s</href>\n',iconR);
+        fprintf(fid_kml, '            </Icon>\n');
+        fprintf(fid_kml, '            <color>%s</color>\n',point_colorR);
+        fprintf(fid_kml, '            <colorMode>normal</colorMode>\n');
+        fprintf(fid_kml, '            <scale>%.2f</scale>\n',scaleR);
+        fprintf(fid_kml, '          </IconStyle>\n');
+        fprintf(fid_kml, '        </Style>\n');
+        fprintf(fid_kml, '      </Placemark>\n');
+    end
+    fprintf(fid_kml, '  </Document>\n</kml>');
+    fclose(fid_kml);
 end
-fprintf(fid_kml, '  </Document>\n</kml>');
-fclose(fid_kml);
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE ESTIMATED TRAJECTORY (AND TEXT FILE SAVING)
 %----------------------------------------------------------------------------------------------
 
-%cartesian coordinates (X,Y,Z)
-X_KAL = pos_KAL(1,:)';
-Y_KAL = pos_KAL(2,:)';
-Z_KAL = pos_KAL(3,:)';
-
-%coordinate transformation
-[EST_KAL, NORD_KAL, h_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
-
-%trajectory plotting
-figure
-plot(EST_KAL, NORD_KAL, '.r');
-xlabel('EST [m]'); ylabel('NORD [m]'); grid on;
-
-%data saving
-fid_plan = fopen([filerootOUT '_plan.txt'], 'wt');
-for i = 1 : length(EST_KAL)
-    fprintf(fid_plan, '%.8f\t%.8f\t%.4f\n', EST_KAL(i), NORD_KAL(i), h_KAL(i));
+if (mode < 12)
+    %cartesian coordinates (X,Y,Z)
+    X_KAL = pos_KAL(1,:)';
+    Y_KAL = pos_KAL(2,:)';
+    Z_KAL = pos_KAL(3,:)';
+    
+    %coordinate transformation
+    [EST_KAL, NORD_KAL, h_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
+    
+    %trajectory plotting
+    figure
+    plot(EST_KAL, NORD_KAL, '.r');
+    xlabel('EST [m]'); ylabel('NORD [m]'); grid on;
+    
+    %data saving
+    fid_plan = fopen([filerootOUT '_plan.txt'], 'wt');
+    for i = 1 : length(EST_KAL)
+        fprintf(fid_plan, '%.8f\t%.8f\t%.4f\n', EST_KAL(i), NORD_KAL(i), h_KAL(i));
+    end
+    fclose(fid_plan);
 end
-fclose(fid_plan);
 
 %----------------------------------------------------------------------------------------------
 % RINEX FILE SAVING
 %----------------------------------------------------------------------------------------------
 
-if (flag_RINEX & mode_data > 0)
+if (flag_RINEX & ((mode < 11 & mode_data > 0) | mode == 11 | mode == 12))
     
-    if (mode_data == 1)
+    %if post-processing goGPS binary data (not streams)
+    if (mode < 11 & mode_data == 1)
         [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
             pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
+    %if real-time navigation or rover monitoring
+    elseif (mode == 11 | mode == 12)
+        [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
+            pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootOUT);
     end
 
+    fprintf(['Writing: ' filerootOUT '_rover_RINEX.txt\n']);
     ublox2RINEX(stream_R, [filerootOUT '_rover_RINEX.txt']);
 end
 
@@ -1071,7 +1079,7 @@ end
 % REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
 %----------------------------------------------------------------------------------------------
 
-if (flag_cov == 1) & (mode_vinc == 0)
+if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0)
     
     %covariance propagation
     Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1],:));
@@ -1105,21 +1113,25 @@ end
 % REPRESENTATION OF THE REFERENCE TRAJECTORY
 %----------------------------------------------------------------------------------------------
 
-%[EST_ref, NORD_ref, h_ref] = cart2plan(ref_path(:,1), ref_path(:,2),ref_path(:,3));
-
-%%reference data plot
-%plot(EST_ref, NORD_ref, 'm', 'LineWidth', 2)
-
-%hold off
+% if (mode < 12 & mode_ref == 1)
+%     [EST_ref, NORD_ref, h_ref] = cart2plan(ref_path(:,1), ref_path(:,2),ref_path(:,3));
+%     
+%     %reference data plot
+%     plot(EST_ref, NORD_ref, 'm', 'LineWidth', 2)
+%     
+%     hold off
+% end
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE 3D TRAJECTORY
 %----------------------------------------------------------------------------------------------
 
-%3D plot
-figure
-plot3(EST_KAL, NORD_KAL, h_KAL, '.r');
-xlabel('EST [m]'); ylabel('NORD [m]'); zlabel('h [m]'); grid on
+if (mode < 12)
+    %3D plot
+    figure
+    plot3(EST_KAL, NORD_KAL, h_KAL, '.r');
+    xlabel('EST [m]'); ylabel('NORD [m]'); zlabel('h [m]'); grid on
+end
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE VISIBLE SATELLITES CONFIGURATION

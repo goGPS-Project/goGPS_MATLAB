@@ -94,7 +94,7 @@ date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
 %----------------------------------------------------------------------------------------------
 
 %create RINEX observation file
-fid = fopen(filename,'w');	
+fid = fopen(filename,'wt');	
 
 %write header
 fprintf(fid,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
