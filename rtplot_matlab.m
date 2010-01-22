@@ -1,7 +1,7 @@
 function rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, matrix, flag_amb)
 
 % SYNTAX:
-%   rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, matrix);
+%   rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, matrix, flag_amb);
 %
 % INPUT:
 %   t = survey time (t=1,2,...)

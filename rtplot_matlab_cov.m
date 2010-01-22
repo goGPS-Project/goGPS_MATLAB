@@ -1,7 +1,7 @@
 function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix, flag_amb)
 
 % SYNTAX:
-%   rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix);
+%   rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, check_pivot, check_cs, origin, ref, matrix, flag_amb);
 %
 % INPUT:
 %   t = survey time (t=1,2,...)
