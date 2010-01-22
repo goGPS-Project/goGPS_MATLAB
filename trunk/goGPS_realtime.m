@@ -175,7 +175,7 @@ fopen(rover);
 % save receiver configuration
 fprintf('Saving u-blox receiver configuration...\n');
 
-reply_save = 0;
+reply_save = ublox_CFG_CFG(rover, 'save');
 tries = 0;
 
 while (~reply_save)
@@ -184,8 +184,12 @@ while (~reply_save)
         disp('It was not possible to save the receiver configuration.');
         break
     end
-    stopasync(rover);
-    fclose(rover);
+    try
+        fclose(rover);
+    catch
+        stopasync(rover);
+        fclose(rover);
+    end
     fopen(rover);
     reply_save = ublox_CFG_CFG(rover, 'save');
 end
@@ -2162,17 +2166,16 @@ end
 if (reply_save)
     fprintf('Restoring saved u-blox receiver configuration...\n');
     
-    reply_load = 0;
+    reply_load = ublox_CFG_CFG(rover, 'load');
     tries = 0;
     
     while (reply_save & ~reply_load)
         tries = tries + 1;
-        reply_load = ublox_CFG_CFG(rover, 'load');
-        
         if (tries > 3)
             disp('It was not possible to reload the receiver previous configuration.');
             break
         end
+        reply_load = ublox_CFG_CFG(rover, 'load');
     end
 end
 
