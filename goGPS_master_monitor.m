@@ -380,7 +380,7 @@ while flag
                     t = t+1;
                     
                     %data save
-                    fwrite(fid_obs, [0; time_M; 0; pr_M; zeros(32,1); ph_M; zeros(32,1); snr_M; zeros(32,1)], 'double');
+                    fwrite(fid_obs, [0; time_M; 0; pr_M; zeros(32,1); ph_M; zeros(32,1); snr_M; zeros(32,1); zeros(3,1)], 'double');
                     fwrite(fid_eph, [0; Eph(:)], 'double');
                     %dep_time_M (t) = time_M;
                     %dep_pr_M(:,t)  = pr_M;
