@@ -488,7 +488,6 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     nav_mon_Callback(handles.nav_mon, eventdata, handles);
     
     set(handles.plot_amb, 'Enable', 'off');
-    set(handles.rinex_out, 'Enable', 'on');
     
     %disable file input fields
     set(handles.RINEX_rover_obs, 'Enable', 'off');
