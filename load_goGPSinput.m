@@ -71,7 +71,7 @@ while ~isempty(d)
     fprintf(['Reading: ' fileroot '_obs_' hour_str '.bin\n']);
     num_bytes = d.bytes;                                            %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / (3+32*6+3);                               %file size (number of packets)
+    num_packs = num_words / (3+32*6+3);                             %file size (number of packets)
     fid_obs = fopen([fileroot '_obs_' hour_str '.bin']);            %file opening
     buf_obs = fread(fid_obs,num_words,'double');                    %file reading
     fclose(fid_obs);                                                %file closing
@@ -125,7 +125,7 @@ while ~isempty(d)
     for j = 0 : (1+672) : num_words-1
         i = i+1;                                                    %epoch counter increase
         %time_GPS(i,1) = buf_eph(j + 1);                            %GPS time logging
-        Eph(:,:,i) = reshape(buf_eph(j + [2:673]), [21,32]);          %ephemerides concatenation
+        Eph(:,:,i) = reshape(buf_eph(j + [2:673]), [21,32]);        %ephemerides concatenation
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string
