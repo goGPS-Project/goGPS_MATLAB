@@ -63,7 +63,7 @@ codeBIN_NMEA = dec2bin(hex2dec(codeHEX_NMEA),24);          % initial binary stre
 pos_NMEA = findstr(msg, codeBIN_NMEA);   % NMEA message initial index
 
 %----------------------------------------------------------------------------------------------
-% MESSAGE IDENTIFICATION
+% MESSAGE STARTING POINT
 %----------------------------------------------------------------------------------------------
 
 % output variable initialization
@@ -90,82 +90,93 @@ else
     return
 end
     
-    % counter initialization
-    i = 0;
+%----------------------------------------------------------------------------------------------
+% MESSAGE DECODING LOOP
+%----------------------------------------------------------------------------------------------
 
-    while (pos + 15 <= length(msg))
+% counter initialization
+i = 0;
 
-        % check if there is an UBX header
-        if (strcmp(msg(pos:pos+15),codeBIN))
+while (pos + 15 <= length(msg))
 
-            % counter increment
-            i = i + 1;
+    % check if there is an UBX header
+    if (strcmp(msg(pos:pos+15),codeBIN))
 
-            % skip the u-blox header (16 bit)
-            pos = pos + 16;
+        % counter increment
+        i = i + 1;
 
-            if (pos + 31 <= length(msg))
+        % skip the u-blox header (16 bit)
+        pos = pos + 16;
 
-                % message class (1 byte)
-                class = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-                class = dec2hex(class,2);
+        if (pos + 31 <= length(msg))
 
-                % message id (1 byte)
-                id = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-                id = dec2hex(id,2);
+            % message class (1 byte)
+            class = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+            class = dec2hex(class,2);
 
-                % payload length (2 bytes)
-                LEN1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-                LEN2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-                LEN = LEN1 + (LEN2 * 2^8);      % little endian
-                clear LEN1 LEN2
+            % message id (1 byte)
+            id = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+            id = dec2hex(id,2);
 
-                if (pos + 8*LEN - 1 <= length(msg))
+            % payload length (2 bytes)
+            LEN1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+            LEN2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+            LEN = LEN1 + (LEN2 * 2^8);      % little endian
+            clear LEN1 LEN2
 
-                    % message identification
-                    switch class
+            if (pos + 8*LEN - 1 <= length(msg))
 
-                        % RXM (receiver manager)
-                        case '02'
-                            switch id
-                                % RAW (raw measurement)
-                                case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
-                                % EPH (ephemerides)
-                                case '31'
-                                    if (LEN == 104) %(ephemerides available)
-                                        [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
-                                    end
-                            end
-                    end
+                % message identification
+                switch class
 
+                    % RXM (receiver manager)
+                    case '02'
+                        switch id
+                            % RAW (raw measurement)
+                            case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
+
+                            % EPH (ephemerides)
+                            case '31'
+                                if (LEN == 104) %(ephemerides available)
+                                    [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
+                                end
+                        end
                 end
-
-                pos = pos + 8*LEN;
-
-            else
-                break
             end
 
-            % skip the 2 checksum bytes
-            pos = pos + 16;
-
-        % check if a NMEA message is starting
-        elseif (pos + 23 <= length(msg)) & (strcmp(msg(pos:pos+23),codeBIN_NMEA))
-
-            % save the NMEA message (search for <CR>)
-            while (pos + 7 <= length(msg)) & (bin2dec(msg(pos:pos+7)) ~= 13)
-                nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
-                pos = pos + 8;
-            end
-
-            % save just <LF> (without <CR>, otherwise MATLAB fails in interpreting it)
-            pos = pos + 8;
-            nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
-            pos = pos + 8;
+            pos = pos + 8*LEN;
 
         else
             break
         end
 
+        % skip the 2 checksum bytes
+        pos = pos + 16;
+
+        % check if a NMEA message is starting
+    elseif (pos + 23 <= length(msg)) & (strcmp(msg(pos:pos+23),codeBIN_NMEA))
+
+        % save the NMEA message (search for <CR>)
+        while (pos + 7 <= length(msg)) & (bin2dec(msg(pos:pos+7)) ~= 13)
+            nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
+            pos = pos + 8;
+        end
+
+        % save just <LF> (without <CR>, otherwise MATLAB fails in interpreting it)
+        pos = pos + 8;
+        nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
+        pos = pos + 8;
+
+        % check if there are remaining packages
+    else
+
+        % find the index of the first UBX message, if any
+        pos_UBX = findstr(msg(pos:end),codeBIN);
+        if ~isempty(pos_UBX)
+            pos = pos + pos_UBX(1) - 1;
+        else
+            break
+        end
     end
+
 end
