@@ -163,6 +163,15 @@ nN = 32;
 % creation of the connection to the ROVER (u-blox)
 %------------------------------------------------------
 
+% find a serial port object.
+obj1 = instrfind('Type', 'serial', 'Port', COMportR, 'Tag', '');
+
+% if a serial object already exists, delete it before creating a new one
+if ~isempty(obj1)
+    delete(obj1);
+end
+
+% serial object creation
 rover = serial (COMportR,'BaudRate',57600);
 set(rover,'InputBufferSize',16384);
 set(rover,'FlowControl','hardware');
