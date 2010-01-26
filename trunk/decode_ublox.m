@@ -109,51 +109,71 @@ while (pos + 15 <= length(msg))
         pos = pos + 16;
 
         if (pos + 31 <= length(msg))
-
+            
             % message class (1 byte)
             class = bin2dec(msg(pos:pos+7));  pos = pos + 8;
             class = dec2hex(class,2);
-
+            
             % message id (1 byte)
             id = bin2dec(msg(pos:pos+7));  pos = pos + 8;
             id = dec2hex(id,2);
-
+            
             % payload length (2 bytes)
             LEN1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN = LEN1 + (LEN2 * 2^8);      % little endian
             clear LEN1 LEN2
 
-            if (pos + 8*LEN - 1 <= length(msg))
-
-                % message identification
-                switch class
-
-                    % RXM (receiver manager)
-                    case '02'
-                        switch id
-                            % RAW (raw measurement)
-                            case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
-
-                            % EPH (ephemerides)
-                            case '31'
-                                if (LEN == 104) %(ephemerides available)
-                                    [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
-                                end
-                        end
+            if (pos + 8*LEN + 15 <= length(msg))
+                
+                % checksum
+                CK_A = 0; CK_B = 0;
+                for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
+                    CK_A = CK_A + bin2dec(msg(j:j+7));
+                    CK_B = CK_B + CK_A;
                 end
+                
+                CK_A = dec2bin(mod(CK_A,256), 8);
+                CK_B = dec2bin(mod(CK_B,256), 8);
+                
+                % if checksum matches
+                if strcmp(msg(pos + 8*LEN:pos + 8*LEN + 7), CK_A) & strcmp(msg(pos + 8*LEN + 8:pos + 8*LEN + 15), CK_B)
+                    
+                    % message identification
+                    switch class
+                        
+                        % RXM (receiver manager)
+                        case '02'
+                            switch id
+                                % RAW (raw measurement)
+                                case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
+                                    
+                                % EPH (ephemerides)
+                                case '31'
+                                    if (LEN == 104) %(ephemerides available)
+                                        [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
+                                    end
+                            end
+                    end
+                    
+                else
+                    %fprintf('Checksum error!\n');
+                end
+                
+                % skip the message body
+                pos = pos + 8*LEN;
+                
+                % skip the 2 checksum bytes
+                pos = pos + 16;
+            else
+                break
             end
-
-            pos = pos + 8*LEN;
-
+            
         else
             break
         end
 
-        % skip the 2 checksum bytes
-        pos = pos + 16;
-
-        % check if a NMEA message is starting
+    % check if a NMEA message is starting
     elseif (pos + 23 <= length(msg)) & (strcmp(msg(pos:pos+23),codeBIN_NMEA))
 
         % save the NMEA message (search for <CR>)
@@ -167,7 +187,7 @@ while (pos + 15 <= length(msg))
         nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
         pos = pos + 8;
 
-        % check if there are remaining packages
+    % check if there are remaining packages
     else
 
         % find the index of the first UBX message, if any
