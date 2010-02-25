@@ -37,7 +37,7 @@
    For real-time tasks:
    - 'Instrument Control Toolbox' installed on MATLAB
    - GPS receiver providing raw data on a COM port (currently only
-     u-blox binary protocol is supported)
+     u-blox ANTARIS binary protocol is supported)
    - GPS permanent station(s) broadcasting raw data in RTCM 3.x
      format through NTRIP protocol (at least '1002' or '1004'
      messages)

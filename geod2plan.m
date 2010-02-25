@@ -17,7 +17,7 @@ function [EST, NORD, M, nord_sud] = geod2plan(lat, lon)
 %   Conversion from geodetic coordinates to planimetric coordinates (UTM WGS84).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009 Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 %

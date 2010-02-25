@@ -15,7 +15,7 @@ function [Obs_types, ifound_types, flag] = obs_type_list(file)
 %   RINEX observation file header analysis.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 09-23-97

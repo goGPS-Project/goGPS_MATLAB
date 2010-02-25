@@ -1,7 +1,7 @@
 function [reply] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 
 % SYNTAX:
-%   [reply] = ublox_CFG_MSG(serialObj, Class, MsgID, mode)
+%   [reply] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 %
 % INPUT:
 %   serialObj = serial Object identifier
@@ -17,7 +17,7 @@ function [reply] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 %   Poll, enable or disable u-blox messages.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -89,54 +89,4 @@ end
 %     fwrite(serialObj, codeDEC, 'uint8', 'async');
 % end
 
-reply_1 = 0;
-reply_2 = 0;
-
-while (reply_1 ~= reply_2) | (reply_1 == 0)
-    % serial port checking
-    reply_1 = get(serialObj, 'BytesAvailable');
-    pause(0.05);
-    reply_2 = get(serialObj, 'BytesAvailable');
-end
-
-reply = fread(serialObj, 10, 'uint8');                              % read Acknowledge
-
-ACK_HEX = ['B5'; '62'; '05'; '01'; '02'; '00'; ID1; ID2];           % ACK-ACK message (without checksum)
-ACK_DEC = hex2dec(ACK_HEX);                                         % conversion to decimal
-
-% checksum
-CK_A = 0; CK_B = 0;
-for i = 3 : length(ACK_DEC)
-    CK_A = CK_A + ACK_DEC(i);
-    CK_B = CK_B + CK_A;
-end
-
-CK_A = mod(CK_A,256);
-CK_B = mod(CK_B,256);
-
-ACK = [ACK_DEC; CK_A; CK_B];
-
-if (mode == 1) % periodic message enable request
-
-    if (reply == ACK) %#ok<BDSCI>
-        %fprintf('u-blox %s-%s message enabled.\n', ClassLab, MsgIDLab);
-        % positive reply
-        reply = 1;
-    else
-        %fprintf('It was not possible to enable u-blox %s-%s messages.\n', ClassLab, MsgIDLab);
-        % negative reply
-        reply = 0;
-    end
-
-else
-
-    if (reply == ACK) %#ok<BDSCI>
-        %fprintf('u-blox %s-%s message disabled.\n', ClassLab, MsgIDLab);
-        % positive reply
-        reply = 1;
-    else
-        %fprintf('It was not possible to disable u-blox %s-%s messages.\n', ClassLab, MsgIDLab);
-        % negative reply
-        reply = 0;
-    end
-end
+[reply] = ublox_check_ACK(serialObj, ID1, ID2);

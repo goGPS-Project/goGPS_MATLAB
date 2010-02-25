@@ -19,7 +19,7 @@ function [phiD, lambdaD, h] = geoc2geod(phiC, lambdaC, r, a, e)
 %   Conversion from geocentric to geodetic coordinates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

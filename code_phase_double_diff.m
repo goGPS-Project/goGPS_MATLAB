@@ -33,7 +33,7 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
 %   Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

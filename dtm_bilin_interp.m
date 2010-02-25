@@ -22,7 +22,7 @@ function [height] = dtm_bilin_interp(E_approx, N_approx, dtm, ncols, nrows, cell
 %   of a DTM in correspondence of a point of given coordinates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

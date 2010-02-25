@@ -1,16 +1,16 @@
-function ublox2RINEX(msg, filename)
+function streamR2RINEX(fileroot, filename)
 
 % SYNTAX:
-%   ublox2RINEX(msg, filename);
+%   streamR2RINEX(fileroot, filename);
 %
 % INPUT:
-%   msg = input data stream (e.g. '0101110001001100...')
+%   fileroot = input file root (rover data, binary stream)
 %   filename = output file name (rover data, RINEX format)
 %
 % OUTPUT:
 %
 % DESCRIPTION:
-%   Conversion from ublox binary message to RINEX format.
+%   File conversion from binary to RINEX format.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -40,8 +40,36 @@ global lambda1
 
 %----------------------------------------------------------------------------------------------
 
+%ROVER stream reading
+data_rover_all = [];                                                 %overall stream
+hour = 0;                                                            %hour index (integer)
+hour_str = num2str(hour,'%02d');                                     %hour index (string)
+d = dir([fileroot '_rover_' hour_str '.bin']);                       %file to be read
+while ~isempty(d)
+    fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
+    num_bytes = d.bytes;                                             %file size (number of bytes)
+    fid_rover = fopen([fileroot '_rover_' hour_str '.bin']);         %file opening
+    data_rover = fread(fid_rover,num_bytes,'uint8');                 %file reading
+    data_rover = dec2bin(data_rover,8);                              %conversion in binary number (N x 8bits matrix)
+    data_rover = data_rover';                                        %transposed (8bits x N matrix)
+    data_rover = data_rover(:)';                                     %conversion into a string (8N bits vector)
+    fclose(fid_rover);                                               %file closing
+    data_rover_all = [data_rover_all data_rover];                    %stream concatenation
+    hour = hour+1;                                                   %hour increase
+    hour_str = num2str(hour,'%02d');
+    d = dir([fileroot '_rover_' hour_str '.bin']);                   %file to be read
+end
+clear hour hour_str d
+clear data_rover fid_rover
+
+%----------------------------------------------------------------------------------------------
+
+%displaying
+fprintf('Decoding rover data \n');
+
 %message decoding
-[cell_rover] = decode_ublox(msg);
+[cell_rover] = decode_ublox(data_rover_all);
+clear data_rover_all
 
 %initialization (to make writing faster)
 Ncell  = size(cell_rover,2);                          %number of read RTCM packets
@@ -80,6 +108,8 @@ for j = 1 : Ncell
         i = i + 1;
     end
 end
+clear cell_rover
+clear Ncell pos
 
 %residual data erase (after initialization)
 time_R(i:end)  = [];
@@ -94,6 +124,9 @@ lock_R(:,i:end) = [];
 date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
 
 %----------------------------------------------------------------------------------------------
+
+%displaying
+fprintf(['Writing: ' filename '\n\n']);
 
 %create RINEX observation file
 fid = fopen(filename,'wt');	

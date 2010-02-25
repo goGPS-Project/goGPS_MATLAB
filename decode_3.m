@@ -18,7 +18,7 @@ function [data] = decode_3(msg, n_words)
 %   RTCM 2 format, message '3' decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

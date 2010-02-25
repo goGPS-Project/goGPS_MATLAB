@@ -16,7 +16,7 @@ function jd = julday(y,m,d,h)
 %   Julian day computation.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 02-14-01
