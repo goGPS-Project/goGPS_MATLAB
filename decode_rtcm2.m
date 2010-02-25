@@ -111,28 +111,28 @@ data = cell(0);
 
 % if there is at least one RTCM messagge
 if ~isempty(pos)
-    
+
     % counter initialization
     i = 0;
-    
+
     while (pos+59 <= length(msg) & (strcmp(msg(pos-1:pos+7),check) | strcmp(msg(pos-1:pos+7),check_inv)))
-        
+
         % counter increment
         i = i + 1;
-        
+
         % read the first word of the 2-word header
         if (i > 1)
             [parity, decoded_word] = check_parity(msg(pos-2:pos-1), msg(pos:pos+29));
         end
-        
+
         if (parity)
             % message type (6 bit)
             type = bin2dec(decoded_word(9:14));
             % station number (10 bit)
-            station = bin2dec(decoded_word(15:24));
-            
+            station = bin2dec(decoded_word(15:24)); %#ok<NASGU>
+
             pos = pos + 30;
-            
+
             % read the second word of the 2-word header
             [parity, decoded_word] = check_parity(msg(pos-2:pos-1), msg(pos:pos+29));
 
@@ -140,16 +140,16 @@ if ~isempty(pos)
                 % modified Z-count (13 bit)
                 modz = bin2dec(decoded_word(1:13));
                 % seq (3 bit)
-                seq = bin2dec(decoded_word(14:16));
+                seq = bin2dec(decoded_word(14:16)); %#ok<NASGU>
                 % number of words following
                 n_words = bin2dec(decoded_word(17:21));
                 % reference station health
-                health = bin2dec(decoded_word(22:24));
-                
+                health = bin2dec(decoded_word(22:24)); %#ok<NASGU>
+
                 pos = pos + 30;
-                
+
                 if (pos+n_words*30-1 <= length(msg))
-                    
+
                     % message identification
                     switch type
 
@@ -165,7 +165,7 @@ if ~isempty(pos)
                                 sec_of_week = time_GPS - mod(time_GPS,3600) + sec_of_hour;
                                 data{2,i}(2) = sec_of_week;
                             end
-                            
+
                         % RTK uncorrected pseudoranges
                         case 19
                             [data(:,i)] = decode_19(msg(pos-2:pos+n_words*30-1), n_words, modz);
@@ -175,7 +175,7 @@ if ~isempty(pos)
                                 data{2,i}(2) = sec_of_week;
                             end
                     end
-                    
+
                     pos = pos + n_words*30;
                 end
             else

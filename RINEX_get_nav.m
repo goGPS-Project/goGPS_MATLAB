@@ -16,10 +16,10 @@ function [Eph, iono] = RINEX_get_nav(file_nav)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %
 % Partially based on RINEXE.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav)
 
 ioparam = 0;
 Eph = [];
-ion = zeros(8,1);
+iono = zeros(8,1);
 
 %open navigation file
 fid = fopen(file_nav,'rt');
@@ -57,24 +57,17 @@ while ((ioparam==0)&(~feof(fid)))
         %change flag
         ioparam = 1;
         %save the 8 ionosphere parameters
-        [dato,lin] = strtok(lin);
-        ion(1) = str2num(dato);
-        [dato,lin] = strtok(lin);
-        ion(2) = str2num(dato);
-        [dato,lin] = strtok(lin);
-        ion(3) = str2num(dato);
-        [dato,lin] = strtok(lin);
-        ion(4) = str2num(dato);
+        data = textscan(lin,'%f%f%f%f%*[^\n]');
+        iono(1) = data{1};
+        iono(2) = data{2};
+        iono(3) = data{3};
+        iono(4) = data{4};
         lin = fgetl(fid);
-        [dato,lin] = strtok(lin);
-        ion(5) = str2num(dato);
-        [dato,lin] = strtok(lin);
-        ion(6) = str2num(dato);
-        [dato,lin] = strtok(lin);
-        ion(7) = str2num(dato);
-        [dato,lin] = strtok(lin);
-        ion(8) = str2num(dato);
-        iono = ion;
+        data = textscan(lin,'%f%f%f%f%*[^\n]');
+        iono(5) = data{1};
+        iono(6) = data{2};
+        iono(7) = data{3};
+        iono(8) = data{4};
     end
 
 end
@@ -88,12 +81,11 @@ answer = [];
 
 %search for the end of the header
 while (isempty(answer))
-    %lettura della riga e cerco la scritta
     lin = fgetl(fid);
     answer = findstr(lin,'END OF HEADER');
 end
 
-i=0;
+i = 0;
 
 %parse the rest of the file and store ephemerides
 while (~feof(fid))
@@ -109,17 +101,17 @@ while (~feof(fid))
     lin8 = fgetl(fid);
 
     svprn  = str2num(lin1(1:2));
-    year   = str2num(lin1(3:6));
-    month  = str2num(lin1(7:9));
-    day    = str2num(lin1(10:12));
-    hour   = str2num(lin1(13:15));
-    minute = str2num(lin1(16:18));
-    second = str2num(lin1(19:22));
+    year   = str2num(lin1(3:6)); %#ok<NASGU>
+    month  = str2num(lin1(7:9)); %#ok<NASGU>
+    day    = str2num(lin1(10:12)); %#ok<NASGU>
+    hour   = str2num(lin1(13:15)); %#ok<NASGU>
+    minute = str2num(lin1(16:18)); %#ok<NASGU>
+    second = str2num(lin1(19:22)); %#ok<NASGU>
     af0    = str2num(lin1(23:41));
     af1    = str2num(lin1(42:60));
     af2    = str2num(lin1(61:79));
 
-    IODE   = str2num(lin2(4:22));
+    IODE   = str2num(lin2(4:22)); %#ok<NASGU>
     crs    = str2num(lin2(23:41));
     deltan = str2num(lin2(42:60));
     M0     = str2num(lin2(61:79));
@@ -140,18 +132,18 @@ while (~feof(fid))
     Omegadot = str2num(lin5(61:79));
 
     idot   = str2num(lin6(4:22));
-    codes  = str2num(lin6(23:41));
-    weekno = str2num(lin6(42:60));
-    L2flag = str2num(lin6(61:79));
+    codes  = str2num(lin6(23:41)); %#ok<NASGU>
+    weekno = str2num(lin6(42:60)); %#ok<NASGU>
+    L2flag = str2num(lin6(61:79)); %#ok<NASGU>
 
-    svaccur  = str2num(lin7(4:22));
-    svhealth = str2num(lin7(23:41));
-    tgd    = str2num(lin7(42:60));
-    iodc   = lin7(61:79);
+    svaccur  = str2num(lin7(4:22)); %#ok<NASGU>
+    svhealth = str2num(lin7(23:41)); %#ok<NASGU>
+    tgd    = str2num(lin7(42:60)); %#ok<NASGU>
+    iodc   = lin7(61:79); %#ok<NASGU>
 
     tom = str2num(lin8(4:22));
 
-    %debugging    
+    %debugging
     %jd = julday(year+2000, month, day, 0);
     %[week, sec_of_week] = gps_time(jd);
     %time = sec_of_week + hour*3600+minute*60+second;

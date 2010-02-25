@@ -22,10 +22,10 @@ function MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, sn
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,6 @@ function MQ_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, sn
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a f
 global cutoff
 global Xhat_t_t Cee conf_sat pivot
 global o1 o2 o3
@@ -99,7 +98,7 @@ if (size(sat_R,1) >= 4)
    for k = 1 : length(sat_R)
 
       %azimuth, elevation and ROVER-SATELLITE distance computation
-      [azR(sat_R(k)), elR(sat_R(k)), distR(sat_R(k))] = topocent(pos_BAN(1:3), pos_SAT(k,1:3), a, f);
+      [azR(sat_R(k)), elR(sat_R(k)), distR(sat_R(k))] = topocent(pos_BAN(1:3), pos_SAT(k,1:3));
 
       %satellites in common
       if (ismember(sat_R(k),sat_M))

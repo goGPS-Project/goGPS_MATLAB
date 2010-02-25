@@ -14,15 +14,15 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   Xhat_t_t = state variables estimate
 %   Yhat_t_t = receiver positions estimate (only constrained path)
 %   Cee      = estimation error covariance matrix
-%   azM      = satellite - MASTER azimuth 
-%   azR      = satellite - ROVER azimuth 
-%   elM      = satellite - MASTER elevation 
-%   elR      = satellite - ROVER elevation 
-%   distM    = satellite - MASTER distance 
-%   distR    = satellite - ROVER distance 
+%   azM      = satellite - MASTER azimuth
+%   azR      = satellite - ROVER azimuth
+%   elM      = satellite - MASTER elevation
+%   elR      = satellite - ROVER elevation
+%   distM    = satellite - MASTER distance
+%   distR    = satellite - ROVER distance
 %   conf_sat = satellites-in-view configuration
 %   conf_cs  = cycle-slips configuration
-%   pivot    = pivot satellite 
+%   pivot    = pivot satellite
 %
 % DESCRIPTION:
 %   Kalman filter output data reading.
@@ -30,10 +30,10 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -57,7 +57,7 @@ global o1 o3 nN
 
 %initialization
 Xhat_t_t = [];                     %state variables estimate
-Yhat_t_t = [];                     %receiver positions estimate 
+Yhat_t_t = [];                     %receiver positions estimate
 Cee = [];                          %estimation error covariance matrix
 
 %lettura file

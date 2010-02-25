@@ -23,13 +23,13 @@ function [data] = decode_1019(msg)
 %          2.11)DF086 = GPS Crs
 %          2.5) DF087 = GPS delta-N
 %          2.3) DF088 = GPS M0
-%          2.8) DF089 = GPS Cuc   
+%          2.8) DF089 = GPS Cuc
 %          2.6) DF090 = GPS eccentricity
 %          2.9) DF091 = GPS Cus
 %          2.4) DF092 = GPS root A
 %          2.18)DF093 = GPS toe
 %          2.14)DF094 = GPS Cic
-%          2.16)DF095 = GPS omega0 
+%          2.16)DF095 = GPS omega0
 %          2.15)DF096 = GPS Cis
 %          2.12)DF097 = GPS i0
 %          2.10)DF098 = GPS Crc
@@ -46,10 +46,10 @@ function [data] = decode_1019(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -81,69 +81,69 @@ DF002 = bin2dec(msg(pos:pos+11)); pos = pos + 12;
 DF009 = bin2dec(msg(pos:pos+5)); pos = pos + 6;
 
 %GPS week number
-DF076 = bin2dec(msg(pos:pos+9)); pos = pos + 10;
+DF076 = bin2dec(msg(pos:pos+9)); pos = pos + 10; %#ok<NASGU>
 
 %GPS SV accuracy
-DF077 = bin2dec(msg(pos:pos+3)); pos = pos + 4;
+DF077 = bin2dec(msg(pos:pos+3)); pos = pos + 4; %#ok<NASGU>
 
 %GPS code on L2
-DF078 = msg(pos:pos+1); pos = pos + 2;
+DF078 = msg(pos:pos+1); pos = pos + 2; %#ok<NASGU>
 
-%GPS IDOT 
+%GPS IDOT
 DF079 = twos_complement(msg(pos:pos+13)) * pi * (2^-43); pos = pos + 14;
 
 %GPS IODE
-DF071 = bin2dec(msg(pos:pos+7)); pos = pos + 8;
+DF071 = bin2dec(msg(pos:pos+7)); pos = pos + 8; %#ok<NASGU>
 
-%GPS toc 
+%GPS toc
 DF081 = bin2dec(msg(pos:pos+15))*(2^4); pos = pos + 16;
 
-%GPS af2 
+%GPS af2
 DF082 = twos_complement(msg(pos:pos+7)) * (2^-55); pos = pos + 8;
 
 %GPS af1
 DF083 = twos_complement(msg(pos:pos+15)) * (2^-43); pos = pos + 16;
 
-%af0 
+%af0
 DF084 = twos_complement(msg(pos:pos+21)) * (2^-31); pos = pos + 22;
 
 %GPS IODC
-DF085 = bin2dec(msg(pos:pos+9)); pos = pos + 10; 
+DF085 = bin2dec(msg(pos:pos+9)); pos = pos + 10; %#ok<NASGU>
 
 %GPS Crs
 DF086 = twos_complement(msg(pos:pos+15)) * (2^-5); pos = pos + 16;
 
-%GPS delta-n 
+%GPS delta-n
 DF087 = twos_complement(msg(pos:pos+15)) * pi * (2^-43); pos = pos + 16;
 
-%GPS M0 
+%GPS M0
 DF088 = twos_complement(msg(pos:pos+31)) * pi * (2^-31); pos = pos + 32;
 
 %GPS Cuc
 DF089 = twos_complement(msg(pos:pos+15)) * (2^-29); pos = pos + 16;
 
-%GPS ecc 
+%GPS ecc
 DF090 = bin2dec(msg(pos:pos+31))*(2^-33); pos = pos + 32;
 
-%GPS Cus 
+%GPS Cus
 DF091 = twos_complement(msg(pos:pos+15)) * (2^-29); pos = pos + 16;
 
-%GPS rootA 
+%GPS rootA
 DF092 = bin2dec(msg(pos:pos+31))*(2^-19); pos = pos + 32;
- 
+
 %GPS toe
 DF093 = bin2dec(msg(pos:pos+15))*(2^4); pos = pos + 16;
 
-%GPS Cic 
+%GPS Cic
 DF094 = twos_complement(msg(pos:pos+15)) * (2^-29); pos = pos + 16;
 
-%GPS omega0 
+%GPS omega0
 DF095 = twos_complement(msg(pos:pos+31)) * pi * (2^-31); pos = pos + 32;
 
-%GPS Cis 
+%GPS Cis
 DF096 = twos_complement(msg(pos:pos+15)) * (2^-29); pos = pos + 16;
 
-%GPS i0 
+%GPS i0
 DF097 = twos_complement(msg(pos:pos+31)) * pi*(2^-31); pos = pos + 32;
 
 %GPS Crc
@@ -156,16 +156,16 @@ DF099 = twos_complement(msg(pos:pos+31)) * pi * (2^-31); pos = pos + 32;
 DF100= twos_complement(msg(pos:pos+23)) * pi * (2^-43); pos = pos + 24;
 
 %GPS tGD
-DF101 = twos_complement(msg(pos:pos+7)) * (2^-31); pos = pos + 8;
+DF101 = twos_complement(msg(pos:pos+7)) * (2^-31); pos = pos + 8; %#ok<NASGU>
 
 %GPS SV health
-DF102 = bin2dec(msg(pos:pos+5)); pos = pos + 6;
+DF102 = bin2dec(msg(pos:pos+5)); pos = pos + 6; %#ok<NASGU>
 
 %GPS L2 P data flag
-DF103 = bin2dec(msg(pos)); pos = pos + 1;
+DF103 = bin2dec(msg(pos)); pos = pos + 1; %#ok<NASGU>
 
 %GPS fit interval
-DF137 = bin2dec (msg(pos));
+DF137 = bin2dec (msg(pos)); %#ok<NASGU>
 
 %------------------------------------------------
 %output data save

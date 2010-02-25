@@ -1,9 +1,9 @@
 function [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
-         (pos_R_app, pr_R, ph_R, snr_R, pos_M, pr_M, ph_M, snr_M, time, sat, pivot, Eph, iono, phase)
+         (pos_R_app, pr_R, ph_R, snr_R, pos_M, pr_M, ph_M, snr_M, time, sat, pivot, Eph, phase, iono)
 
 % SYNTAX:
 %   [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
-%   (pos_R_app, pr_R, ph_R, snr_R, pos_M, pr_M, ph_M, snr_M, time, sat, pivot, Eph, iono, phase)
+%   (pos_R_app, pr_R, ph_R, snr_R, pos_M, pr_M, ph_M, snr_M, time, sat, pivot, Eph, phase, iono)
 %
 % INPUT:
 %   pos_R_app = ROVER position (X,Y,Z)
@@ -18,8 +18,8 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
 %   sat = visible satellite configuration
 %   pivot = pivot satellite
 %   Eph = ephemerides matrix
-%   iono = ionospheric parameters
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   iono = ionospheric parameters
 %
 % OUTPUT:
 %   pos_R = estimated position (X,Y,Z)
@@ -35,10 +35,10 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -56,7 +56,6 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-global a f
 global lambda1 lambda2
 
 if (phase == 1)
@@ -113,11 +112,11 @@ elR = zeros(nsat,1);
 elM = zeros(nsat,1);
 
 %computation of PIVOT azimuth and elevation
-[azR, elR(i)] = topocent(pos_R_app, posP', a, f);
-[azM, elM(i)] = topocent(pos_M, posP', a, f);
+[azR, elR(i)] = topocent(pos_R_app, posP');
+[azM, elM(i)] = topocent(pos_M, posP');
 
 %atmospheric error computation
-if (nargin >= 13)
+if (nargin == 14)
 
    %ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
    err_tropo_RP = err_tropo(elR(i), hR);
@@ -133,21 +132,21 @@ for j = 1 : nsat
 
         %satellite position (with clock error and Earth rotation corrections)
         posS(j,:) = sat_corr(Eph, sat(j), time, pr_R(j), pos_R_app);
-        
+
         %computation of the satellite azimuth and elevation
-        [azR, elR(j)] = topocent(pos_R_app, posS(j,:), a, f);
-        [azM, elM(j)] = topocent(pos_M, posS(j,:), a, f);
-        
+        [azR, elR(j)] = topocent(pos_R_app, posS(j,:));
+        [azM, elM(j)] = topocent(pos_M, posS(j,:));
+
         %computation of ROVER-SATELLITE and MASTER-SATELLITE approximated pseudoranges
         prRS_app(j) = sqrt(sum((pos_R_app - posS(j,:)').^2));
         prMS_app(j) = sqrt(sum((pos_M - posS(j,:)').^2));
-        
-        if (nargin >= 13)
+
+        if (nargin == 14)
 
             %computation of tropospheric errors
             err_tropo_RS(j) = err_tropo(elR(j), hR);
             err_tropo_MS(j) = err_tropo(elM(j), hM);
-            
+
             %computation of ionospheric errors
             err_iono_RS(j) = err_iono(iono, phiR, lamR, azR, elR(j), time);
             err_iono_MS(j) = err_iono(iono, phiM, lamM, azM, elM(j), time);
@@ -175,23 +174,23 @@ for j = 1 : nsat
                 (((pos_R_app(2) - posS(j,2)) / prRS_app(j)) - ((pos_R_app(2) - posP(2)) / prRP_app)) ...
                 (((pos_R_app(3) - posS(j,3)) / prRS_app(j)) - ((pos_R_app(3) - posP(3)) / prRP_app)) ...
                 zeros(1, nsat-1)];
-        
+
         %computation of crossed approximate pseudoranges
         comb_pr_app = [comb_pr_app; (prRS_app(j) - prMS_app(j)) - (prRP_app - prMP_app)];
-        
+
         %computation of crossed observed code pseudoranges
         comb_pr_obs = [comb_pr_obs; (prRS_obs - prMS_obs) - (prRP_obs - prMP_obs)];
-        
+
         %computation of crossed atmospheric errors
-        if (nargin >= 13)
-            
+        if (nargin == 14)
+
             %computation of crossed tropospheric errors
             tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
-            
+
             %computation of crossed ionospheric errors
             io = [io; (err_iono_RS(j) - err_iono_MS(j)) - (err_iono_RP - err_iono_MP)];
         end
-        
+
     end
 end
 
@@ -202,33 +201,33 @@ k = 1;
 
 for j = 1 : nsat
     if (sat(j) ~= pivot)
-        
+
         %observed phase measurement
         phRS_obs = ph_R(j);
         phMS_obs = ph_M(j);
-        
+
         %ambiguity vector in design matrix (lambda position)
         N_row = zeros(1, nsat-1);
         N_row(k) = -1;
-        
+
         %design matrix computation
         A = [A; (((pos_R_app(1) - posS(j,1)) / prRS_app(j)) - ((pos_R_app(1) - posP(1)) / prRP_app)) ...
                 (((pos_R_app(2) - posS(j,2)) / prRS_app(j)) - ((pos_R_app(2) - posP(2)) / prRP_app)) ...
                 (((pos_R_app(3) - posS(j,3)) / prRS_app(j)) - ((pos_R_app(3) - posP(3)) / prRP_app)) ...
                 N_row];
-        
+
         %computation of crossed approximated pseudoranges
         comb_pr_app = [comb_pr_app; (prRS_app(j) - prMS_app(j)) - (prRP_app - prMP_app)];
-        
+
         %computation of crossed observed phase pseudoranges
         comb_pr_obs = [comb_pr_obs; ((phRS_obs - phMS_obs) - (phRP_obs - phMP_obs)) * lambda];
-        
+
         %computation of crossed atmospheric errors
-        if (nargin >= 13)
-            
+        if (nargin == 14)
+
             %computation of crossed tropospheric errors
             tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
-            
+
             %computation of crossed ionospheric errors
             io = [io; (err_iono_RS(j) - err_iono_MS(j)) - (err_iono_RP - err_iono_MP)];
         end
@@ -240,7 +239,7 @@ end
 b = comb_pr_app;
 
 %correction of the b known term
-if (nargin >= 13)
+if (nargin == 14)
    b = b + tr - io;
 end
 
@@ -264,7 +263,16 @@ xR = [pos_R_app; zeros(nsat-1,1)];
 
 %least squares solution
 x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
-xR = xR + x;
+
+try
+    xR = xR + x;
+catch
+    %DEBUG
+    fprintf('Size of parameter vector: %d\n', size(xR,1));
+    fprintf('Size of observation vector : %d\n', size(y0,1));
+    fprintf('Number of satellites (with pivot): %d\n', nsat);
+    xR = xR + x;
+end
 
 %estimation of the variance of the observation error
 y_stim = A*x + b;
@@ -285,13 +293,13 @@ N_stim(i+1:end) = N_stim_nopivot(i:end);
 %covariance matrix of the estimation error
 if (n > m)
     Cxx = sigma0q_stim * ((A'*Q^-1*A)^-1);
-    
+
     %rover position covariance matrix
     cov_pos_R = Cxx(1:3,1:3);
-    
+
     %combined ambiguity covariance matrix
     cov_N_stim_nopivot = Cxx(4:end,4:end) / lambda1^2;
-    
+
     %add one line and one column (zeros) at PIVOT position
     cov_N_stim = zeros(nsat,nsat);
     cov_N_stim(1:i-1,1:i-1) = cov_N_stim_nopivot(1:i-1,1:i-1);

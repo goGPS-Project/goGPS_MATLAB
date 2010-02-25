@@ -19,7 +19,7 @@ function [pos, B] = input_bancroft(pr, sv, time, Eph)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 % Kai Borre and C.C. Goad 11-24-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
@@ -30,9 +30,6 @@ global v_light
 
 %number of pseudorange observations
 m = size(pr,1);
-
-%first guess Earth center
-pos = zeros(4,1);
 
 %Bancroft matrix initialization
 B = [];
@@ -51,7 +48,7 @@ for jsat = 1:m
 end
 
 %approximate position by Bancroft algorithm
-pos = bancroft(B);  
+pos = bancroft(B);
 
 %clock offset computation
 clock_offset = pos(4) / v_light;

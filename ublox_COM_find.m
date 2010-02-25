@@ -12,10 +12,10 @@ function [COMPort] = ublox_COM_find()
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -50,7 +50,7 @@ for i = 1 : length(serialInfo.AvailableSerialPorts)
     set(s,'InputBufferSize',16384);
     set(s,'FlowControl','hardware');
     try
-        fopen(s)
+        fopen(s);
     catch
         break
     end
@@ -61,7 +61,7 @@ for i = 1 : length(serialInfo.AvailableSerialPorts)
     bytes_2 = 0;
 
     while (bytes_1 ~= bytes_2) | (bytes_1 == 0)
-        
+
         bytes_1 = get(s, 'BytesAvailable');
         pause(0.5);
         bytes_2 = get(s, 'BytesAvailable');
@@ -82,18 +82,18 @@ for i = 1 : length(serialInfo.AvailableSerialPorts)
 
         if (LEN ~= 0)
             COMPort = serialInfo.AvailableSerialPorts(i);
-            
+
             % successful detection
             fprintf('u-blox receiver detected on port %s.\n', COMPort{1});
 
-            fclose(s)
+            fclose(s);
             delete(s)
             clear s
             break
         end
     end
-    
-    fclose(s)
+
+    fclose(s);
     delete(s)
     clear s
 end

@@ -15,10 +15,10 @@ function [Eph] = RINEX_get_nav_GLO(file_nav_GLO)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %
 % Partially based on RINEXE.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -59,16 +59,16 @@ while (~feof(fid))
     i = i+1;
     lin1 = fgetl(fid);
     lin2 = fgetl(fid);
-    lin3 = fgetl(fid);
-    lin4 = fgetl(fid);
+    lin3 = fgetl(fid); %#ok<NASGU>
+    lin4 = fgetl(fid); %#ok<NASGU>
 
     svprn  = str2num(lin1(1:2));
-    year   = str2num(lin1(3:6));
-    month  = str2num(lin1(7:9));
-    day    = str2num(lin1(10:12));
-    hour   = str2num(lin1(13:15));
-    minute = str2num(lin1(16:18));
-    second = str2num(lin1(19:22));
+    year   = str2num(lin1(3:6)); %#ok<NASGU>
+    month  = str2num(lin1(7:9)); %#ok<NASGU>
+    day    = str2num(lin1(10:12)); %#ok<NASGU>
+    hour   = str2num(lin1(13:15)); %#ok<NASGU>
+    minute = str2num(lin1(16:18)); %#ok<NASGU>
+    second = str2num(lin1(19:22)); %#ok<NASGU>
     TauN   = -str2num(lin1(23:41));
     GammaN = str2num(lin1(42:60));
     tk     = str2num(lin1(61:79));
@@ -82,7 +82,7 @@ while (~feof(fid))
     vY     = str2num(lin2(23:41));
     aY     = str2num(lin2(42:60));
     freq_num = str2num(lin2(61:79));
-    
+
     %frequencies on L1 and L2
     freq_L1 = freq_num * 0.5625 + 1602.0;
     freq_L2 = freq_num * 0.4375 + 1246.0;

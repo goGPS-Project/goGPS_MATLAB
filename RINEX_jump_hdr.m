@@ -12,10 +12,10 @@ function RINEX_jump_hdr(fid)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %
 % Partially based on ANHEADER.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -34,13 +34,13 @@ function RINEX_jump_hdr(fid)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-eof=0;
+flag = 0;
 
-while (eof==0)
+while (flag == 0)
     lin = fgets(fid);
     answer = findstr(lin,'END OF HEADER');
 
     if ~isempty(answer)
-        eof = 1;
-    end;
+        flag = 1;
+    end
 end

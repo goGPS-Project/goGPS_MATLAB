@@ -24,10 +24,10 @@ function [data] = decode_1014(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ DF062 = twos_complement(msg(pos:pos+19)) * 25 * 1e-6;  pos = pos + 20;
 DF063 = twos_complement(msg(pos:pos+20)) * 25 * 1e-6;  pos = pos + 21;
 
 %Aux-Master delta height (mm)
-DF064 = twos_complement(msg(pos:pos+22))*1;  pos = pos + 23;
+DF064 = twos_complement(msg(pos:pos+22))*1;
 
 %output data save
 data{1} = DF002;

@@ -1,8 +1,9 @@
-function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, flag_cpu, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
+function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, flag_skyplot, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov,
-%   flag_NTRIP, flag_ms_rtcm, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
+%   flag_NTRIP, flag_ms_rtcm, flag_skyplot, ref_path, mat_path, pos_M,
+%   iono, pr2_M, pr2_R, ph2_M, ph2_R);
 %
 % INPUT:
 %   filerootOUT = output file prefix
@@ -12,7 +13,7 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag
 %   flag_cov = plot error ellipse flag
 %   flag_NTRIP = use/don't use NTRIP flag
 %   flag_ms_rtcm = use/don't use RTCM master position
-%   flag_cpu = use/don't use CPU saving mode (no skyplot, no SNR graph)
+%   flag_skyplot = use/don't use CPU saving mode (no skyplot, no SNR graph)
 %   ref_path = reference path
 %   mat_path = reference path adjacency matrix
 %   pos_M = master station position (X,Y,Z)
@@ -23,16 +24,16 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag
 %   ph2_R = phase observation ROVER-SATELLITE (carrier L2)
 %
 % DESCRIPTION:
-%   goGPS real-time algorithm: stream reading and synchronization, positioning,
-%   plotting, output data saving.
+%   goGPS real-time algorithm: stream reading and synchronization,
+%   positioning, plotting, output data saving.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -51,7 +52,7 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag
 
 global lambda1
 global o1 o2 nN
-global COMportR master_ip master_port server_delay connection_delay
+global COMportR master_ip master_port server_delay
 global nmea_init nmea_update_rate
 global azR elR distR azM elM distM
 global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
@@ -151,7 +152,7 @@ fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 fid_dt = fopen([filerootOUT '_dt_00.bin'],'w+');
 
 %nmea sentences
-fid_nmea = fopen([filerootOUT '_NMEA.txt'],'wt');
+fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
 
 %"file hour" variable
 hour = 0;
@@ -175,6 +176,7 @@ end
 rover = serial (COMportR,'BaudRate',57600);
 set(rover,'InputBufferSize',16384);
 set(rover,'FlowControl','hardware');
+set(rover,'RequestToSend','on');
 fopen(rover);
 
 %------------------------------------------------------
@@ -193,50 +195,72 @@ while (~reply_save)
         disp('It was not possible to save the receiver configuration.');
         break
     end
+    %close and delete old serial object
     try
         fclose(rover);
+        delete(rover);
     catch
         stopasync(rover);
         fclose(rover);
+        delete(rover);
     end
+    % create new serial object
+    rover = serial (COMportR,'BaudRate',57600);
+    set(rover,'InputBufferSize',16384);
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
     fopen(rover);
     reply_save = ublox_CFG_CFG(rover, 'save');
+end
+
+% enable raw measurements output
+fprintf('Enabling u-blox receiver RAW measurements...\n');
+
+reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
+tries = 0;
+
+while (~reply_RAW)
+    tries = tries + 1;
+    if (tries > 3)
+        disp('It was not possible to configure the receiver to provide RAW data.');
+        break
+    end
+    %close and delete old serial object
+    try
+        fclose(rover);
+        delete(rover);
+    catch
+        stopasync(rover);
+        fclose(rover);
+        delete(rover);
+    end
+    % create new serial object
+    rover = serial (COMportR,'BaudRate',57600);
+    set(rover,'InputBufferSize',16384);
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
+    fopen(rover);
+    reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
 end
 
 % disable NMEA messages
 fprintf('Disabling u-blox receiver NMEA messages...\n');
 
-% ublox_CFG_MSG(rover, 'NMEA', 'GGA', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GLL', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GSA', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GSV', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'RMC', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'VTG', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GRS', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GST', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'ZDA', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GBS', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'DTM', 0);
-ublox_CFG_MSG(rover, 'PUBX', '00', 0);
-ublox_CFG_MSG(rover, 'PUBX', '01', 0);
-ublox_CFG_MSG(rover, 'PUBX', '03', 0);
-ublox_CFG_MSG(rover, 'PUBX', '04', 0);
-
-% enable raw measurements output
-fprintf('Enabling u-blox receiver RAW measurements...\n');
-
-reply_RAW = 0;
-tries = 0;
-
-while (~reply_RAW)
-    tries = tries + 1;
-    reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
-
-    if (tries > 10)
-        fclose(rover);
-        error('It was not possible to configure the receiver to provide RAW data.');
-    end
-end
+% ublox_CFG_MSG(rover, 'NMEA', 'GGA', 0); fprintf('GGA ');
+ublox_CFG_MSG(rover, 'NMEA', 'GLL', 0); fprintf('GLL ');
+ublox_CFG_MSG(rover, 'NMEA', 'GSA', 0); fprintf('GSA ');
+ublox_CFG_MSG(rover, 'NMEA', 'GSV', 0); fprintf('GSV ');
+ublox_CFG_MSG(rover, 'NMEA', 'RMC', 0); fprintf('RMC ');
+ublox_CFG_MSG(rover, 'NMEA', 'VTG', 0); fprintf('VTG ');
+ublox_CFG_MSG(rover, 'NMEA', 'GRS', 0); fprintf('GRS ');
+ublox_CFG_MSG(rover, 'NMEA', 'GST', 0); fprintf('GST ');
+ublox_CFG_MSG(rover, 'NMEA', 'ZDA', 0); fprintf('ZDA ');
+ublox_CFG_MSG(rover, 'NMEA', 'GBS', 0); fprintf('GBS ');
+ublox_CFG_MSG(rover, 'NMEA', 'DTM', 0); fprintf('DTM ');
+ublox_CFG_MSG(rover, 'PUBX', '00', 0); fprintf('PUBX00 ');
+ublox_CFG_MSG(rover, 'PUBX', '01', 0); fprintf('PUBX01 ');
+ublox_CFG_MSG(rover, 'PUBX', '03', 0); fprintf('PUBX03 ');
+ublox_CFG_MSG(rover, 'PUBX', '04', 0); fprintf('PUBX04\n');
 
 %------------------------------------------------------
 % absolute time start
@@ -301,38 +325,38 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
 
     %poll available ephemerides
     ublox_poll_message(rover, 'RXM', 'EPH', 0);
-    
+
     %initialization
     rover_1 = 0;
     rover_2 = 0;
-    
+
     %starting epoch determination
     while (rover_1 ~= rover_2) | (rover_1 == 0)
-        
+
         %starting time
         current_time = toc;
-        
+
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
-        pause(0.05);
+        pause(0.1);
         rover_2 = get(rover,'BytesAvailable');
-        
+
     end
-    
+
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
     fwrite(fid_rover,data_rover,'uint8');          %transmitted stream save
     data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
     data_rover = data_rover';                      %transpose (8bit x N matrix)
     data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
-    
+
     %message decoding
     [cell_rover] = decode_ublox(data_rover);
-    
+
     for i = 1 : size(cell_rover,2)
-        
+
         %RXM-RAW message data save
         if (strcmp(cell_rover{1,i},'RXM-RAW'))
-            
+
             %just information needed for basic positioning is saved
             time_GPS  = round(cell_rover{2,i}(1));
             pr_R(:,1) = cell_rover{3,i}(:,2);
@@ -346,22 +370,22 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
             Eph(:, sat) = cell_rover{2,i}(:);
         end
     end
-    
-    
+
+
     %satellites with ephemerides available
     satEph = find(sum(abs(Eph))~=0);
-    
+
     %delete data if ephemerides are not available
     delsat = setdiff(1:32,satEph);
     pr_R(delsat)  = 0;
-            
+
     %satellites with observations available
     satObs = find(pr_R ~= 0);
-    
+
 end
 
 %positioning by Bancroft algorithm
-[pos_R, null] = input_bancroft(pr_R(satObs,1), satObs, time_GPS, Eph);
+[pos_R, null] = input_bancroft(pr_R(satObs,1), satObs, time_GPS, Eph); %#ok<NASGU>
 
 fprintf('ROVER approximate position computed using %d satellites\n', sum(pr_R ~= 0));
 
@@ -379,39 +403,45 @@ fprintf('ROVER SYNCHRONIZATION...\n');
 %initialization
 rover_1 = 0;
 rover_2 = 0;
+sync_rover = 0;
 
-%starting epoch determination
-while (rover_1 ~= rover_2) | (rover_1 == 0)
-
-    %starting time
-    current_time = toc;
-
-    %serial port check
-    rover_1 = get(rover,'BytesAvailable');
-    pause(0.05);
-    rover_2 = get(rover,'BytesAvailable');
-
-    %visualization
-    fprintf('u-blox: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time, rover_1, rover_2);
-
-end
-
-data_rover = fread(rover,rover_1,'uint8');     %serial port reading
-data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
-data_rover = data_rover';                      %transpose (8bit x N matrix)
-data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
-
-%message decoding
-[cell_rover] = decode_ublox(data_rover);
-
-for i = 1 : size(cell_rover,2)
-
-    %RXM-RAW message data save
-    if (strcmp(cell_rover{1,i},'RXM-RAW'))
-
-        %just information about the epoch is saved
-        time_GPS = round(cell_rover{2,i}(1));
-        week_GPS = cell_rover{2,i}(2);
+while (~sync_rover)
+    
+    %starting epoch determination
+    while (rover_1 ~= rover_2) | (rover_1 == 0)
+        
+        %starting time
+        current_time = toc;
+        
+        %serial port check
+        rover_1 = get(rover,'BytesAvailable');
+        pause(0.05);
+        rover_2 = get(rover,'BytesAvailable');
+        
+        %visualization
+        fprintf('u-blox: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time, rover_1, rover_2);
+        
+    end
+    
+    data_rover = fread(rover,rover_1,'uint8');     %serial port reading
+    data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
+    data_rover = data_rover';                      %transpose (8bit x N matrix)
+    data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
+    
+    %message decoding
+    [cell_rover] = decode_ublox(data_rover);
+    
+    for i = 1 : size(cell_rover,2)
+        
+        %RXM-RAW message data save
+        if (strcmp(cell_rover{1,i},'RXM-RAW'))
+            
+            %just information about the epoch is saved
+            time_GPS = round(cell_rover{2,i}(1));
+            week_GPS = cell_rover{2,i}(2);
+            
+            sync_rover = 1;
+        end
     end
 end
 
@@ -429,7 +459,6 @@ master = tcpip(master_ip,master_port);
 set(master,'InputBufferSize', 5096);
 fopen(master);
 fwrite(master,ntripstring);
-%pause(connection_delay);
 
 %wait until the buffer is written before continuing
 while get(master,'BytesAvailable') == 0, end
@@ -470,7 +499,7 @@ end
 % while (current_time-start_time < 1)
 %     current_time = toc;
 % end
-% 
+%
 % %GPS epoch increment
 % time_GPS = time_GPS + 1;
 
@@ -689,7 +718,7 @@ while flag
         nEPH = 0;
 
         for i = 1 : size(cell_rover,2)
-            
+
             %RXM-RAW message data save
             if (strcmp(cell_rover{1,i},'RXM-RAW'))
 
@@ -708,15 +737,15 @@ while flag
                     %manage "nearly null" data
                     pos = abs(ph_R(:,index)) < 1e-100;
                     ph_R(pos,index) = 0;
-                    
+
                     %phase adjustement
                     pos = abs(ph_R(:,index)) > 0 & abs(ph_R(:,index)) < 1e7;
                     ambig = 2^23;
                     n = floor( (pr_R(pos,index)/lambda1-ph_R(pos,index)) / ambig + 0.5 );
                     ph_R(pos,index) = ph_R(pos,index) + n*ambig;
-                    
+
                     type = [type 'RXM-RAW '];
-                    
+
                     nRAW = nRAW + 1;
 
                 end
@@ -730,12 +759,12 @@ while flag
                 if (nEPH == 0)
                     type = [type 'RXM-EPH '];
                 end
-                
+
                 nEPH = nEPH + 1;
 
             end
         end
-        
+
         %NMEA data save
         if (~isempty(nmea_string))
             fprintf(fid_nmea, '%s', nmea_string);
@@ -778,41 +807,41 @@ while flag
         k = k + 1;
     end
     fprintf('\n');
-    
+
     %--------------------------------------------------------------
     %ephemerides request
     %--------------------------------------------------------------
-    
+
     if (~isempty(sat) & index > 0)
         %satellites with observations available for ephemerides polling
         conf_sat_eph = zeros(32,1);
         conf_sat_eph(sat_pr) = 1;
-        
+
         %ephemerides update cycle
         conf_eph = (sum(abs(Eph),1) == 0);
-        
-        [null, sat_index] = sort(snr_R(:, index),1,'descend');
+
+        [null, sat_index] = sort(snr_R(:, index),1,'descend'); %#ok<ASGLU>
         clear snr_sorted
-        
+
         conf_sat_eph = conf_sat_eph(sat_index);
         conf_eph = conf_eph(sat_index);
-        
+
         check = 0;
         i = 1;
-        
+
         while ((check == 0) & (i<=32))
-            
+
             s = sat_index(i);
-            
+
             %if satellite i is available
             if (abs(conf_sat_eph(i)) == 1)
-                
+
                 %time from the ephemerides reference epoch
                 if (conf_eph(i) == 0)
                     toe = Eph(18,s);
                     tk = check_t(time_GPS-toe);
                 end
-                
+
                 %if ephemeris i is not present OR ephemeris i is too old
                 if (conf_eph(i) == 1) | (tk > 3600)
                     ublox_poll_message(rover, 'RXM', 'EPH', 1, dec2hex(s,2));
@@ -823,7 +852,7 @@ while flag
             i = i + 1;
         end
     end
-    
+
     %-------------------------------------
     % master data
     %-------------------------------------
@@ -867,11 +896,11 @@ while flag
             data_master = data_master (:);                    %transpose (8bit x N matrix)
             data_master = data_master';                       %conversion to string (8N bit vector)
             %dep_master = strcat(dep_master,data_master);
-            
+
             pos = 1;
             sixofeight = [];
             is_rtcm2 = 1;
-            
+
             while (pos + 7 <= length(data_master))
                 if (~strcmp(data_master(pos:pos+1),'01'))
                     is_rtcm2 = 0;
@@ -903,7 +932,7 @@ while flag
 
     %execution time computation (end of master acquisition)
     dt_acqM = etime(clock,t0);
-    
+
     %visualization
     fprintf('master: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, master_1, master_2);
 
@@ -949,77 +978,77 @@ while flag
             % master station coordinates set manually
             pos_M  = [pos_M(:,1) zeros(3, B-1)];
         end
-        
+
     end
 
     %-------------------------------------
 
     %read message type
     type = '';
-    
+
     index_ph = [];
 
     for i = 1 : size(cell_master,2)
-        
+
         if (~isempty(cell_master{1,i}))
             switch cell_master{1,i}
-                
+
                 %message 18 (RTCM2)
                 case 18
-                    
+
                     %buffer index computation
                     index = time_GPS - round(cell_master{2,i}(2)) + 1;
-                    
+
                     index_ph = [index_ph index];
-                    
+
                     if (index <= B)
-                        
+
                         %%buffer writing
                         %tick_M(index) = 1;
                         %time_M(index) = cell_master{2,i}(2);
                         %
                         %if L1
                         if (cell_master{2,i}(1) == 0)
-                            
+
                             ph_M(:,index) = cell_master{3,i}(:,7);
-                            
+
                             %manage "nearly null" data
                             pos = abs(ph_M(:,index)) < 1e-100;
                             ph_M(pos,index) = 0;
                         end
-                        
+
                         type = [type '18 '];
                     end
-                    
+
                 %message 19 (RTCM2)
                 case 19
-                    
+
                     %buffer index computation
                     index = time_GPS - round(cell_master{2,i}(2)) + 1;
-                    
+
                     if (index <= B)
-                        
+
                         %buffer writing
                         tick_M(index) = 1;
                         time_M(index) = round(cell_master{2,i}(2));
-                        
+
                         %if L1
                         if (cell_master{2,i}(1) == 0)
                             pr_M(:,index) = cell_master{3,i}(:,7);
                         end
-                        
+
                         type = [type '19 '];
                     end
-                    
+
                 %message 3 (RTCM2)
                 case 3
-                    
+
                     coordX_M = cell_master{2,i}(1);
                     coordY_M = cell_master{2,i}(2);
                     coordZ_M = cell_master{2,i}(3);
-                    
+
                     if (flag_ms_rtcm & master_update)
-                        
+
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
                             master_update = 0;
@@ -1028,41 +1057,41 @@ while flag
                             master_waiting = 1;
                         end
                     end
-                    
+
                     type = [type '3 '];
-                    
+
                 %message 1002/1004 (RTCM3)
                 case {1002, 1004}
-                    
+
                     %buffer index computation
                     index = time_GPS - round(cell_master{2,i}(2)) + 1;
-                    
+
                     if (index <= B)
-                        
+
                         %buffer writing
                         tick_M(index)  = 1;
                         time_M(index)  = cell_master{2,i}(2);
                         pr_M(:,index)  = cell_master{3,i}(:,2);
                         ph_M(:,index)  = cell_master{3,i}(:,3);
                         snr_M(:,index) = cell_master{3,i}(:,5);
-                        
+
                         %manage "nearly null" data
                         pos = abs(ph_M(:,index)) < 1e-100;
                         ph_M(pos,index) = 0;
-                        
+
                         type = [type num2str(cell_master{1,i}) ' '];
-                        
+
                     end
 
                 %message 1005 (RTCM3)
                 case 1005
-                    
+
                     coordX_M = cell_master{2,i}(8);
                     coordY_M = cell_master{2,i}(9);
                     coordZ_M = cell_master{2,i}(10);
-                    
+
                     if (flag_ms_rtcm & master_update)
-                        
+
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
                             master_update = 0;
@@ -1071,19 +1100,19 @@ while flag
                             master_waiting = 1;
                         end
                     end
-                    
+
                     type = [type '1005 '];
-                    
+
                 %message 1006 (RTCM3)
                 case 1006
-                    
+
                     coordX_M = cell_master{2,i}(8);
                     coordY_M = cell_master{2,i}(9);
                     coordZ_M = cell_master{2,i}(10);
                     height_M = cell_master{2,i}(11); %#ok<NASGU>
-                    
+
                     if (flag_ms_rtcm & master_update)
-                        
+
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
                             master_update = 0;
@@ -1092,25 +1121,25 @@ while flag
                             master_waiting = 1;
                         end
                     end
-                    
+
                     type = [type '1006 '];
-                    
+
                 %message 1019 (RTCM3)
                 case 1019
-                    
+
                     %satellite number
                     sat = cell_master{2,i}(1);
-                    
+
                     Eph(:,sat) = cell_master{2,i}(:);
-                    
+
                     type = [type '1019 '];
-                    
+
             end
-            %if no master position is awaiting indexing 
+            %if no master position is awaiting indexing
             if(~master_waiting)
                 index = 0;
             end
-            
+
             %if a master position is awaiting indexing
             if(index ~= 0 & master_waiting)
                 pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
@@ -1119,7 +1148,7 @@ while flag
             end
         end
     end
-    
+
     %Resolution of 2^23 cy carrier phase ambiguity
     %caused by 32-bit data field restrictions (RTCM2)
     if(test_master & is_rtcm2)
@@ -1167,11 +1196,11 @@ while flag
             r = r + 1;
         end
         fprintf('\n');
-        
+
     else
         fprintf('no messages\n');
     end
-    
+
     fprintf('Station position:');
     if (sum(abs(pos_M(:,i))) ~= 0)
         fprintf(' X=%.4f, Y=%.4f, Z=%.4f km\n', pos_M(1,i)/1000, pos_M(2,i)/1000, pos_M(3,i)/1000);
@@ -1229,10 +1258,6 @@ while flag
             %current date reading for Google Earth visualization
             date = clock;
 
-            %satellites with observations available
-            %satObs_R = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) );
-            %satObs_M = find( (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0) );
-
             %satellites with ephemerides available
             satEph = find(sum(abs(Eph))~=0);
 
@@ -1247,9 +1272,6 @@ while flag
             snr_M(delsat,1) = 0;
 
             %satellites with observations available
-            %satObs_R = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) );
-            %satObs_M = find( (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0) );
-            %satObs = intersect(satObs_R,satObs_M);
             %satObs = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) & (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0));
             satObs = find( (pr_R(:,1) ~= 0) & (pr_M(:,1) ~= 0));
 
@@ -1320,7 +1342,7 @@ while flag
                     t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                     t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                 end
-                if (flag_cpu == 0)
+                if (flag_skyplot == 1)
                     t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                     t0 = clock; rtplot_snr (snr_R(:,1)); dt_snr = etime(clock,t0);
                 else
@@ -1359,35 +1381,17 @@ while flag
 
                 %counter increment
                 t = t + 1;
-% %DEBUG !!!
-            %master data are coming, but delayed of 1 or more seconds
-            elseif (tick_M(b) == 0 & sum(tick_M(1:B-b)) ~= 0)
-                
-                %increase server reply waiting time
-                server_delay = server_delay + server_delay / 2;
-%                 
-%                 master_1 = 0;
-%                 master_2 = 0;
-% 
-%                 while (master_1 ~= master_2) | (master_1 == 0)
-%                     %wait for next package from master
-%                     master_1 = get(master,'BytesAvailable');
-%                     pause(server_delay);
-%                     master_2 = get(master,'BytesAvailable');
-%                 end
 
             else
 
                 %visualization
                 fprintf('no position/velocity are computed\n');
 
-                %current IP address
-                IPaddressM = char(java.net.InetAddress.getLocalHost.toString);
-                IPaddressM = IPaddressM(find(IPaddressM == '/')+1:end);
-
-                %if IP address is local
-                if strcmp(IPaddressM,'127.0.0.1')
-
+                %check Internet connection
+                connected = 0;
+                try
+                    java.net.InetAddress.getByName(master_ip);
+                catch
                     %close master connection
                     fclose(master);
 
@@ -1395,11 +1399,12 @@ while flag
                     fprintf('wait for reconnection...\n');
 
                     %wait for connection
-                    while strcmp(IPaddressM,'127.0.0.1')
-                        IPaddressM = char(java.net.InetAddress.getLocalHost.toString);
-                        IPaddressM = IPaddressM(find(IPaddressM == '/')+1:end);
-                    end;
-                    pause(connection_delay); %wait a bit for the connection to be re-established
+                    while ~connected
+                        try java.net.InetAddress.getByName(master_ip)
+                            connected = 1;
+                        catch
+                        end
+                    end
 
                     %start a new connection
                     master = tcpip(master_ip,master_port);
@@ -1486,7 +1491,7 @@ while flag
                     t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                     t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                 end
-                if (flag_cpu == 0)
+                if (flag_skyplot == 1)
                     t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                     t0 = clock; rtplot_snr (zeros(32,1)); dt_snr = etime(clock,t0);
                 else
@@ -1611,7 +1616,7 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    if (flag_cpu == 0)
+                    if (flag_skyplot == 1)
                         t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                         t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
                     else
@@ -1736,7 +1741,7 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    if (flag_cpu == 0)
+                    if (flag_skyplot == 1)
                         t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                         t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
                     else
@@ -1792,57 +1797,48 @@ while flag
 
                 %if there is still space in the buffer, wait!
                 if (b < B)
-                    %if (b < B - safety_B)
-
+                %if (b < B - safety_B)
+                    
                     %visualization
                     fprintf('wait for data (delay=%d sec)\n',b);
-
-                    %otherwise make one or more step using just dynamics
+                    
+                %otherwise make one or more step using just dynamics
                 else
-
+                    
                     %if the master is interrupted
                     if (tick_M(b) == 0)
-
-                        %IP address
-                        IPaddressM = char(java.net.InetAddress.getLocalHost.toString);
-                        IPaddressM = IPaddressM(find(IPaddressM == '/')+1:end);
-
-                        %if there is no Internet connection
-                        if strcmp(IPaddressM,'127.0.0.1')
-
-                            %clear just the last buffer cell
-                            lastB = B;
-                            %lastB = B - safety_B;
-
-                            %if there is Internet connection
-                        else
+                        
+                        %check Internet connection
+                        try
+                            java.net.InetAddress.getByName(master_ip);
 
                             %clear the whole buffer
                             lastB = 1;
-
-                            %close the old connection
+                            
+                            %close master connection
                             fclose(master);
-
+                            
                             %start a new connection
                             master = tcpip(master_ip,master_port);
                             set(master,'InputBufferSize', 5096);
                             fopen(master);
-							if (flag_NTRIP)
+                            if (flag_NTRIP)
                                 nmea_update = sprintf('%s\r\n',NMEA_string_generator([pos_t(1); pos_t(2); pos_t(3)],sum(abs(conf_sat))));
-							    ntripstring = NTRIP_string_generator(nmea_update);
+                                ntripstring = NTRIP_string_generator(nmea_update);
                                 fwrite(master,ntripstring);
-							end
-                            %pause(connection_delay);
-
+                            end
+                        catch
+                            %clear just the last buffer cell
+                            lastB = B;
                         end
-
-                        %if the rover is interrupted
+                        
+                    %if the rover is interrupted
                     else
-
+                        
                         %clear just the last buffer cell
                         lastB = B;
                         %lastB = B - safety_B;
-
+                        
                     end
 
                     %clear the buffer up to the desired position
@@ -1916,7 +1912,7 @@ while flag
                             t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                             t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                         end
-                        if (flag_cpu == 0)
+                        if (flag_skyplot == 1)
                             t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                             t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
                         else
@@ -2041,7 +2037,7 @@ while flag
                         t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
                         t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
                     end
-                    if (flag_cpu == 0)
+                    if (flag_skyplot == 1)
                         t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
                         t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
                     else
@@ -2122,7 +2118,7 @@ while flag
 
         %-------------------------------------
 
-        %disable positioning (debugging)
+    %disable positioning (debug)
     end
 
     %----------------------------------
@@ -2174,10 +2170,10 @@ end
 %load u-blox saved configuration
 if (reply_save)
     fprintf('Restoring saved u-blox receiver configuration...\n');
-    
+
     reply_load = ublox_CFG_CFG(rover, 'load');
     tries = 0;
-    
+
     while (reply_save & ~reply_load)
         tries = tries + 1;
         if (tries > 3)
@@ -2191,6 +2187,8 @@ end
 %connection closing
 fclose(master);
 fclose(rover);
+delete(master);
+delete(rover);
 
 %data files closing
 fclose(fid_master);
@@ -2208,6 +2206,3 @@ diary off
 
 %hide STOP button
 set(h1,'visible','off');
-
-%interrupt execution
-%break

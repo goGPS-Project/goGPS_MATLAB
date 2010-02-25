@@ -18,16 +18,16 @@ function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, chec
 %   flag_amb = boolean variable for displaying ambiguities or not
 %
 % DESCRIPTION:
-%   Real-time plot of the assessed ROVER path with respect to 
+%   Real-time plot of the assessed ROVER path with respect to
 %   a reference path.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -46,6 +46,7 @@ function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, chec
 
 global pivot
 global msid pid p_max
+global EST_O NORD_O
 global x_circle id_ellipse
 
 %-------------------------------------------------------------------------------
@@ -61,6 +62,31 @@ else
     subplot(2,3,[1 2 4 5])
 end
 
+if (t == 1)
+    xlabel('[m]'); ylabel('[m]');
+    title('b:ok k:birth r:death m:pivot g:cycle-slip y:only-dyn');
+    grid; axis equal
+    hold on
+    
+    % fixing of the origin O
+    %EST_O = 0; %NORD_O = 0;
+    %EST_O = EST_M; %NORD_O = NORD_M;
+    [EST_O, NORD_O] = cart2plan(pos_R(1), pos_R(2), pos_R(3));
+    
+    if ~isempty(ref) % & ~isempty(matrix)
+        [EST_ref, NORD_ref, h_ref] = cart2plan(ref(:,1), ref(:,2), ref(:,3)); %#ok<NASGU>
+        
+        plot(EST_ref-EST_O, NORD_ref-NORD_O, 'm', 'LineWidth', 2);
+        for i = 1 : length(EST_ref)-1
+            for j = i+1 : length(EST_ref)
+                if (matrix(i,j) == 1)
+                    plot([EST_ref(i)-EST_O,EST_ref(j)-EST_O],[NORD_ref(i)-NORD_O,NORD_ref(j)-NORD_O],'-m', 'LineWidth', 2);
+                end
+            end
+        end
+    end
+end
+
 if (origin & sum(abs(pos_M)) ~= 0)
 
     %Master position in UTM coordinates (East, North, h)
@@ -68,32 +94,10 @@ if (origin & sum(abs(pos_M)) ~= 0)
 
     %master station plot
     if (isempty(msid))
-        msid = plot(EST_M, NORD_M, 'xm', 'LineWidth', 2);
+        msid = plot(EST_M-EST_O, NORD_M-NORD_O, 'xm', 'LineWidth', 2);
     else
-        set(msid, 'XData', EST_M, 'YData', NORD_M);
+        set(msid, 'XData', EST_M-EST_O, 'YData', NORD_M-NORD_O);
     end
-end
-
-if (t == 1)
-    if ~isempty(ref) % & ~isempty(matrix)
-       hold on
-       [EST_ref, NORD_ref, h_ref] = cart2plan(ref(:,1), ref(:,2), ref(:,3)); %#ok<NASGU>
-
-       plot(EST_ref, NORD_ref, 'm', 'LineWidth', 2);
-       for i = 1 : length(EST_ref)-1
-           for j = i+1 : length(EST_ref)
-               if (matrix(i,j) == 1)
-                   plot([EST_ref(i),EST_ref(j)],[NORD_ref(i),NORD_ref(j)],'-m', 'LineWidth', 2);
-               end
-           end
-       end
-       hold off
-
-    end
-    xlabel('[m]'); ylabel('[m]');
-    title('b:ok k:birth r:death m:pivot g:cycle-slip y:only-dyn');
-    grid; axis equal
-    hold on
 end
 
 %-------------------------------------------------------------------------------
@@ -124,10 +128,10 @@ end
 
 %Kalman filter path plot
 if (t <= p_max)
-    pid(t) = plot(EST, NORD, ['.' pcol]);
+    pid(t) = plot(EST-EST_O, NORD-NORD_O, ['.' pcol]);
 else
     i = mod(t-1,p_max) + 1;
-    set(pid(i), 'XData', EST, 'YData', NORD, 'Color', pcol);
+    set(pid(i), 'XData', EST-EST_O, 'YData', NORD-NORD_O, 'Color', pcol);
 end
 
 %-------------------------------------------------------------------------------
@@ -137,7 +141,7 @@ covpos_R = global2localCov(covpos_R, pos_R);
 
 T = chol(covpos_R(1:2,1:2));        % Cholesky decomposition
 for j = 1 : size(x_circle,1)        % ellipse computation
-    x_ellipse(j,:) = x_circle(j,:) * T + [EST, NORD];
+    x_ellipse(j,:) = x_circle(j,:) * T + [EST-EST_O, NORD-NORD_O];
 end
 
 %ellipse plot

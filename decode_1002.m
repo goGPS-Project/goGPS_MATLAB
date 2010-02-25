@@ -27,10 +27,10 @@ function [data] = decode_1002(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -96,45 +96,45 @@ NSV = data{2}(4);
 
 %data decoding for each satellite
 for i = 1 : NSV
-    
+
     %satellite number
     SV = bin2dec(msg(pos:pos+5));  pos = pos + 6;
-    
+
     %if GPS satellite
     if (SV >= 1 & SV <= 32)
-        
+
         %code type (C/A=0, P=1)
         DF010 = bin2dec(msg(pos));  pos = pos + 1;
-        
+
         %L1 pseudorange
         DF011 = bin2dec(msg(pos:pos+23));  pos = pos + 24;
-        
+
         %L1 phaserange - L1 pseudorange
         DF012 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
-        
+
         %lock-time index (see Table 4.3-2 on RTCM manual)
         DF013 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
-        
+
         %L1 pseudorange integer ambiguity
         DF014 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-        
+
         %CNR (carrier-to-noise ratio): integer to be multiplied by the resolution
         DF015 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-        
+
         %---------------------------------------------------------
-        
+
         %data output save
         data{3}(SV,1) = DF010;
         data{3}(SV,2) = (DF011 * 0.02) + (DF014 * 299792.458);
         data{3}(SV,3) = (data{3}(SV,2) + (DF012*0.0005)) / lambda1;
         data{3}(SV,4) = DF013;
         data{3}(SV,5) = DF015 * 0.25;
-        
+
     else %SBAS satellites
-        
+
         %do not store SBAS satellite information
         pos = pos + 68;
-        
+
     end
 
 end

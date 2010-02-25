@@ -18,7 +18,7 @@ function icol = find_eph(Eph, sv, time)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 % Kai Borre and C.C. Goad 11-26-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009

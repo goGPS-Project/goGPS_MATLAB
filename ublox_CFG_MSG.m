@@ -19,10 +19,10 @@ function [reply] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -78,7 +78,7 @@ reply_1 = get(serialObj,'BytesAvailable');
 
 if (reply_1 ~= 0)
     %clear the serial port (data not decoded)
-    reply = fread(serialObj, reply_1, 'uint8');
+    reply = fread(serialObj, reply_1, 'uint8'); %#ok<NASGU>
 end
 
 % send message
@@ -118,7 +118,7 @@ ACK = [ACK_DEC; CK_A; CK_B];
 
 if (mode == 1) % periodic message enable request
 
-    if (reply == ACK)
+    if (reply == ACK) %#ok<BDSCI>
         %fprintf('u-blox %s-%s message enabled.\n', ClassLab, MsgIDLab);
         % positive reply
         reply = 1;
@@ -130,7 +130,7 @@ if (mode == 1) % periodic message enable request
 
 else
 
-    if (reply == ACK)
+    if (reply == ACK) %#ok<BDSCI>
         %fprintf('u-blox %s-%s message disabled.\n', ClassLab, MsgIDLab);
         % positive reply
         reply = 1;

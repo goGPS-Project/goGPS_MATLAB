@@ -15,10 +15,10 @@ function rtplot_googleearth (t, pos_R, pos_M, date)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -80,7 +80,7 @@ if (t == 1)
     fprintf(fkml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
     fprintf(fkml, '  </Document>\n</kml>');
     fclose(fkml);
-    
+
     %run google earth (in background)
     current_path = pwd;
     current_path(current_path == '\') = '/';

@@ -33,10 +33,10 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ..
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -53,13 +53,11 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ..
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a f
-
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz
 global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
-global azR elR distR azM elM distM 
+global azR elR distR azM elM distM
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -118,7 +116,7 @@ for i = 1:size(sat)
     Rot_X = sat_corr(Eph, sat(i), time, pr1_Rsat(i), X_t1_t([1,o1+1,o2+1])');
 
     %azimuth, elevation, ROVER-SATELLITE distance computation
-    [azR(sat(i)), elR(sat(i)), distR(sat(i))] = topocent(X_t1_t([1,o1+1,o2+1]), Rot_X', a, f);
+    [azR(sat(i)), elR(sat(i)), distR(sat(i))] = topocent(X_t1_t([1,o1+1,o2+1]), Rot_X');
 
     %test on elevation and on signal-to-noise ratio
     if (elR(sat(i)) < cutoff) | (snr_R(sat(i)) < snr_threshold)
@@ -130,13 +128,13 @@ end
 %removal of satellites with elevation or SNR lower than the respective threshold
 sat(ismember(sat,bad_sat) == 1) = [];
 
-%previous pivot 
+%previous pivot
 if (pivot ~= 0)
     pivot_old = pivot;
 end
 
 %current pivot
-[null_max_elR, i] = max(elR(sat));
+[null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
 pivot = sat(i);
 
 %----------------------------------------------------------------------------------------
@@ -169,7 +167,7 @@ if (nsat >= min_nsat)
     else
         [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
     end
-    
+
     if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
         cov_pos_R = sigmaq0 * eye(3);
     end

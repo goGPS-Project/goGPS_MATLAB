@@ -20,10 +20,10 @@ function [ncols, nrows, cellsize, xll, yll, nodata] = dtm_hdr_load(hdr_target)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -56,8 +56,8 @@ end
 [hdr_1, hdr_2] = textread(hdr_target,'%s %f');
 
 %saving the number of lines that compose each header column
-[hdr_rows_1, null] = size(hdr_1);
-[hdr_rows_2, null] = size(hdr_2);
+[hdr_rows_1, null] = size(hdr_1); %#ok<NASGU>
+[hdr_rows_2, null] = size(hdr_2); %#ok<NASGU>
 
 %if the header follows the ASCII-GRID format
 if  (isnumeric(hdr_2) & (hdr_rows_1 == 5 | hdr_rows_1 == 6) & ...

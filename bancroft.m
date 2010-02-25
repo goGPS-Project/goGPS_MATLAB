@@ -16,7 +16,7 @@ function [pos] = bancroft(B_pass)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 % Kai Borre 04-30-95, improved by C.C. Goad 11-24-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
@@ -29,7 +29,7 @@ pos = zeros(4,1);
 
 for iter = 1:2
    B = B_pass;
-   [m,n] = size(B);
+   [m,n] = size(B); %#ok<NASGU>
    for i = 1:m
       x = B(i,1);
       y = B(i,2);
@@ -46,16 +46,16 @@ for iter = 1:2
       B(i,1) =	cosa*x + sina*y;
       B(i,2) = -sina*x + cosa*y;
    end; % i-loop
-   
+
    if m > 4
-      BBB = inv(B'*B)*B';
+      BBB = (B'*B)\B';
    else
       BBB = inv(B);
    end
    e = ones(m,1);
    alpha = zeros(m,1);
    for i = 1:m
-      alpha(i) = lorentz(B(i,:)',B(i,:)')/2; 
+      alpha(i) = lorentz(B(i,:)',B(i,:)')/2;
    end
    BBBe = BBB*e;
    BBBalpha = BBB*alpha;
@@ -78,11 +78,11 @@ for iter = 1:2
          abs_omc(i) = abs(omc);
       end
    end; % j-loop
-   
+
    % discrimination between roots
    if abs_omc(1) > abs_omc(2)
       pos = possible_pos(:,2);
-   else 
+   else
       pos = possible_pos(:,1);
    end
 end; % iter loop

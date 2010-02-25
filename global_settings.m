@@ -7,10 +7,10 @@
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -52,9 +52,9 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
        ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
        ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
        ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
-       ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
+       ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
        ~isempty(dir([filerootOUT '.kml'])) )
-   
+
    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
    i = i + 1;
 end
@@ -239,8 +239,9 @@ end
 %-------------------------------------------------------------------------------
 
 global COMportR
-global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
+global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint %#ok<NUSED>
 global nmea_init
+global server_delay
 
 manCOMport = 'COM8';
 
@@ -259,7 +260,7 @@ end
 % %MASTER/NTRIP connection parameters
 % master_ip = 'xxx.xxx.xxx.xxx';
 % master_port = 2101;
-% 
+%
 % %NTRIP parameters
 % ntrip_user = 'uuuuuu';
 % ntrip_pw = 'ppppp';
@@ -274,3 +275,6 @@ hApp = 20;
 
 %Initial NMEA sentence required by some NTRIP casters
 nmea_init = NMEA_string_generator([XApp YApp ZApp],10);
+
+%server waiting time (to check if packet transmission is finished)
+server_delay = 0.05;

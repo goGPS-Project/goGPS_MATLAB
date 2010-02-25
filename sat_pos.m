@@ -17,7 +17,7 @@ function [satp] = sat_pos(t, Eph)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 % Kai Borre 04-09-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
@@ -32,8 +32,8 @@ function [satp] = sat_pos(t, Eph)
 global GM Omegae_dot
 
 %get ephemerides
-svprn    =   Eph(1);		% not used
-af2      =   Eph(2);		% not used
+svprn    =   Eph(1);		 %#ok<NASGU>
+af2      =   Eph(2);		 %#ok<NASGU>
 M0       =   Eph(3);
 roota    =   Eph(4);
 deltan   =   Eph(5);
@@ -50,9 +50,9 @@ cis      =  Eph(15);
 Omega0   =  Eph(16);
 Omegadot =  Eph(17);
 toe      =  Eph(18);
-af0      =  Eph(19);		% not used
-af1      =  Eph(20);		% not used
-tom      =  Eph(21);		% not used
+af0      =  Eph(19);		 %#ok<NASGU>
+af1      =  Eph(20);		 %#ok<NASGU>
+tom      =  Eph(21);		 %#ok<NASGU>
 
 %-------------------------------------------------------------------------------
 % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE COORDINATES
@@ -61,7 +61,7 @@ tom      =  Eph(21);		% not used
 A = roota*roota;            %semi-major axis
 tk = check_t(t-toe);        %time from the ephemerides reference epoch
 n0 = sqrt(GM/A^3);          %computed mean motion [rad/sec]
-n = n0+deltan;              %corrected mean motion [rad/sec] 
+n = n0+deltan;              %corrected mean motion [rad/sec]
 Mk = M0+n*tk;               %mean anomaly
 Mk = rem(Mk+2*pi,2*pi);
 Ek = Mk;
@@ -76,7 +76,7 @@ for i = 1:10
 end
 
 if (i == 10)
-    warning('Eccentric anomaly does not converge!!')
+    disp('Eccentric anomaly does not converge!!')
 end
 
 Ek = rem(Ek+2*pi,2*pi);

@@ -25,17 +25,17 @@ function [data] = decode_1011(msg)
 %          3.8) DF049 = GLONASS L2 Lock Time Indicator(if there is a cycle slip it is set to 0)
 %          3.9)(DF040 - 7) * 0.5625 + 1602.0 = frequency vector on L1 [MHz]
 %          3.10)(DF040 - 7) * 0.4375 + 1246.0 = frequency vector on L2 [MHz]
-%              
+%
 % DESCRIPTION:
 %   RTCM format 1011 message decoding.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -99,48 +99,48 @@ NSV = data{2}(4);
 
 %data decoding for each satellite
 for i = 1 : NSV
-    
+
     %GLONASS satellite ID
     SV = bin2dec(msg(pos:pos+5)); pos = pos + 6;
-    
+
     %if GLONASS satellite (known slot)
     if (SV >= 1 & SV <= 24)
-        
+
         %GLONASS L1 code indicator
         DF039 = bin2dec(msg(pos)); pos = pos + 1;
-        
+
         %GLONASS Satellite Frequency Channel Number
         DF040 = bin2dec(msg(pos:pos+4)); pos = pos + 5;
-        
+
         %GLONASS L1 pseudorange
         DF041 = bin2dec(msg(pos:pos+24)) * 0.02; pos = pos + 25;
-        
+
         %GLONASS L1 PhaseRange – L1 Pseudorange
         DF042 = twos_complement(msg(pos:pos+19)) * 0.0005;  pos = pos + 20;
-        
+
         %GLONASS L1 Lock Time Indicator
         DF043 = bin2dec(msg(pos:pos+6)); pos = pos + 7;
-        
+
         %---------------------------------------------------------
-        
+
         %GLONASS L2 Code Indicator
         DF046 = bin2dec(msg(pos:pos+1)); pos = pos + 2;
-        
+
         %GLONASS L2-L1 Pseudorange Difference
         DF047 = twos_complement(msg(pos:pos+13)) * 0.02; pos = pos + 14;
-        
+
         %GLONASS L2 PhaseRange – L1 Pseudorange (m)
         DF048 = twos_complement(msg(pos:pos+19)) * 0.0005; pos = pos + 20;
-        
+
         %GLONASS L2 Lock Time Indicator
         DF049 = bin2dec(msg(pos:pos+6)); pos = pos + 7;
-        
+
         %L1 carrier frequency [MHz]
         data{3}(SV,9) = (DF040 - 7) * 0.5625 + 1602.0;
-        
+
         %L2 carrier frequency [MHz]
         data{3}(SV,10) = (DF040 - 7) * 0.4375 + 1246.0;
-        
+
         %output data save
         data{3}(SV,1)  = DF039;
         data{3}(SV,2)  = DF041;
@@ -150,12 +150,12 @@ for i = 1 : NSV
         data{3}(SV,6)  = (data{3}(SV,2) + DF047);
         data{3}(SV,7)  = (data{3}(SV,2) + DF048) * data{3}(SV,10) * 1e6 / v_light;
         data{3}(SV,8)  = DF049;
-        
+
     else %SBAS satellites
-        
+
         %do not store SBAS satellite information
         pos = pos + 101;
-        
+
     end
 
 end

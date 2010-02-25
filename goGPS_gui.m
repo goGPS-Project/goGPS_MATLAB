@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 18-Jan-2010 11:23:29
+% Last Modified by GUIDE v2.5 16-Feb-2010 16:42:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -44,7 +44,7 @@ end
 % End initialization code - DO NOT EDIT
 
 % --- Executes just before goGPS_gui is made visible.
-function goGPS_gui_OpeningFcn(hObject, eventdata, handles, varargin)
+function goGPS_gui_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -120,8 +120,10 @@ else %Real-time
         mode = 11;
     elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
         mode = 12;
-    else %Master monitor
+    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
         mode = 13;
+    else %Rover and Master monitor
+        mode = 14;
     end
 end
 mode_vinc = get(handles.constraint,'Value');
@@ -140,7 +142,7 @@ flag_cov = get(handles.err_ellipse,'Value');
 flag_COM = get(handles.u_com_detect,'Value');
 flag_NTRIP = get(handles.use_ntrip,'Value');
 flag_amb = get(handles.plot_amb,'Value');
-flag_cpu = get(handles.no_skyplot_snr,'Value');
+flag_skyplot = get(handles.no_skyplot_snr,'Value');
 flag_RINEX = get(handles.rinex_out,'Value');
 filerootIN = get(handles.gogps_data_input,'String');
 filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
@@ -158,9 +160,9 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
        ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
        ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
        ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
-       ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
+       ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
        ~isempty(dir([filerootOUT '.kml'])) )
-   
+
    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
    i = i + 1;
 end
@@ -197,7 +199,7 @@ varargout{8} = flag_cov;
 varargout{9} = flag_COM;
 varargout{10} = flag_NTRIP;
 varargout{11} = flag_amb;
-varargout{12} = flag_cpu;
+varargout{12} = flag_skyplot;
 varargout{13} = flag_RINEX;
 varargout{14} = filerootIN;
 varargout{15} = filerootOUT;
@@ -215,6 +217,7 @@ global h_antenna
 global tile_header tile_georef dtm_dir
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
 global nmea_init
+global server_delay
 
 sigmaq0 = str2double(get(handles.std_init,'String'))^2;
 sigmaq_velx = str2double(get(handles.std_X,'String'))^2;
@@ -273,19 +276,20 @@ com_select_Callback(handles.com_select, eventdata, handles);
 master_ip = get(handles.IP_address,'String');
 master_port = str2double(get(handles.port,'String'));
 ntrip_user = get(handles.username,'String');
-ntrip_pw = get(handles.password,'String');
+ntrip_pw = get(handles.password,'Userdata');
 ntrip_mountpoint = get(handles.mountpoint,'String');
 phiApp = str2double(get(handles.approx_lat,'String'));
 lamApp = str2double(get(handles.approx_lon,'String'));
 hApp = str2double(get(handles.approx_h,'String'));
 [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, 6378137, 1/298.257222101);
 nmea_init = NMEA_string_generator([XApp YApp ZApp],10);
+server_delay = str2double(get(handles.server_delay,'String'));
 
 %close main panel
 delete(gcf)
 
 % --------------------------------------------------------------------
-function closeGUI(src,evnt)
+function closeGUI(src,evnt) %#ok<*INUSD>
 
 selection = questdlg('Do you want to quit goGPS?',...
     'Close Request Function',...
@@ -353,6 +357,7 @@ state.cs_thresh = get(handles.cs_thresh,'String');
 state.cut_off = get(handles.cut_off,'String');
 state.snr_thres = get(handles.snr_thres,'String');
 state.antenna_h = get(handles.antenna_h,'String');
+state.min_sat = get(handles.min_sat,'String');
 state.dyn_mod = get(handles.dyn_mod,'Value');
 state.weight_0 = get(handles.weight_0,'Value');
 state.weight_1 = get(handles.weight_1,'Value');
@@ -364,10 +369,11 @@ state.IP_address = get(handles.IP_address,'String');
 state.port = get(handles.port,'String');
 state.mountpoint = get(handles.mountpoint,'String');
 state.username = get(handles.username,'String');
-state.password = get(handles.password,'String');
+state.password = get(handles.password,'Userdata');
 state.approx_lat = get(handles.approx_lat,'String');
 state.approx_lon = get(handles.approx_lon,'String');
 state.approx_h = get(handles.approx_h,'String');
+state.server_delay = get(handles.server_delay,'String');
 
 save(filename, 'state');
 
@@ -424,6 +430,7 @@ set(handles.cs_thresh,'String', state.cs_thresh);
 set(handles.cut_off,'String', state.cut_off);
 set(handles.snr_thres,'String', state.snr_thres);
 set(handles.antenna_h,'String', state.antenna_h);
+set(handles.min_sat,'String', state.min_sat);
 set(handles.dyn_mod,'Value', state.dyn_mod);
 set(handles.weight_0,'Value', state.weight_0);
 set(handles.weight_1,'Value', state.weight_1);
@@ -442,11 +449,14 @@ set(handles.IP_address,'String', state.IP_address);
 set(handles.port,'String', state.port);
 set(handles.mountpoint,'String', state.mountpoint);
 set(handles.username,'String', state.username);
-set(handles.password,'String', state.password);
+set(handles.password,'Userdata', state.password);
+show_password_Callback(handles.show_password, [], handles);
 set(handles.approx_lat,'String', state.approx_lat);
 set(handles.approx_lon,'String', state.approx_lon);
 set(handles.approx_h,'String', state.approx_h);
+set(handles.server_delay,'String', state.server_delay);
 
+plot_amb_Callback(handles.plot_amb, [], handles);
 if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
     file_type_SelectionChangeFcn(handles.rinex_files, [], handles);
 else
@@ -485,10 +495,11 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     set(handles.gogps_data, 'Enable', 'off');
     set(handles.data_streams, 'Enable', 'off');
     
-    nav_mon_Callback(handles.nav_mon, eventdata, handles);
-    
     set(handles.plot_amb, 'Enable', 'off');
-    
+    set(handles.no_skyplot_snr, 'Enable', 'on');
+
+    nav_mon_Callback(handles.nav_mon, eventdata, handles);
+
     %disable file input fields
     set(handles.RINEX_rover_obs, 'Enable', 'off');
     set(handles.RINEX_rover_nav, 'Enable', 'off');
@@ -505,34 +516,35 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     set(handles.gogps_data_input, 'Enable', 'off');
     set(handles.browse_gogps_input, 'Enable', 'off');
     set(handles.text_gogps_input, 'Enable', 'off');
-    
+
 else
     set(handles.nav_mon, 'Enable', 'off');
     set(handles.nav_mon, 'Value', 1);
-    
+
     nav_mon_Callback(handles.nav_mon, eventdata, handles);
-    
+
     set(handles.kalman_ls, 'Enable', 'on');
     set(handles.code_dd_sa, 'Enable', 'on');
     set(handles.rinex_files, 'Enable', 'on');
     set(handles.gogps_data, 'Enable', 'on');
     set(handles.data_streams, 'Enable', 'on');
-    
+
     %     set(handles.u_com_detect, 'Enable', 'off');
     set(handles.com_select, 'Enable', 'off');
     set(handles.text_com_select, 'Enable', 'off');
     set(handles.use_ntrip, 'Enable', 'off');
     set(handles.plot_amb, 'Enable', 'on');
-    
+    plot_amb_Callback(handles.plot_amb, [], handles);
+
     %enable/disable file input fields
     if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
         file_type_SelectionChangeFcn(handles.rinex_files, eventdata, handles);
     else
         file_type_SelectionChangeFcn(handles.gogps_data, eventdata, handles);
     end
-    
+
     kalman_ls_Callback(handles.kalman_ls, eventdata, handles);
-    
+
     %disable approximate position
     set(handles.text_approx_pos, 'Enable', 'off');
     set(handles.approx_lat, 'Enable', 'off');
@@ -544,23 +556,29 @@ else
     set(handles.text_approx_lat_unit, 'Enable', 'off');
     set(handles.text_approx_lon_unit, 'Enable', 'off');
     set(handles.text_approx_h_unit, 'Enable', 'off');
-    
+
+    %disable Connection parameters
+    set(handles.server_delay, 'Enable', 'off');
+    set(handles.text_server_delay, 'Enable', 'off');
+    set(handles.text_server_delay_unit, 'Enable', 'off');
+
     %disable NTRIP parameters
     set(handles.IP_address, 'Enable', 'off');
     set(handles.port, 'Enable', 'off');
     set(handles.mountpoint, 'Enable', 'off');
     set(handles.username, 'Enable', 'off');
     set(handles.password, 'Enable', 'off');
+    set(handles.show_password, 'Enable', 'off');
     set(handles.text_IP_address, 'Enable', 'off');
     set(handles.text_port, 'Enable', 'off');
     set(handles.text_mountpoint, 'Enable', 'off');
     set(handles.text_username, 'Enable', 'off');
     set(handles.text_password, 'Enable', 'off');
-    
+
 end
 
 % --- Executes during object creation, after setting all properties.
-function mode_CreateFcn(hObject, eventdata, handles)
+function mode_CreateFcn(hObject, eventdata, handles) %#ok<*DEFNU>
 % hObject    handle to mode (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
@@ -587,7 +605,7 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     cell_contents{2} = 'Code double difference';
     cell_contents{3} = 'Code and phase';
     set(handles.code_dd_sa, 'String', cell_contents);
-    
+
     set(handles.std_X, 'Enable', 'on');
     set(handles.std_Y, 'Enable', 'on');
     set(handles.std_Z, 'Enable', 'on');
@@ -603,12 +621,12 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     set(handles.std_init, 'Enable', 'on');
     set(handles.text_std_init, 'Enable', 'on');
     set(handles.text_std_init_unit, 'Enable', 'on');
-    
+
     set(handles.toggle_std_phase, 'Enable', 'on');
     set(handles.toggle_std_dtm, 'Enable', 'on');
     toggle_std_phase_Callback(handles.toggle_std_phase, eventdata, handles);
     toggle_std_dtm_Callback(handles.toggle_std_dtm, eventdata, handles);
-    
+
     constraint_Callback(handles.constraint, eventdata, handles);
     code_dd_sa_Callback(handles.code_dd_sa, eventdata, handles);
 
@@ -618,7 +636,7 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     set(handles.min_sat, 'Enable', 'on');
     set(handles.text_min_sat, 'Enable', 'on');
     set(handles.dyn_mod, 'Enable', 'on');
-    set(handles.text_dyn_mod, 'Enable', 'on');   
+    set(handles.text_dyn_mod, 'Enable', 'on');
 else
     cell_contents = cell(2,1);
     cell_contents{1} = 'Code stand-alone';
@@ -626,9 +644,9 @@ else
     old_value = get(handles.code_dd_sa, 'Value');
     if (old_value == 3), set(handles.code_dd_sa, 'Value', 2); end
     set(handles.code_dd_sa, 'String', cell_contents);
-    
+
     code_dd_sa_Callback(handles.code_dd_sa, eventdata, handles);
-    
+
     %disable Kalman filters settings
     set(handles.std_X, 'Enable', 'off');
     set(handles.std_Y, 'Enable', 'off');
@@ -695,6 +713,7 @@ if (strcmp(contents{get(hObject,'Value')},'Code and phase'))
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
         set(handles.plot_amb, 'Enable', 'on');
+        plot_amb_Callback(handles.plot_amb, [], handles);
     end
     set(handles.cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh, 'Enable', 'on');
@@ -710,6 +729,7 @@ if (strcmp(contents{get(hObject,'Value')},'Code and phase'))
     set(handles.weight_3, 'Enable', 'on');
 else
     set(handles.plot_amb, 'Enable', 'off');
+    set(handles.no_skyplot_snr, 'Enable', 'on');
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
@@ -759,7 +779,7 @@ function nav_mon_Callback(hObject, eventdata, handles)
 
 contents = cellstr(get(hObject,'String'));
 if (strcmp(contents{get(hObject,'Value')},'Navigation'))
-    
+
     %enable options
     set(handles.constraint, 'Enable', 'on');
     set(handles.ref_path, 'Enable', 'on');
@@ -773,26 +793,31 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
     set(handles.rinex_out, 'Enable', 'on');
-    
+
     set(handles.gogps_data_output, 'Enable', 'on');
     set(handles.text_gogps_data_output, 'Enable', 'on');
     set(handles.browse_gogps_data_output, 'Enable', 'on');
     set(handles.gogps_data_output_prefix, 'Enable', 'on');
     set(handles.text_gogps_data_output_prefix, 'Enable', 'on');
-    
+
     set(handles.master_pos, 'Enable', 'on');
     set(handles.master_pos, 'Value', 1);
     master_pos_Callback(handles.master_pos, eventdata, handles);
-    
+
     kalman_ls_Callback(handles.kalman_ls, eventdata, handles);
-    
+
+    %enable connection parameters
+    set(handles.server_delay, 'Enable', 'on');
+    set(handles.text_server_delay, 'Enable', 'on');
+    set(handles.text_server_delay_unit, 'Enable', 'on');
+
     %enable master connection
     set(handles.IP_address, 'Enable', 'on');
     set(handles.port, 'Enable', 'on');
     set(handles.text_IP_address, 'Enable', 'on');
     set(handles.text_port, 'Enable', 'on');
     use_ntrip_Callback(handles.use_ntrip, eventdata, handles);
-    
+
     %disable approximate position
     set(handles.text_approx_pos, 'Enable', 'off');
     set(handles.approx_lat, 'Enable', 'off');
@@ -804,9 +829,9 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.text_approx_lat_unit, 'Enable', 'off');
     set(handles.text_approx_lon_unit, 'Enable', 'off');
     set(handles.text_approx_h_unit, 'Enable', 'off');
-    
+
 else
-    
+
     %disable some options
     set(handles.constraint, 'Enable', 'off');
     set(handles.ref_path, 'Enable', 'off');
@@ -814,15 +839,15 @@ else
     set(handles.err_ellipse, 'Enable', 'off');
     set(handles.google_earth, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'off');
-    set(handles.gogps_data_output, 'Enable', 'off');
-    set(handles.text_gogps_data_output, 'Enable', 'off');
-    set(handles.browse_gogps_data_output, 'Enable', 'off');
-    set(handles.gogps_data_output_prefix, 'Enable', 'off');
-    set(handles.text_gogps_data_output_prefix, 'Enable', 'off');
+    %set(handles.gogps_data_output, 'Enable', 'off');
+    %set(handles.text_gogps_data_output, 'Enable', 'off');
+    %set(handles.browse_gogps_data_output, 'Enable', 'off');
+    %set(handles.gogps_data_output_prefix, 'Enable', 'off');
+    %set(handles.text_gogps_data_output_prefix, 'Enable', 'off');
     set(handles.ref_path_input, 'Enable', 'off');
     set(handles.text_ref_path_input, 'Enable', 'off');
     set(handles.browse_ref_path_input, 'Enable', 'off');
-    
+
     %disable Kalman filters settings
     set(handles.std_X, 'Enable', 'off');
     set(handles.std_Y, 'Enable', 'off');
@@ -891,15 +916,15 @@ else
     set(handles.text_master_lat_unit, 'Enable', 'off');
     set(handles.text_master_lon_unit, 'Enable', 'off');
     set(handles.text_master_h_unit, 'Enable', 'off');
-    
+
     if (strcmp(contents{get(hObject,'Value')},'Rover monitor'))
-        
+
         %set(handles.u_com_detect, 'Enable', 'on');
         set(handles.com_select, 'Enable', 'on');
         set(handles.text_com_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'off');
         set(handles.rinex_out, 'Enable', 'on');
-        
+
         %disable approximate position
         set(handles.text_approx_pos, 'Enable', 'off');
         set(handles.approx_lat, 'Enable', 'off');
@@ -911,34 +936,45 @@ else
         set(handles.text_approx_lat_unit, 'Enable', 'off');
         set(handles.text_approx_lon_unit, 'Enable', 'off');
         set(handles.text_approx_h_unit, 'Enable', 'off');
-        
+
+        %disable connection parameters
+        set(handles.server_delay, 'Enable', 'off');
+        set(handles.text_server_delay, 'Enable', 'off');
+        set(handles.text_server_delay_unit, 'Enable', 'off');
+
         %disable NTRIP parameters
         set(handles.IP_address, 'Enable', 'off');
         set(handles.port, 'Enable', 'off');
         set(handles.mountpoint, 'Enable', 'off');
         set(handles.username, 'Enable', 'off');
         set(handles.password, 'Enable', 'off');
+        set(handles.show_password, 'Enable', 'off');
         set(handles.text_IP_address, 'Enable', 'off');
         set(handles.text_port, 'Enable', 'off');
         set(handles.text_mountpoint, 'Enable', 'off');
         set(handles.text_username, 'Enable', 'off');
         set(handles.text_password, 'Enable', 'off');
-        
-    else
-        
+
+    elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
+
         %set(handles.u_com_detect, 'Enable', 'off');
         set(handles.com_select, 'Enable', 'off');
         set(handles.text_com_select, 'Enable', 'off');
         set(handles.use_ntrip, 'Enable', 'on');
         set(handles.rinex_out, 'Enable', 'off');
-        
+
+        %enable connection parameters
+        set(handles.server_delay, 'Enable', 'on');
+        set(handles.text_server_delay, 'Enable', 'on');
+        set(handles.text_server_delay_unit, 'Enable', 'on');
+
         %enable master connection
         set(handles.IP_address, 'Enable', 'on');
         set(handles.port, 'Enable', 'on');
         set(handles.text_IP_address, 'Enable', 'on');
         set(handles.text_port, 'Enable', 'on');
         use_ntrip_Callback(handles.use_ntrip, eventdata, handles);
-        
+
         %enable approximate position
         set(handles.text_approx_pos, 'Enable', 'on');
         set(handles.approx_lat, 'Enable', 'on');
@@ -950,6 +986,38 @@ else
         set(handles.text_approx_lat_unit, 'Enable', 'on');
         set(handles.text_approx_lon_unit, 'Enable', 'on');
         set(handles.text_approx_h_unit, 'Enable', 'on');
+
+    elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
+
+        %set(handles.u_com_detect, 'Enable', 'on');
+        set(handles.com_select, 'Enable', 'on');
+        set(handles.text_com_select, 'Enable', 'on');
+        set(handles.use_ntrip, 'Enable', 'off');
+        set(handles.rinex_out, 'Enable', 'on');
+        
+        %enable connection parameters
+        set(handles.server_delay, 'Enable', 'on');
+        set(handles.text_server_delay, 'Enable', 'on');
+        set(handles.text_server_delay_unit, 'Enable', 'on');
+
+        %enable master connection
+        set(handles.IP_address, 'Enable', 'on');
+        set(handles.port, 'Enable', 'on');
+        set(handles.text_IP_address, 'Enable', 'on');
+        set(handles.text_port, 'Enable', 'on');
+        use_ntrip_Callback(handles.use_ntrip, eventdata, handles);
+
+        %disable approximate position
+        set(handles.text_approx_pos, 'Enable', 'off');
+        set(handles.approx_lat, 'Enable', 'off');
+        set(handles.approx_lon, 'Enable', 'off');
+        set(handles.approx_h, 'Enable', 'off');
+        set(handles.text_approx_lat, 'Enable', 'off');
+        set(handles.text_approx_lon, 'Enable', 'off');
+        set(handles.text_approx_h, 'Enable', 'off');
+        set(handles.text_approx_lat_unit, 'Enable', 'off');
+        set(handles.text_approx_lon_unit, 'Enable', 'off');
+        set(handles.text_approx_h_unit, 'Enable', 'off');
     end
 end
 
@@ -1055,6 +1123,7 @@ if (get(hObject,'Value'))
     set(handles.mountpoint, 'Enable', 'on');
     set(handles.username, 'Enable', 'on');
     set(handles.password, 'Enable', 'on');
+    set(handles.show_password, 'Enable', 'on');
     set(handles.text_mountpoint, 'Enable', 'on');
     set(handles.text_username, 'Enable', 'on');
     set(handles.text_password, 'Enable', 'on');
@@ -1063,10 +1132,11 @@ else
     set(handles.mountpoint, 'Enable', 'off');
     set(handles.username, 'Enable', 'off');
     set(handles.password, 'Enable', 'off');
+    set(handles.show_password, 'Enable', 'off');
     set(handles.text_mountpoint, 'Enable', 'off');
     set(handles.text_username, 'Enable', 'off');
     set(handles.text_password, 'Enable', 'off');
-    
+
     %disable approximate position
     set(handles.text_approx_pos, 'Enable', 'off');
     set(handles.approx_lat, 'Enable', 'off');
@@ -1545,7 +1615,7 @@ function file_type_SelectionChangeFcn(hObject, eventdata, handles)
 %	NewValue: handle of the currently selected object
 % handles    structure with handles and user data (see GUIDATA)
 if (hObject == handles.rinex_files)
-    
+
     set(handles.RINEX_rover_obs, 'Enable', 'on');
     set(handles.RINEX_rover_nav, 'Enable', 'on');
     set(handles.RINEX_master_obs, 'Enable', 'on');
@@ -1558,20 +1628,20 @@ if (hObject == handles.rinex_files)
     set(handles.text_RINEX_rover_nav, 'Enable', 'on');
     set(handles.text_RINEX_master_obs, 'Enable', 'on');
     set(handles.text_RINEX_master_nav, 'Enable', 'on');
-    
+
     set(handles.gogps_data_input, 'Enable', 'off');
     set(handles.browse_gogps_input, 'Enable', 'off');
     set(handles.text_gogps_input, 'Enable', 'off');
-    
+
     set(handles.rinex_out, 'Enable', 'off');
-    
+
     contents = cellstr(get(handles.mode,'String'));
     if (strcmp(contents{get(handles.mode,'Value')},'Post-processing'))
         set(handles.master_pos, 'Enable', 'off');
         set(handles.master_pos, 'Value', 0);
         master_pos_Callback(handles.master_pos, eventdata, handles);
     end
-    
+
 else
     set(handles.RINEX_rover_obs, 'Enable', 'off');
     set(handles.RINEX_rover_nav, 'Enable', 'off');
@@ -1585,13 +1655,13 @@ else
     set(handles.text_RINEX_rover_nav, 'Enable', 'off');
     set(handles.text_RINEX_master_obs, 'Enable', 'off');
     set(handles.text_RINEX_master_nav, 'Enable', 'off');
-    
+
     set(handles.gogps_data_input, 'Enable', 'on');
     set(handles.browse_gogps_input, 'Enable', 'on');
     set(handles.text_gogps_input, 'Enable', 'on');
-    
+
     set(handles.rinex_out, 'Enable', 'on');
-    
+
     set(handles.master_pos, 'Enable', 'on');
     set(handles.master_pos, 'Value', 1);
     master_pos_Callback(handles.master_pos, eventdata, handles);
@@ -1628,6 +1698,11 @@ function plot_amb_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of plot_amb
+if (get(hObject,'Value'))
+    set(handles.no_skyplot_snr, 'Enable', 'off');
+else
+    set(handles.no_skyplot_snr, 'Enable', 'on');
+end
 
 
 function snr_thres_Callback(hObject, eventdata, handles)
@@ -2357,3 +2432,93 @@ function rinex_out_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of rinex_out
+
+
+
+function server_delay_Callback(hObject, eventdata, handles)
+% hObject    handle to server_delay (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of server_delay as text
+%        str2double(get(hObject,'String')) returns contents of server_delay as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function server_delay_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to server_delay (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on key press with focus on password and none of its controls.
+function password_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to password (see GCBO)
+% eventdata  structure with the following fields (see UICONTROL)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+show = get(handles.show_password,'Value');
+password = get(hObject,'Userdata');
+mask = get(hObject,'String');
+key = eventdata.Key;
+
+switch key
+    case 'backspace'
+        password = password(1:end-1); % Delete the last character in the password
+        if(show)
+            set(hObject,'String',password)% Set the text in the password edit box to the password
+        else
+            mask = mask(1:end-1); % Delete the last asterisk
+            set(hObject,'String',mask)% Set the text in the password edit box to the asterisk string
+        end
+    case 'delete'
+        password = password(2:end); % Delete the first character in the password
+        if(show)
+            set(hObject,'String',password)% Set the text in the password edit box to the password
+        else
+            mask = mask(2:end); % Delete the first asterisk
+            set(hObject,'String',mask)% Set the text in the password edit box to the asterisk string
+        end
+    otherwise
+        % If pressed key produces a printable character
+        if (uint8(eventdata.Character) > 32)
+            password = [password eventdata.Character]; % Add the typed character to the password
+            pause(0.001)%to avoid unwanted character output before the cursor
+            if(show)
+                set(hObject,'String',password)% Set the text in the password edit box to the password
+            else
+                mask = [mask '*']; % Add an asterisk
+                set(hObject,'String',mask)% Set the text in the password edit box to the asterisk string
+            end
+        end
+end
+
+set(hObject,'Userdata',password) % Store the password in its current state
+
+
+% --- Executes on button press in show_password.
+function show_password_Callback(hObject, eventdata, handles)
+% hObject    handle to show_password (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hint: get(hObject,'Value') returns toggle state of show_password
+if get(hObject,'Value')
+    password = get(handles.password,'Userdata');
+    set(handles.password,'String',password);
+else
+    SizePass = size(get(handles.password,'Userdata')); % Find the number of asterisks
+    if SizePass(2) > 0
+        asterisk(1,1:SizePass(2)) = '*'; % Create a string of asterisks the same size as the password
+        set(handles.password,'String',asterisk) % Set the text in the password edit box to the asterisk string
+    else
+        set(handles.password,'String','')
+    end
+end

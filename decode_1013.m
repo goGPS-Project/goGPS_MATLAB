@@ -24,10 +24,10 @@ function [data] = decode_1013(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -65,7 +65,7 @@ DF051 = bin2dec(msg(pos:pos+15));  pos = pos + 16;
 %UTC (sec)
 DF052 = bin2dec(msg(pos:pos+16));  pos = pos + 17;
 
-%Number of Message ID Announcements to Follow 
+%Number of Message ID Announcements to Follow
 DF053 = bin2dec(msg(pos:pos+4));  pos = pos + 5;
 
 %Leap Seconds,GPS-UTC

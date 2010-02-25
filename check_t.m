@@ -15,7 +15,7 @@ function [corrTime] = check_t(time)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 % Kai Borre 04-01-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009

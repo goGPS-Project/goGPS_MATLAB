@@ -35,10 +35,10 @@ function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -54,9 +54,6 @@ function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-
-%variable initialization
-global a f
 
 %rover position coordinates X Y Z
 X_R = pos_R(1);
@@ -102,8 +99,8 @@ elR = zeros(nsat,1);
 elM = zeros(nsat,1);
 
 %ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
-[azR, elR(i)] = topocent(pos_R, posP', a, f);
-[azM, elM(i)] = topocent(pos_M, posP', a, f);
+[azR, elR(i)] = topocent(pos_R, posP');
+[azM, elM(i)] = topocent(pos_M, posP');
 
 %atmospheric error computation
 if (nargin == 11)
@@ -130,47 +127,47 @@ for i = 1 : nsat
         posS = sat_corr(Eph, sat(i), time, pr_R(i), pos_R);
 
         %computation of the satellite azimuth and elevation
-        [azR, elR(i)] = topocent(pos_R, posS', a, f);
-        [azM, elM(i)] = topocent(pos_M, posS', a, f);
-        
-        
+        [azR, elR(i)] = topocent(pos_R, posS');
+        [azM, elM(i)] = topocent(pos_M, posS');
+
+
         %computation of ROVER-PIVOT and MASTER-PIVOT approximated pseudoranges
         prRS_app = sqrt(sum((pos_R - posS).^2));
         prMS_app = sqrt(sum((pos_M - posS).^2));
-        
+
         %observed code pseudoranges
         prRS_obs = pr_R(i);
         prMS_obs = pr_M(i);
-        
+
         %design matrix computation
         A = [A; (((pos_R(1) - posS(1)) / prRS_app) - ((pos_R(1) - posP(1)) / prRP_app)) ...
                 (((pos_R(2) - posS(2)) / prRS_app) - ((pos_R(2) - posP(2)) / prRP_app)) ...
                 (((pos_R(3) - posS(3)) / prRS_app) - ((pos_R(3) - posP(3)) / prRP_app))];
-        
+
         %computation of crossed approximated pseudoranges
         comb_pr_app = [comb_pr_app; (prRS_app - prMS_app) - (prRP_app - prMP_app)];
-        
+
         %computation of crossed observed pseudoranges
         comb_pr_obs = [comb_pr_obs; (prRS_obs - prMS_obs) - (prRP_obs - prMP_obs)];
-        
+
         %computation of crossed atmospheric errors
         if (nargin == 11)
-            
+
             %computation of tropospheric errors
             err_tropo_RS = err_tropo(elR(i), hR);
             err_tropo_MS = err_tropo(elM(i), hM);
-            
+
             %computation of ionospheric errors
             err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
             err_iono_MS = err_iono(iono, phiM, lamM, azM, elM(i), time);
-            
+
             %computation of crossed tropospheric errors
             tr = [tr; (err_tropo_RS - err_tropo_MS) - (err_tropo_RP - err_tropo_MP)];
-            
+
             %computation of crossed ionospheric errors
             io = [io; (err_iono_RS - err_iono_MS) - (err_iono_RP - err_iono_MP)];
         end
-        
+
     end
 end
 

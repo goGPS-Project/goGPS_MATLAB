@@ -24,10 +24,10 @@ function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -44,7 +44,6 @@ function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a f
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz
 global cutoff o1 o2 o3
 
@@ -64,7 +63,7 @@ T0 = eye(o1) + diag(ones(o1-1,1),1);
 %second degree polynomial
 % T0 = [1 1; 0 1];
 %third degree polynomial
-% T0 = [1 1 0; 0 1 1; 0 0 1] 
+% T0 = [1 1 0; 0 1 1; 0 0 1]
 
 %system dynamics
 %X(t+1)  = X(t) + Vx(t)
@@ -125,17 +124,17 @@ elM = zeros(32,1);
 distM = zeros(32,1);
 
 %satellite azimuth, elevation, ROVER-SATELLITE distance
-[azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_SAT, a, f);
+[azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_SAT);
 
-%elevation cut-off 
+%elevation cut-off
 sat_cutoff = find(elR > cutoff);
 sat = intersect(sat,sat_cutoff);
 
-%previous pivot 
+%previous pivot
 pivot_old = 0;
 
-%actual pivot 
-[null_max_elR, i] = max(elR(sat));
+%actual pivot
+[null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
 pivot = sat(i);
 
 %--------------------------------------------------------------------------------------------
@@ -163,7 +162,7 @@ else
     [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono); %#ok<NASGU>
 end
 
-%second iteration to improve the accuracy 
+%second iteration to improve the accuracy
 %obtained in the previous step (from some meters to some centimeters)
 if (phase(1) == 1)
     [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);

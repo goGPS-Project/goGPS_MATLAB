@@ -30,10 +30,10 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -136,12 +136,12 @@ end
 
 delay = time_GPS - time_R;                %processing delays
 
-loss_R = zeros(length(time_R),1);         %ROVER losses initialization 
-loss_M = zeros(length(time_M),1);         %MASTER losses initialization 
+loss_R = zeros(length(time_R),1);         %ROVER losses initialization
+loss_M = zeros(length(time_M),1);         %MASTER losses initialization
 
 pos = find(time_R == 0);                  %ROVER epochs with losses
 loss_R(pos) = 1;                          %flag for ROVER losses
 delay(pos) = -1;                          %delay corrections in case of losses
 
 pos = find(time_M == 0);                  %MASTER epochs with losses
-loss_M(pos) = 1;                          %flag for MASTER losses
+loss_M(pos) = 1;              %#ok<FNDSB> %flag for MASTER losses

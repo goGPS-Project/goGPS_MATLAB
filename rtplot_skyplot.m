@@ -19,10 +19,10 @@ function rtplot_skyplot (t, az, el, obs, pivot)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -52,7 +52,7 @@ subplot(2,3,3)
 if (t == 1)
 
     % define radial limits and step
-    rmin = 0;
+    rmin = 0; %#ok<NASGU>
     rmax = 90;
     rinc = 15;
 
@@ -184,8 +184,8 @@ end
 % SELECTION OF SATELLITE INFORMATION
 %----------------------------------------------------------------------------------------------
 
-rho = rho(sat);
-theta = theta(sat);
+rho = rho(sat); %#ok<NASGU>
+theta = theta(sat); %#ok<NASGU>
 
 x = x(sat);
 y = y(sat);
@@ -195,7 +195,7 @@ y = y(sat);
 %----------------------------------------------------------------------------------------------
 
 % delete previous labels and re-initialize them
-delete(labid(find(labid > 0)));
+delete(labid(labid > 0));
 labid = zeros(32,1);
 
 try
@@ -214,7 +214,7 @@ dY = Y-Y';
 for i = 1 : length(sat)
 
     if ~isempty(D)
-        [null, d] = min(D(:,i));
+        [null, d] = min(D(:,i)); %#ok<ASGLU>
     else
         d = 1;
     end

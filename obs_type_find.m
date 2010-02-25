@@ -19,10 +19,10 @@ function [col_L1, col_L2, col_P1_C1, col_P2] = obs_type_find(Obs_types)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %
 % Partially based on FOBS_TYP.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
