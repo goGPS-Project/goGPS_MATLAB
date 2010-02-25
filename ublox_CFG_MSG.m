@@ -1,7 +1,7 @@
-function [reply] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
+function [out] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 
 % SYNTAX:
-%   [reply] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
+%   [out] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 %
 % INPUT:
 %   serialObj = serial Object identifier
@@ -11,7 +11,7 @@ function [reply] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 %          1: enable periodic message
 %
 % OUTPUT:
-%   reply = receiver reply
+%   out = outcome of the request
 %
 % DESCRIPTION:
 %   Poll, enable or disable u-blox messages.
@@ -89,4 +89,4 @@ end
 %     fwrite(serialObj, codeDEC, 'uint8', 'async');
 % end
 
-[reply] = ublox_check_ACK(serialObj, ID1, ID2);
+[out] = ublox_check_ACK(serialObj, ID1, ID2);

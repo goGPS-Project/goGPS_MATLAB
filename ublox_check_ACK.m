@@ -1,7 +1,7 @@
-function [reply] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab)
+function [out] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab)
 
 % SYNTAX:
-%   [reply] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab);
+%   [out] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab);
 %
 % INPUT:
 %   serialObj = serial Object identifier
@@ -9,7 +9,7 @@ function [reply] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab)
 %   MsgIDLab  = u-blox message ID (label - e.g. 'RAW')
 %
 % OUTPUT:
-%   reply = receiver reply
+%   out = acknowledge outcome
 %
 % DESCRIPTION:
 %   Check acknowledge reply after polling u-blox messages.
@@ -37,6 +37,8 @@ function [reply] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+out = 0;
+
 % ACK-ACK message (without checksum)
 ACK_HEX = ['B5'; '62'; '05'; '01'; '02'; '00'; ClassLab; MsgIDLab];
 ACK_DEC = hex2dec(ACK_HEX);
@@ -57,7 +59,7 @@ ACK = [ACK_DEC; CK_A; CK_B];
 start_time = toc;
 
 %maximum waiting time
-dtMax = 1;
+dtMax = 0.5;
 
 reply_1 = 0;
 reply_2 = 0;
@@ -88,10 +90,6 @@ if (length(reply(index(end):end)) >= 10)
     reply = reply(index(end):index(end)+9);
 
     if (reply == ACK) %#ok<BDSCI>
-        reply = 1;
-    else
-        reply = 0;
+        out = 1;
     end
-else
-    reply = 0;
 end
