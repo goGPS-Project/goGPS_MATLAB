@@ -22,10 +22,10 @@ function [xR, Cxx, A] = code_SA(posR, pr1_R, time, Eph, iono)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -42,7 +42,7 @@ function [xR, Cxx, A] = code_SA(posR, pr1_R, time, Eph, iono)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a f v_light
+global v_light
 global cutoff
 
 %number of visible satellites
@@ -63,7 +63,7 @@ for i = 1 : length(sat)
     [posS dtS] = sat_corr(Eph, sat(i), time, pr1_R(sat(i)), posR);
 
     %computation of the satellite azimuth and elevation
-    [azR, elR, distR] = topocent(posR, posS', a, f);
+    [azR, elR, distR] = topocent(posR, posS'); %#ok<NASGU>
 
     %cut-off threshold to eliminate too low satellite observations
     if (elR > cutoff)

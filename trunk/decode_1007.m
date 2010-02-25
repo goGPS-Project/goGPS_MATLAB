@@ -19,10 +19,10 @@ function [data] = decode_1007(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -61,7 +61,7 @@ DF029 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
 DF030 = char(bin2dec(reshape(msg(pos:pos+8*DF029-1),8,[])'))';  pos = pos + 8*DF029;
 
 %antenna setup
-DF031 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+DF031 = bin2dec(msg(pos:pos+7));
 
 %--------------------------------------------------------------------------------------------
 

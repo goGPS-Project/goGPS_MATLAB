@@ -12,10 +12,10 @@ function goGPS_ublox_monitor(filerootOUT)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %nmea sentences
-fid_nmea = fopen([filerootOUT '_NMEA.txt'],'wt');
+fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
 
 %------------------------------------------------------
 % creation of the rover connection (u-blox)
@@ -95,6 +95,7 @@ end
 rover = serial (COMportR,'BaudRate',57600);
 set(rover,'InputBufferSize',16384);
 set(rover,'FlowControl','hardware');
+set(rover,'RequestToSend','on');
 fopen(rover);
 
 %------------------------------------------------------
@@ -113,50 +114,72 @@ while (~reply_save)
         disp('It was not possible to save the receiver configuration.');
         break
     end
+    %close and delete old serial object
     try
         fclose(rover);
+        delete(rover);
     catch
         stopasync(rover);
         fclose(rover);
+        delete(rover);
     end
+    % create new serial object
+    rover = serial (COMportR,'BaudRate',57600);
+    set(rover,'InputBufferSize',16384);
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
     fopen(rover);
     reply_save = ublox_CFG_CFG(rover, 'save');
 end
 
-% disable all NMEA messages
-fprintf('Disabling u-blox receiver NMEA messages...\n');
-
-% ublox_CFG_MSG(rover, 'NMEA', 'GGA', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GLL', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GSA', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GSV', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'RMC', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'VTG', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GRS', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GST', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'ZDA', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'GBS', 0);
-ublox_CFG_MSG(rover, 'NMEA', 'DTM', 0);
-ublox_CFG_MSG(rover, 'PUBX', '00', 0);
-ublox_CFG_MSG(rover, 'PUBX', '01', 0);
-ublox_CFG_MSG(rover, 'PUBX', '03', 0);
-ublox_CFG_MSG(rover, 'PUBX', '04', 0);
-
 % enable raw measurements output
 fprintf('Enabling u-blox receiver RAW measurements...\n');
 
-reply_RAW = 0;
+reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
 tries = 0;
 
 while (~reply_RAW)
     tries = tries + 1;
-    reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
-
-    if (tries > 10)
-        fclose(rover);
-        error('It was not possible to configure the receiver to provide RAW data.');
+    if (tries > 3)
+        disp('It was not possible to configure the receiver to provide RAW data.');
+        break
     end
+    %close and delete old serial object
+    try
+        fclose(rover);
+        delete(rover);
+    catch
+        stopasync(rover);
+        fclose(rover);
+        delete(rover);
+    end
+    % create new serial object
+    rover = serial (COMportR,'BaudRate',57600);
+    set(rover,'InputBufferSize',16384);
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
+    fopen(rover);
+    reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
 end
+
+% disable all NMEA messages
+fprintf('Disabling u-blox receiver NMEA messages:\n');
+
+% ublox_CFG_MSG(rover, 'NMEA', 'GGA', 0); fprintf('Disabling GGA... ');
+ublox_CFG_MSG(rover, 'NMEA', 'GLL', 0); fprintf('GLL ');
+ublox_CFG_MSG(rover, 'NMEA', 'GSA', 0); fprintf('GSA ');
+ublox_CFG_MSG(rover, 'NMEA', 'GSV', 0); fprintf('GSV ');
+ublox_CFG_MSG(rover, 'NMEA', 'RMC', 0); fprintf('RMC ');
+ublox_CFG_MSG(rover, 'NMEA', 'VTG', 0); fprintf('VTG ');
+ublox_CFG_MSG(rover, 'NMEA', 'GRS', 0); fprintf('GRS ');
+ublox_CFG_MSG(rover, 'NMEA', 'GST', 0); fprintf('GST ');
+ublox_CFG_MSG(rover, 'NMEA', 'ZDA', 0); fprintf('ZDA ');
+ublox_CFG_MSG(rover, 'NMEA', 'GBS', 0); fprintf('GBS ');
+ublox_CFG_MSG(rover, 'NMEA', 'DTM', 0); fprintf('DTM ');
+ublox_CFG_MSG(rover, 'PUBX', '00', 0); fprintf('PUBX00 ');
+ublox_CFG_MSG(rover, 'PUBX', '01', 0); fprintf('PUBX01 ');
+ublox_CFG_MSG(rover, 'PUBX', '03', 0); fprintf('PUBX03 ');
+ublox_CFG_MSG(rover, 'PUBX', '04', 0); fprintf('PUBX04\n');
 
 %------------------------------------------------------
 % absolute time startup
@@ -263,7 +286,7 @@ while flag
 
     %time reading (relative to start_time)
     current_time = toc;
-    
+
     %serial port checking
     rover_1 = get(rover,'BytesAvailable');
     pause(0.05);
@@ -315,13 +338,13 @@ while flag
                 %dep_pr_R(:,t)  = pr_R;
                 %dep_ph_R(:,t)  = ph_R;
                 %dep_snr_R(:,t) = snr_R;
-                
+
                 type = [type 'RXM-RAW '];
                 nRAW = nRAW + 1;
 
             %RXM-EPH message
             elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
-                
+
                 %satellite number
                 sat = cell_rover{2,i}(1);
 
@@ -335,10 +358,10 @@ while flag
             end
 
         end
-        
+
         if (~isempty(nmea_string))
             fprintf(fid_nmea, '%s', nmea_string);
-            
+
             type = [type 'NMEA '];
         end
 
@@ -400,12 +423,12 @@ end
 %load u-blox saved configuration
 if (reply_save)
     fprintf('Restoring saved u-blox receiver configuration...\n');
-    
+
     reply_load = ublox_CFG_CFG(rover, 'load');
     tries = 0;
-    
+
     while (~reply_load)
-        tries = tries + 1;        
+        tries = tries + 1;
         if (tries > 3)
             disp('It was not possible to reload the receiver previous configuration.');
             break
@@ -416,6 +439,7 @@ end
 
 %connection closing
 fclose(rover);
+delete(rover);
 
 %data files closing
 fclose(fid_rover);

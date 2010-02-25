@@ -16,7 +16,7 @@ function [p] = lorentz(x,y)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 % Kai Borre 04-22-95
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009

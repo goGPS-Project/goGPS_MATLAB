@@ -7,7 +7,7 @@ function [data] = decode_1003(msg)
 %   msg = binary message received from the master station
 %
 % OUTPUT:
-%   data = cell-array that contains the 1003 packet information 
+%   data = cell-array that contains the 1003 packet information
 %          1.1)  DF002 = message number = 1003
 %          2.1)  DF003 = reference station id
 %          2.2)  (DF004 / 1000) = time of week in seconds (GPS epoch)
@@ -30,10 +30,10 @@ function [data] = decode_1003(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -99,41 +99,41 @@ NSV = data{2}(4);
 
 %data decoding for each satellite
 for i = 1 : NSV
-    
+
     %analyzed satellite number
     SV = bin2dec(msg(pos:pos+5));  pos = pos + 6;
-    
+
     %if GPS satellite
     if (SV >= 1 & SV <= 32)
-        
+
         %L1 code type (C/A=0, P=1)
         DF010 = bin2dec(msg(pos));  pos = pos + 1;
-        
+
         %L1 pseudorange
         DF011 = bin2dec(msg(pos:pos+23));  pos = pos + 24;
-        
+
         %L1 phaserange - L1 pseudorange
         DF012 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
-        
+
         %L1 lock-time index (see Table 4.3-2 on RTCM manual)
         DF013 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
-        
+
         %---------------------------------------------------------
-        
+
         %L2 code type (C/A=0, P=1,2,3)
         DF016 = bin2dec(msg(pos:pos+1));  pos = pos + 2;
-        
+
         %L2-L1 pseudorange
         DF017 = twos_complement(msg(pos:pos+13));  pos = pos + 14;
-        
+
         %L2 phaserange - L1 pseudorange
         DF018 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
-        
+
         %indice di lock-time L2 (vedi Tabella 4.3-2 su manuale RTCM)
         DF019 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
-        
+
         %---------------------------------------------------------
-        
+
         %output data save
         data{3}(SV,1)  = DF010;
         data{3}(SV,2)  = (DF011 * 0.02);
@@ -143,12 +143,12 @@ for i = 1 : NSV
         data{3}(SV,6)  = (data{3}(SV,2) + (DF017 * 0.02));
         data{3}(SV,7)  = (data{3}(SV,2) + (DF018*0.0005)) / lambda2;
         data{3}(SV,8)  = DF019;
-        
+
     else %SBAS satellites
-        
+
         %do not store SBAS satellite information
         pos = pos + 95;
-        
+
     end
-    
+
 end

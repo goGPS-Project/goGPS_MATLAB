@@ -7,7 +7,7 @@ function [data] = decode_1005(msg)
 %   msg = binary message received from the master station
 %
 % OUTPUT:
-%   data = cell-array that contains the 1005 packet information 
+%   data = cell-array that contains the 1005 packet information
 %          1.1)  DF002 = message number = 1005
 %          2.1)  DF003 = reference station id
 %          2.2)  DF021 = ITRF year reference frame (default = 0)
@@ -26,10 +26,10 @@ function [data] = decode_1005(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -91,7 +91,7 @@ DF026 = twos_complement(msg(pos:pos+37));  pos = pos + 38;
 pos = pos + 2;
 
 %antenna Z coordinate
-DF027 = twos_complement(msg(pos:pos+37));  pos = pos + 38;
+DF027 = twos_complement(msg(pos:pos+37));
 
 %--------------------------------------------------------------------------------------------
 

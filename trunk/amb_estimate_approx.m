@@ -1,5 +1,5 @@
 function [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, ...
-         pr_Rsat, pr_Msat, ph_Rsat, ph_Msat, Eph, time, pivot, sat, phase)
+         pr_Rsat, pr_Msat, ph_Rsat, ph_Msat, Eph, time, pivot, sat, phase) %#ok<INUSL>
 
 % SYNTAX:
 %   [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, ...
@@ -15,7 +15,7 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_
 %   ph_Msat = MASTER-SATELLITE phase-pseudorange
 %   Eph = ephemerides matrix
 %   time = GPS time
-%   pivot = PIVOT satellite 
+%   pivot = PIVOT satellite
 %   sat = configuration of satellites in view
 %   phase = carrier L1 (phase=1), carrier L2 (phase=2)
 %
@@ -32,10 +32,10 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

@@ -27,7 +27,7 @@ function [data] = decode_18(msg, n_words, modz)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 % ** Graduate School for Creative Cities, Media Center, Osaka City University, Japan
@@ -57,52 +57,52 @@ data{2} = zeros(2,1);
 data{3} = zeros(32,7);
 
 if (pos + n_words*30-1 <= length(msg))
-    
+
     for i = 1 : n_words
         [parity(i), decoded_word(i,1:24)] = check_parity(msg(pos-2:pos-1), msg(pos:pos+29));
         pos = pos + 30;
     end
-    
+
     if (parity)
-        
+
         %message type = 18
         type = 18;
 
         %frequency indicator
         F = bin2dec(decoded_word(1,1:2));
-        
+
         %time of measurement (seconds of the hour)
         time = bin2dec(decoded_word(1,5:24));
-        
+
         %output data save
         data{1} = type;
         data{2}(1) = F;
         data{2}(2) = 0.6*modz + time*1e-6;
-        
+
         for i = 1 : (n_words-1)/2
-            
+
             %multiple message indicator
             MMI = bin2dec(decoded_word(i*2,1));
-            
+
             %C/A - P code indicator
             CI = bin2dec(decoded_word(i*2,2));
-            
+
             %GPS/GLONASS satellite constellation indicator
             sys = bin2dec(decoded_word(i*2,3));
-            
+
             %satellite ID
             SV = bin2dec(decoded_word(i*2,4:8));
             if (SV == 0); SV=32; end
-            
+
             %data quality
             DQ = bin2dec(decoded_word(i*2,9:11));
-            
+
             %cumulative loss of continuity indicator
             loss = bin2dec(decoded_word(i*2,12:16));
-            
+
             %carrier phase
             ph = twos_complement([decoded_word(i*2,17:24) decoded_word(i*2+1,1:24)]);
-            
+
             %data output save
             data{3}(SV,1) = MMI;
             data{3}(SV,2) = CI;

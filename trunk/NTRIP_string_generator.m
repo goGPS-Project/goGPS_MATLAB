@@ -12,10 +12,10 @@ function [ntripstring] = NTRIP_string_generator(nmeastring)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -49,5 +49,5 @@ if (nargin  == 0)
 else
     nmeastring = sprintf('%s\r\n',nmeastring);
 end
-    
+
 ntripstring = sprintf('GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: NTRIP goGPS\r\nConnection: close\r\nAuthorization: Basic %s\r\n\r\n%s\r\n', ntrip_mountpoint, master_ip, encoded_auth, nmeastring);

@@ -39,10 +39,10 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -182,7 +182,7 @@ while (~feof(FR_oss))
     ph2_M(:,k) = zeros(32,1);
     snr_R(:,k) = zeros(32,1);
     snr_M(:,k) = zeros(32,1);
-    
+
     %variable initialization (GLONASS)
     pr1_RR(:,k) = zeros(32,1);
     pr2_RR(:,k) = zeros(32,1);
@@ -203,7 +203,7 @@ while (~feof(FR_oss))
         ph1_R(sat_R,k) = mat_oss_R(:,col_ph1_R);
         %ph2_R(sat_R,k) = mat_oss_R(:,col_ph2_R);
         snr_R(sat_R,k) = snr_R_single(:,1);
-        
+
         %read ROVER observations (GLONASS)
 %         pr1_RR(sat_R,k) = mat_oss_RR(:,col_cod1_R);
 %         %pr2_RR(sat_R,k) = mat_oss_RR(:,col_cod2_R);
@@ -235,7 +235,7 @@ while (~feof(FR_oss))
         ph1_M(sat_M,k) = mat_oss_M(:,col_ph1_M);
         %ph2_M(sat_M,k) = mat_oss_M(:,col_ph2_M);
         snr_M(sat_M,k) = snr_M_single(:,1);
-        
+
         %read MASTER observations (GLONASS)
 %         pr1_MR(sat_M,k) = mat_oss_MR(:,col_cod1_M);
 %         %pr2_MR(sat_M,k) = mat_oss_MR(:,col_cod2_M);

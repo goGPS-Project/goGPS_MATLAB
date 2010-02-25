@@ -20,10 +20,10 @@ function rttext_sat (t, az, el, snr, obs, pivot)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -87,7 +87,7 @@ for i = 1 : 32
 
         delete(satid(i))
         satid(i) = 0;
-        
+
         for j = i+1 : 32
             if (satid(j) > 0)
                 pos = get(satid(j),'Position');

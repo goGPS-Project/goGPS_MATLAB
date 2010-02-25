@@ -17,10 +17,10 @@ function [data, nmea_string] = decode_ublox(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -73,13 +73,13 @@ nmea_string = '';
 
 % find the index of the first message, if any
 if (~isempty(pos_UBX) & ~isempty(pos_NMEA))
-    
+
     if (pos_UBX(1) < pos_NMEA(1))
         pos = pos_UBX(1);
     else
         pos = pos_NMEA(1);
     end
-    
+
 elseif (~isempty(pos_UBX))
     pos = pos_UBX(1);
 
@@ -89,7 +89,7 @@ elseif (~isempty(pos_NMEA))
 else
     return
 end
-    
+
 %----------------------------------------------------------------------------------------------
 % MESSAGE DECODING LOOP
 %----------------------------------------------------------------------------------------------
@@ -109,15 +109,15 @@ while (pos + 15 <= length(msg))
         pos = pos + 16;
 
         if (pos + 31 <= length(msg))
-            
+
             % message class (1 byte)
             class = bin2dec(msg(pos:pos+7));  pos = pos + 8;
             class = dec2hex(class,2);
-            
+
             % message id (1 byte)
             id = bin2dec(msg(pos:pos+7));  pos = pos + 8;
             id = dec2hex(id,2);
-            
+
             % payload length (2 bytes)
             LEN1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
@@ -125,29 +125,29 @@ while (pos + 15 <= length(msg))
             clear LEN1 LEN2
 
             if (pos + 8*LEN + 15 <= length(msg))
-                
+
                 % checksum
                 CK_A = 0; CK_B = 0;
                 for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
                     CK_A = CK_A + bin2dec(msg(j:j+7));
                     CK_B = CK_B + CK_A;
                 end
-                
+
                 CK_A = dec2bin(mod(CK_A,256), 8);
                 CK_B = dec2bin(mod(CK_B,256), 8);
-                
+
                 % if checksum matches
                 if strcmp(msg(pos + 8*LEN:pos + 8*LEN + 7), CK_A) & strcmp(msg(pos + 8*LEN + 8:pos + 8*LEN + 15), CK_B)
-                    
+
                     % message identification
                     switch class
-                        
+
                         % RXM (receiver manager)
                         case '02'
                             switch id
                                 % RAW (raw measurement)
                                 case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
-                                    
+
                                 % EPH (ephemerides)
                                 case '31'
                                     if (LEN == 104) %(ephemerides available)
@@ -155,39 +155,57 @@ while (pos + 15 <= length(msg))
                                     end
                             end
                     end
-                    
+
                 else
                     %fprintf('Checksum error!\n');
                 end
-                
+
                 % skip the message body
                 pos = pos + 8*LEN;
-                
+
                 % skip the 2 checksum bytes
                 pos = pos + 16;
             else
                 break
             end
-            
+
         else
             break
         end
 
-    % check if a NMEA message is starting
+    % check if a NMEA sentence is starting
     elseif (pos + 23 <= length(msg)) & (strcmp(msg(pos:pos+23),codeBIN_NMEA))
-
-        % save the NMEA message (search for <CR>)
-        while (pos + 7 <= length(msg)) & (bin2dec(msg(pos:pos+7)) ~= 13)
+        
+        % search for <CR><LF>
+        % The maximum number of characters for a valid NMEA 0183 sentence
+        % is 82, but in order not to miss invalid length NMEA sentences
+        % (i.e. not standard), a maximum of 100 characters is used.
+        % Thus the search for the end delimiter is restricted within
+        % 100*8 = 800 bits or the end of the message whichever comes first.
+        if ((length(msg)-pos)<799)
+            pos_ENDNMEA = findstr(msg(pos:end),[dec2bin(13,8) dec2bin(10,8)]);
+        else
+            pos_ENDNMEA = findstr(msg(pos:pos+799),[dec2bin(13,8) dec2bin(10,8)]);
+        end
+        
+        if ~isempty(pos_ENDNMEA)
+            % save the NMEA sentence
+            while (~strcmp(msg(pos:pos+7),'00001101'))
+                nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
+                pos = pos + 8;
+            end
+            
+            % save just <LF> (without <CR>, otherwise MATLAB fails in interpreting it)
+            pos = pos + 8;
             nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
             pos = pos + 8;
+        else
+            % if a NMEA sentence is started but its end is not available,
+            % just jump over the header and continue
+            pos = pos + 24;
         end
 
-        % save just <LF> (without <CR>, otherwise MATLAB fails in interpreting it)
-        pos = pos + 8;
-        nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
-        pos = pos + 8;
-
-    % check if there are remaining packages
+    % check if there are other packages
     else
 
         % find the index of the first UBX message, if any

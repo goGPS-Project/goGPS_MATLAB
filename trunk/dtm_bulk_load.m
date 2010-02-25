@@ -14,10 +14,10 @@ function dtm_bulk_load(dtm_dir_path, tile_size)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -58,7 +58,7 @@ for i = 1 : nmax
 
     %check that the filename has the ".hdr" extension
     if (fn_length >= 4 & strcmp(got(fn_length - 3 : fn_length), '.hdr'))
-        
+
         j = j+1;
 
         dtm_target = strcat(dtm_dir_path, '/', got);
@@ -123,7 +123,7 @@ extents = [min(W_border), max(N_border), min(S_border), max(E_border)];
 tile_col_num = ceil((extents(4) - extents(1))/(tile_size*cellsize));
 tile_row_num = ceil((extents(2) - extents(3))/(tile_size*cellsize));
 
-tile_header = struct('ncols',tile_size,'nrows',tile_size,'cellsize',cellsize,'nodata',nodata);
+tile_header = struct('ncols',tile_size,'nrows',tile_size,'cellsize',cellsize,'nodata',nodata); %#ok<NASGU>
 tile_georef = [];
 
 %bounding box initialization (W N S E ground coordinates) for the first tile (upper left)

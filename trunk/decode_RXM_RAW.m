@@ -16,7 +16,7 @@ function [data] = decode_RXM_RAW(msg)
 %          3.1) CPM  = phase measurements (in cycles)
 %          3.2) PRM  = pseudorange measurements (C/A code in meters)
 %          3.3) DOM  = doppler measurements (in Hertz)
-%          3.4) SV   = space vehicle number 
+%          3.4) SV   = space vehicle number
 %          3.5) MQI  = measurement quality index
 %          3.6) CNO  = signal-to-noise ratio (in dbHz)
 %          3.7) LLI  = loss of lock indicator
@@ -27,10 +27,10 @@ function [data] = decode_RXM_RAW(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -46,8 +46,6 @@ function [data] = decode_RXM_RAW(msg)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-
-global lambda1
 
 % first message initial index
 pos = 1;
@@ -148,7 +146,7 @@ for j = 1 : NSV
 
     % exclude EGNOS satellites (SV = 121, 122, etc.)
     if (SV <= 32)
-        
+
         % phase, code and doppler measure save
         CPM = L1;
         PRM = C1;
@@ -175,7 +173,7 @@ for j = 1 : NSV
         data{3}(SV,5) = MQI;
         data{3}(SV,6) = CNO;
         data{3}(SV,7) = LLI;
-    
+
     else
         pos = pos+24;
     end

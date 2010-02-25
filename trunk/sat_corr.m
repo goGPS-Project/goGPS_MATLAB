@@ -21,7 +21,7 @@ function [X, tcorr] = sat_corr(Eph, sat, time, pr_Rsat, pos_R)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 % Kai Borre and C.C. Goad 11-24-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009

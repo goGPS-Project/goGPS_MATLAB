@@ -7,10 +7,10 @@
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -91,13 +91,13 @@ global T
 global I
 
 %state estimation at time t
-global Xhat_t_t 
+global Xhat_t_t
 
 %state estimation at time t+1 (using dynamics only)
 global X_t1_t
 
 %estimation error covariance matrix at time t
-global Cee 
+global Cee
 
 %number of visible satellites at time t
 global nsat  %%% Developer's note: OBSOLETE %%%
@@ -106,7 +106,7 @@ global nsat  %%% Developer's note: OBSOLETE %%%
 global conf_sat
 
 %cycle-slip configuration (1: cs, 0: no cs) at time t
-global conf_cs 
+global conf_cs
 
 %index of the current pivot satellite
 global pivot
@@ -135,26 +135,20 @@ nN = [];
 %-------------------------------------------------------------------------------
 
 %constrained trajectory
-global s0 
-global ax
-global ay
-global az
-global Yhat_t_t
-global Y_t1_t
+global s0 %#ok<NUSED>
+global ax ay az %#ok<NUSED>
+global Yhat_t_t Y_t1_t %#ok<NUSED>
 
 %-------------------------------------------------------------------------------
 % REAL-TIME MANAGEMENT
 %-------------------------------------------------------------------------------
-global master rover
+global master rover %#ok<NUSED>
 
 %-------------------------------------------------------------------------------
 % MASTER STATION
 %-------------------------------------------------------------------------------
 
-global server_delay nmea_update_rate
-
-%server waiting time (to check if packet transmission is finished)
-server_delay = 0.05;
+global nmea_update_rate
 
 %NMEA update rate (waiting time for sending a new $GGA string to NTRIP caster)
 nmea_update_rate = 10; %[sec]
@@ -163,10 +157,10 @@ nmea_update_rate = 10; %[sec]
 % INTERNET CONNECTION
 %-------------------------------------------------------------------------------
 
-global connection_delay
-
-%waiting time for the Internet connection to be established
-connection_delay = 5;
+% global connection_delay
+% 
+% %waiting time for the Internet connection to be re-established
+% connection_delay = 5;
 
 %-------------------------------------------------------------------------------
 % MATLAB DISPLAY
@@ -175,6 +169,7 @@ connection_delay = 5;
 global p_max pid
 global satid labid pivid
 global window
+global EST_O NORD_O
 global x_circle id_ellipse
 
 %maximum number of drawn trajectory points
@@ -193,6 +188,10 @@ msid = [];
 
 %dimension of the time windows (ambiguity plot)
 window = 20;
+
+%reference origin
+EST_O = 0;
+NORD_O = 0;
 
 %reference circle (for covariance plot)
 try
@@ -220,3 +219,16 @@ global link_filename kml_filename
 %files used by Google Earth
 link_filename = '../data/google_earth/link.kml';
 kml_filename = '../data/google_earth/goGPS.kml';
+
+%-------------------------------------------------------------------------------
+% AMBIGUITY ESTIMATION
+%-------------------------------------------------------------------------------
+
+global flag_LS_N_estim
+
+%use least squares ambiguity estimation when new satellites
+% are available and when cycle slips occur (0 = NO; 1 = YES)
+%
+% NOTE: LS amb. estimation is automatically switched off when the number of
+% satellites with phase available is not sufficient (< 4 incl. pivot)
+flag_LS_N_estim = 1;

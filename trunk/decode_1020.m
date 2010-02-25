@@ -10,11 +10,11 @@ function [data] = decode_1020(msg)
 %   data = cell-array that contains the 1020 packet information
 %          1.1) DF002 = message number = 1020
 %          2.1) DF038 = GLONASS satellite ID
-%          2.12) (DF040 - 7) * 0.5625 + 1602.0 = frequency on L1 
+%          2.12) (DF040 - 7) * 0.5625 + 1602.0 = frequency on L1
 %          2.13) (DF040 - 7) * 0.4375 + 1246.0 = frequency on L2
 %               DF104 = GLONASS almanac health - Cn (0=non-operability, 1=operability of n-satellite)
 %               DF105 = GLONASS almanac health availability indicator (0=not available, 1=available)
-%               DF106_1 = GLONASS P1 (DF106) - time interval between two adjacent values of tb (minutes)(00 = 0 min, 01 = 30 min, 10 = 45 min, 11=60 min)    
+%               DF106_1 = GLONASS P1 (DF106) - time interval between two adjacent values of tb (minutes)(00 = 0 min, 01 = 30 min, 10 = 45 min, 11=60 min)
 %          2.4) DF107 = GLONASS tk - time referenced to the beginning of the frame within the current day (sec)
 %          2.8) DF108 = GLONASS MSB of Bn word (1 = malfunctioning of given satellite)
 %               DF109 = GLONASS P2 - flag of oddness (1) or evenness (0) of the value of tb
@@ -42,20 +42,20 @@ function [data] = decode_1020(msg)
 %               DF131 = GLONASS additional data (0 - no data)
 %               DF132 = GLONASS calendar number of day within the four-year period to which ?c is referenced.
 %               DF133 = GLONASS tau-c - Difference between GLONASS system time and UTC(SU) (referred to Na).
-%               DF134 = GLONASS-M N4 = GLONASS year interval number starting from 1996 
+%               DF134 = GLONASS-M N4 = GLONASS year interval number starting from 1996
 %               DF135 = GLONASS-M tauGPS = correction to GPS system time relative to GLONASS system time
 %               DF136 = GLONASS-M ln = satellite health flag - (1 = malfunctioning)
-%              
+%
 % DESCRIPTION:
 %   RTCM format 1020 message decoding.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -96,7 +96,7 @@ DF040_1 = (DF040 - 7) * 0.5625 + 1602.0;
 DF040_2 = (DF040 - 7) * 0.4375 + 1246.0;
 
 %GLONASS almanac health (Cn word)
-DF104 = bin2dec(msg(pos)); pos = pos + 1;
+DF104 = bin2dec(msg(pos)); pos = pos + 1; %#ok<*NASGU>
 
 %GLONASS almanac health availability indicator (DF105)
 DF105 = bin2dec(msg(pos)); pos = pos + 1;
@@ -104,8 +104,8 @@ DF105 = bin2dec(msg(pos)); pos = pos + 1;
 %GLONASS P1
 DF106_1 = (msg(pos:pos+1)); pos = pos + 2;
 
-switch DF106_1 
-    %0 minutes 
+switch DF106_1
+    %0 minutes
     case '00'
         DF106 = 0;
     %30 minutes
@@ -117,9 +117,9 @@ switch DF106_1
     %60 minutes
     case '11'
         DF106 = 60;
-end        
-        
-%GLONASS tk 
+end
+
+%GLONASS tk
 %number of thirty-second intervals
 DF107_1 = bin2dec(msg(pos:pos)); pos = pos + 1;
 
@@ -130,9 +130,9 @@ DF107_2 = bin2dec(fliplr(msg(pos:pos+5))); pos = pos + 6;
 DF107_3 = bin2dec(fliplr(msg(pos:pos+4))); pos = pos + 5;
 
 %time referenced to the beginning of the frame within the current day (sec)
-DF107 = DF107_1 * 30 + DF107_2 * 60 + DF107_3 * 60 * 60; 
+DF107 = DF107_1 * 30 + DF107_2 * 60 + DF107_3 * 60 * 60;
 
-%GLONASS MSB of Bn word 
+%GLONASS MSB of Bn word
 DF108 = bin2dec(msg(pos)); pos = pos + 1;
 
 %GLONASS P2
@@ -142,7 +142,7 @@ DF109 = bin2dec(msg(pos)); pos = pos + 1;
 DF110 = bin2dec(msg(pos:pos+6)) * 15 * 60; pos = pos + 7;
 
 %GLONASS ECEF-X component of satellite velocity vector
-%sign 0 = +, 1 = - 
+%sign 0 = +, 1 = -
 DF111_1 = bin2dec(msg(pos)); pos=pos+1;
 %velocity component
 DF111_2 = bin2dec(msg(pos:pos+22))*(2^-20); pos = pos + 23;
@@ -151,8 +151,8 @@ if (DF111_1 == 0)
     else
     DF111 = DF111_2*(-1);
 end
-    
-% GLONASS ECEF-X component of satellite coordinates 
+
+% GLONASS ECEF-X component of satellite coordinates
 DF112_1 = bin2dec(msg(pos)); pos=pos + 1;
 %coordinate component
 DF112_2 = bin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
@@ -171,7 +171,7 @@ if (DF113_1 == 0)
     DF113 = DF113_2*(-1);
 end
 
-%GLONASS ECEF-Y component of satellite velocity vector 
+%GLONASS ECEF-Y component of satellite velocity vector
 DF114_1 = bin2dec(msg(pos)); pos = pos + 1;
 DF114_2 = bin2dec(msg(pos:pos+22)) * (2^-20); pos = pos + 23;
 if (DF114_1 == 0)
@@ -180,7 +180,7 @@ if (DF114_1 == 0)
     DF114 = DF114_2*(-1);
 end
 
-%GLONASS ECEF-Y component of satellite coordinates 
+%GLONASS ECEF-Y component of satellite coordinates
 DF115_1 = bin2dec(msg(pos)); pos = pos + 1;
 DF115_2 = bin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
 if (DF115_1 == 0)
@@ -198,7 +198,7 @@ if (DF116_1 == 0)
     DF116 = DF116_2*(-1);
 end
 
-%GLONASS ECEF-Z component of satellite velocity vector 
+%GLONASS ECEF-Z component of satellite velocity vector
 DF117_1 = bin2dec(msg(pos)); pos = pos + 1;
 DF117_2 = bin2dec(msg(pos:pos+22)) * (2^-20); pos = pos + 23;
 if (DF117_1 == 0)
@@ -207,7 +207,7 @@ if (DF117_1 == 0)
     DF117 = DF117_2*(-1);
 end
 
-%GLONASS ECEF-Z component of satellite coordinates 
+%GLONASS ECEF-Z component of satellite coordinates
 DF118_1 = bin2dec(msg(pos)); pos = pos + 1;
 DF118_2 = bin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
 if (DF118_1 == 0)
@@ -287,7 +287,7 @@ DF131 = bin2dec(msg(pos)); pos = pos + 1;
 DF132 = bin2dec(msg(pos:pos+10)); pos = pos + 11;
 
 %GLONASS tau-c (sec)
-DF133_1 = bin2dec(msg(pos)); pos = pos + 1;  
+DF133_1 = bin2dec(msg(pos)); pos = pos + 1;
 DF133_2 = bin2dec(msg(pos:pos+30)) * (2^-31); pos = pos + 31;
 if (DF133_1 == 0)
     DF133 = DF133_2;
@@ -299,7 +299,7 @@ end
 DF134 = bin2dec(msg(pos:pos+4)) * 4; pos = pos + 5;
 
 %GLONASS-M tauGPS
-DF135_1 = bin2dec(msg(pos)); pos = pos + 1;  
+DF135_1 = bin2dec(msg(pos)); pos = pos + 1;
 DF135_2 = bin2dec(msg(pos:pos+20)) * (2^-31); pos = pos + 21;
 if (DF135_1 == 0)
     DF135 = DF135_2;

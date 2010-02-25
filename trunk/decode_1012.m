@@ -25,7 +25,7 @@ function [data] = decode_1012(msg)
 %          3.8)  (oss. di codice L1 + (DF048*0.0005)) / lambda2 = phase observation vector on L2
 %          3.9)  DF049 = how long L2 has been locked? index vector (cycle-slip=0)
 %          3.10) (DF050 * 0.25) = signal-to-noise ratio vector in dBHz on L2(from 0 to 63.75 dBHz)
-%          3.11) (DF040 - 7) * 0.5625 + 1602.0 = frequency vector on L1 
+%          3.11) (DF040 - 7) * 0.5625 + 1602.0 = frequency vector on L1
 %          3.12) (DF040 - 7) * 0.4375 + 1246.0 = frequency vector on L2
 %
 % DESCRIPTION:
@@ -34,10 +34,10 @@ function [data] = decode_1012(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -103,65 +103,65 @@ NSV = data{2}(4);
 
 %data decoding for every satellite
 for i = 1 : NSV
-    
+
     %analyzed satellite number
     SV = bin2dec(msg(pos:pos+5));  pos = pos + 6;
-    
+
     %if GLONASS satellite (known slot)
     if (SV >= 1 & SV <= 24)
-        
+
         %code type (C/A=0, P=1)
         DF039 = bin2dec(msg(pos));  pos = pos + 1;
-        
+
         %frequency indicator
         DF040 = bin2dec(msg(pos:pos+4));  pos = pos + 5;
-        
+
         %L1 pseudorange
         DF041 = bin2dec(msg(pos:pos+24));  pos = pos + 25;
-        
+
         %L1 phaserange - L1 pseudorange
         DF042 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
-        
+
         %L1 lock-time index (see Table 4.3-2 on RTCM manual)
         DF043 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
-        
+
         %L1 pseudorange integer ambiguity
         DF044 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
-        
+
         %L1-CNR (carrier-to-noise ratio) apart from resolution
         DF045 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-        
+
         %---------------------------------------------------------
-        
+
         %L2 code type (C/A=0, P=1,2,3)
         DF046 = bin2dec(msg(pos:pos+1));  pos = pos + 2;
-        
+
         %L2-L1 pseudorange
         DF047 = twos_complement(msg(pos:pos+13));  pos = pos + 14;
-        
+
         %L2 phaserange - L1 pseudorange
         DF048 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
-        
+
         %L2lock-time index (see Table 4.3-2 on RTCM manual)
         DF049 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
-        
+
         %L2-CNR (carrier-to-noise ratio) apart from resolution
         DF050 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-        
+
         %---------------------------------------------------------
-        
+
         %L1 carrier frequency [MHz]
         data{3}(SV,11) = (DF040 - 7) * 0.5625 + 1602.0;
-        
+
         %L2 carrier frequency [MHz]
         data{3}(SV,12) = (DF040 - 7) * 0.4375 + 1246.0;
-        
+
         %debugging
         %v_light / (data{3}(SV,11) * 1e6)
         %v_light / (data{3}(SV,12) * 1e6)
-        
+
         %---------------------------------------------------------
-        
+
         %output data save
         data{3}(SV,1)  = DF039;
         data{3}(SV,2)  = (DF041 * 0.02) + (DF044 * 599584.92);
@@ -173,12 +173,12 @@ for i = 1 : NSV
         data{3}(SV,8)  = (data{3}(SV,2) + (DF048 * 0.0005)) * data{3}(SV,12) * 1e6 / v_light;
         data{3}(SV,9)  = DF049;
         data{3}(SV,10) = DF050 * 0.25;
-        
+
     else %SBAS satellites
-        
+
         %do not store SBAS satellite information
         pos = pos + 124;
-        
+
     end
 
 end

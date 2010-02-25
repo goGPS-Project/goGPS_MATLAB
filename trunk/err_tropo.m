@@ -23,7 +23,7 @@ function [tropocorr] = err_tropo(elev, h)
 elev=abs(elev);
 
 %pressure [mbar]
-Pr = 1013.25; 
+Pr = 1013.25;
 %temperature [K]
 Tr = 291.15;
 %numerical constants for the algorithm [-] [m] [mbar]

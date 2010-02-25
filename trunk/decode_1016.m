@@ -12,11 +12,11 @@ function [data] = decode_1016(msg)
 %          2.2)  DF059 = Network ID
 %          2.3)  DF072 = Subnetwork ID
 %          2.4)  DF065 = GPS epoch time (TOW) (seconds)
-%          2.5)  DF066 = GPS multiple message indicator (0 = last message, 1 = message with same message number and epoch time transmitted in sequence) 
+%          2.5)  DF066 = GPS multiple message indicator (0 = last message, 1 = message with same message number and epoch time transmitted in sequence)
 %          2.6)  DF060 = Master reference station ID
 %          2.7)  DF061 = Auxiliary reference station ID
 %          2.8)  DF067 = # of GPS sats
-%          3.1)  DF074 = Ambiguity status flag (0 = reserved, 1 = Correct Integer Ambiguity Level for L1 and L2, 2 = Correct Integer Ambiguity Level for L1-L2 widelane, 3 = Uncertain Integer Ambiguity Level)  
+%          3.1)  DF074 = Ambiguity status flag (0 = reserved, 1 = Correct Integer Ambiguity Level for L1 and L2, 2 = Correct Integer Ambiguity Level for L1-L2 widelane, 3 = Uncertain Integer Ambiguity Level)
 %          3.2)  DF075 = GPS non sync count (cycle slip counter)
 %          3.3)  DF070 = GPS geometric carrier phase correction difference (mm)
 %          3.4)  DF071 = GPS IODE
@@ -27,10 +27,10 @@ function [data] = decode_1016(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -115,5 +115,5 @@ for i = 1 : DF067
     data{3}(SV,2)  = DF075;
     data{3}(SV,3)  = DF070;
     data{3}(SV,4)  = DF071;
-   
+
 end

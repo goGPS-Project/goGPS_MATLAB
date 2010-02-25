@@ -17,10 +17,10 @@ function kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr2_Rsat, phase)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -37,7 +37,6 @@ function kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr2_Rsat, phase)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a f
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz
 global cutoff o1 o2 o3
 
@@ -57,7 +56,7 @@ T0 = eye(o1) + diag(ones(o1-1,1),1);
 %second degree polynomial
 % T0 = [1 1; 0 1];
 %third degree polynomial
-% T0 = [1 1 0; 0 1 1; 0 0 1] 
+% T0 = [1 1 0; 0 1 1; 0 0 1]
 
 %system dynamics
 %X(t+1)  = X(t) + Vx(t)
@@ -74,7 +73,7 @@ I = eye(o3);
 Cvv = zeros(o3);
 Cvv(o1,o1) = sigmaq_velx;
 Cvv(o2,o2) = sigmaq_vely;
-Cvv(o3,o3) = sigmaq_velz;
+Cvv(o3,o3) = sigmaq_velz; %#ok<NASGU>
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE SELECTION
@@ -116,17 +115,17 @@ elM = zeros(32,1);
 distM = zeros(32,1);
 
 %satellite azimuth, elevation, ROVER-SATELLITE distance
-[azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_SAT, a, f);
+[azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_SAT);
 
-%elevation cut-off 
+%elevation cut-off
 sat_cutoff = find(elR > cutoff);
 sat = intersect(sat,sat_cutoff);
 
-%previous pivot 
+%previous pivot
 pivot_old = 0;
 
-%actual pivot 
-[max_elR, i] = max(elR(sat));
+%actual pivot
+[max_elR, i] = max(elR(sat)); %#ok<ASGLU>
 pivot = sat(i);
 %pivot = find(elR == max(elR));
 
@@ -152,12 +151,12 @@ Z_om_1 = zeros(o1-1,1);
 
 %standalone ROVER positioning
 if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat, time, Eph, iono);
+    [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat, time, Eph, iono); %#ok<NASGU>
 else
-    [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat, time, Eph, iono);
+    [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat, time, Eph, iono); %#ok<NASGU>
 end
 
-%second iteration to improve the accuracy 
+%second iteration to improve the accuracy
 %obtained in the previous step (from some meters to some centimeters)
 if (phase(1) == 1)
     [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat, time, Eph, iono);

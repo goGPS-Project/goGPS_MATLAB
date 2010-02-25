@@ -20,10 +20,10 @@ function [matrix_oss, snr] = RINEX_get_obs(file_RINEX, num_sat, num_type_oss, co
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %
 % Partially based on GRABDATA.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -52,12 +52,12 @@ if num_type_oss <= 5
       lin = fgetl(file_RINEX);
       for k = 1:num_type_oss
           %data save
-          if (length(lin) < 2+16*(k-1)) | (isempty(str2num(lin(2+16*(k-1):16*k-2))))
+          if (length(lin) < 2+16*(k-1)) | (isempty(sscanf(lin(2+16*(k-1):16*k-2),'%f')))
               matrix_oss(u,k) = 0;
           else
-              matrix_oss(u,k) = str2num(lin(2+16*(k-1):16*k-2));
+              matrix_oss(u,k) = sscanf(lin(2+16*(k-1):16*k-2),'%f');
               if (k == col_L1) & (numel(lin)>=16*k)
-                  snr(u,1) = str2num(lin(16*k));
+                  snr(u,1) = sscanf(lin(16*k),'%f');
               end
           end
       end
@@ -70,15 +70,15 @@ else
    num_type_oss = 5;
    for u = 1:num_sat
       lin = fgetl(file_RINEX);
-      lin_doppler = fgetl(file_RINEX);
+      lin_doppler = fgetl(file_RINEX); %#ok<NASGU>
       for k = 1:num_type_oss
-         if (length(lin) < 1+16*(k-1)) | (isempty(str2num(lin(1+16*(k-1):16*k-2))))
+         if (length(lin) < 1+16*(k-1)) | (isempty(sscanf(lin(1+16*(k-1):16*k-2),'%f')))
              matrix_oss(u,k) = 0;
          else
              %data save
-             matrix_oss(u,k) = str2num(lin(1+16*(k-1):16*k-2));
+             matrix_oss(u,k) = sscanf(lin(1+16*(k-1):16*k-2),'%f');
              if (k == col_L1) & (numel(lin)>=16*k)
-                 snr(u,1) = str2num(lin(16*k));
+                 snr(u,1) = sscanf(lin(16*k),'%f');
              end
          end
       end

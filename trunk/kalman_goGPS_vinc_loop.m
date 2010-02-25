@@ -39,10 +39,10 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop .
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -63,7 +63,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop .
 % KALMAN FILTER PARAMETERS
 %--------------------------------------------------------------------------------------------
 
-global lambda1 lambda2 a f
+global lambda1 lambda2
 
 global sigmaq_vel sigmaq0_N
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph
@@ -72,6 +72,7 @@ global s0 ax ay az
 
 global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
+global flag_LS_N_estim
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -136,10 +137,10 @@ for i = 1:size(sat_pr)
     Rot_X = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(sat_pr(i)), Y_t1_t');
 
     %azimuth, elevation, ROVER-SATELLITE distance estimate
-    [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(Y_t1_t, Rot_X', a, f);
+    [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(Y_t1_t, Rot_X');
 
     %azimuth, elevation, MASTER-SATELLITE distance estimate
-    [azM(sat_pr(i)), elM(sat_pr(i)), distM(sat_pr(i))] = topocent(pos_M, Rot_X', a, f);
+    [azM(sat_pr(i)), elM(sat_pr(i)), distM(sat_pr(i))] = topocent(pos_M, Rot_X');
 
     %elevation test
     if (elR(sat_pr(i)) < cutoff) | (snr_R(sat_pr(i)) < snr_threshold)
@@ -285,14 +286,14 @@ if (nsat >= min_nsat)
     %------------------------------------------------------------------------------------
     % OBSERVATION COVARIANCE MATRIX
     %------------------------------------------------------------------------------------
- 
+
     %construction of the cofactor matrix
     Q = cofactor_matrix(elR(sat_pr), elM(sat_pr), snr_R(sat_pr), snr_M(sat_pr), sat_pr, pivot);
 
     %zeroes vector useful in matrix definitions
     Z_n_n = zeros(n,n);
 
-    %matrix construction by conveniently multiplying by 
+    %matrix construction by conveniently multiplying by
     %the code variance and the phase variance
     if ~isempty(p)
         if (length(phase) == 2)
@@ -330,8 +331,8 @@ if (nsat >= min_nsat)
         sat_dead = setdiff(sat_old,sat);
 
         %for lost satellites it is fundamental to set their N-PIVOT
-        % combinations to 0. Furthermore it is convenient to raise
-        %its uncertainty (not necessary - done when a new satellite is
+        % combinations to 0. Furthermore it could be convenient to raise
+        %their uncertainty (not necessary - done when a new satellite is
         %added)
         comb_N1 = 0;
         comb_N2 = 0;
@@ -350,66 +351,96 @@ if (nsat >= min_nsat)
 
     %search for a new satellite
     if (length(sat) > length(sat_old))
-
-        check_on = 1;
-
-        %save new satellites
-        sat_born = setdiff(sat,sat_old);
-
-%         %for new satellites it is required to estimate its N-PIVOT
-%         %combinations. Furthermore it is convenient to raise
-%         %its uncertainty because it is necessary to wait for about
-%         %10 epochs in order to have an estimate correct enough.
-%         sigmaq_s_R = diag(T*Cee*T');
-%         sigmaq_s_R = sigmaq_s_R(1);
-% 
-%         %curvilinear coordinate localization
-%         i = find((X_t1_t(1) >= s0(1:end-1)) & (X_t1_t(1) <= s0(2:end)));
-
-%         sigmaq_pos_R(1,1) = ax(i)^2 * sigmaq_s_R(1);
-%         sigmaq_pos_R(2,1) = ay(i)^2 * sigmaq_s_R(1);
-%         sigmaq_pos_R(3,1) = az(i)^2 * sigmaq_s_R(1);
-
-%         %N combination estimation
-%         [comb_N1_app, null_sigmaq_N1_stim] = amb_estimate_approx(Y_t1_t', pos_M, sigmaq_pos_R, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1);
-%         [comb_N2_app, null_sigmaq_N2_stim] = amb_estimate_approx(Y_t1_t', pos_M, sigmaq_pos_R, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2);
-
-        %N combination estimation (least squares)
-        [null_pos_R, null_cov_pos_R, comb_N1_stim, cov_comb_N1_stim] = code_phase_double_diff(Y_t1_t', pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono, 1);
-        [null_pos_R, null_cov_pos_R, comb_N2_stim, cov_comb_N2_stim] = code_phase_double_diff(Y_t1_t', pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono, 2);
-
-        if isempty(cov_comb_N1_stim) %if it was not possible to compute the covariance matrix
-            cov_comb_N1_stim = sigmaq0_N * eye(length(sat));
-        end
-        if isempty(cov_comb_N2_stim) %if it was not possible to compute the covariance matrix
-            cov_comb_N2_stim = sigmaq0_N * eye(length(sat));
-        end
-        sigmaq_comb_N1 = diag(cov_comb_N1_stim);
-        sigmaq_comb_N2 = diag(cov_comb_N2_stim);
         
-        index = find(ismember(sat,sat_born) == 0);
-        comb_N1_stim(index)   = [];
-        comb_N2_stim(index)   = [];
-        sigmaq_comb_N1(index) = [];
-        sigmaq_comb_N2(index) = [];
+        %do not use least squares ambiguity estimation
+        % NOTE: LS amb. estimation is automatically switched off if the number of
+        % satellites with phase available is not sufficient
+        if(~flag_LS_N_estim) | (size(sat) < 4)
 
-        %estimated parameters saving
-        if (length(phase) == 2)
-            X_t1_t(o1+sat_born,1) = comb_N1_stim;
-            X_t1_t(o1+32+sat_born,1) = comb_N2_stim;
-            Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_comb_N1);
-            Cvv(o1+32+sat_born,o1+32+sat_born) = diag(sigmaq_comb_N2);
-            %Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
-            %Cvv(o1+32+sat_born,o1+32+sat_born) = sigmaq0_N * eye(size(sat_born,1));
-        else
-            if (phase == 1)
-                X_t1_t(o1+sat_born,1) = comb_N1_stim;
-                Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_comb_N1);
-                %Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+            check_on = 1;
+            
+            %new satellites
+            sat_born = setdiff(sat,sat_old);
+            
+            sigmaq_s_R = diag(T*Cee*T');
+            sigmaq_s_R = sigmaq_s_R(1);
+            
+            %curvilinear coordinate localization
+            i = find((X_t1_t(1) >= s0(1:end-1)) & (X_t1_t(1) <= s0(2:end)));
+            
+            sigmaq_pos_R(1,1) = ax(i)^2 * sigmaq_s_R(1);
+            sigmaq_pos_R(2,1) = ay(i)^2 * sigmaq_s_R(1);
+            sigmaq_pos_R(3,1) = az(i)^2 * sigmaq_s_R(1);
+            
+            %N combination estimate
+            [comb_N1, sigmaq_N1] = amb_estimate_approx(Y_t1_t', pos_M, sigmaq_pos_R, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1); %#ok<NASGU>
+            [comb_N2, sigmaq_N2] = amb_estimate_approx(Y_t1_t', pos_M, sigmaq_pos_R, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2); %#ok<NASGU>
+            
+            index = find(ismember(sat,sat_born) == 0);
+            comb_N1(index) = [];
+            comb_N2(index) = [];
+            
+            %estimated parameters saving
+            if (length(phase) == 2)
+                X_t1_t(o1+sat_born,1) = comb_N1;
+                X_t1_t(o1+32+sat_born,1) = comb_N2;
+                %Cvv(o1+sat_born,o1+sat_born) = sigmaq_N1 * eye(size(sat_born,1));
+                %Cvv(o1+32+sat_born,o1+32+sat_born) = sigmaq_N2 * eye(size(sat_born,1));
+                Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                Cvv(o1+32+sat_born,o1+32+sat_born) = sigmaq0_N * eye(size(sat_born,1));
             else
-                X_t1_t(o1+sat_born,1) = comb_N2_stim;
-                Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_comb_N2);
-                %Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                if (phase == 1)
+                    X_t1_t(o1+sat_born,1) = comb_N1;
+                    %Cvv(o1+sat_born,o1+sat_born) = sigmaq_N1 * eye(size(sat_born,1));
+                    Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                else
+                    X_t1_t(o1+sat_born,1) = comb_N2;
+                    %Cvv(o1+sat_born,o1+sat_born) = sigmaq_N2 * eye(size(sat_born,1));
+                    Cvv(o1+sat_born,o1+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                end
+            end
+
+        %use least squares ambiguity estimation
+        else
+            
+            check_on = 1;
+            
+            %save new satellites
+            sat_born = setdiff(sat,sat_old);
+            
+            %N combination estimation (least squares)
+            [null_pos_R, null_cov_pos_R, comb_N1_stim, cov_comb_N1_stim] = code_phase_double_diff(Y_t1_t', pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 1, iono); %#ok<ASGLU>
+            [null_pos_R, null_cov_pos_R, comb_N2_stim, cov_comb_N2_stim] = code_phase_double_diff(Y_t1_t', pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 2, iono); %#ok<ASGLU>
+            
+            if isempty(cov_comb_N1_stim) %if it was not possible to compute the covariance matrix
+                cov_comb_N1_stim = sigmaq0_N * eye(length(sat));
+            end
+            if isempty(cov_comb_N2_stim) %if it was not possible to compute the covariance matrix
+                cov_comb_N2_stim = sigmaq0_N * eye(length(sat));
+            end
+            sigmaq_comb_N1 = diag(cov_comb_N1_stim);
+            sigmaq_comb_N2 = diag(cov_comb_N2_stim);
+            
+            index = find(ismember(sat,sat_born) == 0);
+            comb_N1_stim(index)   = [];
+            comb_N2_stim(index)   = [];
+            sigmaq_comb_N1(index) = [];
+            sigmaq_comb_N2(index) = [];
+            
+            %estimated parameters saving
+            if (length(phase) == 2)
+                X_t1_t(o1+sat_born,1) = comb_N1_stim;
+                X_t1_t(o1+32+sat_born,1) = comb_N2_stim;
+                Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_comb_N1);
+                Cvv(o1+32+sat_born,o1+32+sat_born) = diag(sigmaq_comb_N2);
+            else
+                if (phase == 1)
+                    X_t1_t(o1+sat_born,1) = comb_N1_stim;
+                    Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_comb_N1);
+                else
+                    X_t1_t(o1+sat_born,1) = comb_N2_stim;
+                    Cvv(o1+sat_born,o1+sat_born) = diag(sigmaq_comb_N2);
+                end
             end
         end
     end
@@ -458,36 +489,75 @@ if (nsat >= min_nsat)
     %------------------------------------------------------------------------------------
 
     if ~isempty(sat)
-
-        %Test presence/absence of a cycle-slip at the current epoch.
-        %The state of the system is changed only for phase ambiguities
-        if (length(phase) == 2)
-            [cycle_slip_found1, N_slip1, sat_slip1, sigmaq_comb_N_slip1] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 1);
-            [cycle_slip_found2, N_slip2, sat_slip2, sigmaq_comb_N_slip2] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+33:o1+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 2);
-
-            if (cycle_slip_found1 == 1)
-                check_cs = 1;
-                conf_cs(sat_slip1) = 1;
-                X_t1_t(o1+sat_slip1) = N_slip1;
-                Cvv(o1+sat_slip1,o1+sat_slip1) = diag(sigmaq_comb_N_slip1);
-            end
-            if (cycle_slip_found2 == 1)
-                check_cs = 1;
-                conf_cs(sat_slip2) = 1;
-                X_t1_t(o1+32+sat_slip2) = N_slip2;
-                Cvv(o1+32+sat_slip2,o1+32+sat_slip2) = diag(sigmaq_comb_N_slip2);
-            end
-        else
-            if (phase == 1)
-                [cycle_slip_found, N_slip, sat_slip, sigmaq_comb_N_slip] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 1);
+        
+        %do not use least squares ambiguity estimation
+        % NOTE: LS amb. estimation is automatically switched off if the number of
+        % satellites with phase available is not sufficient
+        if(~flag_LS_N_estim) | (size(sat) < 4)
+            
+            if (length(phase) == 2)
+                [cycle_slip_found1, N_slip1, sat_slip1] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
+                [cycle_slip_found2, N_slip2, sat_slip2] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+33:o1+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
+                
+                if (cycle_slip_found1 == 1)
+                    check_cs = 1;
+                    conf_cs(sat_slip1) = 1;
+                    X_t1_t(o1+sat_slip1) = N_slip1;
+                    Cvv(o1+sat_slip1,o1+sat_slip1) = sigmaq0_N * eye(size(sat_slip1,1));
+                end
+                if (cycle_slip_found2 == 1)
+                    check_cs = 1;
+                    conf_cs(sat_slip2) = 1;
+                    X_t1_t(o1+32+sat_slip2) = N_slip2;
+                    Cvv(o1+32+sat_slip2,o1+32+sat_slip2) = sigmaq0_N * eye(size(sat_slip2,1));
+                end
             else
-                [cycle_slip_found, N_slip, sat_slip, sigmaq_comb_N_slip] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 2);
+                if (phase == 1)
+                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
+                else
+                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
+                end
+                if (cycle_slip_found == 1)
+                    check_cs = 1;
+                    conf_cs(sat_slip) = 1;
+                    X_t1_t(o1+sat_slip) = N_slip;
+                    Cvv(o1+sat_slip,o1+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));
+                end
             end
-            if (cycle_slip_found == 1)
-                check_cs = 1;
-                conf_cs(sat_slip) = 1;
-                X_t1_t(o1+sat_slip) = N_slip;
-                Cvv(o1+sat_slip,o1+sat_slip) = diag(sigmaq_comb_N_slip);
+            
+        %use least squares ambiguity estimation
+        else
+            
+            %Test presence/absence of a cycle-slip at the current epoch.
+            %The state of the system is changed only for phase ambiguities
+            if (length(phase) == 2)
+                [cycle_slip_found1, N_slip1, sat_slip1, sigmaq_comb_N_slip1] = cycle_slip_LS_N(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 1);
+                [cycle_slip_found2, N_slip2, sat_slip2, sigmaq_comb_N_slip2] = cycle_slip_LS_N(pos_M, Y_t1_t', X_t1_t(o1+33:o1+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 2);
+                
+                if (cycle_slip_found1 == 1)
+                    check_cs = 1;
+                    conf_cs(sat_slip1) = 1;
+                    X_t1_t(o1+sat_slip1) = N_slip1;
+                    Cvv(o1+sat_slip1,o1+sat_slip1) = diag(sigmaq_comb_N_slip1);
+                end
+                if (cycle_slip_found2 == 1)
+                    check_cs = 1;
+                    conf_cs(sat_slip2) = 1;
+                    X_t1_t(o1+32+sat_slip2) = N_slip2;
+                    Cvv(o1+32+sat_slip2,o1+32+sat_slip2) = diag(sigmaq_comb_N_slip2);
+                end
+            else
+                if (phase == 1)
+                    [cycle_slip_found, N_slip, sat_slip, sigmaq_comb_N_slip] = cycle_slip_LS_N(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 1);
+                else
+                    [cycle_slip_found, N_slip, sat_slip, sigmaq_comb_N_slip] = cycle_slip_LS_N(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 2);
+                end
+                if (cycle_slip_found == 1)
+                    check_cs = 1;
+                    conf_cs(sat_slip) = 1;
+                    X_t1_t(o1+sat_slip) = N_slip;
+                    Cvv(o1+sat_slip,o1+sat_slip) = diag(sigmaq_comb_N_slip);
+                end
             end
         end
     end
@@ -496,7 +566,7 @@ else
     %data were not analysed (motion by dynamics only).
     pivot = 0;
 end
- 
+
 %----------------------------------------------------------------------------------------
 % KALMAN FILTER
 %----------------------------------------------------------------------------------------

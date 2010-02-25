@@ -1,13 +1,11 @@
-function [Az, El, D] = topocent(Xr, Xs, a, f)
+function [Az, El, D] = topocent(Xr, Xs)
 
 % SYNTAX:
-%   [Az, El, D] = topocent(Xr, Xs, a, f);
+%   [Az, El, D] = topocent(Xr, Xs);
 %
 % INPUT:
 %   Xr = receiver coordinates (X,Y,Z)
 %   Xs = satellite coordinates (X,Y,Z)
-%   a = ellipsoid semi-major axis
-%   f = ellipsoid flattening
 %
 % OUTPUT:
 %   D = rover-satellite distance
@@ -15,13 +13,13 @@ function [Az, El, D] = topocent(Xr, Xs, a, f)
 %   El = satellite elevation
 %
 % DESCRIPTION:
-%   Computation of satellite distance, azimuth and elevation with respect to 
+%   Computation of satellite distance, azimuth and elevation with respect to
 %   the receiver.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 % Kai Borre 09-26-97
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
@@ -32,10 +30,10 @@ function [Az, El, D] = topocent(Xr, Xs, a, f)
 dtr = pi/180;
 
 %conversion from geocentric cartesian to geodetic coordinates
-[phi, lambda, h] = cart2geod(Xr(1), Xr(2), Xr(3));
+[phi, lambda, h] = cart2geod(Xr(1), Xr(2), Xr(3)); %#ok<NASGU>
 phi = phi / dtr;
 lambda = lambda / dtr;
-   
+
 %new origin of the reference system
 X0(:,1) = Xr(1) * ones(size(Xs,1),1);
 X0(:,2) = Xr(2) * ones(size(Xs,1),1);

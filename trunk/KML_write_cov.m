@@ -20,10 +20,10 @@ function KML_write_cov (lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -97,34 +97,34 @@ hour = num2str(date(1,4));
 minute = num2str(date(1,5));
 second = num2str(floor(date(1,6)));
 
-[null, ncifre] = size(year);
+[null, ncifre] = size(year); %#ok<ASGLU>
 if (ncifre == 1)
     [year] = sprintf('200%s',year);
 elseif (ncifre == 2)
     [year] = sprintf('20%s',year);
 end
 
-[null, ncifre] = size(month);
+[null, ncifre] = size(month); %#ok<ASGLU>
 if (ncifre == 1)
     [month] = sprintf('0%s',month);
 end
 
-[null, ncifre] = size(day);
+[null, ncifre] = size(day); %#ok<ASGLU>
 if (ncifre == 1)
     [day] = sprintf('0%s',day);
 end
 
-[null, ncifre] = size(hour);
+[null, ncifre] = size(hour); %#ok<ASGLU>
 if (ncifre == 1)
     [hour] = sprintf('0%s',hour);
 end
 
-[null, ncifre] = size(minute);
+[null, ncifre] = size(minute); %#ok<ASGLU>
 if (ncifre == 1)
     [minute] = sprintf('0%s',minute);
 end
 
-[null, ncifre] = size(second);
+[null, ncifre] = size(second); %#ok<ASGLU>
 if (ncifre == 1)
     [second] = sprintf('0%s',second);
 end

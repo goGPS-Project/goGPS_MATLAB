@@ -18,7 +18,7 @@ function [dt_acqR, dt_decR, dt_acqM, dt_decM, dt_saveI, dt_kal, dt_saveO, dt_plo
 %   dt_saveO = output data saving duration
 %   dt_plot  = path plotting in MATLAB duration
 %   dt_ge    = path plotting in GoogleEarth duration
-%   dt_sky   = sky-plotting duration 
+%   dt_sky   = sky-plotting duration
 %   dt_snr   = signal-to-noise plotting duration
 %
 % DESCRIPTION:
@@ -27,10 +27,10 @@ function [dt_acqR, dt_decR, dt_acqM, dt_decM, dt_saveI, dt_kal, dt_saveO, dt_plo
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

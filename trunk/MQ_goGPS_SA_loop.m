@@ -17,10 +17,10 @@ function MQ_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, phase)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -37,14 +37,17 @@ function MQ_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, phase)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a f
 global cutoff
 global Xhat_t_t Cee conf_sat pivot
 global o1 o2 o3
 global azR elR distR
+global sigmaq0
 
-%parametro di cutoff per minimi quadrati
+%fixed cutoff parameter for least squares
 cutoff = 15;
+
+%covariance matrix initialization
+cov_pos_SA = [];
 
 %----------------%
 %--- BANCROFT ---%
@@ -65,7 +68,7 @@ if (size(sat_R,1) >= 4)
    else
       [pos_BAN, pos_SAT] = input_bancroft(pr2_R(sat_R), sat_R, time, Eph_R);
    end
-   
+
    %-------------------------------------%
    %---  LEAST SQUARES (STAND-ALONE)  ---%
    %-------------------------------------%
@@ -87,7 +90,7 @@ if (size(sat_R,1) >= 4)
    for k = 1 : length(sat_R)
 
        %azimuth, elevation and ROVER-SATELLITE distance computation
-       [azR(sat_R(k)), elR(sat_R(k)), distR(sat_R(k))] = topocent(pos_BAN(1:3), pos_SAT(k,1:3), a, f);
+       [azR(sat_R(k)), elR(sat_R(k)), distR(sat_R(k))] = topocent(pos_BAN(1:3), pos_SAT(k,1:3));
 
        %satellites in common
        sat = [sat; sat_R(k)];
@@ -104,7 +107,7 @@ if (size(sat_R,1) >= 4)
    conf_sat = zeros(32,1);
    conf_sat(sat) = +1;
    conf_sat(elR<cutoff) = 0;
-   
+
   if (size(sat,1) >= 4)
 
       if (phase == 1)

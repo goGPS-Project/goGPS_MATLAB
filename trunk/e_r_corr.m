@@ -17,7 +17,7 @@ function [X_sat_rot] = e_r_corr(traveltime, X_sat)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) Kai Borre 
+% Copyright (C) Kai Borre
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
 %

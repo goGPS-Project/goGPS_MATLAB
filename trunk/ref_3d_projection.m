@@ -17,21 +17,21 @@ function [dist,proj] = ref_3d_projection(ref,EST,NORD,h)
 %   3D projection on a reference path.
 %   At the moment working only for adjacency matrix as in the following
 %   example:
-% 
+%
 %   adj_mat = [ 0 1 0 0 0 1
 %               1 0 1 0 0 0
 %               0 1 0 1 0 0
 %               0 0 1 0 1 0
-%               0 0 0 1 0 1 
+%               0 0 0 1 0 1
 %               1 0 0 0 1 0 ];
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -69,53 +69,53 @@ for j = 1 : length(EST)
     pos_R(1) = EST(j);
     pos_R(2) = NORD(j);
     pos_R(3) = h(j);
-    
+
     d0 = sqrt((pos_R(1) - ref(:,1)).^2 + ...
               (pos_R(2) - ref(:,2)).^2 + ...
               (pos_R(3) - ref(:,3)).^2);
-    
+
     [dmin0 i0] = min(d0);
 
     %projection on the reference path
     bx = pos_R(1) - ref(1:end-1,1) + ax.*s0(1:end-1);
     by = pos_R(2) - ref(1:end-1,2) + ay.*s0(1:end-1);
     bz = pos_R(3) - ref(1:end-1,3) + az.*s0(1:end-1);
-    
+
     s_R = (ax.*bx + ay.*by + az.*bz) ./ (ax.^2 + ay.^2 + az.^2);
-    
+
     pos_R_proj(:,1) = ref(1:end-1,1) + ax .* (s_R - s0(1:end-1));
     pos_R_proj(:,2) = ref(1:end-1,2) + ay .* (s_R - s0(1:end-1));
     pos_R_proj(:,3) = ref(1:end-1,3) + az .* (s_R - s0(1:end-1));
-    
+
     %computation of the minimum distance
     d = sqrt((pos_R(1) - pos_R_proj(:,1)).^2 + ...
         (pos_R(2) - pos_R_proj(:,2)).^2 + ...
         (pos_R(3) - pos_R_proj(:,3)).^2);
-    
+
     [dmin i] = min(d);
-    
+
     %position in cartesian coordinates
     while (dmin < dmin0) & ((pos_R_proj(i,1) < min(ref(i,1),ref(i+1,1))) | (pos_R_proj(i,1) > max(ref(i,1),ref(i+1,1))) | ...
             (pos_R_proj(i,2) < min(ref(i,2),ref(i+1,2))) | (pos_R_proj(i,2) > max(ref(i,2),ref(i+1,2))) | ...
             (pos_R_proj(i,3) < min(ref(i,3),ref(i+1,3))) | (pos_R_proj(i,3) > max(ref(i,3),ref(i+1,3))))
-        
+
         d(i) = 9e99;
-        [dmin i] = min(d);        
-        
+        [dmin i] = min(d);
+
     end
-    
+
     if dmin0 < dmin
         dist(j,1) = dmin0;
-        
+
         proj(j,1) = ref(i0,1);
         proj(j,2) = ref(i0,2);
         proj(j,3) = ref(i0,3);
-        
+
     else
         dist(j,1) = dmin;
-        
+
         proj(j,1) = pos_R_proj(i,1);
-        proj(j,2) = pos_R_proj(i,2);    
-        proj(j,3) = pos_R_proj(i,3); 
+        proj(j,2) = pos_R_proj(i,2);
+        proj(j,3) = pos_R_proj(i,3);
     end
 end

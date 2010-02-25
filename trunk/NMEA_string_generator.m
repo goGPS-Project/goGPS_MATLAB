@@ -16,10 +16,10 @@ function nmeastring = NMEA_string_generator(pos_R,nsat)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -126,17 +126,17 @@ hour = num2str(current_date(1,4));
 minute = num2str(current_date(1,5));
 second = num2str(floor(current_date(1,6)));
 
-[null, ncifre] = size(hour);
+[null, ncifre] = size(hour); %#ok<ASGLU>
 if (ncifre == 1)
     [hour] = sprintf('0%s',hour);
 end
 
-[null, ncifre] = size(minute);
+[null, ncifre] = size(minute); %#ok<ASGLU>
 if (ncifre == 1)
     [minute] = sprintf('0%s',minute);
 end
 
-[null, ncifre] = size(second);
+[null, ncifre] = size(second); %#ok<ASGLU>
 if (ncifre == 1)
     [second] = sprintf('0%s',second);
 end

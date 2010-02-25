@@ -13,10 +13,10 @@ function ublox2RINEX(msg, filename)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ lock_R = zeros(32,Ncell);                             %loss of lock indicator
 i = 1;
 for j = 1 : Ncell
     if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
-        
+
         time_R(i)   = round(cell_rover{2,j}(1));
         week_R(i)   = cell_rover{2,j}(2);
         ph1_R(:,i)  = cell_rover{3,j}(:,1);
@@ -62,11 +62,11 @@ for j = 1 : Ncell
         dop_R(:,i)  = cell_rover{3,j}(:,3);
         snr_R(:,i)  = cell_rover{3,j}(:,6);
         lock_R(:,i) = cell_rover{3,j}(:,7);
-        
+
         %manage "nearly null" data
         pos = abs(ph1_R(:,i)) < 1e-100;
         ph1_R(pos,i) = 0;
-        
+
         %phase adjustement
         pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
         if(sum(pos) ~= 0)
@@ -74,7 +74,7 @@ for j = 1 : Ncell
             n = floor( (pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
             ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
         end
-        
+
         i = i + 1;
     end
 end
@@ -99,7 +99,7 @@ fid = fopen(filename,'wt');
 %write header
 fprintf(fid,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
 fprintf(fid,'goGPS               Geomatics Lab.                          PGM / RUN BY / DATE \n');
-fprintf(fid,'Antenna marker                                              MARKER NAME         \n'); 
+fprintf(fid,'Antenna marker                                              MARKER NAME         \n');
 fprintf(fid,'Geomatics Lab.      Politecnico Milano                      OBSERVER / AGENCY   \n');
 fprintf(fid,'                    ublox                                   REC # / TYPE / VERS \n');
 fprintf(fid,'                    ANN-MS                                  ANT # / TYPE        \n');
@@ -138,7 +138,7 @@ for i = 1 : N
         fprintf(fid,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
         fprintf(fid,'%14.3f %1d',dop_R(sat(j),i),floor(snr_R(sat(j),i)/6));
         fprintf(fid,'\n');
-    end    
+    end
 end
 
 %-------------------------------------------------------------------------------

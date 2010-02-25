@@ -37,10 +37,10 @@ function [data] = decode_RXM_EPH(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -79,7 +79,7 @@ HOW = msg(pos:pos+31); pos = pos + 32;
 HOW = fliplr(reshape(HOW,8,[]));                  % byte order inversion (little endian)
 HOW = HOW(:)';
 
-HOW = bin2dec(HOW(28:30));
+HOW = bin2dec(HOW(28:30)); %#ok<*NASGU>
 
 %Subframe 1
 SF1D0 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 0 (=Word 3 in ICD-GPS-200)

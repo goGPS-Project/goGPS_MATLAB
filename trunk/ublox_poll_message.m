@@ -16,10 +16,10 @@ function ublox_poll_message(serialObj, ClassLab, MsgIDLab, payload_length, param
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -55,7 +55,7 @@ else
     LEN1 = 0;                                  % payload length
     LEN2 = 1;                                  % (poll a message)
     codeDEC = [codeDEC; LEN2; LEN1];           % (little-endian)
-    
+
     payload = parameter;
     codeDEC = [codeDEC; hex2dec(payload)];
 end
@@ -74,7 +74,7 @@ codeDEC = [codeDEC; CK_A; CK_B];
 
 % %serial port checking
 % reply_1 = get(serialObj, 'BytesAvailable');
-% 
+%
 % if (reply_1 ~= 0)
 %     %clear the serial port (data not decoded)
 %     reply = fread(serialObj, reply_1, 'uint8');

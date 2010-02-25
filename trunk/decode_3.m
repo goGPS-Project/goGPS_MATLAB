@@ -20,7 +20,7 @@ function [data] = decode_3(msg, n_words)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 % ** Graduate School for Creative Cities, Media Center, Osaka City University, Japan
@@ -52,31 +52,31 @@ data{1} = 0;
 data{2} = zeros(3,1);
 
 if (pos + n_words*30-1 <= length(msg))
-    
+
     for i = 1 : n_words
         [parity(i), decoded_word(i,1:24)] = check_parity(msg(pos-2:pos-1), msg(pos:pos+29));
         pos = pos + 30;
     end
-    
+
     if (parity)
-        
+
         %message type = 3
         type = 3;
-        
+
         %antenna X coordinate
         Xcoord = twos_complement([decoded_word(1,:) decoded_word(2,1:8)]);
-        
+
         %antenna Y coordinate
         Ycoord = twos_complement([decoded_word(2,9:24) decoded_word(3,1:16)]);
-        
+
         %antenna Z coordinate
         Zcoord = twos_complement([decoded_word(3,17:24) decoded_word(4,1:24)]);
-        
+
         %output data save
         data{1} = type;
         data{2}(1) = Xcoord * 0.01;
         data{2}(2) = Ycoord * 0.01;
         data{2}(3) = Zcoord * 0.01;
-        
+
     end
 end

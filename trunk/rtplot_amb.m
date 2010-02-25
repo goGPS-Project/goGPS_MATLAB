@@ -16,10 +16,10 @@ function rtplot_amb (t, delta, stima_amb, sigma_amb, cs)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -80,11 +80,11 @@ else
            i = i + 1;
        end
    end
-   
+
    subfig = get(1,'Children');
 
    tLim = get(subfig(1),'XLim');
-   dt = (tLim(1) : tLim(2))'; 
+   dt = (tLim(1) : tLim(2))';
 
    for i = 1 : length(subfig)
       sat = get(subfig(i),'UserData');
@@ -149,7 +149,7 @@ else
       axis([dt(1) dt(delta) floor(ax(3)) ceil(ax(4))]);
       title(['SATELLITE ',num2str(sat(i))]);
    end
-   
+
    for i = 1 : length(handleOff)
        set(handleOff(i),'HandleVisibility','on');
    end

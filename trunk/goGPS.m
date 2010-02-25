@@ -10,10 +10,10 @@
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % *  Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -68,72 +68,73 @@ global o1 o2 o3 h_antenna
 if (mode_user == 1)
 
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_rtcm, flag_ms, flag_ge, flag_cov, flag_COM, flag_NTRIP, flag_amb, ...
-        flag_cpu, flag_RINEX, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, ...
+        flag_skyplot, flag_RINEX, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, ...
         filename_ref, pos_M] = goGPS_gui;
 
     if (isempty(mode))
         return
     end
 else
-    
+
     %-------------------------------------------------------------------------------------------
     % DEFINITION OF THE FUNCTIONING MODE (TEXTUAL INTERFACE)
     %-------------------------------------------------------------------------------------------
-    
-    mode =   1;      % functioning mode
-                     % POST-PROCESSING
-                     % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-                     % mode=2  --> KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT (to be implemented)
-                     % mode=3  --> LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-                     % mode=4  --> LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
-                     % mode=5  --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-                     % mode=6  --> KALMAN FILTER ON CODE, NO CONSTRAINT
-                     % mode=7  --> ....
-                     % mode=8  --> ....
-                     % mode=9  --> ....
-                     % REAL-TIME
-                     % mode=11 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-                     % mode=12 --> U-BLOX MONITORING
-                     % mode=13 --> MASTER MONITORING
-    
-    mode_vinc = 0;   % navigation mode
-                     % mode_vinc=0 --> without linear constraint
-                     % mode_vinc=1 --> with linear constraint
-    
-    mode_data = 1;   % data loading mode
-                     % mode_data=0 --> RINEX data
-                     % mode_data=1 --> goGPS data (saved during a real-time session)
-                     % mode_data=2 --> stream data (saved during a real-time session)
-    
-    mode_ref = 0;    % reference path mode
-                     % mode_ref=0 --> do not use a reference path
-                     % mode_ref=1 --> use a reference path (plot it and use it for statistics)
-    
-    flag_ms_rtcm = 1;% read master station position from RTCM
-    
-    flag_ms = 0;     % plot master station position --> no=0, yes=1
-    
-    flag_ge = 0;     % use google earth --> no=0, yes=1
-    
-    flag_cov = 0;    % plot error ellipse --> no=0, yes=1
-    
-    flag_COM = 0;    % u-blox COM automatic detection --> no=0, yes=1
-    
-    flag_NTRIP = 1;  % use NTRIP --> no=0, yes=1
-    
-    flag_amb = 0;    % plot ambiguities (only in post-processing)
-    
-    flag_cpu = 0;    % save CPU (don't draw skyplot and SNR graph)
-    
-    flag_RINEX = 0;  % generate a RINEX file for the rover data
-    
+
+    mode =   1;       % functioning mode
+                      % POST-PROCESSING
+                      % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
+                      % mode=2  --> KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT (to be implemented)
+                      % mode=3  --> LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
+                      % mode=4  --> LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
+                      % mode=5  --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
+                      % mode=6  --> KALMAN FILTER ON CODE, NO CONSTRAINT
+                      % mode=7  --> ....
+                      % mode=8  --> ....
+                      % mode=9  --> ....
+                      % REAL-TIME
+                      % mode=11 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
+                      % mode=12 --> U-BLOX MONITORING
+                      % mode=13 --> MASTER MONITORING
+                      % mode=14 --> ROVER AND MASTER MONITORING
+
+    mode_vinc = 0;    % navigation mode
+                      % mode_vinc=0 --> without linear constraint
+                      % mode_vinc=1 --> with linear constraint
+
+    mode_data = 1;    % data loading mode
+                      % mode_data=0 --> RINEX data
+                      % mode_data=1 --> goGPS data (saved during a real-time session)
+                      % mode_data=2 --> stream data (saved during a real-time session)
+
+    mode_ref = 0;     % reference path mode
+                      % mode_ref=0 --> do not use a reference path
+                      % mode_ref=1 --> use a reference path (plot it and use it for statistics)
+
+    flag_ms_rtcm = 1; % read master station position from RTCM
+
+    flag_ms = 0;      % plot master station position --> no=0, yes=1
+
+    flag_ge = 0;      % use google earth --> no=0, yes=1
+
+    flag_cov = 0;     % plot error ellipse --> no=0, yes=1
+
+    flag_COM = 0;     % u-blox COM automatic detection --> no=0, yes=1
+
+    flag_NTRIP = 1;   % use NTRIP --> no=0, yes=1
+
+    flag_amb = 0;     % plot ambiguities (only in post-processing)
+
+    flag_skyplot = 1; % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
+
+    flag_RINEX = 0;   % generate a RINEX file for the rover data
+
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
     %----------------------------------------------------------------------------------------------
-    
+
     %User-defined global settings
     global_settings;
-    
+
     %Check availability of Instrument Control Toolbox
     if (mode > 10)
         try
@@ -142,7 +143,7 @@ else
             error('Instrument Control Toolbox is needed to run goGPS in real-time mode.');
         end
     end
-    
+
 end
 
 %-------------------------------------------------------------------------------------------
@@ -150,23 +151,23 @@ end
 %-------------------------------------------------------------------------------------------
 
 if (mode_ref == 1)
-    
+
     d = dir(filename_ref);
-    
+
     if ~isempty(d)
         load(filename_ref, 'ref_path', 'mat_path');
-        
+
         %adjust the reference path according to antenna height
         [ref_phi, ref_lam, ref_h] = cart2geod(ref_path(:,1),ref_path(:,2),ref_path(:,3));
         ref_h = ref_h + h_antenna;
         [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, a, f);
         ref_path = [ref_X , ref_Y , ref_Z];
-        
+
     else
         ref_path = [];
         mat_path = [];
     end
-    
+
 else
     ref_path = [];
     mat_path = [];
@@ -177,9 +178,9 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode < 10) %post-processing
-    
+
     if (mode_data == 0)
-        
+
         %read data from RINEX files
         [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
             Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
@@ -192,13 +193,13 @@ if (mode < 10) %post-processing
         %Eph = Eph_R;
         Eph = Eph_M;
         %Eph_GLO = Eph_MR;
-        
+
         %convert signal-to-noise ratio
         snr_R = 6 * snr_R;
         snr_M = 6 * snr_M;
         %snr_RR = 6 * snr_RR;
         %snr_MR = 6 * snr_MR;
-        
+
         %remove satellites without ephemerides (GPS)
         delsat = setdiff(1:32,unique(Eph(1,:)));
         pr1_R(delsat,:) = 0;
@@ -211,7 +212,7 @@ if (mode < 10) %post-processing
         ph2_M(delsat,:) = 0;
         snr_R(delsat,:) = 0;
         snr_M(delsat,:) = 0;
-        
+
         %%remove satellites without ephemerides (GLONASS)
         %delsat = setdiff(1:32,unique(Eph_GLO(1,:)));
         %pr1_RR(delsat,:) = 0;
@@ -224,7 +225,7 @@ if (mode < 10) %post-processing
         %ph2_MR(delsat,:) = 0;
         %snr_RR(delsat,:) = 0;
         %snr_MR(delsat,:) = 0;
-        
+
         %%reverse the path (GPS)
         %pr1_R = pr1_R(:,end:-1:1);
         %pr1_M = pr1_M(:,end:-1:1);
@@ -236,7 +237,7 @@ if (mode < 10) %post-processing
         %ph2_M = ph2_M(:,end:-1:1);
         %snr_R = snr_R(:,end:-1:1);
         %snr_M = snr_M(:,end:-1:1);
-        
+
         %%reverse the path (GLONASS)
         %pr1_RR = pr1_RR(:,end:-1:1);
         %pr1_MR = pr1_MR(:,end:-1:1);
@@ -248,23 +249,23 @@ if (mode < 10) %post-processing
         %ph2_MR = ph2_MR(:,end:-1:1);
         %snr_RR = snr_RR(:,end:-1:1);
         %snr_MR = snr_MR(:,end:-1:1);
-        
+
         %time_GPS = time_GPS(end:-1:1);
         %date = date(end:-1:1,:);
-        
+
     elseif (mode_data == 1)
-        
+
         %read data from goGPS saved files
         [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
             pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (filerootIN);
 
         %reference GPS time
         time_GPS = time_GPS(1) + (0 : 1 : length(time_M)-1)';
-        
+
         %nominal date for Google Earth
-        date0 = datenum(2009,1,1,0,0,0);
+        date0 = datenum(2010,1,1,0,0,0);
         date = datevec(date0 + time_GPS/86400);
-        
+
         %other variables
         iono_R = zeros(8,1);
         iono_M = zeros(8,1);
@@ -272,7 +273,7 @@ if (mode < 10) %post-processing
         pr2_R = zeros(size(pr1_R));
         ph2_M = zeros(size(ph1_M));
         ph2_R = zeros(size(ph1_R));
-        
+
         %complete/partial path
         tMin = 1;
         tMax = 1e30;
@@ -297,18 +298,18 @@ if (mode < 10) %post-processing
         loss_R = loss_R(tMin:tMax);
         loss_M = loss_M(tMin:tMax);
         date = date(tMin:tMax,:);
-        
+
     else %if (mode_data == 2)
-        
+
         %read data from saved stream files
         [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, ...
             Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
-        satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
-        satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
+        %satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
+        %satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
         satEph = find(sum(abs(Eph(:,:,1)))~=0);
         satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-        while (length(satEph) < length(satObs_M)) | (length(satObs) < 4)
-            
+        while (length(satEph) < length(satObs)) | (length(satObs) < 4)
+
             time_GPS(1) = [];
             time_R(1) = [];
             time_M(1) = [];
@@ -322,9 +323,9 @@ if (mode < 10) %post-processing
             Eph(:,:,1) = [];
             loss_R(1) = [];
             loss_M(1) = [];
-            
-            satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
-            satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
+
+            %satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
+            %satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
             satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
             satEph = find(sum(abs(Eph(:,:,1)))~=0);
         end
@@ -340,11 +341,11 @@ if (mode < 10) %post-processing
             snr_R(delsat,i) = 0;
             snr_M(delsat,i) = 0;
         end
-        
+
         %nominal date for Google Earth
-        date0 = datenum(2009,1,1,0,0,0);
+        date0 = datenum(2010,1,1,0,0,0);
         date = datevec(date0 + time_GPS/86400);
-        
+
         %other variables
         iono_R = zeros(8,1);
         iono_M = zeros(8,1);
@@ -352,7 +353,7 @@ if (mode < 10) %post-processing
         pr2_R = zeros(size(pr1_R));
         ph2_M = zeros(size(ph1_M));
         ph2_R = zeros(size(ph1_R));
-        
+
         %complete/partial path
         tMin = 1;
         tMax = 1e30;
@@ -376,11 +377,11 @@ if (mode < 10) %post-processing
         date = date(tMin:tMax,:);
         loss_R = loss_R(tMin:tMax);
         loss_M = loss_M(tMin:tMax);
-        
+
     end
-    
+
 else %real-time
-    
+
     %for the Kalman filter execution in real-time
     iono_R = zeros(8,1);
     iono_M = zeros(8,1);
@@ -388,7 +389,7 @@ else %real-time
     pr2_R = zeros(32,1);
     ph2_M = zeros(32,1);
     ph2_R = zeros(32,1);
-    
+
 end
 
 %check if MASTER position is available
@@ -409,11 +410,13 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode == 1) & (mode_vinc == 0)
-    
+
     fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-    
+    %fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
+    %fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+
     if (mode_data == 0)
         Eph_t = rt_find_eph (Eph, time_GPS(1));
     else
@@ -421,10 +424,12 @@ if (mode == 1) & (mode_vinc == 0)
     end
     
     kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
-    
+
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+    %fwrite(fid_obs, [time_GPS(1); time_M(1); time_R(1); pr1_M(:,1); pr1_R(:,1); ph1_M(:,1); ph1_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1)], 'double');
+    %fwrite(fid_eph, [time_GPS(1); Eph_t(:)], 'double');
 
     if (flag_cov == 0)
         if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
@@ -436,28 +441,30 @@ if (mode == 1) & (mode_vinc == 0)
     if (flag_amb == 1)
         rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
     else
-        if (flag_cpu == 0)
+        if (flag_skyplot == 1)
             rtplot_skyplot (1, azR, elR, conf_sat, pivot);
             rtplot_snr (snr_R(:,1));
         else
             rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
         end
     end
-    
+
     for t = 2 : length(time_GPS)
-        
+
         if (mode_data == 0)
             Eph_t = rt_find_eph (Eph, time_GPS(t));
         else
             Eph_t = Eph(:,:,t);
         end
-        
+
         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono_R, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
-        
+
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-        
+        %fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t)], 'double');
+        %fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
+
         if (flag_cov == 0)
             if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
             rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
@@ -469,7 +476,7 @@ if (mode == 1) & (mode_vinc == 0)
             rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
             pause(0.1);
         else
-            if (flag_cpu == 0)
+            if (flag_skyplot == 1)
                 rtplot_skyplot (t, azR, elR, conf_sat, pivot);
                 rtplot_snr (snr_R(:,t));
             else
@@ -479,71 +486,73 @@ if (mode == 1) & (mode_vinc == 0)
         end
 
     end
-    
+
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_conf);
-    
+    %fclose(fid_obs);
+    %fclose(fid_eph);
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH A CONSTRAINT
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 1) & (mode_vinc == 1)
-    
+
     fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-    
+
     if (mode_data == 0)
         Eph_t = rt_find_eph (Eph, time_GPS(1));
     else
         Eph_t = Eph(:,:,1);
     end
-    
+
     %repeat more than once the reference loop
     %(this constrained mode works only for circuits)
     ref_loop = [ref_path; ref_path];
-    
+
     kalman_goGPS_vinc_init (pos_M(:,1), time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1, ref_loop);
-    
+
     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-    
+
     if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), date(1,:)), end;
     rtplot_matlab (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
     if (flag_amb == 1)
         rtplot_amb (1, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
     else
-        if (flag_cpu == 0)
+        if (flag_skyplot == 1)
             rtplot_skyplot (1, azR, elR, conf_sat, pivot);
             rtplot_snr (snr_R(:,1));
         else
             rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
         end
     end
-    
+
     for t = 2 : length(time_GPS)
-        
+
         if (mode_data == 0)
             Eph_t = rt_find_eph (Eph, time_GPS(t));
         else
             Eph_t = Eph(:,:,t);
         end
-        
+
         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,t), time_GPS(t), Eph_t, iono_R, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1, ref_loop);
-        
+
         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-        
+
         if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date(t,:)), end;
         rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
         if (flag_amb == 1)
             rtplot_amb (t, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
             pause(0.1);
         else
-            if (flag_cpu == 0)
+            if (flag_skyplot == 1)
                 rtplot_skyplot (t, azR, elR, conf_sat, pivot);
                 rtplot_snr (snr_R(:,t));
             else
@@ -553,49 +562,49 @@ elseif (mode == 1) & (mode_vinc == 1)
         end
 
     end
-    
+
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_conf);
-    
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 2)
-    
+
 % TO BE IMPLEMENTED
-    
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 3)
-    
+
     fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-    
+
     nN = 32;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
     check_cs = 0;
-    
+
     if (mode_data == 0)
         Eph_t = rt_find_eph (Eph, time_GPS(1));
     else
         Eph_t = Eph(:,:,1);
     end
-    
+
     MQ_goGPS_loop (time_GPS(1), Eph_t, pos_M(:,1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
-    
+
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
     fwrite(fid_sat, zeros(32,6), 'double');
     fwrite(fid_conf, zeros(65,1), 'int8');
-    
+
     if (flag_cov == 0)
         if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
         rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
@@ -603,29 +612,29 @@ elseif (mode == 3)
         if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
         rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
     end
-    if (flag_cpu == 0)
+    if (flag_skyplot == 1)
         rtplot_skyplot (1, azR, elR, conf_sat, pivot);
         rtplot_snr (snr_R(:,1));
     else
         rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
     end
-    
+
     for t = 2 : length(time_GPS)
-        
+
         if (mode_data == 0)
             Eph_t = rt_find_eph (Eph, time_GPS(t));
         else
             Eph_t = Eph(:,:,t);
         end
-        
+
         MQ_goGPS_loop (time_GPS(t), Eph_t, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
-        
+
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, zeros(32,6), 'double');
         fwrite(fid_conf, zeros(65,1), 'int8');
-        
+
         if (flag_cov == 0)
             if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
             rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -633,50 +642,50 @@ elseif (mode == 3)
             if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
         end
-        if (flag_cpu == 0)
+        if (flag_skyplot == 1)
             rtplot_skyplot (t, azR, elR, conf_sat, pivot);
             rtplot_snr (snr_R(:,t));
         else
             rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
         end
-        
+
         pause(0.01);
     end
-    
+
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_conf);
-    
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 4)
-    
+
     fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-    
+
     nN = 32;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
     check_cs = 0;
-    
+
     if (mode_data == 0)
         Eph_t = rt_find_eph (Eph, time_GPS(1));
     else
         Eph_t = Eph(:,:,1);
     end
-    
+
     MQ_goGPS_SA_loop (time_GPS(1), Eph_t, pr1_R(:,1), pr2_R(:,1), 1);
-    
+
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
     fwrite(fid_sat, zeros(32,6), 'double');
     fwrite(fid_conf, zeros(65,1), 'int8');
-    
+
     if (flag_cov == 0)
         if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
         rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
@@ -684,29 +693,29 @@ elseif (mode == 4)
         if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
         rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
     end
-    if (flag_cpu == 0)
+    if (flag_skyplot == 1)
         rtplot_skyplot (1, azR, elR, conf_sat, pivot);
         rtplot_snr (snr_R(:,1));
     else
         rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
     end
-    
+
     for t = 2 : length(time_GPS)
-        
+
         if (mode_data == 0)
             Eph_t = rt_find_eph (Eph, time_GPS(t));
         else
             Eph_t = Eph(:,:,t);
         end
-        
+
         MQ_goGPS_SA_loop (time_GPS(t), Eph_t, pr1_R(:,t), pr2_R(:,t), 1);
-        
+
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, zeros(32,6), 'double');
         fwrite(fid_conf, zeros(65,1), 'int8');
-        
+
         if (flag_cov == 0)
             if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
             rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -714,50 +723,50 @@ elseif (mode == 4)
             if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
         end
-        if (flag_cpu == 0)
+        if (flag_skyplot == 1)
             rtplot_skyplot (t, azR, elR, conf_sat, pivot);
             rtplot_snr (snr_R(:,t));
         else
             rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
         end
-        
+
         pause(0.01);
     end
-    
+
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_conf);
-    
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 5)
-    
+
     fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-    
+
     nN = 32;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
     check_cs = 0;
-    
+
     if (mode_data == 0)
         Eph_t = rt_find_eph (Eph, time_GPS(1));
     else
         Eph_t = Eph(:,:,1);
     end
-    
+
     kalman_goGPS_cod_init (pos_M(:,1), time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
-    
+
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-    
+
     if (flag_cov == 0)
         if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
         rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
@@ -765,29 +774,29 @@ elseif (mode == 5)
         if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
         rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
     end
-    if (flag_cpu == 0)
+    if (flag_skyplot == 1)
         rtplot_skyplot (1, azR, elR, conf_sat, pivot);
         rtplot_snr (snr_R(:,1));
     else
         rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
     end
-    
+
     for t = 2 : length(time_GPS)
-        
+
         if (mode_data == 0)
             Eph_t = rt_find_eph (Eph, time_GPS(t));
         else
             Eph_t = Eph(:,:,t);
         end
-        
+
         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop (pos_M(:,t), time_GPS(t), Eph_t, iono_R, pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
-        
+
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-        
+
         if (flag_cov == 0)
             if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
             rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -795,50 +804,50 @@ elseif (mode == 5)
             if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
         end
-        if (flag_cpu == 0)
+        if (flag_skyplot == 1)
             rtplot_skyplot (t, azR, elR, conf_sat, pivot);
             rtplot_snr (snr_R(:,t));
         else
             rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
         end
-        
+
         pause(0.01);
     end
-    
+
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_conf);
-    
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: KALMAN FILTER ON CODE, NO CONSTRAINT
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 6)
-    
+
     fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-    
+
     nN = 32;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
     check_cs = 0;
-    
+
     if (mode_data == 0)
         Eph_t = rt_find_eph (Eph, time_GPS(1));
     else
         Eph_t = Eph(:,:,1);
     end
-    
+
     kalman_goGPS_SA_cod_init (time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr2_R(:,1), 1);
-    
+
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-    
+
     if (flag_cov == 0)
         if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
         rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
@@ -846,29 +855,29 @@ elseif (mode == 6)
         if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
         rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
     end
-    if (flag_cpu == 0)
+    if (flag_skyplot == 1)
         rtplot_skyplot (1, azR, elR, conf_sat, pivot);
         rtplot_snr (snr_R(:,1));
     else
         rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
     end
-    
+
     for t = 2 : length(time_GPS)
-        
+
         if (mode_data == 0)
             Eph_t = rt_find_eph (Eph, time_GPS(t));
         else
             Eph_t = Eph(:,:,t);
         end
-        
+
         kalman_goGPS_SA_cod_loop (time_GPS(t), Eph_t, iono_R, pr1_R(:,t), pr2_R(:,t), snr_R(:,t), 1);
-        
+
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-        
+
         if (flag_cov == 0)
             if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
             rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -876,7 +885,7 @@ elseif (mode == 6)
             if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
             rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
         end
-        if (flag_cpu == 0)
+        if (flag_skyplot == 1)
             rtplot_skyplot (t, azR, elR, conf_sat, pivot);
             rtplot_snr (snr_R(:,t));
         else
@@ -884,34 +893,42 @@ elseif (mode == 6)
         end
         pause(0.01);
     end
-    
+
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_conf);
-    
+
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 11)
-    
-    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, flag_cpu, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
-    
+
+    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, flag_skyplot, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
+
 %----------------------------------------------------------------------------------------------
-% REAL-TIME: UBLOX MONITORING
+% REAL-TIME: ROVER MONITORING
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 12)
-    
+
     goGPS_ublox_monitor(filerootOUT);
-    
+
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: MASTER MONITORING
 %----------------------------------------------------------------------------------------------
-    
+
 elseif (mode == 13)
-    
+
     goGPS_master_monitor(filerootOUT, flag_NTRIP);
+
+%----------------------------------------------------------------------------------------------
+% REAL-TIME: ROVER AND MASTER MONITORING
+%----------------------------------------------------------------------------------------------
+    
+elseif (mode == 14)
+    
+    goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_rtcm, pos_M);
 
 end
 
@@ -923,19 +940,19 @@ if (mode < 12)
     %stream reading
     % [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
     %  pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
-    
+
     %---------------------------------
-    
+
     %observation file (OBS) and ephemerides file (EPH) reading
     %[time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
     % pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (filerootOUT);
-    
+
     %---------------------------------
-    
+
     %reading of the file with Kalman filter results
     [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
         conf_sat, conf_cs, pivot] = load_goGPSoutput (filerootOUT, mode, mode_vinc);
-    
+
     %variable saving for final graphical representations
     nObs = size(Xhat_t_t,2);
     pos_KAL = zeros(3,nObs);
@@ -969,12 +986,12 @@ if (mode < 12)
     X_KAL = pos_KAL(1,:)';
     Y_KAL = pos_KAL(2,:)';
     Z_KAL = pos_KAL(3,:)';
-    
+
     %coordinate transformation
     [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
     phi_KAL = phi_KAL * 180/pi;
     lam_KAL = lam_KAL * 180/pi;
-    
+
     %file saving
     fid_geod = fopen([filerootOUT '_geod.txt'], 'wt');
     for i = 1 : length(phi_KAL)
@@ -998,7 +1015,7 @@ if (mode < 12)
     point_colorR = 'FFF5005A';
     %point size
     scaleR = 0.4;
-    
+
     %file saving (Google Earth KML)
     fid_kml = fopen([filerootOUT '.kml'], 'wt');
     fprintf(fid_kml, '<?xml version="1.0" standalone="yes"?>\n');
@@ -1038,15 +1055,15 @@ if (mode < 12)
     X_KAL = pos_KAL(1,:)';
     Y_KAL = pos_KAL(2,:)';
     Z_KAL = pos_KAL(3,:)';
-    
+
     %coordinate transformation
     [EST_KAL, NORD_KAL, h_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
-    
+
     %trajectory plotting
     figure
     plot(EST_KAL, NORD_KAL, '.r');
     xlabel('EST [m]'); ylabel('NORD [m]'); grid on;
-    
+
     %data saving
     fid_plan = fopen([filerootOUT '_plan.txt'], 'wt');
     for i = 1 : length(EST_KAL)
@@ -1059,20 +1076,20 @@ end
 % RINEX FILE SAVING
 %----------------------------------------------------------------------------------------------
 
-if (flag_RINEX & ((mode < 11 & mode_data > 0) | mode == 11 | mode == 12))
-    
+if (flag_RINEX & ((mode < 11 & mode_data > 0) | mode == 11 | mode == 12 | mode == 14))
+
     %if post-processing goGPS binary data (not streams)
     if (mode < 11 & mode_data == 1)
         [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
             pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
     %if real-time navigation or rover monitoring
-    elseif (mode == 11 | mode == 12)
+    elseif (mode == 11 | mode == 12 | mode == 14)
         [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
             pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootOUT);
     end
 
-    fprintf(['Writing: ' filerootOUT '_rover_RINEX.txt\n']);
-    ublox2RINEX(stream_R, [filerootOUT '_rover_RINEX.txt']);
+    fprintf(['Writing: ' filerootOUT '_rover_RINEX.obs\n']);
+    ublox2RINEX(stream_R, [filerootOUT '_rover_RINEX.obs']);
 end
 
 %----------------------------------------------------------------------------------------------
@@ -1080,15 +1097,15 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0)
-    
+
     %covariance propagation
     Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1],:));
-    
+
     %trajectory plotting
     figure
     plot(EST_KAL, NORD_KAL, '.r'); axis equal
     xlabel('EST [m]'); ylabel('NORD [m]'); grid on;
-    
+
     hold on
     for i = 1 : size(Cee_ENU,3)         % ellipse definition
         T = chol(Cee_ENU(1:2,1:2,i));   % Cholesky decomposition
@@ -1098,7 +1115,7 @@ if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0)
         plot(x_ellipse(:,1),x_ellipse(:,2));
     end;
     hold off
-    
+
     %file saving
     fid_cov = fopen([filerootOUT '_cov.txt'], 'wt');
     for i = 1 : length(phi_KAL)
@@ -1106,7 +1123,7 @@ if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0)
             Cee_ENU(1,3,i), Cee_ENU(2,2,i), Cee_ENU(2,3,i), Cee_ENU(3,3,i));
     end
     fclose(fid_cov);
-    
+
 end
 
 %----------------------------------------------------------------------------------------------
@@ -1115,10 +1132,10 @@ end
 
 % if (mode < 12 & mode_ref == 1)
 %     [EST_ref, NORD_ref, h_ref] = cart2plan(ref_path(:,1), ref_path(:,2),ref_path(:,3));
-%     
+%
 %     %reference data plot
 %     plot(EST_ref, NORD_ref, 'm', 'LineWidth', 2)
-%     
+%
 %     hold off
 % end
 
@@ -1221,10 +1238,10 @@ end
 %----------------------------------------------------------------------------------------------
 
 % if (mode == 1)
-% 
+%
 %    coltab = jet;
 %    coltab = [1 1 1; coltab([1 16 32 48 56],:)];
-% 
+%
 %    figure
 %    subplot(2,1,1);
 %    imagesc(snr_R.*abs(conf_sat),[-0.5 60.5]);
@@ -1236,7 +1253,7 @@ end
 %    title('Master S/N ratio');
 %    axis xy; colormap(coltab);
 %    h = colorbar; set(h,'YTick',0:10:60);
-% 
+%
 %    clear h coltab
 % end
 
@@ -1245,7 +1262,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 % if (mode == 1)
-% 
+%
 %    for i = 1 : 32
 %       index = find(conf_sat(i,:) == 1)';
 %       index_cs = find(conf_cs(i,:) == 1)';
@@ -1266,7 +1283,7 @@ end
 %          title(['Combination of estimated ambiguities between PIVOT and SATELLITE ',num2str(i)]);
 %       end
 %    end
-% 
+%
 % end
 
 %----------------------------------------------------------------------------------------------
@@ -1276,20 +1293,20 @@ end
 if (mode < 10) & (mode_vinc == 0) & (~isempty(ref_path))
     %coordinate transformation
     [EST_REF, NORD_REF, h_REF] = cart2plan(ref_path(:,1), ref_path(:,2), ref_path(:,3));
-    
+
     ref = [EST_REF NORD_REF h_REF];
-    
+
     [dist2D, proj] = ref_2d_projection(ref,EST_KAL,NORD_KAL); %#ok<NASGU>
-    
+
     fprintf('\n');
     fprintf('-------- STATISTICS ----------');
     fprintf('\n');
     fprintf('Mean2D: %7.4f m\n',mean(dist2D));
     fprintf('Std2D:  %7.4f m\n',std(dist2D));
     fprintf('RMS2D:  %7.4f m\n\n',sqrt(std(dist2D)^2+mean(dist2D)^2));
-    
+
     [dist3D,proj] = ref_3d_projection(ref,EST_KAL,NORD_KAL,h_KAL);
-    
+
     fprintf('Mean3D: %7.4f m\n',mean(dist3D));
     fprintf('Std3D:  %7.4f m\n',std(dist3D));
     fprintf('RMS3D:  %7.4f m\n',sqrt(std(dist3D)^2+mean(dist3D)^2));
@@ -1303,15 +1320,3 @@ warning on
 
 %evaluate computation time
 toc
-
-%__________________________________/\\\\\\\\\\\\___/\\\\\\\\\\\\\______/\\\\\\\\\\\___
-% ________________________________/\\\//////////___\/\\\/////////\\\__/\\\/////////\\\_
-%  ___/\\\\\\\\___________________/\\\______________\/\\\_______\/\\\_\//\\\______\///__
-%   __/\\\////\\\______/\\\\\_____\/\\\____/\\\\\\\__\/\\\\\\\\\\\\\/___\////\\\_________
-%    _\//\\\\\\\\\____/\\\///\\\___\/\\\___\/////\\\__\/\\\/////////________\////\\\______
-%     __\///////\\\___/\\\__\//\\\__\/\\\_______\/\\\__\/\\\____________________\////\\\___
-%      __/\\_____\\\__\//\\\__/\\\___\/\\\_______\/\\\__\/\\\_____________/\\\______\//\\\__
-%       _\//\\\\\\\\____\///\\\\\/____\//\\\\\\\\\\\\/___\/\\\____________\///\\\\\\\\\\\/___
-%        __\////////_______\/////_______\////////////_____\///_______________\///////////_____
-%
-%(ASCII-art from http://patorjk.com/software/taag/)

@@ -20,10 +20,10 @@ function [time, satG, satS, satR, datee] = RINEX_get_epoch(fid)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %
 % Partially based on FEPOCH_0.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -48,7 +48,6 @@ satG = [];
 satS = [];
 satR = [];
 datee=[0 0 0 0 0 0];
-NoSv = 0;
 eof = 0;
 
 %search data
@@ -59,39 +58,37 @@ while (eof==0)
     %if it is a comment line read the following one
     if ~isempty(answer)
         lin = fgetl(fid);
-    end;
+    end
     %check if the end of file is reached
     if (feof(fid) == 1);
-        eof = 1;
         return
-    end;
+    end
     %check if it is a string that should be analyzed
     if (strcmp(lin(29),'0') == 1) | (strcmp(lin(29),'1') == 1)
     % if lin(2) ~= ' '
 
-        %save date information
-        [year, lin] = strtok(lin);
-        [month, lin] = strtok(lin);
-        [day, lin] = strtok(lin);
-        [hour, lin] = strtok(lin);
-        [minute, lin] = strtok(lin);
-        [second, lin] = strtok(lin);
-        [OK_flag, lin] = strtok(lin);
+        %save line information
+        data = textscan(lin(1:26),'%f%f%f%f%f%f');
+        year = data{1};
+        month = data{2};
+        day = data{3};
+        hour = data{4};
+        minute = data{5};
+        second = data{6};
         %computation of the corresponding julian day
-        jd = julday(str2num(year)+2000, str2num(month), str2num(day), 0);
+        jd = julday(year+2000, month, day, 0);
         %computation of the GPS time in weeks and seconds of week
-        [week, sec_of_week] = gps_time(jd);
-        time = sec_of_week + str2num(hour)*3600+str2num(minute)*60+str2num(second);
+        [week, sec_of_week] = gps_time(jd); %#ok<ASGLU>
+        time = sec_of_week + hour*3600+minute*60+second;
 
         %number of visible satellites
-        [num_sat] = sscanf(lin(1:3),'%d');
+        [num_sat] = sscanf(lin(30:32),'%d');
 
-        %check if GPS satellites are labeled 'G' or not labeled
-        %ex. with G:       6G 1G 4G10G12G28G29
-        %    not labeled:  6  1  4 10 12 28 29
-
+        %keep just the satellite data
+        lin = lin(30:end);
+        
         %add the second line in case there are more than 12 satellites
-        if num_sat >12
+        if (num_sat > 12)
             lin_doppler = fgetl(fid);
             lin = [lin, lin_doppler];
         end
@@ -103,19 +100,23 @@ while (eof==0)
         while (lin(end) == ' ') | (lin(end) == double(10)) | (lin(end) == double(13))
             lin = lin(1:end-1);
         end
+        
+        %check if GPS satellites are labeled 'G' or not labeled
+        %ex. with G:       6G 1G 4G10G12G28G29
+        %    not labeled:  6  1  4 10 12 28 29
 
         %search for 'G'
         [trovatoG posG] = find(lin=='G');
         if (~isempty(trovatoG))
             for k = 1 : length(posG)
-                satG = [satG; str2num(lin(posG(k)+1:posG(k)+2))];
+                satG = [satG; sscanf(lin(posG(k)+1:posG(k)+2),'%d')];
             end
         else
             %search for 'blank'
             [trovato pos] = find(lin==' ');
             if (~isempty(trovato))
                 for k = 1 : length(pos)
-                    satG = [satG; str2num(lin(pos(k)+1:pos(k)+2))];
+                    satG = [satG; sscanf(lin(pos(k)+1:pos(k)+2),'%d')];
                 end
             end
         end
@@ -124,7 +125,7 @@ while (eof==0)
         [trovatoS posS] = find(lin=='S');
         if (~isempty(trovatoS))
             for k = 1 : length(posS)
-                satS = [satS; str2num(lin(posS(k)+1:posS(k)+2))];
+                satS = [satS; sscanf(lin(posS(k)+1:posS(k)+2),'%d')];
             end
         end
 
@@ -132,7 +133,7 @@ while (eof==0)
         [trovatoR posR] = find(lin=='R');
         if (~isempty(trovatoR))
             for k = 1 : length(posR)
-                satR = [satR; str2num(lin(posR(k)+1:posR(k)+2))];
+                satR = [satR; sscanf(lin(posR(k)+1:posR(k)+2),'%d')];
             end
         end
 
@@ -140,4 +141,4 @@ while (eof==0)
     end
 end
 
-datee=[str2num(year) str2num(month) str2num(day) str2num(hour) str2num(minute) str2num(second)];
+datee = [year month day hour minute second];

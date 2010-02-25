@@ -51,7 +51,7 @@ EsMc=500000; % false East
 %WGS84 ellipsoid parameters
 %semi-major equatorial axis [m]
 SemiEq=6378137;
-%flattening f=(a-b)/a 
+%flattening f=(a-b)/a
 f=1/298.25722356;
 
 %squared eccentricity (a^2-b^2)/a^2
@@ -95,7 +95,7 @@ for i=1:n
 
     if latsessadec(i,1)>=0
        nord_sud(i,1)=1; %1 nord, 0 sud
-    else   
+    else
        nord_sud(i,1)=0;
     end
 end
