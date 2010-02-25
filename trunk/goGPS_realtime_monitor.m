@@ -14,7 +14,7 @@ function goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_rtcm, pos_M)
 %   output data saving (observations).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -156,6 +156,38 @@ while (~reply_save)
     set(rover,'RequestToSend','on');
     fopen(rover);
     reply_save = ublox_CFG_CFG(rover, 'save');
+end
+
+% set output rate to 1Hz
+fprintf('Setting measurement rate to 1Hz...\n');
+
+% ublox_poll_message(rover, '06', '08', 0);
+
+reply_RATE = ublox_CFG_RATE(rover, 1000, 1, 1);
+tries = 0;
+
+while (~reply_RATE)
+    tries = tries + 1;
+    if (tries > 3)
+        disp('It was not possible to set the receiver output rate to 1Hz.');
+        break
+    end
+    %close and delete old serial object
+    try
+        fclose(rover);
+        delete(rover);
+    catch
+        stopasync(rover);
+        fclose(rover);
+        delete(rover);
+    end
+    % create new serial object
+    rover = serial (COMportR,'BaudRate',57600);
+    set(rover,'InputBufferSize',16384);
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
+    fopen(rover);
+    reply_RATE = ublox_CFG_RATE(rover, 1000, 1, 1);
 end
 
 % enable raw measurements output

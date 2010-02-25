@@ -1,19 +1,19 @@
-function [reply] = ublox_CFG_CFG(serialObj, action)
+function [reply] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef)
 
 % SYNTAX:
-%   [reply] = ublox_CFG_CFG(serialObj, action)
+%   [reply] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef);
 %
 % INPUT:
 %   serialObj = serial Object identifier
-%   action = 'clear': load factory defaults to active settings
-%            'save' : save active settings to non-volatile memory
-%            'load' : load settings from non-volatile memory to active settings
+%   measRate = measurement rate [ms]
+%   navRate = navigation rate [n. of measurement cycles]
+%   timeRef = alignment to reference time (0 = UTC; 1 = GPS)
 %
 % OUTPUT:
 %   reply = receiver reply
 %
 % DESCRIPTION:
-%   Clear, save or load u-blox receiver configurations.
+%   Set the u-blox navigation/measurement rates.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -38,40 +38,27 @@ function [reply] = ublox_CFG_CFG(serialObj, action)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-header1 = 'B5';                                % header (hexadecimal value)
-header2 = '62';                                % header (hexadecimal value)
-ID1 = '06';                                    % CFG (hexadecimal value)
-ID2 = '09';                                    % CFG (hexadecimal value)
+header1 = 'B5';                            % header (hexadecimal value)
+header2 = '62';                            % header (hexadecimal value)
 
-codeHEX = [header1; header2; ID1; ID2];        % initial hexadecimal poll message
-codeDEC = hex2dec(codeHEX);                    % conversion to decimal
+ID1 = '06';                                % CFG (hexadecimal value)
+ID2 = '08';                                % MSG (hexadecimal value)
 
-LEN1 = 0;                                      % payload length
-LEN2 = 13;                                     % (little-endian)
-codeDEC = [codeDEC; LEN2; LEN1];
+codeHEX = [header1; header2; ID1; ID2];    % initial hexadecimal poll message
+codeDEC = hex2dec(codeHEX);                % conversion to decimal
 
-clear_mask = ['00';'00';'00';'00'];
-save_mask  = ['00';'00';'00';'00'];
-load_mask  = ['00';'00';'00';'00'];
+LEN1 = 0;                                  % payload length
+LEN2 = 6;                                  % (enable/disable a periodic message)
+codeDEC = [codeDEC; LEN2; LEN1];           % (little-endian)
 
-if (strcmp(action, 'clear'))
+%input conversion to hexadecimal
+measRate = dec2hex(measRate,4);
+navRate = dec2hex(navRate,4);
+timeRef = dec2hex(timeRef,4);
 
-    clear_mask = ['FF';'FF';'00';'00'];
-    load_mask  = ['FF';'FF';'00';'00'];
-
-elseif (strcmp(action, 'save'))
-
-    save_mask = ['FF';'FF';'00';'00'];
-
-elseif (strcmp(action, 'load'))
-
-    load_mask = ['FF';'FF';'00';'00'];
-
-end
-
-devices = '17';                                % devices: BBR, FLASH, I2C-EEPROM, SPI-FLASH
-
-codeDEC = [codeDEC; hex2dec(clear_mask); hex2dec(save_mask); hex2dec(load_mask); hex2dec(devices)];
+codeDEC = [codeDEC; hex2dec(measRate(3:4)); hex2dec(measRate(1:2)); ...
+           hex2dec(navRate(3:4)); hex2dec(navRate(1:2)); ...
+           hex2dec(timeRef(3:4)); hex2dec(timeRef(1:2))];
 
 % checksum
 CK_A = 0; CK_B = 0;

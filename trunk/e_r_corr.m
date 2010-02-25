@@ -15,7 +15,7 @@ function [X_sat_rot] = e_r_corr(traveltime, X_sat)
 %   during signal travel time.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) Kai Borre
 %

@@ -37,7 +37,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   and the MASTER. Select epochs they have in common.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -169,8 +169,8 @@ k = 1;
 time_GPS(1,1) = time_GPS_R;
 date(1,:) = date_R(1,:);
 
-while (~feof(FR_oss))
-
+while (time_GPS_M == time_GPS_R)
+    
     %variable initialization (GPS)
     pr1_R(:,k) = zeros(32,1);
     pr2_R(:,k) = zeros(32,1);
@@ -182,7 +182,7 @@ while (~feof(FR_oss))
     ph2_M(:,k) = zeros(32,1);
     snr_R(:,k) = zeros(32,1);
     snr_M(:,k) = zeros(32,1);
-
+    
     %variable initialization (GLONASS)
     pr1_RR(:,k) = zeros(32,1);
     pr2_RR(:,k) = zeros(32,1);
@@ -194,74 +194,89 @@ while (~feof(FR_oss))
     ph2_MR(:,k) = zeros(32,1);
     snr_RR(:,k) = zeros(32,1);
     snr_MR(:,k) = zeros(32,1);
-
+    time_GPS_R
+    time_GPS_M
+    time_GPS(k)
     if (time_GPS_R == time_GPS(k))
-
+        
         %read ROVER observations (GPS)
         pr1_R(sat_R,k) = mat_oss_R(:,col_cod1_R);
         %pr2_R(sat_R,k) = mat_oss_R(:,col_cod2_R);
         ph1_R(sat_R,k) = mat_oss_R(:,col_ph1_R);
         %ph2_R(sat_R,k) = mat_oss_R(:,col_ph2_R);
         snr_R(sat_R,k) = snr_R_single(:,1);
-
+        
         %read ROVER observations (GLONASS)
-%         pr1_RR(sat_R,k) = mat_oss_RR(:,col_cod1_R);
-%         %pr2_RR(sat_R,k) = mat_oss_RR(:,col_cod2_R);
-%         ph1_RR(sat_R,k) = mat_oss_RR(:,col_ph1_R);
-%         %ph2_RR(sat_R,k) = mat_oss_RR(:,col_ph2_R);
-%         snr_RR(sat_R,k) = snr_RR_single(:,1);
-
+        %         pr1_RR(sat_R,k) = mat_oss_RR(:,col_cod1_R);
+        %         %pr2_RR(sat_R,k) = mat_oss_RR(:,col_cod2_R);
+        %         ph1_RR(sat_R,k) = mat_oss_RR(:,col_ph1_R);
+        %         %ph2_RR(sat_R,k) = mat_oss_RR(:,col_ph2_R);
+        %         snr_RR(sat_R,k) = snr_RR_single(:,1);
+        
         %read data for the current epoch (ROVER)
         [time_GPS_R, sat_R, sat_RS, sat_RR, date_R] = RINEX_get_epoch(FR_oss);
+        
+        if (time_GPS_R == time_GPS(k))
+            
+            %number of satellites (ROVER)
+            num_sat_R = size(sat_R,1);
+            num_sat_RS = size(sat_RS,1);
+            num_sat_RR = size(sat_RR,1);
+            
+            %read ROVER observations
+            [null, null] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_ph1_R);
+            %[null, null] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_cod1_R);
+            [null, null] = RINEX_get_obs(FR_oss, num_sat_RS, num_type_obs_R, col_ph1_R); %#ok<NASGU>
+            [null, null] = RINEX_get_obs(FR_oss, num_sat_RR, num_type_obs_R, col_ph1_R); %#ok<NASGU>
+        else
+            
+            %number of satellites (ROVER)
+            num_sat_R = size(sat_R,1);
+            num_sat_RS = size(sat_RS,1);
+            num_sat_RR = size(sat_RR,1);
+            
+            %read ROVER observations
+            [mat_oss_R, snr_R_single] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_ph1_R);
+            %[mat_oss_R, snr_R_single] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_cod1_R);
+            [mat_oss_RS, snr_RS_single] = RINEX_get_obs(FR_oss, num_sat_RS, num_type_obs_R, col_ph1_R); %#ok<NASGU>
+            [mat_oss_RR, snr_RR_single] = RINEX_get_obs(FR_oss, num_sat_RR, num_type_obs_R, col_ph1_R); %#ok<NASGU>
+            
+            if (time_GPS_M == time_GPS(k))
+                
+                %read MASTER observations (GPS)
+                pr1_M(sat_M,k) = mat_oss_M(:,col_cod1_M);
+                %pr2_M(sat_M,k) = mat_oss_M(:,col_cod2_M);
+                ph1_M(sat_M,k) = mat_oss_M(:,col_ph1_M);
+                %ph2_M(sat_M,k) = mat_oss_M(:,col_ph2_M);
+                snr_M(sat_M,k) = snr_M_single(:,1);
+                
+                %read MASTER observations (GLONASS)
+                %         pr1_MR(sat_M,k) = mat_oss_MR(:,col_cod1_M);
+                %         %pr2_MR(sat_M,k) = mat_oss_MR(:,col_cod2_M);
+                %         ph1_MR(sat_M,k) = mat_oss_MR(:,col_ph1_M);
+                %         %ph2_MR(sat_M,k) = mat_oss_MR(:,col_ph2_M);
+                %         snr_MR(sat_M,k) = snr_MR_single(:,1);
+                
+                %read data for the current epoch (MASTER)
+                [time_GPS_M, sat_M, sat_MS, sat_MR, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+                
+                %number of satellites (MASTER)
+                num_sat_M = size(sat_M,1);
+                num_sat_MS = size(sat_MS,1);
+                num_sat_MR = size(sat_MR,1);
+                
+                %read ROVER observations
+                [mat_oss_M, snr_M_single] = RINEX_get_obs(FM_oss, num_sat_M, num_type_obs_M, col_ph1_M);
+                [mat_oss_MS, snr_MS_single] = RINEX_get_obs(FM_oss, num_sat_MS, num_type_obs_M, col_ph1_M); %#ok<NASGU>
+                [mat_oss_MR, snr_MR_single] = RINEX_get_obs(FM_oss, num_sat_MR, num_type_obs_M, col_ph1_M); %#ok<NASGU>
+                
+            end
 
-        %number of satellites (ROVER)
-        num_sat_R = size(sat_R,1);
-        num_sat_RS = size(sat_RS,1);
-        num_sat_RR = size(sat_RR,1);
-
-        %read ROVER observations
-        [mat_oss_R, snr_R_single] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_ph1_R);
-        %[mat_oss_R, snr_R_single] = RINEX_get_obs(FR_oss, num_sat_R, num_type_obs_R, col_cod1_R);
-        [mat_oss_RS, snr_RS_single] = RINEX_get_obs(FR_oss, num_sat_RS, num_type_obs_R, col_ph1_R); %#ok<NASGU>
-        [mat_oss_RR, snr_RR_single] = RINEX_get_obs(FR_oss, num_sat_RR, num_type_obs_R, col_ph1_R); %#ok<NASGU>
-
+            k = k+1;
+            time_GPS(k,1) = time_GPS(k-1,1) + 1;
+            date(k,:) = date_R(1,:);
+        end
     end
-
-    if (time_GPS_M == time_GPS(k))
-
-        %read MASTER observations (GPS)
-        pr1_M(sat_M,k) = mat_oss_M(:,col_cod1_M);
-        %pr2_M(sat_M,k) = mat_oss_M(:,col_cod2_M);
-        ph1_M(sat_M,k) = mat_oss_M(:,col_ph1_M);
-        %ph2_M(sat_M,k) = mat_oss_M(:,col_ph2_M);
-        snr_M(sat_M,k) = snr_M_single(:,1);
-
-        %read MASTER observations (GLONASS)
-%         pr1_MR(sat_M,k) = mat_oss_MR(:,col_cod1_M);
-%         %pr2_MR(sat_M,k) = mat_oss_MR(:,col_cod2_M);
-%         ph1_MR(sat_M,k) = mat_oss_MR(:,col_ph1_M);
-%         %ph2_MR(sat_M,k) = mat_oss_MR(:,col_ph2_M);
-%         snr_MR(sat_M,k) = snr_MR_single(:,1);
-
-        %read data for the current epoch (MASTER)
-        [time_GPS_M, sat_M, sat_MS, sat_MR, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
-
-        %number of satellites (MASTER)
-        num_sat_M = size(sat_M,1);
-        num_sat_MS = size(sat_MS,1);
-        num_sat_MR = size(sat_MR,1);
-
-        %read ROVER observations
-        [mat_oss_M, snr_M_single] = RINEX_get_obs(FM_oss, num_sat_M, num_type_obs_M, col_ph1_M);
-        [mat_oss_MS, snr_MS_single] = RINEX_get_obs(FM_oss, num_sat_MS, num_type_obs_M, col_ph1_M); %#ok<NASGU>
-        [mat_oss_MR, snr_MR_single] = RINEX_get_obs(FM_oss, num_sat_MR, num_type_obs_M, col_ph1_M); %#ok<NASGU>
-
-    end
-
-    k = k+1;
-    time_GPS(k,1) = time_GPS(k-1,1) + 1;
-    date(k,:) = date_R(1,:);
-
 end
 
 time_GPS(end) = [];

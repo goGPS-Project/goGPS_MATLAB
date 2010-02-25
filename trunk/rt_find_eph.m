@@ -15,7 +15,7 @@ function [Eph_t] = rt_find_eph (Eph_in, time)
 %   and save them in the global variable 'eph' (size 21x32).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

@@ -20,7 +20,7 @@ function [xR, Cxx, A] = code_SA(posR, pr1_R, time, Eph, iono)
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

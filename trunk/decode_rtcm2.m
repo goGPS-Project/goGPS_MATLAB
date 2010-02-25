@@ -15,7 +15,7 @@ function [data] = decode_rtcm2(msg, time_GPS)
 %   RTCM 2.3 binary messages decoding (also in sequence).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %

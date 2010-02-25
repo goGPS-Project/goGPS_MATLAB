@@ -33,7 +33,7 @@ function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 %   Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
