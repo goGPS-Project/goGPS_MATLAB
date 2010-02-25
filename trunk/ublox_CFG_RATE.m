@@ -1,7 +1,7 @@
-function [reply] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef)
+function [out] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef)
 
 % SYNTAX:
-%   [reply] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef);
+%   [out] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef);
 %
 % INPUT:
 %   serialObj = serial Object identifier
@@ -10,7 +10,7 @@ function [reply] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef)
 %   timeRef = alignment to reference time (0 = UTC; 1 = GPS)
 %
 % OUTPUT:
-%   reply = receiver reply
+%   out = receiver reply
 %
 % DESCRIPTION:
 %   Set the u-blox navigation/measurement rates.
@@ -88,4 +88,4 @@ end
 %     fwrite(serialObj, codeDEC, 'uint8', 'async');
 % end
 
-[reply] = ublox_check_ACK(serialObj, ID1, ID2);
+[out] = ublox_check_ACK(serialObj, ID1, ID2);

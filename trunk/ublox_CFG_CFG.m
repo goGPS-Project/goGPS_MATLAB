@@ -1,7 +1,7 @@
-function [reply] = ublox_CFG_CFG(serialObj, action)
+function [out] = ublox_CFG_CFG(serialObj, action)
 
 % SYNTAX:
-%   [reply] = ublox_CFG_CFG(serialObj, action)
+%   [out] = ublox_CFG_CFG(serialObj, action)
 %
 % INPUT:
 %   serialObj = serial Object identifier
@@ -10,7 +10,7 @@ function [reply] = ublox_CFG_CFG(serialObj, action)
 %            'load' : load settings from non-volatile memory to active settings
 %
 % OUTPUT:
-%   reply = receiver reply
+%   out = outcome of the request
 %
 % DESCRIPTION:
 %   Clear, save or load u-blox receiver configurations.
@@ -101,4 +101,4 @@ end
 %     fwrite(serialObj, codeDEC, 'uint8', 'async');
 % end
 
-[reply] = ublox_check_ACK(serialObj, ID1, ID2);
+[out] = ublox_check_ACK(serialObj, ID1, ID2);
