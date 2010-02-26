@@ -67,8 +67,8 @@ global o1 o2 o3 h_antenna
 
 if (mode_user == 1)
 
-    [mode, mode_vinc, mode_data, mode_ref, flag_ms_rtcm, flag_ms, flag_ge, flag_cov, flag_COM, flag_NTRIP, flag_amb, ...
-        flag_skyplot, flag_RINEX, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, ...
+    [mode, mode_vinc, mode_data, mode_ref, flag_ms_rtcm, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+        flag_skyplot, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, ...
         filename_ref, pos_M] = goGPS_gui;
 
     if (isempty(mode))
@@ -103,8 +103,7 @@ else
 
     mode_data = 1;    % data loading mode
                       % mode_data=0 --> RINEX data
-                      % mode_data=1 --> goGPS data (saved during a real-time session)
-                      % mode_data=2 --> stream data (saved during a real-time session)
+                      % mode_data=1 --> goGPS binary data
 
     mode_ref = 0;     % reference path mode
                       % mode_ref=0 --> do not use a reference path
@@ -118,15 +117,11 @@ else
 
     flag_cov = 0;     % plot error ellipse --> no=0, yes=1
 
-    flag_COM = 0;     % u-blox COM automatic detection --> no=0, yes=1
-
     flag_NTRIP = 1;   % use NTRIP --> no=0, yes=1
 
     flag_amb = 0;     % plot ambiguities (only in post-processing)
 
     flag_skyplot = 1; % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
-
-    flag_RINEX = 0;   % generate a RINEX file for the rover data
 
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -200,8 +195,9 @@ if (mode < 10) %post-processing
         %snr_RR = 6 * snr_RR;
         %snr_MR = 6 * snr_MR;
         
-        time_R = time_GPS;
-        time_M = time_GPS;
+        %needed to write obs and eph files
+        %time_R = time_GPS;
+        %time_M = time_GPS;
 
         %remove satellites without ephemerides (GPS)
         delsat = setdiff(1:32,unique(Eph(1,:)));
@@ -256,7 +252,7 @@ if (mode < 10) %post-processing
         %time_GPS = time_GPS(end:-1:1);
         %date = date(end:-1:1,:);
 
-    elseif (mode_data == 1)
+    else %mode_data == 1
 
         %read data from goGPS saved files
         [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
@@ -301,86 +297,6 @@ if (mode < 10) %post-processing
         loss_R = loss_R(tMin:tMax);
         loss_M = loss_M(tMin:tMax);
         date = date(tMin:tMax,:);
-
-    else %if (mode_data == 2)
-
-        %read data from saved stream files
-        [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, ...
-            Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
-        %satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
-        %satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
-        satEph = find(sum(abs(Eph(:,:,1)))~=0);
-        satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-        while (length(satEph) < length(satObs)) | (length(satObs) < 4)
-
-            time_GPS(1) = [];
-            time_R(1) = [];
-            time_M(1) = [];
-            pr1_R(:,1) = [];
-            pr1_M(:,1) = [];
-            ph1_R(:,1) = [];
-            ph1_M(:,1) = [];
-            snr_R(:,1) = [];
-            snr_M(:,1) = [];
-            pos_M(:,1) = [];
-            Eph(:,:,1) = [];
-            loss_R(1) = [];
-            loss_M(1) = [];
-
-            %satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
-            %satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
-            satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-            satEph = find(sum(abs(Eph(:,:,1)))~=0);
-        end
-
-        %remove observations without ephemerides
-        for i = 1 : length(time_GPS)
-            satEph = find(sum(abs(Eph(:,:,i)))~=0);
-            delsat = setdiff(1:32,satEph);
-            pr1_R(delsat,i) = 0;
-            pr1_M(delsat,i) = 0;
-            ph1_R(delsat,i) = 0;
-            ph1_M(delsat,i) = 0;
-            snr_R(delsat,i) = 0;
-            snr_M(delsat,i) = 0;
-        end
-
-        %nominal date for Google Earth
-        date0 = datenum(2010,1,1,0,0,0);
-        date = datevec(date0 + time_GPS/86400);
-
-        %other variables
-        iono_R = zeros(8,1);
-        iono_M = zeros(8,1);
-        pr2_M = zeros(size(pr1_M));
-        pr2_R = zeros(size(pr1_R));
-        ph2_M = zeros(size(ph1_M));
-        ph2_R = zeros(size(ph1_R));
-
-        %complete/partial path
-        tMin = 1;
-        tMax = 1e30;
-        tMin = max(tMin,1);
-        tMax = min(tMax,length(time_GPS));
-        time_GPS = time_GPS(tMin:tMax);
-        time_R = time_R(tMin:tMax);
-        time_M = time_M(tMin:tMax);
-        pr1_R = pr1_R(:,tMin:tMax);
-        pr1_M = pr1_M(:,tMin:tMax);
-        ph1_R = ph1_R(:,tMin:tMax);
-        ph1_M = ph1_M(:,tMin:tMax);
-        pr2_R = pr2_R(:,tMin:tMax);
-        pr2_M = pr2_M(:,tMin:tMax);
-        ph2_R = ph2_R(:,tMin:tMax);
-        ph2_M = ph2_M(:,tMin:tMax);
-        snr_R = snr_R(:,tMin:tMax);
-        snr_M = snr_M(:,tMin:tMax);
-        pos_M = pos_M(:,tMin:tMax);
-        Eph = Eph(:,:,tMin:tMax);
-        date = date(tMin:tMax,:);
-        loss_R = loss_R(tMin:tMax);
-        loss_M = loss_M(tMin:tMax);
-
     end
 
 else %real-time
@@ -417,8 +333,8 @@ if (mode == 1) & (mode_vinc == 0)
     fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-    fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
-    fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+    %fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
+    %fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
     if (mode_data == 0)
         Eph_t = rt_find_eph (Eph, time_GPS(1));
@@ -431,8 +347,8 @@ if (mode == 1) & (mode_vinc == 0)
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-    fwrite(fid_obs, [time_GPS(1); time_M(1); time_R(1); pr1_M(:,1); pr1_R(:,1); ph1_M(:,1); ph1_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1)], 'double');
-    fwrite(fid_eph, [time_GPS(1); Eph_t(:)], 'double');
+    %fwrite(fid_obs, [time_GPS(1); time_M(1); time_R(1); pr1_M(:,1); pr1_R(:,1); ph1_M(:,1); ph1_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1)], 'double');
+    %fwrite(fid_eph, [time_GPS(1); Eph_t(:)], 'double');
 
     if (flag_cov == 0)
         if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
@@ -465,8 +381,8 @@ if (mode == 1) & (mode_vinc == 0)
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-        fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t)], 'double');
-        fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
+        %fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t)], 'double');
+        %fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
 
         if (flag_cov == 0)
             if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
@@ -493,8 +409,8 @@ if (mode == 1) & (mode_vinc == 0)
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_conf);
-    fclose(fid_obs);
-    fclose(fid_eph);
+    %fclose(fid_obs);
+    %fclose(fid_eph);
 
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH A CONSTRAINT
@@ -1017,7 +933,8 @@ if (mode < 12)
     iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
     point_colorR = 'FFF5005A';
     %point size
-    scaleR = 0.4;
+    scaleR = 0.2;
+    line_colorR = 'FFF5005A';
 
     %file saving (Google Earth KML)
     fid_kml = fopen([filerootOUT '.kml'], 'wt');
@@ -1026,25 +943,43 @@ if (mode < 12)
     fprintf(fid_kml, '  <Document>\n');
     fprintf(fid_kml, '    <name><![CDATA[%s]]></name>\n', [filerootOUT '.kml']);
     fprintf(fid_kml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
+    fprintf(fid_kml, '      <Style id="go1">\n');
+    fprintf(fid_kml, '        <IconStyle>\n');
+    fprintf(fid_kml, '          <color>%s</color>\n',point_colorR);
+    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleR);
+    fprintf(fid_kml, '          <Icon>\n');
+    fprintf(fid_kml, '            <href>%s</href>\n',iconR);
+    fprintf(fid_kml, '          </Icon>\n');
+    fprintf(fid_kml, '        </IconStyle>\n');
+    fprintf(fid_kml, '      </Style>\n');
+    fprintf(fid_kml, '      <Placemark>\n');
+    fprintf(fid_kml, '      <name>Rover track</name>\n');
+    fprintf(fid_kml, '        <Style>\n');
+    fprintf(fid_kml, '          <LineStyle>\n');
+    fprintf(fid_kml, '            <color>%s</color>\n',line_colorR);
+    fprintf(fid_kml, '          </LineStyle>\n');
+    fprintf(fid_kml, '        </Style>\n');
+    fprintf(fid_kml, '        <LineString>\n');
+    fprintf(fid_kml, '          <coordinates>\n');
+    for i = 1 : length(phi_KAL)
+        fprintf(fid_kml, '            %.6f,%.6f,0.000\n',lam_KAL(i),phi_KAL(i));
+    end
+    fprintf(fid_kml, '          </coordinates>\n');
+    fprintf(fid_kml, '        </LineString>\n');
+    fprintf(fid_kml, '      </Placemark>\n');
+    fprintf(fid_kml, '      <Folder>\n');
+    fprintf(fid_kml, '      <name>Rover positioning</name>\n');
     for i = 1 : length(phi_KAL)
         fprintf(fid_kml, '      <Placemark>\n');
+        fprintf(fid_kml, '        <styleUrl>#go1</styleUrl>\n');
         fprintf(fid_kml, '        <Point>\n');
         fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
         fprintf(fid_kml, '          <coordinates>%.6f,%.6f,%.6f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
         fprintf(fid_kml, '        </Point>\n');
         fprintf(fid_kml, '        <Snippet></Snippet>\n');
-        fprintf(fid_kml, '        <Style>\n');
-        fprintf(fid_kml, '          <IconStyle>\n');
-        fprintf(fid_kml, '            <Icon>\n');
-        fprintf(fid_kml, '              <href>%s</href>\n',iconR);
-        fprintf(fid_kml, '            </Icon>\n');
-        fprintf(fid_kml, '            <color>%s</color>\n',point_colorR);
-        fprintf(fid_kml, '            <colorMode>normal</colorMode>\n');
-        fprintf(fid_kml, '            <scale>%.2f</scale>\n',scaleR);
-        fprintf(fid_kml, '          </IconStyle>\n');
-        fprintf(fid_kml, '        </Style>\n');
         fprintf(fid_kml, '      </Placemark>\n');
     end
+    fprintf(fid_kml, '      </Folder>\n');
     fprintf(fid_kml, '  </Document>\n</kml>');
     fclose(fid_kml);
 end
@@ -1079,21 +1014,28 @@ end
 % RINEX FILE SAVING
 %----------------------------------------------------------------------------------------------
 
-if (flag_RINEX & ((mode < 11 & mode_data > 0) | mode == 11 | mode == 12 | mode == 14))
-
-    %if post-processing goGPS binary data (not streams)
-    if (mode < 11 & mode_data == 1)
-        [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-            pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootIN);
-    %if real-time navigation or rover monitoring
-    elseif (mode == 11 | mode == 12 | mode == 14)
-        [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-            pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream (filerootOUT);
-    end
-
-    fprintf(['Writing: ' filerootOUT '_rover_RINEX.obs\n']);
-    ublox2RINEX(stream_R, [filerootOUT '_rover_RINEX.obs']);
-end
+% if (flag_RINEX & ((mode < 11 & mode_data ~= 0) | mode >= 11))
+% 
+%     %if post-processing goGPS binary data (not streams)
+%     if (mode < 11 & mode_data == 1)
+%         fileroot = filerootIN;
+%     %if real-time navigation or rover monitoring
+%     elseif (mode >= 11)
+%         fileroot = filerootOUT;
+%     end
+% 
+%     if (mode ~= 13)
+%         %write RINEX for rover
+%         fprintf(['Writing: ' filerootOUT '_rover_RINEX.obs\n']);
+%         streamR2RINEX(fileroot, [fileroot '_rover_RINEX.obs']);
+%     end
+%     
+%     if (mode ~= 12)
+%         %write RINEX for master
+%         fprintf(['Writing: ' filerootOUT '_master_RINEX.obs\n']);
+%         streamM2RINEX(fileroot, [fileroot '_master_RINEX.obs']);
+%     end
+% end
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
