@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 16-Feb-2010 16:42:38
+% Last Modified by GUIDE v2.5 25-Feb-2010 17:44:09
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -92,7 +92,7 @@ function varargout = goGPS_gui_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(21,1);
+    varargout = cell(19,1);
     return
 end
 contents_mode = cellstr(get(handles.mode,'String'));
@@ -129,21 +129,17 @@ end
 mode_vinc = get(handles.constraint,'Value');
 if (get(handles.file_type, 'SelectedObject') == handles.rinex_files)
     mode_data = 0;
-elseif (get(handles.file_type, 'SelectedObject') == handles.gogps_data)
+else %goGPS data
     mode_data = 1;
-else
-    mode_data = 2;
 end
 mode_ref = get(handles.ref_path,'Value');
 flag_ms_rtcm = get(handles.master_pos,'Value');
 flag_ms = get(handles.plot_master,'Value');
 flag_ge = get(handles.google_earth,'Value');
 flag_cov = get(handles.err_ellipse,'Value');
-flag_COM = get(handles.u_com_detect,'Value');
 flag_NTRIP = get(handles.use_ntrip,'Value');
 flag_amb = get(handles.plot_amb,'Value');
 flag_skyplot = get(handles.no_skyplot_snr,'Value');
-flag_RINEX = get(handles.rinex_out,'Value');
 filerootIN = get(handles.gogps_data_input,'String');
 filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
 filerootIN(filerootIN == '\') = '/';
@@ -196,19 +192,17 @@ varargout{5} = flag_ms_rtcm;
 varargout{6} = flag_ms;
 varargout{7} = flag_ge;
 varargout{8} = flag_cov;
-varargout{9} = flag_COM;
-varargout{10} = flag_NTRIP;
-varargout{11} = flag_amb;
-varargout{12} = flag_skyplot;
-varargout{13} = flag_RINEX;
-varargout{14} = filerootIN;
-varargout{15} = filerootOUT;
-varargout{16} = filename_R_obs;
-varargout{17} = filename_R_nav;
-varargout{18} = filename_M_obs;
-varargout{19} = filename_M_nav;
-varargout{20} = filename_ref;
-varargout{21} = pos_M;
+varargout{9} = flag_NTRIP;
+varargout{10} = flag_amb;
+varargout{11} = flag_skyplot;
+varargout{12} = filerootIN;
+varargout{13} = filerootOUT;
+varargout{14} = filename_R_obs;
+varargout{15} = filename_R_nav;
+varargout{16} = filename_M_obs;
+varargout{17} = filename_M_nav;
+varargout{18} = filename_ref;
+varargout{19} = pos_M;
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -315,11 +309,9 @@ state.ref_path = get(handles.ref_path, 'Value');
 state.plot_master = get(handles.plot_master, 'Value');
 state.google_earth = get(handles.google_earth, 'Value');
 state.err_ellipse = get(handles.err_ellipse, 'Value');
-state.u_com_detect = get(handles.u_com_detect, 'Value');
 state.use_ntrip = get(handles.use_ntrip, 'Value');
 state.plot_amb = get(handles.plot_amb, 'Value');
 state.no_skyplot_snr = get(handles.no_skyplot_snr, 'Value');
-state.rinex_out = get(handles.rinex_out, 'Value');
 state.RINEX_rover_obs = get(handles.RINEX_rover_obs,'String');
 state.RINEX_rover_nav = get(handles.RINEX_rover_nav,'String');
 state.RINEX_master_obs = get(handles.RINEX_master_obs,'String');
@@ -342,7 +334,6 @@ state.kalman_ls = get(handles.kalman_ls,'Value');
 state.code_dd_sa = get(handles.code_dd_sa,'Value');
 state.rinex_files = get(handles.rinex_files,'Value');
 state.gogps_data = get(handles.gogps_data,'Value');
-state.data_streams = get(handles.data_streams,'Value');
 state.std_X = get(handles.std_X,'String');
 state.std_Y = get(handles.std_Y,'String');
 state.std_Z = get(handles.std_Z,'String');
@@ -388,11 +379,9 @@ set(handles.ref_path, 'Value', state.ref_path);
 set(handles.plot_master, 'Value', state.plot_master);
 set(handles.google_earth, 'Value', state.google_earth);
 set(handles.err_ellipse, 'Value', state.err_ellipse);
-set(handles.u_com_detect, 'Value', state.u_com_detect);
 set(handles.use_ntrip, 'Value', state.use_ntrip);
 set(handles.plot_amb, 'Value', state.plot_amb);
 set(handles.no_skyplot_snr, 'Value', state.no_skyplot_snr);
-set(handles.rinex_out, 'Value', state.rinex_out);
 set(handles.RINEX_rover_obs,'String', state.RINEX_rover_obs);
 set(handles.RINEX_rover_nav,'String', state.RINEX_rover_nav);
 set(handles.RINEX_master_obs,'String', state.RINEX_master_obs);
@@ -415,7 +404,6 @@ set(handles.kalman_ls,'Value', state.kalman_ls);
 set(handles.code_dd_sa,'Value', state.code_dd_sa);
 set(handles.rinex_files,'Value', state.rinex_files);
 set(handles.gogps_data,'Value', state.gogps_data);
-set(handles.data_streams,'Value', state.data_streams);
 set(handles.std_X,'String', state.std_X);
 set(handles.std_Y,'String', state.std_Y);
 set(handles.std_Z,'String', state.std_Z);
@@ -493,7 +481,6 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     set(handles.code_dd_sa, 'Value', 3);
     set(handles.rinex_files, 'Enable', 'off');
     set(handles.gogps_data, 'Enable', 'off');
-    set(handles.data_streams, 'Enable', 'off');
     
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
@@ -527,9 +514,6 @@ else
     set(handles.code_dd_sa, 'Enable', 'on');
     set(handles.rinex_files, 'Enable', 'on');
     set(handles.gogps_data, 'Enable', 'on');
-    set(handles.data_streams, 'Enable', 'on');
-
-    %     set(handles.u_com_detect, 'Enable', 'off');
     set(handles.com_select, 'Enable', 'off');
     set(handles.text_com_select, 'Enable', 'off');
     set(handles.use_ntrip, 'Enable', 'off');
@@ -787,12 +771,10 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.plot_master, 'Enable', 'on');
     set(handles.err_ellipse, 'Enable', 'on');
     set(handles.google_earth, 'Enable', 'on');
-    %     set(handles.u_com_detect, 'Enable', 'on');
     set(handles.com_select, 'Enable', 'on');
     set(handles.text_com_select, 'Enable', 'on');
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
-    set(handles.rinex_out, 'Enable', 'on');
 
     set(handles.gogps_data_output, 'Enable', 'on');
     set(handles.text_gogps_data_output, 'Enable', 'on');
@@ -919,11 +901,9 @@ else
 
     if (strcmp(contents{get(hObject,'Value')},'Rover monitor'))
 
-        %set(handles.u_com_detect, 'Enable', 'on');
         set(handles.com_select, 'Enable', 'on');
         set(handles.text_com_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'off');
-        set(handles.rinex_out, 'Enable', 'on');
 
         %disable approximate position
         set(handles.text_approx_pos, 'Enable', 'off');
@@ -957,11 +937,9 @@ else
 
     elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
 
-        %set(handles.u_com_detect, 'Enable', 'off');
         set(handles.com_select, 'Enable', 'off');
         set(handles.text_com_select, 'Enable', 'off');
         set(handles.use_ntrip, 'Enable', 'on');
-        set(handles.rinex_out, 'Enable', 'off');
 
         %enable connection parameters
         set(handles.server_delay, 'Enable', 'on');
@@ -989,11 +967,9 @@ else
 
     elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
 
-        %set(handles.u_com_detect, 'Enable', 'on');
         set(handles.com_select, 'Enable', 'on');
         set(handles.text_com_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'off');
-        set(handles.rinex_out, 'Enable', 'on');
         
         %enable connection parameters
         set(handles.server_delay, 'Enable', 'on');
@@ -1099,16 +1075,6 @@ function google_earth_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of google_earth
-
-
-% --- Executes on button press in u_com_detect.
-function u_com_detect_Callback(hObject, eventdata, handles)
-% hObject    handle to u_com_detect (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of u_com_detect
-
 
 % --- Executes on button press in use_ntrip.
 function use_ntrip_Callback(hObject, eventdata, handles)
@@ -1633,8 +1599,6 @@ if (hObject == handles.rinex_files)
     set(handles.browse_gogps_input, 'Enable', 'off');
     set(handles.text_gogps_input, 'Enable', 'off');
 
-    set(handles.rinex_out, 'Enable', 'off');
-
     contents = cellstr(get(handles.mode,'String'));
     if (strcmp(contents{get(handles.mode,'Value')},'Post-processing'))
         set(handles.master_pos, 'Enable', 'off');
@@ -1659,8 +1623,6 @@ else
     set(handles.gogps_data_input, 'Enable', 'on');
     set(handles.browse_gogps_input, 'Enable', 'on');
     set(handles.text_gogps_input, 'Enable', 'on');
-
-    set(handles.rinex_out, 'Enable', 'on');
 
     set(handles.master_pos, 'Enable', 'on');
     set(handles.master_pos, 'Value', 1);
@@ -2425,16 +2387,6 @@ function no_skyplot_snr_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of no_skyplot_snr
 
 
-% --- Executes on button press in rinex_out.
-function rinex_out_Callback(hObject, eventdata, handles)
-% hObject    handle to rinex_out (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of rinex_out
-
-
-
 function server_delay_Callback(hObject, eventdata, handles)
 % hObject    handle to server_delay (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -2522,3 +2474,38 @@ else
         set(handles.password,'String','')
     end
 end
+
+
+% --------------------------------------------------------------------
+function menu_tools_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_tools (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function menu_about_Callback(hObject, eventdata, handles)
+% hObject    handle to menu_about (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function streamR2RINEX_Callback(hObject, eventdata, handles)
+% hObject    handle to streamR2RINEX (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function streamM2RINEX_Callback(hObject, eventdata, handles)
+% hObject    handle to streamM2RINEX (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function streams2goGPSbin_Callback(hObject, eventdata, handles)
+% hObject    handle to streams2goGPSbin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
