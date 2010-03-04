@@ -73,7 +73,7 @@ if ~isempty(pos_all)
             % message length (10 bit)
             LEN = bin2dec(msg(pos:pos+9));  pos = pos + 10;
 
-            if (pos + 8*LEN - 1 <= length(msg))
+            if (pos + 8*LEN + 23 <= length(msg))
 
                 % CRC check
                 CRC_comp = crc24q(msg(pos0 : pos + 8*LEN - 1));
