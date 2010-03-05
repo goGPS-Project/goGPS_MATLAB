@@ -1591,6 +1591,9 @@ while flag
                     snr_R(delsat,b) = 0;
                     snr_M(delsat,b) = 0;
 
+                    %satellites with available observations
+                    satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
+
                     %input data save
                     t0 = clock;
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
@@ -1715,6 +1718,9 @@ while flag
                     ph_M(delsat,b)  = 0;
                     snr_R(delsat,b) = 0;
                     snr_M(delsat,b) = 0;
+
+                    %satellites with available observations
+                    satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %input data save
                     t0 = clock;
@@ -1891,6 +1897,9 @@ while flag
                         snr_R(delsat,b) = 0;
                         snr_M(delsat,b) = 0;
 
+                        %satellites with available observations
+                        satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
+
                         %output data save
                         fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
                         fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
@@ -2011,6 +2020,9 @@ while flag
                     ph_M(delsat,b)  = 0;
                     snr_R(delsat,b) = 0;
                     snr_M(delsat,b) = 0;
+
+                    %satellites with available observations
+                    satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %input data save
                     t0 = clock;

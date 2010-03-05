@@ -185,6 +185,10 @@ if (nsat >= min_nsat)
 
     %covariance matrix of observations
     Cnn = cov_pos_R;
+else
+    %to point out that notwithstanding the satellite configuration,
+    %data were not analysed (motion by dynamics only).
+    pivot = 0;
 end
 
 %------------------------------------------------------------------------------------
