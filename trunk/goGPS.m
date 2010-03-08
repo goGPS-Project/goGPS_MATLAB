@@ -188,12 +188,6 @@ if (mode < 10) %post-processing
         %Eph = Eph_R;
         Eph = Eph_M;
         %Eph_GLO = Eph_MR;
-
-        %convert signal-to-noise ratio
-        snr_R = 6 * snr_R;
-        snr_M = 6 * snr_M;
-        %snr_RR = 6 * snr_RR;
-        %snr_MR = 6 * snr_MR;
         
         %needed to write obs and eph files
         %time_R = time_GPS;

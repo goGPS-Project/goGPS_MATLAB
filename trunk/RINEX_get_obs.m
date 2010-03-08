@@ -1,21 +1,21 @@
-function [matrix_oss, snr] = RINEX_get_obs(file_RINEX, num_sat, num_type_oss, col_L1)
+function [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_types)
 
 % SYNTAX:
-%   [matrix_oss, snr] = RINEX_get_obs(file_RINEX, num_sat, num_type_oss, col_L1);
+%   [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_types);
 %
 % INPUT:
 %   file_RINEX = observation RINEX file
-%   num_sat = number of visible satellites
-%   num_type_oss = number of types of observations
-%   col_L1 = column index for the phase observation L1
+%   sat  = list of all visible satellites
+%   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
+%   obs_types = observations types (e.g. C1L1P1...)
 %
 % OUTPUT:
-%   matrix_oss = observation matrix
-%   snr = signal-to-noise ratio
+%   obs_GPS = GPS observations
+%   obs_GLO = GLONASS observations
+%   obs_SBS = SBAS observations
 %
 % DESCRIPTION:
-%   Acquisition of RINEX observation data (code, phase).
-%   Acquisition of signal-to-noise ratio.
+%   Acquisition of RINEX observation data (code, phase and signal-to-noise ratio).
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -42,46 +42,166 @@ function [matrix_oss, snr] = RINEX_get_obs(file_RINEX, num_sat, num_type_oss, co
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%variable initialization
-matrix_oss = zeros(num_sat, num_type_oss);
-snr = zeros(num_sat,1);
+num_sat = length(sat);
 
-%less than 5 observation types --> just 1 line to be read
-if num_type_oss <= 5
-   for u = 1:num_sat
-      lin = fgetl(file_RINEX);
-      for k = 1:num_type_oss
-          %data save
-          if (length(lin) < 2+16*(k-1)) | (isempty(sscanf(lin(2+16*(k-1):16*k-2),'%f')))
-              matrix_oss(u,k) = 0;
-          else
-              matrix_oss(u,k) = sscanf(lin(2+16*(k-1):16*k-2),'%f');
-              if (k == col_L1) & (numel(lin)>=16*k)
-                  snr(u,1) = sscanf(lin(16*k),'%f');
-              end
-          end
-      end
-   end
+%observation types
+[col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2] = obs_type_find(obs_types);
+num_obs_types = size(obs_types,2)/2;
 
-else
+%observations structure initialization
+obs_GPS.L1 = zeros(32,1);
+obs_GLO.L1 = zeros(32,1);
+obs_SBS.L1 = zeros(32,1);
 
-   %more than 5 observation types --> 2 lines to be read
-   matrix_oss = matrix_oss(:,[1 2 3 4 5]);
-   num_type_oss = 5;
-   for u = 1:num_sat
-      lin = fgetl(file_RINEX);
-      lin_doppler = fgetl(file_RINEX); %#ok<NASGU>
-      for k = 1:num_type_oss
-         if (length(lin) < 1+16*(k-1)) | (isempty(sscanf(lin(1+16*(k-1):16*k-2),'%f')))
-             matrix_oss(u,k) = 0;
-         else
-             %data save
-             matrix_oss(u,k) = sscanf(lin(1+16*(k-1):16*k-2),'%f');
-             if (k == col_L1) & (numel(lin)>=16*k)
-                 snr(u,1) = sscanf(lin(16*k),'%f');
-             end
-         end
-      end
-   end
+obs_GPS.L2 = zeros(32,1);
+obs_GLO.L2 = zeros(32,1);
+obs_SBS.L2 = zeros(32,1);
 
+obs_GPS.C1 = zeros(32,1);
+obs_GLO.C1 = zeros(32,1);
+obs_SBS.C1 = zeros(32,1);
+
+obs_GPS.P1 = zeros(32,1);
+obs_GLO.P1 = zeros(32,1);
+obs_SBS.P1 = zeros(32,1);
+
+obs_GPS.P2 = zeros(32,1);
+obs_GLO.P2 = zeros(32,1);
+obs_SBS.P2 = zeros(32,1);
+
+obs_GPS.S1 = zeros(32,1);
+obs_GLO.S1 = zeros(32,1);
+obs_SBS.S1 = zeros(32,1);
+
+obs_GPS.S2 = zeros(32,1);
+obs_GLO.S2 = zeros(32,1);
+obs_SBS.S2 = zeros(32,1);
+
+obs_GPS.D1 = zeros(32,1);
+obs_GLO.D1 = zeros(32,1);
+obs_SBS.D1 = zeros(32,1);
+
+obs_GPS.D2 = zeros(32,1);
+obs_GLO.D2 = zeros(32,1);
+obs_SBS.D2 = zeros(32,1);
+
+%data read and assignment
+for s = 1 : num_sat
+    lin = fgetl(file_RINEX);
+    %more than 5 observation types --> 2 lines to be read
+    if num_obs_types > 5
+        lin_add = fgetl(file_RINEX);
+        %add padding if necessary
+        if (length(lin) < 80)
+            for i = 1 : 80 - length(lin)
+                lin = [lin ' '];
+            end
+        end
+        lin = [lin lin_add];
+    end
+    for k = 1 : num_obs_types
+        %variable initialization
+        snr = 0;
+
+        %data save
+        if (length(lin) < 2+16*(k-1)) | (isempty(sscanf(lin(2+16*(k-1):16*k-2),'%f')))
+            obs = 0;
+        else
+            obs = sscanf(lin(2+16*(k-1):16*k-2),'%f');
+            if (k == col_L1) & (numel(lin)>=16*k)
+                snr = sscanf(lin(16*k),'%f');
+                %convert signal-to-noise ratio
+                snr = snr * 7;
+            end
+            if (k == col_S1) | (k == col_S2)
+                snr = obs;
+            end
+        end
+        
+        %check and assign the observation type
+        switch k
+            case col_L1
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.L1(sat(s)) = obs;
+                    case 'R'
+                        obs_GLO.L1(sat(s)) = obs;
+                    case 'S'
+                        obs_SBS.L1(sat(s)) = obs;
+                end
+            case col_L2
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.L2(sat(s)) = obs;
+                    case 'R'
+                        obs_GLO.L2(sat(s)) = obs;
+                    case 'S'
+                        obs_SBS.L2(sat(s)) = obs;
+                end
+            case col_C1
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.C1(sat(s)) = obs;
+                    case 'R'
+                        obs_GLO.C1(sat(s)) = obs;
+                    case 'S'
+                        obs_SBS.C1(sat(s)) = obs;
+                end
+            case col_P1
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.P1(sat(s)) = obs;
+                    case 'R'
+                        obs_GLO.P1(sat(s)) = obs;
+                    case 'S'
+                        obs_SBS.P1(sat(s)) = obs;
+                end
+            case col_P2
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.P2(sat(s)) = obs;
+                    case 'R'
+                        obs_GLO.P2(sat(s)) = obs;
+                    case 'S'
+                        obs_SBS.P2(sat(s)) = obs;
+                end
+            case col_S1
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.S1(sat(s)) = snr;
+                    case 'R'
+                        obs_GLO.S1(sat(s)) = snr;
+                    case 'S'
+                        obs_SBS.S1(sat(s)) = snr;
+                end
+            case col_S2
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.S2(sat(s)) = snr;
+                    case 'R'
+                        obs_GLO.S2(sat(s)) = snr;
+                    case 'S'
+                        obs_SBS.S2(sat(s)) = snr;
+                end
+            case col_D1
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.D1(sat(s)) = obs;
+                    case 'R'
+                        obs_GLO.D1(sat(s)) = obs;
+                    case 'S'
+                        obs_SBS.D1(sat(s)) = obs;
+                end
+            case col_D2
+                switch sat_types(s)
+                    case 'G'
+                        obs_GPS.D2(sat(s)) = obs;
+                    case 'R'
+                        obs_GLO.D2(sat(s)) = obs;
+                    case 'S'
+                        obs_SBS.D2(sat(s)) = obs;
+                end
+        end
+    end
 end
+
