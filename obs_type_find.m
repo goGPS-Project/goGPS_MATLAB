@@ -1,7 +1,7 @@
-function [col_L1, col_L2, col_P1_C1, col_P2] = obs_type_find(Obs_types)
+function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2] = obs_type_find(Obs_types)
 
 % SYNTAX:
-%   [col_L1, col_L2, col_P1_C1, col_P2] = obs_type_find(Obs_types);
+%   [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2] = obs_type_find(Obs_types);
 %
 % INPUT:
 %   Obs_types = string containing observation types
@@ -9,12 +9,18 @@ function [col_L1, col_L2, col_P1_C1, col_P2] = obs_type_find(Obs_types)
 % OUTPUT:
 %   col_L1 = L1 column
 %   col_L2 = L2 column
-%   col_P1_C1 = P1/C1 column
+%   col_C1 = C1 column
+%   col_P1 = P1 column
 %   col_P2 = P2 column
+%   col_S1 = S1 column
+%   col_S2 = S2 column
+%   col_D1 = D1 column
+%   col_D2 = D2 column
 %
 % DESCRIPTION:
-%   Selection of the column index for phase observations (L1, L2) and for
-%   code observations (C1/P1, P2).
+%   Selection of the column index for phase observations (L1, L2), for
+%   code observations (C1, P1, P2), SNR ratios (S1, S2) and Doppler
+%   measurements (D1, D2).
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -49,13 +55,30 @@ col_L1 = (s+1)/2;
 s = findstr(Obs_types, 'L2');
 col_L2 = (s+1)/2;
 
-%search C1/P1 column
+%search C1 column
 s = findstr(Obs_types, 'C1');
-if (isempty(s))
-    s = findstr(Obs_types, 'P1');
-end;
-col_P1_C1 = (s+1)/2;
+col_C1 = (s+1)/2;
+
+%search P1 column
+s = findstr(Obs_types, 'P1');
+col_P1 = (s+1)/2;
 
 %search P2 column
 s = findstr(Obs_types, 'P2');
 col_P2 = (s+1)/2;
+
+%search S1 column
+s = findstr(Obs_types, 'S1');
+col_S1 = (s+1)/2;
+
+%search S2 column
+s = findstr(Obs_types, 'S2');
+col_S2 = (s+1)/2;
+
+%search D1 column
+s = findstr(Obs_types, 'D1');
+col_D1 = (s+1)/2;
+
+%search D2 column
+s = findstr(Obs_types, 'D2');
+col_D2 = (s+1)/2;

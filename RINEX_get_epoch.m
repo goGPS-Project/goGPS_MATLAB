@@ -1,16 +1,15 @@
-function [time, satG, satS, satR, datee] = RINEX_get_epoch(fid)
+function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 
 % SYNTAX:
-%   [time, satG, satS, satR, datee] = RINEX_get_epoch(fid);
+%   [time, sat, sat_types, datee] = RINEX_get_epoch(fid);
 %
 % INPUT:
 %   fid = pointer to the observation RINEX file
 %
 % OUTPUT:
 %   time = observation GPS time
-%   satG = list of visible GPS satellites
-%   satS = list of visible SBAS satellites
-%   satR = list of visible GLONASS satellites
+%   sat  = list of all visible satellites
+%   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
 %   datee = date (year,month,day,hour,minute,second)
 %
 % DESCRIPTION:
@@ -44,9 +43,8 @@ function [time, satG, satS, satR, datee] = RINEX_get_epoch(fid)
 
 %variable initialization
 time = 0;
-satG = [];
-satS = [];
-satR = [];
+sat = [];
+sat_types = [];
 datee=[0 0 0 0 0 0];
 eof = 0;
 
@@ -85,56 +83,31 @@ while (eof==0)
         [num_sat] = sscanf(lin(30:32),'%d');
 
         %keep just the satellite data
-        lin = lin(30:end);
+        lin = lin(33:end);
         
-        %add the second line in case there are more than 12 satellites
-        if (num_sat > 12)
-            lin_doppler = fgetl(fid);
-            lin = [lin, lin_doppler];
-        end
-
-        %remove 'blank spaces' and unwanted characters from beginning and end of the string
-        while (lin(1) == ' ')
-            lin = lin(2:end);
-        end
+        %remove 'blank spaces' and unwanted characters at the end of the string
         while (lin(end) == ' ') | (lin(end) == double(10)) | (lin(end) == double(13))
             lin = lin(1:end-1);
         end
         
-        %check if GPS satellites are labeled 'G' or not labeled
-        %ex. with G:       6G 1G 4G10G12G28G29
-        %    not labeled:  6  1  4 10 12 28 29
-
-        %search for 'G'
-        [trovatoG posG] = find(lin=='G');
-        if (~isempty(trovatoG))
-            for k = 1 : length(posG)
-                satG = [satG; sscanf(lin(posG(k)+1:posG(k)+2),'%d')];
-            end
-        else
-            %search for 'blank'
-            [trovato pos] = find(lin==' ');
-            if (~isempty(trovato))
-                for k = 1 : length(pos)
-                    satG = [satG; sscanf(lin(pos(k)+1:pos(k)+2),'%d')];
-                end
-            end
+        %add the second line in case there are more than 12 satellites
+        if (num_sat > 12)
+            lin_add = fgetl(fid);
+            lin_add = lin_add(33:end);
+            lin = [lin lin_add];
         end
 
-        %search for 'S'
-        [trovatoS posS] = find(lin=='S');
-        if (~isempty(trovatoS))
-            for k = 1 : length(posS)
-                satS = [satS; sscanf(lin(posS(k)+1:posS(k)+2),'%d')];
+        pos = 1;
+        for i = 1 : num_sat
+            %check if GPS satellites are labeled 'G' or not labeled
+            if (strcmp(lin(pos),' '))
+                type = 'G';
+            else
+                type = lin(pos);
             end
-        end
-
-        %search for 'R'
-        [trovatoR posR] = find(lin=='R');
-        if (~isempty(trovatoR))
-            for k = 1 : length(posR)
-                satR = [satR; sscanf(lin(posR(k)+1:posR(k)+2),'%d')];
-            end
+            sat_types = [sat_types; type];
+            sat = [sat; sscanf(lin(pos+1:pos+2),'%d')];
+            pos = pos + 3;
         end
 
         eof = 1;
