@@ -10,7 +10,7 @@ function streamR2RINEX(fileroot, filename)
 % OUTPUT:
 %
 % DESCRIPTION:
-%   File conversion from binary to RINEX format.
+%   File conversion from rover stream (UBX binary) to RINEX format.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -35,7 +35,6 @@ function streamR2RINEX(fileroot, filename)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% global XM YM ZM
 global lambda1
 
 %----------------------------------------------------------------------------------------------
@@ -80,6 +79,7 @@ pr1_R  = zeros(32,Ncell);                             %code observations
 dop_R  = zeros(32,Ncell);                             %doppler measurements
 snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
 lock_R = zeros(32,Ncell);                             %loss of lock indicator
+Eph = zeros(21,32,Ncell);                             %broadcast ephemerides
 
 i = 1;
 for j = 1 : Ncell
@@ -109,10 +109,18 @@ for j = 1 : Ncell
         %if (time_R(i)- floor(time_R(i)) == 0)
         i = i + 1;
         %end
+
+    %RXM-EPH message data save
+    elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
+        
+        %satellite number
+        sat = cell_rover{2,j}(1);
+        
+        Eph(:, sat, i) = cell_rover{2,j}(:);
     end
 end
 clear cell_rover
-clear Ncell pos
+clear Ncell pos sat
 
 %residual data erase (after initialization)
 time_R(i:end)  = [];
@@ -127,29 +135,31 @@ lock_R(:,i:end) = [];
 date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
 
 %----------------------------------------------------------------------------------------------
+% RINEX OBSERVATION FILE
+%----------------------------------------------------------------------------------------------
 
 %displaying
-fprintf(['Writing: ' filename '\n\n']);
+fprintf(['Writing: ' filename '.obs\n\n']);
 
 %create RINEX observation file
-fid = fopen(filename,'wt');	
+fid_obs = fopen([filename '.obs'],'wt');
 
 %write header
-fprintf(fid,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
-fprintf(fid,'goGPS               Geomatics Lab.                          PGM / RUN BY / DATE \n');
-fprintf(fid,'Antenna marker                                              MARKER NAME         \n');
-fprintf(fid,'Geomatics Lab.      Politecnico Milano                      OBSERVER / AGENCY   \n');
-fprintf(fid,'                    ublox                                   REC # / TYPE / VERS \n');
-fprintf(fid,'                    ANN-MS                                  ANT # / TYPE        \n');
-% fprintf(fid,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
-fprintf(fid,'        0.0000        0.0000        0.0000                  APPROX POSITION XYZ \n');
-fprintf(fid,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
-fprintf(fid,'     2     0                                                WAVELENGTH FACT L1/2\n');
-fprintf(fid,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
-fprintf(fid,'     1                                                      INTERVAL            \n');
-fprintf(fid,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
+fprintf(fid_obs,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
+fprintf(fid_obs,'goGPS                                                       PGM / RUN BY / DATE \n');
+fprintf(fid_obs,'                                                            MARKER NAME         \n');
+fprintf(fid_obs,'                                                            OBSERVER / AGENCY   \n');
+fprintf(fid_obs,'                    u-blox                                  REC # / TYPE / VERS \n');
+fprintf(fid_obs,'                                                            ANT # / TYPE        \n');
+% fprintf(fid_obs,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
+fprintf(fid_obs,'        0.0000        0.0000        0.0000                  APPROX POSITION XYZ \n');
+fprintf(fid_obs,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
+fprintf(fid_obs,'     2     0                                                WAVELENGTH FACT L1/2\n');
+fprintf(fid_obs,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
+fprintf(fid_obs,'     1                                                      INTERVAL            \n');
+fprintf(fid_obs,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
         date(1,1), date(1,2), date(1,3), date(1,4), date(1,5), date(1,6));
-fprintf(fid,'                                                            END OF HEADER       \n');
+fprintf(fid_obs,'                                                            END OF HEADER       \n');
 
 %-------------------------------------------------------------------------------
 
@@ -160,26 +170,47 @@ N = length(time_R);
 for i = 1 : N
     sat = find(pr1_R(:,i) ~= 0);
     n = length(sat);
-    fprintf(fid,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
+    fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
             date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), n);
     for j = 1 : n
-        fprintf(fid,'G%02d',sat(j));
+        fprintf(fid_obs,'G%02d',sat(j));
     end
-    fprintf(fid,'\n');
+    fprintf(fid_obs,'\n');
     for j = 1 : n
-        fprintf(fid,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+        fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
         if (ph1_R(sat(j),i) > 1e-100)
-            fprintf(fid,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+            fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
         else
-            fprintf(fid,'                ');
+            fprintf(fid_obs,'                ');
         end
-        fprintf(fid,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-        fprintf(fid,'%14.3f %1d',dop_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-        fprintf(fid,'\n');
+        fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+        fprintf(fid_obs,'%14.3f %1d',dop_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+        fprintf(fid_obs,'\n');
     end
 end
 
-%-------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% RINEX NAVIGATION FILE
+%----------------------------------------------------------------------------------------------
 
-%close RINEX file
-fclose(fid);
+%displaying
+fprintf(['Writing: ' filename '.nav\n\n']);
+
+%create RINEX observation file
+fid_nav = fopen([filename '.nav'],'wt');
+
+%write header
+fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
+fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
+fprintf(fid_nav,'                                                            END OF HEADER       \n');
+
+for i = 1 : N
+    satEph = find(Eph(21,:,i ~= 0));
+    for j = 1 : length(satEph)
+        fprintf('%2d %02d %2d %2d %2d %2d %5.1f');
+    end
+end
+
+%close RINEX files
+fclose(fid_obs);
+fclose(fid_nav);

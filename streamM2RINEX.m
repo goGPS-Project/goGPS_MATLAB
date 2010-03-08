@@ -1,7 +1,7 @@
 function streamM2RINEX(fileroot, filename, week)
 
 % SYNTAX:
-%   streamM2RINEX(fileroot, filename);
+%   streamM2RINEX(fileroot, filename, week);
 %
 % INPUT:
 %   fileroot = input file root (master data, binary stream)
@@ -10,7 +10,7 @@ function streamM2RINEX(fileroot, filename, week)
 % OUTPUT:
 %
 % DESCRIPTION:
-%   File conversion from binary to RINEX format.
+%   File conversion from master stream (RTCM 3.x) to RINEX format.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -81,7 +81,7 @@ end
 
 %stream decodification
 if(is_rtcm2)
-    error('RTCM2.x conversion not supported!');
+    error('RTCM2.x conversion not supported yet!');
 %     [cell_master] = decode_rtcm2(sixofeight);
 else
     [cell_master] = decode_rtcm3(data_master_all);
@@ -149,16 +149,16 @@ fid = fopen(filename,'wt');
 
 %write header
 fprintf(fid,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
-fprintf(fid,'goGPS               Geomatics Lab.                          PGM / RUN BY / DATE \n');
-fprintf(fid,'Antenna marker                                              MARKER NAME         \n');
-fprintf(fid,'Geomatics Lab.      Politecnico Milano                      OBSERVER / AGENCY   \n');
-fprintf(fid,'                    ublox                                   REC # / TYPE / VERS \n');
-fprintf(fid,'                    ANN-MS                                  ANT # / TYPE        \n');
+fprintf(fid,'goGPS                                                       PGM / RUN BY / DATE \n');
+fprintf(fid,'                                                            MARKER NAME         \n');
+fprintf(fid,'                                                            OBSERVER / AGENCY   \n');
+fprintf(fid,'                                                            REC # / TYPE / VERS \n');
+fprintf(fid,'                                                            ANT # / TYPE        \n');
 % fprintf(fid,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
 fprintf(fid,'        0.0000        0.0000        0.0000                  APPROX POSITION XYZ \n');
 fprintf(fid,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
-fprintf(fid,'     2     0                                                WAVELENGTH FACT L1/2\n');
-fprintf(fid,'     3    C1    L1    S1                                    # / TYPES OF OBSERV \n');
+fprintf(fid,'     1     1                                                WAVELENGTH FACT L1/2\n');
+fprintf(fid,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
 fprintf(fid,'     1                                                      INTERVAL            \n');
 fprintf(fid,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
         date(1,1), date(1,2), date(1,3), date(1,4), date(1,5), date(1,6));
