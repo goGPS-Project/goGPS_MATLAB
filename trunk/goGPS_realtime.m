@@ -403,7 +403,6 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
         end
     end
 
-
     %satellites with ephemerides available
     satEph = find(sum(abs(Eph))~=0);
 
