@@ -93,7 +93,7 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  tempoGPS --> double, [1,1]
-%  time_M   --> double, [21,32]
+%  Eph      --> double, [29,32]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %nmea sentences
@@ -292,7 +292,7 @@ fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
 %pseudoranges
 pr_R = zeros(32,1);
 %ephemerides
-Eph = zeros(21,32);
+Eph = zeros(29,32);
 %satellites with observations available
 satObs = [];
 %satellites with ephemerides available

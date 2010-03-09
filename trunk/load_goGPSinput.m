@@ -19,7 +19,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %   snr_R    = ROVER signal-to-noise ratio
 %   snr_M    = MASTER signal-to-noise ratio
 %   pos_M    = MASTER station coordinates
-%   Eph      = matrix of 21 parameters each satellite (MASTER)
+%   Eph      = matrix of 29 parameters each satellite (MASTER)
 %   delay    = delay in observations processing
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
@@ -117,15 +117,15 @@ while ~isempty(d)
     fprintf(['Reading: ' fileroot '_eph_' hour_str '.bin\n']);
     num_bytes = d.bytes;                                            %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / (1+672);                                %file size (number of packets)
+    num_packs = num_words / (1+928);                                %file size (number of packets)
     fid_eph = fopen([fileroot '_eph_' hour_str '.bin']);            %file opening
     buf_eph = fread(fid_eph,num_words,'double');                    %file reading
     fclose(fid_eph);                                                %file closing
-    Eph = cat(3,Eph,zeros(21,32,num_packs));                        %ephemerides concatenation
-    for j = 0 : (1+672) : num_words-1
+    Eph = cat(3,Eph,zeros(29,32,num_packs));                        %ephemerides concatenation
+    for j = 0 : (1+928) : num_words-1
         i = i+1;                                                    %epoch counter increase
         %time_GPS(i,1) = buf_eph(j + 1);                            %GPS time logging
-        Eph(:,:,i) = reshape(buf_eph(j + [2:673]), [21,32]);        %ephemerides concatenation
+        Eph(:,:,i) = reshape(buf_eph(j + [2:929]), [29,32]);        %ephemerides concatenation
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string

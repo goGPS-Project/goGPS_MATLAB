@@ -188,7 +188,7 @@ if (mode < 10) %post-processing
         %Eph = Eph_R;
         Eph = Eph_M;
         %Eph_GLO = Eph_MR;
-        
+
         %needed to write obs and eph files
         %time_R = time_GPS;
         %time_M = time_GPS;

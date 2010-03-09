@@ -7,7 +7,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav)
 %   file_nav = RINEX navigation file
 %
 % OUTPUT:
-%   Eph = matrix containing 21 ephemerides for each satellite
+%   Eph = matrix containing 29 ephemerides for each satellite
 %   iono = matrix containing ionosphere parameters
 %
 % DESCRIPTION:
@@ -111,7 +111,7 @@ while (~feof(fid))
     af1    = str2num(lin1(42:60));
     af2    = str2num(lin1(61:79));
 
-    IODE   = str2num(lin2(4:22)); %#ok<NASGU>
+    IODE   = str2num(lin2(4:22));
     crs    = str2num(lin2(23:41));
     deltan = str2num(lin2(42:60));
     M0     = str2num(lin2(61:79));
@@ -132,43 +132,48 @@ while (~feof(fid))
     Omegadot = str2num(lin5(61:79));
 
     idot   = str2num(lin6(4:22));
-    codes  = str2num(lin6(23:41)); %#ok<NASGU>
-    weekno = str2num(lin6(42:60)); %#ok<NASGU>
-    L2flag = str2num(lin6(61:79)); %#ok<NASGU>
+    codes  = str2num(lin6(23:41));
+    weekno = str2num(lin6(42:60));
+    L2flag = str2num(lin6(61:79));
 
-    svaccur  = str2num(lin7(4:22)); %#ok<NASGU>
-    svhealth = str2num(lin7(23:41)); %#ok<NASGU>
-    tgd    = str2num(lin7(42:60)); %#ok<NASGU>
-    iodc   = lin7(61:79); %#ok<NASGU>
+    svaccur  = str2num(lin7(4:22));
+    svhealth = str2num(lin7(23:41));
+    tgd    = str2num(lin7(42:60));
+    iodc   = str2num(lin7(61:79));
 
     tom = str2num(lin8(4:22));
+    fit_int = str2num(lin8(23:41));
 
-    %debugging
-    %jd = julday(year+2000, month, day, 0);
-    %[week, sec_of_week] = gps_time(jd);
-    %time = sec_of_week + hour*3600+minute*60+second;
-    %time-toe
-
-    %save ephemerides
-    Eph(1,i)  = svprn;
-    Eph(2,i)  = af2;
-    Eph(3,i)  = M0;
-    Eph(4,i)  = roota;
-    Eph(5,i)  = deltan;
-    Eph(6,i)  = ecc;
-    Eph(7,i)  = omega;
-    Eph(8,i)  = cuc;
-    Eph(9,i)  = cus;
-    Eph(10,i) = crc;
-    Eph(11,i) = crs;
-    Eph(12,i) = i0;
-    Eph(13,i) = idot;
-    Eph(14,i) = cic;
-    Eph(15,i) = cis;
-    Eph(16,i) = Omega0;
-    Eph(17,i) = Omegadot;
-    Eph(18,i) = toe;
-    Eph(19,i) = af0;
-    Eph(20,i) = af1;
-    Eph(21,i) = tom;
+    %save ephemerides (if IODC == IODE)
+    if (iodc == IODE)
+        Eph(1,i)  = svprn;
+        Eph(2,i)  = af2;
+        Eph(3,i)  = M0;
+        Eph(4,i)  = roota;
+        Eph(5,i)  = deltan;
+        Eph(6,i)  = ecc;
+        Eph(7,i)  = omega;
+        Eph(8,i)  = cuc;
+        Eph(9,i)  = cus;
+        Eph(10,i) = crc;
+        Eph(11,i) = crs;
+        Eph(12,i) = i0;
+        Eph(13,i) = idot;
+        Eph(14,i) = cic;
+        Eph(15,i) = cis;
+        Eph(16,i) = Omega0;
+        Eph(17,i) = Omegadot;
+        Eph(18,i) = toe;
+        Eph(19,i) = af0;
+        Eph(20,i) = af1;
+        Eph(21,i) = tom;
+        Eph(22,i) = IODE;
+        Eph(23,i) = codes;
+        Eph(24,i) = weekno;
+        Eph(25,i) = L2flag;
+        Eph(26,i) = svaccur;
+        Eph(27,i) = svhealth;
+        Eph(28,i) = tgd;
+        Eph(29,i) = fit_int;
+    end
 end

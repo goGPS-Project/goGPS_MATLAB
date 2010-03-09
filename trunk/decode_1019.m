@@ -10,11 +10,11 @@ function [data] = decode_1019(msg)
 %   data = cell-array that contains the 1019 packet information
 %          1.1) DF002 = message number = 1019
 %          2.1) DF009 = GPS satellite id
-%               DF076 = GPS week number
-%               DF077 = GPS SV ACCURACY
-%               DF078 = GPS CODE ON L2 (00 = reserved, 01 = P code, 10 = C/A code, 11 = L2C
+%          2.24)DF076 = GPS week number
+%          2.26)DF077 = GPS SV ACCURACY
+%          2.23)DF078 = GPS CODE ON L2 (00 = reserved, 01 = P code, 10 = C/A code, 11 = L2C
 %          2.13)DF079 = GPS IDOT
-%               DF071 = GPS IODE
+%          2.22)DF071 = GPS IODE
 %          2.21)DF081 = GPS toc
 %          2.2) DF082 = GPS af2
 %          2.20)DF083 = GPS af1
@@ -33,12 +33,12 @@ function [data] = decode_1019(msg)
 %          2.15)DF096 = GPS Cis
 %          2.12)DF097 = GPS i0
 %          2.10)DF098 = GPS Crc
-%           2.7)DF099 = GPS omega
+%          2.7) DF099 = GPS omega
 %          2.17)DF100 = GPS OMEGADOT
-%               DF101 = GPS tGD
-%               DF102 = SV health
-%               DF103 = L2 P data flag
-%               DF137 = Fit interval
+%          2.28)DF101 = GPS tGD
+%          2.27)DF102 = SV health
+%          2.25)DF103 = L2 P data flag
+%          2.29)DF137 = Fit interval
 %
 % DESCRIPTION:
 %   RTCM format 1019 message decoding.
@@ -72,7 +72,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(21,1);
+data{2} = zeros(29,1);
 
 %message number
 DF002 = bin2dec(msg(pos:pos+11)); pos = pos + 12;
@@ -81,19 +81,19 @@ DF002 = bin2dec(msg(pos:pos+11)); pos = pos + 12;
 DF009 = bin2dec(msg(pos:pos+5)); pos = pos + 6;
 
 %GPS week number
-DF076 = bin2dec(msg(pos:pos+9)); pos = pos + 10; %#ok<NASGU>
+DF076 = bin2dec(msg(pos:pos+9)); pos = pos + 10;
 
 %GPS SV accuracy
-DF077 = bin2dec(msg(pos:pos+3)); pos = pos + 4; %#ok<NASGU>
+DF077 = bin2dec(msg(pos:pos+3)); pos = pos + 4;
 
 %GPS code on L2
-DF078 = msg(pos:pos+1); pos = pos + 2; %#ok<NASGU>
+DF078 = bin2dec(msg(pos:pos+1)); pos = pos + 2;
 
 %GPS IDOT
 DF079 = twos_complement(msg(pos:pos+13)) * pi * (2^-43); pos = pos + 14;
 
 %GPS IODE
-DF071 = bin2dec(msg(pos:pos+7)); pos = pos + 8; %#ok<NASGU>
+DF071 = bin2dec(msg(pos:pos+7)); pos = pos + 8;
 
 %GPS toc
 DF081 = bin2dec(msg(pos:pos+15))*(2^4); pos = pos + 16;
@@ -108,7 +108,7 @@ DF083 = twos_complement(msg(pos:pos+15)) * (2^-43); pos = pos + 16;
 DF084 = twos_complement(msg(pos:pos+21)) * (2^-31); pos = pos + 22;
 
 %GPS IODC
-DF085 = bin2dec(msg(pos:pos+9)); pos = pos + 10; %#ok<NASGU>
+DF085 = bin2dec(msg(pos:pos+9)); pos = pos + 10;
 
 %GPS Crs
 DF086 = twos_complement(msg(pos:pos+15)) * (2^-5); pos = pos + 16;
@@ -152,42 +152,52 @@ DF098 = twos_complement(msg(pos:pos+15)) * (2^-5); pos = pos + 16;
 %GPS omega
 DF099 = twos_complement(msg(pos:pos+31)) * pi * (2^-31); pos = pos + 32;
 
-%GPS omegadot (DF100)
+%GPS omegadot
 DF100= twos_complement(msg(pos:pos+23)) * pi * (2^-43); pos = pos + 24;
 
 %GPS tGD
-DF101 = twos_complement(msg(pos:pos+7)) * (2^-31); pos = pos + 8; %#ok<NASGU>
+DF101 = twos_complement(msg(pos:pos+7)) * (2^-31); pos = pos + 8;
 
 %GPS SV health
-DF102 = bin2dec(msg(pos:pos+5)); pos = pos + 6; %#ok<NASGU>
+DF102 = bin2dec(msg(pos:pos+5)); pos = pos + 6;
 
 %GPS L2 P data flag
-DF103 = bin2dec(msg(pos)); pos = pos + 1; %#ok<NASGU>
+DF103 = bin2dec(msg(pos)); pos = pos + 1;
 
 %GPS fit interval
-DF137 = bin2dec (msg(pos)); %#ok<NASGU>
+DF137 = bin2dec (msg(pos));
 
 %------------------------------------------------
-%output data save
-data{1} = DF002;
-data{2}(1) = DF009;
-data{2}(2) = DF082;
-data{2}(3) = DF088;
-data{2}(4) = DF092;
-data{2}(5) = DF087;
-data{2}(6) = DF090;
-data{2}(7) = DF099;
-data{2}(8) = DF089;
-data{2}(9) = DF091;
-data{2}(10) = DF098;
-data{2}(11) = DF086;
-data{2}(12) = DF097;
-data{2}(13) = DF079;
-data{2}(14) = DF094;
-data{2}(15) = DF096;
-data{2}(16) = DF095;
-data{2}(17) = DF100;
-data{2}(18) = DF093;
-data{2}(19) = DF084;
-data{2}(20) = DF083;
-data{2}(21) = DF081;
+%output data save (if IODC == IODE)
+if (DF085 == DF071)
+    data{1} = DF002;
+    data{2}(1) = DF009;
+    data{2}(2) = DF082;
+    data{2}(3) = DF088;
+    data{2}(4) = DF092;
+    data{2}(5) = DF087;
+    data{2}(6) = DF090;
+    data{2}(7) = DF099;
+    data{2}(8) = DF089;
+    data{2}(9) = DF091;
+    data{2}(10) = DF098;
+    data{2}(11) = DF086;
+    data{2}(12) = DF097;
+    data{2}(13) = DF079;
+    data{2}(14) = DF094;
+    data{2}(15) = DF096;
+    data{2}(16) = DF095;
+    data{2}(17) = DF100;
+    data{2}(18) = DF093;
+    data{2}(19) = DF084;
+    data{2}(20) = DF083;
+    data{2}(21) = DF081;
+    data{2}(22) = DF071;
+    data{2}(23) = DF078;
+    data{2}(24) = DF076;
+    data{2}(25) = DF103;
+    data{2}(26) = DF077;
+    data{2}(27) = DF102;
+    data{2}(28) = DF101;
+    data{2}(29) = DF137;
+end

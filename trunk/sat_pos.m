@@ -17,11 +17,12 @@ function [satp] = sat_pos(t, Eph)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
 %
-% Copyright (C) Kai Borre
-% Kai Borre 04-09-96
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
-% Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %
+% Partially based on SATPOS.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
 
 
@@ -29,14 +30,10 @@ function [satp] = sat_pos(t, Eph)
 % VARIABLE INITIALIZATION
 %-------------------------------------------------------------------------------
 
-global GM Omegae_dot
+global Omegae_dot
 
 %get ephemerides
-svprn    =   Eph(1);		 %#ok<NASGU>
-af2      =   Eph(2);		 %#ok<NASGU>
-M0       =   Eph(3);
 roota    =   Eph(4);
-deltan   =   Eph(5);
 ecc      =   Eph(6);
 omega    =   Eph(7);
 cuc      =   Eph(8);
@@ -50,36 +47,15 @@ cis      =  Eph(15);
 Omega0   =  Eph(16);
 Omegadot =  Eph(17);
 toe      =  Eph(18);
-af0      =  Eph(19);		 %#ok<NASGU>
-af1      =  Eph(20);		 %#ok<NASGU>
-tom      =  Eph(21);		 %#ok<NASGU>
 
 %-------------------------------------------------------------------------------
 % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE COORDINATES
 %-------------------------------------------------------------------------------
 
+Ek = ecc_anomaly(t, Eph);
+
 A = roota*roota;            %semi-major axis
 tk = check_t(t-toe);        %time from the ephemerides reference epoch
-n0 = sqrt(GM/A^3);          %computed mean motion [rad/sec]
-n = n0+deltan;              %corrected mean motion [rad/sec]
-Mk = M0+n*tk;               %mean anomaly
-Mk = rem(Mk+2*pi,2*pi);
-Ek = Mk;
-
-for i = 1:10
-   Ek_old = Ek;
-   Ek = Mk+ecc*sin(Ek);
-   dEk = rem(Ek-Ek_old,2*pi);
-   if abs(dEk) < 1.e-12
-      break;
-   end
-end
-
-if (i == 10)
-    disp('Eccentric anomaly does not converge!!')
-end
-
-Ek = rem(Ek+2*pi,2*pi);
 fk = atan2(sqrt(1-ecc^2)*sin(Ek), cos(Ek)-ecc);
 phi = fk+omega;
 phi = rem(phi,2*pi);

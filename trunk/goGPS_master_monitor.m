@@ -43,7 +43,7 @@ global server_delay
 % initialization
 %------------------------------------------------------
 
-Eph = zeros(21,32);
+Eph = zeros(29,32);
 
 %------------------------------------------------------
 % initialization to save data
@@ -78,7 +78,7 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  timeGPS  --> double, [1,1]   --> zeros(1,1)
-%  time_M   --> double, [21,32]
+%  Eph      --> double, [29,32]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %------------------------------------------------------
@@ -391,7 +391,7 @@ while flag
                     %if (t > 1)
                     %   dep_Eph(:,:,t) = dep_Eph(:,:,t-1);
                     %else
-                    %   dep_Eph(:,:,1) = zeros(21,32);
+                    %   dep_Eph(:,:,1) = zeros(29,32);
                     %end
 
                     type = [type '1002 '];

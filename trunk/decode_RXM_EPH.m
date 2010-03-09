@@ -30,7 +30,14 @@ function [data] = decode_RXM_EPH(msg)
 %          2.19)GPS af0
 %          2.20)GPS af1
 %          2.21)GPS toc
-%
+%          2.22)GPS IODE
+%          2.23)GPS codes;
+%          2.24)GPS weekno;
+%          2.25)GPS L2flag;
+%          2.26)GPS svaccur;
+%          2.27)GPS svhealth;
+%          2.28)GPS tgd;
+%          2.29)GPS fit_int;
 % DESCRIPTION:
 %   RXM-EPH binary message decoding.
 
@@ -63,7 +70,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(21,1);
+data{2} = zeros(29,1);
 
 %output data save
 data{1} = 'RXM-EPH';
@@ -159,6 +166,7 @@ omegadot = twos_complement(SF3D6(9:32)) * pi * (2^-43);
 IODE3 = bin2dec(SF3D7(9:16));
 IDOT = twos_complement(SF3D7(17:30)) * pi * (2^-43);
 
+%ephemerides data (if IODC == IODE)
 if (IODC_8LSBs == IODE2) & (IODC_8LSBs == IODE3)
     data{2}(1) = SVN;
     data{2}(2) = af2;
@@ -181,4 +189,5 @@ if (IODC_8LSBs == IODE2) & (IODC_8LSBs == IODE3)
     data{2}(19) = af0;
     data{2}(20) = af1;
     data{2}(21) = toc;
+    data{2}(22) = IODE3;
 end
