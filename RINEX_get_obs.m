@@ -111,7 +111,7 @@ for s = 1 : num_sat
             if (k == col_L1) & (numel(lin)>=16*k)
                 snr = sscanf(lin(16*k),'%f');
                 %convert signal-to-noise ratio
-                snr = snr * 7;
+                snr = snr * 6;
             end
             if (k == col_S1) | (k == col_S2)
                 snr = obs;

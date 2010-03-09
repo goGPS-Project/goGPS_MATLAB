@@ -11,8 +11,7 @@ function [Eph_t] = rt_find_eph (Eph_in, time)
 %   Eph_t = selected ephemerides
 %
 % DESCRIPTION:
-%   Extract the ephemerides referred to the current epoch
-%   and save them in the global variable 'eph' (size 21x32).
+%   Extract the ephemerides referred to the current epoch.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -39,8 +38,6 @@ function [Eph_t] = rt_find_eph (Eph_in, time)
 
 for sv = 1 : 32
     icol = find_eph(Eph_in, sv, time);
-    %dt = Eph_in(21,icol) - time;
-    %if (~isempty(icol) & (dt < 0))
     if (~isempty(icol))
         Eph_t(:,sv) = Eph_in(:,icol);
     end

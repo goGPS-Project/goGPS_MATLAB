@@ -16,7 +16,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, po
 %   pr1_M    = MASTER-SATELLITE code-pseudorange (carrier L1)
 %   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
 %   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
-%   Eph      = matrix of 21 ephemerides for each satellite
+%   Eph      = matrix of 29 ephemerides for each satellite
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
 %   data_rover_all  = ROVER overall stream
@@ -87,7 +87,7 @@ if ~isempty(data_rover_all)
     pr1_R  = zeros(32,Ncell);                             %code observations
     ph1_R  = zeros(32,Ncell);                             %phase observations
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
-    Eph_R  = zeros(21,32,Ncell);                          %ephemerides
+    Eph_R  = zeros(29,32,Ncell);                          %ephemerides
 
     i = 1;
     for j = 1 : Ncell
@@ -197,7 +197,7 @@ if ~isempty(data_master_all)
     ph1_M  = zeros(32,Ncell);                             %phase observations
     snr_M  = zeros(32,Ncell);                             %signal-to-noise ratio
     pos_M  = zeros(3,Ncell);                              %master station position
-    Eph_M  = zeros(21,32,Ncell);                          %ephemerides
+    Eph_M  = zeros(29,32,Ncell);                          %ephemerides
 
     i = 1;
     for j = 1 : Ncell
@@ -316,14 +316,14 @@ if ~isempty(time_GPS)
             ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
             snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
 
-            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(21,32,1), Eph_R(:,:,pos+1:end));
+            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(29,32,1), Eph_R(:,:,pos+1:end));
         end
     else
         time_R = time_GPS;
         pr1_R  = zeros(32,length(time_GPS));
         ph1_R  = zeros(32,length(time_GPS));
         snr_R  = zeros(32,length(time_GPS));
-        Eph_R  = zeros(21,32,length(time_GPS));
+        Eph_R  = zeros(29,32,length(time_GPS));
     end
 
     if ~isempty(time_M)
@@ -339,7 +339,7 @@ if ~isempty(time_GPS)
             snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
             pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
 
-            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(21,32,1), Eph_M(:,:,pos+1:end));
+            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(29,32,1), Eph_M(:,:,pos+1:end));
         end
     else
         time_M = time_GPS;
@@ -347,7 +347,7 @@ if ~isempty(time_GPS)
         ph1_M  = zeros(32,length(time_GPS));
         snr_M  = zeros(32,length(time_GPS));
         pos_M  = zeros(3,length(time_GPS));
-        Eph_M  = zeros(21,32,length(time_GPS));
+        Eph_M  = zeros(29,32,length(time_GPS));
     end
 
 else

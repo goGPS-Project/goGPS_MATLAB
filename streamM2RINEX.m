@@ -96,6 +96,9 @@ snr1_M  = zeros(32,Ncell);                            %signal-to-noise ratio
 pr2_M   = zeros(32,Ncell);                            %code observations
 ph2_M   = zeros(32,Ncell);                            %phase observations
 snr2_M  = zeros(32,Ncell);                            %signal-to-noise ratio
+Eph_M = zeros(29,32,Ncell);                             %ephemerides
+
+flag_L2 = 0;
 
 i = 1;
 for j = 1 : Ncell
@@ -118,10 +121,20 @@ for j = 1 : Ncell
         ph2_M(:,i)  = cell_master{3,j}(:,8);          %phase observations logging (L2)
         snr2_M(:,i) = cell_master{3,j}(:,10);         %signal-to-noise ratio logging (L2)
         
+        flag_L2 = 1;
+
         i = i+1;
 
+    elseif (cell_master{1,j} == 1019)                 %RTCM 1019 message
+
+        %satellite number
+        sat = cell_master{2,j}(1);                    %satellite number
+
+        Eph_M(:,sat,i) = cell_master{2,j}(:);         %single satellite ephemerides logging
     end
 end
+clear cell_master
+clear Ncell pos sat
 
 %residual data erase (after initialization)
 time_M(i:end)   = [];
@@ -131,6 +144,7 @@ snr1_M(:,i:end) = [];
 pr2_M(:,i:end)  = [];
 ph2_M(:,i:end)  = [];
 snr2_M(:,i:end) = [];
+Eph_M(:,:,i:end) = [];
 
 %manage "nearly null" data
 ph1_M(ph1_M < 1e-100) = 0;
@@ -140,29 +154,35 @@ ph2_M(ph2_M < 1e-100) = 0;
 date = datevec(time_M/(3600*24) + 7*week + datenum([1980,1,6,0,0,0]));
 
 %----------------------------------------------------------------------------------------------
+% RINEX OBSERVATION FILE
+%----------------------------------------------------------------------------------------------
 
 %displaying
-fprintf(['Writing: ' filename '\n\n']);
+fprintf(['Writing: ' filename '.obs\n\n']);
 
 %create RINEX observation file
-fid = fopen(filename,'wt');	
+fid_obs = fopen([filename '.obs'],'wt');
 
 %write header
-fprintf(fid,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
-fprintf(fid,'goGPS                                                       PGM / RUN BY / DATE \n');
-fprintf(fid,'                                                            MARKER NAME         \n');
-fprintf(fid,'                                                            OBSERVER / AGENCY   \n');
-fprintf(fid,'                                                            REC # / TYPE / VERS \n');
-fprintf(fid,'                                                            ANT # / TYPE        \n');
-% fprintf(fid,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
-fprintf(fid,'        0.0000        0.0000        0.0000                  APPROX POSITION XYZ \n');
-fprintf(fid,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
-fprintf(fid,'     1     1                                                WAVELENGTH FACT L1/2\n');
-fprintf(fid,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
-fprintf(fid,'     1                                                      INTERVAL            \n');
-fprintf(fid,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
+fprintf(fid_obs,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
+fprintf(fid_obs,'goGPS                                                       PGM / RUN BY / DATE \n');
+fprintf(fid_obs,'                                                            MARKER NAME         \n');
+fprintf(fid_obs,'                                                            OBSERVER / AGENCY   \n');
+fprintf(fid_obs,'                                                            REC # / TYPE / VERS \n');
+fprintf(fid_obs,'                                                            ANT # / TYPE        \n');
+% fprintf(fid_obs,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
+fprintf(fid_obs,'        0.0000        0.0000        0.0000                  APPROX POSITION XYZ \n');
+fprintf(fid_obs,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
+fprintf(fid_obs,'     1     1                                                WAVELENGTH FACT L1/2\n');
+if (flag_L2)
+    fprintf(fid_obs,'     6    C1    P2    L1    L2    S1    S2                  # / TYPES OF OBSERV \n');
+else
+    fprintf(fid_obs,'     3    C1    L1    S1                                    # / TYPES OF OBSERV \n');
+end
+fprintf(fid_obs,'     1                                                      INTERVAL            \n');
+fprintf(fid_obs,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
         date(1,1), date(1,2), date(1,3), date(1,4), date(1,5), date(1,6));
-fprintf(fid,'                                                            END OF HEADER       \n');
+fprintf(fid_obs,'                                                            END OF HEADER       \n');
 
 %-------------------------------------------------------------------------------
 
@@ -173,25 +193,120 @@ N = length(time_M);
 for i = 1 : N
     sat = find(pr1_M(:,i) ~= 0);
     n = length(sat);
-    fprintf(fid,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
+    fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
             date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), n);
     for j = 1 : n
-        fprintf(fid,'G%02d',sat(j));
+        fprintf(fid_obs,'G%02d',sat(j));
     end
-    fprintf(fid,'\n');
+    fprintf(fid_obs,'\n');
     for j = 1 : n
-        fprintf(fid,'%14.3f %1d',pr1_M(sat(j),i),floor(snr1_M(sat(j),i)/6));
-        if (ph1_M(sat(j),i) > 1e-100)
-            fprintf(fid,'%14.3f %1d',ph1_M(sat(j),i),floor(snr1_M(sat(j),i)/6));
-        else
-            fprintf(fid,'                ');
+        fprintf(fid_obs,'%14.3f %1d',pr1_M(sat(j),i),floor(snr1_M(sat(j),i)/6));
+        if (flag_L2)
+            fprintf(fid_obs,'%14.3f %1d',pr2_M(sat(j),i),floor(snr2_M(sat(j),i)/6));
         end
-        fprintf(fid,'%14.3f %1d',snr1_M(sat(j),i),floor(snr1_M(sat(j),i)/6));
-        fprintf(fid,'\n');
+        if (ph1_M(sat(j),i) > 1e-100)
+            fprintf(fid_obs,'%14.3f %1d',ph1_M(sat(j),i),floor(snr1_M(sat(j),i)/6));
+        else
+            fprintf(fid_obs,'                ');
+        end
+        if (flag_L2)
+            if (ph2_M(sat(j),i) > 1e-100)
+                fprintf(fid_obs,'%14.3f %1d',ph2_M(sat(j),i),floor(snr2_M(sat(j),i)/6));
+            else
+                fprintf(fid_obs,'                ');
+            end
+        end
+        fprintf(fid_obs,'%14.3f %1d',snr1_M(sat(j),i),floor(snr1_M(sat(j),i)/6));
+        if (flag_L2)
+            fprintf(fid_obs,'\n');
+        end
+        if (flag_L2)
+            fprintf(fid_obs,'%14.3f %1d',snr2_M(sat(j),i),floor(snr2_M(sat(j),i)/6));
+        end
+        fprintf(fid_obs,'\n');
     end
 end
 
-%-------------------------------------------------------------------------------
+%close RINEX observation file
+fclose(fid_obs);
 
-%close RINEX file
-fclose(fid);
+%----------------------------------------------------------------------------------------------
+% RINEX NAVIGATION FILE
+%----------------------------------------------------------------------------------------------
+
+%if ephemerides are available
+if (Eph_M(22,:,:) ~= 0)
+    
+    %displaying
+    fprintf(['Writing: ' filename '.nav\n\n']);
+    
+    %create RINEX observation file
+    fid_nav = fopen([filename '.nav'],'wt');
+    
+    %write header
+    fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
+    fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
+    fprintf(fid_nav,'                                                            END OF HEADER       \n');
+    
+    for i = 1 : N
+        satEph = find(Eph_M(22,:,i ~= 0));
+        for j = 1 : length(satEph)
+            af2      = Eph_M(2,j,i);
+            M0       = Eph_M(3,j,i);
+            roota    = Eph_M(4,j,i);
+            deltan   = Eph_M(5,j,i);
+            ecc      = Eph_M(6,j,i);
+            omega    = Eph_M(7,j,i);
+            cuc      = Eph_M(8,j,i);
+            cus      = Eph_M(9,j,i);
+            crc      = Eph_M(10,j,i);
+            crs      = Eph_M(11,j,i);
+            i0       = Eph_M(12,j,i);
+            idot     = Eph_M(13,j,i);
+            cic      = Eph_M(14,j,i);
+            cis      = Eph_M(15,j,i);
+            Omega0   = Eph_M(16,j,i);
+            Omegadot = Eph_M(17,j,i);
+            toe      = Eph_M(18,j,i);
+            af0      = Eph_M(19,j,i);
+            af1      = Eph_M(20,j,i);
+            tom      = Eph_M(21,j,i);
+            IODE     = Eph_M(22,j,i);
+            codes    = Eph_M(23,j,i);
+            weekno   = Eph_M(24,j,i);
+            L2flag   = Eph_M(25,j,i);
+            svaccur  = Eph_M(26,j,i);
+            svhealth = Eph_M(27,j,i);
+            tgd      = Eph_M(28,j,i);
+            fit_int  = Eph_M(29,j,i);
+            
+            lineE(:,1) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f%19.12E%19.12E%19.12E', ...
+                satEph(j),date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), ...
+                af0, af1, af2);
+            lineE(:,2) = sprintf('   %19.12E%19.12E%19.12E%19.12E', IODE , crs, deltan, M0);
+            lineE(:,3) = sprintf('   %19.12E%19.12E%19.12E%19.12E', cuc, ecc, cus, roota);
+            lineE(:,4) = sprintf('   %19.12E%19.12E%19.12E%19.12E', toe, cic, Omega0, cis);
+            lineE(:,5) = sprintf('   %19.12E%19.12E%19.12E%19.12E', i0, crc, omega, Omegadot);
+            lineE(:,6) = sprintf('   %19.12E%19.12E%19.12E%19.12E', idot, codes, weekno, L2flag);
+            lineE(:,7) = sprintf('   %19.12E%19.12E%19.12E%19.12E', svaccur, svhealth, tgd, IODE);
+            lineE(:,8) = sprintf('   %19.12E%19.12E%19.12E%19.12E', tom, fit_int, 0, 0);
+            
+            %if running on Windows, convert three-digits exponential notation
+            %to two-digits; in any case, replace 'E' with 'D' and print the string
+            if (~isunix)
+                for k = 1 : 8
+                    lineD = strrep(lineE(:,k),'E+0','D+');
+                    fprintf(fid_nav,'%s',lineD);
+                end
+            else
+                for k = 1 : 8
+                    lineD(:,k) = strrep(lineE(:,k),'E+','D+');
+                    fprintf(fid_nav,'%s',lineD);
+                end
+            end
+        end
+    end
+    
+    %close RINEX navigation file
+    fclose(fid_nav);
+end

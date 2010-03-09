@@ -79,7 +79,7 @@ pr1_R  = zeros(32,Ncell);                             %code observations
 dop_R  = zeros(32,Ncell);                             %doppler measurements
 snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
 lock_R = zeros(32,Ncell);                             %loss of lock indicator
-Eph = zeros(21,32,Ncell);                             %broadcast ephemerides
+Eph_R = zeros(29,32,Ncell);                             %broadcast ephemerides
 
 i = 1;
 for j = 1 : Ncell
@@ -116,20 +116,21 @@ for j = 1 : Ncell
         %satellite number
         sat = cell_rover{2,j}(1);
         
-        Eph(:, sat, i) = cell_rover{2,j}(:);
+        Eph_R(:, sat, i) = cell_rover{2,j}(:);
     end
 end
 clear cell_rover
 clear Ncell pos sat
 
 %residual data erase (after initialization)
-time_R(i:end)  = [];
-week_R(i:end)  = [];
-ph1_R(:,i:end) = [];
-pr1_R(:,i:end) = [];
-dop_R(:,i:end) = [];
-snr_R(:,i:end) = [];
-lock_R(:,i:end) = [];
+time_R(i:end)    = [];
+week_R(i:end)    = [];
+ph1_R(:,i:end)   = [];
+pr1_R(:,i:end)   = [];
+dop_R(:,i:end)   = [];
+snr_R(:,i:end)   = [];
+lock_R(:,i:end)  = [];
+Eph_R(:,:,i:end) = [];
 
 %date decoding
 date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
@@ -189,28 +190,86 @@ for i = 1 : N
     end
 end
 
+%close RINEX observation file
+fclose(fid_obs);
+
 %----------------------------------------------------------------------------------------------
 % RINEX NAVIGATION FILE
 %----------------------------------------------------------------------------------------------
 
-%displaying
-fprintf(['Writing: ' filename '.nav\n\n']);
-
-%create RINEX observation file
-fid_nav = fopen([filename '.nav'],'wt');
-
-%write header
-fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
-fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
-fprintf(fid_nav,'                                                            END OF HEADER       \n');
-
-for i = 1 : N
-    satEph = find(Eph(21,:,i ~= 0));
-    for j = 1 : length(satEph)
-        fprintf('%2d %02d %2d %2d %2d %2d %5.1f');
+%if ephemerides are available
+if (Eph_R(22,:,:) ~= 0)
+    
+    %displaying
+    fprintf(['Writing: ' filename '.nav\n\n']);
+    
+    %create RINEX observation file
+    fid_nav = fopen([filename '.nav'],'wt');
+    
+    %write header
+    fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
+    fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
+    fprintf(fid_nav,'                                                            END OF HEADER       \n');
+    
+    for i = 1 : N
+        satEph = find(Eph_R(22,:,i ~= 0));
+        for j = 1 : length(satEph)
+            af2      = Eph_R(2,j,i);
+            M0       = Eph_R(3,j,i);
+            roota    = Eph_R(4,j,i);
+            deltan   = Eph_R(5,j,i);
+            ecc      = Eph_R(6,j,i);
+            omega    = Eph_R(7,j,i);
+            cuc      = Eph_R(8,j,i);
+            cus      = Eph_R(9,j,i);
+            crc      = Eph_R(10,j,i);
+            crs      = Eph_R(11,j,i);
+            i0       = Eph_R(12,j,i);
+            idot     = Eph_R(13,j,i);
+            cic      = Eph_R(14,j,i);
+            cis      = Eph_R(15,j,i);
+            Omega0   = Eph_R(16,j,i);
+            Omegadot = Eph_R(17,j,i);
+            toe      = Eph_R(18,j,i);
+            af0      = Eph_R(19,j,i);
+            af1      = Eph_R(20,j,i);
+            tom      = Eph_R(21,j,i);
+            IODE     = Eph_R(22,j,i);
+            codes    = Eph_R(23,j,i);
+            weekno   = Eph_R(24,j,i);
+            L2flag   = Eph_R(25,j,i);
+            svaccur  = Eph_R(26,j,i);
+            svhealth = Eph_R(27,j,i);
+            tgd      = Eph_R(28,j,i);
+            fit_int  = Eph_R(29,j,i);
+            
+            lineE(:,1) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f%19.12E%19.12E%19.12E', ...
+                satEph(j),date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), ...
+                af0, af1, af2);
+            lineE(:,2) = sprintf('   %19.12E%19.12E%19.12E%19.12E', IODE , crs, deltan, M0);
+            lineE(:,3) = sprintf('   %19.12E%19.12E%19.12E%19.12E', cuc, ecc, cus, roota);
+            lineE(:,4) = sprintf('   %19.12E%19.12E%19.12E%19.12E', toe, cic, Omega0, cis);
+            lineE(:,5) = sprintf('   %19.12E%19.12E%19.12E%19.12E', i0, crc, omega, Omegadot);
+            lineE(:,6) = sprintf('   %19.12E%19.12E%19.12E%19.12E', idot, codes, weekno, L2flag);
+            lineE(:,7) = sprintf('   %19.12E%19.12E%19.12E%19.12E', svaccur, svhealth, tgd, IODE);
+            lineE(:,8) = sprintf('   %19.12E%19.12E%19.12E%19.12E', tom, fit_int, 0, 0);
+            
+            %if running on Windows, convert three-digits exponential notation
+            %to two-digits; in any case, replace 'E' with 'D' and print the string
+            if (~isunix)
+                for k = 1 : 8
+                    lineD = strrep(lineE(:,k),'E+0','D+');
+                    fprintf(fid_nav,'%s',lineD);
+                end
+            else
+                for k = 1 : 8
+                    lineD(:,k) = strrep(lineE(:,k),'E+','D+');
+                    fprintf(fid_nav,'%s',lineD);
+                end
+            end
+        end
     end
+    
+    %close RINEX navigation file
+    fclose(fid_nav);
 end
-
-%close RINEX files
-fclose(fid_obs);
-fclose(fid_nav);
