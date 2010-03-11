@@ -45,15 +45,15 @@ iono = zeros(8,1);
 %open navigation file
 fid = fopen(file_nav,'rt');
 
-%find ionosphere parameters
-while ((ioparam==0)&(~feof(fid)))
-
+%read the header
+header_end = [];
+while (isempty(header_end))
     %read the line and search the 'ION ALPHA' label
     lin = fgetl(fid);
-    answer = findstr(lin,'ION ALPHA');
+    iono_found = findstr(lin,'ION ALPHA');
 
     %if the label was found
-    if ~isempty(answer)
+    if ~isempty(iono_found)
         %change flag
         ioparam = 1;
         %save the 8 ionosphere parameters
@@ -70,19 +70,12 @@ while ((ioparam==0)&(~feof(fid)))
         iono(8) = data{4};
     end
 
+    header_end = findstr(lin,'END OF HEADER');
 end
 
 %if ionosphere parameters were not found
 if (ioparam == 0)
     fprintf('Warning: ionosphere parameters not found in navigation file %s',file_nav);
-end
-
-answer = [];
-
-%search for the end of the header
-while (isempty(answer))
-    lin = fgetl(fid);
-    answer = findstr(lin,'END OF HEADER');
 end
 
 i = 0;

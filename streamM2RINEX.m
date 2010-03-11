@@ -129,12 +129,16 @@ for j = 1 : Ncell
 
         %satellite number
         sat = cell_master{2,j}(1);                    %satellite number
+        tom = cell_master{2,j}(21);                   %time of measurement
 
-        Eph_M(:,sat,i) = cell_master{2,j}(:);         %single satellite ephemerides logging
+        %if the ephemerides are not already available
+        if (isempty(find(Eph_M(21,sat,:) ==  tom, 1)))
+            Eph_M(:,sat,i) = cell_master{2,j}(:);     %single satellite ephemerides logging
+        end
     end
 end
 clear cell_master
-clear Ncell pos sat
+clear Ncell pos sat tom
 
 %residual data erase (after initialization)
 time_M(i:end)   = [];
@@ -158,7 +162,7 @@ date = datevec(time_M/(3600*24) + 7*week + datenum([1980,1,6,0,0,0]));
 %----------------------------------------------------------------------------------------------
 
 %displaying
-fprintf(['Writing: ' filename '.obs\n\n']);
+fprintf(['Writing: ' filename '.obs\n']);
 
 %create RINEX observation file
 fid_obs = fopen([filename '.obs'],'wt');
@@ -235,10 +239,10 @@ fclose(fid_obs);
 %----------------------------------------------------------------------------------------------
 
 %if ephemerides are available
-if (Eph_M(22,:,:) ~= 0)
+if (~isempty(find(Eph_M(1,:,:) ~= 0, 1)))
     
     %displaying
-    fprintf(['Writing: ' filename '.nav\n\n']);
+    fprintf(['Writing: ' filename '.nav\n']);
     
     %create RINEX observation file
     fid_nav = fopen([filename '.nav'],'wt');
@@ -249,58 +253,69 @@ if (Eph_M(22,:,:) ~= 0)
     fprintf(fid_nav,'                                                            END OF HEADER       \n');
     
     for i = 1 : N
-        satEph = find(Eph_M(22,:,i ~= 0));
+        satEph = find(Eph_M(1,:,i) ~= 0);
         for j = 1 : length(satEph)
-            af2      = Eph_M(2,j,i);
-            M0       = Eph_M(3,j,i);
-            roota    = Eph_M(4,j,i);
-            deltan   = Eph_M(5,j,i);
-            ecc      = Eph_M(6,j,i);
-            omega    = Eph_M(7,j,i);
-            cuc      = Eph_M(8,j,i);
-            cus      = Eph_M(9,j,i);
-            crc      = Eph_M(10,j,i);
-            crs      = Eph_M(11,j,i);
-            i0       = Eph_M(12,j,i);
-            idot     = Eph_M(13,j,i);
-            cic      = Eph_M(14,j,i);
-            cis      = Eph_M(15,j,i);
-            Omega0   = Eph_M(16,j,i);
-            Omegadot = Eph_M(17,j,i);
-            toe      = Eph_M(18,j,i);
-            af0      = Eph_M(19,j,i);
-            af1      = Eph_M(20,j,i);
-            tom      = Eph_M(21,j,i);
-            IODE     = Eph_M(22,j,i);
-            codes    = Eph_M(23,j,i);
-            weekno   = Eph_M(24,j,i);
-            L2flag   = Eph_M(25,j,i);
-            svaccur  = Eph_M(26,j,i);
-            svhealth = Eph_M(27,j,i);
-            tgd      = Eph_M(28,j,i);
-            fit_int  = Eph_M(29,j,i);
+            af2      = Eph_M(2,satEph(j),i);
+            M0       = Eph_M(3,satEph(j),i);
+            roota    = Eph_M(4,satEph(j),i);
+            deltan   = Eph_M(5,satEph(j),i);
+            ecc      = Eph_M(6,satEph(j),i);
+            omega    = Eph_M(7,satEph(j),i);
+            cuc      = Eph_M(8,satEph(j),i);
+            cus      = Eph_M(9,satEph(j),i);
+            crc      = Eph_M(10,satEph(j),i);
+            crs      = Eph_M(11,satEph(j),i);
+            i0       = Eph_M(12,satEph(j),i);
+            idot     = Eph_M(13,satEph(j),i);
+            cic      = Eph_M(14,satEph(j),i);
+            cis      = Eph_M(15,satEph(j),i);
+            Omega0   = Eph_M(16,satEph(j),i);
+            Omegadot = Eph_M(17,satEph(j),i);
+            toe      = Eph_M(18,satEph(j),i);
+            af0      = Eph_M(19,satEph(j),i);
+            af1      = Eph_M(20,satEph(j),i);
+            tom      = Eph_M(21,satEph(j),i);
+            IODE     = Eph_M(22,satEph(j),i);
+            codes    = Eph_M(23,satEph(j),i);
+            weekno   = Eph_M(24,satEph(j),i); %#ok<NASGU>
+            L2flag   = Eph_M(25,satEph(j),i);
+            svaccur  = Eph_M(26,satEph(j),i);
+            svhealth = Eph_M(27,satEph(j),i);
+            tgd      = Eph_M(28,satEph(j),i);
+            fit_int  = Eph_M(29,satEph(j),i);
+
+            %time of measurement decoding
+            date = datevec(tom/(3600*24) + 7*week + datenum([1980,1,6,0,0,0]));
             
-            lineE(:,1) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f%19.12E%19.12E%19.12E', ...
-                satEph(j),date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), ...
+            lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
+                satEph(j),date(1)-2000, date(2), date(3), date(4), date(5), round(date(6)), ...
                 af0, af1, af2);
-            lineE(:,2) = sprintf('   %19.12E%19.12E%19.12E%19.12E', IODE , crs, deltan, M0);
-            lineE(:,3) = sprintf('   %19.12E%19.12E%19.12E%19.12E', cuc, ecc, cus, roota);
-            lineE(:,4) = sprintf('   %19.12E%19.12E%19.12E%19.12E', toe, cic, Omega0, cis);
-            lineE(:,5) = sprintf('   %19.12E%19.12E%19.12E%19.12E', i0, crc, omega, Omegadot);
-            lineE(:,6) = sprintf('   %19.12E%19.12E%19.12E%19.12E', idot, codes, weekno, L2flag);
-            lineE(:,7) = sprintf('   %19.12E%19.12E%19.12E%19.12E', svaccur, svhealth, tgd, IODE);
-            lineE(:,8) = sprintf('   %19.12E%19.12E%19.12E%19.12E', tom, fit_int, 0, 0);
+            linesE(1,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', IODE , crs, deltan, M0);
+            linesE(2,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
+            linesE(3,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toe, cic, Omega0, cis);
+            linesE(4,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', i0, crc, omega, Omegadot);
+            linesE(5,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week, L2flag);
+            linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
+            linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', tom, fit_int, 0, 0);
             
             %if running on Windows, convert three-digits exponential notation
             %to two-digits; in any case, replace 'E' with 'D' and print the string
             if (~isunix)
-                for k = 1 : 8
-                    lineD = strrep(lineE(:,k),'E+0','D+');
+                lineD = strrep(lineE(1,:),'E+0','D+');
+                lineD = strrep(lineD,'E-0','D-');
+                fprintf(fid_nav,'%s',lineD);
+                for k = 1 : 7
+                    lineD = strrep(linesE(k,:),'E+0','D+');
+                    lineD = strrep(lineD,'E-0','D-');
                     fprintf(fid_nav,'%s',lineD);
                 end
             else
-                for k = 1 : 8
-                    lineD(:,k) = strrep(lineE(:,k),'E+','D+');
+                lineD = strrep(lineE(1,:),'E+','D+');
+                lineD = strrep(lineD,'E-','D-');
+                fprintf(fid_nav,'%s',lineD);
+                for k = 1 : 7
+                    lineD = strrep(linesE(k,:),'E+','D+');
+                    lineD = strrep(lineD,'E-','D-');
                     fprintf(fid_nav,'%s',lineD);
                 end
             end
