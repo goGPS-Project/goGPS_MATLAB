@@ -115,12 +115,12 @@ elM = zeros(nsat,1);
 [azR, elR(i)] = topocent(pos_R_app, posP');
 [azM, elM(i)] = topocent(pos_M, posP');
 
-%atmospheric error computation
-if (nargin == 14)
+%ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
+err_tropo_RP = err_tropo(elR(i), hR);
+err_tropo_MP = err_tropo(elM(i), hM);
 
-   %ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
-   err_tropo_RP = err_tropo(elR(i), hR);
-   err_tropo_MP = err_tropo(elM(i), hM);
+%if ionospheric parameters are available
+if (nargin == 14)
 
    %ROVER-PIVOT and MASTER-PIVOT ionospheric error computation
    err_iono_RP = err_iono(iono, phiR, lamR, azR, elR(i), time);
@@ -140,12 +140,13 @@ for j = 1 : nsat
         %computation of ROVER-SATELLITE and MASTER-SATELLITE approximated pseudoranges
         prRS_app(j) = sqrt(sum((pos_R_app - posS(j,:)').^2));
         prMS_app(j) = sqrt(sum((pos_M - posS(j,:)').^2));
+        
+        %computation of tropospheric errors
+        err_tropo_RS(j) = err_tropo(elR(j), hR);
+        err_tropo_MS(j) = err_tropo(elM(j), hM);
 
+        %if ionospheric parameters are available
         if (nargin == 14)
-
-            %computation of tropospheric errors
-            err_tropo_RS(j) = err_tropo(elR(j), hR);
-            err_tropo_MS(j) = err_tropo(elM(j), hM);
 
             %computation of ionospheric errors
             err_iono_RS(j) = err_iono(iono, phiR, lamR, azR, elR(j), time);
@@ -180,12 +181,12 @@ for j = 1 : nsat
 
         %computation of crossed observed code pseudoranges
         comb_pr_obs = [comb_pr_obs; (prRS_obs - prMS_obs) - (prRP_obs - prMP_obs)];
+        
+        %computation of crossed tropospheric errors
+        tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
 
-        %computation of crossed atmospheric errors
+        %if ionospheric parameters are available
         if (nargin == 14)
-
-            %computation of crossed tropospheric errors
-            tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
 
             %computation of crossed ionospheric errors
             io = [io; (err_iono_RS(j) - err_iono_MS(j)) - (err_iono_RP - err_iono_MP)];
@@ -221,12 +222,12 @@ for j = 1 : nsat
 
         %computation of crossed observed phase pseudoranges
         comb_pr_obs = [comb_pr_obs; ((phRS_obs - phMS_obs) - (phRP_obs - phMP_obs)) * lambda];
+        
+        %computation of crossed tropospheric errors
+        tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
 
-        %computation of crossed atmospheric errors
+        %if ionospheric parameters are available
         if (nargin == 14)
-
-            %computation of crossed tropospheric errors
-            tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
 
             %computation of crossed ionospheric errors
             io = [io; (err_iono_RS(j) - err_iono_MS(j)) - (err_iono_RP - err_iono_MP)];
@@ -239,8 +240,9 @@ end
 b = comb_pr_app;
 
 %correction of the b known term
+b = b + tr;
 if (nargin == 14)
-   b = b + tr - io;
+   b = b - io;
 end
 
 %observation vector

@@ -84,18 +84,18 @@ for i = 1 : length(sat)
 
         %observed pseudoranges
         y0 = [y0; prRS_obs + v_light*dtS];
+        
+        %computation of tropospheric errors
+        err_tropo_RS = err_tropo(elR, hR);
+        
+        %save tropospheric errors
+        tr = [tr; err_tropo_RS];
 
-        %computation of atmospheric errors
+        %if ionospheric parameters are available
         if (nargin == 5)
-
-            %computation of tropospheric errors
-            err_tropo_RS = err_tropo(elR, hR);
 
             %computation of ionospheric errors
             err_iono_RS = err_iono(iono, phiR, lamR, azR, elR, time);
-
-            %save tropospheric errors
-            tr = [tr; err_tropo_RS];
 
             %save ionospheric errors
             io = [io; err_iono_RS];
@@ -104,8 +104,9 @@ for i = 1 : length(sat)
 end
 
 %correction of the b known term
+b = b + tr;
 if (nargin == 5)
-   b = b + tr - io;
+   b = b - io;
 end
 
 %number of observations
