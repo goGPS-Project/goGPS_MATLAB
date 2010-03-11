@@ -327,8 +327,6 @@ if (mode == 1) & (mode_vinc == 0)
     fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-    %fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
-    %fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
     if (mode_data == 0)
         Eph_t = rt_find_eph (Eph, time_GPS(1));
@@ -341,8 +339,6 @@ if (mode == 1) & (mode_vinc == 0)
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-    %fwrite(fid_obs, [time_GPS(1); time_M(1); time_R(1); pr1_M(:,1); pr1_R(:,1); ph1_M(:,1); ph1_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1)], 'double');
-    %fwrite(fid_eph, [time_GPS(1); Eph_t(:)], 'double');
 
     if (flag_cov == 0)
         if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
@@ -375,8 +371,6 @@ if (mode == 1) & (mode_vinc == 0)
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-        %fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t)], 'double');
-        %fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
 
         if (flag_cov == 0)
             if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
@@ -403,8 +397,6 @@ if (mode == 1) & (mode_vinc == 0)
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_conf);
-    %fclose(fid_obs);
-    %fclose(fid_eph);
 
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH A CONSTRAINT
