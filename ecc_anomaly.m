@@ -51,7 +51,7 @@ for i = 1:10
 end
 
 if (i == 10)
-    disp('Eccentric anomaly does not converge!!')
+    fprintf('Eccentric anomaly does not converge!!\n')
 end
 
 Ek = rem(Ek+2*pi,2*pi);
