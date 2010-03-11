@@ -92,7 +92,7 @@ fid_rover = fopen([filerootOUT '_rover_00.bin'],'w+');
 fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
-%  tempoGPS --> double, [1,1]
+%  time_GPS --> double, [1,1]
 %  Eph      --> double, [29,32]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
