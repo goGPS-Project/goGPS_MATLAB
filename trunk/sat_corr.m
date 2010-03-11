@@ -21,11 +21,12 @@ function [X, tcorr] = sat_corr(Eph, sat, time, pr_Rsat, pos_R)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
 %
-% Copyright (C) Kai Borre
-% Kai Borre and C.C. Goad 11-24-96
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
-% Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %
+% Partially based on scripts found in EASY suite by Kai Borre
 %----------------------------------------------------------------------------------------------
 
 global v_light
