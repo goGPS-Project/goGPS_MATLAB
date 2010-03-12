@@ -216,7 +216,6 @@ conf_cs = zeros(32,1);
 
 %vectors of zeros useful for matrix declaration
 Z_om_1 = zeros(o1-1,1);
-comb_N_stim = zeros(32,1);
 sigmaq_comb_N = zeros(32,1);
 
 %ROVER positioning by means of code double differences
