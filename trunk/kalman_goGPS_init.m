@@ -201,21 +201,20 @@ conf_cs = zeros(32,1);
 
 %zeroes vectors useful in the matrices definition
 Z_om_1 = zeros(o1-1,1);
-comb_N_stim = zeros(nN,1);
 sigmaq_comb_N = zeros(nN,1);
 
 %ROVER positioning with code double differences
 if (phase(1) == 1)
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
     else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
     end
 else
     if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
     else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
     end
 end
 
@@ -227,15 +226,15 @@ if (size(sat) < 4)
     %ROVER positioning with code double differences
     if (phase(1) == 1)
         if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-            [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+            [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
         else
-            [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
+            [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
         end
     else
         if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-            [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+            [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
         else
-            [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
+            [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
         end
     end
     if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
@@ -282,7 +281,7 @@ else
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
         [     pos_R,      cov_pos_R, comb_N1_stim(sat), cov_comb_N1_stim] = code_phase_double_diff(pos_R, pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 1, iono);
-        [null_pos_R, null_cov_pos_R, comb_N2_stim(sat), cov_comb_N2_stim] = code_phase_double_diff(pos_R, pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 2, iono);
+        [null_pos_R, null_cov_pos_R, comb_N2_stim(sat), cov_comb_N2_stim] = code_phase_double_diff(pos_R, pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 2, iono); %#ok<ASGLU>
     end
     
     if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix

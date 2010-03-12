@@ -472,10 +472,8 @@ if (nsat >= min_nsat)
             sigmaq_pos_R = sigmaq_pos_R([1,o1+1,o2+1]);
             
             %N combination estimation
-            %[comb_N1, sigmaq_N1] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1);
-            %[comb_N2, sigmaq_N2] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2);
-            [comb_N1, sigmaq_N1] = amb_estimate_approx(X_t1_t([1,o1+1,o2+1]), pos_M, sigmaq_pos_R, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1); %#ok<NASGU>
-            [comb_N2, sigmaq_N2] = amb_estimate_approx(X_t1_t([1,o1+1,o2+1]), pos_M, sigmaq_pos_R, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2); %#ok<NASGU>
+            [comb_N1, sigmaq_N1] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), Eph, time, pivot, sat, 1); %#ok<NASGU>
+            [comb_N2, sigmaq_N2] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), Eph, time, pivot, sat, 2); %#ok<NASGU>
             
             index = find(ismember(sat,sat_born) == 0);
             comb_N1(index) = [];

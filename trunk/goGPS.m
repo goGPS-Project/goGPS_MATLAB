@@ -997,33 +997,6 @@ if (mode < 12)
 end
 
 %----------------------------------------------------------------------------------------------
-% RINEX FILE SAVING
-%----------------------------------------------------------------------------------------------
-
-% if (flag_RINEX & ((mode < 11 & mode_data ~= 0) | mode >= 11))
-% 
-%     %if post-processing goGPS binary data (not streams)
-%     if (mode < 11 & mode_data == 1)
-%         fileroot = filerootIN;
-%     %if real-time navigation or rover monitoring
-%     elseif (mode >= 11)
-%         fileroot = filerootOUT;
-%     end
-% 
-%     if (mode ~= 13)
-%         %write RINEX for rover
-%         fprintf(['Writing: ' filerootOUT '_rover_RINEX.obs\n']);
-%         streamR2RINEX(fileroot, [fileroot '_rover_RINEX.obs']);
-%     end
-%     
-%     if (mode ~= 12)
-%         %write RINEX for master
-%         fprintf(['Writing: ' filerootOUT '_master_RINEX.obs\n']);
-%         streamM2RINEX(fileroot, [fileroot '_master_RINEX.obs']);
-%     end
-% end
-
-%----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
 %----------------------------------------------------------------------------------------------
 
@@ -1230,7 +1203,7 @@ if (mode < 10) & (mode_vinc == 0) & (~isempty(ref_path))
     [dist2D, proj] = ref_2d_projection(ref,EST_KAL,NORD_KAL); %#ok<NASGU>
 
     fprintf('\n');
-    fprintf('-------- STATISTICS ----------');
+    fprintf('-------- STATISTICS ------------');
     fprintf('\n');
     fprintf('Mean2D: %7.4f m\n',mean(dist2D));
     fprintf('Std2D:  %7.4f m\n',std(dist2D));
