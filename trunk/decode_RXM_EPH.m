@@ -98,11 +98,22 @@ SF1D5 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 5 (=Word 8
 SF1D6 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 6 (=Word 9 in ICD-GPS-200)
 SF1D7 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 7 (=Word 10 in ICD-GPS-200)
 
-SF1D5 = fliplr(reshape(SF1D5,8,[])); SF1D5 = SF1D5(:)';               % byte order inversion (little endian)
+SF1D0 = fliplr(reshape(SF1D0,8,[])); SF1D0 = SF1D0(:)';               % byte order inversion (little endian)
+SF1D1 = fliplr(reshape(SF1D1,8,[])); SF1D1 = SF1D1(:)';               %
+SF1D4 = fliplr(reshape(SF1D4,8,[])); SF1D4 = SF1D4(:)';               %
+SF1D5 = fliplr(reshape(SF1D5,8,[])); SF1D5 = SF1D5(:)';               %
 SF1D6 = fliplr(reshape(SF1D6,8,[])); SF1D6 = SF1D6(:)';               %
 SF1D7 = fliplr(reshape(SF1D7,8,[])); SF1D7 = SF1D7(:)';               %
 
-IODC_8LSBs = bin2dec(SF1D5(9:16));
+weekno = bin2dec(SF1D0(9:18));
+code_on_L2 = bin2dec(SF1D0(19:20));
+svaccur = bin2dec(SF1D0(21:24));
+svhealth = bin2dec(SF1D0(25:30));
+IODC_2MSBs = SF1D0(31:32);
+IODC_8LSBs = SF1D5(9:16);
+IODC = bin2dec([IODC_2MSBs IODC_8LSBs]);
+L2flag = bin2dec(SF1D1(9));
+tgd = twos_complement(SF1D4(25:32)) * (2^-31);
 toc = bin2dec(SF1D5(17:32)) * (2^4);
 af2 = twos_complement(SF1D6(9:16)) * (2^-55);
 af1 = twos_complement(SF1D6(17:32)) * (2^-43);
@@ -136,6 +147,7 @@ e = bin2dec([SF2D3(25:32) SF2D4(9:32)]) * (2^-33);
 Cus = twos_complement(SF2D5(9:24)) * (2^-29);
 root_A = bin2dec([SF2D5(25:32) SF2D6(9:32)]) * (2^-19);
 toe = bin2dec(SF2D7(9:24)) * (2^4);
+fit_int = bin2dec(SF2D7(25));
 
 %Subframe 3
 SF3D0 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 0 (=Word 3 in ICD-GPS-200)
@@ -167,7 +179,7 @@ IODE3 = bin2dec(SF3D7(9:16));
 IDOT = twos_complement(SF3D7(17:30)) * pi * (2^-43);
 
 %ephemerides data (if IODC == IODE)
-if (IODC_8LSBs == IODE2) & (IODC_8LSBs == IODE3)
+if (IODC == IODE2) & (IODC == IODE3)
     data{2}(1) = SVN;
     data{2}(2) = af2;
     data{2}(3) = M0;
@@ -190,4 +202,11 @@ if (IODC_8LSBs == IODE2) & (IODC_8LSBs == IODE3)
     data{2}(20) = af1;
     data{2}(21) = toc;
     data{2}(22) = IODE3;
+    data{2}(23) = code_on_L2;
+    data{2}(24) = weekno;
+    data{2}(25) = L2flag;
+    data{2}(26) = svaccur;
+    data{2}(27) = svhealth;
+    data{2}(28) = tgd;
+    data{2}(29) = fit_int;
 end
