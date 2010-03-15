@@ -128,6 +128,15 @@ while (time_GPS_M < time_GPS_R)
     [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
 end
 
+while (time_GPS_R < time_GPS_M)
+
+    %read data for the current epoch (MASTER)
+    [time_GPS_R, sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+
+    %read MASTER observations
+    [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
+end
+
 %-------------------------------------------------------------------------------
 
 k = 1;
