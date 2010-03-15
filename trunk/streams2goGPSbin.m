@@ -1,11 +1,12 @@
-function streams2goGPSbin(filerootIN, filerootOUT)
+function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 
 % SYNTAX:
-%   streams2goGPSbin(filerootIN, filerootOUT);
+%   streams2goGPSbin(filerootIN, filerootOUT, wait_dlg);
 %
 % INPUT:
 %   filerootIN  = input file root
 %   filerootOUT = output file root
+%   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
 %
@@ -38,8 +39,13 @@ function streams2goGPSbin(filerootIN, filerootOUT)
 %----------------------------------------------------------------------------------------------
 
 %ROVER and MASTER stream reading
-[time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-    loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN); %#ok<NASGU>
+if (nargin == 3)
+    [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+        loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN, wait_dlg); %#ok<NASGU>
+else
+    [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+        loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN); %#ok<NASGU>
+end
 
 satEph = find(sum(abs(Eph(:,:,1)))~=0);
 satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
@@ -111,8 +117,16 @@ fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 %"file hour" variable
 hour = 0;
 
+if (nargin == 3)
+    waitbar(0,wait_dlg,'Writing goGPS binary data...')
+end
+
 %write output files
 for t = 1 : length(time_GPS)
+    
+    if (nargin == 3)
+        waitbar(t/length(time_GPS),wait_dlg)
+    end
     
     %-------------------------------------
     % file management

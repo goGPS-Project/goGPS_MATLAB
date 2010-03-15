@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 25-Feb-2010 17:44:09
+% Last Modified by GUIDE v2.5 15-Mar-2010 19:29:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -58,8 +58,6 @@ set(hObject,'CloseRequestFcn',@closeGUI);
 
 % Update handles structure
 guidata(hObject, handles);
-
-initialize_gui(hObject, handles);
 
 if exist('../data/settings/last_settings.mat','file')
     loadState(handles, '../data/settings/last_settings.mat');
@@ -294,12 +292,6 @@ switch selection,
     case 'No'
         return
 end
-
-% --------------------------------------------------------------------
-function initialize_gui(fig_handle, handles)
-
-% Update handles structure
-guidata(handles.main_panel, handles);
 
 % --------------------------------------------------------------------
 function saveState(handles,filename)
@@ -2491,21 +2483,8 @@ function menu_about_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function streamR2RINEX_Callback(hObject, eventdata, handles)
-% hObject    handle to streamR2RINEX (see GCBO)
+function converter_Callback(hObject, eventdata, handles)
+% hObject    handle to converter (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function streamM2RINEX_Callback(hObject, eventdata, handles)
-% hObject    handle to streamM2RINEX (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-
-% --------------------------------------------------------------------
-function streams2goGPSbin_Callback(hObject, eventdata, handles)
-% hObject    handle to streams2goGPSbin (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
+converter_gui;

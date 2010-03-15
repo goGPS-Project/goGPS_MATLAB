@@ -1,9 +1,9 @@
 function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-          loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot)
+          loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg)
 
 % SYNTAX:
 %   [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-%    loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot);
+%    loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg);
 %
 % INPUT:
 %   fileroot = name of the file to be read
@@ -21,6 +21,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, po
 %   loss_M   = flag for the MASTER loss of signal
 %   data_rover_all  = ROVER overall stream
 %   data_master_all = MASTER overall stream
+%   wait_dlg = optional handler to waitbar figure
 %
 % DESCRIPTION:
 %   Reading of the streams trasmitted by the u-blox receiver (ROVER) and
@@ -51,13 +52,19 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, po
 
 global lambda1
 
+if (nargin == 2)
+    waitbar(0.5,wait_dlg,'Reading rover stream files...')
+end
+
 %ROVER stream reading
 data_rover_all = [];                                                 %overall stream
 hour = 0;                                                            %hour index (integer)
 hour_str = num2str(hour,'%02d');                                     %hour index (string)
 d = dir([fileroot '_rover_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
+    if (nargin == 1)
+        fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
+    end
     num_bytes = d.bytes;                                             %file size (number of bytes)
     fid_rover = fopen([fileroot '_rover_' hour_str '.bin']);         %file opening
     data_rover = fread(fid_rover,num_bytes,'uint8');                 %file reading
@@ -71,15 +78,25 @@ while ~isempty(d)
     d = dir([fileroot '_rover_' hour_str '.bin']);                   %file to be read
 end
 
+if (nargin == 2)
+    waitbar(1,wait_dlg)
+end
+
 %-------------------------------------------------------------------------------
 
 if ~isempty(data_rover_all)
-
-    %displaying
-    fprintf('Decoding rover data \n');
+    
+    %display
+    if (nargin == 1)
+        fprintf('Decoding rover stream\n');
+    end
 
     %message decoding
-    [cell_rover] = decode_ublox(data_rover_all);
+    if (nargin == 2)
+        [cell_rover] = decode_ublox(data_rover_all, wait_dlg);
+    else
+        [cell_rover] = decode_ublox(data_rover_all);
+    end
 
     %initialization (to make the writing faster)
     Ncell  = size(cell_rover,2);                          %number of read RTCM packets
@@ -89,8 +106,16 @@ if ~isempty(data_rover_all)
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     Eph_R  = zeros(29,32,Ncell);                          %ephemerides
 
+    if (nargin == 2)
+        waitbar(0,wait_dlg,'Reading rover data...')
+    end
+
     i = 1;
     for j = 1 : Ncell
+        if (nargin == 2)
+            waitbar(j/Ncell,wait_dlg)
+        end
+    
         if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
             time_R(i) = round(cell_rover{2,j}(1));
             pr1_R(:,i) = cell_rover{3,j}(:,2);
@@ -143,13 +168,19 @@ end
 
 %-------------------------------------------------------------------------------
 
+if (nargin == 2)
+    waitbar(0.5,wait_dlg,'Reading master stream files...')
+end
+
 %MASTER stream reading
 data_master_all = [];                                                %overall stream
 hour = 0;                                                            %hour index (integer)
 hour_str = num2str(hour,'%02d');                                     %hour index (string)
 d = dir([fileroot '_master_' hour_str '.bin']);                      %file to be read
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_master_' hour_str '.bin\n']);
+    if (nargin == 1)
+        fprintf(['Reading: ' fileroot '_master_' hour_str '.bin\n']);
+    end
     num_bytes = d.bytes;                                             %file size (number of bytes)
     fid_master = fopen([fileroot '_master_' hour_str '.bin']);       %file opening
     data_master = fread(fid_master,num_bytes,'uint8');               %file reading
@@ -163,12 +194,18 @@ while ~isempty(d)
     d = dir([fileroot '_master_' hour_str '.bin']);                  %file to be read
 end
 
+if (nargin == 2)
+    waitbar(1,wait_dlg)
+end
+
 %-------------------------------------------------------------------------------
 
 if ~isempty(data_master_all)
 
-    %displaying
-    fprintf('Decoding master data \n');
+    %display
+    if (nargin == 1)
+        fprintf('Decoding master stream\n');
+    end
 
     pos = 1;
     sixofeight = [];
@@ -187,7 +224,11 @@ if ~isempty(data_master_all)
     if(is_rtcm2)
         [cell_master] = decode_rtcm2(sixofeight);
     else
-        [cell_master] = decode_rtcm3(data_master_all);
+        if (nargin == 2)
+            [cell_master] = decode_rtcm3(data_master_all, wait_dlg);
+        else
+            [cell_master] = decode_rtcm3(data_master_all);
+        end
     end
 
     %initialization (to make the writing faster)
@@ -199,8 +240,15 @@ if ~isempty(data_master_all)
     pos_M  = zeros(3,Ncell);                              %master station position
     Eph_M  = zeros(29,32,Ncell);                          %ephemerides
 
+    if (nargin == 2)
+        waitbar(0,wait_dlg,'Reading master data...')
+    end
+
     i = 1;
     for j = 1 : Ncell
+        if (nargin == 2)
+            waitbar(j/Ncell,wait_dlg)
+        end
         if (cell_master{1,j} == 3)
         elseif (cell_master{1,j} == 18)
         elseif (cell_master{1,j} == 19)
@@ -271,6 +319,10 @@ end
 
 %-------------------------------------------------------------------------------
 
+if (nargin == 2)
+    waitbar(0.33,wait_dlg,'Synchronizing data...')
+end
+
 if ~isempty(time_R) & ~isempty(time_M)
 
     %initial synchronization
@@ -294,6 +346,10 @@ if ~isempty(time_R) & ~isempty(time_M)
 end
 
 %-------------------------------------------------------------------------------
+
+if (nargin == 2)
+    waitbar(0.66,wait_dlg)
+end
 
 %signal losses
 time_GPS = union(time_R,time_M);                     %overall reference time
@@ -353,6 +409,10 @@ if ~isempty(time_GPS)
 else
     loss_R = [];          %losses of signal (ROVER)
     loss_M = [];          %losses of signal (MASTER)
+end
+
+if (nargin == 2)
+    waitbar(1,wait_dlg)
 end
 
 %if ephemerides coming from RTCM stream are not available, use rover ones

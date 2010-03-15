@@ -333,7 +333,7 @@ if (mode == 1) & (mode_vinc == 0)
     else
         Eph_t = Eph(:,:,1);
     end
-    
+
     kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
 
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
