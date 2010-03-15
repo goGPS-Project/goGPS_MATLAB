@@ -75,7 +75,7 @@ end
 
 %if ionosphere parameters were not found
 if (ioparam == 0)
-    fprintf('Warning: ionosphere parameters not found in navigation file %s',file_nav);
+    fprintf('Warning: ionosphere parameters not found in navigation file\n');
 end
 
 i = 0;
@@ -119,22 +119,22 @@ while (~feof(fid))
     Omega0 = str2num(lin4(42:60));
     cis    = str2num(lin4(61:79));
 
-    i0     = str2num(lin5(4:22));
-    crc    = str2num(lin5(23:41));
-    omega  = str2num(lin5(42:60));
+    i0       = str2num(lin5(4:22));
+    crc      = str2num(lin5(23:41));
+    omega    = str2num(lin5(42:60));
     Omegadot = str2num(lin5(61:79));
 
-    idot   = str2num(lin6(4:22));
-    codes  = str2num(lin6(23:41));
-    weekno = str2num(lin6(42:60));
-    L2flag = str2num(lin6(61:79));
+    idot       = str2num(lin6(4:22));
+    code_on_L2 = str2num(lin6(23:41));
+    weekno     = str2num(lin6(42:60));
+    L2flag     = str2num(lin6(61:79));
 
     svaccur  = str2num(lin7(4:22));
     svhealth = str2num(lin7(23:41));
-    tgd    = str2num(lin7(42:60));
-    iodc   = str2num(lin7(61:79));
+    tgd      = str2num(lin7(42:60));
+    iodc     = str2num(lin7(61:79));
 
-    tom = str2num(lin8(4:22));
+    tom     = str2num(lin8(4:22));
     fit_int = str2num(lin8(23:41));
 
     %save ephemerides (if IODC == IODE)
@@ -161,7 +161,7 @@ while (~feof(fid))
         Eph(20,i) = af1;
         Eph(21,i) = tom;
         Eph(22,i) = IODE;
-        Eph(23,i) = codes;
+        Eph(23,i) = code_on_L2;
         Eph(24,i) = weekno;
         Eph(25,i) = L2flag;
         Eph(26,i) = svaccur;
