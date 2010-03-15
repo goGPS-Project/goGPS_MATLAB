@@ -1,13 +1,15 @@
-function streamR2RINEX(fileroot, filename)
+function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
 
 % SYNTAX:
-%   streamR2RINEX(fileroot, filename);
+%   [week] = streamR2RINEX(fileroot, filename, wait_dlg);
 %
 % INPUT:
 %   fileroot = input file root (rover data, binary stream)
 %   filename = output file name (rover data, RINEX format)
+%   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
+%   week = GPS week number
 %
 % DESCRIPTION:
 %   File conversion from rover stream (UBX binary) to RINEX format.
@@ -39,13 +41,19 @@ global lambda1
 
 %----------------------------------------------------------------------------------------------
 
+if (nargin == 3)
+    waitbar(0.5,wait_dlg,'Reading rover stream files...')
+end
+
 %ROVER stream reading
 data_rover_all = [];                                                 %overall stream
 hour = 0;                                                            %hour index (integer)
 hour_str = num2str(hour,'%02d');                                     %hour index (string)
 d = dir([fileroot '_rover_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
+    if (nargin == 2)
+        fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
+    end
     num_bytes = d.bytes;                                             %file size (number of bytes)
     fid_rover = fopen([fileroot '_rover_' hour_str '.bin']);         %file opening
     data_rover = fread(fid_rover,num_bytes,'uint8');                 %file reading
@@ -61,13 +69,23 @@ end
 clear hour hour_str d
 clear data_rover fid_rover
 
+if (nargin == 3)
+    waitbar(1,wait_dlg)
+end
+
 %----------------------------------------------------------------------------------------------
 
 %displaying
-fprintf('Decoding rover data \n');
+if (nargin == 2)
+    fprintf('Decoding rover data \n');
+end
 
 %message decoding
-[cell_rover] = decode_ublox(data_rover_all);
+if (nargin == 3)
+    [cell_rover] = decode_ublox(data_rover_all, wait_dlg);
+else
+    [cell_rover] = decode_ublox(data_rover_all);
+end
 clear data_rover_all
 
 %initialization (to make writing faster)
@@ -79,10 +97,18 @@ pr1_R  = zeros(32,Ncell);                             %code observations
 dop_R  = zeros(32,Ncell);                             %doppler measurements
 snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
 lock_R = zeros(32,Ncell);                             %loss of lock indicator
-Eph_R = zeros(29,32,Ncell);                             %broadcast ephemerides
+Eph_R = zeros(29,32,Ncell);                           %broadcast ephemerides
+
+if (nargin == 3)
+    waitbar(0,wait_dlg,'Reading rover data...')
+end
 
 i = 1;
 for j = 1 : Ncell
+    if (nargin == 3)
+        waitbar(j/Ncell,wait_dlg)
+    end
+
     if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
         %time_R(i)   = cell_rover{2,j}(1);
         time_R(i)   = round(cell_rover{2,j}(1));
@@ -111,7 +137,7 @@ for j = 1 : Ncell
         %end
 
     %RXM-EPH message data save
-    elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
+    elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
         
         %satellite number
         sat = cell_rover{2,j}(1);
@@ -144,7 +170,9 @@ date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
 %----------------------------------------------------------------------------------------------
 
 %displaying
-fprintf(['Writing: ' filename '.obs\n']);
+if (nargin == 2)
+    fprintf(['Writing: ' filename '.obs\n']);
+end
 
 %create RINEX observation file
 fid_obs = fopen([filename '.obs'],'wt');
@@ -171,8 +199,16 @@ fprintf(fid_obs,'                                                            END
 %number of records
 N = length(time_R);
 
+if (nargin == 3)
+    waitbar(0,wait_dlg,'Writing rover observation file...')
+end
+
 %write data
 for i = 1 : N
+    if (nargin == 3)
+        waitbar(i/N,wait_dlg)
+    end
+
     sat = find(pr1_R(:,i) ~= 0);
     n = length(sat);
     fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
@@ -205,7 +241,9 @@ fclose(fid_obs);
 if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
     
     %displaying
-    fprintf(['Writing: ' filename '.nav\n']);
+    if (nargin == 2)
+        fprintf(['Writing: ' filename '.nav\n']);
+    end
     
     %create RINEX observation file
     fid_nav = fopen([filename '.nav'],'wt');
@@ -215,8 +253,16 @@ if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
     fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
     fprintf(fid_nav,'                                                            END OF HEADER       \n');
     
+    if (nargin == 3)
+        waitbar(0,wait_dlg,'Writing rover navigation file...')
+    end
+    
     for i = 1 : N
-        satEph = find(Eph_R(1,:,i ~= 0));
+        if (nargin == 3)
+            waitbar(i/N,wait_dlg)
+        end
+
+        satEph = find(Eph_R(1,:,i) ~= 0);
         for j = 1 : length(satEph)
             af2      = Eph_R(2,satEph(j),i);
             M0       = Eph_R(3,satEph(j),i);
@@ -257,7 +303,7 @@ if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
             linesE(2,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
             linesE(3,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toe, cic, Omega0, cis);
             linesE(4,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', i0, crc, omega, Omegadot);
-            linesE(5,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week, L2flag);
+            linesE(5,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week_R(1), L2flag);
             linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
             linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', tom, fit_int, 0, 0);
             
@@ -287,4 +333,12 @@ if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
     
     %close RINEX navigation file
     fclose(fid_nav);
+
+end
+
+%output week number
+if (~isempty(week_R))
+    week = week_R(1);
+else
+    week = 0;
 end

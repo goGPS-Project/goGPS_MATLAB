@@ -1,10 +1,11 @@
-function [data] = decode_rtcm3(msg)
+function [data] = decode_rtcm3(msg, wait_dlg)
 
 % SYNTAX:
-%   [data] = decode_rtcm3(msg)
+%   [data] = decode_rtcm3(msg, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
 %   data = cell-array that contains the decoded RTCM messages
@@ -59,16 +60,24 @@ if ~isempty(pos_all)
 
     % counter initialization
     i = 0;
+    
+    if (nargin == 2)
+        waitbar(0,wait_dlg,'Decoding master stream...')
+    end
 
     % pointer initialization
     pos0 = pos_all(1);
 
     while ~isempty(pos0)
-
+        
         % skip the "preamble" (8 bit) and "reserved" (6 bit) fields
         pos = pos0 + 14;
 
         if (pos + 9 <= length(msg))
+            
+            if (nargin == 2)
+                waitbar(pos/length(msg),wait_dlg)
+            end
 
             % message length (10 bit)
             LEN = bin2dec(msg(pos:pos+9));  pos = pos + 10;

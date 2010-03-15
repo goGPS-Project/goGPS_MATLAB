@@ -1,10 +1,11 @@
-function [data, nmea_string] = decode_ublox(msg)
+function [data, nmea_string] = decode_ublox(msg, wait_dlg)
 
 % SYNTAX:
-%   [data, nmea_string] = decode_ublox(msg)
+%   [data, nmea_string] = decode_ublox(msg, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received by the u-blox receiver
+%   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
 %   data = cell-array that contains the decoded u-blox messages
@@ -97,7 +98,15 @@ end
 % counter initialization
 i = 0;
 
+if (nargin == 2)
+    waitbar(0,wait_dlg,'Decoding rover stream...')
+end
+
 while (pos + 15 <= length(msg))
+    
+    if (nargin == 2)
+        waitbar(pos/length(msg),wait_dlg)
+    end
 
     % check if there is an UBX header
     if (strcmp(msg(pos:pos+15),codeBIN))
