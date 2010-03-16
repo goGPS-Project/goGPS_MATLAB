@@ -22,7 +22,7 @@ function varargout = converter_gui(varargin)
 
 % Edit the above text to modify the response to help converter_gui
 
-% Last Modified by GUIDE v2.5 15-Mar-2010 19:21:44
+% Last Modified by GUIDE v2.5 16-Mar-2010 18:57:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -45,7 +45,7 @@ end
 
 
 % --- Executes just before converter_gui is made visible.
-function converter_gui_OpeningFcn(hObject, eventdata, handles, varargin)
+function converter_gui_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -73,7 +73,7 @@ position(2) = (screenSize(4)-position(4))/2;
 set(hObject, 'Position', position);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = converter_gui_OutputFcn(hObject, eventdata, handles) 
+function varargout = converter_gui_OutputFcn(hObject, eventdata, handles)  %#ok<*STOUT,*INUSD>
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -82,7 +82,7 @@ function varargout = converter_gui_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 
 
-function data_stream_Callback(hObject, eventdata, handles)
+function data_stream_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
 % hObject    handle to data_stream (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
@@ -227,8 +227,13 @@ wait_dlg = waitbar(0,'Please wait...');
 if (get(handles.output_type, 'SelectedObject') == handles.out_gogps_binary)
     streams2goGPSbin(filerootIN, filerootOUT, wait_dlg);
 elseif (get(handles.output_type, 'SelectedObject') == handles.out_rinex)
-    week = streamR2RINEX(filerootIN, [filerootOUT '_rover'], wait_dlg);
-    if (week)
+    week = 0;
+    if (get(handles.flag_rover_stream,'Value'))
+        week = streamR2RINEX(filerootIN, [filerootOUT '_rover'], wait_dlg);
+    elseif (get(handles.flag_master_stream,'Value'))
+        week = GPS_week_gui;
+    end
+    if (week) & (get(handles.flag_master_stream,'Value'))
         streamM2RINEX(filerootIN, [filerootOUT '_master'], week, wait_dlg);
     end
 end
@@ -243,3 +248,20 @@ function exit_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 close(handles.converter_panel)
+
+
+% --- Executes when selected object is changed in output_type.
+function output_type_SelectionChangeFcn(hObject, eventdata, handles)
+% hObject    handle to the selected object in output_type 
+% eventdata  structure with the following fields (see UIBUTTONGROUP)
+%	EventName: string 'SelectionChanged' (read only)
+%	OldValue: handle of the previously selected object or empty if none was selected
+%	NewValue: handle of the currently selected object
+% handles    structure with handles and user data (see GUIDATA)
+if (hObject == handles.out_rinex)
+    set(handles.flag_rover_stream, 'Enable', 'on');
+    set(handles.flag_master_stream, 'Enable', 'on');
+else
+    set(handles.flag_rover_stream, 'Enable', 'off');
+    set(handles.flag_master_stream, 'Enable', 'off');
+end
