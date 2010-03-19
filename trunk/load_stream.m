@@ -156,7 +156,11 @@ if ~isempty(data_rover_all)
 
 else
     %displaying
-    fprintf('No rover data acquired! \n');
+    if (nargin == 2)
+        msgbox('No rover data acquired.');
+    else
+        fprintf('No rover data acquired! \n');
+    end
 
     time_R = [];                         %GPS time
     pr1_R  = [];                         %code observations
@@ -307,7 +311,11 @@ if ~isempty(data_master_all)
 
 else
     %displaying
-    fprintf('No master data acquired! \n');
+    if (nargin == 2)
+        msgbox('No master data acquired.');
+    else
+        fprintf('No master data acquired! \n');
+    end
 
     time_M = [];                         %GPS time
     pr1_M  = [];                         %code observations
