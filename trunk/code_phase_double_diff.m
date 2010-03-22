@@ -3,7 +3,7 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
 
 % SYNTAX:
 %   [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
-%   (pos_R_app, pr_R, ph_R, snr_R, pos_M, pr_M, ph_M, snr_M, time, sat, pivot, Eph, phase, iono)
+%   (pos_R_app, pr_R, ph_R, snr_R, pos_M, pr_M, ph_M, snr_M, time, sat, pivot, Eph, phase, iono);
 %
 % INPUT:
 %   pos_R_app = ROVER position (X,Y,Z)
