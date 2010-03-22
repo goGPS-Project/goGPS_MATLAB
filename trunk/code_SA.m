@@ -106,7 +106,7 @@ end
 %correction of the b known term
 b = b + tr;
 if (nargin == 5)
-   b = b - io;
+   b = b + io;
 end
 
 %number of observations
