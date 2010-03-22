@@ -209,7 +209,7 @@ for j = 1 : nsat
 
         %ambiguity vector in design matrix (lambda position)
         N_row = zeros(1, nsat-1);
-        N_row(k) = -1;
+        N_row(k) = -lambda;
 
         %design matrix computation
         A = [A; (((pos_R_app(1) - posS(j,1)) / prRS_app(j)) - ((pos_R_app(1) - posP(1)) / prRP_app)) ...
@@ -230,7 +230,7 @@ for j = 1 : nsat
         if (nargin == 14)
 
             %computation of crossed ionospheric errors
-            io = [io; (err_iono_RS(j) - err_iono_MS(j)) - (err_iono_RP - err_iono_MP)];
+            io = [io; -((err_iono_RS(j) - err_iono_MS(j)) - (err_iono_RP - err_iono_MP))];
         end
         k = k + 1;
     end
@@ -242,7 +242,7 @@ b = comb_pr_app;
 %correction of the b known term
 b = b + tr;
 if (nargin == 14)
-   b = b - io;
+   b = b + io;
 end
 
 %observation vector
@@ -285,7 +285,7 @@ sigma0q_stim = (v_stim' * Q^-1 * v_stim) / (n-m);
 pos_R = xR(1:3);
 
 %estimated combined ambiguity values (without PIVOT)
-N_stim_nopivot = xR(4:end) / lambda1;
+N_stim_nopivot = xR(4:end);
 
 %add a zero at PIVOT position
 N_stim = zeros(nsat,1);
@@ -300,7 +300,7 @@ if (n > m)
     cov_pos_R = Cxx(1:3,1:3);
 
     %combined ambiguity covariance matrix
-    cov_N_stim_nopivot = Cxx(4:end,4:end) / lambda1^2;
+    cov_N_stim_nopivot = Cxx(4:end,4:end);
 
     %add one line and one column (zeros) at PIVOT position
     cov_N_stim = zeros(nsat,nsat);

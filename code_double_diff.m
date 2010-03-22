@@ -178,7 +178,7 @@ b = comb_pr_app;
 %correction of the b known term
 b = b + tr;
 if (nargin == 11)
-   b = b - io;
+   b = b + io;
 end
 
 %observation vector
