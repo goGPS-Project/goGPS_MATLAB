@@ -311,9 +311,9 @@ if (mode < 12) & (~flag_ms_rtcm)
     pos_M(2,1:length(time_GPS)) = pos_M(2);
     pos_M(3,1:length(time_GPS)) = pos_M(3);
 elseif (mode < 10) & (sum(abs(pos_M)) == 0 | isempty(pos_M))
-    pos_M(1,1:length(time_GPS)) = pos_M(1);
-    pos_M(2,1:length(time_GPS)) = pos_M(2);
-    pos_M(3,1:length(time_GPS)) = pos_M(3);
+    pos_M(1,1:length(time_GPS)) = XM;
+    pos_M(2,1:length(time_GPS)) = YM;
+    pos_M(3,1:length(time_GPS)) = ZM;
     fprintf('Master position not found, thus it is set to user-defined values:\n');
     fprintf(' X=%.4f, Y=%.4f, Z=%.4f km\n', pos_M(1,1)/1000, pos_M(2,1)/1000, pos_M(3,1)/1000);
 end
