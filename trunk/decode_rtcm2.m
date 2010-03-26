@@ -71,11 +71,11 @@ if (~isempty(pos_preamble) | ~isempty(pos_preamble_inv))
         parity_inv = 0;
 
         if (~isempty(pos_preamble(i)))
-            [parity, decoded_word] = check_parity(msg(pos_preamble(i)-2:pos_preamble(i)-1), msg(pos_preamble(i):pos_preamble(i)+29));
+            [parity, decoded_word] = gps_parity(msg(pos_preamble(i)-2:pos_preamble(i)-1), msg(pos_preamble(i):pos_preamble(i)+29));
             i = i + 1;
         end
         if (~isempty(pos_preamble_inv(j)))
-            [parity_inv, decoded_word_inv] = check_parity(msg(pos_preamble_inv(j)-2:pos_preamble_inv(j)-1), msg(pos_preamble_inv(j):pos_preamble_inv(j)+29));
+            [parity_inv, decoded_word_inv] = gps_parity(msg(pos_preamble_inv(j)-2:pos_preamble_inv(j)-1), msg(pos_preamble_inv(j):pos_preamble_inv(j)+29));
             j = j + 1;
         end
 
@@ -122,7 +122,7 @@ if ~isempty(pos)
 
         % read the first word of the 2-word header
         if (i > 1)
-            [parity, decoded_word] = check_parity(msg(pos-2:pos-1), msg(pos:pos+29));
+            [parity, decoded_word] = gps_parity(msg(pos-2:pos-1), msg(pos:pos+29));
         end
 
         if (parity)
@@ -134,7 +134,7 @@ if ~isempty(pos)
             pos = pos + 30;
 
             % read the second word of the 2-word header
-            [parity, decoded_word] = check_parity(msg(pos-2:pos-1), msg(pos:pos+29));
+            [parity, decoded_word] = gps_parity(msg(pos-2:pos-1), msg(pos:pos+29));
 
             if (parity)
                 % modified Z-count (13 bit)

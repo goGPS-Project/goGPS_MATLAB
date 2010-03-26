@@ -89,7 +89,6 @@
     base64encode.m
     cart2geod.m
     cart2plan.m
-    check_parity.m
     check_t.m
     code_double_diff.m
     code_phase_double_diff.m
@@ -145,6 +144,7 @@
     goGPS_realtime.m
     goGPS_realtime_monitor.m
     goGPS_ublox_monitor.m
+    gps_parity.m
     gps_time.m
     input_bancroft.m
     input_kalman.m
