@@ -1,7 +1,7 @@
-function [parity, decoded_word] = check_parity(precbits, word)
+function [parity, decoded_word] = gps_parity(precbits, word)
 
 % SYNTAX:
-%   [parity, decoded_word] = check_parity(precbits, word)
+%   [parity, decoded_word] = gps_parity(precbits, word)
 %
 % INPUT:
 %   precbits = two last bits of the previous message

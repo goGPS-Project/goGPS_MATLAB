@@ -59,7 +59,7 @@ data{3} = zeros(32,7);
 if (pos + n_words*30-1 <= length(msg))
 
     for i = 1 : n_words
-        [parity(i), decoded_word(i,1:24)] = check_parity(msg(pos-2:pos-1), msg(pos:pos+29));
+        [parity(i), decoded_word(i,1:24)] = gps_parity(msg(pos-2:pos-1), msg(pos:pos+29));
         pos = pos + 30;
     end
 
