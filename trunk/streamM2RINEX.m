@@ -36,10 +36,6 @@ function streamM2RINEX(fileroot, filename, week, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% global XM YM ZM
-
-%----------------------------------------------------------------------------------------------
-
 if (nargin == 4)
     waitbar(0.5,wait_dlg,'Reading master stream files...')
 end
@@ -117,6 +113,7 @@ if (~isempty(data_master_all))
     ph2_M   = zeros(32,Ncell);                            %phase observations
     snr2_M  = zeros(32,Ncell);                            %signal-to-noise ratio
     Eph_M = zeros(29,32,Ncell);                           %ephemerides
+    pos_M = zeros(3,1);                                   %master station position
     
     if (nargin == 4)
         waitbar(0,wait_dlg,'Reading master data...')
@@ -130,7 +127,7 @@ if (~isempty(data_master_all))
             waitbar(j/Ncell,wait_dlg)
         end
         
-        if (cell_master{1,j} == 1002)                 %RTCM 1002 message
+        if (cell_master{1,j} == 1002)                     %RTCM 1002 message
             
             time_M(i)   = cell_master{2,j}(2);            %GPS time logging
             pr1_M(:,i)  = cell_master{3,j}(:,2);          %code observations logging
@@ -152,6 +149,14 @@ if (~isempty(data_master_all))
             flag_L2 = 1;
             
             i = i+1;
+
+        elseif ((cell_master{1,j} == 1005) | (cell_master{1,j} == 1006)) & (pos_M == 0)
+                
+                coordX_M = cell_master{2,j}(8);
+                coordY_M = cell_master{2,j}(9);
+                coordZ_M = cell_master{2,j}(10);
+                
+                pos_M(:,1) = [coordX_M; coordY_M; coordZ_M];
             
         elseif (cell_master{1,j} == 1019)                 %RTCM 1019 message
             
@@ -204,8 +209,7 @@ if (~isempty(data_master_all))
     fprintf(fid_obs,'                                                            OBSERVER / AGENCY   \n');
     fprintf(fid_obs,'                                                            REC # / TYPE / VERS \n');
     fprintf(fid_obs,'                                                            ANT # / TYPE        \n');
-    % fprintf(fid_obs,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
-    fprintf(fid_obs,'        0.0000        0.0000        0.0000                  APPROX POSITION XYZ \n');
+    fprintf(fid_obs,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
     fprintf(fid_obs,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
     fprintf(fid_obs,'     1     1                                                WAVELENGTH FACT L1/2\n');
     if (flag_L2)
