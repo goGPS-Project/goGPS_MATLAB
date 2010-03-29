@@ -98,7 +98,7 @@ prMP_obs = pr_M(i);
 elR = zeros(nsat,1);
 elM = zeros(nsat,1);
 
-%ROVER-PIVOT and MASTER-PIVOT tropospheric error computation
+%ROVER-PIVOT and MASTER-PIVOT azimuth and elevation computation
 [azR, elR(i)] = topocent(pos_R, posP');
 [azM, elM(i)] = topocent(pos_M, posP');
 
@@ -131,8 +131,7 @@ for i = 1 : nsat
         [azR, elR(i)] = topocent(pos_R, posS');
         [azM, elM(i)] = topocent(pos_M, posS');
 
-
-        %computation of ROVER-PIVOT and MASTER-PIVOT approximated pseudoranges
+        %computation of ROVER-SATELLITE and MASTER-SATELLITE approximated pseudoranges
         prRS_app = sqrt(sum((pos_R - posS).^2));
         prMS_app = sqrt(sum((pos_M - posS).^2));
 
