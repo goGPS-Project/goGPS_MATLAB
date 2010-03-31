@@ -220,7 +220,7 @@ for j = 1 : nsat
         %computation of crossed approximated pseudoranges
         comb_pr_app = [comb_pr_app; (prRS_app(j) - prMS_app(j)) - (prRP_app - prMP_app)];
 
-        %computation of crossed observed phase pseudoranges
+        %computation of crossed observed phase ranges
         comb_pr_obs = [comb_pr_obs; ((phRS_obs - phMS_obs) - (phRP_obs - phMP_obs)) * lambda];
         
         %computation of crossed tropospheric errors
