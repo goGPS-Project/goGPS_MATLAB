@@ -72,6 +72,7 @@ global s0 ax ay az
 
 global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
+global PDOP HDOP VDOP
 global flag_LS_N_estim
 
 %----------------------------------------------------------------------------------------
@@ -317,6 +318,17 @@ if (nsat >= min_nsat)
             end
         end
     end
+    
+    %------------------------------------------------------------------------------------
+    % DILUTION OF PRECISION
+    %------------------------------------------------------------------------------------
+    
+    cov_XYZ = (alfa1'*alfa1)^-1;
+    cov_ENU = global2localCov(cov_XYZ, pos_R);
+    
+    PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
+    HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
+    VDOP = sqrt(cov_ENU(3,3));
 
     %------------------------------------------------------------------------------------
     % SATELLITES ADDITION/LOSS

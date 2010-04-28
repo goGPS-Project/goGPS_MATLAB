@@ -135,7 +135,11 @@ while (~feof(fid))
     iodc     = str2num(lin7(61:79));
 
     tom     = str2num(lin8(4:22));
-    fit_int = str2num(lin8(23:41));
+    if (length(lin8) > 22)
+        fit_int = str2num(lin8(23:41));
+    else
+        fit_int = 0;
+    end
 
     %save ephemerides (if IODC == IODE)
     if (iodc == IODE)

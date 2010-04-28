@@ -81,6 +81,16 @@ elM = [];
 distM = [];
 
 %-------------------------------------------------------------------------------
+% DILUTION OF PRECISION
+%-------------------------------------------------------------------------------
+
+global PDOP HDOP VDOP
+
+PDOP = [];
+HDOP = [];
+VDOP = [];
+
+%-------------------------------------------------------------------------------
 % KALMAN FILTER
 %-------------------------------------------------------------------------------
 
@@ -232,3 +242,12 @@ global flag_LS_N_estim
 % NOTE: LS amb. estimation is automatically switched off when the number of
 % satellites with phase available is not sufficient (< 4 incl. pivot)
 flag_LS_N_estim = 1;
+
+%-------------------------------------------------------------------------------
+% PHASE-SMOOTHED CODE
+%-------------------------------------------------------------------------------
+
+global sm_weight
+
+%weight for code smoothing algorithm
+sm_weight = 1;

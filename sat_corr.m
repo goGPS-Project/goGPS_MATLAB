@@ -61,7 +61,7 @@ tx_GPS = tx_RAW - tcorr;
 % N = 10;
 % for i = 1 : N
 %   dt = check_t(tx_GPS - tom);
-%   tcorr = (Eph(2,k) * dt + Eph(20,k)) * dt + Eph(19,k);
+%   tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
 %   tx_GPS = tx_GPS - tcorr;
 % end
 

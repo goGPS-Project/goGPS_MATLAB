@@ -1,13 +1,14 @@
-function MQ_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, phase)
+function MQ_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, snr_R, phase)
 
 % SYNTAX:
-%   MQ_goGPS_loop(time, Eph_R, pr1_R, pr1_M, pr2_R, pr2_M, phase);
+%   MQ_goGPS_SA_loop(time, Eph_R, pr1_R, pr1_M, pr2_R, snr_R, phase);
 %
 % INPUT:
 %   time = GPS time
 %   Eph_R = satellite ephemerides
 %   pr1_R = ROVER code observations (L1 carrier)
 %   pr2_R = ROVER code observations (L2 carrier)
+%   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -37,14 +38,12 @@ function MQ_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, phase)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global cutoff
-global Xhat_t_t Cee conf_sat pivot
-global o1 o2 o3
-global azR elR distR
 global sigmaq0
+global cutoff o1 o2 o3
 
-%fixed cutoff parameter for least squares
-cutoff = 15;
+global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
+global azR elR distR
+global PDOP HDOP VDOP
 
 %covariance matrix initialization
 cov_pos_SA = [];
@@ -55,70 +54,61 @@ cov_pos_SA = [];
 
 %visible satellites (ROVER)
 if (phase == 1)
-   sat_R = find(pr1_R ~= 0);
+   sat_pr = find(pr1_R ~= 0);
 else
-   sat_R = find(pr2_R ~= 0);
+   sat_pr = find(pr2_R ~= 0);
 end
 
-if (size(sat_R,1) >= 4)
+if (size(sat_pr,1) >= 4)
 
    %ROVER positioning by means of Bancroft algorithm
    if (phase == 1)
-      [pos_BAN, pos_SAT] = input_bancroft(pr1_R(sat_R), sat_R, time, Eph_R);
+      [pos_R, pos_SAT] = input_bancroft(pr1_R(sat_pr), sat_pr, time, Eph_R);
    else
-      [pos_BAN, pos_SAT] = input_bancroft(pr2_R(sat_R), sat_R, time, Eph_R);
+      [pos_R, pos_SAT] = input_bancroft(pr2_R(sat_pr), sat_pr, time, Eph_R);
    end
-
-   %-------------------------------------%
-   %---  LEAST SQUARES (STAND-ALONE)  ---%
-   %-------------------------------------%
-
+   
+   pos_R = pos_R(1:3);
+   pos_SAT = pos_SAT(:,1:3);
+   
    %-----------------------------------------------------------------------------------
-   % SATELLITE ELEVATION AND PIVOT
+   % CHECK SATELLITE ELEVATION, PIVOT AND CUT-OFF
    %-----------------------------------------------------------------------------------
-
+   
    %initialization
    azR = zeros(32,1);
    elR = zeros(32,1);
    distR = zeros(32,1);
+   
+   %satellite azimuth, elevation, ROVER-SATELLITE distance
+   [azR(sat_pr), elR(sat_pr), distR(sat_pr)] = topocent(pos_R, pos_SAT);
+   
+   %elevation cut-off
+   sat_cutoff = find(elR > cutoff);
+   sat_pr = intersect(sat_pr,sat_cutoff);
+   
+   %previous pivot
+   pivot_old = 0;
+   
+   %actual pivot
+   [null_max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
+   pivot = sat_pr(i);
 
-   %satellites in common and pivot selection
-   sat = [];
-   pivot = 0;
-   max_elR = 0;
-
-   for k = 1 : length(sat_R)
-
-       %azimuth, elevation and ROVER-SATELLITE distance computation
-       [azR(sat_R(k)), elR(sat_R(k)), distR(sat_R(k))] = topocent(pos_BAN(1:3), pos_SAT(k,1:3));
-
-       %satellites in common
-       sat = [sat; sat_R(k)];
-
-       %pivot satellite
-       if (elR(sat_R(k)) > max_elR)
-           pivot = sat_R(k);
-           max_elR = elR(sat_R(k));
-       end
-
-   end
-
-   %just for skyplot display
+   %--------------------------------------------------------------------------------------------
+   % SATELLITE CONFIGURATION
+   %--------------------------------------------------------------------------------------------
+   
+   %satellite configuration
    conf_sat = zeros(32,1);
-   conf_sat(sat) = +1;
-   conf_sat(elR<cutoff) = 0;
-
-  if (size(sat,1) >= 4)
-
-      if (phase == 1)
-         [pos_SA, cov_pos_SA] = code_SA(pos_BAN(1:3), pr1_R, time, Eph_R);
-      else
-         [pos_SA, cov_pos_SA] = code_SA(pos_BAN(1:3), pr2_R, time, Eph_R);
-      end
-
+   conf_sat(sat_pr,1) = +1;
+   
+   %no cycle-slips when working with code only
+   conf_cs = zeros(32,1);
+   
+   if (phase == 1)
+       [pos_SA, cov_pos_SA, PDOP, HDOP, VDOP] = code_SA(pos_R(1:3), pr1_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R);
    else
-      fprintf('Less than 4 common satellites\n');
-	  pos_SA = Xhat_t_t([1,o1+1,o2+1]);
+       [pos_SA, cov_pos_SA, PDOP, HDOP, VDOP] = code_SA(pos_R(1:3), pr2_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R);
    end
 else
    fprintf('Less than 4 satellites\n');

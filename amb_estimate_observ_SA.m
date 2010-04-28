@@ -1,17 +1,13 @@
-function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
-         ph_Rsat, ph_Msat, pivot, sat, phase)
+function [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr_Rsat, ...
+         ph_Rsat, phase)
 
 % SYNTAX:
-%   [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
-%   ph_Rsat, ph_Msat, pivot, sat, phase);
+%   [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr_Rsat, ...
+%   ph_Rsat, phase);
 %
 % INPUT:
 %   pr_Rsat = ROVER-SATELLITE code-pseudorange
-%   pr_Msat = MASTER-SATELLITE code-pseudorange
 %   ph_Rsat = ROVER-SATELLITE phase-pseudorange
-%   ph_Msat = MASTER-SATELLITE phase-pseudorange
-%   pivot = pivot satellite
-%   sat = configuration of satellites in view
 %   phase = carrier L1 (phase=1), carrier L2 (phase=2)
 %
 % OUTPUT:
@@ -20,7 +16,8 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
 %
 % DESCRIPTION:
 %   Estimation of phase ambiguities (and of their error variance) by
-%   using both phase and code observations (satellite-receiver distance).
+%   using both phase and code observations (satellite-receiver distance) in
+%   stand-alone mode.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -50,28 +47,10 @@ global lambda1
 global lambda2
 global sigmaq_cod1
 
-%PIVOT position research
-i = find(pivot == sat);
-
-%pivot code observations
-pr_RP = pr_Rsat(i);
-pr_MP = pr_Msat(i);
-
-%pivot phase observations
-ph_RP = ph_Rsat(i);
-ph_MP = ph_Msat(i);
-
-%observed code double differences
-comb_pr = (pr_Rsat - pr_Msat) - (pr_RP - pr_MP);
-
-%observed phase double differences
-comb_ph = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
-
-%linear combination of initial ambiguity estimate
 if (phase == 1)
-    N_stim = ((comb_pr - comb_ph * lambda1)) / lambda1;
-    sigmaq_N_stim = 4*sigmaq_cod1 / lambda1^2;
+    N_stim = ((pr_Rsat - ph_Rsat * lambda1)) / lambda1;
+    sigmaq_N_stim = sigmaq_cod1 / lambda1^2;
 else
-    N_stim = ((comb_pr - comb_ph * lambda2)) / lambda2;
-    sigmaq_N_stim = 4*sigmaq_cod1 / lambda2^2;
+    N_stim = ((pr_Rsat - ph_Rsat * lambda2)) / lambda2;
+    sigmaq_N_stim = sigmaq_cod1 / lambda2^2;
 end

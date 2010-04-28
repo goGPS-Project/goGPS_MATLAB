@@ -1,8 +1,8 @@
-function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
+function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
           snr_R, snr_M, pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (fileroot)
 
 % SYNTAX:
-%   [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
+%   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %    snr_R, snr_M, pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (fileroot);
 %
 % INPUT:
@@ -10,6 +10,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %
 % OUTPUT:
 %   time_GPS = reference GPS time
+%   week_R   = GPS week
 %   time_R   = GPS time for the ROVER observations
 %   time_M   = GPS time for the MASTER observations
 %   pr1_R    = ROVER-SATELLITE code-pseudorange (carrier L1)
@@ -54,6 +55,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 time_GPS = [];                         %reference GPS time
 time_M = [];                           %MASTER GPS time
 time_R = [];                           %ROVER GPS time
+week_R = [];
 pr1_M = [];                            %MASTER code observations
 pr1_R = [];                            %ROVER code observations
 ph1_M = [];                            %MASTER phase observations
@@ -78,6 +80,7 @@ while ~isempty(d)
     time_GPS = [time_GPS; zeros(num_packs,1)];                      %observations concatenation
     time_M   = [time_M;   zeros(num_packs,1)];
     time_R   = [time_R;   zeros(num_packs,1)];
+    week_R   = [week_R;   zeros(num_packs,1)];
     pr1_M    = [pr1_M     zeros(32,num_packs)];
     pr1_R    = [pr1_R     zeros(32,num_packs)];
     ph1_M    = [ph1_M     zeros(32,num_packs)];
@@ -85,18 +88,19 @@ while ~isempty(d)
     snr_M    = [snr_M     zeros(32,num_packs)];
     snr_R    = [snr_R     zeros(32,num_packs)];
     pos_M    = [pos_M;    zeros(3,num_packs)];
-    for j = 0 : (3+32*6+3) : num_words-1
+    for j = 0 : (4+32*6+3) : num_words-1
         i = i+1;                                                    %epoch counter increase
         time_GPS(i,1) = buf_obs(j + 1);                             %observations logging
         time_M(i,1)   = buf_obs(j + 2);
         time_R(i,1)   = buf_obs(j + 3);
-        pr1_M(:,i)    = buf_obs(j + [4:35]);
-        pr1_R(:,i)    = buf_obs(j + [36:67]);
-        ph1_M(:,i)    = buf_obs(j + [68:99]);
-        ph1_R(:,i)    = buf_obs(j + [100:131]);
-        snr_M(:,i)    = buf_obs(j + [132:163]);
-        snr_R(:,i)    = buf_obs(j + [164:195]);
-        pos_M(:,i)    = buf_obs(j + [196:198]);
+        week_R(i,1)   = buf_obs(j + 4);
+        pr1_M(:,i)    = buf_obs(j + [5:36]);
+        pr1_R(:,i)    = buf_obs(j + [37:68]);
+        ph1_M(:,i)    = buf_obs(j + [69:100]);
+        ph1_R(:,i)    = buf_obs(j + [101:132]);
+        snr_M(:,i)    = buf_obs(j + [133:164]);
+        snr_R(:,i)    = buf_obs(j + [165:196]);
+        pos_M(:,i)    = buf_obs(j + [197:199]);
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string
@@ -105,10 +109,10 @@ end
 
 %-------------------------------------------------------------------------------
 
-%inizializzazione
+%initialization
 Eph = [];
 
-%lettura effemeridi
+%read ephemerides
 i = 0;                                                              %epoch counter
 hour = 0;                                                           %hour index (integer)
 hour_str = num2str(hour,'%02d');                                    %hour index (string)

@@ -99,8 +99,10 @@ contents_kalman_ls = cellstr(get(handles.kalman_ls,'String'));
 contents_code_dd_sa = cellstr(get(handles.code_dd_sa,'String'));
 if (strcmp(contents_mode{get(handles.mode,'Value')},'Post-processing'))
     if (strcmp(contents_kalman_ls{get(handles.kalman_ls,'Value')},'Kalman filter'))
-        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase'))
+        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
             mode = 1;
+        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone'))
+            mode = 2;
         elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
             mode = 5;
         else
@@ -152,8 +154,11 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
        ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
        ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
        ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
+       ~isempty(dir([filerootOUT '_dop*.bin'])) | ...
+       ~isempty(dir([filerootOUT '_ECEF*.txt'])) | ...
        ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
        ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
+       ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
        ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
        ~isempty(dir([filerootOUT '.kml'])) )
 
@@ -274,7 +279,7 @@ phiApp = str2double(get(handles.approx_lat,'String'));
 lamApp = str2double(get(handles.approx_lon,'String'));
 hApp = str2double(get(handles.approx_h,'String'));
 [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, 6378137, 1/298.257222101);
-nmea_init = NMEA_string_generator([XApp YApp ZApp],10);
+nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
 server_delay = str2double(get(handles.server_delay,'String'));
 
 %close main panel
@@ -579,7 +584,8 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     cell_contents = cell(3,1);
     cell_contents{1} = 'Code stand-alone';
     cell_contents{2} = 'Code double difference';
-    cell_contents{3} = 'Code and phase';
+    cell_contents{3} = 'Code and phase stand-alone';
+    cell_contents{4} = 'Code and phase double difference';
     set(handles.code_dd_sa, 'String', cell_contents);
 
     set(handles.std_X, 'Enable', 'on');
@@ -609,6 +615,9 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     set(handles.cut_off, 'Enable', 'on');
     set(handles.text_cut_off, 'Enable', 'on');
     set(handles.text_cut_off_unit, 'Enable', 'on');
+    set(handles.snr_thres, 'Enable', 'on');
+    set(handles.text_snr_thres, 'Enable', 'on');
+    set(handles.text_snr_thres_unit, 'Enable', 'on');
     set(handles.min_sat, 'Enable', 'on');
     set(handles.text_min_sat, 'Enable', 'on');
     set(handles.dyn_mod, 'Enable', 'on');
@@ -618,7 +627,8 @@ else
     cell_contents{1} = 'Code stand-alone';
     cell_contents{2} = 'Code double difference';
     old_value = get(handles.code_dd_sa, 'Value');
-    if (old_value == 3), set(handles.code_dd_sa, 'Value', 2); end
+    if (old_value == 3), set(handles.code_dd_sa, 'Value', 1); end
+    if (old_value == 4), set(handles.code_dd_sa, 'Value', 2); end
     set(handles.code_dd_sa, 'String', cell_contents);
 
     code_dd_sa_Callback(handles.code_dd_sa, eventdata, handles);
@@ -648,6 +658,9 @@ else
     set(handles.text_std_init_unit, 'Enable', 'off');
     set(handles.text_std_dtm_unit, 'Enable', 'off');
     set(handles.text_std_vel_unit, 'Enable', 'off');
+    set(handles.snr_thres, 'Enable', 'off');
+    set(handles.text_snr_thres, 'Enable', 'off');
+    set(handles.text_snr_thres_unit, 'Enable', 'off');
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
@@ -685,7 +698,8 @@ function code_dd_sa_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns code_dd_sa contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from code_dd_sa
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'Code and phase'))
+if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference') | ...
+    strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone'))
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
         set(handles.plot_amb, 'Enable', 'on');
@@ -699,36 +713,14 @@ if (strcmp(contents{get(hObject,'Value')},'Code and phase'))
     set(handles.snr_thres, 'Enable', 'on');
     set(handles.text_snr_thres, 'Enable', 'on');
     set(handles.text_snr_thres_unit, 'Enable', 'on');
-    set(handles.weight_0, 'Enable', 'on');
-    set(handles.weight_1, 'Enable', 'on');
-    set(handles.weight_2, 'Enable', 'on');
-    set(handles.weight_3, 'Enable', 'on');
 else
     set(handles.plot_amb, 'Enable', 'off');
-    set(handles.no_skyplot_snr, 'Enable', 'on');
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
     set(handles.toggle_std_phase, 'Enable', 'off');
     set(handles.std_phase, 'Enable', 'off');
     set(handles.text_std_phase_unit, 'Enable', 'off');
-    if (strcmp(contents{get(hObject,'Value')},'Code double difference'))
-        set(handles.snr_thres, 'Enable', 'on');
-        set(handles.text_snr_thres, 'Enable', 'on');
-        set(handles.text_snr_thres_unit, 'Enable', 'on');
-        set(handles.weight_0, 'Enable', 'on');
-        set(handles.weight_1, 'Enable', 'on');
-        set(handles.weight_2, 'Enable', 'on');
-        set(handles.weight_3, 'Enable', 'on');
-    else
-        set(handles.snr_thres, 'Enable', 'off');
-        set(handles.text_snr_thres, 'Enable', 'off');
-        set(handles.text_snr_thres_unit, 'Enable', 'off');
-        set(handles.weight_0, 'Enable', 'off');
-        set(handles.weight_1, 'Enable', 'off');
-        set(handles.weight_2, 'Enable', 'off');
-        set(handles.weight_3, 'Enable', 'off');
-    end
 end
 
 % --- Executes during object creation, after setting all properties.

@@ -1,21 +1,17 @@
-function [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, ...
-         pr_Rsat, pr_Msat, ph_Rsat, ph_Msat, Eph, time, pivot, sat, phase) %#ok<INUSL>
+function [N_stim, sigmaq_N_stim] = amb_estimate_approx_SA(pos_R, sigmaq_pos_R, ...
+         pr_Rsat, ph_Rsat, Eph, time, sat, phase)
 
 % SYNTAX:
-%   [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_R, ...
-%   pr_Rsat, pr_Msat, ph_Rsat, ph_Msat, Eph, time, pivot, sat, phase);
+%   [N_stim, sigmaq_N_stim] = amb_estimate_approx_SA(pos_R, sigmaq_pos_R, ...
+%   pr_Rsat, ph_Rsat, Eph, time, sat, phase);
 %
 % INPUT:
 %   pos_R = ROVER assessed position (X,Y,Z)
-%   pos_M = MASTER assessed position (X,Y,Z)
 %   sigmaq_pos_R = rounded ROVER position variance
 %   pr_Rsat = ROVER-SATELLITE code-pseudorange
-%   pr_Msat = MASTER-SATELLITE code-pseudorange (not used)
 %   ph_Rsat = ROVER-SATELLITE phase-pseudorange
-%   ph_Msat = MASTER-SATELLITE phase-pseudorange
 %   Eph = ephemerides matrix
 %   time = GPS time
-%   pivot = PIVOT satellite
 %   sat = configuration of satellites in view
 %   phase = carrier L1 (phase=1), carrier L2 (phase=2)
 %
@@ -24,10 +20,9 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_
 %   sigmaq_N_stim = assessed variances of combined ambiguity
 %
 % DESCRIPTION:
-%   Estimation of combined (double difference) phase ambiguities
-%   (and of their error variance) by using both phase observations
-%   and satellite-receiver distance, based on the ROVER
-%   approximate position.
+%   Estimation of phase ambiguities (and of their error variance) by using
+%   both phase observations and satellite-receiver distance, based on the
+%   ROVER approximate position.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
@@ -56,20 +51,6 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_approx(pos_R, pos_M, sigmaq_pos_
 global lambda1
 global lambda2
 
-%PIVOT position research
-i = find(pivot == sat);
-
-%PIVOT position correction (clock and rotation)
-Rot_Xpivot = sat_corr(Eph, sat(i), time, pr_Rsat(i), pos_R);
-
-%ROVER,MASTER-PIVOT approximate pseudorange estimate
-pr_stim_RP = sqrt(sum((pos_R - Rot_Xpivot).^2));
-pr_stim_MP = sqrt(sum((pos_M - Rot_Xpivot).^2));
-
-%phase observations
-ph_RP = ph_Rsat(i);
-ph_MP = ph_Msat(i);
-
 %loop on all used satellites
 for m = 1 : size(sat,1)
     
@@ -78,20 +59,13 @@ for m = 1 : size(sat,1)
     
     %ROVER,MASTER-SATELLITES pseudorange estimate
     pr_stim_Rsat(m,1) = sqrt(sum((pos_R - Rot_X).^2));
-    pr_stim_Msat(m,1) = sqrt(sum((pos_M - Rot_X).^2));
 end
-
-%estimated code pseudorange double differences
-comb_pr = (pr_stim_Rsat - pr_stim_Msat) - (pr_stim_RP - pr_stim_MP);
-
-%observed phase pseudorange double differences
-comb_ph = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
 
 %linear combination of initial ambiguity estimate
 if (phase == 1)
-    N_stim = ((comb_pr - comb_ph * lambda1)) / lambda1;
+    N_stim = ((pr_stim_Rsat - ph_Rsat * lambda1)) / lambda1;
     sigmaq_N_stim = sum(sigmaq_pos_R) / lambda1^2;
 else
-    N_stim = ((comb_pr - comb_ph * lambda2)) / lambda2;
+    N_stim = ((pr_stim_Rsat - ph_Rsat * lambda2)) / lambda2;
     sigmaq_N_stim = sum(sigmaq_pos_R) / lambda2^2;
 end

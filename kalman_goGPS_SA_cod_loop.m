@@ -50,6 +50,7 @@ global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
+global PDOP HDOP VDOP
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -85,12 +86,12 @@ Cvv(o3,o3) = sigmaq_velz;
 
 %visible satellites
 if (length(phase) == 2)
-    sat = find( (pr1_Rsat ~= 0) & (pr2_Rsat ~= 0) );
+    sat_pr = find( (pr1_Rsat ~= 0) & (pr2_Rsat ~= 0) );
 else
     if (phase == 1)
-        sat = find( pr1_Rsat ~= 0 );
+        sat_pr = find( pr1_Rsat ~= 0 );
     else
-        sat = find( pr2_Rsat ~= 0 );
+        sat_pr = find( pr2_Rsat ~= 0 );
     end
 end
 
@@ -101,23 +102,23 @@ end
 j = 1;
 bad_sat = [];
 
-for i = 1:size(sat)
+for i = 1:size(sat_pr)
 
     %satellite position correction (clock and Earth rotation)
-    Rot_X = sat_corr(Eph, sat(i), time, pr1_Rsat(i), X_t1_t([1,o1+1,o2+1])');
+    Rot_X = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(i), X_t1_t([1,o1+1,o2+1])');
 
     %azimuth, elevation, ROVER-SATELLITE distance computation
-    [azR(sat(i)), elR(sat(i)), distR(sat(i))] = topocent(X_t1_t([1,o1+1,o2+1]), Rot_X');
+    [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(X_t1_t([1,o1+1,o2+1]), Rot_X');
 
     %test on elevation and on signal-to-noise ratio
-    if (elR(sat(i)) < cutoff) | (snr_R(sat(i)) < snr_threshold)
-        bad_sat(j,1) = sat(i);
+    if (elR(sat_pr(i)) < cutoff) | (snr_R(sat_pr(i)) < snr_threshold)
+        bad_sat(j,1) = sat_pr(i);
         j = j + 1;
     end
 end
 
 %removal of satellites with elevation or SNR lower than the respective threshold
-sat(ismember(sat,bad_sat) == 1) = [];
+sat_pr(ismember(sat_pr,bad_sat) == 1) = [];
 
 %previous pivot
 if (pivot ~= 0)
@@ -125,8 +126,8 @@ if (pivot ~= 0)
 end
 
 %current pivot
-[null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
-pivot = sat(i);
+[null_max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
+pivot = sat_pr(i);
 
 %----------------------------------------------------------------------------------------
 % SATELLITE CONFIGURATION
@@ -137,13 +138,13 @@ sat_old = find(conf_sat == 1);
 
 %satellite configuration
 conf_sat = zeros(32,1);
-conf_sat(sat) = +1;
+conf_sat(sat_pr) = +1;
 
 %no cycle-slips working with code only
 conf_cs = zeros(32,1);
 
 %number of visible satellites
-nsat = size(sat,1);
+nsat = size(sat_pr,1);
 
 %------------------------------------------------------------------------------------
 % OBSERVATION EQUATIONS
@@ -154,9 +155,9 @@ if (nsat(end) >= min_nsat)
 
     %standalone code ROVER positioning
     if (phase(1) == 1)
-        [pos_R, cov_pos_R] = code_SA(X_t1_t([1,o1+1,o2+1]), pr1_Rsat, time, Eph, iono);
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(X_t1_t([1,o1+1,o2+1]), pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
     else
-        [pos_R, cov_pos_R] = code_SA(X_t1_t([1,o1+1,o2+1]), pr2_Rsat, time, Eph, iono);
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(X_t1_t([1,o1+1,o2+1]), pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
     end
 
     %zeroes vector useful in matrix definitions
@@ -183,13 +184,13 @@ end
 %------------------------------------------------------------------------------------
 
 %search for a lost satellite
-if (length(sat) < length(sat_old))
+if (length(sat_pr) < length(sat_old))
 
     check_off = 1;
 end
 
 %search for a new satellite
-if (length(sat) > length(sat_old))
+if (length(sat_pr) > length(sat_old))
 
     check_on = 1;
 end

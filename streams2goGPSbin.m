@@ -42,10 +42,10 @@ if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*
     
     %ROVER and MASTER stream reading
     if (nargin == 3)
-        [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
             loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN, wait_dlg); %#ok<NASGU>
     else
-        [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
             loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN); %#ok<NASGU>
     end
     
@@ -54,6 +54,7 @@ if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*
     while (length(satEph) < length(satObs)) | (length(satObs) < 4)
         
         time_GPS(1) = [];
+        week_R(1) = [];
         time_R(1) = [];
         time_M(1) = [];
         pr1_R(:,1) = [];
@@ -91,6 +92,7 @@ if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*
     tMin = max(tMin,1);
     tMax = min(tMax,length(time_GPS));
     time_GPS = time_GPS(tMin:tMax);
+    week_R = week_R(tMin:tMax);
     time_R = time_R(tMin:tMax);
     time_M = time_M(tMin:tMax);
     pr1_R = pr1_R(:,tMin:tMax);
@@ -148,7 +150,7 @@ if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*
         end
         
         Eph_t = Eph(:,:,t);
-        fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t)], 'double');
+        fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t)], 'double');
         fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
     end
     

@@ -30,7 +30,7 @@ n = size(isat,2);
 if n == 0
     icol = [];
     return
-end;
+end
 icol = isat(1);
 dtmin = Eph(21,icol)-time;
 for t = isat

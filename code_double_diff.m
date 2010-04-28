@@ -1,8 +1,8 @@
-function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
+function [xR, Cxx, PDOP, HDOP, VDOP, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
          (pos_R, pr_R, snr_R, pos_M, pr_M, snr_M, time, sat, pivot, Eph, iono)
 
 % SYNTAX:
-%   [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
+%   [xR, Cxx, PDOP, HDOP, VDOP, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 %   (pos_R, pr_R, snr_R, pos_M, pr_M, snr_M, time, sat, pivot, Eph, iono);
 %
 % INPUT:
@@ -21,12 +21,14 @@ function [xR, Cxx, comb_pr_app, comb_pr_obs, A] = code_double_diff ...
 % OUTPUT:
 %   xR = estimated position (X,Y,Z)
 %   Cxx = covariance matrix of estimation errors
+%   PDOP = position dilution of precision
+%   HDOP = horizontal dilution of precision
+%   VDOP = vertical dilution of precision
 %   comb_pr_app = crossed approximated pseudoranges
 %                 (useful to verify that computations are done correctly)
 %   comb_pr_obs = crossed observed pseudoranges
 %                 (useful to verify that computations are done correctly)
-%   A = design matrix, useful to be passed to the function for the computation
-%       of phase double differences, without doing again all the computations
+%   A = design matrix
 %
 % DESCRIPTION:
 %   Least squares solution using code double differences.
@@ -206,4 +208,14 @@ if (n > m)
     Cxx = sigma0q_stim * ((A'*Q^-1*A)^-1);
 else
     Cxx = [];
+end
+
+%DOP computation
+if (nargout > 2)
+    cov_XYZ = (A'*A)^-1;
+    cov_ENU = global2localCov(cov_XYZ, xR);
+    
+    PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
+    HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
+    VDOP = sqrt(cov_ENU(3,3));
 end

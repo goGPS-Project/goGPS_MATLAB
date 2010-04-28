@@ -186,19 +186,19 @@ if (~isempty(data_master_all))
     %manage "nearly null" data
     ph1_M(ph1_M < 1e-100) = 0;
     ph2_M(ph2_M < 1e-100) = 0;
-    
+
     %date decoding
     date = datevec(time_M/(3600*24) + 7*week + datenum([1980,1,6,0,0,0]));
-    
+
     %----------------------------------------------------------------------------------------------
     % RINEX OBSERVATION FILE
     %----------------------------------------------------------------------------------------------
-    
+
     %displaying
     if (nargin == 3)
         fprintf(['Writing: ' filename '.obs\n']);
     end
-    
+
     %create RINEX observation file
     fid_obs = fopen([filename '.obs'],'wt');
     
