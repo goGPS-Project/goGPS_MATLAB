@@ -50,17 +50,23 @@ ZR = pos_R(3);
 lamR = lamR*180/pi;
 phiR = phiR*180/pi;
 
-%master position coordinates X Y Z
-XM = pos_M(1);
-YM = pos_M(2);
-ZM = pos_M(3);
-
-%conversion from cartesian to geodetic coordinates
-[phiM, lamM, hM] = cart2geod(XM, YM, ZM);
-
-%conversion from radians to degrees
-lamM = lamM*180/pi;
-phiM = phiM*180/pi;
+if (sum(abs(pos_M)) ~= 0)
+    %master position coordinates X Y Z
+    XM = pos_M(1);
+    YM = pos_M(2);
+    ZM = pos_M(3);
+    
+    %conversion from cartesian to geodetic coordinates
+    [phiM, lamM, hM] = cart2geod(XM, YM, ZM);
+    
+    %conversion from radians to degrees
+    lamM = lamM*180/pi;
+    phiM = phiM*180/pi;
+else
+    phiM = 0;
+    lamM = 0;
+    hM = 0;
+end
 
 %-------------------------------------------------------------------------------
 % INITIALIZATION LINK FILE, KML FILE AND GOOGLE EARTH LAUNCH

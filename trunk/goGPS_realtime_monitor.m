@@ -367,7 +367,7 @@ end
 fprintf('ROVER approximate position computed using %d satellites\n', sum(pr_R ~= 0));
 
 %NMEA sentence with initial approximate position
-nmea_init = NMEA_string_generator([pos_R(1) pos_R(2) pos_R(3)],10);
+nmea_init = NMEA_GGA_gen([pos_R(1) pos_R(2) pos_R(3)],10);
 
 %------------------------------------------------------------
 % acquisition of the next rover message (for synchronization)
@@ -512,6 +512,7 @@ tick_M = zeros(B,1);      % empty/full master buffer
 tick_R = zeros(B,1);      % empty/full rover buffer
 time_M = zeros(B,1);      % master time buffer
 time_R = zeros(B,1);      % rover time buffer
+week_R = zeros(B,1);      % rover week buffer
 pr_M   = zeros(32,B);     % master code buffer
 pr_R   = zeros(32,B);     % rover code buffer
 ph_M   = zeros(32,B);     % master phase buffer
@@ -635,6 +636,7 @@ while flag
         %shift of the rover buffers
         tick_R(1+dtime:end)  = tick_R(1:end-dtime);
         time_R(1+dtime:end)  = time_R(1:end-dtime);
+        week_R(1+dtime:end)  = week_R(1:end-dtime);
         pr_R(:,1+dtime:end)  = pr_R(:,1:end-dtime);
         ph_R(:,1+dtime:end)  = ph_R(:,1:end-dtime);
         snr_R(:,1+dtime:end) = snr_R(:,1:end-dtime);
@@ -642,6 +644,7 @@ while flag
         %current cell to zero
         tick_R(1:dtime)  = zeros(dtime,1);
         time_R(1:dtime)  = zeros(dtime,1);
+        week_R(1:dtime)  = zeros(dtime,1);
         pr_R(:,1:dtime)  = zeros(32,dtime);
         ph_R(:,1:dtime)  = zeros(32,dtime);
         snr_R(:,1:dtime) = zeros(32,dtime);
@@ -651,6 +654,7 @@ while flag
         %buffer to zero
         tick_R = zeros(B,1);
         time_R = zeros(B,1);
+        week_R = zeros(B,1);
         pr_R   = zeros(32,B);
         ph_R   = zeros(32,B);
         snr_R  = zeros(32,B);
@@ -692,6 +696,7 @@ while flag
                     %buffer writing
                     tick_R(index)  = 1;
                     time_R(index)  = round(cell_rover{2,i}(1));
+                    week_R(index)  = cell_rover{2,i}(2);
                     pr_R(:,index)  = cell_rover{3,i}(:,2);
                     ph_R(:,index)  = cell_rover{3,i}(:,1);
                     snr_R(:,index) = cell_rover{3,i}(:,6);
@@ -1215,7 +1220,7 @@ while flag
             %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
             
             %input data save
-            fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1)], 'double');
+            fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             %dep_time_M(t)  = time_M(1);    %master time
             %dep_time_R(t)  = time_R(1);    %rover time (it should be = master time)
@@ -1281,7 +1286,7 @@ while flag
         while (b > B)
             
             %input data save
-            fwrite(fid_obs, [time_GPS; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1)], 'double');
+            fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             %dep_time_M(t)  = 0;               %master time
             %dep_time_R(t)  = 0;               %rover time
@@ -1326,7 +1331,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 %dep_time_M(t)  = time_M(b);    %master time
                 %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
@@ -1371,7 +1376,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 %dep_time_M(t)  = time_M(b);    %master time
                 %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
@@ -1465,7 +1470,7 @@ while flag
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %output data save
-                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
+                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                     %dep_time_M(t)  = time_M(b);    %master time
                     %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
@@ -1509,7 +1514,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 %dep_time_M(t)  = time_M(b);    %master time
                 %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)

@@ -25,13 +25,13 @@ function [X_sat_rot] = e_r_corr(traveltime, X_sat)
 
 global Omegae_dot
 
-%Find rotation angle
+%find the rotation angle
 omegatau   = Omegae_dot * traveltime;
 
-%Make a rotation matrix
+%build a rotation matrix
 R3 = [ cos(omegatau)    sin(omegatau)   0;
       -sin(omegatau)    cos(omegatau)   0;
        0                0               1];
 
-%Do the rotation
+%apply the rotation
 X_sat_rot = R3 * X_sat;

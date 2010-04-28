@@ -159,7 +159,6 @@
     kalman_goGPS_vinc_init.m
     kalman_goGPS_vinc_loop.m
     KML_link_write.m
-    KML_update.m
     KML_write.m
     KML_write_cov.m
     LICENSE.txt

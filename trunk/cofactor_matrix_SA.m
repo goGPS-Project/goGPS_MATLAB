@@ -1,15 +1,12 @@
-function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
+function [Q] = cofactor_matrix_SA(elR, snr_R, sat)
 
 % SYNTAX:
-%   [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
+%   [Q] = cofactor_matrix_SA(elR, snr_R, sat)
 %
 % INPUT:
 %   elR = satellite elevations (ROVER)
-%   elM = satellite elevations (MASTER)
 %   snr_R = signal-to-noise ratio (ROVER)
-%   snr_M = signal-to-noise ratio (MASTER)
 %   sat = visible satellite configuration
-%   pivot = pivot satellite
 %
 % OUTPUT:
 %   Q = code-code or phase-phase co-factor matrix
@@ -44,48 +41,32 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
 global weights snr_a snr_0 snr_1 snr_A
 
 %total number of visible satellites
-nsat = size(sat,1);
-n = nsat - 1;
-
-%PIVOT satellite index
-i = find(pivot == sat);
+n = size(sat,1);
 
 if (weights == 0)
 
     %code-code or phase-phase co-factor matrix Q construction
-    Q = 2*ones(n) + 2*eye(n);
+    Q = ones(n) + eye(n);
 
 else
     if (weights == 1)
 
         %weight vectors (elevation)
         q_R = 1 ./ (sin(elR * pi/180).^2);
-        q_M = 1 ./ (sin(elM * pi/180).^2);
 
     elseif (weights == 2)
 
         %weight vectors (signal-to-noise ratio)
         q_R = 10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1);
         q_R(snr_R >= snr_1) = 1;
-        q_M = 10.^(-(snr_M-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_M-snr_1)+1);
-        q_M(snr_M >= snr_1) = 1;
 
     elseif (weights == 3)
         %weight vectors (elevation and signal-to-noise ratio)
         q_R = 1 ./ (sin(elR * pi/180).^2) .* (10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1));
         q_R(snr_R >= snr_1) = 1;
-        q_M = 1 ./ (sin(elM * pi/180).^2) .* (10.^(-(snr_M-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_M-snr_1)+1));
-        q_M(snr_M >= snr_1) = 1;
 
     end
 
-    q_RP = q_R(i,1);             % ROVER-PIVOT
-    q_MP = q_M(i,1);             % MASTER-PIVOT
-    q_RS = q_R(sat~=pivot);      % ROVER-generic satellite (without pivot)
-    q_MS = q_M(sat~=pivot);      % MASTER-generic satellite (without pivot)
-    %q_RS(sat==pivot) = [];       % ROVER-generic satellite (without pivot)
-    %q_MS(sat==pivot) = [];       % MASTER-generic satellite (without pivot)
-
     %code-code or phase-phase co-factor matrix Q construction
-    Q = (q_RP + q_MP) * ones(n) + diag(q_RS + q_MS);
+    Q = ones(n) + diag(q_R);
 end

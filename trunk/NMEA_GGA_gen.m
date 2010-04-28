@@ -1,11 +1,13 @@
-function nmeastring = NMEA_string_generator(pos_R,nsat)
+function nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP)
 
 % SYNTAX:
-%   nmeastring = NMEA_string_generator(pos_R,nsat);
+%   nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP);
 %
 % INPUT:
 %   pos_R = estimated ROVER position (X,Y,Z)
 %   nsat = number of visible satellites
+%   time = GPS time of measurements
+%   HDOP = horizontal dilution of precision
 %
 % OUTPUT:
 %   nmeastring = $GPGGA sentence (NMEA)
@@ -36,8 +38,12 @@ function nmeastring = NMEA_string_generator(pos_R,nsat)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%get current date
-current_date = clock;
+if (nargin > 2)
+    date = datevec((time / (3600*24)) - fix(time / (3600*24)));
+else
+    %get current date
+    date = clock;
+end
 
 %approximate coordinates X Y Z
 X = pos_R(1);
@@ -106,7 +112,9 @@ end
 %-----------------------------------------------------------------------------------------------
 
 surv_type = '1'; %0 = not valid, 1 = GPS, 2 = DGPS
-HDOP = '1';      %fake HDOP value: to be changed
+if (nargin < 4)
+    HDOP = 1;      %fake HDOP value
+end
 h_unit = 'M';
 
 if (nargin > 1)
@@ -122,22 +130,22 @@ end
 % FORMAT DATA
 %-----------------------------------------------------------------------------------------------
 
-hour = num2str(current_date(1,4));
-minute = num2str(current_date(1,5));
-second = num2str(floor(current_date(1,6)));
+hour = num2str(date(1,4));
+minute = num2str(date(1,5));
+second = num2str(floor(date(1,6)));
 
-[null, ncifre] = size(hour); %#ok<ASGLU>
-if (ncifre == 1)
+[null, nchar] = size(hour); %#ok<ASGLU>
+if (nchar == 1)
     [hour] = sprintf('0%s',hour);
 end
 
-[null, ncifre] = size(minute); %#ok<ASGLU>
-if (ncifre == 1)
+[null, nchar] = size(minute); %#ok<ASGLU>
+if (nchar == 1)
     [minute] = sprintf('0%s',minute);
 end
 
-[null, ncifre] = size(second); %#ok<ASGLU>
-if (ncifre == 1)
+[null, nchar] = size(second); %#ok<ASGLU>
+if (nchar == 1)
     [second] = sprintf('0%s',second);
 end
 
@@ -147,32 +155,11 @@ decsec = '.00';
 % COMPOSITION OF THE NMEA SENTENCE
 %-----------------------------------------------------------------------------------------------
 
-nmeastring = sprintf('$GPGGA,%s%s%s%s,%s,%c,%s,%c,%s,%s,%s,%s,%c,,,,',hour,minute,second,decsec,phi_nmea,emi_NS,lam_nmea,emi_EW,surv_type,nsat,HDOP,h,h_unit);
+nmeastring = sprintf('$GPGGA,%s%s%s%s,%s,%c,%s,%c,%s,%s,%.2f,%s,%c,,,,',hour,minute,second,decsec,phi_nmea,emi_NS,lam_nmea,emi_EW,surv_type,nsat,HDOP,h,h_unit);
 
 %-----------------------------------------------------------------------------------------------
-% CHECKSUM COMPUTATION (found at http://www.mathworks.com/matlabcentral/fileexchange/15080)
+% CHECKSUM COMPUTATION
 %-----------------------------------------------------------------------------------------------
 
-checksum = 0;
-
-% see if string contains the * which starts the checksum and keep string
-% upto * for generating checksum
-nmeastring = strtok(nmeastring,'*');
-
-nmeastring_d = double(nmeastring);                    % convert characters in string to double values
-for count = 2:length(nmeastring)                      % checksum computation ignores $ at start
-    checksum = bitxor(checksum,nmeastring_d(count));  % checksum computation
-    checksum = uint16(checksum);                      % make sure that checksum is unsigned int16
-end
-
-% convert checksum to hex value
-checksum = double(checksum);
-checksum = dec2hex(checksum);
-
-% add leading zero to checksum if it is a single digit, e.g. 4 has a 0
-% added so that the checksum is 04
-if length(checksum) == 1
-    checksum = strcat('0',checksum);
-end
-
+checksum = NMEA_checksum(nmeastring);
 nmeastring = [nmeastring '*' checksum];

@@ -1,7 +1,7 @@
-function kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr2_Rsat, phase)
+function kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr2_Rsat, snr_R, phase)
 
 % SYNTAX:
-%   kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr1_Msat, phase);
+%   kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr2_Rsat, snr_R, phase);
 %
 % INPUT:
 %   time = GPS time
@@ -9,6 +9,7 @@ function kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr2_Rsat, phase)
 %   iono = ionosphere parameters
 %   pr1_Rsat = ROVER-SATELLITE code pseudorange (L1 carrier)
 %   pr2_Rsat = ROVER-SATELLITE code pseudorange (L2 carrier)
+%   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   phase = L1 carrier (phase=1) L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -40,8 +41,9 @@ function kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr2_Rsat, phase)
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz
 global cutoff o1 o2 o3
 
-global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
+global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
+global PDOP HDOP VDOP
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL
@@ -80,12 +82,12 @@ Cvv(o3,o3) = sigmaq_velz; %#ok<NASGU>
 %--------------------------------------------------------------------------------------------
 
 if (length(phase) == 2)
-    sat = find( (pr1_Rsat ~= 0) & (pr2_Rsat ~= 0) );
+    sat_pr = find( (pr1_Rsat ~= 0) & (pr2_Rsat ~= 0) );
 else
     if (phase == 1)
-        sat = find( pr1_Rsat ~= 0 );
+        sat_pr = find( pr1_Rsat ~= 0 );
     else
-        sat = find( pr2_Rsat ~= 0 );
+        sat_pr = find( pr2_Rsat ~= 0 );
     end
 end
 
@@ -93,10 +95,10 @@ end
 % ESTIMATION OF INITIAL POSITION BY BANCROFT ALGORITHM
 %--------------------------------------------------------------------------------------------
 
-if (length(sat) >= 4)
-    [pos_R, pos_SAT] = input_bancroft(pr1_Rsat(sat), sat, time(1), Eph);
+if (length(sat_pr) >= 4)
+    [pos_R, pos_SAT] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
 else
-    error('%d satellites are not enough to apply Bancroft algorithm\n', length(sat));
+    error('%d satellites are not enough to apply Bancroft algorithm\n', length(sat_pr));
 end
 
 pos_R = pos_R(1:3);
@@ -115,32 +117,27 @@ elM = zeros(32,1);
 distM = zeros(32,1);
 
 %satellite azimuth, elevation, ROVER-SATELLITE distance
-[azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_SAT);
+[azR(sat_pr), elR(sat_pr), distR(sat_pr)] = topocent(pos_R, pos_SAT);
 
 %elevation cut-off
 sat_cutoff = find(elR > cutoff);
-sat = intersect(sat,sat_cutoff);
+sat_pr = intersect(sat_pr,sat_cutoff);
 
-%previous pivot
 pivot_old = 0;
 
-%actual pivot
-[max_elR, i] = max(elR(sat)); %#ok<ASGLU>
-pivot = sat(i);
-%pivot = find(elR == max(elR));
+%current pivot
+[null_max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
+pivot = sat_pr(i);
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE CONFIGURATION
 %--------------------------------------------------------------------------------------------
 
 conf_sat(:,1) = zeros(32,1);
-conf_sat(sat,1) = +1;
+conf_sat(sat_pr,1) = +1;
 
-%no cycle-slips working with code only
+%no cycle-slips when working with code only
 conf_cs = zeros(32,1);
-
-%number of visible satellites  (NOT USED)
-nsat = size(sat,1);
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER INITIAL STATE
@@ -151,17 +148,33 @@ Z_om_1 = zeros(o1-1,1);
 
 %standalone ROVER positioning
 if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat, time, Eph, iono); %#ok<NASGU>
+    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
+        [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph); %#ok<NASGU>
+    else
+        [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono); %#ok<NASGU>
+    end
 else
-    [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat, time, Eph, iono); %#ok<NASGU>
+    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
+        [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph); %#ok<NASGU>
+    else
+        [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono); %#ok<NASGU>
+    end
 end
 
 %second iteration to improve the accuracy
 %obtained in the previous step (from some meters to some centimeters)
 if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat, time, Eph, iono);
+    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph);
+    else
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+    end
 else
-    [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat, time, Eph, iono);
+    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph);
+    else
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+    end
 end
 
 if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix

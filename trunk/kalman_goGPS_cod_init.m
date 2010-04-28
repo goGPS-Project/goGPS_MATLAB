@@ -49,6 +49,7 @@ global cutoff o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
+global PDOP HDOP VDOP
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL
@@ -165,9 +166,9 @@ end
 %second iteration to improve the accuracy
 %obtained in the previous step (from some meters to some centimeters)
 if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+    [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
 else
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+    [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
 end
 
 if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix

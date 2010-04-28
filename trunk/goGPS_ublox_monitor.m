@@ -364,7 +364,7 @@ while flag
                 t = t+1;
 
                 %data save
-                fwrite(fid_obs, [0; 0; time_R; zeros(32,1); pr_R; zeros(32,1); ph_R; zeros(32,1); snr_R; zeros(3,1)], 'double');
+                fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; zeros(32,1); snr_R; zeros(3,1)], 'double');
                 fwrite(fid_eph, [0; Eph(:)], 'double');
                 %dep_time_R (t) = time_R;
                 %dep_pr_R(:,t)  = pr_R;

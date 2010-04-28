@@ -1,9 +1,9 @@
 function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-          conf_sat, conf_cs, pivot] = load_goGPSoutput (fileroot, mode, mode_vinc)
+          conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP] = load_goGPSoutput (fileroot, mode, mode_vinc)
 
 % SYNTAX:
 %   [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-%    conf_sat, conf_cs, pivot] = load_goGPSoutput (fileroot, mode_vinc);
+%    conf_sat, conf_cs, pivot, HDOP] = load_goGPSoutput (fileroot, mode_vinc);
 %
 % INPUT:
 %   fileroot  = name of the file to be read
@@ -23,6 +23,9 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   conf_sat = satellites-in-view configuration
 %   conf_cs  = cycle-slips configuration
 %   pivot    = pivot satellite
+%   PDOP = position dilution of precision
+%   HDOP = horizontal dilution of precision
+%   VDOP = vertical dilution of precision
 %
 % DESCRIPTION:
 %   Kalman filter output data reading.
@@ -60,7 +63,7 @@ Xhat_t_t = [];                     %state variables estimate
 Yhat_t_t = [];                     %receiver positions estimate
 Cee = [];                          %estimation error covariance matrix
 
-%lettura file
+%observations reading
 if (mode == 1 & mode_vinc == 1)
     i = 0;                                                              %epoch counter
     hour = 0;                                                           %hour index (integer)
@@ -156,6 +159,40 @@ while ~isempty(d)
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string
     d = dir([fileroot '_sat_' hour_str '.bin']);                    %file to be read
+end
+
+%-------------------------------------------------------------------------------
+
+%initialization
+PDOP = [];                           %position dilution of precision
+HDOP = [];                           %horizontal dilution of precision
+VDOP = [];                           %vertical dilution of precision
+
+%observations reading
+i = 0;                                                              %epoch counter
+hour = 0;                                                           %hour index (integer)
+hour_str = num2str(hour,'%02d');                                    %hour index (string)
+d = dir([fileroot '_dop_' hour_str '.bin']);                        %file to be read
+while ~isempty(d)
+    fprintf(['Reading: ' fileroot '_dop_' hour_str '.bin\n']);
+    num_bytes = d.bytes;                                            %file size (number of bytes)
+    num_words = num_bytes / 8;                                      %file size (number of words)
+    num_packs = num_words / 3;                                      %file size (number of packets)
+    fid_dop = fopen([fileroot '_dop_' hour_str '.bin'],'r+');       %file opening
+    buf_dop = fread(fid_dop,num_words,'double');                    %file reading
+    fclose(fid_dop);                                                %file closing
+    PDOP  = [PDOP;  zeros(num_packs,1)];                            %observations concatenation
+    HDOP  = [HDOP;  zeros(num_packs,1)];                            %observations concatenation
+    VDOP  = [VDOP;  zeros(num_packs,1)];                            %observations concatenation
+    for j = 0 : 3 : num_words-1
+        i = i+1;                                                    %epoch counter increase
+        PDOP(i,1)  = buf_dop(j + 1);                                %observations logging
+        HDOP(i,1)  = buf_dop(j + 2);                                %observations logging
+        VDOP(i,1)  = buf_dop(j + 3);                                %observations logging
+    end
+    hour = hour+1;                                                  %hour increase
+    hour_str = num2str(hour,'%02d');                                %conversion into a string
+    d = dir([fileroot '_dop_' hour_str '.bin']);                    %file to be read
 end
 
 %-------------------------------------------------------------------------------

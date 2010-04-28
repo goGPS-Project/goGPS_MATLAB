@@ -1,8 +1,8 @@
-function [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
+function [pos_R, cov_pos_R, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phase_double_diff ...
          (pos_R_app, pr_R, ph_R, snr_R, pos_M, pr_M, ph_M, snr_M, time, sat, pivot, Eph, phase, iono)
 
 % SYNTAX:
-%   [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
+%   [pos_R, cov_pos_R, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phase_double_diff ...
 %   (pos_R_app, pr_R, ph_R, snr_R, pos_M, pr_M, ph_M, snr_M, time, sat, pivot, Eph, phase, iono);
 %
 % INPUT:
@@ -26,6 +26,9 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim] = code_phase_double_diff ...
 %   cov_pos_R = covariance matrix of estimation errors (rover position)
 %   N_stim = linear combination of ambiguity estimate
 %   cov_N_stim = covariance matrix of estimation errors (combined ambiguity values)
+%   PDOP = position dilution of precision
+%   HDOP = horizontal dilution of precision
+%   VDOP = vertical dilution of precision
 
 %
 % DESCRIPTION:
@@ -311,4 +314,14 @@ else
     cov_pos_R = [];
 
     cov_N_stim = [];
+end
+
+%DOP computation
+if (nargout > 4)
+    cov_XYZ = (A(1:n/2,1:3)'*A(1:n/2,1:3))^-1;
+    cov_ENU = global2localCov(cov_XYZ, xR);
+    
+    PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
+    HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
+    VDOP = sqrt(cov_ENU(3,3));
 end

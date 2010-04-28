@@ -58,6 +58,7 @@ global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
+global PDOP HDOP VDOP
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -163,9 +164,9 @@ if (nsat >= min_nsat)
 
     %ROVER positioning by means of code double differences
     if (phase(1) == 1)
-        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
     else
-        [pos_R, cov_pos_R] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(X_t1_t([1,o1+1,o2+1]), pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
     end
 
     if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix

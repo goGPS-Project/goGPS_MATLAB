@@ -1,8 +1,8 @@
-function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
           loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg)
 
 % SYNTAX:
-%   [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+%   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
 %    loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg);
 %
 % INPUT:
@@ -10,6 +10,7 @@ function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, po
 %
 % OUTPUT:
 %   time_GPS = reference GPS time
+%   week_R   = GPS week
 %   time_R   = GPS time for the ROVER observations
 %   time_M   = GPS time for the MASTER observations
 %   pr1_R    = ROVER-SATELLITE code-pseudorange (carrier L1)
@@ -101,6 +102,7 @@ if ~isempty(data_rover_all)
     %initialization (to make the writing faster)
     Ncell  = size(cell_rover,2);                          %number of read RTCM packets
     time_R = zeros(Ncell,1);                              %GPS time of week
+    week_R = zeros(Ncell,1);                              %GPS week
     pr1_R  = zeros(32,Ncell);                             %code observations
     ph1_R  = zeros(32,Ncell);                             %phase observations
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
@@ -118,6 +120,7 @@ if ~isempty(data_rover_all)
     
         if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
             time_R(i) = round(cell_rover{2,j}(1));
+            week_R(i) = cell_rover{2,j}(2);
             pr1_R(:,i) = cell_rover{3,j}(:,2);
             ph1_R(:,i) = cell_rover{3,j}(:,1);
             snr_R(:,i) = cell_rover{3,j}(:,6);
@@ -150,6 +153,7 @@ if ~isempty(data_rover_all)
 
     %residual data erase (after initialization)
     time_R(i:end)  = [];
+    week_R(i:end)  = [];
     pr1_R(:,i:end) = [];
     ph1_R(:,i:end) = [];
     Eph_R(:,:,i:end) = [];
@@ -163,6 +167,7 @@ else
     end
 
     time_R = [];                         %GPS time
+    week_R = [];                         %GPS week
     pr1_R  = [];                         %code observations
     ph1_R  = [];                         %phase observations
     snr_R  = [];                         %signal-to-noise ratio
@@ -336,6 +341,7 @@ if ~isempty(time_R) & ~isempty(time_M)
     %initial synchronization
     while (time_R(1) < time_M(1))
         time_R(1)    = [];                         %GPS time
+        week_R(1)    = [];                         %GPS week
         pr1_R(:,1)   = [];                         %code observations
         ph1_R(:,1)   = [];                         %phase observations
         snr_R(:,1)   = [];                         %signal-to-noise ratio
@@ -376,6 +382,7 @@ if ~isempty(time_GPS)
             pos = find(time_R == newtime_R(i) - 1);  %position before the "holes"
 
             time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
+            week_R = [week_R(1:pos);  0;             week_R(pos+1:end)];
             pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
             ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
             snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
@@ -384,6 +391,7 @@ if ~isempty(time_GPS)
         end
     else
         time_R = time_GPS;
+        week_R = zeros(1,length(time_GPS));
         pr1_R  = zeros(32,length(time_GPS));
         ph1_R  = zeros(32,length(time_GPS));
         snr_R  = zeros(32,length(time_GPS));

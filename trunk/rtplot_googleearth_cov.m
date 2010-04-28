@@ -49,13 +49,19 @@ ZR = pos_R(3);
 %conversion from cartesian to geodetic coordinates
 [phiR, lamR, hR] = cart2geod(XR, YR, ZR);
 
-%rover position coordinates X Y Z
-XM = pos_M(1);
-YM = pos_M(2);
-ZM = pos_M(3);
-
-%conversion from cartesian to geodetic coordinates
-[phiM, lamM, hM] = cart2geod(XM, YM, ZM);
+if (sum(abs(pos_M)) ~= 0)
+    %rover position coordinates X Y Z
+    XM = pos_M(1);
+    YM = pos_M(2);
+    ZM = pos_M(3);
+    
+    %conversion from cartesian to geodetic coordinates
+    [phiM, lamM, hM] = cart2geod(XM, YM, ZM);
+else
+    phiM = 0;
+    lamM = 0;
+    hM = 0;
+end
 
 %computation of the Earth local radius
 NM = a / sqrt(1 - e^2 * (sin(phiR))^2);
