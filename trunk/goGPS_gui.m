@@ -771,6 +771,12 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     master_pos_Callback(handles.master_pos, eventdata, handles);
 
     kalman_ls_Callback(handles.kalman_ls, eventdata, handles);
+    
+    %enable weights
+    set(handles.weight_0, 'Enable', 'on');
+    set(handles.weight_1, 'Enable', 'on');
+    set(handles.weight_2, 'Enable', 'on');
+    set(handles.weight_3, 'Enable', 'on');
 
     %enable connection parameters
     set(handles.server_delay, 'Enable', 'on');
