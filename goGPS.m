@@ -286,7 +286,7 @@ if (mode < 10) %post-processing
 
         %complete/partial path
         tMin = 1;
-        tMax = 1e30;
+        tMax = 3110;
         tMin = max(tMin,1);
         tMax = min(tMax,length(time_GPS));
         time_GPS = time_GPS(tMin:tMax);
@@ -1067,15 +1067,19 @@ if (mode < 12)
 
         %NMEA string generation
         GGAstring = NMEA_GGA_gen(pos_KAL(:,i), nsat, time_GPS(i), HDOP(i));
-        RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date(i,:));
-        GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i));
-        GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i));
+        if (pivot(i) ~= 0)
+            RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date(i,:));
+            GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i));
+            GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i));
+        end
         
         %NMEA file write
         fprintf(fid_nmea, [GGAstring '\n']);
-        fprintf(fid_nmea, [RMCstring '\n']);
-        fprintf(fid_nmea, [GSVstring '\n']);
-        fprintf(fid_nmea, [GSAstring '\n']);
+        if (pivot(i) ~= 0)
+            fprintf(fid_nmea, [RMCstring '\n']);
+            fprintf(fid_nmea, [GSVstring '\n']);
+            fprintf(fid_nmea, [GSAstring '\n']);
+        end
     end
     fclose(fid_nmea);
 end
