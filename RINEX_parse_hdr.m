@@ -1,15 +1,15 @@
-function [Obs_types, ifound_types, flag] = obs_type_list(file)
+function [Obs_types, pos_M, ifound_types] = RINEX_parse_hdr(file)
 
 % SYNTAX:
-%   [Obs_types, ifound_types, flag] = obs_type_list(file);
+%   [Obs_types, pos_M, ifound_types] = RINEX_parse_hdr(file);
 %
 % INPUT:
-%   file = RINEX observation file
+%   file = pointer to RINEX observation file
 %
 % OUTPUT:
 %   Obs_types = string containing observation types (e.g. L1C1P1...)
+%   pos_M = master station approximate position
 %   ifound_types = boolean variable to check the correct acquisition of basic information
-%   flag = boolean variable to check the end of file
 %
 % DESCRIPTION:
 %   RINEX observation file header analysis.
@@ -24,19 +24,15 @@ function [Obs_types, ifound_types, flag] = obs_type_list(file)
 %
 %----------------------------------------------------------------------------------------------
 
-fid = fopen(file,'rt');
-flag = 0;
 ifound_types = 0;
 Obs_types = [];
-while ((ifound_types == 0) & (flag == 0))
-    line = fgetl(fid);
-    answer = findstr(line,'END OF HEADER');
-    if  ~isempty(answer)
-        flag = 1;
-    end
-    if (line == -1)
-        flag = 1;
-    end
+pos_M = [];
+
+%parse first line
+line = fgetl(file);
+
+%check if the end of the header or the end of the file has been reached
+while isempty(findstr(line,'END OF HEADER')) & (line ~= -1)
     answer = findstr(line,'# / TYPES OF OBSERV');
     if ~isempty(answer)
         NoObs = sscanf(line(1:6),'%d');
@@ -46,4 +42,14 @@ while ((ifound_types == 0) & (flag == 0))
         end
         ifound_types = 1;
     end
+    answer = findstr(line,'APPROX POSITION XYZ');
+    if ~isempty(answer)
+        X = sscanf(line(1:14),'%f');
+        Y = sscanf(line(15:28),'%f');
+        Z = sscanf(line(29:42),'%f');
+        pos_M = [X; Y; Z];
+    end
+    
+    %parse next line
+    line = fgetl(file);
 end

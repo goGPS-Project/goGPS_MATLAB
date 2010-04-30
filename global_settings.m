@@ -121,11 +121,7 @@ ZM = 4550154.8609;
 % L2: EAST=+0.0003, NORTH=+0,      h=0.0948
 
 %set master station position manually
-if (~flag_ms_rtcm)
-    pos_M = [XM; YM; ZM];
-else
-    pos_M = [];
-end
+pos_M_man = [XM; YM; ZM];
 
 %-------------------------------------------------------------------------------
 % KALMAN FILTER

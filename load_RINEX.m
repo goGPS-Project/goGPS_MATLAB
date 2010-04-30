@@ -2,12 +2,15 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
           Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
           pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
           Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-          time_GPS, date] = ...
+          time_GPS, date, pos_M] = ...
           load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav)
 
 % SYNTAX:
 %   [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%   Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, time_GPS, date] = ...
+%    Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
+%    pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
+%    Eph_RR, Eph_MR, snr_RR, snr_MR, ...
+%    time_GPS, date, pos_M] = ...
 %   load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav);
 %
 % INPUT:
@@ -31,6 +34,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   iono_M = matrix containing ionosphere parameters (MASTER)
 %   time_GPS = GPS time of ROVER observations
 %   date = date (year,month,day,hour,minute,second)
+%   pos_M = master station approximate position
 %
 % DESCRIPTION:
 %   Parse RINEX files (both observation and navigation) for both the ROVER
@@ -85,22 +89,18 @@ FM_oss = fopen(nome_FM_oss,'r');
 %-------------------------------------------------------------------------------
 
 %parse RINEX header
-[obs_typ_R,info_base_R,eof_R] = obs_type_list(nome_FR_oss);
-[obs_typ_M,info_base_M,eof_M] = obs_type_list(nome_FM_oss);
+[obs_typ_R,  null, info_base_R] = RINEX_parse_hdr(FR_oss); %#ok<ASGLU>
+[obs_typ_M, pos_M, info_base_M] = RINEX_parse_hdr(FM_oss);
 
 %check the availability of basic data to parse the RINEX file (ROVER)
-if ((info_base_R == 0) | (eof_R == 1))
+if (info_base_R == 0)
     error('Basic data is missing in the ROVER RINEX header')
-end;
+end
 
 %check the availability of basic data to parse the RINEX file (MASTER)
-if ((info_base_M == 0) | (eof_M == 1))
+if (info_base_M == 0) 
     error('Basic data is missing in the ROVER RINEX header')
-end;
-
-%jump the RINEX header
-RINEX_jump_hdr(FR_oss);
-RINEX_jump_hdr(FM_oss);
+end
 
 %-------------------------------------------------------------------------------
 

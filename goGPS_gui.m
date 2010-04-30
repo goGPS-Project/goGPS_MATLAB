@@ -133,7 +133,7 @@ else %goGPS data
     mode_data = 1;
 end
 mode_ref = get(handles.ref_path,'Value');
-flag_ms_rtcm = get(handles.master_pos,'Value');
+flag_ms_pos = get(handles.master_pos,'Value');
 flag_ms = get(handles.plot_master,'Value');
 flag_ge = get(handles.google_earth,'Value');
 flag_cov = get(handles.err_ellipse,'Value');
@@ -170,28 +170,25 @@ filename_R_nav = get(handles.RINEX_rover_nav,'String');
 filename_M_obs = get(handles.RINEX_master_obs,'String');
 filename_M_nav = get(handles.RINEX_master_nav,'String');
 filename_ref = get(handles.ref_path_input,'String');
-if (~flag_ms_rtcm)
-    contents = cellstr(get(handles.crs,'String'));
-    if (strcmp(contents{get(handles.crs,'Value')},'ECEF (X,Y,Z)'))
-        XM = str2double(get(handles.master_X,'String'));
-        YM = str2double(get(handles.master_Y,'String'));
-        ZM = str2double(get(handles.master_Z,'String'));
-    else
-        latM = str2double(get(handles.master_lat,'String'));
-        lonM = str2double(get(handles.master_lon,'String'));
-        hM = str2double(get(handles.master_h,'String'));
-        [XM, YM, ZM] = geod2cart (latM*pi/180, lonM*pi/180, hM, 6378137, 1/298.257222101);
-    end
-    pos_M = [XM; YM; ZM];
+
+contents = cellstr(get(handles.crs,'String'));
+if (strcmp(contents{get(handles.crs,'Value')},'ECEF (X,Y,Z)'))
+    XM = str2double(get(handles.master_X,'String'));
+    YM = str2double(get(handles.master_Y,'String'));
+    ZM = str2double(get(handles.master_Z,'String'));
 else
-    pos_M = [];
+    latM = str2double(get(handles.master_lat,'String'));
+    lonM = str2double(get(handles.master_lon,'String'));
+    hM = str2double(get(handles.master_h,'String'));
+    [XM, YM, ZM] = geod2cart (latM*pi/180, lonM*pi/180, hM, 6378137, 1/298.257222101);
 end
+pos_M_man = [XM; YM; ZM];
 
 varargout{1} = mode;
 varargout{2} = mode_vinc;
 varargout{3} = mode_data;
 varargout{4} = mode_ref;
-varargout{5} = flag_ms_rtcm;
+varargout{5} = flag_ms_pos;
 varargout{6} = flag_ms;
 varargout{7} = flag_ge;
 varargout{8} = flag_cov;
@@ -205,7 +202,7 @@ varargout{15} = filename_R_nav;
 varargout{16} = filename_M_obs;
 varargout{17} = filename_M_nav;
 varargout{18} = filename_ref;
-varargout{19} = pos_M;
+varargout{19} = pos_M_man;
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -765,10 +762,6 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.browse_gogps_data_output, 'Enable', 'on');
     set(handles.gogps_data_output_prefix, 'Enable', 'on');
     set(handles.text_gogps_data_output_prefix, 'Enable', 'on');
-
-    set(handles.master_pos, 'Enable', 'on');
-    set(handles.master_pos, 'Value', 1);
-    master_pos_Callback(handles.master_pos, eventdata, handles);
 
     kalman_ls_Callback(handles.kalman_ls, eventdata, handles);
     
@@ -1589,13 +1582,6 @@ if (hObject == handles.rinex_files)
     set(handles.browse_gogps_input, 'Enable', 'off');
     set(handles.text_gogps_input, 'Enable', 'off');
 
-    contents = cellstr(get(handles.mode,'String'));
-    if (strcmp(contents{get(handles.mode,'Value')},'Post-processing'))
-        set(handles.master_pos, 'Enable', 'off');
-        set(handles.master_pos, 'Value', 0);
-        master_pos_Callback(handles.master_pos, eventdata, handles);
-    end
-
 else
     set(handles.RINEX_rover_obs, 'Enable', 'off');
     set(handles.RINEX_rover_nav, 'Enable', 'off');
@@ -1613,10 +1599,6 @@ else
     set(handles.gogps_data_input, 'Enable', 'on');
     set(handles.browse_gogps_input, 'Enable', 'on');
     set(handles.text_gogps_input, 'Enable', 'on');
-
-    set(handles.master_pos, 'Enable', 'on');
-    set(handles.master_pos, 'Value', 1);
-    master_pos_Callback(handles.master_pos, eventdata, handles);
 end
 
 

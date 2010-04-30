@@ -67,9 +67,9 @@ global o1 o2 o3 h_antenna
 
 if (mode_user == 1)
 
-    [mode, mode_vinc, mode_data, mode_ref, flag_ms_rtcm, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+    [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav, ...
-        filename_ref, pos_M] = goGPS_gui;
+        filename_ref, pos_M_man] = goGPS_gui;
 
     if (isempty(mode))
         return
@@ -109,7 +109,7 @@ else
                       % mode_ref=0 --> do not use a reference path
                       % mode_ref=1 --> use a reference path (plot it and use it for statistics)
 
-    flag_ms_rtcm = 1; % read master station position from RTCM
+    flag_ms_pos = 1; % read master station position from RTCM or RINEX header
 
     flag_ms = 0;      % plot master station position --> no=0, yes=1
 
@@ -173,7 +173,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode < 10) %post-processing
-
+    
     if (mode_data == 0)
 
         %read data from RINEX files
@@ -181,7 +181,7 @@ if (mode < 10) %post-processing
             Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
             pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
             Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-            time_GPS, date] = ...
+            time_GPS, date, pos_M] = ...
             load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
 
         %select ephemerides source
@@ -310,9 +310,31 @@ if (mode < 10) %post-processing
         loss_M = loss_M(tMin:tMax);
         date = date(tMin:tMax,:);
     end
+    
+    %MASTER station position management
+    if (flag_ms_pos) & (sum(abs(pos_M)) ~= 0)
+        if (size(pos_M,2) == 1)
+            pos_M(1,1:length(time_GPS)) = pos_M(1);
+            pos_M(2,1:length(time_GPS)) = pos_M(2);
+            pos_M(3,1:length(time_GPS)) = pos_M(3);
+        end
+    else
+        pos_M(1,1:length(time_GPS)) = pos_M_man(1);
+        pos_M(2,1:length(time_GPS)) = pos_M_man(2);
+        pos_M(3,1:length(time_GPS)) = pos_M_man(3);
+        fprintf('Warning: master position fixed to user-defined values:\n');
+        fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
+    end
 
 else %real-time
 
+    %initialize master position variable
+    if (flag_ms_pos)
+        pos_M = [];
+    else
+        pos_M = pos_M_man;
+    end
+    
     %for the Kalman filter execution in real-time
     iono_R = zeros(8,1);
     iono_M = zeros(8,1);
@@ -321,19 +343,6 @@ else %real-time
     ph2_M = zeros(32,1);
     ph2_R = zeros(32,1);
 
-end
-
-%check if MASTER position is available
-if (mode < 12) & (~flag_ms_rtcm)
-    pos_M(1,1:length(time_GPS)) = pos_M(1);
-    pos_M(2,1:length(time_GPS)) = pos_M(2);
-    pos_M(3,1:length(time_GPS)) = pos_M(3);
-elseif (mode < 10) & (mode_user == 0) & (sum(abs(pos_M)) == 0 | isempty(pos_M))
-    pos_M(1,1:length(time_GPS)) = XM;
-    pos_M(2,1:length(time_GPS)) = YM;
-    pos_M(3,1:length(time_GPS)) = ZM;
-    fprintf('Master position not found, thus it is set to user-defined values:\n');
-    fprintf(' X=%.4f, Y=%.4f, Z=%.4f km\n', pos_M(1,1)/1000, pos_M(2,1)/1000, pos_M(3,1)/1000);
 end
 
 %----------------------------------------------------------------------------------------------
@@ -927,7 +936,7 @@ elseif (mode == 6)
 
 elseif (mode == 11)
 
-    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, flag_skyplot, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
+    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: ROVER MONITORING
@@ -951,7 +960,7 @@ elseif (mode == 13)
     
 elseif (mode == 14)
     
-    goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_rtcm, pos_M);
+    goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
 
 end
 

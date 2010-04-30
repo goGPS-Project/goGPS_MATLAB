@@ -1,12 +1,12 @@
-function goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_rtcm, pos_M)
+function goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M)
 
 % SYNTAX:
-%   goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_rtcm, pos_M);
+%   goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
 %
 % INPUT:
 %   filerootOUT = output file prefix
 %   flag_NTRIP = use/don't use NTRIP flag
-%   flag_ms_rtcm = use/don't use RTCM master position
+%   flag_ms_pos = use/don't use RTCM master position
 %   pos_M = master station position (X,Y,Z)
 %
 % DESCRIPTION:
@@ -519,7 +519,7 @@ ph_M   = zeros(32,B);     % master phase buffer
 ph_R   = zeros(32,B);     % rover phase buffer
 snr_M  = zeros(32,B);     % master SNR buffer
 snr_R  = zeros(32,B);     % rover SNR buffer
-if (flag_ms_rtcm)
+if (flag_ms_pos)
     pos_M  = zeros(3, B);        % master station coordinates read from RTCM
 else
     for i = 2 : B
@@ -926,7 +926,7 @@ while flag
         pr_M   = zeros(32,B);
         ph_M   = zeros(32,B);
         snr_M  = zeros(32,B);
-        if (flag_ms_rtcm)
+        if (flag_ms_pos)
             % master station coordinates read from RTCM
             pos_M  = zeros(3, B);
         else
@@ -1002,7 +1002,7 @@ while flag
                     coordY_M = cell_master{2,i}(2);
                     coordZ_M = cell_master{2,i}(3);
 
-                    if (flag_ms_rtcm & master_update)
+                    if (flag_ms_pos & master_update)
 
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
@@ -1045,7 +1045,7 @@ while flag
                     coordY_M = cell_master{2,i}(9);
                     coordZ_M = cell_master{2,i}(10);
 
-                    if (flag_ms_rtcm & master_update)
+                    if (flag_ms_pos & master_update)
 
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
@@ -1066,7 +1066,7 @@ while flag
                     coordZ_M = cell_master{2,i}(10);
                     height_M = cell_master{2,i}(11); %#ok<NASGU>
 
-                    if (flag_ms_rtcm & master_update)
+                    if (flag_ms_pos & master_update)
 
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];

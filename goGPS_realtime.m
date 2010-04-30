@@ -1,8 +1,8 @@
-function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_rtcm, flag_skyplot, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
+function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M, iono, pr2_M, pr2_R, ph2_M, ph2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov,
-%   flag_NTRIP, flag_ms_rtcm, flag_skyplot, ref_path, mat_path, pos_M,
+%   flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M,
 %   iono, pr2_M, pr2_R, ph2_M, ph2_R);
 %
 % INPUT:
@@ -12,7 +12,7 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag
 %   flag_ge =  google earth flag
 %   flag_cov = plot error ellipse flag
 %   flag_NTRIP = use/don't use NTRIP flag
-%   flag_ms_rtcm = use/don't use RTCM master position
+%   flag_ms_pos = use/don't use RTCM master position
 %   flag_skyplot = use/don't use CPU saving mode (no skyplot, no SNR graph)
 %   ref_path = reference path
 %   mat_path = reference path adjacency matrix
@@ -378,7 +378,6 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
         rover_1 = get(rover,'BytesAvailable');
         pause(0.1);
         rover_2 = get(rover,'BytesAvailable');
-
     end
 
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
@@ -418,6 +417,9 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
 
     %satellites with observations available
     satObs = find(pr_R ~= 0);
+    
+    %display current number of satellites
+    fprintf('Number of visible satellites with ephemerides: %d\n', length(satObs));
 
 end
 
@@ -579,7 +581,7 @@ ph_M   = zeros(32,B);     % master phase buffer
 ph_R   = zeros(32,B);     % rover phase buffer
 snr_M  = zeros(32,B);     % master SNR buffer
 snr_R  = zeros(32,B);     % rover SNR buffer
-if (flag_ms_rtcm)
+if (flag_ms_pos)
     pos_M  = zeros(3, B);        % master station coordinates read from RTCM
 else
     for i = 2 : B
@@ -1015,7 +1017,7 @@ while flag
         pr_M   = zeros(32,B);
         ph_M   = zeros(32,B);
         snr_M  = zeros(32,B);
-        if (flag_ms_rtcm)
+        if (flag_ms_pos)
             % master station coordinates read from RTCM
             pos_M  = zeros(3, B);
         else
@@ -1091,7 +1093,7 @@ while flag
                     coordY_M = cell_master{2,i}(2);
                     coordZ_M = cell_master{2,i}(3);
 
-                    if (flag_ms_rtcm & master_update)
+                    if (flag_ms_pos & master_update)
 
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
@@ -1134,7 +1136,7 @@ while flag
                     coordY_M = cell_master{2,i}(9);
                     coordZ_M = cell_master{2,i}(10);
 
-                    if (flag_ms_rtcm & master_update)
+                    if (flag_ms_pos & master_update)
 
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
@@ -1155,7 +1157,7 @@ while flag
                     coordZ_M = cell_master{2,i}(10);
                     height_M = cell_master{2,i}(11); %#ok<NASGU>
 
-                    if (flag_ms_rtcm & master_update)
+                    if (flag_ms_pos & master_update)
 
                         if(index ~= 0)
                             pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
