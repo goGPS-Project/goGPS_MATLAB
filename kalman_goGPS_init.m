@@ -278,8 +278,6 @@ else
     %if the satellite is visible, 0 if the satellite is not visible
     comb_N1_stim = zeros(32,1);
     comb_N2_stim = zeros(32,1);
-    cov_comb_N1_stim = zeros(32,1);
-    cov_comb_N2_stim = zeros(32,1);
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)

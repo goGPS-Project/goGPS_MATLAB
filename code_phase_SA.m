@@ -87,7 +87,7 @@ for i = 1 : nsat
     err_tropo_RS(i) = err_tropo(elR(i), hR);
     
     %if ionospheric parameters are available
-    if (nargin == 7)
+    if (nargin == 9)
         
         %computation of ionospheric errors
         err_iono_RS(i) = err_iono(iono, phiR, lamR, azR, elR(i), time);
@@ -113,16 +113,16 @@ for i = 1 : nsat
             zeros(1, nsat) 1];
 
     %approximate pseudoranges
-    b = [b; prRS_app(i)];
+    b = [b; prRS_app(i) - v_light*dtS(i)];
 
     %observed pseudoranges
-    y0 = [y0; prRS_obs + v_light*dtS(i)];
+    y0 = [y0; prRS_obs];
 
     %save tropospheric errors
     tr = [tr; err_tropo_RS(i)];
 
     %if ionospheric parameters are available
-    if (nargin == 7)
+    if (nargin == 9)
         
         %save ionospheric errors
         io = [io; err_iono_RS(i)];
@@ -146,16 +146,16 @@ for i = 1 : nsat
             N_row 1];
 
     %approximate pseudoranges
-    b = [b; prRS_app(i)];
+    b = [b; prRS_app(i) - v_light*dtS(i)];
 
     %observed pseudoranges
-    y0 = [y0; phRS_obs + v_light*dtS(i)];
+    y0 = [y0; phRS_obs*lambda];
 
     %save tropospheric errors
     tr = [tr; err_tropo_RS(i)];
 
     %if ionospheric parameters are available
-    if (nargin == 7)
+    if (nargin == 9)
         
         %save ionospheric errors
         io = [io; -err_iono_RS(i)];
@@ -164,7 +164,7 @@ end
 
 %correction of the b known term
 b = b + tr;
-if (nargin == 7)
+if (nargin == 9)
    b = b + io;
 end
 

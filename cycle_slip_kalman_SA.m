@@ -50,33 +50,59 @@ function [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(posR, N_kalman, ...
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-global lambda1;
-global lambda2;
+global lambda1
+global lambda2
+% global v_light
+
+% %cartesian to geodetic conversion of ROVER coordinates
+% [phiR, lamR, hR] = cart2geod(posR(1), posR(2), posR(3));
+% 
+% %radians to degrees
+% phiR = phiR * 180 / pi;
+% lamR = lamR * 180 / pi;
 
 %number of visible satellites
 nsat = size(sat,1);
 
-%initialization
-pr_stim = [];
-
-%computation for all the satellites, PIVOT included
-for i = 1 : nsat
-
-    %satellite position (with clock error and Earth rotation corrections)
-    posS = sat_corr(Eph, sat(i), time, pr_Rsat(i), posR);
-
-    %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
-    pr_RS_stim = sqrt(sum((posR - posS).^2));
-
-    %store pseudoranges
-    pr_stim = [pr_stim; pr_RS_stim];
-end
+% %initialization
+% err_iono_RS = 0;
+% pr_stim = [];
+% 
+% %computation for all the satellites, PIVOT included
+% for i = 1 : nsat
+% 
+%     %new satellites position correction (clock and Earth rotation)
+%     [pos_S dtS]= sat_corr(Eph, sat(i), time, pr_Rsat(i), posR);
+% 
+%     %computation of the satellite azimuth and elevation
+%     [azR, elR] = topocent(posR, pos_S');
+%     
+%     %computation of tropospheric errors
+%     err_tropo_RS = err_tropo(elR, hR);
+%     
+%     %if ionospheric parameters are available
+%     if (nargin == 7)
+%         
+%         %computation of ionospheric errors
+%         err_iono_RS = err_iono(iono, phiR, lamR, azR, elR, time);
+%     end
+%     
+%     %ROVER,MASTER-SATELLITES pseudorange estimate
+%     pr_stim(i,1) = sqrt(sum((posR - pos_S).^2)) - v_light*dtS + err_tropo_RS + err_iono_RS;
+% end
+% 
+% %phase ambiguities estimation
+% if (phase == 1)
+%     N_stim = pr_stim / lambda1 - ph_Rsat;
+% else
+%     N_stim = pr_stim / lambda2 - ph_Rsat;
+% end
 
 %phase ambiguities estimation
 if (phase == 1)
-    N_stim = pr_stim / lambda1 - ph_Rsat;
+    N_stim = ((pr_Rsat - ph_Rsat * lambda1)) / lambda1;
 else
-    N_stim = pr_stim / lambda2 - ph_Rsat;
+    N_stim = ((pr_Rsat - ph_Rsat * lambda2)) / lambda2;
 end
 
 %initialization

@@ -195,9 +195,6 @@ n = nsat - 1;
 %------------------------------------------------------------------------------------
 
 % if (length(sat_pr) >= 4)
-
-pos_R = X_t1_t([1,o1+1,o2+1]);
-
 %     %ROVER positioning with code double differences
 %     if (phase(1) == 1)
 %         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
@@ -214,6 +211,10 @@ pos_R = X_t1_t([1,o1+1,o2+1]);
 % else
 %     pos_R = X_t1_t([1,o1+1,o2+1]);
 % end
+
+% if (sqrt(sum((pos_R - X_t1_t([1,o1+1,o2+1])).^2))) <= 3
+    pos_R = X_t1_t([1,o1+1,o2+1]);
+% end   
 
 %approximated coordinates X Y Z
 X_app = pos_R(1);
@@ -291,8 +292,6 @@ if (nsat >= min_nsat)
     %function that calculates the Kalman filter parameters
     [alfa1, prstim1, ddc1, ddp1] = input_kalman(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), ph1_Msat(sat_pr), time, sat_pr, pivot, Eph, 1);
     [alfa2, prstim2, ddc2, ddp2] = input_kalman(pos_R, pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), ph2_Msat(sat_pr), time, sat_pr, pivot, Eph, 2);
-    %[alfa1, prstim1, ddc1, ddp1] = input_kalman(X_t1_t([1,o1+1,o2+1]), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), ph1_Msat(sat_pr), time, sat_pr, pivot, Eph, 1);
-    %[alfa2, prstim2, ddc2, ddp2] = input_kalman(X_t1_t([1,o1+1,o2+1]), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), ph2_Msat(sat_pr), time, sat_pr, pivot, Eph, 2);
 
     %zeroes vector useful in matrix definitions
     Z_1_nN = zeros(1,nN);
@@ -609,10 +608,8 @@ if (nsat >= min_nsat)
             %Test presence/absence of a cycle-slip at the current epoch.
             %The state of the system is changed only for phase ambiguities
             if (length(phase) == 2)
-                %[cycle_slip_found1, N_slip1, sat_slip1] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
-                %[cycle_slip_found2, N_slip2, sat_slip2] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
-                [cycle_slip_found1, N_slip1, sat_slip1] = cycle_slip_kalman(pos_M, X_t1_t([1,o1+1,o2+1]), X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
-                [cycle_slip_found2, N_slip2, sat_slip2] = cycle_slip_kalman(pos_M, X_t1_t([1,o1+1,o2+1]), X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
+                [cycle_slip_found1, N_slip1, sat_slip1] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
+                [cycle_slip_found2, N_slip2, sat_slip2] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
                 
                 if (cycle_slip_found1 == 1)
                     check_cs = 1;
@@ -628,13 +625,9 @@ if (nsat >= min_nsat)
                 end
             else
                 if (phase == 1)
-                    %if sqrt(sum((pos_R - X_t1_t([1,o1+1,o2+1])).^2)) > 3
-                        %[cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
-                    %else
-                        [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, X_t1_t([1,o1+1,o2+1]), X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
-                    %end
+                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
                 else
-                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, X_t1_t([1,o1+1,o2+1]), X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
+                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
                 end
                 if (cycle_slip_found == 1)
                     check_cs = 1;
@@ -667,11 +660,7 @@ if (nsat >= min_nsat)
                 end
             else
                 if (phase == 1)
-                    if sqrt(sum((pos_R - X_t1_t([1,o1+1,o2+1])).^2)) > 3
-                        [cycle_slip_found, N_slip, sat_slip, sigmaq_comb_N_slip] = cycle_slip_LS_N(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 1);
-                    else
-                        [cycle_slip_found, N_slip, sat_slip, sigmaq_comb_N_slip] = cycle_slip_LS_N(pos_M, X_t1_t([1,o1+1,o2+1]), X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 1);
-                    end
+                    [cycle_slip_found, N_slip, sat_slip, sigmaq_comb_N_slip] = cycle_slip_LS_N(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 1);
                 else
                     [cycle_slip_found, N_slip, sat_slip, sigmaq_comb_N_slip] = cycle_slip_LS_N(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), snr_R(sat), snr_M(sat), Eph, time, pivot, sat, iono, cs_threshold, 2);
                 end

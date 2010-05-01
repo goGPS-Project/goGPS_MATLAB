@@ -286,7 +286,7 @@ if (mode < 10) %post-processing
 
         %complete/partial path
         tMin = 1;
-        tMax = 3110;
+        tMax = 1e30;
         tMin = max(tMin,1);
         tMax = min(tMax,length(time_GPS));
         time_GPS = time_GPS(tMin:tMax);
@@ -1353,8 +1353,8 @@ end
 % REPRESENTATION OF THE COMBINATIONS OF ESTIMATED AMBIGUITIES
 %----------------------------------------------------------------------------------------------
 
-% if (mode == 1)
-%
+% if (mode == 1) | (mode == 2)
+% 
 %    for i = 1 : 32
 %       index = find(conf_sat(i,:) == 1)';
 %       index_cs = find(conf_cs(i,:) == 1)';
@@ -1375,7 +1375,7 @@ end
 %          title(['Combination of estimated ambiguities between PIVOT and SATELLITE ',num2str(i)]);
 %       end
 %    end
-%
+% 
 % end
 
 %----------------------------------------------------------------------------------------------
