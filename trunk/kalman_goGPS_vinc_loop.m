@@ -199,8 +199,8 @@ if (nsat >= min_nsat)
     p = find(ismember(setdiff(sat_pr,pivot),setdiff(sat,pivot))==1);
 
     %function that allows to estimate the Kalman filter parameters
-    [alfa1, prstim1, ddc1, ddp1] = input_kalman_vinc (Y_t1_t', pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), ph1_Msat(sat_pr), time, sat_pr, pivot, Eph, 1);
-    [alfa2, prstim2, ddc2, ddp2] = input_kalman_vinc (Y_t1_t', pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), ph2_Msat(sat_pr), time, sat_pr, pivot, Eph, 2);
+    [alfa1, prstim1, ddc1, ddp1, alfa0] = input_kalman_vinc (Y_t1_t', pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), ph1_Msat(sat_pr), time, sat_pr, pivot, Eph, 1);
+    [alfa2, prstim2, ddc2, ddp2       ] = input_kalman_vinc (Y_t1_t', pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), ph2_Msat(sat_pr), time, sat_pr, pivot, Eph, 2);
 
     %vectors of zeros useful for the matrix declaration
     Z_n_nN = zeros(n,nN);
@@ -323,8 +323,8 @@ if (nsat >= min_nsat)
     % DILUTION OF PRECISION
     %------------------------------------------------------------------------------------
     
-    cov_XYZ = (alfa1'*alfa1)^-1;
-    cov_ENU = global2localCov(cov_XYZ, pos_R);
+    cov_XYZ = (alfa0'*alfa0)^-1;
+    cov_ENU = global2localCov(cov_XYZ, Y_t1_t');
     
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
     HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));

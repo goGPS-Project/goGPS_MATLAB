@@ -61,6 +61,7 @@ global s0 ax ay az
 global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
+global flag_LS_N_estim
 
 %--------------------------------------------------------------------------------------------
 % SINGLE / DOUBLE FREQUENCY SELECTION
@@ -299,7 +300,7 @@ sigmaq_s_R = (ax(i)^2*sigmaq_pos_R(1) + ay(i)^2*sigmaq_pos_R(2) + az(i)^2*sigmaq
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-if (size(sat) < 4)
+if (~flag_LS_N_estim) | (size(sat) < 4)
     
     %satellite combinations initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
@@ -334,8 +335,6 @@ else
     %if the satellite is visible, 0 if the satellite is not visible
     comb_N1_stim = zeros(32,1);
     comb_N2_stim = zeros(32,1);
-    cov_comb_N1_stim = zeros(32,1);
-    cov_comb_N2_stim = zeros(32,1);
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
