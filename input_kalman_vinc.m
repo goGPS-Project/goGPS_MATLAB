@@ -1,8 +1,8 @@
-function [A, ddc_app, ddc, ddp] = input_kalman_vinc(posR, pr_Rsat, ph_Rsat, ...
+function [A, ddc_app, ddc, ddp, A0] = input_kalman_vinc(posR, pr_Rsat, ph_Rsat, ...
          posM, pr_Msat, ph_Msat, time, sat, pivot, Eph, phase)
 
 % SYNTAX:
-%   [A, ddc_app, ddc, ddp] = input_kalman_vinc(posR, pr_Rsat, ph_Rsat, ...
+%   [A, ddc_app, ddc, ddp, A0] = input_kalman_vinc(posR, pr_Rsat, ph_Rsat, ...
 %   posM, pr_Msat, ph_Msat, time, sat, pivot, Eph, phase);
 %
 % INPUT:
@@ -19,10 +19,13 @@ function [A, ddc_app, ddc, ddp] = input_kalman_vinc(posR, pr_Rsat, ph_Rsat, ...
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % OUTPUT:
-%   A = parameters obtained from the linearization of the observation equation
+%   A = parameters obtained from the linearization of the observation
+%       equation (projected on the constraint)
 %   ddc_app = approximated code double differences
 %   ddc = observed code double differences
 %   ddp = observed phase double differences
+%   A0 = parameters obtained from the linearization of the observation
+%        equation (useful for DOP computation)
 %
 % DESCRIPTION:
 %   This function computes the parameters needed to apply the Kalman filter.
@@ -85,6 +88,7 @@ else
 end
 
 A = [];
+A0 = [];
 ddc_app = [];
 ddc = [];
 ddp = [];
@@ -103,10 +107,13 @@ for i = 1 : nsat
         prRS_app = sqrt(sum((posR - posS).^2));
         prMS_app = sqrt(sum((posM - posS).^2));
 
-        %construction of the transition matrix
-        A = [A; ax(j)*(((posR(1) - posS(1)) / prRS_app) - ((posR(1) - posP(1)) / prRP_app)) + ...
-                ay(j)*(((posR(2) - posS(2)) / prRS_app) - ((posR(2) - posP(2)) / prRP_app)) + ...
-                az(j)*(((posR(3) - posS(3)) / prRS_app) - ((posR(3) - posP(3)) / prRP_app))];
+        %construction of the transition matrix (only satellite-receiver geometry)
+        A0 = [A0; (((posR(1) - posS(1)) / prRS_app) - ((posR(1) - posP(1)) / prRP_app)) ...
+                  (((posR(2) - posS(2)) / prRS_app) - ((posR(2) - posP(2)) / prRP_app)) ...
+                  (((posR(3) - posS(3)) / prRS_app) - ((posR(3) - posP(3)) / prRP_app))];
+
+        %construction of the transition matrix (projected on the constraint)
+        A = [A; ax(j)*A0(end,1) + ay(j)*A0(end,2) + az(j)*A0(end,3)];
 
         %computation of the estimated code double differences
         ddc_app = [ddc_app; (prRS_app - prMS_app) - (prRP_app - prMP_app)];
