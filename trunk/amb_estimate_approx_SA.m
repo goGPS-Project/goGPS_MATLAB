@@ -50,15 +50,38 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_approx_SA(pos_R, sigmaq_pos_R, .
 %variables initialization
 global lambda1
 global lambda2
+global v_light
+
+err_iono_RS = 0;
+
+%cartesian to geodetic conversion of ROVER coordinates
+[phiR, lamR, hR] = cart2geod(pos_R(1), pos_R(2), pos_R(3));
+
+%radians to degrees
+phiR = phiR * 180 / pi;
+lamR = lamR * 180 / pi;
 
 %loop on all used satellites
 for m = 1 : size(sat,1)
     
     %new satellites position correction (clock and Earth rotation)
-    Rot_X = sat_corr(Eph, sat(m), time, pr_Rsat(m), pos_R);
+    [pos_S dtS]= sat_corr(Eph, sat(m), time, pr_Rsat(m), pos_R);
+
+    %computation of the satellite azimuth and elevation
+    [azR, elR] = topocent(pos_R, pos_S');
+    
+    %computation of tropospheric errors
+    err_tropo_RS = err_tropo(elR, hR);
+    
+    %if ionospheric parameters are available
+    %if (nargin == 7)
+        
+        %computation of ionospheric errors
+        %err_iono_RS = err_iono(iono, phiR, lamR, azR, elR, time);
+    %end
     
     %ROVER,MASTER-SATELLITES pseudorange estimate
-    pr_stim_Rsat(m,1) = sqrt(sum((pos_R - Rot_X).^2));
+    pr_stim_Rsat(m,1) = sqrt(sum((pos_R - pos_S).^2)) - v_light*dtS + err_tropo_RS + err_iono_RS;
 end
 
 %linear combination of initial ambiguity estimate

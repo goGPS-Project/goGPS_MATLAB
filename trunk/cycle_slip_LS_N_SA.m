@@ -52,7 +52,6 @@ function [slip, N_slip, sat_slip, sigmaq_N_slip] = cycle_slip_LS_N_SA(posR, N_ka
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-% global lambda1 lambda2
 global sigmaq0_N
 
 %number of visible satellites
