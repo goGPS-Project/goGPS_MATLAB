@@ -1,13 +1,20 @@
-function nmeastring = NMEA_GSA_gen(sat, PDOP, HDOP, VDOP)
+function nmeastring = NMEA_GSA_gen(sat, PDOP, HDOP, VDOP, sel, mode)
 
 % SYNTAX:
-%   nmeastring = NMEA_GSA_gen(sat, PDOP, HDOP, VDOP);
+%   nmeastring = NMEA_GSA_gen(sat, PDOP, HDOP, VDOP, sel, mode);
 %
 % INPUT:
 %   sat = list of active satellites
 %   PDOP = position dilution of precision
 %   HDOP = horizontal dilution of precision
 %   VDOP = vertical dilution of precision
+%   sel  = selection mode
+%          'M' = Manual: forced to operate in 2D or 3D mode
+%          'A' = Automatic
+%   mode = parameter to specifiy "fix" method
+%          '1': no-fix
+%          '2': 2D fix
+%          '3': 3D fix
 %
 % OUTPUT:
 %   nmeastring = $GPGSA sentence (NMEA)
@@ -44,15 +51,6 @@ nsat = size(sat,1);
 %-----------------------------------------------------------------------------------------------
 % COMPOSITION OF THE NMEA SENTENCE
 %-----------------------------------------------------------------------------------------------
-
-%selection mode
-sel = 'M'; %'M' = Manual: forced to operate in 2D or 3D mode
-           %'A' = Automatic
-
-%mode
-mode = '3'; %'1' = no fix
-            %'2' = 2D fix
-            %'3' = 3D fix
 
 nmeastring = sprintf('$GPGSA,%c,%c', sel, mode); 
 

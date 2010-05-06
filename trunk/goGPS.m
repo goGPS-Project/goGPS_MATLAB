@@ -1079,7 +1079,9 @@ if (mode < 12)
         if (pivot(i) ~= 0)
             RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date(i,:));
             GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i));
-            GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i));
+            GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '3');
+        else
+            GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '1');
         end
         
         %NMEA file write
@@ -1087,8 +1089,8 @@ if (mode < 12)
         if (pivot(i) ~= 0)
             fprintf(fid_nmea, [RMCstring '\n']);
             fprintf(fid_nmea, [GSVstring '\n']);
-            fprintf(fid_nmea, [GSAstring '\n']);
         end
+        fprintf(fid_nmea, [GSAstring '\n']);
     end
     fclose(fid_nmea);
 end
