@@ -55,6 +55,7 @@ global o1 o2 nN
 global COMportR master_ip master_port server_delay
 global nmea_init nmea_update_rate
 global azR elR distR azM elM distM
+global PDOP HDOP VDOP
 global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
 global master rover
 

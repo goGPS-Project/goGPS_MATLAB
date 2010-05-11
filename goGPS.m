@@ -976,8 +976,8 @@ if (mode < 12)
     %---------------------------------
 
     %observation file (OBS) and ephemerides file (EPH) reading
-    % [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-    % pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
+    [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
+    pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
 
     %---------------------------------
 
@@ -1060,7 +1060,7 @@ if (mode < 12)
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
     
     %date formatting (if not using RINEX)
-    if (mode_data ~= 0)
+    if (mode_data ~= 0) | (mode == 11)
         date = datevec(time_GPS/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
         date(:,1) = date(:,1) - 2000;
     end
