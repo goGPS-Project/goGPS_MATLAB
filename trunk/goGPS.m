@@ -976,8 +976,10 @@ if (mode < 12)
     %---------------------------------
 
     %observation file (OBS) and ephemerides file (EPH) reading
-    [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-    pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
+	if (mode == 11)
+        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
+        pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
+	end
 
     %---------------------------------
 
