@@ -22,8 +22,8 @@ function [ionocorr] = err_iono(ionoparams, Lat, Lon, Az, El, T)
 %
 % Copyright (C) 2009 Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 %
-% Algorithm taken from Leick, A. (1995) "GPS Satellite Surveying - 2nd Edition"
-% John Wiley & Sons, Inc., New York, pp. 301-303
+% Algorithm taken from Leick, A. (2004) "GPS Satellite Surveying - 3rd Edition"
+% John Wiley & Sons, Inc., New York, pp. 219-221
 %
 %----------------------------------------------------------------------------------------------
 %
@@ -64,7 +64,7 @@ El = El / 180;
 %Klobuchar algorithm
 f=1+16*(0.53-El)^3;
 
-psi=(0.0137/(El+0.11))-0.022;
+psi=(0.0137/(Az+0.11))-0.022;
 
 phi=Lat+psi*cos(Az*pi);
 
@@ -106,7 +106,7 @@ x=(2*pi*(t-50400))/p;
 
 %ionospheric error
 if (abs(x)<1.57)
-    ionocorr = v_light * f * (0.000000005+a*(1-(x^2)/2+(x^4)/24));
+    ionocorr = v_light * f * (5e-9+a*(1-(x^2)/2+(x^4)/24));
 else
-    ionocorr = v_light * f * 0.000000005;
+    ionocorr = v_light * f * 5e-9;
 end
