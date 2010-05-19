@@ -712,6 +712,7 @@ if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference') | 
     set(handles.text_snr_thres_unit, 'Enable', 'on');
 else
     set(handles.plot_amb, 'Enable', 'off');
+    set(handles.no_skyplot_snr, 'Enable', 'on');
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');

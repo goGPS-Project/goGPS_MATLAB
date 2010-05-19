@@ -1024,7 +1024,7 @@ if (mode < 12)
     %file saving
     fid_xyz = fopen([filerootOUT '_ECEF.txt'], 'wt');
     for i = 1 : length(X_KAL)
-        fprintf(fid_xyz, '%.8f\t%.8f\t%.3f\n', X_KAL(i), Y_KAL(i), Z_KAL(i));
+        fprintf(fid_xyz, '%d\t%.8f\t%.8f\t%.3f\n', check_t(time_GPS(i)), X_KAL(i), Y_KAL(i), Z_KAL(i));
     end
     fclose(fid_xyz);
 end
@@ -1063,7 +1063,7 @@ if (mode < 12)
     
     %date formatting (if not using RINEX)
     if (mode_data ~= 0) | (mode == 11)
-        date = datevec(time_GPS/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+        date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
         date(:,1) = date(:,1) - 2000;
     end
     

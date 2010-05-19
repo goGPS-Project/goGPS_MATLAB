@@ -32,6 +32,7 @@ if n == 0
     return
 end
 icol = isat(1);
+time = check_t(time);
 dtmin = Eph(21,icol)-time;
 for t = isat
    dt = Eph(21,t)-time;
