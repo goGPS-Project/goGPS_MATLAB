@@ -40,12 +40,12 @@ function kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, pr2_Rsat, ph
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz
+global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq0_N
 global cutoff o1 o2 o3 nN
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
-global PDOP HDOP VDOP
+global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global flag_LS_N_estim
 
 %--------------------------------------------------------------------------------------------
@@ -172,7 +172,7 @@ conf_sat = zeros(32,1);
 conf_sat(sat_pr) = -1;
 conf_sat(sat) = +1;
 
-%cycle-slip configuration (no cycle-slip)
+%cycle-slip configuration
 conf_cs = zeros(32,1);
 
 %--------------------------------------------------------------------------------------------
@@ -311,3 +311,16 @@ Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
 Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigmaq_N);
+
+%--------------------------------------------------------------------------------------------
+% INITIAL KALMAN FILTER DOP
+%--------------------------------------------------------------------------------------------
+
+%covariance propagation
+Cee_XYZ = Cee([1 o1+1 o2+1],[1 o1+1 o2+1]);
+Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
+
+%KF DOP computation
+KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
+KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
+KVDOP = sqrt(Cee_ENU(3,3));

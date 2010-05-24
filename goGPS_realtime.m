@@ -55,7 +55,7 @@ global o1 o2 nN
 global COMportR master_ip master_port server_delay
 global nmea_init nmea_update_rate
 global azR elR distR azM elM distM
-global PDOP HDOP VDOP
+global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
 global master rover
 
@@ -136,6 +136,9 @@ fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
 %  PDOP     --> double, [1,1]
 %  HDOP     --> double, [1,1]
 %  VDOP     --> double, [1,1]
+%  KPDOP    --> double, [1,1]
+%  KHDOP    --> double, [1,1]
+%  KVDOP    --> double, [1,1]
 fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
 
 %satellite configuration
@@ -1361,11 +1364,12 @@ while flag
                 t0 = clock;
                 if (mode_vinc == 0)
                     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+                    fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
                 else
                     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
+                    fwrite(fid_dop, [PDOP, HDOP, VDOP, 0, 0, 0], 'double');
                 end
                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                fwrite(fid_dop, [PDOP, HDOP, VDOP], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                 dt_saveO = etime(clock,t0);
 
@@ -1511,11 +1515,12 @@ while flag
                 t0 = clock;
                 if (mode_vinc == 0)
                     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+                    fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
                 else
                     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
+                    fwrite(fid_dop, [PDOP, HDOP, VDOP, 0, 0, 0], 'double');
                 end
                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                fwrite(fid_dop, [PDOP, HDOP, VDOP], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                 dt_saveO = etime(clock,t0);
 
@@ -1640,11 +1645,12 @@ while flag
                     t0 = clock;
                     if (mode_vinc == 0)
                         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
                     else
                         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_dop, [PDOP, HDOP, VDOP, 0, 0, 0], 'double');
                     end
                     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                    fwrite(fid_dop, [PDOP, HDOP, VDOP], 'double');
                     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                     dt_saveO = etime(clock,t0);
 
@@ -1769,11 +1775,12 @@ while flag
                     t0 = clock;
                     if (mode_vinc == 0)
                         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
                     else
                         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_dop, [PDOP, HDOP, VDOP, 0, 0, 0], 'double');
                     end
                     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                    fwrite(fid_dop, [PDOP, HDOP, VDOP], 'double');
                     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                     dt_saveO = etime(clock,t0);
 
@@ -1945,11 +1952,12 @@ while flag
                         %output data save
                         if (mode_vinc == 0)
                             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+                            fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
                         else
                             fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
+                            fwrite(fid_dop, [PDOP, HDOP, VDOP, 0, 0, 0], 'double');
                         end
                         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                        fwrite(fid_dop, [PDOP, HDOP, VDOP], 'double');
                         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
                         %estimated position and velocity
@@ -2073,11 +2081,12 @@ while flag
                     t0 = clock;
                     if (mode_vinc == 0)
                         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
                     else
                         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_dop, [PDOP, HDOP, VDOP, 0, 0, 0], 'double');
                     end
                     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                    fwrite(fid_dop, [PDOP, HDOP, VDOP], 'double');
                     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                     dt_saveO = etime(clock,t0);
 

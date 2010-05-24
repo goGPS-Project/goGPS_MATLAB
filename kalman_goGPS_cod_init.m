@@ -49,7 +49,7 @@ global cutoff o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
-global PDOP HDOP VDOP
+global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL
@@ -193,3 +193,16 @@ Cee(o2+1,o2+1) = sigmaq_pos_R(3);
 Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
+
+%--------------------------------------------------------------------------------------------
+% INITIAL KALMAN FILTER DOP
+%--------------------------------------------------------------------------------------------
+
+%covariance propagation
+Cee_XYZ = Cee([1 o1+1 o2+1],[1 o1+1 o2+1]);
+Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
+
+%KF DOP computation
+KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
+KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
+KVDOP = sqrt(Cee_ENU(3,3));

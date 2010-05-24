@@ -84,11 +84,14 @@ distM = [];
 % DILUTION OF PRECISION
 %-------------------------------------------------------------------------------
 
-global PDOP HDOP VDOP
+global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 
 PDOP = [];
 HDOP = [];
 VDOP = [];
+KPDOP = [];
+KHDOP = [];
+KVDOP = [];
 
 %-------------------------------------------------------------------------------
 % KALMAN FILTER

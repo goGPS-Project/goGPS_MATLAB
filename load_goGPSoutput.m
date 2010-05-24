@@ -1,9 +1,11 @@
 function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-          conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP] = load_goGPSoutput (fileroot, mode, mode_vinc)
+          conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, ...
+          KHDOP, KVDOP]= load_goGPSoutput (fileroot, mode, mode_vinc)
 
 % SYNTAX:
 %   [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-%    conf_sat, conf_cs, pivot, HDOP] = load_goGPSoutput (fileroot, mode_vinc);
+%    conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, ...
+%    KHDOP, KVDOP]= load_goGPSoutput (fileroot, mode, mode_vinc);
 %
 % INPUT:
 %   fileroot  = name of the file to be read
@@ -26,6 +28,9 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   PDOP = position dilution of precision
 %   HDOP = horizontal dilution of precision
 %   VDOP = vertical dilution of precision
+%   KPDOP = Kalman filter PDOP
+%   KHDOP = Kalman filter HDOP
+%   KVDOP = Kalman filter VDOP
 %
 % DESCRIPTION:
 %   Kalman filter output data reading.
@@ -167,6 +172,9 @@ end
 PDOP = [];                           %position dilution of precision
 HDOP = [];                           %horizontal dilution of precision
 VDOP = [];                           %vertical dilution of precision
+KPDOP = [];                          %Kalman filter PDOP
+KHDOP = [];                          %Kalman filter HDOP
+KVDOP = [];                          %Kalman filter VDOP
 
 %observations reading
 i = 0;                                                              %epoch counter
@@ -177,18 +185,24 @@ while ~isempty(d)
     fprintf(['Reading: ' fileroot '_dop_' hour_str '.bin\n']);
     num_bytes = d.bytes;                                            %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / 3;                                      %file size (number of packets)
+    num_packs = num_words / 6;                                      %file size (number of packets)
     fid_dop = fopen([fileroot '_dop_' hour_str '.bin'],'r+');       %file opening
     buf_dop = fread(fid_dop,num_words,'double');                    %file reading
     fclose(fid_dop);                                                %file closing
     PDOP  = [PDOP;  zeros(num_packs,1)];                            %observations concatenation
     HDOP  = [HDOP;  zeros(num_packs,1)];                            %observations concatenation
     VDOP  = [VDOP;  zeros(num_packs,1)];                            %observations concatenation
-    for j = 0 : 3 : num_words-1
+    KPDOP  = [KPDOP;  zeros(num_packs,1)];                          %observations concatenation
+    KHDOP  = [KHDOP;  zeros(num_packs,1)];                          %observations concatenation
+    KVDOP  = [KVDOP;  zeros(num_packs,1)];                          %observations concatenation
+    for j = 0 : 6 : num_words-1
         i = i+1;                                                    %epoch counter increase
         PDOP(i,1)  = buf_dop(j + 1);                                %observations logging
         HDOP(i,1)  = buf_dop(j + 2);                                %observations logging
         VDOP(i,1)  = buf_dop(j + 3);                                %observations logging
+        KPDOP(i,1)  = buf_dop(j + 4);                               %observations logging
+        KHDOP(i,1)  = buf_dop(j + 5);                               %observations logging
+        KVDOP(i,1)  = buf_dop(j + 6);                               %observations logging
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string

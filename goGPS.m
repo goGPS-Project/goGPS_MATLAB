@@ -366,7 +366,7 @@ if (mode == 1) & (mode_vinc == 0)
 
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-    fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+    fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_cov == 0)
@@ -399,7 +399,7 @@ if (mode == 1) & (mode_vinc == 0)
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-        fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_cov == 0)
@@ -454,7 +454,7 @@ elseif (mode == 1) & (mode_vinc == 1)
 
     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-    fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+    fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), date(1,:)), end;
@@ -482,7 +482,7 @@ elseif (mode == 1) & (mode_vinc == 1)
 
         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-        fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date(t,:)), end;
@@ -528,7 +528,7 @@ elseif (mode == 2)
 
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-    fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+    fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_cov == 0)
@@ -561,7 +561,7 @@ elseif (mode == 2)
         
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-        fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_cov == 0)
@@ -620,7 +620,7 @@ elseif (mode == 3)
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-    fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+    fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_cov == 0)
@@ -651,7 +651,7 @@ elseif (mode == 3)
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-        fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_cov == 0)
@@ -705,7 +705,7 @@ elseif (mode == 4)
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
     fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
-    fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+    fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_cov == 0)
@@ -736,7 +736,7 @@ elseif (mode == 4)
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
-        fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_cov == 0)
@@ -790,7 +790,7 @@ elseif (mode == 5)
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-    fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+    fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_cov == 0)
@@ -821,7 +821,7 @@ elseif (mode == 5)
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-        fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_cov == 0)
@@ -875,7 +875,7 @@ elseif (mode == 6)
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-    fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+    fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_cov == 0)
@@ -906,7 +906,7 @@ elseif (mode == 6)
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-        fwrite(fid_dop, [PDOP; HDOP; VDOP], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_cov == 0)
@@ -985,7 +985,8 @@ if (mode < 12)
 
     %reading of the files with Kalman filter results
     [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-        conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
+        conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, ...
+        KHDOP, KVDOP] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
 
     %variable saving for final graphical representations
     nObs = size(Xhat_t_t,2);
@@ -1082,8 +1083,14 @@ if (mode < 12)
             RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date(i,:));
             GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i));
             GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '3');
+            if (mode_vinc == 0) & (mode ~= 3) & (mode ~= 4)
+                PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(i), KHDOP(i), KVDOP(i), 'S');
+            end
         else
             GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '1');
+            if (mode_vinc == 0) & (mode ~= 3) & (mode ~= 4)
+                PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(i), KHDOP(i), KVDOP(i), 'D');
+            end
         end
         
         %NMEA file write
@@ -1093,6 +1100,9 @@ if (mode < 12)
             fprintf(fid_nmea, [GSVstring '\n']);
         end
         fprintf(fid_nmea, [GSAstring '\n']);
+        if (mode_vinc == 0) & (mode ~= 3) & (mode ~= 4)
+            fprintf(fid_nmea, [PGGPKstring '\n']);
+        end
     end
     fclose(fid_nmea);
 end
@@ -1109,7 +1119,9 @@ if (mode < 12)
     %z_pos = 'absolute';
     %URL to load the icon for the points
     iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
-    point_colorR = 'FFF5005A';
+    good_point_colorR = 'FFF5005A';
+    bad_point_colorR = 'FF0000FF';
+    dyn_point_colorR = 'FF00FFFF';
     %point size
     scaleR = 0.2;
     line_colorR = 'FFF5005A';
@@ -1123,7 +1135,25 @@ if (mode < 12)
     fprintf(fid_kml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
     fprintf(fid_kml, '      <Style id="go1">\n');
     fprintf(fid_kml, '        <IconStyle>\n');
-    fprintf(fid_kml, '          <color>%s</color>\n',point_colorR);
+    fprintf(fid_kml, '          <color>%s</color>\n',good_point_colorR);
+    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleR);
+    fprintf(fid_kml, '          <Icon>\n');
+    fprintf(fid_kml, '            <href>%s</href>\n',iconR);
+    fprintf(fid_kml, '          </Icon>\n');
+    fprintf(fid_kml, '        </IconStyle>\n');
+    fprintf(fid_kml, '      </Style>\n');
+    fprintf(fid_kml, '      <Style id="go2">\n');
+    fprintf(fid_kml, '        <IconStyle>\n');
+    fprintf(fid_kml, '          <color>%s</color>\n',bad_point_colorR);
+    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleR);
+    fprintf(fid_kml, '          <Icon>\n');
+    fprintf(fid_kml, '            <href>%s</href>\n',iconR);
+    fprintf(fid_kml, '          </Icon>\n');
+    fprintf(fid_kml, '        </IconStyle>\n');
+    fprintf(fid_kml, '      </Style>\n');
+    fprintf(fid_kml, '      <Style id="go3">\n');
+    fprintf(fid_kml, '        <IconStyle>\n');
+    fprintf(fid_kml, '          <color>%s</color>\n',dyn_point_colorR);
     fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleR);
     fprintf(fid_kml, '          <Icon>\n');
     fprintf(fid_kml, '            <href>%s</href>\n',iconR);
@@ -1149,7 +1179,13 @@ if (mode < 12)
     fprintf(fid_kml, '      <name>Rover positioning</name>\n');
     for i = 1 : length(phi_KAL)
         fprintf(fid_kml, '      <Placemark>\n');
-        fprintf(fid_kml, '        <styleUrl>#go1</styleUrl>\n');
+        if (pivot(i) == 0)
+            fprintf(fid_kml, '        <styleUrl>#go3</styleUrl>\n');
+        elseif (KHDOP(i)>2)
+            fprintf(fid_kml, '        <styleUrl>#go2</styleUrl>\n');
+        else
+            fprintf(fid_kml, '        <styleUrl>#go1</styleUrl>\n');
+        end
         fprintf(fid_kml, '        <Point>\n');
         fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
         fprintf(fid_kml, '          <coordinates>%.6f,%.6f,%.6f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
