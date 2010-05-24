@@ -73,7 +73,7 @@ while ~isempty(d)
     fprintf(['Reading: ' fileroot '_obs_' hour_str '.bin\n']);
     num_bytes = d.bytes;                                            %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / (3+32*6+3);                             %file size (number of packets)
+    num_packs = num_words / (4+32*6+3);                             %file size (number of packets)
     fid_obs = fopen([fileroot '_obs_' hour_str '.bin']);            %file opening
     buf_obs = fread(fid_obs,num_words,'double');                    %file reading
     fclose(fid_obs);                                                %file closing
