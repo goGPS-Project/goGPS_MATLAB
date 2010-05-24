@@ -156,6 +156,9 @@ while (pos + 15 <= length(msg))
                             switch id
                                 % RAW (raw measurement)
                                 case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
+                                    
+                                % SFRB (subframe buffer - only for ionosphere parameters and leap seconds)
+                                case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
 
                                 % EPH (ephemerides)
                                 case '31'
