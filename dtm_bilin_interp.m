@@ -51,7 +51,7 @@ N = (Nll : cellsize : Nll + (nrows - 1) * cellsize)';
 if (E_approx <= E(1) | E_approx >= E(end) | N_approx <= N(1) | N_approx >= N(end))
     height = nodata;
     return
-end;
+end
 
 %detection of the grid node nearest to the interpolation point
 [mE, posE] = min(abs(E - E_approx));
@@ -69,11 +69,11 @@ if (mE ~=0)
         j_left = posE;
         j_right = posE + 1;
         E_left = E(posE);
-    end;
+    end
 else
     height = nodata;
     return
-end;
+end
 if (mN ~=0)
     if (N(posN) > N_approx)
         i_up = nrows + 1 - posN;
@@ -83,11 +83,11 @@ if (mN ~=0)
         i_down = nrows + 1 - posN;
         i_up = i_down - 1;
         N_down = N(posN);
-    end;
+    end
 else
     height = nodata;
     return
-end;
+end
 
 %if one of the height values of the four sorrounding points is a nodata value, do not interpolate and return nodata value
 if (dtm(i_up,j_left) == nodata | dtm(i_up,j_right) == nodata | dtm(i_down,j_left) == nodata | dtm(i_down,j_right) == nodata)

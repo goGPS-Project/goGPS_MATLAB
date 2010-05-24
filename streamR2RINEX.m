@@ -140,7 +140,7 @@ if (~isempty(data_rover_all))
             i = i + 1;
             %end
             
-            %RXM-EPH message data save
+        %RXM-EPH message data save
         elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
             
             %satellite number

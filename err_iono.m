@@ -22,8 +22,8 @@ function [ionocorr] = err_iono(ionoparams, Lat, Lon, Az, El, T)
 %
 % Copyright (C) 2009 Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 %
-% Algorithm taken from Leick, A. (2004) "GPS Satellite Surveying - 3rd Edition"
-% John Wiley & Sons, Inc., New York, pp. 219-221
+% Algorithm taken from Leick, A. (2004) "GPS Satellite Surveying - 2nd Edition"
+% John Wiley & Sons, Inc., New York, pp. 301-303
 %
 %----------------------------------------------------------------------------------------------
 %
@@ -64,7 +64,7 @@ El = El / 180;
 %Klobuchar algorithm
 f=1+16*(0.53-El)^3;
 
-psi=(0.0137/(Az+0.11))-0.022;
+psi=(0.0137/(El+0.11))-0.022;
 
 phi=Lat+psi*cos(Az*pi);
 
