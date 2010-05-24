@@ -58,7 +58,7 @@ global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
-global PDOP HDOP VDOP
+global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -245,6 +245,19 @@ else
     Cee = T*Cee*T';
 
 end
+
+%--------------------------------------------------------------------------------------------
+% KALMAN FILTER DOP
+%--------------------------------------------------------------------------------------------
+
+%covariance propagation
+Cee_XYZ = Cee([1 o1+1 o2+1],[1 o1+1 o2+1]);
+Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
+
+%modified DOP computation
+KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
+KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
+KVDOP = sqrt(Cee_ENU(3,3));
 
 %   vvX = Xhat_t_t(2,end);
 %   vvY = Xhat_t_t(o1+2,end);

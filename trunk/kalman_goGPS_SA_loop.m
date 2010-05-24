@@ -57,7 +57,7 @@ global h_antenna
 
 global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
-global PDOP HDOP VDOP
+global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global flag_LS_N_estim
 global sm_weight
 
@@ -199,7 +199,7 @@ conf_sat = zeros(32,1);
 conf_sat(sat_pr) = -1;
 conf_sat(sat) = +1;
 
-%no cycle-slips working with code only
+%cycle-slip configuration
 conf_cs = zeros(32,1);
 
 %number of visible satellites
@@ -661,6 +661,10 @@ if (nsat >= min_nsat)
             end
         end
     end
+else
+    %to point out that notwithstanding the satellite configuration,
+    %data were not analysed (motion by dynamics only).
+    pivot = 0;
 end
 
 %----------------------------------------------------------------------------------------
@@ -690,6 +694,19 @@ else
     Cee = T*Cee*T';
 
 end
+
+%--------------------------------------------------------------------------------------------
+% KALMAN FILTER DOP
+%--------------------------------------------------------------------------------------------
+
+%covariance propagation
+Cee_XYZ = Cee([1 o1+1 o2+1],[1 o1+1 o2+1]);
+Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
+
+%KF DOP computation
+KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
+KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
+KVDOP = sqrt(Cee_ENU(3,3));
 
 %   vvX = Xhat_t_t(2,end);
 %   vvY = Xhat_t_t(o1+2,end);
