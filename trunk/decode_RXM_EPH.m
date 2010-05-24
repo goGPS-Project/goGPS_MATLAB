@@ -1,7 +1,7 @@
 function [data] = decode_RXM_EPH(msg)
 
 % SYNTAX:
-%   [data] = decode_RXM_EPH(msg)
+%   [data] = decode_RXM_EPH(msg);
 %
 % INPUT:
 %   msg = message transmitted by the u-blox receiver
@@ -85,100 +85,51 @@ SVN = bin2dec((SVN(1:32)));
 HOW = msg(pos:pos+31); pos = pos + 32;
 HOW = fliplr(reshape(HOW,8,[]));                  % byte order inversion (little endian)
 HOW = HOW(:)';
-
 HOW = bin2dec(HOW(28:30)); %#ok<*NASGU>
 
 %Subframe 1
-SF1D0 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 0 (=Word 3 in ICD-GPS-200)
-SF1D1 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 1 (=Word 4 in ICD-GPS-200)
-SF1D2 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 2 (=Word 5 in ICD-GPS-200)
-SF1D3 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 3 (=Word 6 in ICD-GPS-200)
-SF1D4 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 4 (=Word 7 in ICD-GPS-200)
-SF1D5 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 5 (=Word 8 in ICD-GPS-200)
-SF1D6 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 6 (=Word 9 in ICD-GPS-200)
-SF1D7 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 7 (=Word 10 in ICD-GPS-200)
+[subframe_1_data]  = decode_subframe_1(msg(pos:pos+255)); pos = pos + 256;
 
-SF1D0 = fliplr(reshape(SF1D0,8,[])); SF1D0 = SF1D0(:)';               % byte order inversion (little endian)
-SF1D1 = fliplr(reshape(SF1D1,8,[])); SF1D1 = SF1D1(:)';               %
-SF1D4 = fliplr(reshape(SF1D4,8,[])); SF1D4 = SF1D4(:)';               %
-SF1D5 = fliplr(reshape(SF1D5,8,[])); SF1D5 = SF1D5(:)';               %
-SF1D6 = fliplr(reshape(SF1D6,8,[])); SF1D6 = SF1D6(:)';               %
-SF1D7 = fliplr(reshape(SF1D7,8,[])); SF1D7 = SF1D7(:)';               %
-
-weekno = bin2dec(SF1D0(9:18));
-code_on_L2 = bin2dec(SF1D0(19:20));
-svaccur = bin2dec(SF1D0(21:24));
-svhealth = bin2dec(SF1D0(25:30));
-IODC_2MSBs = SF1D0(31:32);
-IODC_8LSBs = SF1D5(9:16);
-IODC = bin2dec([IODC_2MSBs IODC_8LSBs]);
-L2flag = bin2dec(SF1D1(9));
-tgd = twos_complement(SF1D4(25:32)) * (2^-31);
-toc = bin2dec(SF1D5(17:32)) * (2^4);
-af2 = twos_complement(SF1D6(9:16)) * (2^-55);
-af1 = twos_complement(SF1D6(17:32)) * (2^-43);
-af0 = twos_complement(SF1D7(9:30)) * (2^-31);
+weekno     = subframe_1_data(1);
+code_on_L2 = subframe_1_data(2);
+svaccur    = subframe_1_data(3);
+svhealth   = subframe_1_data(4);
+IODC       = subframe_1_data(5);
+L2flag     = subframe_1_data(6);
+tgd        = subframe_1_data(7);
+toc        = subframe_1_data(8);
+af2        = subframe_1_data(9);
+af1        = subframe_1_data(10);
+af0        = subframe_1_data(11);
 
 %Subframe 2
-SF2D0 = msg(pos:pos+31); pos = pos + 32;          % subframe 2 - Word 0 (=Word 3 in ICD-GPS-200)
-SF2D1 = msg(pos:pos+31); pos = pos + 32;          % subframe 2 - Word 1 (=Word 4 in ICD-GPS-200)
-SF2D2 = msg(pos:pos+31); pos = pos + 32;          % subframe 2 - Word 2 (=Word 5 in ICD-GPS-200)
-SF2D3 = msg(pos:pos+31); pos = pos + 32;          % subframe 2 - Word 3 (=Word 6 in ICD-GPS-200)
-SF2D4 = msg(pos:pos+31); pos = pos + 32;          % subframe 2 - Word 4 (=Word 7 in ICD-GPS-200)
-SF2D5 = msg(pos:pos+31); pos = pos + 32;          % subframe 2 - Word 5 (=Word 8 in ICD-GPS-200)
-SF2D6 = msg(pos:pos+31); pos = pos + 32;          % subframe 2 - Word 6 (=Word 9 in ICD-GPS-200)
-SF2D7 = msg(pos:pos+31); pos = pos + 32;          % subframe 2 - Word 7 (=Word 10 in ICD-GPS-200)
+[subframe_2_data] = decode_subframe_2(msg(pos:pos+255)); pos = pos + 256;
 
-SF2D0 = fliplr(reshape(SF2D0,8,[])); SF2D0 = SF2D0(:)';               %
-SF2D1 = fliplr(reshape(SF2D1,8,[])); SF2D1 = SF2D1(:)';               %
-SF2D2 = fliplr(reshape(SF2D2,8,[])); SF2D2 = SF2D2(:)';               %
-SF2D3 = fliplr(reshape(SF2D3,8,[])); SF2D3 = SF2D3(:)';               % byte order inversion (little endian)
-SF2D4 = fliplr(reshape(SF2D4,8,[])); SF2D4 = SF2D4(:)';               %
-SF2D5 = fliplr(reshape(SF2D5,8,[])); SF2D5 = SF2D5(:)';               %
-SF2D6 = fliplr(reshape(SF2D6,8,[])); SF2D6 = SF2D6(:)';               %
-SF2D7 = fliplr(reshape(SF2D7,8,[])); SF2D7 = SF2D7(:)';               %
-
-IODE2 = bin2dec(SF2D0(9:16));
-Crs = twos_complement(SF2D0(17:32)) * (2^-5);
-delta_n = twos_complement(SF2D1(9:24)) * pi * (2^-43);
-M0 = twos_complement([SF2D1(25:32) SF2D2(9:32)]) * pi * (2^-31);
-Cuc = twos_complement(SF2D3(9:24)) * (2^-29);
-e = bin2dec([SF2D3(25:32) SF2D4(9:32)]) * (2^-33);
-Cus = twos_complement(SF2D5(9:24)) * (2^-29);
-root_A = bin2dec([SF2D5(25:32) SF2D6(9:32)]) * (2^-19);
-toe = bin2dec(SF2D7(9:24)) * (2^4);
-fit_int = bin2dec(SF2D7(25));
+IODE2   = subframe_2_data(1);
+Crs     = subframe_2_data(2);
+delta_n = subframe_2_data(3);
+M0      = subframe_2_data(4);
+Cuc     = subframe_2_data(5);
+e       = subframe_2_data(6);
+Cus     = subframe_2_data(7);
+root_A  = subframe_2_data(8);
+toe     = subframe_2_data(9);
+fit_int = subframe_2_data(10);
 
 %Subframe 3
-SF3D0 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 0 (=Word 3 in ICD-GPS-200)
-SF3D1 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 1 (=Word 4 in ICD-GPS-200)
-SF3D2 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 2 (=Word 5 in ICD-GPS-200)
-SF3D3 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 3 (=Word 6 in ICD-GPS-200)
-SF3D4 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 4 (=Word 7 in ICD-GPS-200)
-SF3D5 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 5 (=Word 8 in ICD-GPS-200)
-SF3D6 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 6 (=Word 9 in ICD-GPS-200)
-SF3D7 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 7 (=Word 10 in ICD-GPS-200)
+[subframe_3_data] = decode_subframe_3(msg(pos:pos+255)); pos = pos + 256;
 
-SF3D0 = fliplr(reshape(SF3D0,8,[])); SF3D0 = SF3D0(:)';               %
-SF3D1 = fliplr(reshape(SF3D1,8,[])); SF3D1 = SF3D1(:)';               %
-SF3D2 = fliplr(reshape(SF3D2,8,[])); SF3D2 = SF3D2(:)';               %
-SF3D3 = fliplr(reshape(SF3D3,8,[])); SF3D3 = SF3D3(:)';               % byte order inversion (little endian)
-SF3D4 = fliplr(reshape(SF3D4,8,[])); SF3D4 = SF3D4(:)';               %
-SF3D5 = fliplr(reshape(SF3D5,8,[])); SF3D5 = SF3D5(:)';               %
-SF3D6 = fliplr(reshape(SF3D6,8,[])); SF3D6 = SF3D6(:)';               %
-SF3D7 = fliplr(reshape(SF3D7,8,[])); SF3D7 = SF3D7(:)';               %
+Cic      = subframe_3_data(1);
+omega0   = subframe_3_data(2);
+Cis      = subframe_3_data(3);
+i0       = subframe_3_data(4);
+Crc      = subframe_3_data(5);
+omega    = subframe_3_data(6);
+omegadot = subframe_3_data(7);
+IODE3    = subframe_3_data(8);
+IDOT     = subframe_3_data(9);
 
-Cic = twos_complement(SF3D0(9:24)) * (2^-29);
-omega0 = twos_complement([SF3D0(25:32) SF3D1(9:32)]) * pi * (2^-31);
-Cis = twos_complement(SF3D2(9:24)) * (2^-29);
-i0 = twos_complement([SF3D2(25:32) SF3D3(9:32)]) * pi * (2^-31);
-Crc = twos_complement(SF3D4(9:24)) * (2^-5);
-omega = twos_complement([SF3D4(25:32) SF3D5(9:32)]) * pi * (2^-31);
-omegadot = twos_complement(SF3D6(9:32)) * pi * (2^-43);
-IODE3 = bin2dec(SF3D7(9:16));
-IDOT = twos_complement(SF3D7(17:30)) * pi * (2^-43);
-
-%ephemerides data (if IODC == IODE)
+%output and reorder ephemerides data (if IODC == IODE)
 if (IODC == IODE2) & (IODC == IODE3)
     data{2}(1) = SVN;
     data{2}(2) = af2;
