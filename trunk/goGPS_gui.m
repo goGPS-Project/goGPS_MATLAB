@@ -720,6 +720,15 @@ else
     set(handles.std_phase, 'Enable', 'off');
     set(handles.text_std_phase_unit, 'Enable', 'off');
 end
+if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference'))
+    set(handles.constraint, 'Enable', 'on');
+    set(handles.ref_path, 'Enable', 'on');
+    ref_path_Callback(handles.ref_path, eventdata, handles);
+else
+    set(handles.constraint, 'Value', 0);
+    constraint_Callback(handles.constraint, eventdata, handles);
+    set(handles.constraint, 'Enable', 'off');
+end
 
 % --- Executes during object creation, after setting all properties.
 function code_dd_sa_CreateFcn(hObject, eventdata, handles)
@@ -1020,7 +1029,8 @@ function ref_path_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of ref_path
-if (get(hObject,'Value'))
+contents = cellstr(get(handles.code_dd_sa,'String'));
+if (get(hObject,'Value')) & (strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
     set(handles.ref_path_input, 'Enable', 'on');
     set(handles.text_ref_path_input, 'Enable', 'on');
     set(handles.browse_ref_path_input, 'Enable', 'on');
