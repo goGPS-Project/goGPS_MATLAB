@@ -23,12 +23,14 @@ function [tropocorr] = err_tropo(elev, h)
 if (h < 5000)
     elev=abs(elev);
     
+	%Standard atmosphere - Berg, 1948 (Bernese)
     %pressure [mbar]
     Pr = 1013.25;
     %temperature [K]
     Tr = 291.15;
     %numerical constants for the algorithm [-] [m] [mbar]
     Hr = 50.0;
+
     h_a = [0,500,1000,1500,2000,2500,3000,4000,5000];
     B_a = [1.156,1.079,1.006,0.938,0.874,0.813,0.757,0.654,0.563];
     
