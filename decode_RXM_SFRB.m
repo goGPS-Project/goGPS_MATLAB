@@ -17,7 +17,7 @@ function [data] = decode_RXM_SFRB(msg)
 %          2.6) ionosphere parameter (b1)
 %          2.7) ionosphere parameter (b2)
 %          2.8) ionosphere parameter (b3)
-%          2.9) leap seconds
+%          2.9) leap seconds [NOT USED]
 %
 % DESCRIPTION:
 %   RXM-SFRB binary message decoding (only subframe 4).
@@ -71,7 +71,7 @@ if (SVN <= 32)
     HOW = fliplr(reshape(HOW,8,[]));                  % byte order inversion (little endian)
     HOW = HOW(:)';
     %subframe ID
-    SFID = bin2dec(HOW(20:22));
+    SFID = bin2dec(HOW(28:30));
     
     switch SFID
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,32 +127,21 @@ if (SVN <= 32)
             WORD3 = msg(pos:pos+31);
             WORD3 = fliplr(reshape(WORD3,8,[])); WORD3 = WORD3(:)'; % byte order inversion (little endian)
 
-            if (bin2dec(WORD3(3:8)) == 18)
+            if (bin2dec(WORD3(11:16)) == 56) %SVID "56" <--> page "18"
                 %Subframe 4
                 [subframe_4_data] = decode_subframe_4(msg(pos:pos+255));
-                
-                a0 = subframe_4_data(1);
-                a1 = subframe_4_data(2);
-                a2 = subframe_4_data(3);
-                a3 = subframe_4_data(4);
-                b0 = subframe_4_data(5);
-                b1 = subframe_4_data(6);
-                b2 = subframe_4_data(7);
-                b3 = subframe_4_data(8);
-                leap_secs = subframe_4_data(9);
+
+                data{2}(1) = subframe_4_data(1); % a0
+                data{2}(2) = subframe_4_data(2); % a1
+                data{2}(3) = subframe_4_data(3); % a2
+                data{2}(4) = subframe_4_data(4); % a3
+                data{2}(5) = subframe_4_data(5); % b0
+                data{2}(6) = subframe_4_data(6); % b1
+                data{2}(7) = subframe_4_data(7); % b2
+                data{2}(8) = subframe_4_data(8); % b3
+                data{2}(9) = subframe_4_data(9); % leap seconds
             end
     end
-    
-    %output ionosphere parameters and leap seconds
-    data{2}(1) = a0;
-    data{2}(2) = a1;
-    data{2}(3) = a2;
-    data{2}(4) = a3;
-    data{2}(5) = b0;
-    data{2}(6) = b1;
-    data{2}(7) = b2;
-    data{2}(8) = b3;
-    data{2}(9) = leap_secs;
 
 %     %output and reorder ephemerides data (if IODC == IODE)
 %     if (IODC == IODE2) & (IODC == IODE3)

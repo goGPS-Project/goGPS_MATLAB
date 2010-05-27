@@ -241,7 +241,6 @@ if (~isempty(data_master_all))
         n = length(sat);
         fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
             date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), n);
-        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
         if (n>12)
             for j = 1 : 12
                 fprintf(fid_obs,'G%02d',sat(j));
@@ -256,10 +255,6 @@ if (~isempty(data_master_all))
                 fprintf(fid_obs,'G%02d',sat(j));
             end
         end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-%         for j = 1 : n
-%             fprintf(fid_obs,'G%02d',sat(j));
-%         end
         fprintf(fid_obs,'\n');
         for j = 1 : n
             fprintf(fid_obs,'%14.3f %1d',pr1_M(sat(j),i),floor(snr1_M(sat(j),i)/6));

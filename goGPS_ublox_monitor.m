@@ -80,6 +80,13 @@ fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
 
 %------------------------------------------------------
+% initialization
+%------------------------------------------------------
+
+%ionosphere parameters
+iono = zeros(8,1);
+
+%------------------------------------------------------
 % creation of the rover connection (u-blox)
 %------------------------------------------------------
 
@@ -192,6 +199,36 @@ while (~reply_RAW)
     set(rover,'RequestToSend','on');
     fopen(rover);
     reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
+end
+
+% enable subframe data output
+fprintf('Enabling u-blox receiver SFRB data...\n');
+
+reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 1);
+tries = 0;
+
+while (~reply_SFRB)
+    tries = tries + 1;
+    if (tries > 3)
+        disp('It was not possible to configure the receiver to provide SFRB data.');
+        break
+    end
+    %close and delete old serial object
+    try
+        fclose(rover);
+        delete(rover);
+    catch
+        stopasync(rover);
+        fclose(rover);
+        delete(rover);
+    end
+    % create new serial object
+    rover = serial (COMportR,'BaudRate',57600);
+    set(rover,'InputBufferSize',16384);
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
+    fopen(rover);
+    reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 1);
 end
 
 % disable all NMEA messages
@@ -342,6 +379,7 @@ while flag
         %data type counters
         nRAW = 0;
         nEPH = 0;
+        nSFRB = 0;
 
         for i = 1 : size(cell_rover,2)
 
@@ -364,7 +402,7 @@ while flag
                 t = t+1;
 
                 %data save
-                fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; zeros(32,1); snr_R; zeros(3,1)], 'double');
+                fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; zeros(32,1); snr_R; zeros(3,1); iono(:,1)], 'double');
                 fwrite(fid_eph, [0; Eph(:)], 'double');
                 %dep_time_R (t) = time_R;
                 %dep_pr_R(:,t)  = pr_R;
@@ -374,6 +412,17 @@ while flag
                 type = [type 'RXM-RAW '];
                 nRAW = nRAW + 1;
 
+            %RXM-SFRB message data save
+            elseif (strcmp(cell_rover{1,i},'RXM-SFRB'))
+                
+                %ionosphere parameters
+                iono(:, 1) = cell_rover{2,i}(1:8);
+                
+                if (nSFRB == 0)
+                    type = [type 'RXM-SFRB '];
+                end
+                nSFRB = nSFRB + 1;
+                
             %RXM-EPH message
             elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
 
