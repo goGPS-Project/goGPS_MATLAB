@@ -43,10 +43,10 @@ if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*
     %ROVER and MASTER stream reading
     if (nargin == 3)
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-            loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN, wait_dlg); %#ok<NASGU>
+            iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN, wait_dlg); %#ok<NASGU>
     else
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-            loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN); %#ok<NASGU>
+            iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN); %#ok<NASGU>
     end
     
     satEph = find(sum(abs(Eph(:,:,1)))~=0);
@@ -54,19 +54,20 @@ if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*
     while (length(satEph) < length(satObs)) | (length(satObs) < 4)
         
         time_GPS(1) = [];
-        week_R(1) = [];
-        time_R(1) = [];
-        time_M(1) = [];
-        pr1_R(:,1) = [];
-        pr1_M(:,1) = [];
-        ph1_R(:,1) = [];
-        ph1_M(:,1) = [];
-        snr_R(:,1) = [];
-        snr_M(:,1) = [];
-        pos_M(:,1) = [];
-        Eph(:,:,1) = [];
-        loss_R(1) = [];
-        loss_M(1) = [];
+        week_R(1)   = [];
+        time_R(1)   = [];
+        time_M(1)   = [];
+        pr1_R(:,1)  = [];
+        pr1_M(:,1)  = [];
+        ph1_R(:,1)  = [];
+        ph1_M(:,1)  = [];
+        snr_R(:,1)  = [];
+        snr_M(:,1)  = [];
+        pos_M(:,1)  = [];
+        Eph(:,:,1)  = [];
+        iono(:,1)   = [];
+        loss_R(1)   = [];
+        loss_M(1)   = [];
         
         %satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
         %satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
@@ -103,6 +104,7 @@ if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*
     snr_M = snr_M(:,tMin:tMax);
     pos_M = pos_M(:,tMin:tMax);
     Eph = Eph(:,:,tMin:tMax);
+    iono = iono(:,tMin:tMax);
     
     %do not overwrite existing files
     i = 1;
@@ -150,7 +152,7 @@ if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*
         end
         
         Eph_t = Eph(:,:,t);
-        fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t)], 'double');
+        fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
         fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
     end
     

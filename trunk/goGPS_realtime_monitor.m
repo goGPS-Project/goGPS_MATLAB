@@ -102,8 +102,15 @@ fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
 %"file hour" variable
 hour = 0;
 
+%------------------------------------------------------
+% initialization
+%------------------------------------------------------
+
 %number of unknown phase ambiguities
 nN = 32;
+
+%ionosphere parameters
+iono = zeros(8,1);
 
 %------------------------------------------------------
 % creation of the connection to the ROVER (u-blox)
@@ -218,6 +225,36 @@ while (~reply_RAW)
     set(rover,'RequestToSend','on');
     fopen(rover);
     reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
+end
+
+% enable subframe data output
+fprintf('Enabling u-blox receiver SFRB data...\n');
+
+reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 1);
+tries = 0;
+
+while (~reply_SFRB)
+    tries = tries + 1;
+    if (tries > 3)
+        disp('It was not possible to configure the receiver to provide SFRB data.');
+        break
+    end
+    %close and delete old serial object
+    try
+        fclose(rover);
+        delete(rover);
+    catch
+        stopasync(rover);
+        fclose(rover);
+        delete(rover);
+    end
+    % create new serial object
+    rover = serial (COMportR,'BaudRate',57600);
+    set(rover,'InputBufferSize',16384);
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
+    fopen(rover);
+    reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 1);
 end
 
 % disable NMEA messages
@@ -337,6 +374,12 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
             %just information needed for basic positioning is saved
             time_GPS  = round(cell_rover{2,i}(1));
             pr_R(:,1) = cell_rover{3,i}(:,2);
+            
+        %RXM-SFRB message data save
+        elseif (strcmp(cell_rover{1,i},'RXM-SFRB'))
+            
+            %ionosphere parameters
+            iono(:, 1) = cell_rover{2,i}(1:8);
 
         %RXM-EPH message data save
         elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
@@ -682,6 +725,7 @@ while flag
         %data type counters
         nRAW = 0;
         nEPH = 0;
+        nSFRB = 0;
 
         for i = 1 : size(cell_rover,2)
 
@@ -716,6 +760,19 @@ while flag
                     nRAW = nRAW + 1;
 
                 end
+                
+            %RXM-SFRB message data save
+            elseif (strcmp(cell_rover{1,i},'RXM-SFRB'))
+                
+                %ionosphere parameters
+                iono(:, 1) = cell_rover{2,i}(1:8);
+                
+                if (nSFRB == 0)
+                    type = [type 'RXM-SFRB '];
+                end
+                nSFRB = nSFRB + 1;
+
+            %RXM-EPH message data save
             elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
 
                 %satellite number
@@ -1220,7 +1277,7 @@ while flag
             %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
             
             %input data save
-            fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1)], 'double');
+            fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             %dep_time_M(t)  = time_M(1);    %master time
             %dep_time_R(t)  = time_R(1);    %rover time (it should be = master time)
@@ -1286,7 +1343,7 @@ while flag
         while (b > B)
             
             %input data save
-            fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1)], 'double');
+            fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             %dep_time_M(t)  = 0;               %master time
             %dep_time_R(t)  = 0;               %rover time
@@ -1331,7 +1388,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 %dep_time_M(t)  = time_M(b);    %master time
                 %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
@@ -1376,7 +1433,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 %dep_time_M(t)  = time_M(b);    %master time
                 %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
@@ -1470,7 +1527,7 @@ while flag
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %output data save
-                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
+                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                     %dep_time_M(t)  = time_M(b);    %master time
                     %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
@@ -1514,7 +1571,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 %dep_time_M(t)  = time_M(b);    %master time
                 %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)

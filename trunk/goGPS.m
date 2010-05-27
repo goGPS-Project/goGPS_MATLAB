@@ -188,6 +188,9 @@ if (mode < 10) %post-processing
         %Eph = Eph_R;
         Eph = Eph_M;
         %Eph_GLO = Eph_MR;
+        
+        %select ionosphere parameters source
+        iono = iono_R;
 
         %needed to write obs and eph files
         %time_R = time_GPS;
@@ -250,7 +253,7 @@ if (mode < 10) %post-processing
 
         %read data from goGPS saved files
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-         pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
+         pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
         
         %remove epochs without ephemerides
         while (sum(Eph(:,:,1)) == 0)
@@ -265,6 +268,7 @@ if (mode < 10) %post-processing
             snr_M(:,1)   = [];                         %signal-to-noise ratio
             pos_M(:,1)   = [];                         %master position
             Eph(:,:,1)   = [];                         %ephemerides
+            iono(:,1)    = [];                         %ionosphere parameters
             delay(1)     = [];                         %delays
             loss_R(1)    = [];                         %rover losses
             loss_M(1)    = [];                         %master losses
@@ -277,8 +281,6 @@ if (mode < 10) %post-processing
         date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
 
         %other variables
-        iono_R = zeros(8,1);
-        iono_M = zeros(8,1);
         pr2_M = zeros(size(pr1_M));
         pr2_R = zeros(size(pr1_R));
         ph2_M = zeros(size(ph1_M));
@@ -305,6 +307,7 @@ if (mode < 10) %post-processing
         snr_M = snr_M(:,tMin:tMax);
         pos_M = pos_M(:,tMin:tMax);
         Eph = Eph(:,:,tMin:tMax);
+        iono = iono(:,tMin:tMax);
         delay = delay(tMin:tMax);
         loss_R = loss_R(tMin:tMax);
         loss_M = loss_M(tMin:tMax);
@@ -336,8 +339,6 @@ else %real-time
     end
     
     %for the Kalman filter execution in real-time
-    iono_R = zeros(8,1);
-    iono_M = zeros(8,1);
     pr2_M = zeros(32,1);
     pr2_R = zeros(32,1);
     ph2_M = zeros(32,1);
@@ -362,7 +363,7 @@ if (mode == 1) & (mode_vinc == 0)
         Eph_t = Eph(:,:,1);
     end
 
-    kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
+    kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
 
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -395,7 +396,7 @@ if (mode == 1) & (mode_vinc == 0)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono_R, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -450,7 +451,7 @@ elseif (mode == 1) & (mode_vinc == 1)
     %(this constrained mode works only for circuits)
     ref_loop = [ref_path; ref_path];
 
-    kalman_goGPS_vinc_init (pos_M(:,1), time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1, ref_loop);
+    kalman_goGPS_vinc_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1, ref_loop);
 
     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -478,7 +479,7 @@ elseif (mode == 1) & (mode_vinc == 1)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,t), time_GPS(t), Eph_t, iono_R, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1, ref_loop);
+        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1, ref_loop);
 
         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -524,7 +525,7 @@ elseif (mode == 2)
         Eph_t = Eph(:,:,1);
     end
 
-    kalman_goGPS_SA_init (time_GPS(1), Eph_t, iono_R, pr1_R(:,1), ph1_R(:,1), pr2_R(:,1), ph2_R(:,1), snr_R(:,1), 1);
+    kalman_goGPS_SA_init (time_GPS(1), Eph_t, iono, pr1_R(:,1), ph1_R(:,1), pr2_R(:,1), ph2_R(:,1), snr_R(:,1), 1);
 
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -557,7 +558,7 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop (time_GPS(t), Eph_t, iono_R, pr1_R(:,t-1:t), ph1_R(:,t-1:t), pr2_R(:,t-1:t), ph2_R(:,t-1:t), snr_R(:,t), 1);
+        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop (time_GPS(t), Eph_t, iono, pr1_R(:,t-1:t), ph1_R(:,t-1:t), pr2_R(:,t-1:t), ph2_R(:,t-1:t), snr_R(:,t), 1);
         
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -784,7 +785,7 @@ elseif (mode == 5)
         Eph_t = Eph(:,:,1);
     end
 
-    kalman_goGPS_cod_init(pos_M(:,1), time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
+    kalman_goGPS_cod_init(pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
 
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -815,7 +816,7 @@ elseif (mode == 5)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop (pos_M(:,t), time_GPS(t), Eph_t, iono_R, pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -869,7 +870,7 @@ elseif (mode == 6)
         Eph_t = Eph(:,:,1);
     end
 
-    kalman_goGPS_SA_cod_init(time_GPS(1), Eph_t, iono_R, pr1_R(:,1), pr2_R(:,1), snr_R(:,1), 1);
+    kalman_goGPS_SA_cod_init(time_GPS(1), Eph_t, iono, pr1_R(:,1), pr2_R(:,1), snr_R(:,1), 1);
 
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -900,7 +901,7 @@ elseif (mode == 6)
             Eph_t = Eph(:,:,t);
         end
 
-        kalman_goGPS_SA_cod_loop(time_GPS(t), Eph_t, iono_R, pr1_R(:,t), pr2_R(:,t), snr_R(:,t), 1);
+        kalman_goGPS_SA_cod_loop(time_GPS(t), Eph_t, iono, pr1_R(:,t), pr2_R(:,t), snr_R(:,t), 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -936,7 +937,7 @@ elseif (mode == 6)
 
 elseif (mode == 11)
 
-    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M, iono_R, pr2_M, pr2_R, ph2_M, ph2_R);
+    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: ROVER MONITORING
@@ -971,14 +972,14 @@ end
 if (mode < 12)
     %stream reading
     % [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-    %  pos_M, Eph, loss_R, loss_M, stream_R, stream_M] = load_stream(filerootIN);
+    %  pos_M, Eph, iono, loss_R, loss_M, stream_R, stream_M] = load_stream(filerootIN);
 
     %---------------------------------
 
     %observation file (OBS) and ephemerides file (EPH) reading
 	if (mode == 11)
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-        pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
+        pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
 	end
 
     %---------------------------------

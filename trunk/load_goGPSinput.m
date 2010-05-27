@@ -1,9 +1,9 @@
 function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
-          snr_R, snr_M, pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (fileroot)
+          snr_R, snr_M, pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput (fileroot)
 
 % SYNTAX:
 %   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
-%    snr_R, snr_M, pos_M, Eph, delay, loss_R, loss_M] = load_goGPSinput (fileroot);
+%    snr_R, snr_M, pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput (fileroot);
 %
 % INPUT:
 %   fileroot = name of the file to be read
@@ -21,6 +21,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %   snr_M    = MASTER signal-to-noise ratio
 %   pos_M    = MASTER station coordinates
 %   Eph      = matrix of 29 parameters each satellite (MASTER)
+%   iono     = ionosphere parameters
 %   delay    = delay in observations processing
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
@@ -55,7 +56,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 time_GPS = [];                         %reference GPS time
 time_M = [];                           %MASTER GPS time
 time_R = [];                           %ROVER GPS time
-week_R = [];
+week_R = [];                           %GPS week number
 pr1_M = [];                            %MASTER code observations
 pr1_R = [];                            %ROVER code observations
 ph1_M = [];                            %MASTER phase observations
@@ -63,6 +64,7 @@ ph1_R = [];                            %ROVER phase observations
 snr_M = [];                            %MASTER signal-to-noise ratio
 snr_R = [];                            %ROVER signal-to-noise ratio
 pos_M = [];                            %MASTER station coordinates
+iono = [];                             %ionosphere parameters
 
 %observations reading
 i = 0;                                                              %epoch counter
@@ -73,7 +75,7 @@ while ~isempty(d)
     fprintf(['Reading: ' fileroot '_obs_' hour_str '.bin\n']);
     num_bytes = d.bytes;                                            %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / (4+32*6+3);                             %file size (number of packets)
+    num_packs = num_words / (4+32*6+11);                            %file size (number of packets)
     fid_obs = fopen([fileroot '_obs_' hour_str '.bin']);            %file opening
     buf_obs = fread(fid_obs,num_words,'double');                    %file reading
     fclose(fid_obs);                                                %file closing
@@ -88,7 +90,8 @@ while ~isempty(d)
     snr_M    = [snr_M     zeros(32,num_packs)];
     snr_R    = [snr_R     zeros(32,num_packs)];
     pos_M    = [pos_M;    zeros(3,num_packs)];
-    for j = 0 : (4+32*6+3) : num_words-1
+    iono     = [iono;     zeros(8,num_packs)];
+    for j = 0 : (4+32*6+11) : num_words-1
         i = i+1;                                                    %epoch counter increase
         time_GPS(i,1) = buf_obs(j + 1);                             %observations logging
         time_M(i,1)   = buf_obs(j + 2);
@@ -101,6 +104,7 @@ while ~isempty(d)
         snr_M(:,i)    = buf_obs(j + [133:164]);
         snr_R(:,i)    = buf_obs(j + [165:196]);
         pos_M(:,i)    = buf_obs(j + [197:199]);
+        iono(:,i)     = buf_obs(j + [200:207]);
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string

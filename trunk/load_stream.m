@@ -1,9 +1,9 @@
 function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-          loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg)
+          iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg)
 
 % SYNTAX:
 %   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-%    loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg);
+%    iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg);
 %
 % INPUT:
 %   fileroot = name of the file to be read
@@ -18,6 +18,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, s
 %   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
 %   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
 %   Eph      = matrix of 29 ephemerides for each satellite
+%   iono     = ionosphere parameters
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
 %   data_rover_all  = ROVER overall stream
@@ -107,6 +108,7 @@ if ~isempty(data_rover_all)
     ph1_R  = zeros(32,Ncell);                             %phase observations
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     Eph_R  = zeros(29,32,Ncell);                          %ephemerides
+    iono   = zeros(8,Ncell);                              %ionosphere parameters
 
     if (nargin == 2)
         waitbar(0,wait_dlg,'Reading rover data...')
@@ -140,7 +142,14 @@ if ~isempty(data_rover_all)
             i = i + 1;
 
             Eph_R(:,:,i) = Eph_R(:,:,i-1);                %previous epoch ephemerides copying
+            
+        %RXM-SFRB message data save
+        elseif (strcmp(cell_rover{1,j},'RXM-SFRB'))
+            
+            %ionosphere parameters
+            iono(:, i) = cell_rover{2,j}(1:8);
 
+        %RXM-EPH message data save
         elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
 
             %satellite number
@@ -157,6 +166,7 @@ if ~isempty(data_rover_all)
     pr1_R(:,i:end) = [];
     ph1_R(:,i:end) = [];
     Eph_R(:,:,i:end) = [];
+    iono(:,i:end) = [];
 
 else
     %displaying
@@ -172,6 +182,7 @@ else
     ph1_R  = [];                         %phase observations
     snr_R  = [];                         %signal-to-noise ratio
     Eph_R  = [];                         %ephemerides
+    iono   = [];                         %ionosphere parameters
 
 end
 
@@ -346,6 +357,7 @@ if ~isempty(time_R) & ~isempty(time_M)
         ph1_R(:,1)   = [];                         %phase observations
         snr_R(:,1)   = [];                         %signal-to-noise ratio
         Eph_R(:,:,1) = [];                         %ephemerides
+        iono(:,1) = [];                            %ionosphere parameters
     end
 
     while (time_M(1) < time_R(1))
@@ -386,6 +398,7 @@ if ~isempty(time_GPS)
             pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
             ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
             snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
+            iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
 
             Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(29,32,1), Eph_R(:,:,pos+1:end));
         end
@@ -396,6 +409,7 @@ if ~isempty(time_GPS)
         ph1_R  = zeros(32,length(time_GPS));
         snr_R  = zeros(32,length(time_GPS));
         Eph_R  = zeros(29,32,length(time_GPS));
+        iono   = zeros(8,length(time_GPS));
     end
 
     if ~isempty(time_M)

@@ -101,7 +101,8 @@ if (~isempty(data_rover_all))
     dop_R  = zeros(32,Ncell);                             %doppler measurements
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     lock_R = zeros(32,Ncell);                             %loss of lock indicator
-    Eph_R = zeros(29,32,Ncell);                           %broadcast ephemerides
+    Eph_R  = zeros(29,32,Ncell);                          %broadcast ephemerides
+    iono   = zeros(8,Ncell);                              %ionosphere parameters
     
     if (nargin == 3)
         waitbar(0,wait_dlg,'Reading rover data...')
@@ -140,6 +141,12 @@ if (~isempty(data_rover_all))
             i = i + 1;
             %end
             
+        %RXM-SFRB message data save
+        elseif (strcmp(cell_rover{1,j},'RXM-SFRB'))
+            
+            %ionosphere parameters
+            iono(:, i) = cell_rover{2,j}(1:8);
+
         %RXM-EPH message data save
         elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
             
@@ -165,6 +172,7 @@ if (~isempty(data_rover_all))
     snr_R(:,i:end)   = [];
     lock_R(:,i:end)  = [];
     Eph_R(:,:,i:end) = [];
+    iono(:,i:end)    = [];
     
     %date decoding
     date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
@@ -217,7 +225,6 @@ if (~isempty(data_rover_all))
         n = length(sat);
         fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
             date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), n);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
         if (n>12)
             for j = 1 : 12
                 fprintf(fid_obs,'G%02d',sat(j));
@@ -232,10 +239,6 @@ if (~isempty(data_rover_all))
                 fprintf(fid_obs,'G%02d',sat(j));
             end
         end
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%        
-%         for j = 1 : n
-%             fprintf(fid_obs,'G%02d',sat(j));
-%         end
         fprintf(fid_obs,'\n');
         for j = 1 : n
             fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
@@ -265,12 +268,39 @@ if (~isempty(data_rover_all))
             fprintf(['Writing: ' filename '.nav\n']);
         end
         
+        %find first non-zero ionosphere parameters
+        pos = find(iono(1,:) ~= 0);
+        if (~isempty(pos))
+            iono = iono(:,pos(1));
+        end
+
         %create RINEX observation file
         fid_nav = fopen([filename '.nav'],'wt');
         
         %write header
         fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
         fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
+        if (~isempty(pos))
+            line_alphaE = sprintf('  % 13.4E% 13.4E% 13.4E% 13.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
+            line_betaE  = sprintf('  % 13.4E% 13.4E% 13.4E% 13.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
+            %if running on Windows, convert three-digits exponential notation
+            %to two-digits; in any case, replace 'E' with 'D' and print the string
+            if (~isunix)
+                line_alphaD = strrep(line_alphaE(1,:),'E+0','D+');
+                line_alphaD = strrep(line_alphaD,'E-0','D-');
+                fprintf(fid_nav,'%s',line_alphaD);
+                line_betaD = strrep(line_betaE(1,:),'E+0','D+');
+                line_betaD = strrep(line_betaD,'E-0','D-');
+                fprintf(fid_nav,'%s',line_betaD);
+            else
+                line_alphaD = strrep(line_alphaE(1,:),'E+','D+');
+                line_alphaD = strrep(line_alphaD,'E-','D-');
+                fprintf(fid_nav,'%s',line_alphaD);
+                line_betaD = strrep(line_betaE(1,:),'E+0','D+');
+                line_betaD = strrep(line_betaD,'E-0','D-');
+                fprintf(fid_nav,'%s',line_betaD);
+            end
+        end
         fprintf(fid_nav,'                                                            END OF HEADER       \n');
         
         if (nargin == 3)
