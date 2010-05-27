@@ -466,6 +466,24 @@ while flag
                     sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
             end
         end
+        
+        %visualization (RXM-SFRB information)
+        if (nSFRB > 0)
+            fprintf('Ionosphere parameters: ');
+            if (sum(iono) ~= 0)
+                fprintf('\n');
+                fprintf('    alpha0: %12.4E\n', iono(1));
+                fprintf('    alpha1: %12.4E\n', iono(2));
+                fprintf('    alpha2: %12.4E\n', iono(3));
+                fprintf('    alpha3: %12.4E\n', iono(4));
+                fprintf('    beta0 : %12.4E\n', iono(5));
+                fprintf('    beta1 : %12.4E\n', iono(6));
+                fprintf('    beta2 : %12.4E\n', iono(7));
+                fprintf('    beta3 : %12.4E\n', iono(8));
+            else
+                fprintf('not sent\n');
+            end
+        end
 
         %visualization (RXM-EPH information)
         if (nEPH > 0)
