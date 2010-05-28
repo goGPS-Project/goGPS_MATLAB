@@ -168,8 +168,6 @@ end
 % set output rate to 1Hz
 fprintf('Setting measurement rate to 1Hz...\n');
 
-% ublox_poll_message(rover, '06', '08', 0);
-
 reply_RATE = ublox_CFG_RATE(rover, 1000, 1, 1);
 tries = 0;
 
@@ -225,36 +223,6 @@ while (~reply_RAW)
     set(rover,'RequestToSend','on');
     fopen(rover);
     reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
-end
-
-% enable subframe data output
-fprintf('Enabling u-blox receiver SFRB data...\n');
-
-reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 1);
-tries = 0;
-
-while (~reply_SFRB)
-    tries = tries + 1;
-    if (tries > 3)
-        disp('It was not possible to configure the receiver to provide SFRB data.');
-        break
-    end
-    %close and delete old serial object
-    try
-        fclose(rover);
-        delete(rover);
-    catch
-        stopasync(rover);
-        fclose(rover);
-        delete(rover);
-    end
-    % create new serial object
-    rover = serial (COMportR,'BaudRate',57600);
-    set(rover,'InputBufferSize',16384);
-    set(rover,'FlowControl','hardware');
-    set(rover,'RequestToSend','on');
-    fopen(rover);
-    reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 1);
 end
 
 % disable NMEA messages
@@ -338,7 +306,16 @@ satEph = [];
 while(length(satObs) < 4 | ~ismember(satObs,satEph))
 
     %poll available ephemerides
-    ublox_poll_message(rover, 'RXM', 'EPH', 0);
+    ublox_poll_message(rover, 'AID', 'EPH', 0);
+    
+    %wait for asynchronous write to finish
+    pause(0.1);
+    
+    %poll AID-HUI message (sat. Health / UTC / Ionosphere)
+    ublox_poll_message(rover, 'AID', 'HUI', 0);
+    
+    %wait for asynchronous write to finish
+    pause(0.1);
 
     %initialization
     rover_1 = 0;
@@ -375,19 +352,20 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
             time_GPS  = round(cell_rover{2,i}(1));
             pr_R(:,1) = cell_rover{3,i}(:,2);
             
-        %RXM-SFRB message data save
-        elseif (strcmp(cell_rover{1,i},'RXM-SFRB'))
-            
-            %ionosphere parameters
-            iono(:, 1) = cell_rover{2,i}(1:8);
-
-        %RXM-EPH message data save
-        elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
+        %AID-EPH message data save
+        elseif (strcmp(cell_rover{1,i},'AID-EPH'))
 
             %satellite number
             sat = cell_rover{2,i}(1);
 
             Eph(:, sat) = cell_rover{2,i}(:);
+            
+        %AID-HUI message data save
+        elseif (strcmp(cell_rover{1,i},'AID-HUI'))
+
+            %ionosphere parameters
+            iono(:, 1) = cell_rover{3,i}(9:16);
+
         end
     end
 
@@ -725,7 +703,7 @@ while flag
         %data type counters
         nRAW = 0;
         nEPH = 0;
-        nSFRB = 0;
+        nHUI = 0;
 
         for i = 1 : size(cell_rover,2)
 
@@ -761,19 +739,8 @@ while flag
 
                 end
                 
-            %RXM-SFRB message data save
-            elseif (strcmp(cell_rover{1,i},'RXM-SFRB'))
-                
-                %ionosphere parameters
-                iono(:, 1) = cell_rover{2,i}(1:8);
-                
-                if (nSFRB == 0)
-                    type = [type 'RXM-SFRB '];
-                end
-                nSFRB = nSFRB + 1;
-
-            %RXM-EPH message data save
-            elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
+            %AID-EPH message data save
+            elseif (strcmp(cell_rover{1,i},'AID-EPH'))
 
                 %satellite number
                 sat = cell_rover{2,i}(1);
@@ -781,10 +748,21 @@ while flag
                 Eph(:, sat) = cell_rover{2,i}(:);
 
                 if (nEPH == 0)
-                    type = [type 'RXM-EPH '];
+                    type = [type 'AID-EPH '];
                 end
 
                 nEPH = nEPH + 1;
+                
+            %AID-HUI message data save
+            elseif (strcmp(cell_rover{1,i},'AID-HUI'))
+                
+                %ionosphere parameters
+                iono(:, 1) = cell_rover{3,i}(9:16);
+                
+                if (nHUI == 0)
+                    type = [type 'AID-HUI '];
+                end
+                nHUI = nHUI + 1;
 
             end
         end
@@ -865,7 +843,7 @@ while flag
 
                 %if ephemeris i is not present OR ephemeris i is too old
                 if (conf_eph(i) == 1) | (tk > 3600)
-                    ublox_poll_message(rover, 'RXM', 'EPH', 1, dec2hex(s,2));
+                    ublox_poll_message(rover, 'AID', 'EPH', 1, dec2hex(s,2));
                     fprintf('Satellite %d ephemeris polled\n', s);
                     check = 1;
                 end

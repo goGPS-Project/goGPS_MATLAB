@@ -157,13 +157,26 @@ while (pos + 15 <= length(msg))
                                 % RAW (raw measurement)
                                 case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
                                     
-                                % SFRB (subframe buffer - only for ionosphere parameters and leap seconds)
+                                % SFRB (*OBSOLETE* subframe buffer - only for ionosphere parameters and leap seconds)
                                 case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
 
-                                % EPH (ephemerides)
+                                % EPH (*OBSOLETE* ephemerides)
                                 case '31'
                                     if (LEN == 104) %(ephemerides available)
                                         [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
+                                    end
+                            end
+
+                        % AID (aiding messages)
+                        case '0B'
+                            switch id
+                                % HUI (sat. Health / UTC / Ionosphere)
+                                case '02', [data(:,i)] = decode_AID_HUI(msg(pos:pos+8*LEN-1));
+                                    
+                                % EPH (ephemerides)
+                                case '31'
+                                    if (LEN == 104) %(ephemerides available)
+                                        [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1));
                                     end
                             end
                     end

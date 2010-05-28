@@ -144,8 +144,10 @@ if (~isempty(data_rover_all))
         %RXM-SFRB message data save
         elseif (strcmp(cell_rover{1,j},'RXM-SFRB'))
             
-            %ionosphere parameters
-            iono(:, i) = cell_rover{2,j}(1:8);
+            if (sum(cell_rover{2,j}(1:8)) ~= 0)
+                %ionosphere parameters
+                iono(:, i) = cell_rover{2,j}(1:8);
+            end
 
         %RXM-EPH message data save
         elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
@@ -158,6 +160,25 @@ if (~isempty(data_rover_all))
             if (isempty(find(Eph_R(21,sat,:) ==  tom, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
             end
+            
+        %AID-EPH message data save
+        elseif (strcmp(cell_rover{1,j},'AID-EPH'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            tom = cell_rover{2,j}(21);                   %time of measurement
+            
+            %if the ephemerides are not already available
+            if (isempty(find(Eph_R(21,sat,:) ==  tom, 1)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+            end
+            
+        %AID-HUI message data save
+        elseif (strcmp(cell_rover{1,j},'AID-HUI'))
+
+            %ionosphere parameters
+            iono(:, i) = cell_rover{3,j}(9:16);
+
         end
     end
     clear cell_rover
@@ -281,8 +302,13 @@ if (~isempty(data_rover_all))
         fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
         fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
         if (~isempty(pos))
-            line_alphaE = sprintf('  % 13.4E% 13.4E% 13.4E% 13.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
-            line_betaE  = sprintf('  % 13.4E% 13.4E% 13.4E% 13.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
+            if (~isunix)
+                line_alphaE = sprintf('  %13.4E%13.4E%13.4E%13.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
+                line_betaE  = sprintf('  %13.4E%13.4E%13.4E%13.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
+            else
+                line_alphaE = sprintf('  %12.4E%12.4E%12.4E%12.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
+                line_betaE  = sprintf('  %12.4E%12.4E%12.4E%12.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
+            end
             %if running on Windows, convert three-digits exponential notation
             %to two-digits; in any case, replace 'E' with 'D' and print the string
             if (~isunix)
@@ -296,8 +322,8 @@ if (~isempty(data_rover_all))
                 line_alphaD = strrep(line_alphaE(1,:),'E+','D+');
                 line_alphaD = strrep(line_alphaD,'E-','D-');
                 fprintf(fid_nav,'%s',line_alphaD);
-                line_betaD = strrep(line_betaE(1,:),'E+0','D+');
-                line_betaD = strrep(line_betaD,'E-0','D-');
+                line_betaD = strrep(line_betaE(1,:),'E+','D+');
+                line_betaD = strrep(line_betaD,'E-','D-');
                 fprintf(fid_nav,'%s',line_betaD);
             end
         end
