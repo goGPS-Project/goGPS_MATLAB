@@ -142,8 +142,6 @@ end
 % set output rate to 1Hz
 fprintf('Setting measurement rate to 1Hz...\n');
 
-% ublox_poll_message(rover, '06', '08', 0);
-
 reply_RATE = ublox_CFG_RATE(rover, 1000, 1, 1);
 tries = 0;
 
@@ -199,36 +197,6 @@ while (~reply_RAW)
     set(rover,'RequestToSend','on');
     fopen(rover);
     reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
-end
-
-% enable subframe data output
-fprintf('Enabling u-blox receiver SFRB data...\n');
-
-reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 1);
-tries = 0;
-
-while (~reply_SFRB)
-    tries = tries + 1;
-    if (tries > 3)
-        disp('It was not possible to configure the receiver to provide SFRB data.');
-        break
-    end
-    %close and delete old serial object
-    try
-        fclose(rover);
-        delete(rover);
-    catch
-        stopasync(rover);
-        fclose(rover);
-        delete(rover);
-    end
-    % create new serial object
-    rover = serial (COMportR,'BaudRate',57600);
-    set(rover,'InputBufferSize',16384);
-    set(rover,'FlowControl','hardware');
-    set(rover,'RequestToSend','on');
-    fopen(rover);
-    reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 1);
 end
 
 % disable all NMEA messages
@@ -347,8 +315,9 @@ h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 
 flag = 1;
 setappdata(gcf, 'run', flag);
 
-%ephemerides poll flag
+%poll flags
 eph_polled = 0;
+hui_polled = 0;
 
 %infinite loop
 while flag
@@ -379,7 +348,7 @@ while flag
         %data type counters
         nRAW = 0;
         nEPH = 0;
-        nSFRB = 0;
+        nHUI = 0;
 
         for i = 1 : size(cell_rover,2)
 
@@ -412,19 +381,19 @@ while flag
                 type = [type 'RXM-RAW '];
                 nRAW = nRAW + 1;
 
-            %RXM-SFRB message data save
-            elseif (strcmp(cell_rover{1,i},'RXM-SFRB'))
+            %AID-HUI message data save
+            elseif (strcmp(cell_rover{1,i},'AID-HUI'))
                 
                 %ionosphere parameters
-                iono(:, 1) = cell_rover{2,i}(1:8);
+                iono(:, 1) = cell_rover{3,i}(9:16);
                 
-                if (nSFRB == 0)
-                    type = [type 'RXM-SFRB '];
+                if (nHUI == 0)
+                    type = [type 'AID-HUI '];
                 end
-                nSFRB = nSFRB + 1;
+                nHUI = nHUI + 1;
                 
-            %RXM-EPH message
-            elseif (strcmp(cell_rover{1,i},'RXM-EPH'))
+            %AID-EPH message
+            elseif (strcmp(cell_rover{1,i},'AID-EPH'))
 
                 %satellite number
                 sat = cell_rover{2,i}(1);
@@ -432,7 +401,7 @@ while flag
                 Eph(:, sat) = cell_rover{2,i}(:);
 
                 if (nEPH == 0)
-                    type = [type 'RXM-EPH '];
+                    type = [type 'AID-EPH '];
                 end
                 nEPH = nEPH + 1;
 
@@ -467,8 +436,8 @@ while flag
             end
         end
         
-        %visualization (RXM-SFRB information)
-        if (nSFRB > 0)
+        %visualization (AID-HUI information)
+        if (nHUI > 0)
             fprintf('Ionosphere parameters: ');
             if (sum(iono) ~= 0)
                 fprintf('\n');
@@ -485,7 +454,7 @@ while flag
             end
         end
 
-        %visualization (RXM-EPH information)
+        %visualization (AID-EPH information)
         if (nEPH > 0)
             sat = find(sum(abs(Eph))>0);
             fprintf('Eph: ');
@@ -495,14 +464,27 @@ while flag
             fprintf('\n');
         end
 
-        %poll a new RXM-EPH message every 10 epochs
+        %poll a new AID-EPH message every 10 epochs
         if (mod(current_time-start_time,10) < 1)
             if (eph_polled == 0)
-                ublox_poll_message(rover, 'RXM', 'EPH', 0);
+                ublox_poll_message(rover, 'AID', 'EPH', 0);
                 eph_polled = 1;
             end
         else
             eph_polled = 0;
+        end
+        
+        %wait for asynchronous write to finish
+        pause(0.1);
+        
+        %poll a new AID-HUI message every 60 epochs
+        if (mod(current_time-start_time,60) < 1)
+            if (hui_polled == 0)
+                ublox_poll_message(rover, 'AID', 'HUI', 0);
+                hui_polled = 1;
+            end
+        else
+            hui_polled = 0;
         end
     end
 

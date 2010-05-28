@@ -94,11 +94,11 @@ if (reply_1 ~= 0)
 end
 
 % send message
-% try
+try
     fwrite(serialObj, codeDEC, 'uint8', 'async');
-% catch
-%     stopasync(serialObj);
-%     fwrite(serialObj, codeDEC, 'uint8', 'async');
-% end
+catch
+    stopasync(serialObj);
+    fwrite(serialObj, codeDEC, 'uint8', 'async');
+end
 
 [out] = ublox_check_ACK(serialObj, ID1, ID2);

@@ -146,8 +146,10 @@ if ~isempty(data_rover_all)
         %RXM-SFRB message data save
         elseif (strcmp(cell_rover{1,j},'RXM-SFRB'))
             
-            %ionosphere parameters
-            iono(:, i) = cell_rover{2,j}(1:8);
+            if (sum(cell_rover{2,j}(1:8)) ~= 0)
+                %ionosphere parameters
+                iono(:, i) = cell_rover{2,j}(1:8);
+            end
 
         %RXM-EPH message data save
         elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
@@ -156,6 +158,20 @@ if ~isempty(data_rover_all)
             sat = cell_rover{2,j}(1);
 
             Eph_R(:,sat,i) = cell_rover{2,j}(:);
+            
+        %AID-EPH message data save
+        elseif (strcmp(cell_rover{1,j},'AID-EPH'))
+
+            %satellite number
+            sat = cell_rover{2,j}(1);
+
+            Eph_R(:,sat,i) = cell_rover{2,j}(:);
+            
+        %AID-HUI message data save
+        elseif (strcmp(cell_rover{1,j},'AID-HUI'))
+
+            %ionosphere parameters
+            iono(:, i) = cell_rover{3,j}(9:16);
 
         end
     end

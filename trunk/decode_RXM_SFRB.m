@@ -75,7 +75,7 @@ if (SVN <= 32)
     
     switch SFID
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%% WARNING: subframes 1, 2, 3 currently read from RXM-EPH messages %%%%%
+%%%%%%%% WARNING: subframes 1, 2, 3 read from RXM/AID-EPH messages %%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %         case 1
 %             %Subframe 1
