@@ -365,24 +365,48 @@ end
 
 if ~isempty(time_R) & ~isempty(time_M)
 
-    %initial synchronization
-    while (time_R(1) < time_M(1))
-        time_R(1)    = [];                         %GPS time
-        week_R(1)    = [];                         %GPS week
-        pr1_R(:,1)   = [];                         %code observations
-        ph1_R(:,1)   = [];                         %phase observations
-        snr_R(:,1)   = [];                         %signal-to-noise ratio
-        Eph_R(:,:,1) = [];                         %ephemerides
-        iono(:,1) = [];                            %ionosphere parameters
+    %head synchronization
+    if (time_R(1) < time_M(1))
+        pos = find(time_R < time_M(1));
+        time_R(pos)    = [];                       %GPS time
+        week_R(pos)    = [];                       %GPS week
+        pr1_R(:,pos)   = [];                       %code observations
+        ph1_R(:,pos)   = [];                       %phase observations
+        snr_R(:,pos)   = [];                       %signal-to-noise ratio
+        Eph_R(:,:,pos) = [];                       %ephemerides
+        iono(:,pos) = [];                          %ionosphere parameters
     end
 
-    while (time_M(1) < time_R(1))
-        time_M(1)    = [];                         %GPS time
-        pr1_M(:,1)   = [];                         %code observations
-        ph1_M(:,1)   = [];                         %phase observations
-        snr_M(:,1)   = [];                         %signal-to-noise ratio
-        pos_M(:,1)   = [];                         %master station position
-        Eph_M(:,:,1) = [];                         %ephemerides
+    if (time_M(1) < time_R(1))
+        pos = find(time_M < time_R(1));
+        time_M(pos)    = [];                       %GPS time
+        pr1_M(:,pos)   = [];                       %code observations
+        ph1_M(:,pos)   = [];                       %phase observations
+        snr_M(:,pos)   = [];                       %signal-to-noise ratio
+        pos_M(:,pos)   = [];                       %master station position
+        Eph_M(:,:,pos) = [];                       %ephemerides
+    end
+
+    %tail synchronization
+    if (time_R(end) > time_M(end))
+        pos = find(time_R > time_M(end));
+        time_R(pos)    = [];                       %GPS time
+        week_R(pos)    = [];                       %GPS week
+        pr1_R(:,pos)   = [];                       %code observations
+        ph1_R(:,pos)   = [];                       %phase observations
+        snr_R(:,pos)   = [];                       %signal-to-noise ratio
+        Eph_R(:,:,pos) = [];                       %ephemerides
+        iono(:,pos) = [];                          %ionosphere parameters
+    end
+
+    if (time_M(end) > time_R(end))
+        pos = find(time_M > time_R(end));
+        time_M(pos)    = [];                       %GPS time
+        pr1_M(:,pos)   = [];                       %code observations
+        ph1_M(:,pos)   = [];                       %phase observations
+        snr_M(:,pos)   = [];                       %signal-to-noise ratio
+        pos_M(:,pos)   = [];                       %master station position
+        Eph_M(:,:,pos) = [];                       %ephemerides
     end
 
 end
