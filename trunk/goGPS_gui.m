@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 15-Mar-2010 19:29:18
+% Last Modified by GUIDE v2.5 31-May-2010 18:49:27
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -2474,8 +2474,16 @@ function menu_about_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function converter_Callback(hObject, eventdata, handles)
-% hObject    handle to converter (see GCBO)
+function decode_streams_Callback(hObject, eventdata, handles)
+% hObject    handle to decode_streams (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 converter_gui;
+
+
+% --------------------------------------------------------------------
+function merge_goGPS_bin_Callback(hObject, eventdata, handles)
+% hObject    handle to merge_goGPS_bin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+merge_gui;
