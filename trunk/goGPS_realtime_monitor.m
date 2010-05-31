@@ -39,7 +39,8 @@ function goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M)
 global lambda1
 global nN
 global COMportR master_ip master_port server_delay
-global nmea_init
+global conf_sat HDOP
+global nmea_init nmea_update_rate
 global master rover
 
 %------------------------------------------------------
@@ -806,6 +807,33 @@ while flag
         k = k + 1;
     end
     fprintf('\n');
+
+    %--------------------------------------------------------------
+    %stand-alone approx. positioning (Bancroft) for NMEA update
+    %--------------------------------------------------------------
+
+    if (flag_NTRIP) & (mod(t,nmea_update_rate) == 0)
+
+        %satellites with ephemerides available
+        satEph = find(sum(abs(Eph))~=0);
+
+        %pointer to the buffer or last buffer cell
+        i = min(b,B);
+
+        %delete data if ephemerides are not available
+        delsat = setdiff(1:32,satEph);
+        pr_R(delsat,i)  = 0;
+        
+        %satellites with observations available
+        satObs = find(pr_R(:,i) ~= 0);
+
+        %positioning by Bancroft algorithm
+        [pos_t] = input_bancroft(pr_R(satObs,i), satObs, time_GPS, Eph);
+
+        nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], length(satObs), time_R(b), HDOP));
+        fwrite(master,nmea_update);
+        fprintf(['NMEA sent: ' nmea_update(1:end-2) '\n']);
+    end
 
     %--------------------------------------------------------------
     %ephemerides request
