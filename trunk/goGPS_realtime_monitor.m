@@ -39,7 +39,7 @@ function goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M)
 global lambda1
 global nN
 global COMportR master_ip master_port server_delay
-global conf_sat HDOP
+global HDOP
 global nmea_init nmea_update_rate
 global master rover
 
