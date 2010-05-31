@@ -111,6 +111,9 @@ while ~isempty(d)
     d = dir([fileroot '_obs_' hour_str '.bin']);                    %file to be read
 end
 
+%force top-of-second measurements
+time_R = round(time_R);
+
 %-------------------------------------------------------------------------------
 
 %initialization
