@@ -380,8 +380,6 @@ while flag
                     t = t+1;
 
                     %data save
-                    fwrite(fid_obs, [0; time_M; 0; 0; pr_M; zeros(32,1); ph_M; zeros(32,1); snr_M; zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
-                    fwrite(fid_eph, [0; Eph(:)], 'double');
                     %dep_time_M (t) = time_M;
                     %dep_pr_M(:,t)  = pr_M;
                     %dep_ph_M(:,t)  = ph_M;
@@ -417,10 +415,6 @@ while flag
                     %counter increment
                     t = t+1;
 
-                    %data save
-                    fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(32,1); ph1_M; zeros(32,1); snr1_M; zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
-                    fwrite(fid_eph, [0; Eph(:)], 'double');
-
                     type = [type '1003 '];
                     n03 = n03 + 1;
 
@@ -444,10 +438,6 @@ while flag
                     %counter increment
                     t = t+1;
 
-                    %data save
-                    fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(32,1); ph1_M; zeros(32,1); snr1_M; zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
-                    fwrite(fid_eph, [0; Eph(:)], 'double');
-
                     type = [type '1004 '];
                     n04 = n04 + 1;
 
@@ -457,6 +447,8 @@ while flag
                     coordX_M = cell_master{2,i}(8);
                     coordY_M = cell_master{2,i}(9);
                     coordZ_M = cell_master{2,i}(10);
+                    
+                    pos_M(:,1) = [coordX_M; coordY_M; coordZ_M];
 
                     type = [type '1005 '];
                     n05 = n05 + 1;
@@ -468,6 +460,8 @@ while flag
                     coordY_M = cell_master{2,i}(9);
                     coordZ_M = cell_master{2,i}(10);
                     height_M = cell_master{2,i}(11);
+                    
+                    pos_M(:,1) = [coordX_M; coordY_M; coordZ_M];
 
                     type = [type '1006 '];
                     n06 = n06 + 1;
@@ -567,6 +561,10 @@ while flag
 
                 end
             end
+            
+            %data save
+            fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(32,1); ph1_M; zeros(32,1); snr1_M; zeros(32,1); pos_M(:,1); zeros(8,1)], 'double');
+            fwrite(fid_eph, [0; Eph(:)], 'double');
 
             %----------------------------------
 
