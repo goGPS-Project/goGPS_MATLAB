@@ -1125,7 +1125,7 @@ if (mode < 12)
                 PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(i), KHDOP(i), KVDOP(i), 'D');
             end
         end
-        
+
         %NMEA file write
         fprintf(fid_nmea, [GGAstring '\n']);
         if (pivot(i) ~= 0)
