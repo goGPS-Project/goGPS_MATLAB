@@ -1018,6 +1018,8 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12)
+    %display information
+    fprintf('Writing ECEF coordinates file...\n');
     %cartesian coordinates (X,Y,Z)
     X_KAL = pos_KAL(1,:)';
     Y_KAL = pos_KAL(2,:)';
@@ -1036,6 +1038,8 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12)
+    %display information
+    fprintf('Writing geodetic coordinates file...\n');
     %cartesian coordinates (X,Y,Z)
     X_KAL = pos_KAL(1,:)';
     Y_KAL = pos_KAL(2,:)';
@@ -1055,14 +1059,42 @@ if (mode < 12)
 end
 
 %----------------------------------------------------------------------------------------------
+% UTM COORDINATES SAVING (TEXT FILE)
+%----------------------------------------------------------------------------------------------
+
+if (mode < 12)
+    %display information
+    fprintf('Writing UTM coordinates file...\n');
+    %cartesian coordinates (X,Y,Z)
+    X_KAL = pos_KAL(1,:)';
+    Y_KAL = pos_KAL(2,:)';
+    Z_KAL = pos_KAL(3,:)';
+
+    %coordinate transformation
+    [EST_KAL, NORD_KAL, h_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
+
+    %trajectory plotting
+    figure
+    plot(EST_KAL, NORD_KAL, '.r');
+    xlabel('EST [m]'); ylabel('NORD [m]'); grid on;
+
+    %data saving
+    fid_plan = fopen([filerootOUT '_plan.txt'], 'wt');
+    for i = 1 : length(EST_KAL)
+        fprintf(fid_plan, '%.3f\t%.3f\t%.3f\n', EST_KAL(i), NORD_KAL(i), h_KAL(i));
+    end
+    fclose(fid_plan);
+end
+
+%----------------------------------------------------------------------------------------------
 % NMEA FILE SAVING
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12)
-
+    %display information
+    fprintf('Writing NMEA file...\n');
     %file saving
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
-    
     %date formatting (if not using RINEX)
     if (mode_data ~= 0) | (mode == 11)
         date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
@@ -1113,6 +1145,8 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12)
+    %display information
+    fprintf('Writing KML file...\n');
     %"clampedToGround" plots the points attached to the ground
     %"absolute" uses the height defined in the tag <coordinates>;
     %N.B. Google Earth uses orthometric heights
@@ -1120,12 +1154,39 @@ if (mode < 12)
     %z_pos = 'absolute';
     %URL to load the icon for the points
     iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
+    iconM = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
     good_point_colorR = 'FFF5005A';
     bad_point_colorR = 'FF0000FF';
     dyn_point_colorR = 'FF00FFFF';
+    point_colorM = 'FF00FFFF';
     %point size
     scaleR = 0.2;
+    scaleM = 0.8;
     line_colorR = 'FFF5005A';
+    %label color
+    label_colorM = point_colorM;
+    %label size
+    label_scaleM = 0.7;
+
+    %master station coordinates
+    for i = 1 : length(pos_M(1,:))
+        if (sum(abs(pos_M(:,i))) ~= 0)
+            XM = pos_M(1,i);
+            YM = pos_M(2,i);
+            ZM = pos_M(3,i);
+            
+            %conversion from cartesian to geodetic coordinates
+            [phiM(i), lamM(i), hM(i)] = cart2geod(XM, YM, ZM);
+            
+            %conversion from radians to degrees
+            lamM(i) = lamM(i)*180/pi;
+            phiM(i) = phiM(i)*180/pi;
+        else
+            lamM(i) = 0;
+            phiM(i) = 0;
+            hM(i) = 0;
+        end
+    end
 
     %file saving (Google Earth KML)
     fid_kml = fopen([filerootOUT '.kml'], 'wt');
@@ -1161,6 +1222,36 @@ if (mode < 12)
     fprintf(fid_kml, '          </Icon>\n');
     fprintf(fid_kml, '        </IconStyle>\n');
     fprintf(fid_kml, '      </Style>\n');
+    fprintf(fid_kml, '      <Style id="master">\n');
+    fprintf(fid_kml, '        <IconStyle>\n');
+    fprintf(fid_kml, '          <Icon>\n');
+    fprintf(fid_kml, '            <href>%s</href>\n',iconM);
+    fprintf(fid_kml, '          </Icon>\n');
+    fprintf(fid_kml, '          <color>%s</color>\n',point_colorM);
+    fprintf(fid_kml, '          <colorMode>normal</colorMode>\n');
+    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleM);
+    fprintf(fid_kml, '        </IconStyle>\n');
+    fprintf(fid_kml, '        <LabelStyle>\n');
+    fprintf(fid_kml, '          <color>%s</color>\n',label_colorM);
+    fprintf(fid_kml, '          <scale>%s</scale>\n',label_scaleM);
+    fprintf(fid_kml, '        </LabelStyle>\n');
+    fprintf(fid_kml, '      </Style>\n');
+    for i = 1 : length(phiM)
+        if (lamM(i) ~= 0 | phiM(i) ~= 0 | hM(i) ~= 0)
+           if (i == 1) | (lamM(i)~=lamM(i-1) & phiM(i)~=phiM(i-1) & hM(i)~=hM(i-1))
+               fprintf(fid_kml, '      <Placemark>\n');
+               fprintf(fid_kml, '        <styleUrl>#master</styleUrl>\n');
+               fprintf(fid_kml, '        <name>Master station</name>\n');
+               fprintf(fid_kml, '        <Point>\n');
+               fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
+               fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
+               fprintf(fid_kml, '        </Point>\n');
+               fprintf(fid_kml, '        <Snippet></Snippet>\n');
+               fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation:</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
+               fprintf(fid_kml, '      </Placemark>\n');
+           end
+        end
+    end
     fprintf(fid_kml, '      <Placemark>\n');
     fprintf(fid_kml, '      <name>Rover track</name>\n');
     fprintf(fid_kml, '        <Style>\n');
@@ -1200,40 +1291,15 @@ if (mode < 12)
 end
 
 %----------------------------------------------------------------------------------------------
-% REPRESENTATION OF THE ESTIMATED TRAJECTORY (AND TEXT FILE SAVING)
-%----------------------------------------------------------------------------------------------
-
-if (mode < 12)
-    %cartesian coordinates (X,Y,Z)
-    X_KAL = pos_KAL(1,:)';
-    Y_KAL = pos_KAL(2,:)';
-    Z_KAL = pos_KAL(3,:)';
-
-    %coordinate transformation
-    [EST_KAL, NORD_KAL, h_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
-
-    %trajectory plotting
-    figure
-    plot(EST_KAL, NORD_KAL, '.r');
-    xlabel('EST [m]'); ylabel('NORD [m]'); grid on;
-
-    %data saving
-    fid_plan = fopen([filerootOUT '_plan.txt'], 'wt');
-    for i = 1 : length(EST_KAL)
-        fprintf(fid_plan, '%.3f\t%.3f\t%.3f\n', EST_KAL(i), NORD_KAL(i), h_KAL(i));
-    end
-    fclose(fid_plan);
-end
-
-%----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0)
 
+    %display information
+    fprintf('Writing estimated error covariance file...\n');
     %covariance propagation
     Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1],:));
-
     %trajectory plotting
     figure
     plot(EST_KAL, NORD_KAL, '.r'); axis equal
