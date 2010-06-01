@@ -15,30 +15,32 @@ function checksum = NMEA_checksum(nmeastring)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
 %
-% (code publicly available at
-% http://www.mathworks.com/matlabcentral/fileexchange/15080)
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
+%----------------------------------------------------------------------------------------------
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-checksum = 0;
+checksum = uint8(0);
+nmeastring_d = uint8(nmeastring);
 
-% see if string contains the * which starts the checksum and keep string
-% upto * for generating checksum
-nmeastring = strtok(nmeastring,'*');
-
-nmeastring_d = double(nmeastring);                    % convert characters in string to double values
-for count = 2:length(nmeastring)                      % checksum computation ignores $ at start
-    checksum = bitxor(checksum,nmeastring_d(count));  % checksum computation
-    checksum = uint16(checksum);                      % make sure that checksum is unsigned int16
+for count = 2:length(nmeastring)                     % checksum computation ignores $ at start
+    checksum = bitxor(checksum,nmeastring_d(count)); % checksum computation
 end
 
 % convert checksum to hex value
-checksum = double(checksum);
-checksum = dec2hex(checksum);
-
-% add leading zero to checksum if it is a single digit, e.g. 4 has a 0
-% added so that the checksum is 04
-[null, nchar] = size(checksum); %#ok<ASGLU>
-if (nchar == 1)
-    [checksum] = sprintf('0%s',checksum);
-end
+checksum = dec2hex(checksum, 2);
