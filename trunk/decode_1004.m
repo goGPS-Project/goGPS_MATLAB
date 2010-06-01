@@ -137,7 +137,7 @@ for i = 1 : NSV
         %L2 phaserange - L1 pseudorange
         DF018 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
 
-        %indice di lock-time L2 (vedi Tabella 4.3-2 su manuale RTCM)
+        %L2 lock-time index (see Table 4.3-2 on RTCM specifications)
         DF019 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
 
         %L2-CNR (carrier-to-noise ratio): integer to be multiplied by the resolution
