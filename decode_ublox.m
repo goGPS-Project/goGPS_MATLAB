@@ -137,11 +137,20 @@ while (pos + 15 <= length(msg))
 
                 % checksum
                 CK_A = 0; CK_B = 0;
+                Nslices = (8*LEN + 31) / 8 + 1;           %pre-allocate to
+                slices = cell(1,Nslices);                 %increase speed
+                k = 1;
                 for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
-                    CK_A = CK_A + bin2dec(msg(j:j+7));
-                    CK_B = CK_B + CK_A;
+                    slices{k} = msg(j:j+7);
+                    k = k + 1;
                 end
-
+                slices = bin2dec(slices);                 %call 'bin2dec' only once (to optimize speed)
+                k = 1;
+                for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
+                    CK_A = CK_A + slices(k);
+                    CK_B = CK_B + CK_A;
+                    k = k + 1;
+                end
                 CK_A = dec2bin(mod(CK_A,256), 8);
                 CK_B = dec2bin(mod(CK_B,256), 8);
 

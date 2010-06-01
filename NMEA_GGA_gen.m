@@ -66,12 +66,13 @@ lam_deg = floor(lam);
 lam_min = (lam - lam_deg) * 60;
 lam_nmea = lam_deg * 100 + lam_min;
 
-if (length(num2str(lam_deg)) == 1 )
-    [lam_nmea] = sprintf('00%s', num2str(lam_nmea, '%.8f'));
-elseif (length(num2str(lam_deg)) == 2 )
-    [lam_nmea] = sprintf('0%s', num2str(lam_nmea, '%.8f'));
+[lam_str] = sprintf('%d', lam_deg);
+if (length(lam_str) == 1 )
+    [lam_nmea] = sprintf('00%.8f', lam_nmea);
+elseif (length(lam_str) == 2 )
+    [lam_nmea] = sprintf('0%.8f', lam_nmea);
 else
-    lam_nmea = num2str(lam_nmea,'%.8f');
+    [lam_nmea] = sprintf('%.8f', lam_nmea);
 end
 
 %latitude
@@ -79,19 +80,21 @@ phi_deg = floor(phi);
 phi_min = (phi - phi_deg) * 60;
 phi_nmea = phi_deg * 100 + phi_min;
 
-if (length(num2str(phi_deg)) == 1 )
-    [phi_nmea] = sprintf('0%s',num2str(phi_nmea,'%.8f'));
+[phi_str] = sprintf('%d', phi_deg);
+if (length(phi_str) == 1 )
+    [phi_nmea] = sprintf('0%.8f', phi_nmea);
 else
-    phi_nmea = num2str(phi_nmea,'%.8f');
+    [phi_nmea] = sprintf('%.8f', phi_nmea);
 end
 
 %height
-if (length(num2str(floor(h))) == 1)
-    [h] = sprintf('00%s',num2str(h,'%.3f'));
-elseif (length(num2str(floor(h))) == 2)
-    [h] = sprintf('0%s',num2str(h,'%.3f'));
+[h_str] = sprintf('%d', floor(h));
+if (length(h_str) == 1)
+    [h] = sprintf('00%.3f', h);
+elseif (length(h_str) == 2)
+    [h] = sprintf('0%.3f', h);
 else
-    h = num2str(h,'%.3f');
+    [h] = sprintf('%.3f', h);
 end
 
 %emisphere definition
@@ -118,7 +121,7 @@ end
 h_unit = 'M';
 
 if (nargin > 1)
-    nsat = num2str(nsat);
+    [nsat] = sprintf('%d', nsat);
     if (length(nsat) == 1)
         [nsat] = sprintf('0%s',nsat);
     end
@@ -130,9 +133,9 @@ end
 % FORMAT DATA
 %-----------------------------------------------------------------------------------------------
 
-hour = num2str(date(1,4));
-minute = num2str(date(1,5));
-second = num2str(floor(date(1,6)));
+hour = sprintf('%d', date(1,4));
+minute = sprintf('%d', date(1,5));
+second = sprintf('%d', floor(date(1,6)));
 
 [null, nchar] = size(hour); %#ok<ASGLU>
 if (nchar == 1)

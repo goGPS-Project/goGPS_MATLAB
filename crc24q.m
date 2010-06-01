@@ -37,16 +37,27 @@ function [parity] = crc24q(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-parity = 0;
+parity = uint32(0);
 
+Nslices = length(msg) / 8;  %pre-allocate to increase speed
+slices = cell(1,Nslices);
+k = 1;
+for j = 1 : 8 : length(msg)
+    slices{k} = msg(j:j+7);
+    k = k + 1;
+end
+slices = bitshift(bin2dec(slices), 16); %call 'bin2dec' and 'bitshift' only
+slices = uint32(slices);                % once (to optimize speed)
+k = 1;
 for i = 1 : 8 : length(msg)
-    parity = bitxor(parity, bitshift(bin2dec(msg(i:i+7)), 16));
+    parity = bitxor(parity, slices(k));
     for j = 1 : 8
         parity = bitshift(parity, 1);
         if bitand(parity, 16777216)
             parity = bitxor(parity, 25578747);
         end
     end
+    k = k + 1;
 end
 
 parity = dec2bin(parity, 24);
