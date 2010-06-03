@@ -151,6 +151,9 @@ fprintf('ACQUISITION-PHASE\n');
 %counter initialization
 t = 0;
 
+%master position initialization
+pos_M = zeros(3,1);
+
 %loop control initialization
 f1 = figure;
 s1 = get(0,'ScreenSize');
@@ -562,9 +565,11 @@ while flag
                 end
             end
             
-            %data save
-            fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(32,1); ph1_M; zeros(32,1); snr1_M; zeros(32,1); pos_M(:,1); zeros(8,1)], 'double');
-            fwrite(fid_eph, [0; Eph(:)], 'double');
+            if (t > 0) & (pos_M ~= 0)
+                %data save
+                fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(32,1); ph1_M; zeros(32,1); snr1_M; zeros(32,1); pos_M(:,1); zeros(8,1)], 'double');
+                fwrite(fid_eph, [0; Eph(:)], 'double');
+            end
 
             %----------------------------------
 
