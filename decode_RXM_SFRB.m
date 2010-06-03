@@ -57,10 +57,10 @@ data{2} = zeros(9,1);
 data{1} = 'RXM-SFRB';
 
 %channel number (1 byte)
-CHN = bin2dec(msg(pos:pos+7));  pos = pos + 8; %#ok<NASGU>
+CHN = fbin2dec(msg(pos:pos+7));  pos = pos + 8; %#ok<NASGU>
 
 %satellite ID (1 byte)
-SVN = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+SVN = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %if GPS satellite
 if (SVN <= 32)
@@ -71,7 +71,7 @@ if (SVN <= 32)
     HOW = fliplr(reshape(HOW,8,[]));                  % byte order inversion (little endian)
     HOW = HOW(:)';
     %subframe ID
-    SFID = bin2dec(HOW(28:30));
+    SFID = fbin2dec(HOW(28:30));
     
     switch SFID
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,7 +127,7 @@ if (SVN <= 32)
             WORD3 = msg(pos:pos+31);
             WORD3 = fliplr(reshape(WORD3,8,[])); WORD3 = WORD3(:)'; % byte order inversion (little endian)
 
-            if (bin2dec(WORD3(11:16)) == 56) %SVID "56" <--> page "18"
+            if (fbin2dec(WORD3(11:16)) == 56) %SVID "56" <--> page "18"
                 %Subframe 4
                 [subframe_4_data] = decode_subframe_4(msg(pos:pos+255));
 

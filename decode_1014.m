@@ -53,22 +53,22 @@ data{1} = 0;
 data{2} = zeros(8,1);
 
 %message number = 1014
-DF002 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %Network ID
-DF059 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+DF059 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %Subnetwork ID
-DF072 = bin2dec(msg(pos:pos+3));  pos = pos + 4;
+DF072 = fbin2dec(msg(pos:pos+3));  pos = pos + 4;
 
 %Number of auxiliary stations transmitted
-DF058 = bin2dec(msg(pos:pos+4));  pos = pos + 5;
+DF058 = fbin2dec(msg(pos:pos+4));  pos = pos + 5;
 
 %Master reference station ID
-DF060 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF060 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %Auxiliary reference station ID
-DF061 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF061 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %Aux-Master delta latitude
 DF062 = twos_complement(msg(pos:pos+19)) * 25 * 1e-6;  pos = pos + 20;

@@ -80,7 +80,7 @@ if ~isempty(pos_all)
             end
 
             % message length (10 bit)
-            LEN = bin2dec(msg(pos:pos+9));  pos = pos + 10;
+            LEN = fbin2dec(msg(pos:pos+9));  pos = pos + 10;
 
             if (pos + 8*LEN + 23 <= length(msg))
 
@@ -94,7 +94,7 @@ if ~isempty(pos_all)
                     i = i + 1;
 
                     % message number (12 bit)
-                    DF002 = bin2dec(msg(pos:pos+11));
+                    DF002 = fbin2dec(msg(pos:pos+11));
 
                     % message identification
                     switch DF002

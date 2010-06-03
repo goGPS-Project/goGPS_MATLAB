@@ -79,13 +79,13 @@ data{1} = 'AID-EPH';
 SVN = msg(pos:pos+31); pos = pos + 32;
 SVN = fliplr(reshape(SVN,8,[]));                  % byte order inversion (little endian)
 SVN = SVN(:)';
-SVN = bin2dec((SVN(1:32)));
+SVN = fbin2dec((SVN(1:32)));
 
 %Hand-Over Word (4 bytes)
 HOW = msg(pos:pos+31); pos = pos + 32;
 HOW = fliplr(reshape(HOW,8,[]));                  % byte order inversion (little endian)
 HOW = HOW(:)';
-HOW = bin2dec(HOW(28:30)); %#ok<*NASGU>
+HOW = fbin2dec(HOW(28:30)); %#ok<*NASGU>
 
 %Subframe 1
 [subframe_1_data]  = decode_subframe_1(msg(pos:pos+255)); pos = pos + 256;

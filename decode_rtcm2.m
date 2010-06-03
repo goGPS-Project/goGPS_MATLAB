@@ -127,9 +127,9 @@ if ~isempty(pos)
 
         if (parity)
             % message type (6 bit)
-            type = bin2dec(decoded_word(9:14));
+            type = fbin2dec(decoded_word(9:14));
             % station number (10 bit)
-            station = bin2dec(decoded_word(15:24)); %#ok<NASGU>
+            station = fbin2dec(decoded_word(15:24)); %#ok<NASGU>
 
             pos = pos + 30;
 
@@ -138,13 +138,13 @@ if ~isempty(pos)
 
             if (parity)
                 % modified Z-count (13 bit)
-                modz = bin2dec(decoded_word(1:13));
+                modz = fbin2dec(decoded_word(1:13));
                 % seq (3 bit)
-                seq = bin2dec(decoded_word(14:16)); %#ok<NASGU>
+                seq = fbin2dec(decoded_word(14:16)); %#ok<NASGU>
                 % number of words following
-                n_words = bin2dec(decoded_word(17:21));
+                n_words = fbin2dec(decoded_word(17:21));
                 % reference station health
-                health = bin2dec(decoded_word(22:24)); %#ok<NASGU>
+                health = fbin2dec(decoded_word(22:24)); %#ok<NASGU>
 
                 pos = pos + 30;
 

@@ -57,28 +57,28 @@ data{2} = zeros(7,1);
 data{3} = zeros(32,5);
 
 %message number = 1015
-DF002 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %Network ID
-DF059 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+DF059 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %Subnetwork ID
-DF072 = bin2dec(msg(pos:pos+3));  pos = pos + 4;
+DF072 = fbin2dec(msg(pos:pos+3));  pos = pos + 4;
 
 %GPS TOW (s)
-DF065 = bin2dec(msg(pos:pos+22))*0.1;  pos = pos + 23;
+DF065 = fbin2dec(msg(pos:pos+22))*0.1;  pos = pos + 23;
 
 %GPS multiple message indicator
-DF066 = bin2dec(msg(pos));  pos = pos + 1;
+DF066 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %Master reference station ID
-DF060 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF060 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %Auxiliary reference station ID
-DF061 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF061 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %# of GPS Sats
-DF067 = bin2dec(msg(pos:pos+3));  pos = pos + 4;
+DF067 = fbin2dec(msg(pos:pos+3));  pos = pos + 4;
 
 %output data save
 data{1} = DF002;
@@ -94,13 +94,13 @@ data{2}(7) = DF067;
 for i = 1 : DF067
 
     %analyzed satellite number
-    SV = bin2dec(msg(pos:pos+5));  pos = pos + 6;
+    SV = fbin2dec(msg(pos:pos+5));  pos = pos + 6;
 
     %GPS ambiguity status flag
-    DF074 = bin2dec(msg(pos:pos+1));  pos = pos + 2;
+    DF074 = fbin2dec(msg(pos:pos+1));  pos = pos + 2;
 
     %GPS non sync count
-    DF075 = bin2dec(msg(pos:pos+2));  pos = pos + 3;
+    DF075 = fbin2dec(msg(pos:pos+2));  pos = pos + 3;
 
     %GPS ionospheric carrier phase correction difference
     DF069 = twos_complement(msg(pos:pos+16))*0.5;  pos = pos + 17;

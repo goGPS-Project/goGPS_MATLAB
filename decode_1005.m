@@ -55,31 +55,31 @@ data{1} = 0;
 data{2} = zeros(10,1);
 
 %message number = 1005
-DF002 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %reference station id
-DF003 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF003 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %ITRF reference frame year
-DF021 = bin2dec(msg(pos:pos+5));  pos = pos + 6;
+DF021 = fbin2dec(msg(pos:pos+5));  pos = pos + 6;
 
 %GPS service index (YES=1, NO=0)
-DF022 = bin2dec(msg(pos));  pos = pos + 1;
+DF022 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %GLONASS service index (YES=1, NO=0)
-DF023 = bin2dec(msg(pos));  pos = pos + 1;
+DF023 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %Galileo service index (YES=1, NO=0)
-DF024 = bin2dec(msg(pos));  pos = pos + 1;
+DF024 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %master station type (real=0, virtual=1)
-DF141 = bin2dec(msg(pos));  pos = pos + 1;
+DF141 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %antenna X coordinate
 DF025 = twos_complement(msg(pos:pos+37));  pos = pos + 38;
 
 %single oscillator index (YES=1, NO=0)
-DF142 = bin2dec(msg(pos));  pos = pos + 1;
+DF142 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %skip reserved field
 pos = pos + 1;

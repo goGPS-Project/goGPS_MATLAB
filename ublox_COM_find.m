@@ -78,7 +78,7 @@ for i = 1 : length(serialInfo.AvailableSerialPorts)
     pos = findstr(replyBIN, codeBIN);
 
     if (~isempty(pos))
-        LEN = bin2dec(replyBIN(pos(1)+32:pos(1)+39)) + (bin2dec(replyBIN(pos(1)+40:pos(1)+47)) * 2^8);
+        LEN = fbin2dec(replyBIN(pos(1)+32:pos(1)+39)) + (fbin2dec(replyBIN(pos(1)+40:pos(1)+47)) * 2^8);
 
         if (LEN ~= 0)
             COMPort = serialInfo.AvailableSerialPorts(i);

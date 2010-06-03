@@ -44,11 +44,11 @@ word_dec = zeros(1,24);
 computed_parity = zeros(1,6);
 
 for p = 1 : length(precbits)
-    precbits_dec(p) = bin2dec(precbits(p));
+    precbits_dec(p) = fbin2dec(precbits(p));
 end
 
 for q = 1 : length(word)
-    word_dec(q) = bin2dec(word(q));
+    word_dec(q) = fbin2dec(word(q));
 end
 
 seq25 = [1,2,3,5,6,10,11,12,13,14,17,18,20,23];

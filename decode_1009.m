@@ -60,25 +60,25 @@ data{2} = zeros(6,1);
 data{3} = zeros(32,12);
 
 %message number = 1009
-DF002 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %reference station id
-DF003 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF003 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %TOD = time of day in milliseconds
-DF034 = bin2dec(msg(pos:pos+26));  pos = pos + 27;
+DF034 = fbin2dec(msg(pos:pos+26));  pos = pos + 27;
 
 %other synchronous RTCM messages flag (YES=1, NO=0)
-DF005 = bin2dec(msg(pos));  pos = pos + 1;
+DF005 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %number of visible satellites
-DF035 = bin2dec(msg(pos:pos+4));  pos = pos + 5;
+DF035 = fbin2dec(msg(pos:pos+4));  pos = pos + 5;
 
 %phase-smoothed code flag (YES=1, NO=0)
-DF036 = bin2dec(msg(pos));  pos = pos + 1;
+DF036 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %smoothing window
-DF037 = bin2dec(msg(pos:pos+2));  pos = pos + 3;
+DF037 = fbin2dec(msg(pos:pos+2));  pos = pos + 3;
 
 %output data save
 data{1} = DF002;
@@ -98,25 +98,25 @@ NSV = data{2}(4);
 for i = 1 : NSV
 
     %analyzed satellite number
-    SV = bin2dec(msg(pos:pos+5));  pos = pos + 6;
+    SV = fbin2dec(msg(pos:pos+5));  pos = pos + 6;
 
     %if GLONASS satellite (known slot)
     if (SV >= 1 & SV <= 24)
 
         %code type (C/A=0, P=1)
-        DF039 = bin2dec(msg(pos));  pos = pos + 1;
+        DF039 = fbin2dec(msg(pos));  pos = pos + 1;
 
         %frequency indicator
-        DF040 = bin2dec(msg(pos:pos+4));  pos = pos + 5;
+        DF040 = fbin2dec(msg(pos:pos+4));  pos = pos + 5;
 
         %L1 pseudorange
-        DF041 = bin2dec(msg(pos:pos+24));  pos = pos + 25;
+        DF041 = fbin2dec(msg(pos:pos+24));  pos = pos + 25;
 
         %L1 phaserange - L1 pseudorange
         DF042 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
 
         %L1 lock-time index (see Table 4.3-2 on RTCM manual)
-        DF043 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
+        DF043 = fbin2dec(msg(pos:pos+6));  pos = pos + 7;
 
         %---------------------------------------------------------
 

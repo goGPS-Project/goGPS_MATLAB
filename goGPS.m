@@ -1167,9 +1167,15 @@ if (mode < 12)
     label_colorM = point_colorM;
     %label size
     label_scaleM = 0.7;
+    
+    %initialization
+    epochs = length(pos_M(1,:));
+    phiM = zeros(1, epochs);
+    lamM = zeros(1, epochs);
+    hM = zeros(1, epochs);
 
     %master station coordinates
-    for i = 1 : length(pos_M(1,:))
+    for i = 1 : epochs
         if (sum(abs(pos_M(:,i))) ~= 0)
             XM = pos_M(1,i);
             YM = pos_M(2,i);
@@ -1308,11 +1314,13 @@ if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0)
     hold on
     for i = 1 : size(Cee_ENU,3)         % ellipse definition
         T = chol(Cee_ENU(1:2,1:2,i));   % Cholesky decomposition
-        for j = 1 : size(x_circle,1)    % ellipse definition
+        n = size(x_circle,1);
+        x_ellipse = zeros(n,2);         % pre-allocation
+        for j = 1 : n                   % ellipse definition
             x_ellipse(j,:) = x_circle(j,:) * T + [EST_KAL(i), NORD_KAL(i)];
-        end;
+        end
         plot(x_ellipse(:,1),x_ellipse(:,2));
-    end;
+    end
     hold off
 
     %file saving

@@ -1,23 +1,19 @@
-function [parity] = crc24q(msg)
-
-% SYNTAX:
-%   [parity] = crc24q(msg);
+function x=fbin2dec(s)
+%FBIN2DEC (fast bin2dec) Convert binary string to decimal integer.
+%   X = FBIN2DEC(B) interprets the binary string B and returns in X the
+%   equivalent decimal number. It is a stripped version of "bin2dec", with
+%   a minimal check on input.
 %
-% INPUT:
-%   msg = binary message
+%   If B is a character array, or a cell array of strings, each row is
+%   interpreted as a binary string. 
 %
-% OUTPUT:
-%   parity = crc parity (24 bits)
-%
-% DESCRIPTION:
-%   Applies CRC-24Q QualComm algorithm.
+%   Example
+%       fbin2dec('010111') returns 23
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1 beta
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
-% ('rtcm3torinex.c', by Dirk Stöcker, BKG Ntrip Client (BNC) Version 1.6.1
-%  was used as a reference)
 %
 % * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 % ** Graduate School for Creative Cities, Osaka City University, Japan
@@ -37,27 +33,12 @@ function [parity] = crc24q(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-parity = uint32(0);
+% handle input
+s = char(s);
 
-Nslices = length(msg) / 8;  %pre-allocate to increase speed
-slices = cell(1,Nslices);
-k = 1;
-for j = 1 : 8 : length(msg)
-    slices{k} = msg(j:j+7);
-    k = k + 1;
-end
-slices = bitshift(fbin2dec(slices), 16); %call 'fbin2dec' and 'bitshift' only
-slices = uint32(slices);                 % once (to optimize speed)
-k = 1;
-for i = 1 : 8 : length(msg)
-    parity = bitxor(parity, slices(k));
-    for j = 1 : 8
-        parity = bitshift(parity, 1);
-        if bitand(parity, 16777216)
-            parity = bitxor(parity, 25578747);
-        end
-    end
-    k = k + 1;
-end
+[m,n] = size(s);
 
-parity = dec2bin(parity, 24);
+% Convert to numbers
+v = s - '0';
+twos = pow2(n-1:-1:0);
+x = sum(v .* twos(ones(m,1),:),2);

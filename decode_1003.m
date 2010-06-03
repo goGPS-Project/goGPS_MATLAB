@@ -63,25 +63,25 @@ data{2} = zeros(6,1);
 data{3} = zeros(32,8);
 
 %message number = 1003
-DF002 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %reference station id
-DF003 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF003 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %TOW = time of week in milliseconds
-DF004 = bin2dec(msg(pos:pos+29));  pos = pos + 30;
+DF004 = fbin2dec(msg(pos:pos+29));  pos = pos + 30;
 
 %other synchronous RTCM messages flag (YES=1, NO=0)
-DF005 = bin2dec(msg(pos));  pos = pos + 1;
+DF005 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %number of visible satellites
-DF006 = bin2dec(msg(pos:pos+4));  pos = pos + 5;
+DF006 = fbin2dec(msg(pos:pos+4));  pos = pos + 5;
 
 %phase-smoothed code flag (YES=1, NO=0)
-DF007 = bin2dec(msg(pos));  pos = pos + 1;
+DF007 = fbin2dec(msg(pos));  pos = pos + 1;
 
 %smoothing window
-DF008 = bin2dec(msg(pos:pos+2));  pos = pos + 3;
+DF008 = fbin2dec(msg(pos:pos+2));  pos = pos + 3;
 
 %output data save
 data{1} = DF002;
@@ -101,27 +101,27 @@ NSV = data{2}(4);
 for i = 1 : NSV
 
     %analyzed satellite number
-    SV = bin2dec(msg(pos:pos+5));  pos = pos + 6;
+    SV = fbin2dec(msg(pos:pos+5));  pos = pos + 6;
 
     %if GPS satellite
     if (SV >= 1 & SV <= 32)
 
         %L1 code type (C/A=0, P=1)
-        DF010 = bin2dec(msg(pos));  pos = pos + 1;
+        DF010 = fbin2dec(msg(pos));  pos = pos + 1;
 
         %L1 pseudorange
-        DF011 = bin2dec(msg(pos:pos+23));  pos = pos + 24;
+        DF011 = fbin2dec(msg(pos:pos+23));  pos = pos + 24;
 
         %L1 phaserange - L1 pseudorange
         DF012 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
 
         %L1 lock-time index (see Table 4.3-2 on RTCM manual)
-        DF013 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
+        DF013 = fbin2dec(msg(pos:pos+6));  pos = pos + 7;
 
         %---------------------------------------------------------
 
         %L2 code type (C/A=0, P=1,2,3)
-        DF016 = bin2dec(msg(pos:pos+1));  pos = pos + 2;
+        DF016 = fbin2dec(msg(pos:pos+1));  pos = pos + 2;
 
         %L2-L1 pseudorange
         DF017 = twos_complement(msg(pos:pos+13));  pos = pos + 14;
@@ -130,7 +130,7 @@ for i = 1 : NSV
         DF018 = twos_complement(msg(pos:pos+19));  pos = pos + 20;
 
         %indice di lock-time L2 (vedi Tabella 4.3-2 su manuale RTCM)
-        DF019 = bin2dec(msg(pos:pos+6));  pos = pos + 7;
+        DF019 = fbin2dec(msg(pos:pos+6));  pos = pos + 7;
 
         %---------------------------------------------------------
 

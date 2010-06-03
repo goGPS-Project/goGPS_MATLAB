@@ -120,18 +120,17 @@ while (pos + 15 <= length(msg))
         if (pos + 31 <= length(msg))
 
             % message class (1 byte)
-            class = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+            class = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             class = dec2hex(class,2);
 
             % message id (1 byte)
-            id = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+            id = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             id = dec2hex(id,2);
 
             % payload length (2 bytes)
-            LEN1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-            LEN2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+            LEN1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+            LEN2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN = LEN1 + (LEN2 * 2^8);      % little endian
-            clear LEN1 LEN2
 
             if (pos + 8*LEN + 15 <= length(msg))
 
@@ -144,7 +143,7 @@ while (pos + 15 <= length(msg))
                     slices{k} = msg(j:j+7);
                     k = k + 1;
                 end
-                slices = bin2dec(slices);                 %call 'bin2dec' only once (to optimize speed)
+                slices = fbin2dec(slices);                 %call 'fbin2dec' only once (to optimize speed)
                 k = 1;
                 for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
                     CK_A = CK_A + slices(k);
@@ -225,13 +224,13 @@ while (pos + 15 <= length(msg))
         if ~isempty(pos_ENDNMEA)
             % save the NMEA sentence
             while (~strcmp(msg(pos:pos+7),'00001101'))
-                nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
+                nmea_string = [nmea_string char(fbin2dec(msg(pos:pos+7)))];
                 pos = pos + 8;
             end
             
             % save just <LF> (without <CR>, otherwise MATLAB fails in interpreting it)
             pos = pos + 8;
-            nmea_string = [nmea_string char(bin2dec(msg(pos:pos+7)))];
+            nmea_string = [nmea_string char(fbin2dec(msg(pos:pos+7)))];
             pos = pos + 8;
         else
             % if a NMEA sentence is started but its end is not available,
