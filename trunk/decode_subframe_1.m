@@ -65,16 +65,16 @@ SF1D5 = fliplr(reshape(SF1D5,8,[])); SF1D5 = SF1D5(:)';               %
 SF1D6 = fliplr(reshape(SF1D6,8,[])); SF1D6 = SF1D6(:)';               %
 SF1D7 = fliplr(reshape(SF1D7,8,[])); SF1D7 = SF1D7(:)';               %
 
-data(1) = bin2dec(SF1D0(9:18));                      % weekno
-data(2) = bin2dec(SF1D0(19:20));                     % code_on_L2
-data(3) = bin2dec(SF1D0(21:24));                     % svaccur
-data(4) = bin2dec(SF1D0(25:30));                     % svhealth
+data(1) = fbin2dec(SF1D0(9:18));                          % weekno
+data(2) = fbin2dec(SF1D0(19:20));                         % code_on_L2
+data(3) = fbin2dec(SF1D0(21:24));                         % svaccur
+data(4) = fbin2dec(SF1D0(25:30));                         % svhealth
 IODC_2MSBs = SF1D0(31:32);                           % IODC_2MSBs
 IODC_8LSBs = SF1D5(9:16);                            % IODC_8LSBs
-data(5) = bin2dec([IODC_2MSBs IODC_8LSBs]);          % IODC
-data(6) = bin2dec(SF1D1(9));                         % L2flag
+data(5) = fbin2dec([IODC_2MSBs IODC_8LSBs]);              % IODC
+data(6) = fbin2dec(SF1D1(9));                             % L2flag
 data(7) = twos_complement(SF1D4(25:32)) * (2^-31);   % tgd
-data(8) = bin2dec(SF1D5(17:32)) * (2^4);             % toc
+data(8) = fbin2dec(SF1D5(17:32)) * (2^4);                 % toc
 data(9) = twos_complement(SF1D6(9:16)) * (2^-55);    % af2
 data(10) = twos_complement(SF1D6(17:32)) * (2^-43);  % af1
 data(11) = twos_complement(SF1D7(9:30)) * (2^-31);   % af0

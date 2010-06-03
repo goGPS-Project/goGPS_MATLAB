@@ -848,7 +848,6 @@ while flag
         conf_eph = (sum(abs(Eph),1) == 0);
 
         [null, sat_index] = sort(snr_R(:, index),1,'descend'); %#ok<ASGLU>
-        clear snr_sorted
 
         conf_sat_eph = conf_sat_eph(sat_index);
         conf_eph = conf_eph(sat_index);

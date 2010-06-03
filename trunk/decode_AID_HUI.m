@@ -84,10 +84,9 @@ A1field = A1field(:)';
 
 % floating point value decoding (double floating point)
 sign = str2num(A1field(1));
-esp  = bin2dec(A1field(2:12));
-mant = bin2dec(A1field(13:64)) / 2^52;
+esp  = fbin2dec(A1field(2:12));
+mant = fbin2dec(A1field(13:64)) / 2^52;
 A1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
-clear A1field sign esp mant
 
 %------------------------------------------------
 
@@ -101,61 +100,54 @@ A0field = A0field(:)';
 
 % floating point value decoding (double floating point)
 sign = str2num(A0field(1));
-esp  = bin2dec(A0field(2:12));
-mant = bin2dec(A0field(13:64)) / 2^52;
+esp  = fbin2dec(A0field(2:12));
+mant = fbin2dec(A0field(13:64)) / 2^52;
 A0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
-clear A0field sign esp mant
 
 %------------------------------------------------
 
 % UTC reference Time-Of-Week (4 bytes)
-TOW1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-TOW2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-TOW3 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-TOW4 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW3 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW4 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 TOW = TOW1 + (TOW2 * 2^8) + (TOW3 * 2^16) + (TOW4 * 2^24);  % little endian
 % TOW = TOW / 1000;
-clear TOW1 TOW2 TOW3 TOW4
 
 %------------------------------------------------
 
 % UTC Week Number (2 bytes)
-WEEK1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-WEEK2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+WEEK1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+WEEK2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 WEEK = WEEK1 + (WEEK2 * 2^8);        % little endian
-clear WEEK1 WEEK2
 
 %------------------------------------------------
 
 % UTC Leap seconds (2 bytes)
-LS1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-LS2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+LS1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+LS2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 LS = LS1 + (LS2 * 2^8);        % little endian
-clear LS1 LS2
 
 %------------------------------------------------
 
 % UTC Week Number when next leap seconds event occurs (2 bytes)
-WNF1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-WNF2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+WNF1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+WNF2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 WNF = WNF1 + (WNF2 * 2^8);        % little endian
-clear WNF1 WNF2
 
 %------------------------------------------------
 
 % UTC Day Of Week when next leap seconds event occurs (2 bytes)
-DN1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-DN2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+DN1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+DN2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 DN = DN1 + (DN2 * 2^8);        % little endian
-clear DN1 DN2
 
 %------------------------------------------------
 
 % UTC leap seconds after event (2 bytes)
-LSF1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-LSF2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+LSF1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+LSF2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 LSF = LSF1 + (LSF2 * 2^8);        % little endian
-clear LSF1 LSF2
 
 %------------------------------------------------
 
@@ -174,10 +166,9 @@ a0field = a0field(:)';
 
 % floating point value decoding (single floating point)
 sign = str2num(a0field(1));
-esp  = bin2dec(a0field(2:9));
-mant = bin2dec(a0field(10:32)) / 2^23;
+esp  = fbin2dec(a0field(2:9));
+mant = fbin2dec(a0field(10:32)) / 2^23;
 alpha0 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-clear a0field sign esp mant
 
 %------------------------------------------------
 
@@ -191,10 +182,9 @@ a1field = a1field(:)';
 
 % floating point value decoding (single floating point)
 sign = str2num(a1field(1));
-esp  = bin2dec(a1field(2:9));
-mant = bin2dec(a1field(10:32)) / 2^23;
+esp  = fbin2dec(a1field(2:9));
+mant = fbin2dec(a1field(10:32)) / 2^23;
 alpha1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-clear a1field sign esp mant
 
 %------------------------------------------------
 
@@ -208,10 +198,9 @@ a2field = a2field(:)';
 
 % floating point value decoding (single floating point)
 sign = str2num(a2field(1));
-esp  = bin2dec(a2field(2:9));
-mant = bin2dec(a2field(10:32)) / 2^23;
+esp  = fbin2dec(a2field(2:9));
+mant = fbin2dec(a2field(10:32)) / 2^23;
 alpha2 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-clear a2field sign esp mant
 
 %------------------------------------------------
 
@@ -225,10 +214,9 @@ a3field = a3field(:)';
 
 % floating point value decoding (single floating point)
 sign = str2num(a3field(1));
-esp  = bin2dec(a3field(2:9));
-mant = bin2dec(a3field(10:32)) / 2^23;
+esp  = fbin2dec(a3field(2:9));
+mant = fbin2dec(a3field(10:32)) / 2^23;
 alpha3 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-clear a3field sign esp mant
 
 %------------------------------------------------
 
@@ -242,10 +230,9 @@ b0field = b0field(:)';
 
 % floating point value decoding (single floating point)
 sign = str2num(b0field(1));
-esp  = bin2dec(b0field(2:9));
-mant = bin2dec(b0field(10:32)) / 2^23;
+esp  = fbin2dec(b0field(2:9));
+mant = fbin2dec(b0field(10:32)) / 2^23;
 beta0 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-clear b0field sign esp mant
 
 %------------------------------------------------
 
@@ -259,10 +246,9 @@ b1field = b1field(:)';
 
 % floating point value decoding (single floating point)
 sign = str2num(b1field(1));
-esp  = bin2dec(b1field(2:9));
-mant = bin2dec(b1field(10:32)) / 2^23;
+esp  = fbin2dec(b1field(2:9));
+mant = fbin2dec(b1field(10:32)) / 2^23;
 beta1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-clear b1field sign esp mant
 
 %------------------------------------------------
 
@@ -276,10 +262,9 @@ b2field = b2field(:)';
 
 % floating point value decoding (single floating point)
 sign = str2num(b2field(1));
-esp  = bin2dec(b2field(2:9));
-mant = bin2dec(b2field(10:32)) / 2^23;
+esp  = fbin2dec(b2field(2:9));
+mant = fbin2dec(b2field(10:32)) / 2^23;
 beta2 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-clear b2field sign esp mant
 
 %------------------------------------------------
 
@@ -293,10 +278,9 @@ b3field = b3field(:)';
 
 % floating point value decoding (single floating point)
 sign = str2num(b3field(1));
-esp  = bin2dec(b3field(2:9));
-mant = bin2dec(b3field(10:32)) / 2^23;
+esp  = fbin2dec(b3field(2:9));
+mant = fbin2dec(b3field(10:32)) / 2^23;
 beta3 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-clear b3field sign esp mant
 
 %------------------------------------------------
 

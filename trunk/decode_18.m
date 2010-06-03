@@ -69,10 +69,10 @@ if (pos + n_words*30-1 <= length(msg))
         type = 18;
 
         %frequency indicator
-        F = bin2dec(decoded_word(1,1:2));
+        F = fbin2dec(decoded_word(1,1:2));
 
         %time of measurement (seconds of the hour)
-        time = bin2dec(decoded_word(1,5:24));
+        time = fbin2dec(decoded_word(1,5:24));
 
         %output data save
         data{1} = type;
@@ -82,23 +82,23 @@ if (pos + n_words*30-1 <= length(msg))
         for i = 1 : (n_words-1)/2
 
             %multiple message indicator
-            MMI = bin2dec(decoded_word(i*2,1));
+            MMI = fbin2dec(decoded_word(i*2,1));
 
             %C/A - P code indicator
-            CI = bin2dec(decoded_word(i*2,2));
+            CI = fbin2dec(decoded_word(i*2,2));
 
             %GPS/GLONASS satellite constellation indicator
-            sys = bin2dec(decoded_word(i*2,3));
+            sys = fbin2dec(decoded_word(i*2,3));
 
             %satellite ID
-            SV = bin2dec(decoded_word(i*2,4:8));
+            SV = fbin2dec(decoded_word(i*2,4:8));
             if (SV == 0); SV=32; end
 
             %data quality
-            DQ = bin2dec(decoded_word(i*2,9:11));
+            DQ = fbin2dec(decoded_word(i*2,9:11));
 
             %cumulative loss of continuity indicator
-            loss = bin2dec(decoded_word(i*2,12:16));
+            loss = fbin2dec(decoded_word(i*2,12:16));
 
             %carrier phase
             ph = twos_complement([decoded_word(i*2,17:24) decoded_word(i*2+1,1:24)]);

@@ -75,28 +75,28 @@ data{1} = 0;
 data{2} = zeros(29,1);
 
 %message number
-DF002 = bin2dec(msg(pos:pos+11)); pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11)); pos = pos + 12;
 
 %analyzed satellite number
-DF009 = bin2dec(msg(pos:pos+5)); pos = pos + 6;
+DF009 = fbin2dec(msg(pos:pos+5)); pos = pos + 6;
 
 %GPS week number
-DF076 = bin2dec(msg(pos:pos+9)); pos = pos + 10;
+DF076 = fbin2dec(msg(pos:pos+9)); pos = pos + 10;
 
 %GPS SV accuracy
-DF077 = bin2dec(msg(pos:pos+3)); pos = pos + 4;
+DF077 = fbin2dec(msg(pos:pos+3)); pos = pos + 4;
 
 %GPS code on L2
-DF078 = bin2dec(msg(pos:pos+1)); pos = pos + 2;
+DF078 = fbin2dec(msg(pos:pos+1)); pos = pos + 2;
 
 %GPS IDOT
 DF079 = twos_complement(msg(pos:pos+13)) * pi * (2^-43); pos = pos + 14;
 
 %GPS IODE
-DF071 = bin2dec(msg(pos:pos+7)); pos = pos + 8;
+DF071 = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
 
 %GPS toc
-DF081 = bin2dec(msg(pos:pos+15))*(2^4); pos = pos + 16;
+DF081 = fbin2dec(msg(pos:pos+15))*(2^4); pos = pos + 16;
 
 %GPS af2
 DF082 = twos_complement(msg(pos:pos+7)) * (2^-55); pos = pos + 8;
@@ -108,7 +108,7 @@ DF083 = twos_complement(msg(pos:pos+15)) * (2^-43); pos = pos + 16;
 DF084 = twos_complement(msg(pos:pos+21)) * (2^-31); pos = pos + 22;
 
 %GPS IODC
-DF085 = bin2dec(msg(pos:pos+9)); pos = pos + 10;
+DF085 = fbin2dec(msg(pos:pos+9)); pos = pos + 10;
 
 %GPS Crs
 DF086 = twos_complement(msg(pos:pos+15)) * (2^-5); pos = pos + 16;
@@ -123,16 +123,16 @@ DF088 = twos_complement(msg(pos:pos+31)) * pi * (2^-31); pos = pos + 32;
 DF089 = twos_complement(msg(pos:pos+15)) * (2^-29); pos = pos + 16;
 
 %GPS ecc
-DF090 = bin2dec(msg(pos:pos+31))*(2^-33); pos = pos + 32;
+DF090 = fbin2dec(msg(pos:pos+31))*(2^-33); pos = pos + 32;
 
 %GPS Cus
 DF091 = twos_complement(msg(pos:pos+15)) * (2^-29); pos = pos + 16;
 
 %GPS rootA
-DF092 = bin2dec(msg(pos:pos+31))*(2^-19); pos = pos + 32;
+DF092 = fbin2dec(msg(pos:pos+31))*(2^-19); pos = pos + 32;
 
 %GPS toe
-DF093 = bin2dec(msg(pos:pos+15))*(2^4); pos = pos + 16;
+DF093 = fbin2dec(msg(pos:pos+15))*(2^4); pos = pos + 16;
 
 %GPS Cic
 DF094 = twos_complement(msg(pos:pos+15)) * (2^-29); pos = pos + 16;
@@ -159,13 +159,13 @@ DF100= twos_complement(msg(pos:pos+23)) * pi * (2^-43); pos = pos + 24;
 DF101 = twos_complement(msg(pos:pos+7)) * (2^-31); pos = pos + 8;
 
 %GPS SV health
-DF102 = bin2dec(msg(pos:pos+5)); pos = pos + 6;
+DF102 = fbin2dec(msg(pos:pos+5)); pos = pos + 6;
 
 %GPS L2 P data flag
-DF103 = bin2dec(msg(pos)); pos = pos + 1;
+DF103 = fbin2dec(msg(pos)); pos = pos + 1;
 
 %GPS fit interval
-DF137 = bin2dec (msg(pos));
+DF137 = fbin2dec (msg(pos));
 
 %------------------------------------------------
 %output data save (if IODC == IODE)

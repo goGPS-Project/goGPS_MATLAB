@@ -66,13 +66,13 @@ SF2D5 = fliplr(reshape(SF2D5,8,[])); SF2D5 = SF2D5(:)';               %
 SF2D6 = fliplr(reshape(SF2D6,8,[])); SF2D6 = SF2D6(:)';               %
 SF2D7 = fliplr(reshape(SF2D7,8,[])); SF2D7 = SF2D7(:)';               %
 
-data(1) = bin2dec(SF2D0(9:16));                                       % IODE2
+data(1) = fbin2dec(SF2D0(9:16));                                           % IODE2
 data(2) = twos_complement(SF2D0(17:32)) * (2^-5);                     % Crs
 data(3) = twos_complement(SF2D1(9:24)) * pi * (2^-43);                % delta_n
 data(4) = twos_complement([SF2D1(25:32) SF2D2(9:32)]) * pi * (2^-31); % M0
 data(5) = twos_complement(SF2D3(9:24)) * (2^-29);                     % Cuc
-data(6) = bin2dec([SF2D3(25:32) SF2D4(9:32)]) * (2^-33);              % e
+data(6) = fbin2dec([SF2D3(25:32) SF2D4(9:32)]) * (2^-33);                  % e
 data(7) = twos_complement(SF2D5(9:24)) * (2^-29);                     % Cus
-data(8) = bin2dec([SF2D5(25:32) SF2D6(9:32)]) * (2^-19);              % root_A
-data(9) = bin2dec(SF2D7(9:24)) * (2^4);                               % toe
-data(10) = bin2dec(SF2D7(25));                                        % fit_int
+data(8) = fbin2dec([SF2D5(25:32) SF2D6(9:32)]) * (2^-19);                  % root_A
+data(9) = fbin2dec(SF2D7(9:24)) * (2^4);                                   % toe
+data(10) = fbin2dec(SF2D7(25));                                            % fit_int

@@ -50,25 +50,25 @@ data{2} = zeros(2,1);
 data{3} = '';
 
 %message number = 1008
-DF002 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %reference station id
-DF003 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF003 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %char number for the antenna description
-DF029 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+DF029 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %antenna description
-DF030 = char(bin2dec(reshape(msg(pos:pos+8*DF029-1),8,[])'))';  pos = pos + 8*DF029;
+DF030 = char(fbin2dec(reshape(msg(pos:pos+8*DF029-1),8,[])'))';  pos = pos + 8*DF029;
 
 %antenna setup
-DF031 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+DF031 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %char number for the antenna serial number
-DF032 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+DF032 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %antenna serial number
-DF033 = char(bin2dec(reshape(msg(pos:pos+8*DF032-1),8,[])'))';
+DF033 = char(fbin2dec(reshape(msg(pos:pos+8*DF032-1),8,[])'))';
 
 %--------------------------------------------------------------------------------------------
 

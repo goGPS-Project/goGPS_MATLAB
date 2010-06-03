@@ -60,25 +60,23 @@ data{3} = zeros(32,7);
 data{1} = 'RXM-RAW';
 
 % week time decoding (4 byte)
-TOW1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-TOW2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-TOW3 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-TOW4 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW3 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW4 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 TOW = TOW1 + (TOW2 * 2^8) + (TOW3 * 2^16) + (TOW4 * 2^24);  % little endian
 TOW = TOW / 1000;
-clear TOW1 TOW2 TOW3 TOW4
 
 % GPS week decoding (2 byte)
-WEEK1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
-WEEK2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+WEEK1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+WEEK2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 WEEK = WEEK1 + (WEEK2 * 2^8);        % little endian
-clear WEEK1 WEEK2
 
 % number of visible satellites (1 byte)
-NSV = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+NSV = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 % reserved field (1 byte)
-RES = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+RES = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %output data save
 data{2}(1) = TOW;
@@ -98,11 +96,10 @@ for j = 1 : NSV
     L1field = L1field(:)';
 
     % floating point value decoding (double floating point)
-    sign = str2num(L1field(1));
-    esp  = bin2dec(L1field(2:12));
-    mant = bin2dec(L1field(13:64)) / 2^52;
+    sign = fbin2dec(L1field(1));
+    esp  = fbin2dec(L1field(2:12));
+    mant = fbin2dec(L1field(13:64)) / 2^52;
     L1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
-    clear L1field sign esp mant
 
     %------------------------------------------------
 
@@ -115,11 +112,10 @@ for j = 1 : NSV
     C1field = C1field(:)';
 
     % floating point value decoding (double floating point)
-    sign = str2num(C1field(1));
-    esp  = bin2dec(C1field(2:12));
-    mant = bin2dec(C1field(13:64)) / 2^52;
+    sign = fbin2dec(C1field(1));
+    esp  = fbin2dec(C1field(2:12));
+    mant = fbin2dec(C1field(13:64)) / 2^52;
     C1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
-    clear C1field sign esp mant
 
     %------------------------------------------------
 
@@ -132,16 +128,15 @@ for j = 1 : NSV
     D1field = D1field(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(D1field(1));
-    esp  = bin2dec(D1field(2:9));
-    mant = bin2dec(D1field(10:32)) / 2^23;
+    sign = fbin2dec(D1field(1));
+    esp  = fbin2dec(D1field(2:9));
+    mant = fbin2dec(D1field(10:32)) / 2^23;
     D1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
-    clear D1field sign esp mant
 
     %------------------------------------------------
 
     % satellite number decoding
-    SV = bin2dec(msg(pos:pos+7));
+    SV = fbin2dec(msg(pos:pos+7));
     pos = pos + 8;
 
     % exclude EGNOS satellites (SV = 121, 122, etc.)
@@ -151,18 +146,17 @@ for j = 1 : NSV
         CPM = L1;
         PRM = C1;
         DOM = D1;
-        clear L1 C1 D1
 
         % quality index decoding
-        MQI = bin2dec(msg(pos:pos+7));
+        MQI = fbin2dec(msg(pos:pos+7));
         pos = pos + 8;
 
         % signal-to-noise ratio decoding (in dBHz)
-        CNO = bin2dec(msg(pos:pos+7));
+        CNO = fbin2dec(msg(pos:pos+7));
         pos = pos + 8;
 
         % signal loss index decoding
-        LLI = bin2dec(msg(pos:pos+7));
+        LLI = fbin2dec(msg(pos:pos+7));
         pos = pos + 8;
 
         %data output save

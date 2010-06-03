@@ -43,7 +43,7 @@ if in(1) =='1'                   %bit reversal
             out(i) = '1';
         end
     end
-    out = -bin2dec(out) - 1;
+    out = -fbin2dec(out) - 1;
 else
-    out = bin2dec(in);
+    out = fbin2dec(in);
 end

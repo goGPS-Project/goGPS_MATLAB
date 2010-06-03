@@ -72,5 +72,5 @@ data(4) = twos_complement([SF3D2(25:32) SF3D3(9:32)]) * pi * (2^-31); % i0
 data(5) = twos_complement(SF3D4(9:24)) * (2^-5);                      % Crc
 data(6) = twos_complement([SF3D4(25:32) SF3D5(9:32)]) * pi * (2^-31); % omega
 data(7) = twos_complement(SF3D6(9:32)) * pi * (2^-43);                % omegadot
-data(8) = bin2dec(SF3D7(9:16));                                       % IODE3
+data(8) = fbin2dec(SF3D7(9:16));                                           % IODE3
 data(9) = twos_complement(SF3D7(17:30)) * pi * (2^-43);               % IDOT

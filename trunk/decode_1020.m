@@ -81,25 +81,25 @@ data{1} = 0;
 data{2} = zeros(25,1);
 
 %message number = 1020
-DF002 = bin2dec(msg(pos:pos+11)); pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11)); pos = pos + 12;
 
 %GLONASS satellite ID
-DF038 = bin2dec(msg(pos:pos+5)); pos = pos + 6;
+DF038 = fbin2dec(msg(pos:pos+5)); pos = pos + 6;
 
 %GLONASS satellite frequency channel number
 %0 --> channel number -07
 %1 --> channel number -06
 %...
 %20 --> channel number +13
-DF040 = bin2dec(msg(pos:pos+4)); pos = pos + 5;
+DF040 = fbin2dec(msg(pos:pos+4)); pos = pos + 5;
 DF040_1 = (DF040 - 7) * 0.5625 + 1602.0;
 DF040_2 = (DF040 - 7) * 0.4375 + 1246.0;
 
 %GLONASS almanac health (Cn word)
-DF104 = bin2dec(msg(pos)); pos = pos + 1; %#ok<*NASGU>
+DF104 = fbin2dec(msg(pos)); pos = pos + 1; %#ok<*NASGU>
 
 %GLONASS almanac health availability indicator (DF105)
-DF105 = bin2dec(msg(pos)); pos = pos + 1;
+DF105 = fbin2dec(msg(pos)); pos = pos + 1;
 
 %GLONASS P1
 DF106_1 = (msg(pos:pos+1)); pos = pos + 2;
@@ -121,31 +121,31 @@ end
 
 %GLONASS tk
 %number of thirty-second intervals
-DF107_1 = bin2dec(msg(pos:pos)); pos = pos + 1;
+DF107_1 = fbin2dec(msg(pos:pos)); pos = pos + 1;
 
 %integer number of minutes
-DF107_2 = bin2dec(fliplr(msg(pos:pos+5))); pos = pos + 6;
+DF107_2 = fbin2dec(fliplr(msg(pos:pos+5))); pos = pos + 6;
 
 %integer number of hours elapsed since the beginning of current day
-DF107_3 = bin2dec(fliplr(msg(pos:pos+4))); pos = pos + 5;
+DF107_3 = fbin2dec(fliplr(msg(pos:pos+4))); pos = pos + 5;
 
 %time referenced to the beginning of the frame within the current day (sec)
 DF107 = DF107_1 * 30 + DF107_2 * 60 + DF107_3 * 60 * 60;
 
 %GLONASS MSB of Bn word
-DF108 = bin2dec(msg(pos)); pos = pos + 1;
+DF108 = fbin2dec(msg(pos)); pos = pos + 1;
 
 %GLONASS P2
-DF109 = bin2dec(msg(pos)); pos = pos + 1;
+DF109 = fbin2dec(msg(pos)); pos = pos + 1;
 
 %GLONASS tb (sec)
-DF110 = bin2dec(msg(pos:pos+6)) * 15 * 60; pos = pos + 7;
+DF110 = fbin2dec(msg(pos:pos+6)) * 15 * 60; pos = pos + 7;
 
 %GLONASS ECEF-X component of satellite velocity vector
 %sign 0 = +, 1 = -
-DF111_1 = bin2dec(msg(pos)); pos=pos+1;
+DF111_1 = fbin2dec(msg(pos)); pos=pos+1;
 %velocity component
-DF111_2 = bin2dec(msg(pos:pos+22))*(2^-20); pos = pos + 23;
+DF111_2 = fbin2dec(msg(pos:pos+22))*(2^-20); pos = pos + 23;
 if (DF111_1 == 0)
     DF111 = DF111_2;
     else
@@ -153,9 +153,9 @@ if (DF111_1 == 0)
 end
 
 % GLONASS ECEF-X component of satellite coordinates
-DF112_1 = bin2dec(msg(pos)); pos=pos + 1;
+DF112_1 = fbin2dec(msg(pos)); pos=pos + 1;
 %coordinate component
-DF112_2 = bin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
+DF112_2 = fbin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
 if (DF112_1 == 0)
     DF112 = DF112_2;
     else
@@ -163,8 +163,8 @@ if (DF112_1 == 0)
 end
 
 %GLONASS ECEF-X component of satellite acceleration vector
-DF113_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF113_2 = bin2dec(msg(pos:pos+3)) * (2^-30); pos = pos + 4;
+DF113_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF113_2 = fbin2dec(msg(pos:pos+3)) * (2^-30); pos = pos + 4;
 if (DF113_1 == 0)
     DF113 = DF113_2;
     else
@@ -172,8 +172,8 @@ if (DF113_1 == 0)
 end
 
 %GLONASS ECEF-Y component of satellite velocity vector
-DF114_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF114_2 = bin2dec(msg(pos:pos+22)) * (2^-20); pos = pos + 23;
+DF114_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF114_2 = fbin2dec(msg(pos:pos+22)) * (2^-20); pos = pos + 23;
 if (DF114_1 == 0)
     DF114 = DF114_2;
     else
@@ -181,8 +181,8 @@ if (DF114_1 == 0)
 end
 
 %GLONASS ECEF-Y component of satellite coordinates
-DF115_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF115_2 = bin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
+DF115_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF115_2 = fbin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
 if (DF115_1 == 0)
     DF115 = DF115_2;
     else
@@ -190,8 +190,8 @@ if (DF115_1 == 0)
 end
 
 %GLONASS ECEF-Y component of satellite acceleration vector
-DF116_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF116_2 = bin2dec(msg(pos:pos+3)) * (2^-30); pos = pos + 4;
+DF116_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF116_2 = fbin2dec(msg(pos:pos+3)) * (2^-30); pos = pos + 4;
 if (DF116_1 == 0)
     DF116 = DF116_2;
     else
@@ -199,8 +199,8 @@ if (DF116_1 == 0)
 end
 
 %GLONASS ECEF-Z component of satellite velocity vector
-DF117_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF117_2 = bin2dec(msg(pos:pos+22)) * (2^-20); pos = pos + 23;
+DF117_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF117_2 = fbin2dec(msg(pos:pos+22)) * (2^-20); pos = pos + 23;
 if (DF117_1 == 0)
     DF117 = DF117_2;
     else
@@ -208,8 +208,8 @@ if (DF117_1 == 0)
 end
 
 %GLONASS ECEF-Z component of satellite coordinates
-DF118_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF118_2 = bin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
+DF118_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF118_2 = fbin2dec(msg(pos:pos+25)) * (2^-11); pos = pos + 26;
 if (DF118_1 == 0)
     DF118 = DF118_2;
     else
@@ -217,8 +217,8 @@ if (DF118_1 == 0)
 end
 
 %GLONASS ECEF-Z component of satellite acceleration vector
-DF119_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF119_2 = bin2dec(msg(pos:pos+3)) * (2^-30); pos = pos + 4;
+DF119_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF119_2 = fbin2dec(msg(pos:pos+3)) * (2^-30); pos = pos + 4;
 if (DF119_1 == 0)
     DF119 = DF119_2;
     else
@@ -226,15 +226,15 @@ if (DF119_1 == 0)
 end
 
 %GLONASS P3
-DF120_1 = bin2dec(msg(pos)); pos = pos + 1;
+DF120_1 = fbin2dec(msg(pos)); pos = pos + 1;
 if (DF120_1 == 0)
     DF120 = 4;
 else DF120 = 5;
 end
 
 %GLONASS gamma-n
-DF121_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF121_2 = bin2dec(msg(pos:pos+9)) * (2^-40); pos = pos + 10;
+DF121_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF121_2 = fbin2dec(msg(pos:pos+9)) * (2^-40); pos = pos + 10;
 if (DF121_1 == 0)
     DF121 = DF121_2;
     else
@@ -245,11 +245,11 @@ end
 DF122 = msg(pos:pos+1); pos = pos + 2;
 
 %GLONASS l-n
-DF123 = bin2dec(msg(pos)); pos = pos + 1;
+DF123 = fbin2dec(msg(pos)); pos = pos + 1;
 
 %GLONASS tau-n
-DF124_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF124_2 = bin2dec(msg(pos:pos+20)) * (2^-30); pos = pos + 21;
+DF124_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF124_2 = fbin2dec(msg(pos:pos+20)) * (2^-30); pos = pos + 21;
 if (DF124_1 == 0)
     DF124 = DF124_2;
     else
@@ -257,8 +257,8 @@ if (DF124_1 == 0)
 end
 
 %GLONASS delta-tau
-DF125_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF125_2 = bin2dec(msg(pos:pos+3)) * (2^-30); pos = pos + 4;
+DF125_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF125_2 = fbin2dec(msg(pos:pos+3)) * (2^-30); pos = pos + 4;
 if (DF125_1 == 0)
     DF125 = DF125_2;
     else
@@ -266,29 +266,29 @@ if (DF125_1 == 0)
 end
 
 %GLONASS En (day)
-DF126 = bin2dec(msg(pos:pos+4)); pos = pos + 5;
+DF126 = fbin2dec(msg(pos:pos+4)); pos = pos + 5;
 
 %GLONASS-M P4
-DF127 = bin2dec(msg(pos)); pos = pos + 1;
+DF127 = fbin2dec(msg(pos)); pos = pos + 1;
 
 %GLONASS-M Ft
-DF128 = bin2dec(msg(pos:pos+3)); pos = pos + 4;
+DF128 = fbin2dec(msg(pos:pos+3)); pos = pos + 4;
 
 %GLONASS-M Nt (day)
-DF129 = bin2dec(msg(pos:pos+10)); pos = pos + 11;
+DF129 = fbin2dec(msg(pos:pos+10)); pos = pos + 11;
 
 %GLONASS-M M
 DF130 = msg(pos:pos+1); pos = pos + 2;
 
 %GLONASS additional data
-DF131 = bin2dec(msg(pos)); pos = pos + 1;
+DF131 = fbin2dec(msg(pos)); pos = pos + 1;
 
 %GLONASS N-a
-DF132 = bin2dec(msg(pos:pos+10)); pos = pos + 11;
+DF132 = fbin2dec(msg(pos:pos+10)); pos = pos + 11;
 
 %GLONASS tau-c (sec)
-DF133_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF133_2 = bin2dec(msg(pos:pos+30)) * (2^-31); pos = pos + 31;
+DF133_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF133_2 = fbin2dec(msg(pos:pos+30)) * (2^-31); pos = pos + 31;
 if (DF133_1 == 0)
     DF133 = DF133_2;
     else
@@ -296,11 +296,11 @@ if (DF133_1 == 0)
 end
 
 %GLONASS-M N4
-DF134 = bin2dec(msg(pos:pos+4)) * 4; pos = pos + 5;
+DF134 = fbin2dec(msg(pos:pos+4)) * 4; pos = pos + 5;
 
 %GLONASS-M tauGPS
-DF135_1 = bin2dec(msg(pos)); pos = pos + 1;
-DF135_2 = bin2dec(msg(pos:pos+20)) * (2^-31); pos = pos + 21;
+DF135_1 = fbin2dec(msg(pos)); pos = pos + 1;
+DF135_2 = fbin2dec(msg(pos:pos+20)) * (2^-31); pos = pos + 21;
 if (DF135_1 == 0)
     DF135 = DF135_2;
     else
@@ -308,7 +308,7 @@ if (DF135_1 == 0)
 end
 
 %GLONASS-M ln
-DF136 = bin2dec(msg(pos)); pos = pos + 1;
+DF136 = fbin2dec(msg(pos)); pos = pos + 1;
 
 %output data save
 data{1} = DF002;

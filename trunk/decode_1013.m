@@ -54,22 +54,22 @@ data{2} = zeros(5,1);
 data{3} = zeros(32,3);
 
 %message number = 1013
-DF002 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %reference station id
-DF003 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+DF003 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
 %Modified Julian Day (MJD)
-DF051 = bin2dec(msg(pos:pos+15));  pos = pos + 16;
+DF051 = fbin2dec(msg(pos:pos+15));  pos = pos + 16;
 
 %UTC (sec)
-DF052 = bin2dec(msg(pos:pos+16));  pos = pos + 17;
+DF052 = fbin2dec(msg(pos:pos+16));  pos = pos + 17;
 
 %Number of Message ID Announcements to Follow
-DF053 = bin2dec(msg(pos:pos+4));  pos = pos + 5;
+DF053 = fbin2dec(msg(pos:pos+4));  pos = pos + 5;
 
 %Leap Seconds,GPS-UTC
-DF054 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+DF054 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %output data save
 data{1} = DF002;
@@ -88,13 +88,13 @@ NMF = data{2}(4);
 for i = 1 : NMF
 
     %message number
-    DF055 = bin2dec(msg(pos:pos+11));  pos = pos + 12;
+    DF055 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
     %Sync flag
-    DF056 = bin2dec(msg(pos));  pos = pos + 1;
+    DF056 = fbin2dec(msg(pos));  pos = pos + 1;
 
     %Transmission interval
-    DF057 = bin2dec(msg(pos:pos+15)) * 0.1;  pos = pos + 16;
+    DF057 = fbin2dec(msg(pos:pos+15)) * 0.1;  pos = pos + 16;
 
     %------------------------------------------------
     %output data save
