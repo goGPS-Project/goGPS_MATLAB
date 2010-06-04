@@ -197,24 +197,24 @@ n = nsat - 1;
 % if (length(sat_pr) >= 4)
 %     %ROVER positioning with code double differences
 %     if (phase(1) == 1)
-%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+%         [pos_R, cov_pos_R] = code_double_diff(Xhat_t_t([1 o1+1 o2+1]), pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
 %     else
-%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+%         [pos_R, cov_pos_R] = code_double_diff(Xhat_t_t([1 o1+1 o2+1]), pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
 %     end
-%
+% 
 %     if (phase(1) == 1)
-%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), pos_M, pr1_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
 %     else
-%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), pos_M, pr2_Msat(sat_pr), time, sat_pr, pivot, Eph); %#ok<NASGU>
+%         [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
 %     end
-%
+% 
 % else
-%     pos_R = X_t1_t([1,o1+1,o2+1]);
+    pos_R = X_t1_t([1,o1+1,o2+1]);
 % end
 
 % if (sqrt(sum((pos_R - X_t1_t([1,o1+1,o2+1])).^2))) <= 3
-    pos_R = X_t1_t([1,o1+1,o2+1]);
-% end   
+%     pos_R = X_t1_t([1,o1+1,o2+1]);
+% end
 
 %approximated coordinates X Y Z
 X_app = pos_R(1);
@@ -271,7 +271,7 @@ if ( ~isempty(tile_row) & ~isempty(tile_col) )
     Nll = tile_georef(tile_row,tile_col,3) - tile_height/tile_buffer_size*tile_header.cellsize + tile_header.cellsize/2;
 
     %extraction from the dtm of the height correspondent to the approximated position
-    [h_dtm] = dtm_bilin_interp(E_app, N_app, tile_buffer, tile_header.ncols*3, tile_header.nrows*3, tile_header.cellsize, Ell, Nll, tile_header.nodata);
+    [h_dtm] = grid_bilin_interp(E_app, N_app, tile_buffer, tile_header.ncols*3, tile_header.nrows*3, tile_header.cellsize, Ell, Nll, tile_header.nodata);
 
     %antenna height addition
     h_dtm = h_dtm + h_antenna;

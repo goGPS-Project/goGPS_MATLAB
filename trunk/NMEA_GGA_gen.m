@@ -38,6 +38,9 @@ function nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global geoid
+
+%date
 if (nargin > 2)
     date = datevec((time / (3600*24)) - fix(time / (3600*24)));
 else
@@ -56,6 +59,19 @@ Z = pos_R(3);
 %conversion from radians to degrees
 lam = abs(lam*180/pi);
 phi = abs(phi*180/pi);
+
+%initialize geoid ondulation
+N = [];
+N_unit = [];
+
+if (geoid.ncols ~= 0)
+    %geoid ondulation interpolation
+    N = grid_bilin_interp(lam, phi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+    %orthometric height
+    h = h - N;
+    %ondulation units
+    N_unit = 'M';
+end
 
 %-----------------------------------------------------------------------------------------------
 % FORMAT COORDINATES ACCORDING TO NMEA STANDARD
@@ -88,14 +104,24 @@ else
 end
 
 %height
-[h_str] = sprintf('%d', floor(h));
-if (length(h_str) == 1)
-    [h] = sprintf('00%.3f', h);
-elseif (length(h_str) == 2)
-    [h] = sprintf('0%.3f', h);
-else
-    [h] = sprintf('%.3f', h);
-end
+% [h_str] = sprintf('%d', floor(h));
+% if (length(h_str) == 1)
+%     [h] = sprintf('00%.1f', h);
+% elseif (length(h_str) == 2)
+%     [h] = sprintf('0%.1f', h);
+% else
+%     [h] = sprintf('%.1f', h);
+% end
+
+%N
+% [N_str] = sprintf('%d', floor(N));
+% if (length(N_str) == 1)
+%     [N] = sprintf('00%.1f', N);
+% elseif (length(N_str) == 2)
+%     [N] = sprintf('0%.1f', N);
+% else
+%     [N] = sprintf('%.1f', N);
+% end
 
 %emisphere definition
 if (lam >= 0)
@@ -158,7 +184,7 @@ decsec = '.00';
 % COMPOSITION OF THE NMEA SENTENCE
 %-----------------------------------------------------------------------------------------------
 
-nmeastring = sprintf('$GPGGA,%s%s%s%s,%s,%c,%s,%c,%s,%s,%.2f,%s,%c,,,,',hour,minute,second,decsec,phi_nmea,emi_NS,lam_nmea,emi_EW,surv_type,nsat,HDOP,h,h_unit);
+nmeastring = sprintf('$GPGGA,%s%s%s%s,%s,%c,%s,%c,%s,%s,%.2f,%.1f,%c,%.1f,%c,,',hour,minute,second,decsec,phi_nmea,emi_NS,lam_nmea,emi_EW,surv_type,nsat,HDOP,h,h_unit,N,N_unit);
 
 %-----------------------------------------------------------------------------------------------
 % CHECKSUM COMPUTATION

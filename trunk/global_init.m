@@ -253,7 +253,7 @@ global flag_LS_N_estim
 %
 % NOTE: LS amb. estimation is automatically switched off when the number of
 % satellites with phase available is not sufficient (< 4 incl. pivot)
-flag_LS_N_estim = 0;
+flag_LS_N_estim = 1;
 
 %-------------------------------------------------------------------------------
 % PHASE-SMOOTHED CODE
@@ -263,3 +263,30 @@ global sm_weight
 
 %weight for code smoothing algorithm
 sm_weight = 1;
+
+%-------------------------------------------------------------------------------
+% GEOID GRID
+%-------------------------------------------------------------------------------
+
+global geoid
+
+try
+    load ../data/geoid/geoid_EGM2008_05.mat
+    %geoid grid and parameters
+    geoid.grid = N_05x05;
+    geoid.cellsize = 0.5;
+    geoid.Xll = -180;
+    geoid.Yll = -90;
+    geoid.ncols = 720;
+    geoid.nrows = 360;
+
+    clear N_05x05
+catch
+    %geoid unavailable
+    geoid.grid = 0;
+    geoid.cellsize = 0;
+    geoid.Xll = 0;
+    geoid.Yll = 0;
+    geoid.ncols = 0;
+    geoid.nrows = 0;
+end
