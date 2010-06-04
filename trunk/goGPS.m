@@ -1253,7 +1253,7 @@ if (mode < 12)
                fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
                fprintf(fid_kml, '        </Point>\n');
                fprintf(fid_kml, '        <Snippet></Snippet>\n');
-               fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation:</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
+               fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
                fprintf(fid_kml, '      </Placemark>\n');
            end
         end
