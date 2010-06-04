@@ -288,7 +288,7 @@ if ( ~isempty(tile_row) & ~isempty(tile_col) )
     Nll = tile_georef(tile_row,tile_col,3) - tile_height/tile_buffer_size*tile_header.cellsize + tile_header.cellsize/2;
 
     %extraction from the dtm of the height correspondent to the approximated position
-    [h_dtm] = dtm_bilin_interp(E_app, N_app, tile_buffer, tile_header.ncols*3, tile_header.nrows*3, tile_header.cellsize, Ell, Nll, tile_header.nodata);
+    [h_dtm] = grid_bilin_interp(E_app, N_app, tile_buffer, tile_header.ncols*3, tile_header.nrows*3, tile_header.cellsize, Ell, Nll, tile_header.nodata);
 
     %antenna height addition
     h_dtm = h_dtm + h_antenna;
