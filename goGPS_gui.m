@@ -254,12 +254,10 @@ o2 = order*2;
 o3 = order*3;
 h_antenna = str2double(get(handles.antenna_h,'String'));
 dtm_dir = get(handles.dtm_path,'String');
-fid = fopen([dtm_dir '/tiles/tile_header.mat'],'r');
-if (fid ~= -1)
+try
     load([dtm_dir '/tiles/tile_header'], 'tile_header');
     load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
-    fclose(fid);
-else
+catch
     tile_header.nrows = 0;
     tile_header.ncols = 0;
     tile_header.cellsize = 0;
