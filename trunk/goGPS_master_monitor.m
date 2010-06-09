@@ -86,7 +86,7 @@ fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 %------------------------------------------------------
 
 master = tcpip(master_ip,master_port);
-set(master,'InputBufferSize', 5096);
+set(master,'InputBufferSize', 16384);
 fopen(master);
 
 if (flag_NTRIP)

@@ -455,7 +455,7 @@ start_time = current_time-safety_lag;   %starting time
 ntripstring = NTRIP_string_generator(nmea_init);
 
 master = tcpip(master_ip,master_port);
-set(master,'InputBufferSize', 5096);
+set(master,'InputBufferSize', 16384);
 fopen(master);
 fwrite(master,ntripstring);
 
@@ -1324,7 +1324,7 @@ while flag
                 
                 %start a new connection
                 master = tcpip(master_ip,master_port);
-                set(master,'InputBufferSize', 5096);
+                set(master,'InputBufferSize', 16384);
                 fopen(master);
                 if (flag_NTRIP)
                     ntripstring = NTRIP_string_generator(nmea_init);
@@ -1493,7 +1493,7 @@ while flag
                         
                         %start a new connection
                         master = tcpip(master_ip,master_port);
-                        set(master,'InputBufferSize', 5096);
+                        set(master,'InputBufferSize', 16384);
                         fopen(master);
                         if (flag_NTRIP)
                             ntripstring = NTRIP_string_generator(nmea_init);

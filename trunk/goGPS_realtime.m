@@ -519,7 +519,7 @@ start_time = current_time-safety_lag;   %starting time
 ntripstring = NTRIP_string_generator(nmea_init);
 
 master = tcpip(master_ip,master_port);
-set(master,'InputBufferSize', 5096);
+set(master,'InputBufferSize', 16384);
 fopen(master);
 fwrite(master,ntripstring);
 
@@ -1501,7 +1501,7 @@ end
 
                     %start a new connection
                     master = tcpip(master_ip,master_port);
-                    set(master,'InputBufferSize', 5096);
+                    set(master,'InputBufferSize', 16384);
                     fopen(master);
 					if (flag_NTRIP)
 					    ntripstring = NTRIP_string_generator(nmea_init);
@@ -1941,7 +1941,7 @@ end
                             
                             %start a new connection
                             master = tcpip(master_ip,master_port);
-                            set(master,'InputBufferSize', 5096);
+                            set(master,'InputBufferSize', 16384);
                             fopen(master);
                             if (flag_NTRIP)
                                 nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat))));
