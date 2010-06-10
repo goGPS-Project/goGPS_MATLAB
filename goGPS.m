@@ -185,9 +185,11 @@ if (mode < 10) %post-processing
             load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
 
         %select ephemerides source
-        %Eph = Eph_R;
-        Eph = Eph_M;
-        %Eph_GLO = Eph_MR;
+        if (~Eph_M)
+            Eph = Eph_R;
+        else
+            Eph = Eph_M;
+        end
         
         %select ionosphere parameters source
         iono = iono_R;
@@ -1268,7 +1270,7 @@ if (mode < 12)
     fprintf(fid_kml, '        <LineString>\n');
     fprintf(fid_kml, '          <coordinates>\n');
     for i = 1 : length(phi_KAL)
-        fprintf(fid_kml, '            %.6f,%.6f,0.000\n',lam_KAL(i),phi_KAL(i));
+        fprintf(fid_kml, '            %.8f,%.8f,0.000\n',lam_KAL(i),phi_KAL(i));
     end
     fprintf(fid_kml, '          </coordinates>\n');
     fprintf(fid_kml, '        </LineString>\n');
@@ -1286,7 +1288,7 @@ if (mode < 12)
         end
         fprintf(fid_kml, '        <Point>\n');
         fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-        fprintf(fid_kml, '          <coordinates>%.6f,%.6f,%.6f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
+        fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
         fprintf(fid_kml, '        </Point>\n');
         fprintf(fid_kml, '        <Snippet></Snippet>\n');
         fprintf(fid_kml, '      </Placemark>\n');
