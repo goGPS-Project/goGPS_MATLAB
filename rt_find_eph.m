@@ -36,9 +36,13 @@ function [Eph_t] = rt_find_eph (Eph_in, time)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+empty_col = zeros(29,1);
+
 for sv = 1 : 32
     icol = find_eph(Eph_in, sv, time);
     if (~isempty(icol))
         Eph_t(:,sv) = Eph_in(:,icol);
+    else
+        Eph_t(:,sv) = empty_col;
     end
 end

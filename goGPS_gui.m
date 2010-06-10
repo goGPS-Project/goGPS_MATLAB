@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 31-May-2010 18:49:27
+% Last Modified by GUIDE v2.5 10-Jun-2010 19:32:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -2485,3 +2485,11 @@ function merge_goGPS_bin_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 merge_gui;
+
+
+% --------------------------------------------------------------------
+function RINEX2goGPSbin_Callback(hObject, eventdata, handles)
+% hObject    handle to RINEX2goGPSbin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+RINEX2goGPSbin_gui;

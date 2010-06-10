@@ -3,7 +3,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
           pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
           Eph_RR, Eph_MR, snr_RR, snr_MR, ...
           time_GPS, date, pos_M] = ...
-          load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav)
+          load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav, wait_dlg)
 
 % SYNTAX:
 %   [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
@@ -11,13 +11,14 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %    pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
 %    Eph_RR, Eph_MR, snr_RR, snr_MR, ...
 %    time_GPS, date, pos_M] = ...
-%   load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav);
+%   load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav, wait_dlg);
 %
 % INPUT:
 %   nome_FR_oss = RINEX observation file (ROVER)
 %   nome_FR_nav = RINEX navigation file (ROVER)
 %   nome_FM_oss = RINEX observation file (MASTER)
 %   nome_FM_nav = RINEX navigation file (MASTER)
+%   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
 %   pr1_R = code observation (L1 carrier, ROVER)
@@ -66,17 +67,29 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 Eph_RR = zeros(17,32);
 Eph_MR = zeros(17,32);
 
+if (nargin == 5)
+    waitbar(0.33,wait_dlg,'Reading navigation files...')
+end
+
 %parse RINEX navigation file (ROVER)
 [Eph_R, iono_R] = RINEX_get_nav(nome_FR_nav);
 
 %parse RINEX navigation file (ROVER)
 % [Eph_RR] = RINEX_get_nav_GLO(nome_FR_glo);
 
+if (nargin == 5)
+    waitbar(0.66,wait_dlg)
+end
+
 %parse RINEX navigation file (MASTER)
 [Eph_M, iono_M] = RINEX_get_nav(nome_FM_nav);
 
 %parse RINEX navigation file (MASTER)
 % [Eph_MR] = RINEX_get_nav_GLO(nome_FM_glo);
+
+if (nargin == 5)
+    waitbar(1,wait_dlg)
+end
 
 %-------------------------------------------------------------------------------
 
@@ -87,6 +100,10 @@ FR_oss = fopen(nome_FR_oss,'r');
 FM_oss = fopen(nome_FM_oss,'r');
 
 %-------------------------------------------------------------------------------
+
+if (nargin == 5)
+    waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
+end
 
 %parse RINEX header
 [obs_typ_R,  null, info_base_R] = RINEX_parse_hdr(FR_oss); %#ok<ASGLU>
@@ -100,6 +117,10 @@ end
 %check the availability of basic data to parse the RINEX file (MASTER)
 if (info_base_M == 0) 
     error('Basic data is missing in the ROVER RINEX header')
+end
+
+if (nargin == 5)
+    waitbar(1,wait_dlg)
 end
 
 %-------------------------------------------------------------------------------
@@ -119,6 +140,10 @@ end
 [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
 %-------------------------------------------------------------------------------
 
+if (nargin == 5)
+    waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
+end
+
 while (time_GPS_M < time_GPS_R)
 
     %read data for the current epoch (MASTER)
@@ -130,11 +155,15 @@ end
 
 while (time_GPS_R < time_GPS_M)
 
-    %read data for the current epoch (MASTER)
+    %read data for the current epoch (ROVER)
     [time_GPS_R, sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
 
-    %read MASTER observations
+    %read ROVER observations
     [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
+end
+
+if (nargin == 5)
+    waitbar(1,wait_dlg)
 end
 
 %-------------------------------------------------------------------------------
@@ -142,6 +171,10 @@ end
 k = 1;
 time_GPS(1,1) = time_GPS_R;
 date(1,:) = date_R(1,:);
+
+if (nargin == 5)
+    waitbar(0.5,wait_dlg,'Reading RINEX observations...')
+end
 
 while (~feof(FR_oss))
 
@@ -216,11 +249,20 @@ while (~feof(FR_oss))
         [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
 
     end
+    
+    %ignore rover tail
+    if (time_GPS_R > time_GPS_M)
+        break
+    end
 
     k = k+1;
     time_GPS(k,1) = time_GPS(k-1,1) + 1;
     date(k,:) = date_R(1,:);
 
+end
+
+if (nargin == 5)
+    waitbar(1,wait_dlg)
 end
 
 time_GPS(end) = [];
