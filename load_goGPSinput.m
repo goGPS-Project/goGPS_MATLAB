@@ -89,8 +89,8 @@ while ~isempty(d)
     ph1_R    = [ph1_R     zeros(32,num_packs)];
     snr_M    = [snr_M     zeros(32,num_packs)];
     snr_R    = [snr_R     zeros(32,num_packs)];
-    pos_M    = [pos_M;    zeros(3,num_packs)];
-    iono     = [iono;     zeros(8,num_packs)];
+    pos_M    = [pos_M     zeros(3,num_packs)];
+    iono     = [iono      zeros(8,num_packs)];
     for j = 0 : (4+32*6+11) : num_words-1
         i = i+1;                                                    %epoch counter increase
         time_GPS(i,1) = buf_obs(j + 1);                             %observations logging
