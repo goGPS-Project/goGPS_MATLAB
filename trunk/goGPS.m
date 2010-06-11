@@ -1039,18 +1039,20 @@ if (mode < 12)
     N = [];
 
     %file saving
-    fid_geod = fopen([filerootOUT '_position.txt'], 'wt');
-    fprintf(fid_geod, 'GPS time\tLatitude\tLongitude\th (ellips.)\tUTM North\tUTM East\th (AMSL)\tECEF X\t\tECEF Y\t\tECEF Z\t\tHDOP\tKHDOP\n');
+    fid_out = fopen([filerootOUT '_position.txt'], 'wt');
+    fprintf(fid_out, 'GPS time\tLatitude\tLongitude\th (ellips.)\tUTM North\tUTM East\th (AMSL)\tECEF X\t\tECEF Y\t\tECEF Z\t\tHDOP\tKHDOP\n');
     for i = 1 : length(phi_KAL)
         if (geoid.ncols ~= 0)
             %geoid ondulation interpolation
             N = grid_bilin_interp(lam_KAL(i), phi_KAL(i), geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
             %orthometric height
             h = h_KAL(i) - N;
+            %file writing
+            fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORD_KAL(i), EST_KAL(i), h, X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
         end
-        fprintf(fid_geod, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORD_KAL(i), EST_KAL(i), h, X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%s\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORD_KAL(i), EST_KAL(i), 'N.A.', X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
-    fclose(fid_geod);
+    fclose(fid_out);
 end
 
 %----------------------------------------------------------------------------------------------
