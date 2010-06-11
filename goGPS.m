@@ -1016,76 +1016,41 @@ end
 %     dt_plot, dt_ge, dt_sky, dt_snr] = load_goGPStime (filerootOUT);
 
 %----------------------------------------------------------------------------------------------
-% ECEF COORDINATES SAVING (TEXT FILE)
+% OUTPUT FILE SAVING (TEXT FILE)
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12)
     %display information
-    fprintf('Writing ECEF coordinates file...\n');
+    fprintf('Writing output file...\n');
     %cartesian coordinates (X,Y,Z)
     X_KAL = pos_KAL(1,:)';
     Y_KAL = pos_KAL(2,:)';
     Z_KAL = pos_KAL(3,:)';
 
-    %file saving
-    fid_xyz = fopen([filerootOUT '_ECEF.txt'], 'wt');
-    for i = 1 : length(X_KAL)
-        fprintf(fid_xyz, '%d\t%.8f\t%.8f\t%.3f\n', check_t(time_GPS(i)), X_KAL(i), Y_KAL(i), Z_KAL(i));
-    end
-    fclose(fid_xyz);
-end
-
-%----------------------------------------------------------------------------------------------
-% GEODETIC COORDINATES SAVING (TEXT FILE)
-%----------------------------------------------------------------------------------------------
-
-if (mode < 12)
-    %display information
-    fprintf('Writing geodetic coordinates file...\n');
-    %cartesian coordinates (X,Y,Z)
-    X_KAL = pos_KAL(1,:)';
-    Y_KAL = pos_KAL(2,:)';
-    Z_KAL = pos_KAL(3,:)';
-
-    %coordinate transformation
+    %coordinate transformation (geodetic)
     [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
     phi_KAL = phi_KAL * 180/pi;
     lam_KAL = lam_KAL * 180/pi;
+    
+    %coordinate transformation (UTM)
+    [EST_KAL, NORD_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
+    
+    %initialize geoid ondulation
+    N = [];
 
     %file saving
-    fid_geod = fopen([filerootOUT '_geod.txt'], 'wt');
+    fid_geod = fopen([filerootOUT '_position.txt'], 'wt');
+    fprintf(fid_geod, 'GPS time\tLatitude\tLongitude\th (ellips.)\tUTM North\tUTM East\th (AMSL)\tECEF X\t\tECEF Y\t\tECEF Z\t\tHDOP\tKHDOP\n');
     for i = 1 : length(phi_KAL)
-        fprintf(fid_geod, '%.8f\t%.8f\t%.3f\n', phi_KAL(i), lam_KAL(i), h_KAL(i));
+        if (geoid.ncols ~= 0)
+            %geoid ondulation interpolation
+            N = grid_bilin_interp(lam_KAL(i), phi_KAL(i), geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+            %orthometric height
+            h = h_KAL(i) - N;
+        end
+        fprintf(fid_geod, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORD_KAL(i), EST_KAL(i), h, X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
     fclose(fid_geod);
-end
-
-%----------------------------------------------------------------------------------------------
-% UTM COORDINATES SAVING (TEXT FILE)
-%----------------------------------------------------------------------------------------------
-
-if (mode < 12)
-    %display information
-    fprintf('Writing UTM coordinates file...\n');
-    %cartesian coordinates (X,Y,Z)
-    X_KAL = pos_KAL(1,:)';
-    Y_KAL = pos_KAL(2,:)';
-    Z_KAL = pos_KAL(3,:)';
-
-    %coordinate transformation
-    [EST_KAL, NORD_KAL, h_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
-
-    %trajectory plotting
-    figure
-    plot(EST_KAL, NORD_KAL, '.r');
-    xlabel('EST [m]'); ylabel('NORD [m]'); grid on;
-
-    %data saving
-    fid_plan = fopen([filerootOUT '_plan.txt'], 'wt');
-    for i = 1 : length(EST_KAL)
-        fprintf(fid_plan, '%.3f\t%.3f\t%.3f\n', EST_KAL(i), NORD_KAL(i), h_KAL(i));
-    end
-    fclose(fid_plan);
 end
 
 %----------------------------------------------------------------------------------------------
