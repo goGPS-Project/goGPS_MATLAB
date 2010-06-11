@@ -70,7 +70,8 @@ if (~isempty(dir(filename_R_obs)) & ~isempty(dir(filename_M_obs)) & (~isempty(di
     time_M = time_GPS;
     
     %GPS week number
-    week_R = floor((date - datenum([1980,1,6,0,0,0]))/7);
+    date(:,1) = date(:,1) + 2000;
+    week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
     
     %select ephemerides source
     if (~Eph_M)
@@ -78,7 +79,7 @@ if (~isempty(dir(filename_R_obs)) & ~isempty(dir(filename_M_obs)) & (~isempty(di
     else
         Eph_tmp = Eph_M;
     end
-    
+
     %reconstruct ephemerides complete set
     Eph = zeros(29,32,length(time_GPS));
     for i = 1 : length(time_GPS)
