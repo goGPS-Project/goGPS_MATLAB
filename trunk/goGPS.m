@@ -1049,8 +1049,9 @@ if (mode < 12)
             h = h_KAL(i) - N;
             %file writing
             fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORD_KAL(i), EST_KAL(i), h, X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        else
+            fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%s\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORD_KAL(i), EST_KAL(i), 'N.A.', X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
         end
-        fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%s\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORD_KAL(i), EST_KAL(i), 'N.A.', X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
     fclose(fid_out);
 end
