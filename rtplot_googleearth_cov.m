@@ -69,17 +69,17 @@ MM = NM * (1 - e^2) / (1 - e^2 * (sin(phiR))^2);
 RM = sqrt(NM*MM);
 
 %conversion into metric coordinates
-[EST, NORD] = geod2plan(phiR,lamR);
+[EAST, NORTH] = geod2plan(phiR,lamR);
 
 %covariance propagation
 covpos_R = global2localCov(covpos_R, pos_R);
 
 T = chol(covpos_R(1:2,1:2));        % Cholesky decomposition
 for j = 1 : size(x_circle,1)        % ellipse computation
-    x_ellipse(j,:) = x_circle(j,:) * T + [EST, NORD];
+    x_ellipse(j,:) = x_circle(j,:) * T + [EAST, NORTH];
 
     %approximate conversion to geodetic coordinates
-    delta(1,:) = x_ellipse(j,:) - [EST, NORD];
+    delta(1,:) = x_ellipse(j,:) - [EAST, NORTH];
     deltaPhi = delta(1,2) / RM;
     deltaLam = delta(1,1) / (RM * cos(phiR));
     geod_ellipse(j,:) = [deltaLam, deltaPhi] + [lamR, phiR];
