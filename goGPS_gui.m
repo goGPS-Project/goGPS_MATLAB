@@ -22,7 +22,7 @@ function varargout = goGPS_gui(varargin)
 
 % Edit the above text to modify the response to help goGPS_gui
 
-% Last Modified by GUIDE v2.5 10-Jun-2010 19:32:19
+% Last Modified by GUIDE v2.5 12-Jun-2010 17:22:30
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -90,7 +90,7 @@ function varargout = goGPS_gui_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(19,1);
+    varargout = cell(20,1);
     return
 end
 contents_mode = cellstr(get(handles.mode,'String'));
@@ -140,6 +140,7 @@ flag_cov = get(handles.err_ellipse,'Value');
 flag_NTRIP = get(handles.use_ntrip,'Value');
 flag_amb = get(handles.plot_amb,'Value');
 flag_skyplot = get(handles.no_skyplot_snr,'Value');
+flag_plotproc = get(handles.plotproc,'Value');
 filerootIN = get(handles.gogps_data_input,'String');
 filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
 filerootIN(filerootIN == '\') = '/';
@@ -195,14 +196,15 @@ varargout{8} = flag_cov;
 varargout{9} = flag_NTRIP;
 varargout{10} = flag_amb;
 varargout{11} = flag_skyplot;
-varargout{12} = filerootIN;
-varargout{13} = filerootOUT;
-varargout{14} = filename_R_obs;
-varargout{15} = filename_R_nav;
-varargout{16} = filename_M_obs;
-varargout{17} = filename_M_nav;
-varargout{18} = filename_ref;
-varargout{19} = pos_M_man;
+varargout{12} = flag_plotproc;
+varargout{13} = filerootIN;
+varargout{14} = filerootOUT;
+varargout{15} = filename_R_obs;
+varargout{16} = filename_R_nav;
+varargout{17} = filename_M_obs;
+varargout{18} = filename_M_nav;
+varargout{19} = filename_ref;
+varargout{20} = pos_M_man;
 
 global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -304,6 +306,7 @@ state.err_ellipse = get(handles.err_ellipse, 'Value');
 state.use_ntrip = get(handles.use_ntrip, 'Value');
 state.plot_amb = get(handles.plot_amb, 'Value');
 state.no_skyplot_snr = get(handles.no_skyplot_snr, 'Value');
+state.plotproc = get(handles.plotproc, 'Value');
 state.RINEX_rover_obs = get(handles.RINEX_rover_obs,'String');
 state.RINEX_rover_nav = get(handles.RINEX_rover_nav,'String');
 state.RINEX_master_obs = get(handles.RINEX_master_obs,'String');
@@ -374,6 +377,7 @@ set(handles.err_ellipse, 'Value', state.err_ellipse);
 set(handles.use_ntrip, 'Value', state.use_ntrip);
 set(handles.plot_amb, 'Value', state.plot_amb);
 set(handles.no_skyplot_snr, 'Value', state.no_skyplot_snr);
+set(handles.plotproc, 'Value', state.plotproc);
 set(handles.RINEX_rover_obs,'String', state.RINEX_rover_obs);
 set(handles.RINEX_rover_nav,'String', state.RINEX_rover_nav);
 set(handles.RINEX_master_obs,'String', state.RINEX_master_obs);
@@ -476,6 +480,7 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
+    set(handles.plotproc, 'Enable', 'on');
 
     nav_mon_Callback(handles.nav_mon, eventdata, handles);
 
@@ -711,6 +716,7 @@ if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference') | 
 else
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
+    set(handles.plotproc, 'Enable', 'on');
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
@@ -764,6 +770,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.text_com_select, 'Enable', 'on');
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
+    set(handles.plotproc, 'Enable', 'on');
 
     set(handles.gogps_data_output, 'Enable', 'on');
     set(handles.text_gogps_data_output, 'Enable', 'on');
@@ -812,6 +819,7 @@ else
     set(handles.err_ellipse, 'Enable', 'off');
     set(handles.google_earth, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'off');
+    set(handles.plotproc, 'Enable', 'off');
     %set(handles.gogps_data_output, 'Enable', 'off');
     %set(handles.text_gogps_data_output, 'Enable', 'off');
     %set(handles.browse_gogps_data_output, 'Enable', 'off');
@@ -2493,3 +2501,12 @@ function RINEX2goGPSbin_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 RINEX2goGPSbin_gui;
+
+
+% --- Executes on button press in plotproc.
+function plotproc_Callback(hObject, eventdata, handles)
+% hObject    handle to plotproc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of plotproc
