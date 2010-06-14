@@ -63,7 +63,7 @@ mode_user = 1;  % user interface type
 %initialization of global variables/constants
 global_init;
 
-global o1 o2 o3 h_antenna
+global order o1 o2 o3 h_antenna cutoff weights
 
 if (mode_user == 1)
 
@@ -1110,9 +1110,45 @@ if (mode < 12)
     paperSize = get(f,'PaperSize');
     set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
     
-    %statistics
-    f1 = subplot(7,3,[7 10]);
+    %settings
+    f1 = subplot(7,3,[1 4]);
     set(f1,'Visible','off');
+    switch mode
+        case 1
+            text(0,0.80,sprintf('Mode: code and phase\n        double difference'));
+            text(0,0.65,sprintf('Kalman filter: yes'));
+        case 3
+            text(0,0.80,sprintf('Mode: code\n        double difference'));
+            text(0,0.65,sprintf('Kalman filter: no'));
+        case 4
+            text(0,0.80,sprintf('Mode: code\n        stand alone'));
+            text(0,0.65,sprintf('Kalman filter: no'));
+    end
+    if (mode ~= 3) & (mode ~= 4)
+        switch order
+            case 1
+                text(0,0.55,sprintf('Dynamics: static'));
+            case 2
+                text(0,0.55,sprintf('Dynamics: constant\n            velocity'));
+            case 3
+                text(0,0.55,sprintf('Dynamics: constant\n            acceleration'));
+        end
+    end
+    text(0,0.45,sprintf('Cutoff: %d deg', cutoff));
+    switch weights
+        case 0
+            text(0,0.35,sprintf('Weights: no weights'));
+        case 1
+            text(0,0.35,sprintf('Weights: elevation'));
+        case 2
+            text(0,0.35,sprintf('Weights: SNR'));
+        case 3
+            text(0,0.35,sprintf('Weights: elevation\n           and SNR'));
+    end
+    
+    %statistics
+    f2 = subplot(7,3,[7 10]);
+    set(f2,'Visible','off');
     text(0,0.70,sprintf('Mean East: %.3f', mean(EAST_KAL)));
     text(0,0.60,sprintf('Mean North: %.3f', mean(NORTH_KAL)));
     text(0,0.50,sprintf('Mean h: %.3f', mean(h_KAL)));
@@ -1121,7 +1157,7 @@ if (mode < 12)
     text(0,0.10,sprintf('St.Dev. h: %.3f', std(h_KAL)));
     
     %trajectory plotting
-    f2 = subplot(7,3,[2 3 5 6 8 9 11 12]);
+    f3 = subplot(7,3,[2 3 5 6 8 9 11 12]);
     EAST_plot = EAST_KAL(KHDOP < KHDOP_thres);
     NORTH_plot = NORTH_KAL(KHDOP < KHDOP_thres);
     plot(EAST_plot, NORTH_plot, '.b');
@@ -1131,25 +1167,25 @@ if (mode < 12)
     plot(EAST_plot, NORTH_plot, '.r');
     axis equal
     xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
-    if (KHDOP_thres ~= 0)
+    if (KHDOP_thres ~= 0) & (max(KHDOP) ~= 0)
         legend(['KHDOP < ' num2str(KHDOP_thres, 3)],['KHDOP > ' num2str(KHDOP_thres, 3)],'Location','SouthOutside');
     end
     
     %satellite number
-    f3 = subplot(7,3,[13 14 15]);
+    f4 = subplot(7,3,[13 14 15]);
     nsat = sum(abs(conf_sat),1);
     plot(nsat); grid on;
     title('Number of satellites');
     
     %EAST plot
-    f4 = subplot(7,3,[16 17 18]);
+    f5 = subplot(7,3,[16 17 18]);
     plot(EAST_KAL); grid on
     hold on
     plot([1, nObs], [mean(EAST_KAL) mean(EAST_KAL)],'r');
     title('East coordinates (blue); East mean value (red)');
     
     %NORTH plot
-    f5 = subplot(7,3,[19 20 21]);
+    f6 = subplot(7,3,[19 20 21]);
     plot(NORTH_KAL); grid on
     hold on
     plot([1, nObs], [mean(NORTH_KAL) mean(NORTH_KAL)],'r');
@@ -1354,7 +1390,7 @@ if (mode < 12)
         fprintf(fid_kml, '      <Placemark>\n');
         if (pivot(i) == 0)
             fprintf(fid_kml, '        <styleUrl>#go3</styleUrl>\n');
-        elseif (KHDOP(i)>2)
+        elseif (KHDOP(i)>KHDOP_thres)
             fprintf(fid_kml, '        <styleUrl>#go2</styleUrl>\n');
         else
             fprintf(fid_kml, '        <styleUrl>#go1</styleUrl>\n');
