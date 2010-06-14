@@ -253,7 +253,7 @@ global flag_LS_N_estim
 %
 % NOTE: LS amb. estimation is automatically switched off when the number of
 % satellites with phase available is not sufficient (< 4 incl. pivot)
-flag_LS_N_estim = 1;
+flag_LS_N_estim = 0;
 
 %-------------------------------------------------------------------------------
 % PHASE-SMOOTHED CODE
