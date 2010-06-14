@@ -1,12 +1,12 @@
-function [dist,proj] = ref_2d_projection(ref,EST,NORD)
+function [dist,proj] = ref_2d_projection(ref,EAST,NORTH)
 
 % SYNTAX:
-%   [dist,proj] = ref_2d_projection(ref,EST,NORD)
+%   [dist,proj] = ref_2d_projection(ref,EAST,NORTH)
 %
 % INPUT:
 %   ref = reference path (X,Y,Z coordinates of the vertices)
-%   EST = estimated trajectory in UTM coordinates (EAST)
-%   NORD = estimated trajectory in UTM coordinates (NORTH)
+%   EAST = estimated trajectory in UTM coordinates (EAST)
+%   NORTH = estimated trajectory in UTM coordinates (NORTH)
 %
 % OUTPUT:
 %   dist = 2D distance of each estimated point from the reference
@@ -62,9 +62,9 @@ ay = ay ./ ad;
 %offset of the curvilinear coordinate
 s0 = [0; cumsum(ad)];
 
-for j = 1 : length(EST)
-    pos_R(1) = EST(j);
-    pos_R(2) = NORD(j);
+for j = 1 : length(EAST)
+    pos_R(1) = EAST(j);
+    pos_R(2) = NORTH(j);
 
     d0 = sqrt((pos_R(1) - ref(:,1)).^2 + ...
               (pos_R(2) - ref(:,2)).^2);

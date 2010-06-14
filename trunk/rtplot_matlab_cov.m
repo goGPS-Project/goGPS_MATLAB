@@ -46,7 +46,7 @@ function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, chec
 
 global pivot
 global msid pid p_max
-global EST_O NORD_O
+global EAST_O NORTH_O
 global x_circle id_ellipse
 
 %-------------------------------------------------------------------------------
@@ -69,18 +69,18 @@ if (t == 1)
     hold on
     
     % fixing of the origin O
-    %EST_O = 0; %NORD_O = 0;
-    %EST_O = EST_M; %NORD_O = NORD_M;
-    [EST_O, NORD_O] = cart2plan(pos_R(1), pos_R(2), pos_R(3));
+    %EAST_O = 0; %NORTH_O = 0;
+    %EAST_O = EST_M; %NORTH_O = NORD_M;
+    [EAST_O, NORTH_O] = cart2plan(pos_R(1), pos_R(2), pos_R(3));
     
     if ~isempty(ref) % & ~isempty(matrix)
-        [EST_ref, NORD_ref, h_ref] = cart2plan(ref(:,1), ref(:,2), ref(:,3)); %#ok<NASGU>
+        [EAST_ref, NORTH_ref, h_ref] = cart2plan(ref(:,1), ref(:,2), ref(:,3)); %#ok<NASGU>
         
-        plot(EST_ref-EST_O, NORD_ref-NORD_O, 'm', 'LineWidth', 2);
-        for i = 1 : length(EST_ref)-1
-            for j = i+1 : length(EST_ref)
+        plot(EAST_ref-EAST_O, NORTH_ref-NORTH_O, 'm', 'LineWidth', 2);
+        for i = 1 : length(EAST_ref)-1
+            for j = i+1 : length(EAST_ref)
                 if (matrix(i,j) == 1)
-                    plot([EST_ref(i)-EST_O,EST_ref(j)-EST_O],[NORD_ref(i)-NORD_O,NORD_ref(j)-NORD_O],'-m', 'LineWidth', 2);
+                    plot([EAST_ref(i)-EAST_O,EAST_ref(j)-EAST_O],[NORTH_ref(i)-NORTH_O,NORTH_ref(j)-NORTH_O],'-m', 'LineWidth', 2);
                 end
             end
         end
@@ -94,9 +94,9 @@ if (origin & sum(abs(pos_M)) ~= 0)
 
     %master station plot
     if (isempty(msid))
-        msid = plot(EST_M-EST_O, NORD_M-NORD_O, 'xm', 'LineWidth', 2);
+        msid = plot(EST_M-EAST_O, NORD_M-NORTH_O, 'xm', 'LineWidth', 2);
     else
-        set(msid, 'XData', EST_M-EST_O, 'YData', NORD_M-NORD_O);
+        set(msid, 'XData', EST_M-EAST_O, 'YData', NORD_M-NORTH_O);
     end
 end
 
@@ -109,7 +109,7 @@ Y = pos_R(2);
 Z = pos_R(3);
 
 %conversion into metric coordinates
-[EST, NORD] = cart2plan(X, Y, Z);
+[EAST, NORTH] = cart2plan(X, Y, Z);
 
 %color choice
 if (pivot == 0)
@@ -128,10 +128,10 @@ end
 
 %Kalman filter path plot
 if (t <= p_max)
-    pid(t) = plot(EST-EST_O, NORD-NORD_O, ['.' pcol]);
+    pid(t) = plot(EAST-EAST_O, NORTH-NORTH_O, ['.' pcol]);
 else
     i = mod(t-1,p_max) + 1;
-    set(pid(i), 'XData', EST-EST_O, 'YData', NORD-NORD_O, 'Color', pcol);
+    set(pid(i), 'XData', EAST-EAST_O, 'YData', NORTH-NORTH_O, 'Color', pcol);
 end
 
 %-------------------------------------------------------------------------------
@@ -141,7 +141,7 @@ covpos_R = global2localCov(covpos_R, pos_R);
 
 T = chol(covpos_R(1:2,1:2));        % Cholesky decomposition
 for j = 1 : size(x_circle,1)        % ellipse computation
-    x_ellipse(j,:) = x_circle(j,:) * T + [EST-EST_O, NORD-NORD_O];
+    x_ellipse(j,:) = x_circle(j,:) * T + [EAST-EAST_O, NORTH-NORTH_O];
 end
 
 %ellipse plot

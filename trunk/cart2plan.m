@@ -1,7 +1,7 @@
-function [EST, NORD, h] = cart2plan(X, Y, Z)
+function [EAST, NORTH, h] = cart2plan(X, Y, Z)
 
 % SYNTAX:
-%   [EST, NORD, h] = cart2plan(X, Y, Z);
+%   [EAST, NORTH, h] = cart2plan(X, Y, Z);
 %
 % INPUT:
 %   X = X axis cartesian coordinate
@@ -9,8 +9,8 @@ function [EST, NORD, h] = cart2plan(X, Y, Z)
 %   Z = Z axis cartesian coordinate
 %
 % OUTPUT:
-%   EST = EAST coordinate
-%   NORD = NORTH coordinate
+%   EAST = EAST coordinate
+%   NORTH = NORTH coordinate
 %   h = ellipsoidal height
 %
 % DESCRIPTION:
@@ -54,6 +54,6 @@ phi = atan(Z./sqrt(X.^2 + Y.^2));
 [phi, lam, h] = geoc2geod(phi, lam, r, a, e);
 
 %projection to UTM
-[EST, NORD] = geod2plan(phi, lam);
+[EAST, NORTH] = geod2plan(phi, lam);
 
 %-------------------------------------------------------------------------------

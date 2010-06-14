@@ -191,7 +191,7 @@ hui_poll_rate = 3600; %[sec]
 global p_max pid
 global satid labid pivid
 global window
-global EST_O NORD_O
+global EAST_O NORTH_O
 global x_circle id_ellipse
 
 %maximum number of drawn trajectory points
@@ -212,8 +212,8 @@ msid = [];
 window = 20;
 
 %reference origin
-EST_O = 0;
-NORD_O = 0;
+EAST_O = 0;
+NORTH_O = 0;
 
 %reference circle (for covariance plot)
 try

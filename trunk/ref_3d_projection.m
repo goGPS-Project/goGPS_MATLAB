@@ -1,12 +1,12 @@
-function [dist,proj] = ref_3d_projection(ref,EST,NORD,h)
+function [dist,proj] = ref_3d_projection(ref,EAST,NORTH,h)
 
 % SYNTAX:
-%   [dist,proj] = ref_3d_projection(ref,EST,NORD,h)
+%   [dist,proj] = ref_3d_projection(ref,EAST,NORTH,h)
 %
 % INPUT:
 %   ref = reference path (X,Y,Z coordinates of the vertices)
-%   EST = estimated trajectory in UTM coordinates (EAST)
-%   NORD = estimated trajectory in UTM coordinates (NORTH)
+%   EAST = estimated trajectory in UTM coordinates (EAST)
+%   NORTH = estimated trajectory in UTM coordinates (NORTH)
 %   h = ellipsoid height
 %
 % OUTPUT:
@@ -65,9 +65,9 @@ az = az ./ ad;
 %offset of the curvilinear coordinate
 s0 = [0; cumsum(ad)];
 
-for j = 1 : length(EST)
-    pos_R(1) = EST(j);
-    pos_R(2) = NORD(j);
+for j = 1 : length(EAST)
+    pos_R(1) = EAST(j);
+    pos_R(2) = NORTH(j);
     pos_R(3) = h(j);
 
     d0 = sqrt((pos_R(1) - ref(:,1)).^2 + ...

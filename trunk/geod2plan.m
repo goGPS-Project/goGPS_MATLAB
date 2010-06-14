@@ -1,15 +1,15 @@
-function [EST, NORD, M, nord_sud] = geod2plan(lat, lon)
+function [EAST, NORTH, M, nord_sud] = geod2plan(lat, lon)
 
 % SYNTAX:
-%   [EST, NORD, M, nord_sud] = geod2plan(lat, lon);
+%   [EAST, NORTH, M, nord_sud] = geod2plan(lat, lon);
 %
 % INPUT:
 %   lat = latitude [rad]
 %   lon = longitude [rad]
 %
 % OUTPUT:
-%   EST = EAST coordinate [m]
-%   NORD = NORTH coordinate [m]
+%   EAST = EAST coordinate [m]
+%   NORTH = NORTH coordinate [m]
 %   M = UTM zone
 %   nord_sud = (north=1), (south=0)
 %
@@ -41,8 +41,8 @@ function [EST, NORD, M, nord_sud] = geod2plan(lat, lon)
 n=size(lat);
 n=n(1,1);
 
-EST = [];
-NORD = [];
+EAST = [];
+NORTH = [];
 
 %conversion algorithm
 %UTM parameters
@@ -201,6 +201,6 @@ for i=1:n
         NoEq(i,1)=10000000;
     end
 
-    NORD(i,1)=NoEq(i,1)+xx(i,1);
-    EST(i,1)=EsMc+yy(i,1);
+    NORTH(i,1)=NoEq(i,1)+xx(i,1);
+    EAST(i,1)=EsMc+yy(i,1);
 end

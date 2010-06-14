@@ -4,7 +4,7 @@ function dtm_bulk_load(dtm_dir_path, tile_size)
 %   dtm_bulk_load(dtm_dir_path, tile_size);
 %
 % INPUT:
-%   dtm_path = path to ASCII-GRID files
+%   dtm_dir_path = path to ASCII-GRID files
 %   tile_size = size of the tile side (number of cells, default=100)
 %
 % DESCRIPTION:
