@@ -1097,14 +1097,14 @@ if (mode < 12)
 end
 
 %----------------------------------------------------------------------------------------------
-% REPORT FILE (PDF)
+% REPORT FILE (PDF) (for static surveys)
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12)
     %display information
     fprintf('Writing report file (PDF)...\n');
     
-    KHDOP_thres = 2;
+    KHDOP_thres = 0.05;
     
     f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','portrait','PaperUnits','centimeters','PaperType','A4');
     paperSize = get(f,'PaperSize');
@@ -1151,10 +1151,10 @@ if (mode < 12)
     set(f2,'Visible','off');
     text(0,0.70,sprintf('Mean East: %.3f', mean(EAST_KAL)));
     text(0,0.60,sprintf('Mean North: %.3f', mean(NORTH_KAL)));
-    text(0,0.50,sprintf('Mean h: %.3f', mean(h_KAL)));
+    text(0,0.50,sprintf('Mean h (ell.): %.3f', mean(h_KAL)));
     text(0,0.30,sprintf('St.Dev. East: %.3f', std(EAST_KAL)));
     text(0,0.20,sprintf('St.Dev. North: %.3f', std(NORTH_KAL)));
-    text(0,0.10,sprintf('St.Dev. h: %.3f', std(h_KAL)));
+    text(0,0.10,sprintf('St.Dev. h (ell.): %.3f', std(h_KAL)));
     
     %trajectory plotting
     f3 = subplot(7,3,[2 3 5 6 8 9 11 12]);
