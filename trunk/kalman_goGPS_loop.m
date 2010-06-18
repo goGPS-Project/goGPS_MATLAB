@@ -70,6 +70,7 @@ global tile_header tile_georef dtm_dir
 global h_antenna
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
+global X_comb C_comb
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global flag_LS_N_estim
@@ -725,3 +726,20 @@ KVDOP = sqrt(Cee_ENU(3,3));
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1) + Cee(o1+1,o1+1) + Cee(o2+1,o2+1));
+
+%--------------------------------------------------------------------------------------------
+% STATIC POSITIONING
+%--------------------------------------------------------------------------------------------
+
+if o1 == 1
+    
+    X_2 = zeros(3,1);
+    C_2 = zeros(3,3);
+    
+    X_2 = Xhat_t_t(1:3,1);
+    C_2 = Cee(1:3,1:3);
+
+    X_comb = (inv(C_comb)+inv(C_2))^-1*(inv(C_comb)*X_comb+inv(C_2)*X_2);
+    C_comb = (inv(C_comb)+inv(C_2))^-1;
+else
+end
