@@ -53,8 +53,8 @@ tic
 %----------------------------------------------------------------------------------------------
 
 mode_user = 1;  % user interface type
-                % mode_user=0 --> use text interface
-                % mode_user=1 --> use GUI
+% mode_user=0 --> use text interface
+% mode_user=1 --> use GUI
 
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
@@ -81,33 +81,33 @@ else
     %-------------------------------------------------------------------------------------------
 
     mode =   1;       % functioning mode
-                      % POST-PROCESSING
-                      % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-                      % mode=2  --> KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT (to be implemented)
-                      % mode=3  --> LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-                      % mode=4  --> LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
-                      % mode=5  --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-                      % mode=6  --> KALMAN FILTER ON CODE, NO CONSTRAINT
-                      % mode=7  --> ....
-                      % mode=8  --> ....
-                      % mode=9  --> ....
-                      % REAL-TIME
-                      % mode=11 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-                      % mode=12 --> U-BLOX MONITORING
-                      % mode=13 --> MASTER MONITORING
-                      % mode=14 --> ROVER AND MASTER MONITORING
+    % POST-PROCESSING
+    % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
+    % mode=2  --> KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT (to be implemented)
+    % mode=3  --> LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
+    % mode=4  --> LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
+    % mode=5  --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
+    % mode=6  --> KALMAN FILTER ON CODE, NO CONSTRAINT
+    % mode=7  --> ....
+    % mode=8  --> ....
+    % mode=9  --> ....
+    % REAL-TIME
+    % mode=11 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
+    % mode=12 --> U-BLOX MONITORING
+    % mode=13 --> MASTER MONITORING
+    % mode=14 --> ROVER AND MASTER MONITORING
 
     mode_vinc = 0;    % navigation mode
-                      % mode_vinc=0 --> without linear constraint
-                      % mode_vinc=1 --> with linear constraint
+    % mode_vinc=0 --> without linear constraint
+    % mode_vinc=1 --> with linear constraint
 
     mode_data = 1;    % data loading mode
-                      % mode_data=0 --> RINEX data
-                      % mode_data=1 --> goGPS binary data
+    % mode_data=0 --> RINEX data
+    % mode_data=1 --> goGPS binary data
 
     mode_ref = 0;     % reference path mode
-                      % mode_ref=0 --> do not use a reference path
-                      % mode_ref=1 --> use a reference path (plot it and use it for statistics)
+    % mode_ref=0 --> do not use a reference path
+    % mode_ref=1 --> use a reference path (plot it and use it for statistics)
 
     flag_ms_pos = 1; % read master station position from RTCM or RINEX header
 
@@ -122,7 +122,7 @@ else
     flag_amb = 0;     % plot ambiguities (only in post-processing)
 
     flag_skyplot = 1; % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
-    
+
     flag_plotproc = 1;% plot while processing
 
     %----------------------------------------------------------------------------------------------
@@ -175,7 +175,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (mode < 10) %post-processing
-    
+
     if (mode_data == 0)
 
         %read data from RINEX files
@@ -192,7 +192,7 @@ if (mode < 10) %post-processing
         else
             Eph = Eph_M;
         end
-        
+
         %select ionosphere parameters source
         iono = iono_R;
 
@@ -257,8 +257,8 @@ if (mode < 10) %post-processing
 
         %read data from goGPS saved files
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-         pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
-        
+            pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
+
         %remove epochs without ephemerides
         while (sum(Eph(:,:,1)) == 0)
             time_R(1)    = [];                         %GPS time
@@ -317,7 +317,7 @@ if (mode < 10) %post-processing
         loss_M = loss_M(tMin:tMax);
         date = date(tMin:tMax,:);
     end
-    
+
     %MASTER station position management
     if (flag_ms_pos) & (sum(abs(pos_M)) ~= 0)
         if (size(pos_M,2) == 1)
@@ -341,7 +341,7 @@ else %real-time
     else
         pos_M = pos_M_man;
     end
-    
+
     %for the Kalman filter execution in real-time
     pr2_M = zeros(32,1);
     pr2_R = zeros(32,1);
@@ -440,9 +440,9 @@ if (mode == 1) & (mode_vinc == 0)
     fclose(fid_dop);
     fclose(fid_conf);
 
-%----------------------------------------------------------------------------------------------
-% POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH A CONSTRAINT
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH A CONSTRAINT
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 1) & (mode_vinc == 1)
 
@@ -499,7 +499,7 @@ elseif (mode == 1) & (mode_vinc == 1)
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-        
+
         if (flag_plotproc)
             if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date(t,:)), end;
             rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
@@ -523,9 +523,9 @@ elseif (mode == 1) & (mode_vinc == 1)
     fclose(fid_dop);
     fclose(fid_conf);
 
-%----------------------------------------------------------------------------------------------
-% POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE, STAND-ALONE AND WITHOUT A CONSTRAINT
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE, STAND-ALONE AND WITHOUT A CONSTRAINT
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 2)
 
@@ -546,7 +546,7 @@ elseif (mode == 2)
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-    
+
     if (flag_plotproc)
         if (flag_cov == 0)
             if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(1,:)), end;
@@ -578,7 +578,7 @@ elseif (mode == 2)
         end
 
         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop (time_GPS(t), Eph_t, iono, pr1_R(:,t-1:t), ph1_R(:,t-1:t), pr2_R(:,t-1:t), ph2_R(:,t-1:t), snr_R(:,t), 1);
-        
+
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
@@ -612,9 +612,9 @@ elseif (mode == 2)
     fclose(fid_dop);
     fclose(fid_conf);
 
-%----------------------------------------------------------------------------------------------
-% POST-PROCESSING: LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % POST-PROCESSING: LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 3)
 
@@ -702,9 +702,9 @@ elseif (mode == 3)
     fclose(fid_dop);
     fclose(fid_conf);
 
-%----------------------------------------------------------------------------------------------
-% POST-PROCESSING: LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % POST-PROCESSING: LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 4)
 
@@ -792,9 +792,9 @@ elseif (mode == 4)
     fclose(fid_dop);
     fclose(fid_conf);
 
-%----------------------------------------------------------------------------------------------
-% POST-PROCESSING: KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % POST-PROCESSING: KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 5)
 
@@ -882,9 +882,9 @@ elseif (mode == 5)
     fclose(fid_dop);
     fclose(fid_conf);
 
-%----------------------------------------------------------------------------------------------
-% POST-PROCESSING: KALMAN FILTER ON CODE, NO CONSTRAINT
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % POST-PROCESSING: KALMAN FILTER ON CODE, NO CONSTRAINT
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 6)
 
@@ -972,36 +972,36 @@ elseif (mode == 6)
     fclose(fid_dop);
     fclose(fid_conf);
 
-%----------------------------------------------------------------------------------------------
-% REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 11)
 
     goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
 
-%----------------------------------------------------------------------------------------------
-% REAL-TIME: ROVER MONITORING
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % REAL-TIME: ROVER MONITORING
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 12)
 
     goGPS_ublox_monitor(filerootOUT);
 
-%----------------------------------------------------------------------------------------------
-% REAL-TIME: MASTER MONITORING
-%----------------------------------------------------------------------------------------------
+    %----------------------------------------------------------------------------------------------
+    % REAL-TIME: MASTER MONITORING
+    %----------------------------------------------------------------------------------------------
 
 elseif (mode == 13)
 
     goGPS_master_monitor(filerootOUT, flag_NTRIP);
 
-%----------------------------------------------------------------------------------------------
-% REAL-TIME: ROVER AND MASTER MONITORING
-%----------------------------------------------------------------------------------------------
-    
+    %----------------------------------------------------------------------------------------------
+    % REAL-TIME: ROVER AND MASTER MONITORING
+    %----------------------------------------------------------------------------------------------
+
 elseif (mode == 14)
-    
+
     goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
 
 end
@@ -1018,10 +1018,10 @@ if (mode < 12)
     %---------------------------------
 
     %observation file (OBS) and ephemerides file (EPH) reading
-	if (mode == 11)
+    if (mode == 11)
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
-        pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
-	end
+            pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
+    end
 
     %---------------------------------
 
@@ -1070,10 +1070,10 @@ if (mode < 12)
     [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
     phi_KAL = phi_KAL * 180/pi;
     lam_KAL = lam_KAL * 180/pi;
-    
+
     %coordinate transformation (UTM)
     [EAST_KAL, NORTH_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
-    
+
     %initialize geoid ondulation
     N = [];
     h_ortho = zeros(1,nObs);
@@ -1103,13 +1103,13 @@ end
 if (mode < 12)
     %display information
     fprintf('Writing report file (PDF)...\n');
-    
+
     KHDOP_thres = 0.05;
-    
+
     f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','portrait','PaperUnits','centimeters','PaperType','A4');
     paperSize = get(f,'PaperSize');
     set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-    
+
     %settings
     f1 = subplot(7,3,[1 4]);
     set(f1,'Visible','off');
@@ -1145,6 +1145,12 @@ if (mode < 12)
         case 3
             text(0,0.35,sprintf('Weights: elevation\n           and SNR'));
     end
+
+    if o1 == 1
+        % STATIC POINT POSITIONING
+        %coordinate transformation (UTM)
+        [EAST_comb, NORTH_comb, h_comb] = cart2plan(X_comb(1), X_comb(2), X_comb(3));
+    end
     
     %statistics
     f2 = subplot(7,3,[7 10]);
@@ -1155,7 +1161,7 @@ if (mode < 12)
     text(0,0.30,sprintf('St.Dev. East: %.3f', std(EAST_KAL)));
     text(0,0.20,sprintf('St.Dev. North: %.3f', std(NORTH_KAL)));
     text(0,0.10,sprintf('St.Dev. h (ell.): %.3f', std(h_KAL)));
-    
+
     %trajectory plotting
     f3 = subplot(7,3,[2 3 5 6 8 9 11 12]);
     EAST_plot = EAST_KAL(KHDOP < KHDOP_thres);
@@ -1165,35 +1171,54 @@ if (mode < 12)
     hold on
     NORTH_plot = NORTH_KAL(KHDOP >= KHDOP_thres);
     plot(EAST_plot, NORTH_plot, '.r');
+%     if o1 == 1
+%     %point positioning solution plotting
+%     plot(EAST_comb, NORTH_comb, '*b');
+%     end
     axis equal
     xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
     if (KHDOP_thres ~= 0) & (max(KHDOP) ~= 0)
         legend(['KHDOP < ' num2str(KHDOP_thres, 3)],['KHDOP > ' num2str(KHDOP_thres, 3)],'Location','SouthOutside');
     end
-    
+
     %satellite number
     f4 = subplot(7,3,[13 14 15]);
     nsat = sum(abs(conf_sat),1);
     plot(nsat); grid on;
     title('Number of satellites');
-    
-    %EAST plot
-    f5 = subplot(7,3,[16 17 18]);
-    plot(EAST_KAL); grid on
-    hold on
-    plot([1, nObs], [mean(EAST_KAL) mean(EAST_KAL)],'r');
-    title('East coordinates (blue); East mean value (red)');
-    
-    %NORTH plot
-    f6 = subplot(7,3,[19 20 21]);
-    plot(NORTH_KAL); grid on
-    hold on
-    plot([1, nObs], [mean(NORTH_KAL) mean(NORTH_KAL)],'r');
-    title('North coordinates (blue); North mean value (red)');
-    
+    if o1 == 1
+        %EAST plot
+        f5 = subplot(7,3,[16 17 18]);
+        plot(EAST_KAL); grid on
+        hold on
+        plot([1, nObs], [EAST_comb EAST_comb],'r');
+        title('East coordinates (blue); East mean value (red)');
+
+        %NORTH plot
+        f6 = subplot(7,3,[19 20 21]);
+        plot(NORTH_KAL); grid on
+        hold on
+        plot([1, nObs], [NORTH_comb NORTH_comb],'r');
+        title('North coordinates (blue); North mean value (red)');
+    else
+        %EAST plot
+        f5 = subplot(7,3,[16 17 18]);
+        plot(EAST_KAL); grid on
+        hold on
+        plot([1, nObs], [mean(EAST_KAL) mean(EAST_KAL)],'r');
+        title('East coordinates (blue); East mean value (red)');
+
+        %NORTH plot
+        f6 = subplot(7,3,[19 20 21]);
+        plot(NORTH_KAL); grid on
+        hold on
+        plot([1, nObs], [mean(NORTH_KAL) mean(NORTH_KAL)],'r');
+        title('North coordinates (blue); North mean value (red)');
+    end
+
     %print PDF
     print(f, '-dpdf', [filerootOUT '_report']);
-    
+
     %remove figure
     close(f)
 end
@@ -1212,9 +1237,9 @@ if (mode < 12)
         date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
         date(:,1) = date(:,1) - 2000;
     end
-    
+
     for i = 1 : nObs
-        
+
         %active satellites
         sat = find(abs(conf_sat(:,i)));
         %number of active satellites
@@ -1267,19 +1292,23 @@ if (mode < 12)
     %URL to load the icon for the points
     iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
     iconM = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
+    iconP = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
     good_point_colorR = 'FFF5005A';
     bad_point_colorR = 'FF0000FF';
     dyn_point_colorR = 'FF00FFFF';
     point_colorM = 'FF00FFFF';
+    point_colorP = 'FF32CD32';
     %point size
     scaleR = 0.2;
     scaleM = 0.8;
+    scaleP = 0.8;
     line_colorR = 'FFF5005A';
     %label color
     label_colorM = point_colorM;
+    label_colorP = point_colorP;
     %label size
     label_scaleM = 0.7;
-    
+    label_scaleP = 0.7;
     %initialization
     phiM = zeros(1, nObs);
     lamM = zeros(1, nObs);
@@ -1291,10 +1320,10 @@ if (mode < 12)
             XM = pos_M(1,i);
             YM = pos_M(2,i);
             ZM = pos_M(3,i);
-            
+
             %conversion from cartesian to geodetic coordinates
             [phiM(i), lamM(i), hM(i)] = cart2geod(XM, YM, ZM);
-            
+
             %conversion from radians to degrees
             lamM(i) = lamM(i)*180/pi;
             phiM(i) = phiM(i)*180/pi;
@@ -1353,20 +1382,34 @@ if (mode < 12)
     fprintf(fid_kml, '          <scale>%s</scale>\n',label_scaleM);
     fprintf(fid_kml, '        </LabelStyle>\n');
     fprintf(fid_kml, '      </Style>\n');
+    fprintf(fid_kml, '      <Style id="ppos">\n');
+    fprintf(fid_kml, '        <IconStyle>\n');
+    fprintf(fid_kml, '          <Icon>\n');
+    fprintf(fid_kml, '            <href>%s</href>\n',iconP);
+    fprintf(fid_kml, '          </Icon>\n');
+    fprintf(fid_kml, '          <color>%s</color>\n',point_colorP);
+    fprintf(fid_kml, '          <colorMode>normal</colorMode>\n');
+    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleP);
+    fprintf(fid_kml, '        </IconStyle>\n');
+    fprintf(fid_kml, '        <LabelStyle>\n');
+    fprintf(fid_kml, '          <color>%s</color>\n',label_colorP);
+    fprintf(fid_kml, '          <scale>%s</scale>\n',label_scaleP);
+    fprintf(fid_kml, '        </LabelStyle>\n');
+    fprintf(fid_kml, '      </Style>\n');
     for i = 1 : length(phiM)
         if (lamM(i) ~= 0 | phiM(i) ~= 0 | hM(i) ~= 0)
-           if (i == 1) | (lamM(i)~=lamM(i-1) & phiM(i)~=phiM(i-1) & hM(i)~=hM(i-1))
-               fprintf(fid_kml, '      <Placemark>\n');
-               fprintf(fid_kml, '        <styleUrl>#master</styleUrl>\n');
-               fprintf(fid_kml, '        <name>Master station</name>\n');
-               fprintf(fid_kml, '        <Point>\n');
-               fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-               fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
-               fprintf(fid_kml, '        </Point>\n');
-               fprintf(fid_kml, '        <Snippet></Snippet>\n');
-               fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
-               fprintf(fid_kml, '      </Placemark>\n');
-           end
+            if (i == 1) | (lamM(i)~=lamM(i-1) & phiM(i)~=phiM(i-1) & hM(i)~=hM(i-1))
+                fprintf(fid_kml, '      <Placemark>\n');
+                fprintf(fid_kml, '        <styleUrl>#master</styleUrl>\n');
+                fprintf(fid_kml, '        <name>Master station</name>\n');
+                fprintf(fid_kml, '        <Point>\n');
+                fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
+                fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
+                fprintf(fid_kml, '        </Point>\n');
+                fprintf(fid_kml, '        <Snippet></Snippet>\n');
+                fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
+                fprintf(fid_kml, '      </Placemark>\n');
+            end
         end
     end
     fprintf(fid_kml, '      <Placemark>\n');
@@ -1403,9 +1446,40 @@ if (mode < 12)
         fprintf(fid_kml, '      </Placemark>\n');
     end
     fprintf(fid_kml, '      </Folder>\n');
+
+
+    if o1 == 1
+        %point positioning coordinates
+        %conversion from cartesian to geodetic coordinates
+        [phiP, lamP, hP] = cart2geod(X_comb(1), X_comb(2), X_comb(3));
+
+        %conversion from radians to degrees
+        lamP = lamP*180/pi;
+        phiP = phiP*180/pi;
+
+        for i = 1 : length(phiP)
+            if (lamP(i) ~= 0 | phiP(i) ~= 0 | hP(i) ~= 0)
+                if (i == 1)
+                    fprintf(fid_kml, '      <Placemark>\n');
+                    fprintf(fid_kml, '        <styleUrl>#ppos</styleUrl>\n');
+                    fprintf(fid_kml, '        <name>Static positioning</name>\n');
+                    fprintf(fid_kml, '        <Point>\n');
+                    fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
+                    fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP(i),phiP(i),hP(i));
+                    fprintf(fid_kml, '        </Point>\n');
+                    fprintf(fid_kml, '        <Snippet></Snippet>\n');
+                    fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP(i),lamP(i),hP(i));
+                    fprintf(fid_kml, '      </Placemark>\n');
+                end
+            end
+        end
+    end
     fprintf(fid_kml, '  </Document>\n</kml>');
     fclose(fid_kml);
+
 end
+
+
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
@@ -1591,7 +1665,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 % if (mode == 1) | (mode == 2)
-% 
+%
 %    for i = 1 : 32
 %       index = find(conf_sat(i,:) == 1)';
 %       index_cs = find(conf_cs(i,:) == 1)';
@@ -1612,7 +1686,7 @@ end
 %          title(['Combination of estimated ambiguities between PIVOT and SATELLITE ',num2str(i)]);
 %       end
 %    end
-% 
+%
 % end
 
 %----------------------------------------------------------------------------------------------

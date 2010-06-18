@@ -112,6 +112,12 @@ global X_t1_t
 %estimation error covariance matrix at time t
 global Cee
 
+%state estimation at time 1 for static positioning
+global X_comb;
+
+%estimation error covariance matrix at time 1 for static positioning
+global C_comb;
+
 %number of visible satellites at time t
 global nsat  %%% Developer's note: OBSOLETE %%%
 
@@ -136,6 +142,8 @@ I = [];
 Xhat_t_t = [];
 X_t1_t = [];
 Cee = [];
+X_comb = [];
+C_comb = [];
 nsat = [];
 conf_sat = [];
 conf_cs = [];

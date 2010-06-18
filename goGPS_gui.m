@@ -2167,7 +2167,7 @@ contents = cellstr(get(hObject,'String'));
 if (strcmp(contents{get(hObject,'Value')},'Const. velocity'))
     order = 2;
 else
-    order = 3;
+    order = 3;          % to be changed!! order = 1 only for static positioning
 end
 
 % --- Executes during object creation, after setting all properties.
