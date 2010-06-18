@@ -2166,8 +2166,10 @@ global order
 contents = cellstr(get(hObject,'String'));
 if (strcmp(contents{get(hObject,'Value')},'Const. velocity'))
     order = 2;
+elseif  (strcmp(contents{get(hObject,'Value')},'Const. acceleration'))
+    order = 3;
 else
-    order = 3;          % to be changed!! order = 1 only for static positioning
+    order = 1;
 end
 
 % --- Executes during object creation, after setting all properties.
