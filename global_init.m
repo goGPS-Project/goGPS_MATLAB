@@ -115,9 +115,6 @@ global Cee
 %state estimation at time 1 for static positioning
 global X_comb;
 
-%estimation error covariance matrix at time 1 for static positioning
-global C_comb;
-
 %number of visible satellites at time t
 global nsat  %%% Developer's note: OBSOLETE %%%
 
