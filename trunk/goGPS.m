@@ -1146,22 +1146,6 @@ if (mode < 12)
             text(0,0.35,sprintf('Weights: elevation\n           and SNR'));
     end
 
-    if o1 == 1
-        % STATIC POINT POSITIONING
-        %coordinate transformation (UTM)
-        [EAST_comb, NORTH_comb, h_comb] = cart2plan(X_comb(1), X_comb(2), X_comb(3));
-    end
-    
-    %statistics
-    f2 = subplot(7,3,[7 10]);
-    set(f2,'Visible','off');
-    text(0,0.70,sprintf('Mean East: %.3f', mean(EAST_KAL)));
-    text(0,0.60,sprintf('Mean North: %.3f', mean(NORTH_KAL)));
-    text(0,0.50,sprintf('Mean h (ell.): %.3f', mean(h_KAL)));
-    text(0,0.30,sprintf('St.Dev. East: %.3f', std(EAST_KAL)));
-    text(0,0.20,sprintf('St.Dev. North: %.3f', std(NORTH_KAL)));
-    text(0,0.10,sprintf('St.Dev. h (ell.): %.3f', std(h_KAL)));
-
     %trajectory plotting
     f3 = subplot(7,3,[2 3 5 6 8 9 11 12]);
     EAST_plot = EAST_KAL(KHDOP < KHDOP_thres);
@@ -1171,10 +1155,15 @@ if (mode < 12)
     hold on
     NORTH_plot = NORTH_KAL(KHDOP >= KHDOP_thres);
     plot(EAST_plot, NORTH_plot, '.r');
-%     if o1 == 1
-%     %point positioning solution plotting
-%     plot(EAST_comb, NORTH_comb, '*b');
-%     end
+    if (mode ~= 3) & (mode ~= 4)
+        if o1 == 1
+            % STATIC POINT POSITIONING
+            %coordinate transformation (UTM)
+            [EAST_comb, NORTH_comb, h_comb] = cart2plan(X_comb(1), X_comb(2), X_comb(3));
+            %point positioning solution plotting
+            plot(EAST_comb, NORTH_comb, '*b');
+        end
+    end
     axis equal
     xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
     if (KHDOP_thres ~= 0) & (max(KHDOP) ~= 0)
@@ -1186,36 +1175,61 @@ if (mode < 12)
     nsat = sum(abs(conf_sat),1);
     plot(nsat); grid on;
     title('Number of satellites');
-    if o1 == 1
-        %EAST plot
-        f5 = subplot(7,3,[16 17 18]);
-        plot(EAST_KAL); grid on
-        hold on
-        plot([1, nObs], [EAST_comb EAST_comb],'r');
-        title('East coordinates (blue); East mean value (red)');
 
-        %NORTH plot
-        f6 = subplot(7,3,[19 20 21]);
-        plot(NORTH_KAL); grid on
-        hold on
-        plot([1, nObs], [NORTH_comb NORTH_comb],'r');
-        title('North coordinates (blue); North mean value (red)');
-    else
-        %EAST plot
-        f5 = subplot(7,3,[16 17 18]);
-        plot(EAST_KAL); grid on
-        hold on
-        plot([1, nObs], [mean(EAST_KAL) mean(EAST_KAL)],'r');
-        title('East coordinates (blue); East mean value (red)');
+    if (mode ~= 3) & (mode ~= 4)
+        if o1 == 1
+            %statistics
+            f2 = subplot(7,3,[7 10]);
+            set(f2,'Visible','off');
+            text(0,1.00,sprintf('Static positioning East: %.3f', EAST_comb));
+            text(0,0.90,sprintf('Mean North: %.3f', NORTH_comb));
+            text(0,0.80,sprintf('Mean h (ell.): %.3f', h_comb));
+            text(0,0.60,sprintf('Mean East: %.3f', mean(EAST_KAL)));
+            text(0,0.50,sprintf('Mean North: %.3f', mean(NORTH_KAL)));
+            text(0,0.40,sprintf('Mean h (ell.): %.3f', mean(h_KAL)));
+            text(0,0.30,sprintf('St.Dev. East: %.3f', std(EAST_KAL)));
+            text(0,0.20,sprintf('St.Dev. North: %.3f', std(NORTH_KAL)));
+            text(0,0.10,sprintf('St.Dev. h (ell.): %.3f', std(h_KAL)));
+            %EAST plot
+            f5 = subplot(7,3,[16 17 18]);
+            plot(EAST_KAL); grid on
+            hold on
+            plot([1, nObs], [EAST_comb EAST_comb],'r');
+            title('East coordinates (blue); East positioning value (red)');
 
-        %NORTH plot
-        f6 = subplot(7,3,[19 20 21]);
-        plot(NORTH_KAL); grid on
-        hold on
-        plot([1, nObs], [mean(NORTH_KAL) mean(NORTH_KAL)],'r');
-        title('North coordinates (blue); North mean value (red)');
+            %NORTH plot
+            f6 = subplot(7,3,[19 20 21]);
+            plot(NORTH_KAL); grid on
+            hold on
+            plot([1, nObs], [NORTH_comb NORTH_comb],'r');
+            title('North coordinates (blue); North positioning value (red)');
+
+        else
+            %statistics
+            f2 = subplot(7,3,[7 10]);
+            set(f2,'Visible','off');
+            text(0,0.70,sprintf('Mean East: %.3f', mean(EAST_KAL)));
+            text(0,0.60,sprintf('Mean North: %.3f', mean(NORTH_KAL)));
+            text(0,0.50,sprintf('Mean h (ell.): %.3f', mean(h_KAL)));
+            text(0,0.30,sprintf('St.Dev. East: %.3f', std(EAST_KAL)));
+            text(0,0.20,sprintf('St.Dev. North: %.3f', std(NORTH_KAL)));
+            text(0,0.10,sprintf('St.Dev. h (ell.): %.3f', std(h_KAL)));
+            %EAST plot
+            f5 = subplot(7,3,[16 17 18]);
+            plot(EAST_KAL); grid on
+            hold on
+            plot([1, nObs], [mean(EAST_KAL) mean(EAST_KAL)],'r');
+            title('East coordinates (blue); East mean value (red)');
+
+            %NORTH plot
+            f6 = subplot(7,3,[19 20 21]);
+            plot(NORTH_KAL); grid on
+            hold on
+            plot([1, nObs], [mean(NORTH_KAL) mean(NORTH_KAL)],'r');
+            title('North coordinates (blue); North mean value (red)')
+
+        end
     end
-
     %print PDF
     print(f, '-dpdf', [filerootOUT '_report']);
 
@@ -1447,29 +1461,30 @@ if (mode < 12)
     end
     fprintf(fid_kml, '      </Folder>\n');
 
+    if (mode ~= 3) & (mode ~= 4)
+        if o1 == 1
+            %point positioning coordinates
+            %conversion from cartesian to geodetic coordinates
+            [phiP, lamP, hP] = cart2geod(X_comb(1), X_comb(2), X_comb(3));
 
-    if o1 == 1
-        %point positioning coordinates
-        %conversion from cartesian to geodetic coordinates
-        [phiP, lamP, hP] = cart2geod(X_comb(1), X_comb(2), X_comb(3));
+            %conversion from radians to degrees
+            lamP = lamP*180/pi;
+            phiP = phiP*180/pi;
 
-        %conversion from radians to degrees
-        lamP = lamP*180/pi;
-        phiP = phiP*180/pi;
-
-        for i = 1 : length(phiP)
-            if (lamP(i) ~= 0 | phiP(i) ~= 0 | hP(i) ~= 0)
-                if (i == 1)
-                    fprintf(fid_kml, '      <Placemark>\n');
-                    fprintf(fid_kml, '        <styleUrl>#ppos</styleUrl>\n');
-                    fprintf(fid_kml, '        <name>Static positioning</name>\n');
-                    fprintf(fid_kml, '        <Point>\n');
-                    fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-                    fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP(i),phiP(i),hP(i));
-                    fprintf(fid_kml, '        </Point>\n');
-                    fprintf(fid_kml, '        <Snippet></Snippet>\n');
-                    fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP(i),lamP(i),hP(i));
-                    fprintf(fid_kml, '      </Placemark>\n');
+            for i = 1 : length(phiP)
+                if (lamP(i) ~= 0 | phiP(i) ~= 0 | hP(i) ~= 0)
+                    if (i == 1)
+                        fprintf(fid_kml, '      <Placemark>\n');
+                        fprintf(fid_kml, '        <styleUrl>#ppos</styleUrl>\n');
+                        fprintf(fid_kml, '        <name>Static positioning</name>\n');
+                        fprintf(fid_kml, '        <Point>\n');
+                        fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
+                        fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP(i),phiP(i),hP(i));
+                        fprintf(fid_kml, '        </Point>\n');
+                        fprintf(fid_kml, '        <Snippet></Snippet>\n');
+                        fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP(i),lamP(i),hP(i));
+                        fprintf(fid_kml, '      </Placemark>\n');
+                    end
                 end
             end
         end

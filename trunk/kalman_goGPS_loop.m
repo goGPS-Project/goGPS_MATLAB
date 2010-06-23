@@ -70,7 +70,7 @@ global tile_header tile_georef dtm_dir
 global h_antenna
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
-global X_comb C_comb
+global X_comb
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global flag_LS_N_estim
@@ -103,6 +103,9 @@ Cvv(o1,o1) = sigmaq_velx;
 Cvv(o2,o2) = sigmaq_vely;
 Cvv(o3,o3) = sigmaq_velz;
 
+if o1 == 1
+    Cvv = zeros(o3+nN);
+end
 %------------------------------------------------------------------------------------
 % SATELLITE SELECTION
 %------------------------------------------------------------------------------------
@@ -732,14 +735,5 @@ KVDOP = sqrt(Cee_ENU(3,3));
 %--------------------------------------------------------------------------------------------
 
 if o1 == 1
-    
-    X_2 = zeros(3,1);
-    C_2 = zeros(3,3);
-    
-    X_2 = Xhat_t_t(1:3,1);
-    C_2 = Cee(1:3,1:3);
-
-    X_comb = (inv(C_comb)+inv(C_2))^-1*(inv(C_comb)*X_comb+inv(C_2)*X_2);
-    C_comb = (inv(C_comb)+inv(C_2))^-1;
-else
+    X_comb = Xhat_t_t(1:3,1);
 end

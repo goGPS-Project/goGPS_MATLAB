@@ -49,6 +49,7 @@ global sigmaq_velx sigmaq_vely sigmaq_velz
 global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
+global X_comb
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 
@@ -80,6 +81,9 @@ Cvv(o1,o1) = sigmaq_velx;
 Cvv(o2,o2) = sigmaq_vely;
 Cvv(o3,o3) = sigmaq_velz;
 
+if o1 == 1
+    Cvv = zeros(o3);
+end
 %------------------------------------------------------------------------------------
 % SATELLITE SELECTION
 %------------------------------------------------------------------------------------
@@ -253,3 +257,11 @@ KVDOP = sqrt(Cee_ENU(3,3));
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1,end) + Cee(o1+1,o1+1,end) + Cee(o2+1,o2+1,end));
+
+%--------------------------------------------------------------------------------------------
+% STATIC POSITIONING
+%--------------------------------------------------------------------------------------------
+
+if o1 == 1
+    X_comb = Xhat_t_t(1:3,1);
+end
