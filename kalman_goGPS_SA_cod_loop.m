@@ -111,17 +111,19 @@ for i = 1:size(sat_pr)
     %satellite position correction (clock and Earth rotation)
     Rot_X = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(i), X_t1_t([1,o1+1,o2+1])');
 
-    %azimuth, elevation, ROVER-SATELLITE distance computation
-    [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(X_t1_t([1,o1+1,o2+1]), Rot_X');
+    if (~isempty(Rot_X))
+        %azimuth, elevation, ROVER-SATELLITE distance computation
+        [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(X_t1_t([1,o1+1,o2+1]), Rot_X');
+    end
 
-    %test on elevation and on signal-to-noise ratio
-    if (elR(sat_pr(i)) < cutoff) | (snr_R(sat_pr(i)) < snr_threshold)
+    %test ephemerides availability, elevation and signal-to-noise ratio
+    if (isempty(Rot_X) | elR(sat_pr(i)) < cutoff | snr_R(sat_pr(i)) < snr_threshold)
         bad_sat(j,1) = sat_pr(i);
         j = j + 1;
     end
 end
 
-%removal of satellites with elevation or SNR lower than the respective threshold
+%removal of satellites without ephemerides or with elevation or SNR lower than the respective threshold
 sat_pr(ismember(sat_pr,bad_sat) == 1) = [];
 
 %previous pivot

@@ -137,20 +137,22 @@ for i = 1:size(sat_pr)
     %satellite position correction (clock and rotation)
     Rot_X = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(sat_pr(i)), Y_t1_t');
 
-    %azimuth, elevation, ROVER-SATELLITE distance estimate
-    [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(Y_t1_t, Rot_X');
+    if (~isempty(Rot_X))
+        %azimuth, elevation, ROVER-SATELLITE distance estimate
+        [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(Y_t1_t, Rot_X');
+        
+        %azimuth, elevation, MASTER-SATELLITE distance estimate
+        [azM(sat_pr(i)), elM(sat_pr(i)), distM(sat_pr(i))] = topocent(pos_M, Rot_X');
+    end
 
-    %azimuth, elevation, MASTER-SATELLITE distance estimate
-    [azM(sat_pr(i)), elM(sat_pr(i)), distM(sat_pr(i))] = topocent(pos_M, Rot_X');
-
-    %elevation test
-    if (elR(sat_pr(i)) < cutoff) | (snr_R(sat_pr(i)) < snr_threshold)
+    %test ephemerides availability, elevation and signal-to-noise ratio
+    if (isempty(Rot_X) | elR(sat_pr(i)) < cutoff | snr_R(sat_pr(i)) < snr_threshold)
         bad_sat(j,1) = sat_pr(i);
         j = j + 1;
     end
 end
 
-%elevation cut-off
+%removal of satellites without ephemerides or with elevation or SNR lower than the respective threshold
 sat_pr(ismember(sat_pr,bad_sat) == 1) = [];
 sat(ismember(sat,bad_sat) == 1) = [];
 

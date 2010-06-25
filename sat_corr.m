@@ -35,7 +35,14 @@ global v_light
 % CLOCK ERROR CORRECTION
 %--------------------------------------------------------------------------------------------
 
+X = [];
+tcorr = [];
+
 k = find_eph(Eph, sat, time);
+
+if (isempty(k))
+    return
+end
 
 af2   = Eph(2,k);
 roota = Eph(4,k);
