@@ -27,7 +27,7 @@ function [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(posR, N_kalman, ...
 %   range on the basis of the Kalman filter.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini*
 %

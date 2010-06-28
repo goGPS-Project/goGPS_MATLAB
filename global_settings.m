@@ -5,7 +5,7 @@
 %   User-defined global settings.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -238,7 +238,6 @@ end
 global COMportR
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint %#ok<NUSED>
 global nmea_init
-global server_delay
 
 manCOMport = 'COM8';
 
@@ -273,5 +272,15 @@ hApp = 20;
 %Initial NMEA sentence required by some NTRIP casters
 nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
 
-%server waiting time (to check if packet transmission is finished)
-server_delay = 0.05;
+%-------------------------------------------------------------------------------
+% AMBIGUITY ESTIMATION
+%-------------------------------------------------------------------------------
+
+global flag_LS_N_estim
+
+%use least squares ambiguity estimation when new satellites
+% are available and when cycle slips occur (0 = NO; 1 = YES)
+%
+% NOTE: LS amb. estimation is automatically switched off when the number of
+% satellites with phase available is not sufficient (< 4 incl. pivot)
+flag_LS_N_estim = 0;

@@ -37,7 +37,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop .
 %   Constrained path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -510,8 +510,8 @@ if (nsat >= min_nsat)
         if(~flag_LS_N_estim) | (size(sat) < 4)
             
             if (length(phase) == 2)
-                [cycle_slip_found1, N_slip1, sat_slip1] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
-                [cycle_slip_found2, N_slip2, sat_slip2] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+33:o1+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
+                [cycle_slip_found1, N_slip1, sat_slip1] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, cs_threshold, 1);
+                [cycle_slip_found2, N_slip2, sat_slip2] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+33:o1+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, cs_threshold, 2);
                 
                 if (cycle_slip_found1 == 1)
                     check_cs = 1;
@@ -527,9 +527,9 @@ if (nsat >= min_nsat)
                 end
             else
                 if (phase == 1)
-                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
+                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, cs_threshold, 1);
                 else
-                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
+                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, Y_t1_t', X_t1_t(o1+1:o1+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, cs_threshold, 2);
                 end
                 if (cycle_slip_found == 1)
                     check_cs = 1;

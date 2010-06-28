@@ -8,7 +8,7 @@
 %
 %
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -66,11 +66,17 @@ global_init;
 global order o1 o2 o3 h_antenna cutoff weights
 
 if (mode_user == 1)
-
-    [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-        flag_skyplot, flag_plotproc, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
-        filename_M_nav, filename_ref, pos_M_man] = goGPS_gui;
-
+    
+    if (~isunix)
+        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+            flag_skyplot, flag_plotproc, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
+            filename_M_nav, filename_ref, pos_M_man] = gui_goGPS;
+    else
+        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+            flag_skyplot, flag_plotproc, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
+            filename_M_nav, filename_ref, pos_M_man] = gui_goGPS_unix;
+    end
+    
     if (isempty(mode))
         return
     end
@@ -440,9 +446,9 @@ if (mode == 1) & (mode_vinc == 0)
     fclose(fid_dop);
     fclose(fid_conf);
 
-    %----------------------------------------------------------------------------------------------
-    % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH A CONSTRAINT
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH A CONSTRAINT
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 1) & (mode_vinc == 1)
 
@@ -523,9 +529,9 @@ elseif (mode == 1) & (mode_vinc == 1)
     fclose(fid_dop);
     fclose(fid_conf);
 
-    %----------------------------------------------------------------------------------------------
-    % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE, STAND-ALONE AND WITHOUT A CONSTRAINT
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE, STAND-ALONE AND WITHOUT A CONSTRAINT
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 2)
 
@@ -612,9 +618,9 @@ elseif (mode == 2)
     fclose(fid_dop);
     fclose(fid_conf);
 
-    %----------------------------------------------------------------------------------------------
-    % POST-PROCESSING: LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING: LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 3)
 
@@ -702,9 +708,9 @@ elseif (mode == 3)
     fclose(fid_dop);
     fclose(fid_conf);
 
-    %----------------------------------------------------------------------------------------------
-    % POST-PROCESSING: LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING: LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 4)
 
@@ -792,9 +798,9 @@ elseif (mode == 4)
     fclose(fid_dop);
     fclose(fid_conf);
 
-    %----------------------------------------------------------------------------------------------
-    % POST-PROCESSING: KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING: KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 5)
 
@@ -882,9 +888,9 @@ elseif (mode == 5)
     fclose(fid_dop);
     fclose(fid_conf);
 
-    %----------------------------------------------------------------------------------------------
-    % POST-PROCESSING: KALMAN FILTER ON CODE, NO CONSTRAINT
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING: KALMAN FILTER ON CODE, NO CONSTRAINT
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 6)
 
@@ -1088,16 +1094,16 @@ if (mode < 12)
             %orthometric height
             h_ortho(i) = h_KAL(i) - N;
             %file writing
-            fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+            fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
         else
-            fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%s\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', check_t(time_GPS(i)), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), 'N.A.', X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+            fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%s\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), 'N.A.', X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
         end
     end
     fclose(fid_out);
 end
 
 %----------------------------------------------------------------------------------------------
-% REPORT FILE (PDF) (for static surveys)
+% REPORT FILE (PDF)
 %----------------------------------------------------------------------------------------------
 
 if (mode < 12)
@@ -1119,8 +1125,17 @@ if (mode < 12)
             text(0,1.00,sprintf('Mode: code\n        double difference'));
             text(0,0.75,sprintf('Kalman filter: no'));
         case 4
-            text(0,1.00,sprintf('Mode: code\n        stand alone'));
+            text(0,1.00,sprintf('Mode: code\n        stand-alone'));
             text(0,0.75,sprintf('Kalman filter: no'));
+        case 5
+            text(0,1.00,sprintf('Mode: code\n        double difference'));
+            text(0,0.75,sprintf('Kalman filter: yes'));
+        case 6
+            text(0,1.00,sprintf('Mode: code\n        stand-alone'));
+            text(0,0.75,sprintf('Kalman filter: yes'));
+        case 11
+            text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
+            text(0,0.75,sprintf('Kalman filter: yes'));
     end
     if (mode ~= 3) & (mode ~= 4)
         switch order
@@ -1152,11 +1167,11 @@ if (mode < 12)
     hold on
     if (o1 == 1) & (mode ~= 3) & (mode ~= 4)
         %coordinate transformation (UTM)
-        [EAST_comb, NORTH_comb, h_comb] = cart2plan(X_comb(1), X_comb(2), X_comb(3));
-        %point positioning solution plotting
-        plot(EAST_comb, NORTH_comb, '*b');
-        %covariance propagation
-        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],end), Xhat_t_t([1 o1+1 o2+1],end));
+        [EAST_stat, NORTH_stat, h_stat] = cart2plan(Xhat_t_t(1,end), Xhat_t_t(o1+1,end), Xhat_t_t(o2+1,end));
+        %static positioning solution plotting
+        plot(EAST_stat, NORTH_stat, '*b');
+%        %covariance propagation
+%        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],end), Xhat_t_t([1 o1+1 o2+1],end));
         
         legend('Position evolution','Final position','Location','SouthOutside');
     else
@@ -1169,9 +1184,9 @@ if (mode < 12)
     if (o1 == 1) & (mode ~= 3) & (mode ~= 4)
         text(0,0.95,'----------------');
         text(0,0.90,'Final position (UTM)');
-        text(0,0.83,sprintf('E: %.3f m', EAST_comb));
-        text(0,0.78,sprintf('N: %.3f m', NORTH_comb));
-        text(0,0.73,sprintf('h(ell.): %.3f m', h_comb));
+        text(0,0.83,sprintf('E: %.3f m', EAST_stat));
+        text(0,0.78,sprintf('N: %.3f m', NORTH_stat));
+        text(0,0.73,sprintf('h(ell.): %.3f m', h_stat));
 %         text(0,0.62,'----------------');
 %         text(0,0.57,'Position estimation error');
 %         text(0,0.50,sprintf('E: %.4f m', Cee_ENU(1,1)));
@@ -1190,7 +1205,7 @@ if (mode < 12)
     plot(EAST_KAL); grid on
     hold on
     if (o1 == 1) & (mode ~= 3) & (mode ~= 4)
-        plot([1, nObs], [EAST_comb EAST_comb],'r');
+        plot([1, nObs], [EAST_stat EAST_stat],'r');
         title('East coordinates (blue); Final positioning (red)');
     else
         title('East coordinates');
@@ -1201,7 +1216,7 @@ if (mode < 12)
     plot(NORTH_KAL); grid on
     hold on
     if (o1 == 1) & (mode ~= 3) & (mode ~= 4)
-        plot([1, nObs], [NORTH_comb NORTH_comb],'r');
+        plot([1, nObs], [NORTH_stat NORTH_stat],'r');
         title('North coordinates (blue); Final positioning (red)');
     else
         title('North coordinates');
@@ -1449,35 +1464,28 @@ if (mode < 12)
         if (o1 == 1)
             %point positioning coordinates
             %conversion from cartesian to geodetic coordinates
-            [phiP, lamP, hP] = cart2geod(X_comb(1), X_comb(2), X_comb(3));
+            [phiP, lamP, hP] = cart2geod(Xhat_t_t(1,end), Xhat_t_t(o1+1,end), Xhat_t_t(o2+1,end));
 
             %conversion from radians to degrees
             lamP = lamP*180/pi;
             phiP = phiP*180/pi;
 
-            for i = 1 : length(phiP)
-                if (lamP(i) ~= 0 | phiP(i) ~= 0 | hP(i) ~= 0)
-                    if (i == 1)
-                        fprintf(fid_kml, '      <Placemark>\n');
-                        fprintf(fid_kml, '        <styleUrl>#ppos</styleUrl>\n');
-                        fprintf(fid_kml, '        <name>Static positioning</name>\n');
-                        fprintf(fid_kml, '        <Point>\n');
-                        fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-                        fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP(i),phiP(i),hP(i));
-                        fprintf(fid_kml, '        </Point>\n');
-                        fprintf(fid_kml, '        <Snippet></Snippet>\n');
-                        fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP(i),lamP(i),hP(i));
-                        fprintf(fid_kml, '      </Placemark>\n');
-                    end
-                end
-            end
+            fprintf(fid_kml, '      <Placemark>\n');
+            fprintf(fid_kml, '        <styleUrl>#ppos</styleUrl>\n');
+            fprintf(fid_kml, '        <name>Static positioning</name>\n');
+            fprintf(fid_kml, '        <Point>\n');
+            fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
+            fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP,phiP,hP);
+            fprintf(fid_kml, '        </Point>\n');
+            fprintf(fid_kml, '        <Snippet></Snippet>\n');
+            fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP,lamP,hP);
+            fprintf(fid_kml, '      </Placemark>\n');
         end
     end
     fprintf(fid_kml, '  </Document>\n</kml>');
     fclose(fid_kml);
 
 end
-
 
 
 %----------------------------------------------------------------------------------------------

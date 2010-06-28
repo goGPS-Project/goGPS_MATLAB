@@ -25,7 +25,7 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_approx_SA(pos_R, sigmaq_pos_R, .
 %   ROVER approximate position.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

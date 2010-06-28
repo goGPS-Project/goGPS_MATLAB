@@ -5,7 +5,7 @@
 %   Global variables initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -112,9 +112,6 @@ global X_t1_t
 %estimation error covariance matrix at time t
 global Cee
 
-%state estimation for static positioning
-global X_comb;
-
 %number of visible satellites at time t
 global nsat  %%% Developer's note: OBSOLETE %%%
 
@@ -139,7 +136,6 @@ I = [];
 Xhat_t_t = [];
 X_t1_t = [];
 Cee = [];
-X_comb = [];
 nsat = [];
 conf_sat = [];
 conf_cs = [];
@@ -180,13 +176,13 @@ global hui_poll_rate
 hui_poll_rate = 3600; %[sec]
 
 %-------------------------------------------------------------------------------
-% INTERNET CONNECTION
+% SERVER CONNECTION
 %-------------------------------------------------------------------------------
 
-% global connection_delay
-% 
-% %waiting time for the Internet connection to be re-established
-% connection_delay = 5;
+global server_delay
+
+%server waiting time (to check if packet transmission is finished)
+server_delay = 0.05;
 
 %-------------------------------------------------------------------------------
 % MATLAB DISPLAY
@@ -245,19 +241,6 @@ global link_filename kml_filename
 %files used by Google Earth
 link_filename = '../data/google_earth/link.kml';
 kml_filename = '../data/google_earth/goGPS.kml';
-
-%-------------------------------------------------------------------------------
-% AMBIGUITY ESTIMATION
-%-------------------------------------------------------------------------------
-
-global flag_LS_N_estim
-
-%use least squares ambiguity estimation when new satellites
-% are available and when cycle slips occur (0 = NO; 1 = YES)
-%
-% NOTE: LS amb. estimation is automatically switched off when the number of
-% satellites with phase available is not sufficient (< 4 incl. pivot)
-flag_LS_N_estim = 0;
 
 %-------------------------------------------------------------------------------
 % PHASE-SMOOTHED CODE

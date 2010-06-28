@@ -25,7 +25,7 @@ function [dt_acqR, dt_decR, dt_acqM, dt_decM, dt_saveI, dt_kal, dt_saveO, dt_plo
 %   Estimate of processing time.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

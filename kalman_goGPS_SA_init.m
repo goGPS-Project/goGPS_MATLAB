@@ -18,7 +18,7 @@ function kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, pr2_Rsat, ph
 %   Standalone phase and code Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -44,7 +44,6 @@ global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq0_N
 global cutoff o1 o2 o3 nN
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
-global X_comb
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global flag_LS_N_estim
@@ -325,10 +324,3 @@ Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
 KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
 KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
 KVDOP = sqrt(Cee_ENU(3,3));
-
-%--------------------------------------------------------------------------------------------
-% STATIC POSITIONING
-%--------------------------------------------------------------------------------------------
-if o1 == 1
-    X_comb = zeros(3,1);
-end
