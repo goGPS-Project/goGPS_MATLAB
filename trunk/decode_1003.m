@@ -28,7 +28,7 @@ function [data] = decode_1003(msg)
 %   RTCM format 1003 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
 %

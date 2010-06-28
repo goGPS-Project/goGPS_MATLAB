@@ -14,7 +14,7 @@ function [tropocorr] = err_tropo(elev, h)
 %   Computation of the pseudorange correction due to tropospheric refraction.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009 Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 %

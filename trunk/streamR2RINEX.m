@@ -15,7 +15,7 @@ function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
 %   File conversion from rover stream (UBX binary) to RINEX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

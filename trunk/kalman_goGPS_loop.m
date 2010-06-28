@@ -35,7 +35,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
 %   Addition and loss of satellites, cycle slips e pivot changes are considered.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -70,7 +70,6 @@ global tile_header tile_georef dtm_dir
 global h_antenna
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
-global X_comb
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global flag_LS_N_estim
@@ -614,8 +613,8 @@ if (nsat >= min_nsat)
             %Test presence/absence of a cycle-slip at the current epoch.
             %The state of the system is changed only for phase ambiguities
             if (length(phase) == 2)
-                [cycle_slip_found1, N_slip1, sat_slip1] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
-                [cycle_slip_found2, N_slip2, sat_slip2] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
+                [cycle_slip_found1, N_slip1, sat_slip1] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, cs_threshold, 1);
+                [cycle_slip_found2, N_slip2, sat_slip2] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, cs_threshold, 2);
                 
                 if (cycle_slip_found1 == 1)
                     check_cs = 1;
@@ -631,9 +630,9 @@ if (nsat >= min_nsat)
                 end
             else
                 if (phase == 1)
-                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, 3, 1);
+                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), Eph, time, pivot, sat, cs_threshold, 1);
                 else
-                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, 3, 2);
+                    [cycle_slip_found, N_slip, sat_slip] = cycle_slip_kalman(pos_M, pos_R, X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), Eph, time, pivot, sat, cs_threshold, 2);
                 end
                 if (cycle_slip_found == 1)
                     check_cs = 1;
@@ -731,11 +730,3 @@ KVDOP = sqrt(Cee_ENU(3,3));
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1) + Cee(o1+1,o1+1) + Cee(o2+1,o2+1));
-
-%--------------------------------------------------------------------------------------------
-% STATIC POSITIONING
-%--------------------------------------------------------------------------------------------
-
-if (o1 == 1)
-    X_comb = Xhat_t_t(1:3,1);
-end

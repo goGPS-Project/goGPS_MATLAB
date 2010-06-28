@@ -1,37 +1,37 @@
-function varargout = RINEX2goGPSbin_gui(varargin)
-% RINEX2GOGPSBIN_GUI M-file for RINEX2goGPSbin_gui.fig
-%      RINEX2GOGPSBIN_GUI, by itself, creates a new RINEX2GOGPSBIN_GUI or raises the existing
+function varargout = gui_RINEX2goGPSbin(varargin)
+% GUI_RINEX2GOGPSBIN M-file for gui_RINEX2goGPSbin.fig
+%      GUI_RINEX2GOGPSBIN, by itself, creates a new GUI_RINEX2GOGPSBIN or raises the existing
 %      singleton*.
 %
-%      H = RINEX2GOGPSBIN_GUI returns the handle to a new RINEX2GOGPSBIN_GUI or the handle to
+%      H = GUI_RINEX2GOGPSBIN returns the handle to a new GUI_RINEX2GOGPSBIN or the handle to
 %      the existing singleton*.
 %
-%      RINEX2GOGPSBIN_GUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in RINEX2GOGPSBIN_GUI.M with the given input arguments.
+%      GUI_RINEX2GOGPSBIN('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GUI_RINEX2GOGPSBIN.M with the given input arguments.
 %
-%      RINEX2GOGPSBIN_GUI('Property','Value',...) creates a new RINEX2GOGPSBIN_GUI or raises the
+%      GUI_RINEX2GOGPSBIN('Property','Value',...) creates a new GUI_RINEX2GOGPSBIN or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before RINEX2goGPSbin_gui_OpeningFcn gets called.  An
+%      applied to the GUI before gui_RINEX2goGPSbin_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to RINEX2goGPSbin_gui_OpeningFcn via varargin.
+%      stop.  All inputs are passed to gui_RINEX2goGPSbin_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help RINEX2goGPSbin_gui
+% Edit the above text to modify the response to help gui_RINEX2goGPSbin
 
-% Last Modified by GUIDE v2.5 10-Jun-2010 19:26:56
+% Last Modified by GUIDE v2.5 28-Jun-2010 15:20:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @RINEX2goGPSbin_gui_OpeningFcn, ...
-                   'gui_OutputFcn',  @RINEX2goGPSbin_gui_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+gui_State = struct('gui_Name', mfilename, ...
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @gui_RINEX2goGPSbin_OpeningFcn, ...
+    'gui_OutputFcn',  @gui_RINEX2goGPSbin_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -44,15 +44,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before RINEX2goGPSbin_gui is made visible.
-function RINEX2goGPSbin_gui_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
+% --- Executes just before gui_RINEX2goGPSbin is made visible.
+function gui_RINEX2goGPSbin_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to RINEX2goGPSbin_gui (see VARARGIN)
+% varargin   command line arguments to gui_RINEX2goGPSbin (see VARARGIN)
 
-% Choose default command line output for RINEX2goGPSbin_gui
+% Choose default command line output for gui_RINEX2goGPSbin
 handles.output = hObject;
 
 % Update handles structure
@@ -73,7 +73,7 @@ position(2) = (screenSize(4)-position(4))/2;
 set(hObject, 'Position', position);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = RINEX2goGPSbin_gui_OutputFcn(hObject, eventdata, handles)  %#ok<*STOUT,*INUSD>
+function varargout = gui_RINEX2goGPSbin_OutputFcn(hObject, eventdata, handles)  %#ok<*STOUT,*INUSD>
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB

@@ -16,7 +16,7 @@ function GSVlines = NMEA_GSV_gen(sat, el, az, snr)
 %   Returns (a) $GPGSV sentence(s) in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

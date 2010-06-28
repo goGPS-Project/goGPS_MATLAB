@@ -15,7 +15,7 @@ function [classOut, idOut] = ublox_UBX_codes(classIn, idIn)
 %   Associate hex value/label pairs for u-blox message classes/IDs.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

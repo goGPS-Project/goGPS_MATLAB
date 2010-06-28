@@ -14,7 +14,7 @@ function [Cyy] = global2localCov(Cxx, X)
 %   Covariance propagation from Earth-fixed reference frame to local-level reference frame
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

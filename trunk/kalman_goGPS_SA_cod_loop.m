@@ -23,7 +23,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_cod_loop
 %   Standalone positioning using code.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -49,7 +49,6 @@ global sigmaq_velx sigmaq_vely sigmaq_velz
 global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
-global X_comb
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 
@@ -259,11 +258,3 @@ KVDOP = sqrt(Cee_ENU(3,3));
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1,end) + Cee(o1+1,o1+1,end) + Cee(o2+1,o2+1,end));
-
-%--------------------------------------------------------------------------------------------
-% STATIC POSITIONING
-%--------------------------------------------------------------------------------------------
-
-if o1 == 1
-    X_comb = Xhat_t_t(1:3,1);
-end

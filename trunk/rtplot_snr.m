@@ -10,7 +10,7 @@ function rtplot_snr(snr)
 %   Real time bar graph of signal-to-noise ratio.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 beta
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

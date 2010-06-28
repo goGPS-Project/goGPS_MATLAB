@@ -1,35 +1,35 @@
-function varargout = goGPS_gui(varargin)
-% GOGPS_GUI M-file for goGPS_gui.fig
-%      GOGPS_GUI, by itself, creates a new GOGPS_GUI or raises the existing
+function varargout = gui_goGPS(varargin)
+% GUI_GOGPS M-file for gui_goGPS.fig
+%      GUI_GOGPS, by itself, creates a new GUI_GOGPS or raises the existing
 %      singleton*.
 %
-%      H = GOGPS_GUI returns the handle to a new GOGPS_GUI or the handle to
+%      H = GUI_GOGPS returns the handle to a new GUI_GOGPS or the handle to
 %      the existing singleton*.
 %
-%      GOGPS_GUI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in GOGPS_GUI.M with the given input arguments.
+%      GUI_GOGPS('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GUI_GOGPS.M with the given input arguments.
 %
-%      GOGPS_GUI('Property','Value',...) creates a new GOGPS_GUI or raises
+%      GUI_GOGPS('Property','Value',...) creates a new GUI_GOGPS or raises
 %      the existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before goGPS_gui_OpeningFcn gets called.  An
+%      applied to the GUI before gui_goGPS_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to goGPS_gui_OpeningFcn via varargin.
+%      stop.  All inputs are passed to gui_goGPS_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help goGPS_gui
+% Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 12-Jun-2010 17:22:30
+% Last Modified by GUIDE v2.5 28-Jun-2010 15:07:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
+gui_State = struct('gui_Name', mfilename, ...
     'gui_Singleton',  gui_Singleton, ...
-    'gui_OpeningFcn', @goGPS_gui_OpeningFcn, ...
-    'gui_OutputFcn',  @goGPS_gui_OutputFcn, ...
+    'gui_OpeningFcn', @gui_goGPS_OpeningFcn, ...
+    'gui_OutputFcn',  @gui_goGPS_OutputFcn, ...
     'gui_LayoutFcn',  [] , ...
     'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -43,15 +43,15 @@ else
 end
 % End initialization code - DO NOT EDIT
 
-% --- Executes just before goGPS_gui is made visible.
-function goGPS_gui_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
+% --- Executes just before gui_goGPS is made visible.
+function gui_goGPS_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to goGPS_gui (see VARARGIN)
+% varargin   command line arguments to gui_goGPS (see VARARGIN)
 
-% Choose default command line output for goGPS_gui
+% Choose default command line output for gui_goGPS
 handles.output = hObject;
 
 set(hObject,'CloseRequestFcn',@closeGUI);
@@ -79,12 +79,12 @@ position(2) = (screenSize(4)-position(4))/2;
 %center the window
 set(hObject, 'Position', position);
 
-% UIWAIT makes goGPS_gui wait for user response (see UIRESUME)
+% UIWAIT makes gui_goGPS wait for user response (see UIRESUME)
 uiwait(handles.main_panel);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = goGPS_gui_OutputFcn(hObject, eventdata, handles)
+function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -213,7 +213,7 @@ global h_antenna
 global tile_header tile_georef dtm_dir
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
 global nmea_init
-global server_delay
+global flag_LS_N_estim
 
 sigmaq0 = str2double(get(handles.std_init,'String'))^2;
 sigmaq_velx = str2double(get(handles.std_X,'String'))^2;
@@ -277,7 +277,11 @@ lamApp = str2double(get(handles.approx_lon,'String'));
 hApp = str2double(get(handles.approx_h,'String'));
 [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, 6378137, 1/298.257222101);
 nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
-server_delay = str2double(get(handles.server_delay,'String'));
+if (get(handles.amb_estim, 'SelectedObject') == handles.diff_amb_estim)
+    flag_LS_N_estim = 0;
+elseif (get(handles.amb_estim, 'SelectedObject') == handles.LS_amb_estim)
+    flag_LS_N_estim = 1;
+end
 
 %close main panel
 delete(gcf)
@@ -359,7 +363,8 @@ state.password = get(handles.password,'Userdata');
 state.approx_lat = get(handles.approx_lat,'String');
 state.approx_lon = get(handles.approx_lon,'String');
 state.approx_h = get(handles.approx_h,'String');
-state.server_delay = get(handles.server_delay,'String');
+state.diff_amb_estim = get(handles.diff_amb_estim,'Value');
+state.LS_amb_estim = get(handles.LS_amb_estim,'Value');
 
 save(filename, 'state');
 
@@ -438,7 +443,8 @@ show_password_Callback(handles.show_password, [], handles);
 set(handles.approx_lat,'String', state.approx_lat);
 set(handles.approx_lon,'String', state.approx_lon);
 set(handles.approx_h,'String', state.approx_h);
-set(handles.server_delay,'String', state.server_delay);
+set(handles.diff_amb_estim,'Value', state.diff_amb_estim);
+set(handles.LS_amb_estim,'Value', state.LS_amb_estim);
 
 plot_amb_Callback(handles.plot_amb, [], handles);
 if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
@@ -538,11 +544,6 @@ else
     set(handles.text_approx_lon_unit, 'Enable', 'off');
     set(handles.text_approx_h_unit, 'Enable', 'off');
 
-    %disable Connection parameters
-    set(handles.server_delay, 'Enable', 'off');
-    set(handles.text_server_delay, 'Enable', 'off');
-    set(handles.text_server_delay_unit, 'Enable', 'off');
-
     %disable NTRIP parameters
     set(handles.IP_address, 'Enable', 'off');
     set(handles.port, 'Enable', 'off');
@@ -584,19 +585,10 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     cell_contents = cell(3,1);
     cell_contents{1} = 'Code stand-alone';
     cell_contents{2} = 'Code double difference';
-    cell_contents{3} = 'Code and phase stand-alone';
-    cell_contents{4} = 'Code and phase double difference';
+    %cell_contents{3} = 'Code and phase stand-alone';
+    cell_contents{3} = 'Code and phase double difference';
     set(handles.code_dd_sa, 'String', cell_contents);
 
-    set(handles.std_X, 'Enable', 'on');
-    set(handles.std_Y, 'Enable', 'on');
-    set(handles.std_Z, 'Enable', 'on');
-    set(handles.text_std_X, 'Enable', 'on');
-    set(handles.text_std_Y, 'Enable', 'on');
-    set(handles.text_std_Z, 'Enable', 'on');
-    set(handles.text_std_X_unit, 'Enable', 'on');
-    set(handles.text_std_Y_unit, 'Enable', 'on');
-    set(handles.text_std_Z_unit, 'Enable', 'on');
     set(handles.std_code, 'Enable', 'on');
     set(handles.text_std_code, 'Enable', 'on');
     set(handles.text_std_code_unit, 'Enable', 'on');
@@ -622,6 +614,8 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     set(handles.text_min_sat, 'Enable', 'on');
     set(handles.dyn_mod, 'Enable', 'on');
     set(handles.text_dyn_mod, 'Enable', 'on');
+    
+    dyn_mod_Callback(handles.dyn_mod, eventdata, handles);
 else
     cell_contents = cell(2,1);
     cell_contents{1} = 'Code stand-alone';
@@ -664,6 +658,8 @@ else
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
+    set(handles.diff_amb_estim, 'Enable', 'off');
+    set(handles.LS_amb_estim, 'Enable', 'off');
     set(handles.min_sat, 'Enable', 'off');
     set(handles.text_min_sat, 'Enable', 'off');
     set(handles.antenna_h, 'Enable', 'off');
@@ -708,6 +704,8 @@ if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference') | 
     set(handles.cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh_unit, 'Enable', 'on');
+    set(handles.diff_amb_estim, 'Enable', 'on');
+    set(handles.LS_amb_estim, 'Enable', 'on');
     set(handles.toggle_std_phase, 'Enable', 'on');
     toggle_std_phase_Callback(handles.toggle_std_phase, eventdata, handles);
     set(handles.snr_thres, 'Enable', 'on');
@@ -720,6 +718,8 @@ else
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
+    set(handles.diff_amb_estim, 'Enable', 'off');
+    set(handles.LS_amb_estim, 'Enable', 'off');
     set(handles.toggle_std_phase, 'Enable', 'off');
     set(handles.std_phase, 'Enable', 'off');
     set(handles.text_std_phase_unit, 'Enable', 'off');
@@ -785,11 +785,6 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.weight_1, 'Enable', 'on');
     set(handles.weight_2, 'Enable', 'on');
     set(handles.weight_3, 'Enable', 'on');
-
-    %enable connection parameters
-    set(handles.server_delay, 'Enable', 'on');
-    set(handles.text_server_delay, 'Enable', 'on');
-    set(handles.text_server_delay_unit, 'Enable', 'on');
 
     %enable master connection
     set(handles.IP_address, 'Enable', 'on');
@@ -857,6 +852,8 @@ else
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
+    set(handles.diff_amb_estim, 'Enable', 'off');
+    set(handles.LS_amb_estim, 'Enable', 'off');
     set(handles.cut_off, 'Enable', 'off');
     set(handles.text_cut_off, 'Enable', 'off');
     set(handles.text_cut_off_unit, 'Enable', 'off');
@@ -916,11 +913,6 @@ else
         set(handles.text_approx_lon_unit, 'Enable', 'off');
         set(handles.text_approx_h_unit, 'Enable', 'off');
 
-        %disable connection parameters
-        set(handles.server_delay, 'Enable', 'off');
-        set(handles.text_server_delay, 'Enable', 'off');
-        set(handles.text_server_delay_unit, 'Enable', 'off');
-
         %disable NTRIP parameters
         set(handles.IP_address, 'Enable', 'off');
         set(handles.port, 'Enable', 'off');
@@ -939,11 +931,6 @@ else
         set(handles.com_select, 'Enable', 'off');
         set(handles.text_com_select, 'Enable', 'off');
         set(handles.use_ntrip, 'Enable', 'on');
-
-        %enable connection parameters
-        set(handles.server_delay, 'Enable', 'on');
-        set(handles.text_server_delay, 'Enable', 'on');
-        set(handles.text_server_delay_unit, 'Enable', 'on');
 
         %enable master connection
         set(handles.IP_address, 'Enable', 'on');
@@ -970,11 +957,6 @@ else
         set(handles.text_com_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'off');
         
-        %enable connection parameters
-        set(handles.server_delay, 'Enable', 'on');
-        set(handles.text_server_delay, 'Enable', 'on');
-        set(handles.text_server_delay_unit, 'Enable', 'on');
-
         %enable master connection
         set(handles.IP_address, 'Enable', 'on');
         set(handles.port, 'Enable', 'on');
@@ -2164,12 +2146,32 @@ function dyn_mod_Callback(hObject, eventdata, handles)
 global order
 
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'Const. velocity'))
-    order = 2;
-elseif  (strcmp(contents{get(hObject,'Value')},'Const. acceleration'))
-    order = 3;
-else
+if (strcmp(contents{get(hObject,'Value')},'Static'))
     order = 1;
+    set(handles.std_X, 'Enable', 'off');
+    set(handles.std_Y, 'Enable', 'off');
+    set(handles.std_Z, 'Enable', 'off');
+    set(handles.text_std_X, 'Enable', 'off');
+    set(handles.text_std_Y, 'Enable', 'off');
+    set(handles.text_std_Z, 'Enable', 'off');
+    set(handles.text_std_X_unit, 'Enable', 'off');
+    set(handles.text_std_Y_unit, 'Enable', 'off');
+    set(handles.text_std_Z_unit, 'Enable', 'off');
+else
+    set(handles.std_X, 'Enable', 'on');
+    set(handles.std_Y, 'Enable', 'on');
+    set(handles.std_Z, 'Enable', 'on');
+    set(handles.text_std_X, 'Enable', 'on');
+    set(handles.text_std_Y, 'Enable', 'on');
+    set(handles.text_std_Z, 'Enable', 'on');
+    set(handles.text_std_X_unit, 'Enable', 'on');
+    set(handles.text_std_Y_unit, 'Enable', 'on');
+    set(handles.text_std_Z_unit, 'Enable', 'on');
+    if (strcmp(contents{get(hObject,'Value')},'Const. velocity'))
+        order = 2;
+    else
+        order = 3;
+    end
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -2378,28 +2380,6 @@ function no_skyplot_snr_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of no_skyplot_snr
 
 
-function server_delay_Callback(hObject, eventdata, handles)
-% hObject    handle to server_delay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of server_delay as text
-%        str2double(get(hObject,'String')) returns contents of server_delay as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function server_delay_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to server_delay (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
 % --- Executes on key press with focus on password and none of its controls.
 function password_KeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to password (see GCBO)
@@ -2486,7 +2466,7 @@ function decode_streams_Callback(hObject, eventdata, handles)
 % hObject    handle to decode_streams (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-converter_gui;
+gui_decode_stream;
 
 
 % --------------------------------------------------------------------
@@ -2494,7 +2474,7 @@ function merge_goGPS_bin_Callback(hObject, eventdata, handles)
 % hObject    handle to merge_goGPS_bin (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-merge_gui;
+gui_merge_goGPSbin;
 
 
 % --------------------------------------------------------------------
@@ -2502,7 +2482,7 @@ function RINEX2goGPSbin_Callback(hObject, eventdata, handles)
 % hObject    handle to RINEX2goGPSbin (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-RINEX2goGPSbin_gui;
+gui_RINEX2goGPSbin;
 
 
 % --- Executes on button press in plotproc.
