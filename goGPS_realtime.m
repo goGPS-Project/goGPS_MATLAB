@@ -1462,7 +1462,9 @@ end
                 %visualization
                 fprintf('kalman(%d): %7.4f sec (initialization)\n', t, current_time-start_time);
                 fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
-                fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                if (o1 ~= 1)
+                    fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                end
 
                 %send a new NMEA string
                 if (flag_NTRIP)
@@ -1613,7 +1615,9 @@ end
                 %visualization
                 fprintf('kalman(%d): %7.4f sec (over-buffering)\n', t, current_time-start_time);
                 fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
-                fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                if (o1 ~= 1)
+                    fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                end
 
                 %send a new NMEA string
                 if (flag_NTRIP) & (mod(t,nmea_update_rate) == 0)
@@ -1749,7 +1753,9 @@ end
                     %visualization
                     fprintf('kalman(%d): %7.4f sec (master loss)\n', t, current_time-start_time);
                     fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
-                    fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                    if (o1 ~= 1)
+                        fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                    end
 
                     %send a new NMEA string
                     if (flag_NTRIP) & (mod(t,nmea_update_rate) == 0)
@@ -1884,7 +1890,9 @@ end
                     %visualization
                     fprintf('kalman(%d): %7.4f sec (rover loss)\n', t, current_time-start_time);
                     fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
-                    fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                    if (o1 ~= 1)
+                        fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                    end
 
                     %send a new NMEA string
                     if (flag_NTRIP) & (mod(t,nmea_update_rate) == 0)
@@ -2065,7 +2073,9 @@ end
                         %visualization
                         fprintf('kalman(%d): %7.4f sec (dyn-only, delay=%d sec)\n', t, current_time-start_time, b-1);
                         fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
-                        fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                        if (o1 ~= 1)
+                            fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                        end
 
                         %send a new NMEA string
                         if (flag_NTRIP) & (mod(t,nmea_update_rate) == 0)
@@ -2204,7 +2214,9 @@ end
                         fprintf('kalman(%d): %7.4f sec\n', t, current_time-start_time);
                     end
                     fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
-                    fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                    if (o1 ~= 1)
+                        fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                    end
                     fprintf('pivot = %02d\n', pivot)
                     if (check_cs == 1)
                         fprintf('cycle-slip =');
