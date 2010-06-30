@@ -1074,9 +1074,12 @@ if (mode < 12)
     %coordinate transformation (UTM)
     [EAST_KAL, NORTH_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
 
-    %initialize geoid ondulation
+    %initialization (-9999 = no data available)
+    if (mode_vinc == 1) | (mode == 3) | (mode == 4)
+        KHDOP(1:nObs) = -9999;
+    end
     N = [];
-    h_ortho = zeros(1,nObs);
+    h_ortho(1:nObs) = -9999;
 
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
@@ -1087,11 +1090,10 @@ if (mode < 12)
             N = grid_bilin_interp(lam_KAL(i), phi_KAL(i), geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
             %orthometric height
             h_ortho(i) = h_KAL(i) - N;
-            %file writing
-            fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
-        else
-            fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%s\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), 'N.A.', X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
         end
+
+        %file writing
+        fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
     fclose(fid_out);
 end
