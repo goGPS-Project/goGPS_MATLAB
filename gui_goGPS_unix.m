@@ -522,8 +522,10 @@ else
     set(handles.com_select, 'Enable', 'off');
     set(handles.text_com_select, 'Enable', 'off');
     set(handles.use_ntrip, 'Enable', 'off');
-    set(handles.plot_amb, 'Enable', 'on');
-    plot_amb_Callback(handles.plot_amb, [], handles);
+    if (get(handles.plotproc,'Value'))
+        set(handles.plot_amb, 'Enable', 'on');
+        plot_amb_Callback(handles.plot_amb, [], handles);
+    end
 
     %enable/disable file input fields
     if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
@@ -699,7 +701,8 @@ contents = cellstr(get(hObject,'String'));
 if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference') | ...
     strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone'))
     check_mode = cellstr(get(handles.mode,'String'));
-    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
+    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
+            (get(handles.plotproc,'Value'))
         set(handles.plot_amb, 'Enable', 'on');
         plot_amb_Callback(handles.plot_amb, [], handles);
     end
@@ -2505,8 +2508,11 @@ if (get(hObject,'Value'))
     set(handles.google_earth, 'Enable', 'on');
     set(handles.err_ellipse, 'Enable', 'on');
     set(handles.plot_master, 'Enable', 'on');
-    set(handles.plot_amb, 'Enable', 'on');
-    plot_amb_Callback(handles.plot_amb, eventdata, handles);
+    check_mode = cellstr(get(handles.mode,'String'));
+    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
+        set(handles.plot_amb, 'Enable', 'on');
+        plot_amb_Callback(handles.plot_amb, eventdata, handles);
+    end
 else
     set(handles.no_skyplot_snr, 'Enable', 'off');
     set(handles.google_earth, 'Enable', 'off');
