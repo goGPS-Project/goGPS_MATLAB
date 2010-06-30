@@ -46,18 +46,6 @@ global server_delay
 Eph = zeros(29,32);
 
 %------------------------------------------------------
-% initialization to save data
-%------------------------------------------------------
-
-%dep_master = [];     % master binary stream save
-
-%dep_Eph    = [];     % ephemerides variable save
-%dep_time_M = [];     % time variable save
-%dep_pr_M   = [];     % code variable save
-%dep_ph_M   = [];     % phase variable save
-%dep_snr_M  = [];     % s/n ratio variable save
-
-%------------------------------------------------------
 % data file creation
 %------------------------------------------------------
 
@@ -185,7 +173,6 @@ while flag
         data_master = dec2bin(data_master,8)';            %conversion to binary (N x 8bit matrix)
         data_master = data_master (:);                    %transpose (8bit x N matrix)
         data_master = data_master';                       %conversion to string (8N bit vector)
-        %dep_master = strcat(dep_master,data_master);
 
         pos = 1;
         sixofeight = [];
@@ -382,19 +369,6 @@ while flag
                     %counter increment
                     t = t+1;
 
-                    %data save
-                    %dep_time_M (t) = time_M;
-                    %dep_pr_M(:,t)  = pr_M;
-                    %dep_ph_M(:,t)  = ph_M;
-                    %dep_snr_M(:,t) = snr_M;
-
-                    %update ephemerides (previous value)
-                    %if (t > 1)
-                    %   dep_Eph(:,:,t) = dep_Eph(:,:,t-1);
-                    %else
-                    %   dep_Eph(:,:,1) = zeros(29,32);
-                    %end
-
                     type = [type '1002 '];
                     n02 = n02 + 1;
 
@@ -550,14 +524,6 @@ while flag
                     sat = cell_master{2,i}(1);
 
                     Eph(:,sat) = cell_master{2,i}(:);
-
-                    %data save
-                    %if (t > 0)
-                    %   dep_Eph(:,:,t) = Eph(:,:);
-                    %else
-                    %   % if the 1019 message is the first one to arrive
-                    %   dep_Eph(:,:,1) = Eph(:,:);
-                    %end
 
                     type = [type '1019 '];
                     n19 = n19 + 1;

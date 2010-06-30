@@ -453,6 +453,7 @@ else
     file_type_SelectionChangeFcn(handles.gogps_data, [], handles);
 end
 constraint_Callback(handles.constraint, [], handles);
+plotproc_Callback(handles.constraint, [], handles);
 master_pos_Callback(handles.master_pos, [], handles);
 kalman_ls_Callback(handles.kalman_ls, [], handles);
 dyn_mod_Callback(handles.dyn_mod, [], handles);
@@ -487,6 +488,7 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
     set(handles.plotproc, 'Enable', 'on');
+    plotproc_Callback(handles.plotproc, eventdata, handles);
 
     nav_mon_Callback(handles.nav_mon, eventdata, handles);
 
@@ -715,6 +717,7 @@ else
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
     set(handles.plotproc, 'Enable', 'on');
+    plotproc_Callback(handles.plotproc, eventdata, handles);
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
@@ -770,8 +773,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.text_com_select, 'Enable', 'on');
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
-    set(handles.plotproc, 'Enable', 'on');
-
+    
     set(handles.gogps_data_output, 'Enable', 'on');
     set(handles.text_gogps_data_output, 'Enable', 'on');
     set(handles.browse_gogps_data_output, 'Enable', 'on');
@@ -779,6 +781,9 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.text_gogps_data_output_prefix, 'Enable', 'on');
 
     kalman_ls_Callback(handles.kalman_ls, eventdata, handles);
+    
+    set(handles.plotproc, 'Enable', 'on');
+    plotproc_Callback(handles.plotproc, eventdata, handles);
     
     %enable weights
     set(handles.weight_0, 'Enable', 'on');
@@ -815,6 +820,7 @@ else
     set(handles.google_earth, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'off');
     set(handles.plotproc, 'Enable', 'off');
+    set(handles.plot_amb, 'Enable', 'off');
     %set(handles.gogps_data_output, 'Enable', 'off');
     %set(handles.text_gogps_data_output, 'Enable', 'off');
     %set(handles.browse_gogps_data_output, 'Enable', 'off');
@@ -955,7 +961,7 @@ else
 
         set(handles.com_select, 'Enable', 'on');
         set(handles.text_com_select, 'Enable', 'on');
-        set(handles.use_ntrip, 'Enable', 'off');
+        set(handles.use_ntrip, 'Enable', 'on');
         
         %enable master connection
         set(handles.IP_address, 'Enable', 'on');
@@ -1004,7 +1010,9 @@ if (get(hObject,'Value'))
     set(handles.text_std_vel, 'Enable', 'on');
     set(handles.text_std_vel_unit, 'Enable', 'on');
 else
-    set(handles.err_ellipse, 'Enable', 'on');
+    if (get(handles.plotproc,'Value'))
+        set(handles.err_ellipse, 'Enable', 'on');
+    end
     set(handles.std_vel, 'Enable', 'off');
     set(handles.text_std_vel, 'Enable', 'off');
     set(handles.text_std_vel_unit, 'Enable', 'off');
@@ -2492,3 +2500,17 @@ function plotproc_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of plotproc
+if (get(hObject,'Value'))
+    set(handles.no_skyplot_snr, 'Enable', 'on');
+    set(handles.google_earth, 'Enable', 'on');
+    set(handles.err_ellipse, 'Enable', 'on');
+    set(handles.plot_master, 'Enable', 'on');
+    set(handles.plot_amb, 'Enable', 'on');
+    plot_amb_Callback(handles.plot_amb, eventdata, handles);
+else
+    set(handles.no_skyplot_snr, 'Enable', 'off');
+    set(handles.google_earth, 'Enable', 'off');
+    set(handles.err_ellipse, 'Enable', 'off');
+    set(handles.plot_master, 'Enable', 'off');
+    set(handles.plot_amb, 'Enable', 'off');
+end

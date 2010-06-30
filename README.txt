@@ -160,7 +160,6 @@
    load_RINEX.m
    load_goGPSinput.m
    load_goGPSoutput.m
-   load_goGPStime.m
    load_observ.m
    load_stream.m
    lorentz.m
