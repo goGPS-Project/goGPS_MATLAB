@@ -44,30 +44,6 @@ global nmea_init nmea_update_rate
 global master rover
 
 %------------------------------------------------------
-% initialization of save variables
-%------------------------------------------------------
-
-%dep_master = [];     % master binary stream save
-%dep_rover  = [];      % rover binary stream save
-
-%dep_Eph    = [];     % Kalman filter input save
-
-%dep_time_M = [];     % master time variable save
-%dep_time_R = [];     % rover time variable save
-%dep_pr_M   = [];     % master code variable save
-%dep_pr_R   = [];     % rover code variable save
-%dep_ph_M   = [];     % master phase variable save
-%dep_ph_R   = [];     % rover phase variable save
-%dep_snr_M  = [];     % master s/n ratio variable save
-%dep_snr_R  = [];     % rover s/n ratio variable save
-%dep_pos_M  = [];     % master station position
-
-%computation time save
-%dep_t01 = [];  dep_t02 = [];  dep_t03 = [];  dep_t04 = [];
-%dep_t05 = [];  dep_t06 = [];  dep_t07 = [];  dep_t08 = [];
-%dep_t09 = [];  dep_t10 = [];  dep_t11 = [];
-
-%------------------------------------------------------
 % data file creation
 %------------------------------------------------------
 
@@ -696,7 +672,6 @@ while flag
         data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
         data_rover = data_rover';                      %transpose (8bit x N matrix)
         data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
-        %dep_rover = strcat(dep_rover,data_rover);
 
         %message decoding
         [cell_rover, nmea_string] = decode_ublox(data_rover);
@@ -918,7 +893,6 @@ while flag
             data_master = dec2bin(data_master,8)';            %conversion to binary (N x 8bit matrix)
             data_master = data_master (:);                    %transpose (8bit x N matrix)
             data_master = data_master';                       %conversion to string (8N bit vector)
-            %dep_master = strcat(dep_master,data_master);
 
             pos = 1;
             sixofeight = [];
@@ -1284,16 +1258,6 @@ while flag
             %input data save
             fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-            %dep_time_M(t)  = time_M(1);    %master time
-            %dep_time_R(t)  = time_R(1);    %rover time (it should be = master time)
-            %dep_pr_M(:,t)  = pr_M(:,1);    %master code
-            %dep_pr_R(:,t)  = pr_R(:,1);    %rover code
-            %dep_ph_M(:,t)  = ph_M(:,1);    %master phase
-            %dep_ph_R(:,t)  = ph_R(:,1);    %rover phase
-            %dep_snr_M(:,t) = snr_M(:,1);   %master SNR
-            %dep_snr_R(:,t) = snr_R(:,1);   %rover SNR
-            %dep_pos_M(:,t) = pos_M(:,1);   %master station coordinates
-            %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
             
             %counter increment
             t = t + 1;
@@ -1350,16 +1314,6 @@ while flag
             %input data save
             fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-            %dep_time_M(t)  = 0;               %master time
-            %dep_time_R(t)  = 0;               %rover time
-            %dep_pr_M(:,t)  = zeros(32,1);     %master code
-            %dep_pr_R(:,t)  = zeros(32,1);     %rover code
-            %dep_ph_M(:,t)  = zeros(32,1);     %master phase
-            %dep_ph_R(:,t)  = zeros(32,1);     %rover phase
-            %dep_snr_M(:,t) = zeros(32,1);     %master SNR
-            %dep_snr_R(:,t) = zeros(32,1);     %rover SNR
-            %dep_pos_M(:,t) = zeros(32,1);     %master station coordinates
-            %dep_Eph(:,:,t) = zeros(32,1);     %available ephemerides (at time = time_GPS)
             
             %counter increment
             t = t + 1;
@@ -1395,16 +1349,6 @@ while flag
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                %dep_time_M(t)  = time_M(b);    %master time
-                %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
-                %dep_pr_M(:,t)  = pr_M(:,b);    %master code
-                %dep_pr_R(:,t)  = pr_R(:,b);    %rover code
-                %dep_ph_M(:,t)  = ph_M(:,b);    %master phase
-                %dep_ph_R(:,t)  = ph_R(:,b);    %rover phase
-                %dep_snr_M(:,t) = snr_M(:,b);   %master SNR
-                %dep_snr_R(:,t) = snr_R(:,b);   %rover SNR
-                %dep_pos_M(:,t) = pos_M(:,b);   %master station coordinates
-                %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
                 
                 %counter increment
                 t = t + 1;
@@ -1440,16 +1384,6 @@ while flag
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                %dep_time_M(t)  = time_M(b);    %master time
-                %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
-                %dep_pr_M(:,t)  = pr_M(:,b);    %master code
-                %dep_pr_R(:,t)  = pr_R(:,b);    %rover code
-                %dep_ph_M(:,t)  = ph_M(:,b);    %master phase
-                %dep_ph_R(:,t)  = ph_R(:,b);    %rover phase
-                %dep_snr_M(:,t) = snr_M(:,b);   %master SNR
-                %dep_snr_R(:,t) = snr_R(:,b);   %rover SNR
-                %dep_pos_M(:,t) = pos_M(:,b);   %master station coordinates
-                %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
                 
                 %counter increment
                 t = t + 1;
@@ -1534,16 +1468,6 @@ while flag
                     %output data save
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                    %dep_time_M(t)  = time_M(b);    %master time
-                    %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
-                    %dep_pr_M(:,t)  = pr_M(:,b);    %master code
-                    %dep_pr_R(:,t)  = pr_R(:,b);    %rover code
-                    %dep_ph_M(:,t)  = ph_M(:,b);    %master phase
-                    %dep_ph_R(:,t)  = ph_R(:,b);    %rover phase
-                    %dep_snr_M(:,t) = snr_M(:,b);   %master SNR
-                    %dep_snr_R(:,t) = snr_R(:,b);   %rover SNR
-                    %dep_pos_M(:,t) = pos_M(:,b);   %master station coordinates
-                    %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
                     
                     %counter increment
                     t = t + 1;
@@ -1578,16 +1502,6 @@ while flag
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                %dep_time_M(t)  = time_M(b);    %master time
-                %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
-                %dep_pr_M(:,t)  = pr_M(:,b);    %master code
-                %dep_pr_R(:,t)  = pr_R(:,b);    %rover code
-                %dep_ph_M(:,t)  = ph_M(:,b);    %master phase
-                %dep_ph_R(:,t)  = ph_R(:,b);    %rover phase
-                %dep_snr_M(:,t) = snr_M(:,b);   %master SNR
-                %dep_snr_R(:,t) = snr_R(:,b);   %rover SNR
-                %dep_pos_M(:,t) = pos_M(:,b);   %master station coordinates
-                %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
                 
                 %counter increment
                 t = t + 1;

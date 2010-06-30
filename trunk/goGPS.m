@@ -984,7 +984,7 @@ elseif (mode == 6)
 
 elseif (mode == 11)
 
-    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
+    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
 
     %----------------------------------------------------------------------------------------------
     % REAL-TIME: ROVER MONITORING
@@ -1053,12 +1053,6 @@ if (mode < 12)
         end
     end
 end
-
-%----------------------------------------------------------------------------------------------
-
-%computation and visualization time reading
-% [dt_acqR, dt_decR, dt_acqM, dt_decM, dt_saveI, dt_kal, dt_saveO, ...
-%     dt_plot, dt_ge, dt_sky, dt_snr] = load_goGPStime (filerootOUT);
 
 %----------------------------------------------------------------------------------------------
 % OUTPUT FILE SAVING (TEXT FILE)

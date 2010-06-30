@@ -1,4 +1,4 @@
-function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R)
+function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov,
@@ -14,6 +14,7 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag
 %   flag_NTRIP = use/don't use NTRIP flag
 %   flag_ms_pos = use/don't use RTCM master position
 %   flag_skyplot = use/don't use CPU saving mode (no skyplot, no SNR graph)
+%   flag_plotproc = display/don't display plot figure
 %   ref_path = reference path
 %   mat_path = reference path adjacency matrix
 %   pos_M = master station position (X,Y,Z)
@@ -57,30 +58,6 @@ global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
 global master rover
-
-%------------------------------------------------------
-% initialization of save variables
-%------------------------------------------------------
-
-%dep_master = [];     % master binary stream save
-%dep_rover  = [];      % rover binary stream save
-
-%dep_Eph    = [];     % Kalman filter input save
-
-%dep_time_M = [];     % master time variable save
-%dep_time_R = [];     % rover time variable save
-%dep_pr_M   = [];     % master code variable save
-%dep_pr_R   = [];     % rover code variable save
-%dep_ph_M   = [];     % master phase variable save
-%dep_ph_R   = [];     % rover phase variable save
-%dep_snr_M  = [];     % master s/n ratio variable save
-%dep_snr_R  = [];     % rover s/n ratio variable save
-%dep_pos_M  = [];     % master station position
-
-%computation time save
-%dep_t01 = [];  dep_t02 = [];  dep_t03 = [];  dep_t04 = [];
-%dep_t05 = [];  dep_t06 = [];  dep_t07 = [];  dep_t08 = [];
-%dep_t09 = [];  dep_t10 = [];  dep_t11 = [];
 
 %------------------------------------------------------
 % data file creation
@@ -145,20 +122,6 @@ fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
 %  conf_cs  --> int8, [32,1]
 %  pivot    --> int8, [1,1]
 fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-
-%computation time
-%  dt_acqR  --> double, [1,1]
-%  dt_decR  --> double, [1,1]
-%  dt_acqM  --> double, [1,1]
-%  dt_decM  --> double, [1,1]
-%  dt_saveI --> double, [1,1]
-%  dt_kal   --> double, [1,1]
-%  dt_saveO --> double, [1,1]
-%  dt_plot  --> double, [1,1]
-%  dt_ge    --> double, [1,1]
-%  dt_sky   --> double, [1,1]
-%  dt_snr   --> double, [1,1]
-fid_dt = fopen([filerootOUT '_dt_00.bin'],'w+');
 
 %nmea sentences
 fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
@@ -634,11 +597,21 @@ t = 1;
 dtime = 1;
 
 %loop control initialization
-h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 40 20], 'string', 'STOP', ...
-    'callback', 'setappdata(gcf, ''run'', 0)');
-set(gcf, 'name', 'goGPS', 'toolbar', 'figure');
-flag = 1;
-setappdata(gcf, 'run', flag);
+if (flag_plotproc)
+    h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 40 20], 'string', 'STOP', ...
+        'callback', 'setappdata(gcf, ''run'', 0)');
+    set(gcf, 'name', 'goGPS', 'toolbar', 'figure');
+    flag = 1;
+    setappdata(gcf, 'run', flag);
+else
+    f1 = figure;
+    s1 = get(0,'ScreenSize');
+    set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'Navigation');
+    h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
+        'callback', 'setappdata(gcf, ''run'', 0)');
+    flag = 1;
+    setappdata(gcf, 'run', flag);
+end
 
 %infinite loop
 while flag
@@ -668,8 +641,7 @@ while flag
         fclose(fid_sat);
         fclose(fid_dop);
         fclose(fid_conf);
-        fclose(fid_dt);
-
+        
         fid_master = fopen([filerootOUT '_master_' hour_str '.bin'],'w+');
         fid_rover  = fopen([filerootOUT '_rover_'  hour_str '.bin'],'w+');
         fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
@@ -678,7 +650,6 @@ while flag
         fid_sat    = fopen([filerootOUT '_sat_'    hour_str '.bin'],'w+');
         fid_dop    = fopen([filerootOUT '_dop_'    hour_str '.bin'],'w+');
         fid_conf   = fopen([filerootOUT '_conf_'   hour_str '.bin'],'w+');
-        fid_dt     = fopen([filerootOUT '_dt_'     hour_str '.bin'],'w+');
 
     end
 
@@ -689,9 +660,6 @@ while flag
     %visualization
     fprintf('\n');
     fprintf('ROVER DATA\n');
-
-    %execution time computation (start of rover acquisition)
-    t0 = clock;
 
     %time acquisition
     current_time = toc;
@@ -723,16 +691,10 @@ while flag
 
     end
 
-    %execution time computation (end of rover acquisition)
-    dt_acqR = etime(clock,t0);
-
     %visualization
     fprintf('u-blox: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, rover_1, rover_2);
 
     %-------------------------------------
-
-    %execution time computation (start of rover decoding)
-    t0 = clock;
 
     if (dtime < B)
 
@@ -861,9 +823,6 @@ end
         end
     end
 
-    %execution time computation (end of rover decoding)
-    dt_decR = etime(clock,t0);
-
     %time acquisition (at the end of the rover decoding)
     current_time = toc;
 
@@ -948,9 +907,6 @@ end
     fprintf('\n');
     fprintf('MASTER DATA\n');
 
-    %execution time computation (start of master acquisition)
-    t0 = clock;
-
     %time acquisition
     current_time = toc;
 
@@ -1017,16 +973,10 @@ end
 
     end
 
-    %execution time computation (end of master acquisition)
-    dt_acqM = etime(clock,t0);
-
     %visualization
     fprintf('master: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, master_1, master_2);
 
     %-------------------------------------
-
-    %execution time computation (start of master decoding)
-    t0 = clock;
 
     if (dtime < B)
 
@@ -1251,9 +1201,6 @@ end
         end
     end
 
-    %execution time computation (end of master decoding)
-    dt_decM = etime(clock,t0);
-
     %time reading (end of master decoding)
     current_time = toc;
 
@@ -1373,36 +1320,21 @@ end
             %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
 
                 %input data save
-                t0 = clock;
                 fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                dt_saveI = etime(clock,t0);
-                %dep_time_M(t)  = time_M(1);    %master time
-                %dep_time_R(t)  = time_R(1);    %rover time (it should be = master time)
-                %dep_pr_M(:,t)  = pr_M(:,1);    %master code
-                %dep_pr_R(:,t)  = pr_R(:,1);    %rover code
-                %dep_ph_M(:,t)  = ph_M(:,1);    %master phase
-                %dep_ph_R(:,t)  = ph_R(:,1);    %rover phase
-                %dep_snr_M(:,t) = snr_M(:,1);   %master SNR
-                %dep_snr_R(:,t) = snr_R(:,1);   %rover SNR
-                %dep_pos_M(:,t) = pos_M(:,1);   %master station coordinates
-                %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
 
                 %WARNING: with just 4 satellites the least squares problem
                 %for double differences is not solvable and the covariance matrix
                 %of the estimation error cannot be computed
 
                 %Kalman filter
-                t0 = clock;
                 if (mode_vinc == 0)
                     kalman_goGPS_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,1), snr_M(:,1), 1);
                 else
                     kalman_goGPS_vinc_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, 1, ref_path);
                 end
-                dt_kal = etime(clock,t0);
-
+                
                 %output data save
-                t0 = clock;
                 if (mode_vinc == 0)
                     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                     fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
@@ -1412,7 +1344,6 @@ end
                 end
                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-                dt_saveO = etime(clock,t0);
 
                 %estimated position and velocity
                 if (mode_vinc == 0)
@@ -1428,33 +1359,21 @@ end
                 end
 
                 %graphical representations
-                if (flag_cov == 0)
-                    t0 = clock; rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                    t0 = clock; if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end; dt_ge = etime(clock,t0);
-                else
-                    t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                    t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
+                if (flag_plotproc)
+                    if (flag_cov == 0)
+                        rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
+                    else
+                        rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
+                    end
+                    if (flag_skyplot == 1)
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                        rtplot_snr (snr_R(:,1));
+                    else
+                        rttext_sat (t, azR, elR, snr_R(:,1), conf_sat, pivot);
+                    end
                 end
-                if (flag_skyplot == 1)
-                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                    t0 = clock; rtplot_snr (snr_R(:,1)); dt_snr = etime(clock,t0);
-                else
-                     t0 = clock; rttext_sat (t, azR, elR, snr_R(:,1), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
-                end
-
-                %computation time save
-                fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
-                %dep_t01(t) = dt_acqR;
-                %dep_t02(t) = dt_decR;
-                %dep_t03(t) = dt_acqM;
-                %dep_t04(t) = dt_decM;
-                %dep_t05(t) = dt_saveI;
-                %dep_t06(t) = dt_kal;
-                %dep_t07(t) = dt_saveO;
-                %dep_t08(t) = dt_plot;
-                %dep_t09(t) = dt_ge;
-                %dep_t10(t) = dt_sky;
-                %dep_t11(t) = dt_snr;
 
                 %time reading
                 current_time = toc;
@@ -1530,32 +1449,17 @@ end
                 date = clock;
 
                 %input data save
-                t0 = clock;
                 fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                dt_saveI = etime(clock,t0);
-                %dep_time_M(t)  = 0;               %master time
-                %dep_time_R(t)  = 0;               %rover time
-                %dep_pr_M(:,t)  = zeros(32,1);     %master code
-                %dep_pr_R(:,t)  = zeros(32,1);     %rover code
-                %dep_ph_M(:,t)  = zeros(32,1);     %master phase
-                %dep_ph_R(:,t)  = zeros(32,1);     %rover phase
-                %dep_snr_M(:,t) = zeros(32,1);     %master SNR
-                %dep_snr_R(:,t) = zeros(32,1);     %rover SNR
-                %dep_pos_M(:,t) = zeros(32,1);     %master station coordinates
-                %dep_Eph(:,:,t) = zeros(32,1);     %available ephemerides (at time = time_GPS)
 
                 %Kalman filter
-                t0 = clock;
                 if (mode_vinc == 0)
                     [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), pr2_R, pr2_M, ph2_R, ph2_M, zeros(32,1), zeros(32,1), 1); %#ok<NASGU>
                 else
                     [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), pr2_R, pr2_M, ph2_R, ph2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
                 end
-                dt_kal = etime(clock,t0);
 
                 %output data save
-                t0 = clock;
                 if (mode_vinc == 0)
                     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                     fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
@@ -1565,7 +1469,6 @@ end
                 end
                 fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-                dt_saveO = etime(clock,t0);
 
                 %estimated position and velocity
                 if (mode_vinc == 0)
@@ -1581,33 +1484,21 @@ end
                 end
 
                 %graphical representations
-                if (flag_cov == 0)
-                    t0 = clock; rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                    t0 = clock; if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end; dt_ge = etime(clock,t0);
-                else
-                    t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                    t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
+                if (flag_plotproc)
+                    if (flag_cov == 0)
+                        rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
+                    else
+                        rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
+                    end
+                    if (flag_skyplot == 1)
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                        rtplot_snr (zeros(32,1));
+                    else
+                        rttext_sat (t, azR, elR, zeros(32,1), conf_sat, pivot);
+                    end
                 end
-                if (flag_skyplot == 1)
-                    t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                    t0 = clock; rtplot_snr (zeros(32,1)); dt_snr = etime(clock,t0);
-                else
-                    t0 = clock; rttext_sat (t, azR, elR, zeros(32,1), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
-                end
-
-                %computation time save
-                fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
-                %dep_t01(t) = dt_acqR;
-                %dep_t02(t) = dt_decR;
-                %dep_t03(t) = dt_acqM;
-                %dep_t04(t) = dt_decM;
-                %dep_t05(t) = dt_saveI;
-                %dep_t06(t) = dt_kal;
-                %dep_t07(t) = dt_saveO;
-                %dep_t08(t) = dt_plot;
-                %dep_t09(t) = dt_ge;
-                %dep_t10(t) = dt_sky;
-                %dep_t11(t) = dt_snr;
 
                 %time reading
                 current_time = toc;
@@ -1668,32 +1559,17 @@ end
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %input data save
-                    t0 = clock;
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                    dt_saveI = etime(clock,t0);
-                    %dep_time_M(t)  = time_M(b);    %master time
-                    %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
-                    %dep_pr_M(:,t)  = pr_M(:,b);    %master code
-                    %dep_pr_R(:,t)  = pr_R(:,b);    %rover code
-                    %dep_ph_M(:,t)  = ph_M(:,b);    %master phase
-                    %dep_ph_R(:,t)  = ph_R(:,b);    %rover phase
-                    %dep_snr_M(:,t) = snr_M(:,b);   %master SNR
-                    %dep_snr_R(:,t) = snr_R(:,b);   %rover SNR
-                    %dep_pos_M(:,t) = pos_M(:,b);   %master station coordinates
-                    %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
 
                     %Kalman filter
-                    t0 = clock;
                     if (mode_vinc == 0)
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1);
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
-                    dt_kal = etime(clock,t0);
 
                     %output data save
-                    t0 = clock;
                     if (mode_vinc == 0)
                         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                         fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
@@ -1703,7 +1579,6 @@ end
                     end
                     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
                     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-                    dt_saveO = etime(clock,t0);
 
                     %estimated position and velocity
                     if (mode_vinc == 0)
@@ -1719,33 +1594,21 @@ end
                     end
 
                     %graphical representations
-                    if (flag_cov == 0)
-                        t0 = clock; rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                        t0 = clock; if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end; dt_ge = etime(clock,t0);
-                    else
-                        t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                        t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
+                    if (flag_plotproc)
+                        if (flag_cov == 0)
+                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
+                        else
+                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
+                        end
+                        if (flag_skyplot == 1)
+                            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                            rtplot_snr (snr_R(:,b));
+                        else
+                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot);
+                        end
                     end
-                    if (flag_skyplot == 1)
-                        t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                        t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
-                    else
-                        t0 = clock; rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
-                    end
-
-                    %computation time save
-                    fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
-                    %dep_t01(t) = dt_acqR;
-                    %dep_t02(t) = dt_decR;
-                    %dep_t03(t) = dt_acqM;
-                    %dep_t04(t) = dt_decM;
-                    %dep_t05(t) = dt_saveI;
-                    %dep_t06(t) = dt_kal;
-                    %dep_t07(t) = dt_saveO;
-                    %dep_t08(t) = dt_plot;
-                    %dep_t09(t) = dt_ge;
-                    %dep_t10(t) = dt_sky;
-                    %dep_t11(t) = dt_snr;
 
                     %time reading
                     current_time = toc;
@@ -1805,32 +1668,17 @@ end
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %input data save
-                    t0 = clock;
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                    dt_saveI = etime(clock,t0);
-                    %dep_time_M(t)  = time_M(b);    %master time
-                    %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
-                    %dep_pr_M(:,t)  = pr_M(:,b);    %master code
-                    %dep_pr_R(:,t)  = pr_R(:,b);    %rover code
-                    %dep_ph_M(:,t)  = ph_M(:,b);    %master phase
-                    %dep_ph_R(:,t)  = ph_R(:,b);    %rover phase
-                    %dep_snr_M(:,t) = snr_M(:,b);   %master SNR
-                    %dep_snr_R(:,t) = snr_R(:,b);   %rover SNR
-                    %dep_pos_M(:,t) = pos_M(:,b);   %master station coordinates
-                    %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
 
                     %Kalman filter
-                    t0 = clock;
                     if (mode_vinc == 0)
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1);
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
-                    dt_kal = etime(clock,t0);
 
                     %output data save
-                    t0 = clock;
                     if (mode_vinc == 0)
                         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                         fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
@@ -1840,7 +1688,6 @@ end
                     end
                     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
                     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-                    dt_saveO = etime(clock,t0);
 
                     %estimated position and velocity
                     if (mode_vinc == 0)
@@ -1856,33 +1703,21 @@ end
                     end
 
                     %graphical representations
-                    if (flag_cov == 0)
-                        t0 = clock; rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b),check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                        t0 = clock; if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end; dt_ge = etime(clock,t0);
-                    else
-                        t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                        t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
+                    if (flag_plotproc)
+                        if (flag_cov == 0)
+                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b),check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
+                        else
+                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
+                        end
+                        if (flag_skyplot == 1)
+                            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                            rtplot_snr (snr_R(:,b));
+                        else
+                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot);
+                        end
                     end
-                    if (flag_skyplot == 1)
-                        t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                        t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
-                    else
-                        t0 = clock; rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
-                    end
-
-                    %computation time save
-                    fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
-                    %dep_t01(t) = dt_acqR;
-                    %dep_t02(t) = dt_decR;
-                    %dep_t03(t) = dt_acqM;
-                    %dep_t04(t) = dt_decM;
-                    %dep_t05(t) = dt_saveI;
-                    %dep_t06(t) = dt_kal;
-                    %dep_t07(t) = dt_saveO;
-                    %dep_t08(t) = dt_plot;
-                    %dep_t09(t) = dt_ge;
-                    %dep_t10(t) = dt_sky;
-                    %dep_t11(t) = dt_snr;
 
                     %time reading
                     current_time = toc;
@@ -2006,13 +1841,11 @@ end
                         %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
 
                         %Kalman filter
-                        t0 = clock;
                         if (mode_vinc == 0)
                             [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1);
                         else
                             [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                         end
-                        dt_kal = etime(clock,t0);
 
                         %output data save
                         if (mode_vinc == 0)
@@ -2039,33 +1872,21 @@ end
                         end
 
                         %graphical representations
-                        if (flag_cov == 0)
-                            t0 = clock; rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                            t0 = clock; if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end; dt_ge = etime(clock,t0);
-                        else
-                            t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                            t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
+                        if (flag_plotproc)
+                            if (flag_cov == 0)
+                                rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                                if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
+                            else
+                                rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                                if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
+                            end
+                            if (flag_skyplot == 1)
+                                rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                                rtplot_snr (snr_R(:,b));
+                            else
+                                rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot);
+                            end
                         end
-                        if (flag_skyplot == 1)
-                            t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                            t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
-                        else
-                            t0 = clock; rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
-                        end
-
-                        %computation time save
-                        fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
-                        %dep_t01(t) = dt_acqR;
-                        %dep_t02(t) = dt_decR;
-                        %dep_t03(t) = dt_acqM;
-                        %dep_t04(t) = dt_decM;
-                        %dep_t05(t) = dt_saveI;
-                        %dep_t06(t) = dt_kal;
-                        %dep_t07(t) = dt_saveO;
-                        %dep_t08(t) = dt_plot;
-                        %dep_t09(t) = dt_ge;
-                        %dep_t10(t) = dt_sky;
-                        %dep_t11(t) = dt_snr;
 
                         %time reading
                         current_time = toc;
@@ -2125,32 +1946,17 @@ end
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %input data save
-                    t0 = clock;
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                    dt_saveI = etime(clock,t0);
-                    %dep_time_M(t)  = time_M(b);    %master time
-                    %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
-                    %dep_pr_M(:,t)  = pr_M(:,b);    %master code
-                    %dep_pr_R(:,t)  = pr_R(:,b);    %rover code
-                    %dep_ph_M(:,t)  = ph_M(:,b);    %master phase
-                    %dep_ph_R(:,t)  = ph_R(:,b);    %rover phase
-                    %dep_snr_M(:,t) = snr_M(:,b);   %master SNR
-                    %dep_snr_R(:,t) = snr_R(:,b);   %rover SNR
-                    %dep_pos_M(:,t) = pos_M(:,b);   %master station coordinates
-                    %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
 
                     %Kalman filter
-                    t0 = clock;
                     if (mode_vinc == 0)
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1);
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
-                    dt_kal = etime(clock,t0);
 
                     %output data save
-                    t0 = clock;
                     if (mode_vinc == 0)
                         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
                         fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
@@ -2160,7 +1966,6 @@ end
                     end
                     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
                     fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-                    dt_saveO = etime(clock,t0);
 
                     %estimated position and velocity
                     if (mode_vinc == 0)
@@ -2176,33 +1981,21 @@ end
                     end
 
                     %graphical representations
-                    if (flag_cov == 0)
-                        t0 = clock; rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                        t0 = clock; if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end; dt_ge = etime(clock,t0);
-                    else
-                        t0 = clock; rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path); dt_plot = etime(clock,t0);
-                        t0 = clock; if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end; dt_ge = etime(clock,t0);
+                    if (flag_plotproc)
+                        if (flag_cov == 0)
+                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
+                        else
+                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
+                        end
+                        if (flag_skyplot == 1)
+                            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                            rtplot_snr (snr_R(:,b));
+                        else
+                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot);
+                        end
                     end
-                    if (flag_skyplot == 1)
-                        t0 = clock; rtplot_skyplot (t, azR, elR, conf_sat, pivot); dt_sky = etime(clock,t0);
-                        t0 = clock; rtplot_snr (snr_R(:,b)); dt_snr = etime(clock,t0);
-                    else
-                        t0 = clock; rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot); dt_sky = etime(clock,t0); dt_snr = etime(clock,t0);
-                    end
-
-                    %computation time save
-                    fwrite(fid_dt, [dt_acqR; dt_decR; dt_acqM; dt_decM; dt_saveI; dt_kal; dt_saveO; dt_plot; dt_ge; dt_sky; dt_snr], 'double');
-                    %dep_t01(t) = dt_acqR;
-                    %dep_t02(t) = dt_decR;
-                    %dep_t03(t) = dt_acqM;
-                    %dep_t04(t) = dt_decM;
-                    %dep_t05(t) = dt_saveI;
-                    %dep_t06(t) = dt_kal;
-                    %dep_t07(t) = dt_saveO;
-                    %dep_t08(t) = dt_plot;
-                    %dep_t09(t) = dt_ge;
-                    %dep_t10(t) = dt_sky;
-                    %dep_t11(t) = dt_snr;
 
                     %time reading
                     current_time = toc;
@@ -2352,11 +2145,15 @@ fclose(fid_kal);
 fclose(fid_sat);
 fclose(fid_dop);
 fclose(fid_conf);
-fclose(fid_dt);
 fclose(fid_nmea);
 
 %log file closing
 diary off
 
-%hide STOP button
-set(h1,'visible','off');
+if (flag_plotproc)
+    %hide STOP button
+    set(h1,'visible','off');
+else
+    %close figure
+    close(f1);
+end

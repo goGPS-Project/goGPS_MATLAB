@@ -42,17 +42,6 @@ global rover
 Eph = zeros(29,32);
 
 %------------------------------------------------------
-% initialization to save data
-%------------------------------------------------------
-
-%dep_rover = [];      % rover binary stream save
-
-%dep_time_R = [];     % time variable save
-%dep_pr_R   = [];     % code variable save
-%dep_ph_R   = [];     % phase variable save
-%dep_snr_R  = [];     % s/n ratio variable save
-
-%------------------------------------------------------
 % data file creation
 %------------------------------------------------------
 
@@ -338,7 +327,6 @@ while flag
         data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
         data_rover = data_rover';                      %transpose (8bit x N matrix)
         data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
-        %dep_rover = strcat(dep_rover,data_rover);
 
         [cell_rover, nmea_string] = decode_ublox(data_rover);
 
@@ -373,10 +361,6 @@ while flag
                 %data save
                 fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; zeros(32,1); snr_R; zeros(3,1); iono(:,1)], 'double');
                 fwrite(fid_eph, [0; Eph(:)], 'double');
-                %dep_time_R (t) = time_R;
-                %dep_pr_R(:,t)  = pr_R;
-                %dep_ph_R(:,t)  = ph_R;
-                %dep_snr_R(:,t) = snr_R;
 
                 type = [type 'RXM-RAW '];
                 nRAW = nRAW + 1;
