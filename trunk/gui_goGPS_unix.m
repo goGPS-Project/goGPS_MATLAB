@@ -22,7 +22,7 @@ function varargout = gui_goGPS_unix(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS_unix
 
-% Last Modified by GUIDE v2.5 15-Jun-2010 12:18:30
+% Last Modified by GUIDE v2.5 01-Jul-2010 10:38:44
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;

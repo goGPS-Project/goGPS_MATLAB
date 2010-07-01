@@ -22,7 +22,7 @@ function varargout = gui_merge_goGPSbin_unix(varargin)
 
 % Edit the above text to modify the response to help gui_merge_goGPSbin_unix
 
-% Last Modified by GUIDE v2.5 28-Jun-2010 16:00:26
+% Last Modified by GUIDE v2.5 01-Jul-2010 10:36:26
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
