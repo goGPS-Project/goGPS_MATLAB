@@ -16,7 +16,7 @@ function LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, snr_R, phase)
 %   Standalone code positioning by least squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

@@ -17,7 +17,7 @@ function [EAST, NORTH, h] = cart2plan(X, Y, Z)
 %   Conversion from cartesian coordinates to planimetric coordinates (UTM WGS84).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -39,19 +39,8 @@ function [EAST, NORTH, h] = cart2plan(X, Y, Z)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a e
-
-%radius computation
-r = sqrt(X.^2 + Y.^2 + Z.^2);
-
-%longite
-lam = atan2(Y,X);
-
-%latitude
-phi = atan(Z./sqrt(X.^2 + Y.^2));
-
 %coordinate transformation
-[phi, lam, h] = geoc2geod(phi, lam, r, a, e);
+[phi, lam, h] = cart2geod(X, Y, Z);
 
 %projection to UTM
 [EAST, NORTH] = geod2plan(phi, lam);

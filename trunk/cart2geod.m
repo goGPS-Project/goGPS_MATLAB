@@ -17,7 +17,7 @@ function [phi, lam, h] = cart2geod(X, Y, Z)
 %   Conversion from cartesian coordinates to geodetic coordinates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
@@ -47,10 +47,18 @@ r = sqrt(X.^2 + Y.^2 + Z.^2);
 %longitude
 lam = atan2(Y,X);
 
-%latitude
-phi = atan(Z./sqrt(X.^2 + Y.^2));
+%geocentric latitude
+phiC = atan(Z./sqrt(X.^2 + Y.^2));
 
 %coordinate transformation
-[phi, lam, h] = geoc2geod(phi, lam, r, a, e);
+psi = atan(tan(phiC)/sqrt(1-e^2));
+
+phi = atan((r.*sin(phiC) + e^2*a/sqrt(1-e^2) * (sin(psi)).^3) ./ ...
+    			(r.*cos(phiC) - e^2*a * (cos(psi)).^3));
+
+N = a ./ sqrt(1 - e^2 * sin(phi).^2);
+
+%height
+h = r .* cos(phiC)./cos(phi) - N;
 
 %----------------------------------------------------------------------------------------------

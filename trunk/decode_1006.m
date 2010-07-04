@@ -25,7 +25,7 @@ function [data] = decode_1006(msg)
 %   RTCM format 1006 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
