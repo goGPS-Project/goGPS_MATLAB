@@ -30,7 +30,7 @@ function [A, ddc_app, ddc, ddp] = input_kalman(posR, pr_Rsat, ph_Rsat, ...
 %   Transition matrix that link state variables to GPS observations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

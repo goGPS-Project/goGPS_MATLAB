@@ -13,7 +13,7 @@ function rtplot_googleearth (t, pos_R, pos_M, date)
 %   Real-time visualization on Google Earth.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %

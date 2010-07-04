@@ -22,7 +22,7 @@ function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   Code-only Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
 %
