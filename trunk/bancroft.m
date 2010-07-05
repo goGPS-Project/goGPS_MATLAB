@@ -23,7 +23,7 @@ function [pos] = bancroft(B_pass)
 %
 %----------------------------------------------------------------------------------------------
 
-global v_light %made global for usage in goGPS
+global v_light Omegae_dot
 
 pos = zeros(4,1);
 
@@ -40,7 +40,7 @@ for iter = 1:2
          rho = (x-pos(1))^2+(y-pos(2))^2+(z-pos(3))^2;
          traveltime = sqrt(rho)/v_light;
       end
-      angle = traveltime*7.292115147e-5;
+      angle = traveltime*Omegae_dot;
       cosa = cos(angle);
       sina = sin(angle);
       B(i,1) =	cosa*x + sina*y;
