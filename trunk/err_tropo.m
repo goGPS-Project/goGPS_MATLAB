@@ -21,7 +21,7 @@ function [tropocorr] = err_tropo(elev, h)
 %----------------------------------------------------------------------------------------------
 
 if (h < 5000)
-    elev=abs(elev);
+    elev=abs(elev)*pi/180;
     
 	%Standard atmosphere - Berg, 1948 (Bernese)
     %pressure [mbar]
@@ -43,10 +43,10 @@ if (h < 5000)
     
     B = interp1(h_a, B_a, h);
     
-    e= 0.01*H*exp(-37.2465+0.213166*T-0.000256908*T^2);
+    e = 0.01*H*exp(-37.2465+0.213166*T-0.000256908*T^2);
     
     %tropospheric error
-    tropocorr = ((0.002277/sin(elev*pi/180)) * (P - (B/(tan(elev*pi/180))^2)) + (0.002277/sin(elev*pi/180)) * (1255/T + 0.05) * e);
+    tropocorr = ((0.002277/sin(elev)) * (P - (B/(tan(elev))^2)) + (0.002277/sin(elev)) * (1255/T + 0.05) * e);
 else
     tropocorr = zeros(length(elev));
 end
