@@ -1,7 +1,7 @@
-function LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, snr_R, phase)
+function LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, snr_R, iono, phase)
 
 % SYNTAX:
-%   LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr1_M, pr2_R, snr_R, phase);
+%   LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr1_M, pr2_R, snr_R, iono, phase);
 %
 % INPUT:
 %   time = GPS time
@@ -9,6 +9,7 @@ function LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, snr_R, phase)
 %   pr1_R = ROVER code observations (L1 carrier)
 %   pr2_R = ROVER code observations (L2 carrier)
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
+%   iono = ionosphere parameters
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -106,9 +107,9 @@ if (size(sat_pr,1) >= 4)
    conf_cs = zeros(32,1);
    
    if (phase == 1)
-       [pos_SA, cov_pos_SA, PDOP, HDOP, VDOP] = code_SA(pos_R(1:3), pr1_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R);
+       [pos_SA, cov_pos_SA, PDOP, HDOP, VDOP] = code_SA(pos_R(1:3), pr1_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R, iono);
    else
-       [pos_SA, cov_pos_SA, PDOP, HDOP, VDOP] = code_SA(pos_R(1:3), pr2_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R);
+       [pos_SA, cov_pos_SA, PDOP, HDOP, VDOP] = code_SA(pos_R(1:3), pr2_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R, iono);
    end
 else
    fprintf('Less than 4 satellites\n');

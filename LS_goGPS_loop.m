@@ -1,7 +1,7 @@
-function LS_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, phase)
+function LS_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, iono, phase)
 
 % SYNTAX:
-%   LS_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, phase);
+%   LS_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, iono, phase);
 %
 % INPUT:
 %   time = GPS time
@@ -13,6 +13,7 @@ function LS_goGPS_loop(time, Eph_R, pos_M, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, sn
 %   pr2_M = MASTER code observations (L2 carrier)
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M = MASTER-SATELLITE signal-to-noise ratio
+%   iono = ionosphere parameters
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -116,9 +117,9 @@ if (size(sat,1) >= 4)
    conf_cs = zeros(32,1);
    
    if (phase == 1)
-       [pos_MQ, cov_pos_MQ, PDOP, HDOP, VDOP] = code_double_diff(pos_R(1:3), pr1_R(sat), snr_R(sat), pos_M, pr1_M(sat), snr_M(sat), time, sat, pivot, Eph_R);
+       [pos_MQ, cov_pos_MQ, PDOP, HDOP, VDOP] = code_double_diff(pos_R(1:3), pr1_R(sat), snr_R(sat), pos_M, pr1_M(sat), snr_M(sat), time, sat, pivot, Eph_R, iono);
    else
-       [pos_MQ, cov_pos_MQ, PDOP, HDOP, VDOP] = code_double_diff(pos_R(1:3), pr2_R(sat), snr_R(sat), pos_M, pr2_M(sat), snr_M(sat), time, sat, pivot, Eph_R);
+       [pos_MQ, cov_pos_MQ, PDOP, HDOP, VDOP] = code_double_diff(pos_R(1:3), pr2_R(sat), snr_R(sat), pos_M, pr2_M(sat), snr_M(sat), time, sat, pivot, Eph_R, iono);
    end
 
 else
