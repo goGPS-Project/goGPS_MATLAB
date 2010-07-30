@@ -227,7 +227,7 @@ if (get(handles.toggle_std_phase,'Value'))
 else
     sigmaq_ph = 1e30;
 end
-sigmaq0_N = 1000;
+sigmaq0_N = 100;
 if (get(handles.toggle_std_dtm,'Value'))
     sigmaq_dtm = str2double(get(handles.std_dtm,'String'))^2;
 else
