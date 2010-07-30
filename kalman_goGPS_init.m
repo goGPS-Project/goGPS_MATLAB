@@ -224,8 +224,8 @@ end
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-%if (~flag_LS_N_estim) | (size(sat) < 4)
-if (size(sat) < 4)
+if (~flag_LS_N_estim) | (size(sat) < 4)
+%if (size(sat) < 4)
     
     %ROVER positioning with code double differences
     if (phase(1) == 1)
