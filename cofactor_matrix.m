@@ -1,7 +1,7 @@
 function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
 
 % SYNTAX:
-%   [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
+%   [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot);
 %
 % INPUT:
 %   elR = satellite elevations (ROVER)
