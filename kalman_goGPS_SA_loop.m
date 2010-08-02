@@ -114,34 +114,34 @@ end
 %only satellites with code and phase
 %sat_pr = sat;
 
-%satellites that can be phase-smoothed
-if (length(phase) == 2)
-    sat_sm = find( (pr1_Rsat(:,1) ~= 0) & (pr2_Rsat(:,1) ~= 0) & (ph1_Rsat(:,1) ~= 0) & (ph2_Rsat(:,1) ~= 0) & ...
-                   (pr1_Rsat(:,2) ~= 0) & (pr2_Rsat(:,2) ~= 0) & (ph1_Rsat(:,2) ~= 0) & (ph2_Rsat(:,2) ~= 0));
-else
-    if (phase == 1)
-        sat_sm = find( (pr1_Rsat(:,1) ~= 0) & (ph1_Rsat(:,1) ~= 0) & ...
-                       (pr1_Rsat(:,2) ~= 0) & (ph1_Rsat(:,2) ~= 0));
-    else
-        sat_sm = find( (pr2_Rsat(:,1) ~= 0) & (ph2_Rsat(:,1) ~= 0) & ...
-                       (pr2_Rsat(:,2) ~= 0) & (ph2_Rsat(:,2) ~= 0));
-    end
-end
-
-if (sm_weight ~= 0)
-    sm_weight = sm_weight - 0.01;
-end
-
-%computation of phase-smoothed code
-for i = 1:size(sat_sm)
-    if (phase(1) == 1)
-        R_ex = pr1_Rsat(sat_sm(i),1)/lambda1 + (ph1_Rsat(sat_sm(i),2) - ph1_Rsat(sat_sm(i),1));
-        pr1_Rsat(sat_sm(i),2) = (sm_weight * (pr1_Rsat(sat_sm(i),2)/lambda1) + (1-sm_weight) * R_ex) * lambda1;
-    else
-        R_ex = pr2_Rsat(sat_sm(i),1)/lambda2 + (ph2_Rsat(sat_sm(i),2) - ph2_Rsat(sat_sm(i),1));
-        pr2_Rsat(sat_sm(i),2) = (sm_weight * (pr2_Rsat(sat_sm(i),2)/lambda2) + (1-sm_weight) * R_ex) * lambda2;
-    end
-end
+% %satellites that can be phase-smoothed
+% if (length(phase) == 2)
+%     sat_sm = find( (pr1_Rsat(:,1) ~= 0) & (pr2_Rsat(:,1) ~= 0) & (ph1_Rsat(:,1) ~= 0) & (ph2_Rsat(:,1) ~= 0) & ...
+%                    (pr1_Rsat(:,2) ~= 0) & (pr2_Rsat(:,2) ~= 0) & (ph1_Rsat(:,2) ~= 0) & (ph2_Rsat(:,2) ~= 0));
+% else
+%     if (phase == 1)
+%         sat_sm = find( (pr1_Rsat(:,1) ~= 0) & (ph1_Rsat(:,1) ~= 0) & ...
+%                        (pr1_Rsat(:,2) ~= 0) & (ph1_Rsat(:,2) ~= 0));
+%     else
+%         sat_sm = find( (pr2_Rsat(:,1) ~= 0) & (ph2_Rsat(:,1) ~= 0) & ...
+%                        (pr2_Rsat(:,2) ~= 0) & (ph2_Rsat(:,2) ~= 0));
+%     end
+% end
+% 
+% if (sm_weight ~= 0)
+%     sm_weight = sm_weight - 0.01;
+% end
+% 
+% %computation of phase-smoothed code
+% for i = 1:size(sat_sm)
+%     if (phase(1) == 1)
+%         R_ex = pr1_Rsat(sat_sm(i),1)/lambda1 + (ph1_Rsat(sat_sm(i),2) - ph1_Rsat(sat_sm(i),1));
+%         pr1_Rsat(sat_sm(i),2) = (sm_weight * (pr1_Rsat(sat_sm(i),2)/lambda1) + (1-sm_weight) * R_ex) * lambda1;
+%     else
+%         R_ex = pr2_Rsat(sat_sm(i),1)/lambda2 + (ph2_Rsat(sat_sm(i),2) - ph2_Rsat(sat_sm(i),1));
+%         pr2_Rsat(sat_sm(i),2) = (sm_weight * (pr2_Rsat(sat_sm(i),2)/lambda2) + (1-sm_weight) * R_ex) * lambda2;
+%     end
+% end
 
 %drop the measurements of the previous epoch
 pr1_Rsat(:,1) = [];
@@ -312,9 +312,12 @@ if (nsat >= min_nsat)
     p = find(ismember(sat_pr,sat)==1);
 
     %function that calculates the Kalman filter parameters
-    [alfa1, prstim1, err_iono] = input_kalman_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), time, sat_pr, Eph, iono);
-    [alfa2, prstim2          ] = input_kalman_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), time, sat_pr, Eph, iono);
-
+    %[alfa1, prstim1, err_iono] = input_kalman_SA(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 1, iono, X_t1_t(o3+sat_pr), Cee(o3+sat, o3+sat));
+    %[alfa2, prstim2          ] = input_kalman_SA(pos_R, pr2_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 2, iono, X_t1_t(o3+sat_pr), Cee(o3+sat, o3+sat));
+    [alfa1, prstim1, err_iono] = input_kalman_SA(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 1, iono, X_t1_t(o3+sat_pr));
+    [alfa2, prstim2          ] = input_kalman_SA(pos_R, pr2_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 2, iono, X_t1_t(o3+sat_pr));
+    %[alfa1, prstim1, err_iono] = input_kalman_SA_comb_N(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 1, iono);
+    %[alfa2, prstim2          ] = input_kalman_SA_comb_N(pos_R, pr2_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 2, iono);
     %zeroes vector useful in matrix definitions
     Z_1_nN = zeros(1,nN);
     Z_n_nN = zeros(n,nN);

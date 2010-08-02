@@ -589,8 +589,8 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     cell_contents = cell(3,1);
     cell_contents{1} = 'Code stand-alone';
     cell_contents{2} = 'Code double difference';
-    %cell_contents{3} = 'Code and phase stand-alone';
-    cell_contents{3} = 'Code and phase double difference';
+    cell_contents{3} = 'Code and phase stand-alone';
+    cell_contents{4} = 'Code and phase double difference';
     set(handles.code_dd_sa, 'String', cell_contents);
 
     set(handles.std_code, 'Enable', 'on');

@@ -1,31 +1,26 @@
-function [pos_R, cov_pos_R, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phase_SA(pos_R_app, pr_R, ph_R, snr_R, sat, time, Eph, phase, iono)
+function [A, b, err_iono_RS] = input_kalman_SA(pos_R_app, pr_R, ph_R, snr_R, sat, time, Eph, phase, iono)
 
 % SYNTAX:
-%   [pos_R, cov_pos_R, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phse_SA(pos_R_app, pr_R, ph_R, snr_R, sat, time, Eph, phase, iono);
+%   [A, b, err_iono_RS] = input_kalman_SA(pos_R_app, pr_R, ph_R, snr_R, sat, time, Eph, phase, iono)
 %
 % INPUT:
-%   pos_R_app = ROVER position (X,Y,Z)
-%   pr_R = ROVER code observations (L1 carrier)
-%   ph_R = ROVER-SATELLITE phase observation
+%   posR = receiver position (X,Y,Z)
+%   pr_Rsat = ROVER-SATELLITE code pseudorange
 %   snr_R = ROVER signal-to-noise ratio
-%   sat = visible satellite configuration
 %   time = GPS time
-%   Eph = ephemerides
-%   phase = L1 carrier (phase=1), L2 carrier (phase=2)
-%   iono = ionosphere parameters
+%   sat = configuration of visible satellites
+%   Eph = ephemerides matrix
+%   iono = ionospheric parameters
 %
 % OUTPUT:
-%   pos_R = estimated position (X,Y,Z)
-%   cov_pos_R = covariance matrix of estimation errors (rover position)
-%   N_stim = linear combination of ambiguity estimate
-%   cov_N_stim = covariance matrix of estimation errors (combined ambiguity values)
-%   PDOP = position dilution of precision
-%   HDOP = horizontal dilution of precision
-%   VDOP = vertical dilution of precision
+%   A = parameters obtained from the linearization of the observation equation,
+%       e.g. (xR-xS)/prRS)
+%   b = approximated code range
+%   err_iono_RS = ionospheric error (for all the satellites)
 %
 % DESCRIPTION:
-%   Absolute positioning by means of least squares adjustment on code
-%   observations. Epoch-by-epoch solution.
+%   This function computes the parameters needed to apply the Kalman filter.
+%   Transition matrix that link state variables to GPS observations.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
@@ -53,6 +48,7 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phase_S
 %variable initialization
 global v_light
 global lambda1 lambda2
+global sigmaq_cod1 sigmaq_ph
 
 if (phase == 1)
     lambda = lambda1;
@@ -131,34 +127,36 @@ end
 
 %PHASE
 for i = 1 : nsat
-
-    %observed phase measurement
-    phRS_obs = ph_R(i);
-
-    %ambiguity vector in design matrix (lambda position)
-    N_row = zeros(1, nsat);
-    N_row(i) = -lambda;
-    
-    %design matrix computation
-    A = [A; ((pos_R_app(1) - posS(i,1)) / prRS_app(i)) ...
+    if (ph_R(i) ~= 0)
+        
+        %observed phase measurement
+        phRS_obs = ph_R(i);
+        
+        %ambiguity vector in design matrix (lambda position)
+        N_row = zeros(1, nsat);
+        N_row(i) = -lambda;
+        
+        %design matrix computation
+        A = [A; ((pos_R_app(1) - posS(i,1)) / prRS_app(i)) ...
             ((pos_R_app(2) - posS(i,2)) / prRS_app(i)) ...
             ((pos_R_app(3) - posS(i,3)) / prRS_app(i)) ...
             N_row 1];
-
-    %approximate pseudoranges
-    b = [b; prRS_app(i) - v_light*dtS(i)];
-
-    %observed pseudoranges
-    y0 = [y0; phRS_obs*lambda];
-
-    %save tropospheric errors
-    tr = [tr; err_tropo_RS(i)];
-
-    %if ionospheric parameters are available
-    if (nargin == 9)
         
-        %save ionospheric errors
-        io = [io; -err_iono_RS(i)];
+        %approximate pseudoranges
+        b = [b; prRS_app(i) - v_light*dtS(i)];
+        
+        %observed pseudoranges
+        y0 = [y0; phRS_obs*lambda];
+        
+        %save tropospheric errors
+        tr = [tr; err_tropo_RS(i)];
+        
+        %if ionospheric parameters are available
+        if (nargin == 9)
+            
+            %save ionospheric errors
+            io = [io; -err_iono_RS(i)];
+        end
     end
 end
 
@@ -175,60 +173,14 @@ n = length(y0);
 m = 4 + nsat;
 
 %observation noise covariance matrix
-Q = zeros(n, n);
+Q = zeros(n);
 Q1 = cofactor_matrix_SA(elR, snr_R, sat);
-Q(1:n/2,1:n/2) = Q1(:,:);
-Q(n/2+1:end,n/2+1:end) = Q1(:,:);
-
-%parameter vector
-xR = [pos_R_app; zeros(nsat,1); 0];
+Q(1:nsat,1:nsat) = sigmaq_cod1 * Q1;
+Q(nsat+1:end,nsat+1:end) = sigmaq_ph * Q1;
 
 %least squares solution
 x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
 
-try
-    xR = xR + x;
-catch
-    %DEBUG
-    fprintf('Size of parameter vector: %d\n', size(xR,1));
-    fprintf('Size of observation vector : %d\n', size(y0,1));
-    fprintf('Number of satellites: %d\n', nsat);
-    xR = xR + x;
-end
+A = A(1:nsat, 1:3);
 
-%estimation of the variance of the observation error
-y_stim = A*x + b;
-v_stim = y0 - y_stim;
-sigma0q_stim = (v_stim'* Q^-1 * v_stim) / (n-m);
-
-%estimated rover position
-pos_R = xR(1:3);
-
-%estimated combined ambiguity values
-N_stim = xR(4:end-1);
-
-%covariance matrix of the estimation error
-if (n > m)
-    Cxx = sigma0q_stim * ((A'*Q^-1*A)^-1);
-
-    %rover position covariance matrix
-    cov_pos_R = Cxx(1:3,1:3);
-
-    %combined ambiguity covariance matrix
-    cov_N_stim = Cxx(4:end-1,4:end-1);
-
-else
-    cov_pos_R = [];
-
-    cov_N_stim = [];
-end
-
-%DOP computation
-if (nargout > 4)
-    cov_XYZ = (A(1:n/2,1:3)'*A(1:n/2,1:3))^-1;
-    cov_ENU = global2localCov(cov_XYZ, xR);
-    
-    PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
-    HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
-    VDOP = sqrt(cov_ENU(3,3));
-end
+b = b(1:nsat) + x(m);
