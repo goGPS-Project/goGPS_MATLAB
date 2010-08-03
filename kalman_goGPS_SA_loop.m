@@ -312,10 +312,10 @@ if (nsat >= min_nsat)
     p = find(ismember(sat_pr,sat)==1);
 
     %function that calculates the Kalman filter parameters
-    %[alfa1, prstim1, err_iono] = input_kalman_SA(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 1, iono, X_t1_t(o3+sat_pr), Cee(o3+sat, o3+sat));
-    %[alfa2, prstim2          ] = input_kalman_SA(pos_R, pr2_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 2, iono, X_t1_t(o3+sat_pr), Cee(o3+sat, o3+sat));
-    [alfa1, prstim1, err_iono] = input_kalman_SA(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 1, iono, X_t1_t(o3+sat_pr));
-    [alfa2, prstim2          ] = input_kalman_SA(pos_R, pr2_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 2, iono, X_t1_t(o3+sat_pr));
+    [alfa1, prstim1, err_iono] = input_kalman_SA(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 1, iono, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+    [alfa2, prstim2          ] = input_kalman_SA(pos_R, pr2_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 2, iono, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+    %[alfa1, prstim1, err_iono] = input_kalman_SA(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 1, iono, X_t1_t(o3+sat_pr));
+    %[alfa2, prstim2          ] = input_kalman_SA(pos_R, pr2_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 2, iono, X_t1_t(o3+sat_pr));
     %[alfa1, prstim1, err_iono] = input_kalman_SA_comb_N(pos_R, pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 1, iono);
     %[alfa2, prstim2          ] = input_kalman_SA_comb_N(pos_R, pr2_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, 2, iono);
     %zeroes vector useful in matrix definitions
