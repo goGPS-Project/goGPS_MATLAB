@@ -50,6 +50,7 @@ function [A, b, err_iono_RS] = input_kalman_SA(pos_R_app, pr_R, ph_R, snr_R, sat
 global v_light
 global lambda1 lambda2
 global sigmaq_cod1 sigmaq_ph
+global clock_delay_thresh
 
 if (phase == 1)
     lambda = lambda1;
@@ -117,10 +118,16 @@ for i = 1 : nsat
     io = [io; err_iono_RS(i)];
 end
 
+% index vector of satellites with phase observations
+p = [];
+
 %PHASE
 for i = 1 : nsat
     if (ph_R(i) ~= 0)
-        
+
+        %index vector
+        p = [p; i];
+
         %observed phase measurement
         phRS_obs = ph_R(i);
         
@@ -155,17 +162,46 @@ n = length(y0);
 %observation noise covariance matrix
 Q = zeros(n);
 Q1 = cofactor_matrix_SA(elR, snr_R, sat);
+Q2 = Q1(p,p);
+
 Q(1:nsat,1:nsat) = sigmaq_cod1 * Q1;
 if (nargin == 11)
     %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
     %with respect to input code and phase variances)
-    Q(nsat+1:end,nsat+1:end) = (sigmaq_ph * eye(n - nsat) + lambda^2*Cee_N_kalman) .* Q1;
+    Q(nsat+1:end,nsat+1:end) = (sigmaq_ph * eye(n - nsat) + lambda^2*Cee_N_kalman(p,p)) .* Q2;
 else
-    Q(nsat+1:end,nsat+1:end) = sigmaq_ph * Q1;
+    Q(nsat+1:end,nsat+1:end) = sigmaq_ph * Q2;
 end
+
+A_cod = A(1:nsat,:);
+Q_cod = Q(1:nsat,1:nsat);
+y0_cod = y0(1:nsat);
+b_cod = b(1:nsat);
+
+%least squares solution using only code
+x_cod = ((A_cod'*Q_cod^-1*A_cod)^-1)*A_cod'*Q_cod^-1*(y0_cod-b_cod);
 
 %least squares solution
 x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
+
+%test on differences between code and code+phase receiver clock delay estimation
+while (abs(x_cod(4) - x(4)) > clock_delay_thresh)
+    
+    %delete phase observation with maximum error variance
+    [null_m, i] = max(diag(Q2));
+    Q2(i,:) = [];
+    Q2(:,i) = [];
+    
+    Q(nsat + i, :) = [];
+    Q(:, nsat + i) = [];
+    
+    A(nsat + i, :) = [];
+    y0(nsat + i) = [];
+    b(nsat + i) = [];
+    
+    %least squares solution
+    x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
+end
 
 A = A(1:nsat, 1:3);
 

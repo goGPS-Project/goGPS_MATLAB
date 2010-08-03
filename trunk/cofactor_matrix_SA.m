@@ -44,29 +44,28 @@ global weights snr_a snr_0 snr_1 snr_A
 n = size(sat,1);
 
 if (weights == 0)
-
+    
     %code-code or phase-phase co-factor matrix Q construction
-    Q = ones(n) + eye(n);
-
+    Q = eye(n);
+    
 else
     if (weights == 1)
-
+        
         %weight vectors (elevation)
         q_R = 1 ./ (sin(elR * pi/180).^2);
-
+        
     elseif (weights == 2)
-
+        
         %weight vectors (signal-to-noise ratio)
         q_R = 10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1);
         q_R(snr_R >= snr_1) = 1;
-
+        
     elseif (weights == 3)
         %weight vectors (elevation and signal-to-noise ratio)
         q_R = 1 ./ (sin(elR * pi/180).^2) .* (10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1));
         q_R(snr_R >= snr_1) = 1;
-
     end
-
+    
     %code-code or phase-phase co-factor matrix Q construction
-    Q = ones(n) + diag(q_R);
+    Q = diag(q_R);
 end
