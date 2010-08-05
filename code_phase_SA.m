@@ -53,6 +53,7 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phase_S
 %variable initialization
 global v_light
 global lambda1 lambda2
+global sigmaq_cod1 sigmaq_ph
 
 if (phase == 1)
     lambda = lambda1;
@@ -85,13 +86,9 @@ for i = 1 : nsat
     
     %computation of tropospheric errors
     err_tropo_RS(i) = err_tropo(elR(i), hR);
-    
-    %if ionospheric parameters are available
-    if (nargin == 9)
         
-        %computation of ionospheric errors
-        err_iono_RS(i) = err_iono(iono, phiR, lamR, azR, elR(i), time);
-    end
+    %computation of ionospheric errors
+    err_iono_RS(i) = err_iono(iono, phiR, lamR, azR, elR(i), time);
 end
 
 A = [];
@@ -120,13 +117,9 @@ for i = 1 : nsat
 
     %save tropospheric errors
     tr = [tr; err_tropo_RS(i)];
-
-    %if ionospheric parameters are available
-    if (nargin == 9)
         
-        %save ionospheric errors
-        io = [io; err_iono_RS(i)];
-    end
+    %save ionospheric errors
+    io = [io; err_iono_RS(i)];
 end
 
 %PHASE
@@ -154,19 +147,12 @@ for i = 1 : nsat
     %save tropospheric errors
     tr = [tr; err_tropo_RS(i)];
 
-    %if ionospheric parameters are available
-    if (nargin == 9)
-        
-        %save ionospheric errors
-        io = [io; -err_iono_RS(i)];
-    end
+    %save ionospheric errors
+    io = [io; -err_iono_RS(i)];
 end
 
 %correction of the b known term
-b = b + tr;
-if (nargin == 9)
-   b = b + io;
-end
+b = b + tr + io;
 
 %number of observations
 n = length(y0);
@@ -175,10 +161,10 @@ n = length(y0);
 m = 4 + nsat;
 
 %observation noise covariance matrix
-Q = zeros(n, n);
+Q = zeros(n);
 Q1 = cofactor_matrix_SA(elR, snr_R, sat);
-Q(1:n/2,1:n/2) = Q1(:,:);
-Q(n/2+1:end,n/2+1:end) = Q1(:,:);
+Q(1:n/2,1:n/2) = sigmaq_cod1 * Q1;
+Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q1;
 
 %parameter vector
 xR = [pos_R_app; zeros(nsat,1); 0];

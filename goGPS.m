@@ -731,7 +731,7 @@ elseif (mode == 4)
         Eph_t = Eph(:,:,1);
     end
 
-    LS_goGPS_SA_loop(time_GPS(1), Eph_t, pr1_R(:,1), pr2_R(:,1), snr_R(:,1), iono, 1);
+    LS_goGPS_SA_cod_loop(time_GPS(1), Eph_t, pr1_R(:,1), pr2_R(:,1), snr_R(:,1), iono, 1);
 
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -766,7 +766,7 @@ elseif (mode == 4)
             Eph_t = Eph(:,:,t);
         end
 
-        LS_goGPS_SA_loop(time_GPS(t), Eph_t, pr1_R(:,t), pr2_R(:,t), snr_R(:,t), iono, 1);
+        LS_goGPS_SA_cod_loop(time_GPS(t), Eph_t, pr1_R(:,t), pr2_R(:,t), snr_R(:,t), iono, 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -953,6 +953,95 @@ elseif (mode == 6)
         fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+        fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+
+        if (flag_plotproc)
+            if (flag_cov == 0)
+                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+            else
+                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+            end
+            if (flag_skyplot == 1)
+                rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                rtplot_snr (snr_R(:,t));
+            else
+                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+            end
+            pause(0.01);
+        end
+    end
+
+    fclose(fid_kal);
+    fclose(fid_sat);
+    fclose(fid_dop);
+    fclose(fid_conf);
+    
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING: LEAST SQUARES ADJ. ON CODE AND PHASE, NO CONSTRAINT
+%----------------------------------------------------------------------------------------------
+
+elseif (mode == 7)
+
+    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+
+    nN = 32;
+    check_on = 0;
+    check_off = 0;
+    check_pivot = 0;
+    check_cs = 0;
+
+    if (mode_data == 0)
+        Eph_t = rt_find_eph (Eph, time_GPS(1));
+    else
+        Eph_t = Eph(:,:,1);
+    end
+    LS_goGPS_SA_loop(time_GPS(1), Eph_t, pr1_R(:,1), pr2_R(:,1), ph1_R(:,1), ph2_R(:,1), snr_R(:,1), iono, 1);
+
+    Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
+    Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
+    fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+    fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
+    fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
+    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+
+    if (flag_plotproc)
+        if (flag_cov == 0)
+            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(1,:)), end;
+            rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+        else
+            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
+            rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+        end
+        if (flag_skyplot == 1)
+            rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+            rtplot_snr (snr_R(:,1));
+        else
+            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+        end
+    else
+        fprintf('Processing...\n');
+    end
+
+    for t = 2 : length(time_GPS)
+
+        if (mode_data == 0)
+            Eph_t = rt_find_eph (Eph, time_GPS(t));
+        else
+            Eph_t = Eph(:,:,t);
+        end
+
+        LS_goGPS_SA_loop(time_GPS(t), Eph_t, pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), iono, 1);
+
+        Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
+        Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
+        fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+        fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
