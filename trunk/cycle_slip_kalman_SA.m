@@ -1,17 +1,15 @@
-function [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(posR, N_kalman, ...
-         ph_Rsat, pr_Rsat, Eph, time, sat, alfa, phase)
+function [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(N_kalman, ...
+         pr_Rsat, ph_Rsat, err_iono_RS, sat, sat_born, alfa, phase)
 
 % SYNTAX:
-%   [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(posR, N_kalman, ...
-%   ph_Rsat, pr_Rsat, Eph, time, sat, phase);
+%   [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(N_kalman, ...
+%    pr_Rsat, ph_Rsat, err_iono_RS, sat, alfa, phase);
 %
 % INPUT:
-%   posR = ROVER position (X,Y,Z) estimated by the Kalman filter
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
+%   pr_Rsat = ROVER-SATELLITE code observation
 %   ph_Rsat = ROVER-SATELLITE phase observation
-%   pr_Rsat = ROVER-SATELLITE code pseudorange
-%   Eph = ephemerides matrix
-%   time = GPS time
+%   iono_err = ionospheric error
 %   sat = visible satellites configuration
 %   alfa = cycle-slip detection threshold
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
@@ -52,57 +50,15 @@ function [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(posR, N_kalman, ...
 %variable initialization
 global lambda1
 global lambda2
-% global v_light
-
-% %cartesian to geodetic conversion of ROVER coordinates
-% [phiR, lamR, hR] = cart2geod(posR(1), posR(2), posR(3));
-% 
-% %radians to degrees
-% phiR = phiR * 180 / pi;
-% lamR = lamR * 180 / pi;
 
 %number of visible satellites
 nsat = size(sat,1);
 
-% %initialization
-% err_iono_RS = 0;
-% pr_stim = [];
-% 
-% %computation for all the satellites, PIVOT included
-% for i = 1 : nsat
-% 
-%     %new satellites position correction (clock and Earth rotation)
-%     [pos_S dtS]= sat_corr(Eph, sat(i), time, pr_Rsat(i), posR);
-% 
-%     %computation of the satellite azimuth and elevation
-%     [azR, elR] = topocent(posR, pos_S');
-%     
-%     %computation of tropospheric errors
-%     err_tropo_RS = err_tropo(elR, hR);
-%     
-%     %if ionospheric parameters are available
-%     if (nargin == 7)
-%         
-%         %computation of ionospheric errors
-%         err_iono_RS = err_iono(iono, phiR, lamR, azR, elR, time);
-%     end
-%     
-%     %ROVER,MASTER-SATELLITES pseudorange estimate
-%     pr_stim(i,1) = sqrt(sum((posR - pos_S).^2)) - v_light*dtS + err_tropo_RS + err_iono_RS;
-% end
-% 
-% %phase ambiguities estimation
-% if (phase == 1)
-%     N_stim = pr_stim / lambda1 - ph_Rsat;
-% else
-%     N_stim = pr_stim / lambda2 - ph_Rsat;
-% end
-
 %phase ambiguities estimation
 if (phase == 1)
-    N_stim = ((pr_Rsat - ph_Rsat * lambda1)) / lambda1;
+    N_stim = (pr_Rsat - lambda1 * ph_Rsat - 2 * err_iono_RS) / lambda1;
 else
-    N_stim = ((pr_Rsat - ph_Rsat * lambda2)) / lambda2;
+    N_stim = (pr_Rsat - lambda2 * ph_Rsat - 2 * err_iono_RS) / lambda2;
 end
 
 %initialization
@@ -114,7 +70,7 @@ slip = 0;
 for i = 1 : nsat
 
     %test on the estimated value of the phase ambiguities
-    if (abs(N_kalman(sat(i)) - N_stim(i)) > alfa)
+    if (~ismember(sat(i),sat_born) & (abs(N_kalman(sat(i)) - N_stim(i)) > alfa))
 
         %save of the new phase ambiguity estimation
         N_slip = [N_slip; N_stim(i)];

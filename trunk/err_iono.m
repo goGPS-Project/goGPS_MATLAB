@@ -44,69 +44,76 @@ function [ionocorr] = err_iono(ionoparams, Lat, Lon, Az, El, T)
 %variable initialization
 global v_light
 
-%iono parameters
-a0 = ionoparams(1);
-a1 = ionoparams(2);
-a2 = ionoparams(3);
-a3 = ionoparams(4);
-b0 = ionoparams(5);
-b1 = ionoparams(6);
-b2 = ionoparams(7);
-b3 = ionoparams(8);
-El=abs(El);
+if (sum(abs(ionoparams)) == 0)
 
-%conversion to semicircles
-Lat = Lat / 180;
-Lon = Lon / 180;
-Az = Az / 180;
-El = El / 180;
-
-%Klobuchar algorithm
-f=1+16*(0.53-El)^3;
-
-psi=(0.0137/(El+0.11))-0.022;
-
-phi=Lat+psi*cos(Az*pi);
-
-if (phi>0.416)
-    phi=0.416;
-end
-
-if (phi<-0.416)
-    phi=-0.416;
-end
-
-lambda=Lon+((psi*sin(Az*pi))/cos(phi*pi));
-
-ro=phi+0.064*cos((lambda-1.617)*pi);
-
-t=lambda*43200+T;
-
-while (t>=86400)
-    t=t-86400;
-end
-
-while (t<0)
-    t=t+86400;
-end
-
-p=b0+b1*ro+b2*ro^2+b3*ro^3;
-
-if (p<72000)
-    p=72000;
-end
-
-a=a0+a1*ro+a2*ro^2+a3*ro^3;
-
-if (a<0)
-    a=0;
-end
-
-x=(2*pi*(t-50400))/p;
-
-%ionospheric error
-if (abs(x)<1.57)
-    ionocorr = v_light * f * (5e-9+a*(1-(x^2)/2+(x^4)/24));
+    ionocorr = 0;
 else
-    ionocorr = v_light * f * 5e-9;
+    
+    %iono parameters
+    a0 = ionoparams(1);
+    a1 = ionoparams(2);
+    a2 = ionoparams(3);
+    a3 = ionoparams(4);
+    b0 = ionoparams(5);
+    b1 = ionoparams(6);
+    b2 = ionoparams(7);
+    b3 = ionoparams(8);
+    El=abs(El);
+    
+    %conversion to semicircles
+    Lat = Lat / 180;
+    Lon = Lon / 180;
+    Az = Az / 180;
+    El = El / 180;
+    
+    %Klobuchar algorithm
+    f=1+16*(0.53-El)^3;
+    
+    psi=(0.0137/(El+0.11))-0.022;
+    
+    phi=Lat+psi*cos(Az*pi);
+    
+    if (phi>0.416)
+        phi=0.416;
+    end
+    
+    if (phi<-0.416)
+        phi=-0.416;
+    end
+    
+    lambda=Lon+((psi*sin(Az*pi))/cos(phi*pi));
+    
+    ro=phi+0.064*cos((lambda-1.617)*pi);
+    
+    t=lambda*43200+T;
+    
+    while (t>=86400)
+        t=t-86400;
+    end
+    
+    while (t<0)
+        t=t+86400;
+    end
+    
+    p=b0+b1*ro+b2*ro^2+b3*ro^3;
+    
+    if (p<72000)
+        p=72000;
+    end
+    
+    a=a0+a1*ro+a2*ro^2+a3*ro^3;
+    
+    if (a<0)
+        a=0;
+    end
+    
+    x=(2*pi*(t-50400))/p;
+    
+    %ionospheric error
+    if (abs(x)<1.57)
+        ionocorr = v_light * f * (5e-9+a*(1-(x^2)/2+(x^4)/24));
+    else
+        ionocorr = v_light * f * 5e-9;
+    end
+    
 end

@@ -99,22 +99,15 @@ for i = 1 : nsat
     %save tropospheric errors
     tr = [tr; err_tropo_RS];
     
-    %if ionospheric parameters are available
-    if (nargin == 7)
-        
-        %computation of ionospheric errors
-        err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
-        
-        %save ionospheric errors
-        io = [io; err_iono_RS];
-    end
+    %computation of ionospheric errors
+    err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
+    
+    %save ionospheric errors
+    io = [io; err_iono_RS];
 end
 
 %correction of the b known term
-b = b + tr;
-if (nargin == 7)
-   b = b + io;
-end
+b = b + tr + io;
 
 %number of observations
 n = length(y0);

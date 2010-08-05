@@ -60,6 +60,7 @@ function [pos_R, cov_pos_R, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phase_d
 
 %variable initialization
 global lambda1 lambda2
+global sigmaq_cod1 sigmaq_ph
 
 if (phase == 1)
     lambda = lambda1;
@@ -260,8 +261,8 @@ m = 3 + (nsat - 1);
 %observation noise covariance matrix
 Q = zeros(n, n);
 Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot);
-Q(1:n/2,1:n/2) = Q1(:,:);
-Q(n/2+1:end,n/2+1:end) = Q1(:,:);
+Q(1:n/2,1:n/2) = sigmaq_cod1 * Q1;
+Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q1;
 
 %parameter vector
 xR = [pos_R_app; zeros(nsat-1,1)];
