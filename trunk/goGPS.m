@@ -583,7 +583,7 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop (time_GPS(t), Eph_t, iono, pr1_R(:,t-1:t), ph1_R(:,t-1:t), pr2_R(:,t-1:t), ph2_R(:,t-1:t), snr_R(:,t), 1);
+        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop (time_GPS(t), Eph_t, iono, pr1_R(:,t), ph1_R(:,t), pr2_R(:,t), ph2_R(:,t), snr_R(:,t), 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');

@@ -148,33 +148,17 @@ Z_om_1 = zeros(o1-1,1);
 
 %standalone ROVER positioning
 if (phase(1) == 1)
-    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph); %#ok<NASGU>
-    else
-        [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono); %#ok<NASGU>
-    end
+    [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono); %#ok<NASGU>
 else
-    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph); %#ok<NASGU>
-    else
-        [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono); %#ok<NASGU>
-    end
+    [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono); %#ok<NASGU>
 end
 
 %second iteration to improve the accuracy
 %obtained in the previous step (from some meters to some centimeters)
 if (phase(1) == 1)
-    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph);
-    else
-        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
-    end
+    [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
 else
-    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph);
-    else
-        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
-    end
+    [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
 end
 
 if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix

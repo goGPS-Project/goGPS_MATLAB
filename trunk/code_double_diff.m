@@ -108,13 +108,9 @@ elM = zeros(nsat,1);
 err_tropo_RP = err_tropo(elR(i), hR);
 err_tropo_MP = err_tropo(elM(i), hM);
 
-%if ionospheric parameters are available
-if (nargin == 11)
-
-   %ROVER-PIVOT and MASTER-PIVOT ionospheric error computation
-   err_iono_RP = err_iono(iono, phiR, lamR, azR, elR(i), time);
-   err_iono_MP = err_iono(iono, phiM, lamM, azM, elM(i), time);
-end
+%ROVER-PIVOT and MASTER-PIVOT ionospheric error computation
+err_iono_RP = err_iono(iono, phiR, lamR, azR, elR(i), time);
+err_iono_MP = err_iono(iono, phiM, lamM, azM, elM(i), time);
 
 A = [];
 tr = [];
@@ -158,18 +154,13 @@ for i = 1 : nsat
         
         %computation of crossed tropospheric errors
         tr = [tr; (err_tropo_RS - err_tropo_MS) - (err_tropo_RP - err_tropo_MP)];
-
-        %if ionospheric parameters are available
-        if (nargin == 11)
-
-            %computation of ionospheric errors
-            err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
-            err_iono_MS = err_iono(iono, phiM, lamM, azM, elM(i), time);
-
-            %computation of crossed ionospheric errors
-            io = [io; (err_iono_RS - err_iono_MS) - (err_iono_RP - err_iono_MP)];
-        end
-
+        
+        %computation of ionospheric errors
+        err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
+        err_iono_MS = err_iono(iono, phiM, lamM, azM, elM(i), time);
+        
+        %computation of crossed ionospheric errors
+        io = [io; (err_iono_RS - err_iono_MS) - (err_iono_RP - err_iono_MP)];
     end
 end
 
@@ -177,10 +168,7 @@ end
 b = comb_pr_app;
 
 %correction of the b known term
-b = b + tr;
-if (nargin == 11)
-   b = b + io;
-end
+b = b + tr + io;
 
 %observation vector
 y0 = comb_pr_obs;
