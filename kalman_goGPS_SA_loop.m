@@ -58,8 +58,6 @@ global h_antenna
 global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
-% global flag_LS_N_estim
-% global sm_weight
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -98,56 +96,21 @@ end
 
 %visible satellites
 if (length(phase) == 2)
-    sat_pr = find( (pr1_Rsat(:,2) ~= 0) & (pr2_Rsat(:,2) ~= 0) );
-    sat = find( (pr1_Rsat(:,2) ~= 0) & (ph1_Rsat(:,2) ~= 0) & ...
-                (pr2_Rsat(:,2) ~= 0) & (ph2_Rsat(:,2) ~= 0) );
+    sat_pr = find( (pr1_Rsat(:,1) ~= 0) & (pr2_Rsat(:,1) ~= 0) );
+    sat = find( (pr1_Rsat(:,1) ~= 0) & (ph1_Rsat(:,1) ~= 0) & ...
+                (pr2_Rsat(:,1) ~= 0) & (ph2_Rsat(:,1) ~= 0) );
 else
     if (phase == 1)
-        sat_pr = find(pr1_Rsat(:,2) ~= 0);
-        sat = find( (pr1_Rsat(:,2) ~= 0) & (ph1_Rsat(:,2) ~= 0) );
+        sat_pr = find(pr1_Rsat(:,1) ~= 0);
+        sat = find( (pr1_Rsat(:,1) ~= 0) & (ph1_Rsat(:,1) ~= 0) );
     else
-        sat_pr = find(pr2_Rsat(:,2) ~= 0);
-        sat = find( (pr2_Rsat(:,2) ~= 0) & (ph2_Rsat(:,2) ~= 0) );
+        sat_pr = find(pr2_Rsat(:,1) ~= 0);
+        sat = find( (pr2_Rsat(:,1) ~= 0) & (ph2_Rsat(:,1) ~= 0) );
     end
 end
 
 %only satellites with code and phase
 %sat_pr = sat;
-
-% %satellites that can be phase-smoothed
-% if (length(phase) == 2)
-%     sat_sm = find( (pr1_Rsat(:,1) ~= 0) & (pr2_Rsat(:,1) ~= 0) & (ph1_Rsat(:,1) ~= 0) & (ph2_Rsat(:,1) ~= 0) & ...
-%                    (pr1_Rsat(:,2) ~= 0) & (pr2_Rsat(:,2) ~= 0) & (ph1_Rsat(:,2) ~= 0) & (ph2_Rsat(:,2) ~= 0));
-% else
-%     if (phase == 1)
-%         sat_sm = find( (pr1_Rsat(:,1) ~= 0) & (ph1_Rsat(:,1) ~= 0) & ...
-%                        (pr1_Rsat(:,2) ~= 0) & (ph1_Rsat(:,2) ~= 0));
-%     else
-%         sat_sm = find( (pr2_Rsat(:,1) ~= 0) & (ph2_Rsat(:,1) ~= 0) & ...
-%                        (pr2_Rsat(:,2) ~= 0) & (ph2_Rsat(:,2) ~= 0));
-%     end
-% end
-% 
-% if (sm_weight ~= 0)
-%     sm_weight = sm_weight - 0.01;
-% end
-% 
-% %computation of phase-smoothed code
-% for i = 1:size(sat_sm)
-%     if (phase(1) == 1)
-%         R_ex = pr1_Rsat(sat_sm(i),1)/lambda1 + (ph1_Rsat(sat_sm(i),2) - ph1_Rsat(sat_sm(i),1));
-%         pr1_Rsat(sat_sm(i),2) = (sm_weight * (pr1_Rsat(sat_sm(i),2)/lambda1) + (1-sm_weight) * R_ex) * lambda1;
-%     else
-%         R_ex = pr2_Rsat(sat_sm(i),1)/lambda2 + (ph2_Rsat(sat_sm(i),2) - ph2_Rsat(sat_sm(i),1));
-%         pr2_Rsat(sat_sm(i),2) = (sm_weight * (pr2_Rsat(sat_sm(i),2)/lambda2) + (1-sm_weight) * R_ex) * lambda2;
-%     end
-% end
-
-%drop the measurements of the previous epoch
-pr1_Rsat(:,1) = [];
-ph1_Rsat(:,1) = [];
-pr2_Rsat(:,1) = [];
-ph2_Rsat(:,1) = [];
 
 %------------------------------------------------------------------------------------
 % LINEARIZATION POINT (APPROXIMATE COORDINATES)

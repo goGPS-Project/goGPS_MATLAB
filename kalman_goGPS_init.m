@@ -60,7 +60,6 @@ global cutoff snr_threshold o1 o2 o3 nN
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
-global flag_LS_N_estim
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -208,38 +207,21 @@ sigmaq_comb_N = zeros(nN,1);
 
 %ROVER positioning with code double differences
 if (phase(1) == 1)
-    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
-    else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
-    end
+    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
 else
-    if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
-    else
-        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
-    end
+    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
 end
 
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-if (~flag_LS_N_estim) | (size(sat) < 4)
-%if (size(sat) < 4)
+if (size(sat) < 4)
     
     %ROVER positioning with code double differences
     if (phase(1) == 1)
-        if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-            [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
-        else
-            [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
-        end
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
     else
-        if (sum(abs(iono)) == 0) %if ionospheric parameters are not available they are set equal to 0
-            [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph);
-        else
-            [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
-        end
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
     end
     if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
         cov_pos_R = sigmaq0 * eye(3);

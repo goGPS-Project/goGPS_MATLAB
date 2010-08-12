@@ -46,7 +46,6 @@ global cutoff o1 o2 o3 nN
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
-% global flag_LS_N_estim
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
