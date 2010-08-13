@@ -234,6 +234,10 @@ else
     sigmaq_dtm = 1e30;
 end
 min_nsat = str2double(get(handles.min_sat,'String'));
+if (mode == 2)
+    disp('Minimum number of satellites is forced to 4 (for stand-alone positioning)');
+    min_nsat = 4;
+end
 cutoff = str2double(get(handles.cut_off,'String'));
 snr_threshold = str2double(get(handles.snr_thres,'String'));
 cs_threshold = str2double(get(handles.cs_thresh,'String'));
