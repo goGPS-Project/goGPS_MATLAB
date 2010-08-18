@@ -94,7 +94,7 @@ else
     % mode=4  --> LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
     % mode=5  --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
     % mode=6  --> KALMAN FILTER ON CODE, NO CONSTRAINT
-    % mode=7  --> ....
+    % mode=7  --> LEAST SQUARES ADJ. ON CODE AND PHASE, NO CONSTRAINT
     % mode=8  --> ....
     % mode=9  --> ....
     % REAL-TIME
@@ -185,12 +185,23 @@ if (mode < 10) %post-processing
     if (mode_data == 0)
 
         %read data from RINEX files
-        [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-            Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
-            pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-            Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-            time_GPS, date, pos_M] = ...
-            load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
+        if (mode == 2) | (mode == 4) | (mode == 6)
+
+            [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
+                Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
+                pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
+                Eph_RR, Eph_MR, snr_RR, snr_MR, ...
+                time_GPS, date, pos_M] = ...
+                load_RINEX(filename_R_obs, filename_R_nav);
+        else
+
+            [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
+                Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
+                pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
+                Eph_RR, Eph_MR, snr_RR, snr_MR, ...
+                time_GPS, date, pos_M] = ...
+                load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
+        end
 
         %select ephemerides source
         if (~Eph_M)
@@ -1494,19 +1505,21 @@ if (mode < 12)
     fprintf(fid_kml, '          <scale>%s</scale>\n',label_scaleP);
     fprintf(fid_kml, '        </LabelStyle>\n');
     fprintf(fid_kml, '      </Style>\n');
-    for i = 1 : length(phiM)
-        if (lamM(i) ~= 0 | phiM(i) ~= 0 | hM(i) ~= 0)
-            if (i == 1) | (lamM(i)~=lamM(i-1) & phiM(i)~=phiM(i-1) & hM(i)~=hM(i-1))
-                fprintf(fid_kml, '      <Placemark>\n');
-                fprintf(fid_kml, '        <styleUrl>#master</styleUrl>\n');
-                fprintf(fid_kml, '        <name>Master station</name>\n');
-                fprintf(fid_kml, '        <Point>\n');
-                fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-                fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
-                fprintf(fid_kml, '        </Point>\n');
-                fprintf(fid_kml, '        <Snippet></Snippet>\n');
-                fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
-                fprintf(fid_kml, '      </Placemark>\n');
+    if (mode ~= 2) & (mode ~= 4) & (mode ~= 6)
+        for i = 1 : length(phiM)
+            if (lamM(i) ~= 0 | phiM(i) ~= 0 | hM(i) ~= 0)
+                if (i == 1) | (lamM(i)~=lamM(i-1) | phiM(i)~=phiM(i-1) | hM(i)~=hM(i-1))
+                    fprintf(fid_kml, '      <Placemark>\n');
+                    fprintf(fid_kml, '        <styleUrl>#master</styleUrl>\n');
+                    fprintf(fid_kml, '        <name>Master station</name>\n');
+                    fprintf(fid_kml, '        <Point>\n');
+                    fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
+                    fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
+                    fprintf(fid_kml, '        </Point>\n');
+                    fprintf(fid_kml, '        <Snippet></Snippet>\n');
+                    fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
+                    fprintf(fid_kml, '      </Placemark>\n');
+                end
             end
         end
     end

@@ -702,8 +702,7 @@ function code_dd_sa_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns code_dd_sa contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from code_dd_sa
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference') | ...
-    strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone'))
+if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
             (get(handles.plotproc,'Value'))
@@ -720,6 +719,29 @@ if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference') | 
     set(handles.snr_thres, 'Enable', 'on');
     set(handles.text_snr_thres, 'Enable', 'on');
     set(handles.text_snr_thres_unit, 'Enable', 'on');
+    set(handles.constraint, 'Enable', 'on');
+    set(handles.ref_path, 'Enable', 'on');
+    ref_path_Callback(handles.ref_path, eventdata, handles);
+elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
+    check_mode = cellstr(get(handles.mode,'String'));
+    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
+            (get(handles.plotproc,'Value'))
+        set(handles.plot_amb, 'Enable', 'on');
+        plot_amb_Callback(handles.plot_amb, [], handles);
+    end
+    set(handles.cs_thresh, 'Enable', 'on');
+    set(handles.text_cs_thresh, 'Enable', 'on');
+    set(handles.text_cs_thresh_unit, 'Enable', 'on');
+    set(handles.diff_amb_estim, 'Enable', 'off');
+    set(handles.LS_amb_estim, 'Enable', 'off');
+    set(handles.toggle_std_phase, 'Enable', 'on');
+    toggle_std_phase_Callback(handles.toggle_std_phase, eventdata, handles);
+    set(handles.snr_thres, 'Enable', 'on');
+    set(handles.text_snr_thres, 'Enable', 'on');
+    set(handles.text_snr_thres_unit, 'Enable', 'on');
+    set(handles.constraint, 'Value', 0);
+    constraint_Callback(handles.constraint, eventdata, handles);
+    set(handles.constraint, 'Enable', 'off');
 else
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
@@ -733,15 +755,51 @@ else
     set(handles.toggle_std_phase, 'Enable', 'off');
     set(handles.std_phase, 'Enable', 'off');
     set(handles.text_std_phase_unit, 'Enable', 'off');
-end
-if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference'))
-    set(handles.constraint, 'Enable', 'on');
-    set(handles.ref_path, 'Enable', 'on');
-    ref_path_Callback(handles.ref_path, eventdata, handles);
-else
     set(handles.constraint, 'Value', 0);
     constraint_Callback(handles.constraint, eventdata, handles);
     set(handles.constraint, 'Enable', 'off');
+end
+
+if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
+        strcmp(contents{get(hObject,'Value')},'Code stand-alone')
+    
+    set(handles.RINEX_master_obs, 'Enable', 'off');
+    set(handles.text_RINEX_master_obs, 'Enable', 'off');
+    set(handles.browse_master_obs, 'Enable', 'off');
+    set(handles.RINEX_master_nav, 'Enable', 'off');
+    set(handles.text_RINEX_master_nav, 'Enable', 'off');
+    set(handles.browse_master_nav, 'Enable', 'off');
+    set(handles.plot_master, 'Enable', 'off');
+    set(handles.master_pos, 'Enable', 'off');
+    set(handles.crs, 'Enable', 'off');
+    set(handles.master_X, 'Enable', 'off');
+    set(handles.master_Y, 'Enable', 'off');
+    set(handles.master_Z, 'Enable', 'off');
+    set(handles.text_master_X, 'Enable', 'off');
+    set(handles.text_master_Y, 'Enable', 'off');
+    set(handles.text_master_Z, 'Enable', 'off');
+    set(handles.text_master_X_unit, 'Enable', 'off');
+    set(handles.text_master_Y_unit, 'Enable', 'off');
+    set(handles.text_master_Z_unit, 'Enable', 'off');
+    set(handles.master_lat, 'Enable', 'off');
+    set(handles.master_lon, 'Enable', 'off');
+    set(handles.master_h, 'Enable', 'off');
+    set(handles.text_master_lat, 'Enable', 'off');
+    set(handles.text_master_lon, 'Enable', 'off');
+    set(handles.text_master_h, 'Enable', 'off');
+    set(handles.text_master_lat_unit, 'Enable', 'off');
+    set(handles.text_master_lon_unit, 'Enable', 'off');
+    set(handles.text_master_h_unit, 'Enable', 'off');
+else
+    set(handles.RINEX_master_obs, 'Enable', 'on');
+    set(handles.text_RINEX_master_obs, 'Enable', 'on');
+    set(handles.browse_master_obs, 'Enable', 'on');
+    set(handles.RINEX_master_nav, 'Enable', 'on');
+    set(handles.text_RINEX_master_nav, 'Enable', 'on');
+    set(handles.browse_master_nav, 'Enable', 'on');
+    set(handles.plot_master, 'Enable', 'on');
+    set(handles.master_pos, 'Enable', 'on');
+    master_pos_Callback(handles.master_pos, [], handles);
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -1581,16 +1639,12 @@ if (hObject == handles.rinex_files)
 
     set(handles.RINEX_rover_obs, 'Enable', 'on');
     set(handles.RINEX_rover_nav, 'Enable', 'on');
-    set(handles.RINEX_master_obs, 'Enable', 'on');
-    set(handles.RINEX_master_nav, 'Enable', 'on');
     set(handles.browse_rover_obs, 'Enable', 'on');
     set(handles.browse_rover_nav, 'Enable', 'on');
-    set(handles.browse_master_obs, 'Enable', 'on');
-    set(handles.browse_master_nav, 'Enable', 'on');
     set(handles.text_RINEX_rover_obs, 'Enable', 'on');
     set(handles.text_RINEX_rover_nav, 'Enable', 'on');
-    set(handles.text_RINEX_master_obs, 'Enable', 'on');
-    set(handles.text_RINEX_master_nav, 'Enable', 'on');
+
+    code_dd_sa_Callback(handles.code_dd_sa, eventdata, handles);
 
     set(handles.gogps_data_input, 'Enable', 'off');
     set(handles.browse_gogps_input, 'Enable', 'off');
