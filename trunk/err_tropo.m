@@ -20,6 +20,11 @@ function [tropocorr] = err_tropo(elev, h)
 %
 %----------------------------------------------------------------------------------------------
 
+%Saastamoinen model requires positive ellipsoidal height
+if (h < 0)
+    h = 0;
+end
+
 if (h < 5000)
     elev=abs(elev)*pi/180;
     

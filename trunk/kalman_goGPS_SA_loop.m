@@ -407,7 +407,7 @@ if (nsat >= min_nsat)
         else
             [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(sat_pr,:), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
         end
-
+        
         if (check_on)
             X_t1_t(o3+sat_born,1) = N_born;
             %Cvv(o3+sat_born,o3+sat_born) = sigmaq_N_born * eye(size(sat_born,1));
