@@ -184,6 +184,9 @@ if (mode < 10) %post-processing
 
     if (mode_data == 0)
 
+        %display message
+        fprintf('Reading RINEX files...\n');
+        
         %read data from RINEX files
         if (mode == 2) | (mode == 4) | (mode == 6)
 
