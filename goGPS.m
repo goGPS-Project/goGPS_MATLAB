@@ -338,19 +338,21 @@ if (mode < 10) %post-processing
         date = date(tMin:tMax,:);
     end
 
-    %MASTER station position management
-    if (flag_ms_pos) & (sum(abs(pos_M)) ~= 0)
-        if (size(pos_M,2) == 1)
-            pos_M(1,1:length(time_GPS)) = pos_M(1);
-            pos_M(2,1:length(time_GPS)) = pos_M(2);
-            pos_M(3,1:length(time_GPS)) = pos_M(3);
+    if (mode ~= 2) & (mode ~= 4) & (mode ~= 6)
+        %MASTER station position management
+        if (flag_ms_pos) & (sum(abs(pos_M)) ~= 0)
+            if (size(pos_M,2) == 1)
+                pos_M(1,1:length(time_GPS)) = pos_M(1);
+                pos_M(2,1:length(time_GPS)) = pos_M(2);
+                pos_M(3,1:length(time_GPS)) = pos_M(3);
+            end
+        else
+            pos_M(1,1:length(time_GPS)) = pos_M_man(1);
+            pos_M(2,1:length(time_GPS)) = pos_M_man(2);
+            pos_M(3,1:length(time_GPS)) = pos_M_man(3);
+            fprintf('Warning: master position fixed to user-defined values:\n');
+            fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
         end
-    else
-        pos_M(1,1:length(time_GPS)) = pos_M_man(1);
-        pos_M(2,1:length(time_GPS)) = pos_M_man(2);
-        pos_M(3,1:length(time_GPS)) = pos_M_man(3);
-        fprintf('Warning: master position fixed to user-defined values:\n');
-        fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
     end
 
 else %real-time
@@ -1219,6 +1221,9 @@ if (mode < 12)
     switch mode
         case 1
             text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
+            text(0,0.75,sprintf('Kalman filter: yes'));
+        case 2
+            text(0,1.00,sprintf('Mode: code and phase\n        stand-alone'));
             text(0,0.75,sprintf('Kalman filter: yes'));
         case 3
             text(0,1.00,sprintf('Mode: code\n        double difference'));
