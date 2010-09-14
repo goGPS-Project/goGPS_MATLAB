@@ -38,131 +38,128 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-if (~isempty(dir([filerootIN '_rover_*'])) & ~isempty(dir([filerootIN '_master_*'])))
-    
-    %ROVER and MASTER stream reading
-    if (nargin == 3)
-        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-            iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN, wait_dlg); %#ok<NASGU>
-    else
-        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-            iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN); %#ok<NASGU>
-    end
-    
-    satEph = find(sum(abs(Eph(:,:,1)))~=0);
-    satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-    while (length(satEph) < length(satObs)) | (length(satObs) < 4)
-        
-        time_GPS(1) = [];
-        week_R(1)   = [];
-        time_R(1)   = [];
-        time_M(1)   = [];
-        pr1_R(:,1)  = [];
-        pr1_M(:,1)  = [];
-        ph1_R(:,1)  = [];
-        ph1_M(:,1)  = [];
-        snr_R(:,1)  = [];
-        snr_M(:,1)  = [];
-        pos_M(:,1)  = [];
-        Eph(:,:,1)  = [];
-        iono(:,1)   = [];
-        loss_R(1)   = [];
-        loss_M(1)   = [];
-        
-        %satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
-        %satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
-        satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-        satEph = find(sum(abs(Eph(:,:,1)))~=0);
-    end
-    
-    %remove observations without ephemerides
-    for i = 1 : length(time_GPS)
-        satEph = find(sum(abs(Eph(:,:,i)))~=0);
-        delsat = setdiff(1:32,satEph);
-        pr1_R(delsat,i) = 0;
-        pr1_M(delsat,i) = 0;
-        ph1_R(delsat,i) = 0;
-        ph1_M(delsat,i) = 0;
-        snr_R(delsat,i) = 0;
-        snr_M(delsat,i) = 0;
-    end
-    
-    %complete/partial path
-    tMin = 1;
-    tMax = 1e30;
-    tMin = max(tMin,1);
-    tMax = min(tMax,length(time_GPS));
-    time_GPS = time_GPS(tMin:tMax);
-    week_R = week_R(tMin:tMax);
-    time_R = time_R(tMin:tMax);
-    time_M = time_M(tMin:tMax);
-    pr1_R = pr1_R(:,tMin:tMax);
-    pr1_M = pr1_M(:,tMin:tMax);
-    ph1_R = ph1_R(:,tMin:tMax);
-    ph1_M = ph1_M(:,tMin:tMax);
-    snr_R = snr_R(:,tMin:tMax);
-    snr_M = snr_M(:,tMin:tMax);
-    pos_M = pos_M(:,tMin:tMax);
-    Eph = Eph(:,:,tMin:tMax);
-    iono = iono(:,tMin:tMax);
-    
-    %do not overwrite existing files
-    i = 1;
-    j = length(filerootOUT);
-    while (~isempty(dir([filerootOUT '_obs*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_eph*.bin'])) )
-        
-        filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
-        i = i + 1;
-    end
-    
-    %open output files
-    fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
-    fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
-    
-    %"file hour" variable
-    hour = 0;
-    
-    if (nargin == 3)
-        waitbar(0,wait_dlg,'Writing goGPS binary data...')
-    end
-    
-    %write output files
-    for t = 1 : length(time_GPS)
-        
-        if (nargin == 3)
-            waitbar(t/length(time_GPS),wait_dlg)
-        end
-        
-        %-------------------------------------
-        % file management
-        %-------------------------------------
-        
-        if (floor(t/3600) > hour)
-            
-            hour = floor(t/3600);
-            hour_str = num2str(hour,'%02d');
-            
-            fclose(fid_obs);
-            fclose(fid_eph);
-            
-            fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
-            fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
-            
-        end
-        
-        Eph_t = Eph(:,:,t);
-        fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
-        fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
-    end
-    
-    %close files
-    fclose(fid_obs);
-    fclose(fid_eph);
+%ROVER and MASTER stream reading
+if (nargin == 3)
+    [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+        iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN, wait_dlg); %#ok<ASGLU>
 else
-    if (nargin == 3)
-        msgbox('Both rover and master data streams are required to create goGPS binary data.');
-    else
-        fprintf('Both rover and master data streams are required to create goGPS binary data.\n');
-    end
+    [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+        iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN); %#ok<ASGLU>
 end
+
+satEph = find(sum(abs(Eph(:,:,1)))~=0);
+if ~isempty(data_master_all)
+    satObs = find((pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
+else
+    satObs = find(pr1_R(:,1) ~= 0);
+end
+while (length(satEph) < length(satObs)) | (length(satObs) < 4)
+    
+    time_GPS(1) = [];
+    week_R(1)   = [];
+    time_R(1)   = [];
+    time_M(1)   = [];
+    pr1_R(:,1)  = [];
+    pr1_M(:,1)  = [];
+    ph1_R(:,1)  = [];
+    ph1_M(:,1)  = [];
+    snr_R(:,1)  = [];
+    snr_M(:,1)  = [];
+    pos_M(:,1)  = [];
+    Eph(:,:,1)  = [];
+    iono(:,1)   = [];
+    loss_R(1)   = [];
+    loss_M(1)   = [];
+
+    if ~isempty(data_master_all)
+        satObs = find((pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
+    else
+        satObs = find(pr1_R(:,1) ~= 0);
+    end
+    satEph = find(sum(abs(Eph(:,:,1)))~=0);
+end
+
+%remove observations without ephemerides
+for i = 1 : length(time_GPS)
+    satEph = find(sum(abs(Eph(:,:,i)))~=0);
+    delsat = setdiff(1:32,satEph);
+    pr1_R(delsat,i) = 0;
+    pr1_M(delsat,i) = 0;
+    ph1_R(delsat,i) = 0;
+    ph1_M(delsat,i) = 0;
+    snr_R(delsat,i) = 0;
+    snr_M(delsat,i) = 0;
+end
+
+%complete/partial path
+tMin = 1;
+tMax = 1e30;
+tMin = max(tMin,1);
+tMax = min(tMax,length(time_GPS));
+time_GPS = time_GPS(tMin:tMax);
+week_R = week_R(tMin:tMax);
+time_R = time_R(tMin:tMax);
+time_M = time_M(tMin:tMax);
+pr1_R = pr1_R(:,tMin:tMax);
+pr1_M = pr1_M(:,tMin:tMax);
+ph1_R = ph1_R(:,tMin:tMax);
+ph1_M = ph1_M(:,tMin:tMax);
+snr_R = snr_R(:,tMin:tMax);
+snr_M = snr_M(:,tMin:tMax);
+pos_M = pos_M(:,tMin:tMax);
+Eph = Eph(:,:,tMin:tMax);
+iono = iono(:,tMin:tMax);
+
+%do not overwrite existing files
+i = 1;
+j = length(filerootOUT);
+while (~isempty(dir([filerootOUT '_obs*.bin'])) | ...
+        ~isempty(dir([filerootOUT '_eph*.bin'])) )
+    
+    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
+    i = i + 1;
+end
+
+%open output files
+fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
+fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+
+%"file hour" variable
+hour = 0;
+
+if (nargin == 3)
+    waitbar(0,wait_dlg,'Writing goGPS binary data...')
+end
+
+%write output files
+for t = 1 : length(time_GPS)
+    
+    if (nargin == 3)
+        waitbar(t/length(time_GPS),wait_dlg)
+    end
+    
+    %-------------------------------------
+    % file management
+    %-------------------------------------
+    
+    if (floor(t/3600) > hour)
+        
+        hour = floor(t/3600);
+        hour_str = num2str(hour,'%02d');
+        
+        fclose(fid_obs);
+        fclose(fid_eph);
+        
+        fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
+        fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+        
+    end
+    
+    Eph_t = Eph(:,:,t);
+    fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
+    fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
+end
+
+%close files
+fclose(fid_obs);
+fclose(fid_eph);
