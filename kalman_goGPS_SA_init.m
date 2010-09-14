@@ -40,7 +40,7 @@ function kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, pr2_Rsat, ph
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq0_N
+global sigmaq0 sigmaq0_N
 global cutoff o1 o2 o3 nN
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
@@ -93,12 +93,6 @@ T = [T0      Z_o1_o1 Z_o1_o1 Z_o1_nN;
 %construction of an identity matrix of 38 variables (6 for position and
 %velocity + 32 or 64 for the satellites number) for the further computations
 I = eye(o3+nN);
-
-%model error covariance matrix
-Cvv = zeros(o3+nN);
-Cvv(o1,o1) = sigmaq_velx;
-Cvv(o2,o2) = sigmaq_vely;
-Cvv(o3,o3) = sigmaq_velz; %#ok<NASGU>
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE SELECTION

@@ -63,7 +63,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
 
 global lambda1 lambda2
 
-global sigmaq_velx sigmaq_vely sigmaq_velz sigmaq0_N
+global sigmaq_vE sigmaq_vN sigmaq_vU sigmaq0_N
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold o1 o2 o3 nN
 global tile_header tile_georef dtm_dir
@@ -97,14 +97,17 @@ distM = zeros(32,1);
 %----------------------------------------------------------------------------------------
 
 %re-initialization of Cvv matrix of the model error
+% (if a static model is used, no noise is added)
 Cvv = zeros(o3+nN);
-Cvv(o1,o1) = sigmaq_velx;
-Cvv(o2,o2) = sigmaq_vely;
-Cvv(o3,o3) = sigmaq_velz;
+if (o1 > 1)
+    Cvv(o1,o1) = sigmaq_vE;
+    Cvv(o2,o2) = sigmaq_vN;
+    Cvv(o3,o3) = sigmaq_vU;
 
-if (o1 == 1)
-    Cvv = zeros(o3+nN);
+    %propagate diagonal local cov matrix to global cov matrix
+    Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
 end
+
 %------------------------------------------------------------------------------------
 % SATELLITE SELECTION
 %------------------------------------------------------------------------------------

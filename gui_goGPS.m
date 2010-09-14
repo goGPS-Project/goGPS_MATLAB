@@ -206,7 +206,7 @@ varargout{18} = filename_M_nav;
 varargout{19} = filename_ref;
 varargout{20} = pos_M_man;
 
-global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
+global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global h_antenna
@@ -216,9 +216,9 @@ global nmea_init
 global flag_LS_N_estim
 
 sigmaq0 = str2double(get(handles.std_init,'String'))^2;
-sigmaq_velx = str2double(get(handles.std_X,'String'))^2;
-sigmaq_vely = str2double(get(handles.std_Y,'String'))^2;
-sigmaq_velz = str2double(get(handles.std_Z,'String'))^2;
+sigmaq_vE = str2double(get(handles.std_X,'String'))^2;
+sigmaq_vN = str2double(get(handles.std_Y,'String'))^2;
+sigmaq_vU = str2double(get(handles.std_Z,'String'))^2;
 sigmaq_vel = str2double(get(handles.std_vel,'String'))^2;
 sigmaq_cod1 = str2double(get(handles.std_code,'String'))^2;
 sigmaq_cod2 = 0.16;
