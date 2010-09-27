@@ -222,7 +222,6 @@ while (~reply_RATE)
     tries = tries + 1;
     if (tries > 3)
         disp('It was not possible to set the receiver output rate to 1Hz.');
-        break
         fclose(rover);
         delete(rover);
         return
@@ -1405,7 +1404,7 @@ end
                 sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
                 sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
                 sigma_EN0(iDIR,1) = Cee_ENU(1,2);
-                mDIR = 0; qDIR = 0; angleDIR = 0;
+                mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
                 sigma_angleDIR = 0;
                 P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
 
@@ -1542,11 +1541,11 @@ end
                 sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
                 sigma_EN0(iDIR,1) = Cee_ENU(1,2);
                 if (iDIR == 1)
-                    mDIR = 0; qDIR = 0; angleDIR = 0;
+                    mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
                     sigma_angleDIR = 0;                    
                     P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
                 else
-                    [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0);
+                    [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
                     m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
                     m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
                     X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
@@ -1664,9 +1663,9 @@ end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), order, 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), order, 1); %#ok<NASGU>
                     else % to be done
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path); %#ok<NASGU>
                     end
 
                     %direction estimation
@@ -1676,11 +1675,11 @@ end
                     sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
                     sigma_EN0(iDIR,1) = Cee_ENU(1,2);
                     if (iDIR == 1)
-                        mDIR = 0; qDIR = 0; angleDIR = 0;
+                        mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
                         sigma_angleDIR = 0;
                         P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
                     else
-                        [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0);
+                        [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
                         m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
                         m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
                         X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
@@ -1797,9 +1796,9 @@ end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), order, 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), order, 1); %#ok<NASGU>
                     else % to be done
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path); %#ok<NASGU>
                     end
 
                     %direction estimation
@@ -1809,11 +1808,11 @@ end
                     sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
                     sigma_EN0(iDIR,1) = Cee_ENU(1,2);
                     if (iDIR == 1)
-                        mDIR = 0; qDIR = 0; angleDIR = 0;
+                        mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
                         sigma_angleDIR = 0;
                         P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
                     else
-                        [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0);
+                        [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
                         m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
                         m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
                         X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
@@ -1990,9 +1989,9 @@ end
 
                         %Kalman filter
                         if (mode_vinc == 0)
-                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), order, 1);
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), order, 1); %#ok<NASGU>
                         else % to be done
-                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path); %#ok<NASGU>
                         end
                         
                         %direction estimation
@@ -2002,11 +2001,11 @@ end
                         sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
                         sigma_EN0(iDIR,1) = Cee_ENU(1,2);
                         if (iDIR == 1)
-                            mDIR = 0; qDIR = 0; angleDIR = 0;
+                            mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
                             sigma_angleDIR = 0;
                             P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
                         else
-                            [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0);
+                            [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
                             m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
                             m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
                             X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
@@ -2123,9 +2122,9 @@ end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), order, 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), order, 1); %#ok<ASGLU>
                     else % to be done
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path); %#ok<ASGLU>
                     end
 
                     %direction estimation
@@ -2135,11 +2134,11 @@ end
                     sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
                     sigma_EN0(iDIR,1) = Cee_ENU(1,2);
                     if (iDIR == 1)
-                        mDIR = 0; qDIR = 0; angleDIR = 0;
+                        mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
                         sigma_angleDIR = 0;
                         P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
                     else
-                        [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0);
+                        [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
                         m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
                         m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
                         X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);

@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 21-Sep-2010 22:58:18
+% Last Modified by GUIDE v2.5 27-Sep-2010 15:44:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -371,6 +371,7 @@ state.approx_lon = get(handles.approx_lon,'String');
 state.approx_h = get(handles.approx_h,'String');
 state.diff_amb_estim = get(handles.diff_amb_estim,'Value');
 state.LS_amb_estim = get(handles.LS_amb_estim,'Value');
+state.stopGOstop = get(handles.stopGOstop,'Value');
 
 save(filename, 'state');
 
@@ -451,6 +452,7 @@ set(handles.approx_lon,'String', state.approx_lon);
 set(handles.approx_h,'String', state.approx_h);
 set(handles.diff_amb_estim,'Value', state.diff_amb_estim);
 set(handles.LS_amb_estim,'Value', state.LS_amb_estim);
+set(handles.stopGOstop,'Value', state.stopGOstop);
 
 plot_amb_Callback(handles.plot_amb, [], handles);
 if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);

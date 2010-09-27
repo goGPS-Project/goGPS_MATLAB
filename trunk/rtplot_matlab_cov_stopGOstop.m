@@ -43,7 +43,7 @@ function rtplot_matlab_cov_stopGOstop (t, pos_R, pos_M, covpos_R, P1, P2, origin
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global msid pid p_max
+global msid pid
 global EAST_O NORTH_O
 global x_circle id_ellipse
 

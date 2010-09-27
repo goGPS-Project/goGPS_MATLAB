@@ -209,12 +209,12 @@ if (mode < 10) %post-processing
                 load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
         end
 
-        %read surveying mode
-        if (flag_stopGOstop == 0)
-            fid_dyn = fopen([filerootIN '_dyn_00.bin'],'r+'); 
-            order = double(fread(fid_dyn,length(time_GPS),'uint8'));
-            fclose(fid_dyn);
-        end
+%         %read surveying mode
+%         if (flag_stopGOstop == 0)
+%             fid_dyn = fopen([filerootIN '_dyn_00.bin'],'r+'); 
+%             order = double(fread(fid_dyn,length(time_GPS),'uint8'));
+%             fclose(fid_dyn);
+%         end
         
         %select ephemerides source
         if (~Eph_M)
@@ -387,6 +387,14 @@ else %real-time
     ph2_M = zeros(32,1);
     ph2_R = zeros(32,1);
 
+end
+
+%check if the dataset was surveyed in stop-GO-stop mode
+d = dir([filerootIN '_dyn_00.bin']);
+if (flag_stopGOstop & isempty(d))
+    disp('Warning: dataset was not surveyed in stop-go-stop mode:');
+    disp(' Switching off stop-go-stop mode...');
+    flag_stopGOstop = 0;
 end
 
 %----------------------------------------------------------------------------------------------
