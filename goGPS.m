@@ -66,17 +66,18 @@ global_init;
 global order o1 o2 o3 h_antenna cutoff weights
 
 if (mode_user == 1)
-    
+
     if (~isunix)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
+            flag_skyplot, flag_plotproc, flag_stopGOstop, ...
+            filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
             filename_M_nav, filename_ref, pos_M_man] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
             filename_M_nav, filename_ref, pos_M_man] = gui_goGPS_unix;
     end
-    
+
     if (isempty(mode))
         return
     end
@@ -115,21 +116,23 @@ else
     % mode_ref=0 --> do not use a reference path
     % mode_ref=1 --> use a reference path (plot it and use it for statistics)
 
-    flag_ms_pos = 1; % read master station position from RTCM or RINEX header
+    flag_ms_pos = 1;     % read master station position from RTCM or RINEX header
 
-    flag_ms = 0;      % plot master station position --> no=0, yes=1
+    flag_ms = 0;         % plot master station position --> no=0, yes=1
 
-    flag_ge = 0;      % use google earth --> no=0, yes=1
+    flag_ge = 0;         % use google earth --> no=0, yes=1
 
-    flag_cov = 0;     % plot error ellipse --> no=0, yes=1
+    flag_cov = 0;        % plot error ellipse --> no=0, yes=1
 
-    flag_NTRIP = 1;   % use NTRIP --> no=0, yes=1
+    flag_NTRIP = 1;      % use NTRIP --> no=0, yes=1
 
-    flag_amb = 0;     % plot ambiguities (only in post-processing)
+    flag_amb = 0;        % plot ambiguities (only in post-processing)
 
-    flag_skyplot = 1; % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
+    flag_skyplot = 1;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
 
-    flag_plotproc = 1;% plot while processing
+    flag_plotproc = 1;   % plot while processing
+
+    flag_stopGOstop = 0; % use a stop-go-stop procedure --> no=0, yes=1
 
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -206,6 +209,13 @@ if (mode < 10) %post-processing
                 load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
         end
 
+        %read surveying mode
+        if (flag_stopGOstop == 0)
+            fid_dyn = fopen([filerootIN '_dyn_00.bin'],'r+'); 
+            order = double(fread(fid_dyn,length(time_GPS),'uint8'));
+            fclose(fid_dyn);
+        end
+        
         %select ephemerides source
         if (~Eph_M)
             Eph = Eph_R;
@@ -278,6 +288,13 @@ if (mode < 10) %post-processing
         %read data from goGPS saved files
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
             pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
+
+        %read surveying mode
+%         if (flag_stopGOstop == 0)
+%             fid_dyn = fopen([filerootIN '_dyn_00.bin'],'r+'); 
+%             order = double(fread(fid_dyn,length(time_GPS),'uint8'));
+%             fclose(fid_dyn);
+%         end
 
         %remove epochs without ephemerides
         while (sum(Eph(:,:,1)) == 0)
@@ -378,55 +395,20 @@ end
 
 if (mode == 1) & (mode_vinc == 0)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    if (flag_stopGOstop == 0)
 
-    if (mode_data == 0)
-        Eph_t = rt_find_eph (Eph, time_GPS(1));
-    else
-        Eph_t = Eph(:,:,1);
-    end
-
-    kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
-
-    fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
-    fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-    fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-
-    if (flag_plotproc)
-        if (flag_cov == 0)
-            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
-            rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
-        else
-            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
-            rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
-        end
-        if (flag_amb == 1)
-            rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
-        else
-            if (flag_skyplot == 1)
-                rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-                rtplot_snr (snr_R(:,1));
-            else
-                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
-            end
-        end
-    else
-        fprintf('Processing...\n');
-    end
-
-    for t = 2 : length(time_GPS)
+        fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
+        fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
+        fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
+        fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph (Eph, time_GPS(1));
         else
-            Eph_t = Eph(:,:,t);
+            Eph_t = Eph(:,:,1);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+        kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -435,32 +417,214 @@ if (mode == 1) & (mode_vinc == 0)
 
         if (flag_plotproc)
             if (flag_cov == 0)
-                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
-                rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
+                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
+                rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
             else
-                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
-                rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
+                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
+                rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
             end
             if (flag_amb == 1)
-                rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
-                pause(0.1);
+                rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,t));
+                    rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+                    rtplot_snr (snr_R(:,1));
                 else
-                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
                 end
-                pause(0.01);
             end
+        else
+            fprintf('Processing...\n');
         end
 
-    end
+        for t = 2 : length(time_GPS)
 
-    fclose(fid_kal);
-    fclose(fid_sat);
-    fclose(fid_dop);
-    fclose(fid_conf);
+            if (mode_data == 0)
+                Eph_t = rt_find_eph (Eph, time_GPS(t));
+            else
+                Eph_t = Eph(:,:,t);
+            end
+
+            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+
+            fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+            fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+            fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+            fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+
+            if (flag_plotproc)
+                if (flag_cov == 0)
+                    if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
+                else
+                    if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
+                end
+                if (flag_amb == 1)
+                    rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
+                    pause(0.1);
+                else
+                    if (flag_skyplot == 1)
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                        rtplot_snr (snr_R(:,t));
+                    else
+                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    end
+                    pause(0.01);
+                end
+            end
+
+        end
+
+        fclose(fid_kal);
+        fclose(fid_sat);
+        fclose(fid_dop);
+        fclose(fid_conf);
+
+    else
+
+        fid_dyn = fopen([filerootIN '_dyn_00.bin'],'r+');
+        fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
+        fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
+        fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
+        fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+
+        if (mode_data == 0)
+            Eph_t = rt_find_eph (Eph, time_GPS(1));
+        else
+            Eph_t = Eph(:,:,1);
+        end
+
+        flag_dyn = 1;
+        order = fread(fid_dyn,1,'uint8');
+        index = 1;
+
+        kalman_goGPS_init_model (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), order, 1);
+        % kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
+
+        [E0(index,1), N0(index,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+        sigmaq_E0(index,1) = Cee_ENU(1,1);
+        sigmaq_N0(index,1) = Cee_ENU(2,2);
+        sigma_EN0(index,1) = Cee_ENU(1,2);
+        mDIR = 0; qDIR = 0; angleDIR = 0;
+        sigma_angleDIR = 0;
+        P1 = [E0(index), N0(index)]; P2 = P1;
+
+        fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+        fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+        fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+        fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+
+        if (flag_plotproc)
+            if (flag_cov == 0)
+                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
+                rtplot_matlab_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), P1, P2, flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
+            else
+                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
+                rtplot_matlab_cov_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
+            end
+            if (flag_amb == 1)
+                rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
+            else
+                if (flag_skyplot == 1)
+                    rtplot_skyplot (1, azR, elR, conf_sat, pivot);
+                    rtplot_snr (snr_R(:,1));
+                else
+                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+                end
+            end
+        else
+            fprintf('Processing...\n');
+        end
+
+        for t = 2 : length(time_GPS)
+
+            if (mode_data == 0)
+                Eph_t = rt_find_eph (Eph, time_GPS(t));
+            else
+                Eph_t = Eph(:,:,t);
+            end
+
+            order0 = order;
+            order = fread(fid_dyn,1,'uint8');
+            if (order > order0)
+                flag_dyn = 2;
+            end
+            if (order < order0)
+                flag_dyn = 3;
+                index = index+1;
+            end
+            if (order == 2)
+                index = index+1;
+            end
+
+            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), order, 1);
+            % [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+
+            [E0(index,1), N0(index,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+            Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+            sigmaq_E0(index,1) = Cee_ENU(1,1);
+            sigmaq_N0(index,1) = Cee_ENU(2,2);
+            sigma_EN0(index,1) = Cee_ENU(1,2);
+            if (index == 1)
+                mDIR = 0; qDIR = 0; angleDIR = 0;
+                P1 = [E0(index), N0(index)]; P2 = P1;
+            else
+                [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0);
+                m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
+                m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
+                X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
+                X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
+                P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
+                P2 = [X2, mDIR*X2+qDIR ];
+                angleDIR = atan2(P2(2)-P1(2),P2(1)-P1(1)) * 180/pi;
+                sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
+                % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
+            end
+            pause(0.05)
+
+            fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+            fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+            fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+            fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+
+            if (flag_plotproc)
+                if (flag_cov == 0)
+                    if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    rtplot_matlab_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), P1, P2, flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
+                else
+                    if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    rtplot_matlab_cov_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
+                end
+                if (flag_amb == 1)
+                    rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
+                    pause(0.1);
+                else
+                    if (flag_skyplot == 1)
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                        rtplot_snr (snr_R(:,t));
+                    else
+                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    end
+                    pause(0.01);
+                end
+            end
+
+        end
+
+        fprintf('\n')
+        fprintf('Estimated direction = %8.3f°\n', angleDIR);
+        fprintf('Standard deviation  = %8.3f°\n', sigma_angleDIR);
+        fprintf('\n')
+
+        fclose(fid_dyn);
+        fclose(fid_kal);
+        fclose(fid_sat);
+        fclose(fid_dop);
+        fclose(fid_conf);
+
+    end
 
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH A CONSTRAINT
@@ -1089,15 +1253,24 @@ elseif (mode == 7)
 
 elseif (mode == 11)
 
-    goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
-
+    if (flag_stopGOstop == 0)
+        goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
+        % goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
+    else
+        goGPS_realtime_stopGOstop(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
+    end
+    
     %----------------------------------------------------------------------------------------------
     % REAL-TIME: ROVER MONITORING
     %----------------------------------------------------------------------------------------------
 
 elseif (mode == 12)
 
-    goGPS_ublox_monitor(filerootOUT);
+    if (flag_stopGOstop == 0)
+        goGPS_ublox_monitor(filerootOUT);
+    else
+        goGPS_ublox_monitor_stopGOstop(filerootOUT);
+    end
 
     %----------------------------------------------------------------------------------------------
     % REAL-TIME: MASTER MONITORING
@@ -1113,7 +1286,11 @@ elseif (mode == 13)
 
 elseif (mode == 14)
 
-    goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
+    if (flag_stopGOstop == 0)
+        goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
+    else
+        goGPS_realtime_monitor_stopGOstop(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
+    end
 
 end
 
@@ -1207,7 +1384,7 @@ end
 % REPORT FILE (PDF)
 %----------------------------------------------------------------------------------------------
 
-if (mode < 12)
+if (mode < 12) & (~isempty(EAST_KAL))
     %display information
     fprintf('Writing report file (PDF)...\n');
 
@@ -1598,7 +1775,7 @@ end
 % REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
 %----------------------------------------------------------------------------------------------
 
-if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0)
+if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0) & (~isempty(EAST_KAL))
 
     %display information
     fprintf('Writing estimated error covariance file...\n');
@@ -1648,7 +1825,7 @@ end
 % REPRESENTATION OF THE 2D TRAJECTORY
 %----------------------------------------------------------------------------------------------
 
-if (mode < 12)
+if (mode < 12) & (~isempty(EAST_KAL))
     %2D plot
     figure
     plot(EAST_KAL, NORTH_KAL, '.r');
@@ -1659,7 +1836,7 @@ end
 % REPRESENTATION OF THE 3D TRAJECTORY
 %----------------------------------------------------------------------------------------------
 
-if (mode < 12)
+if (mode < 12) & (~isempty(EAST_KAL))
     %3D plot
     figure
     plot3(EAST_KAL, NORTH_KAL, h_KAL, '.r');
@@ -1806,7 +1983,7 @@ end
 % STATISTICS COMPUTATION AND VISUALIZATION
 %----------------------------------------------------------------------------------------------
 
-if (mode < 10) & (mode_vinc == 0) & (~isempty(ref_path))
+if (mode < 10) & (mode_vinc == 0) & (~isempty(ref_path)) & (~isempty(EAST_KAL))
     %coordinate transformation
     [EAST_REF, NORTH_REF, h_REF] = cart2plan(ref_path(:,1), ref_path(:,2), ref_path(:,3));
 
