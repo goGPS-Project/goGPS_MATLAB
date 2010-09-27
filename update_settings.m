@@ -35,16 +35,16 @@ function update_settings(settings_dir_path, field, value)
 %----------------------------------------------------------------------------------------------
 
 %directory containing settings files
-dtm_dir = dir(settings_dir_path);
+settings_dir = dir(settings_dir_path);
 
 %check the number of files contained in the directory
-nmax = size(dtm_dir,1);
+nmax = size(settings_dir,1);
 
 j = 0;
 for i = 1 : nmax
 
     %read the name of the i-th file
-    got = getfield(dtm_dir,{i,1},'name');
+    got = getfield(settings_dir,{i,1},'name');
 
     %get the number of characters in the filename
     fn_length = size(got,2);

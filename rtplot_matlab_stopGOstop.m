@@ -42,7 +42,7 @@ function rtplot_matlab_stopGOstop (t, pos_R, pos_M, P1, P2, origin, ref, matrix,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global msid pid p_max
+global msid pid
 global EAST_O NORTH_O
 
 %-------------------------------------------------------------------------------
