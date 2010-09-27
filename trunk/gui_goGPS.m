@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 28-Jun-2010 15:07:53
+% Last Modified by GUIDE v2.5 21-Sep-2010 22:58:18
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -90,7 +90,7 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(20,1);
+    varargout = cell(21,1);
     return
 end
 contents_mode = cellstr(get(handles.mode,'String'));
@@ -141,6 +141,7 @@ flag_NTRIP = get(handles.use_ntrip,'Value');
 flag_amb = get(handles.plot_amb,'Value');
 flag_skyplot = get(handles.no_skyplot_snr,'Value');
 flag_plotproc = get(handles.plotproc,'Value');
+flag_stopGOstop = get(handles.stopGOstop,'Value');
 filerootIN = get(handles.gogps_data_input,'String');
 filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
 filerootIN(filerootIN == '\') = '/';
@@ -197,14 +198,15 @@ varargout{9} = flag_NTRIP;
 varargout{10} = flag_amb;
 varargout{11} = flag_skyplot;
 varargout{12} = flag_plotproc;
-varargout{13} = filerootIN;
-varargout{14} = filerootOUT;
-varargout{15} = filename_R_obs;
-varargout{16} = filename_R_nav;
-varargout{17} = filename_M_obs;
-varargout{18} = filename_M_nav;
-varargout{19} = filename_ref;
-varargout{20} = pos_M_man;
+varargout{13} = flag_stopGOstop;
+varargout{14} = filerootIN;
+varargout{15} = filerootOUT;
+varargout{16} = filename_R_obs;
+varargout{17} = filename_R_nav;
+varargout{18} = filename_M_obs;
+varargout{19} = filename_M_nav;
+varargout{20} = filename_ref;
+varargout{21} = pos_M_man;
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -791,12 +793,14 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
     set(handles.text_master_lon_unit, 'Enable', 'off');
     set(handles.text_master_h_unit, 'Enable', 'off');
 else
-    set(handles.RINEX_master_obs, 'Enable', 'on');
-    set(handles.text_RINEX_master_obs, 'Enable', 'on');
-    set(handles.browse_master_obs, 'Enable', 'on');
-    set(handles.RINEX_master_nav, 'Enable', 'on');
-    set(handles.text_RINEX_master_nav, 'Enable', 'on');
-    set(handles.browse_master_nav, 'Enable', 'on');
+    if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
+        set(handles.RINEX_master_obs, 'Enable', 'on');
+        set(handles.text_RINEX_master_obs, 'Enable', 'on');
+        set(handles.browse_master_obs, 'Enable', 'on');
+        set(handles.RINEX_master_nav, 'Enable', 'on');
+        set(handles.text_RINEX_master_nav, 'Enable', 'on');
+        set(handles.browse_master_nav, 'Enable', 'on');
+    end
     set(handles.plot_master, 'Enable', 'on');
     set(handles.master_pos, 'Enable', 'on');
     master_pos_Callback(handles.master_pos, [], handles);
@@ -2578,3 +2582,20 @@ else
     set(handles.plot_master, 'Enable', 'off');
     set(handles.plot_amb, 'Enable', 'off');
 end
+
+
+% --- Executes on button press in stopGOstop.
+function stopGOstop_Callback(hObject, eventdata, handles)
+% hObject    handle to stopGOstop (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of stopGOstop
+
+
+% --------------------------------------------------------------------
+function polyline_Callback(hObject, eventdata, handles)
+% hObject    handle to polyline (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+polyline;
