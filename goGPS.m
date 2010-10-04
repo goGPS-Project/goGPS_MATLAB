@@ -74,7 +74,8 @@ if (mode_user == 1)
             filename_M_nav, filename_ref, pos_M_man] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
+            flag_skyplot, flag_plotproc, flag_stopGOstop, ...
+            filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
             filename_M_nav, filename_ref, pos_M_man] = gui_goGPS_unix;
     end
 
@@ -622,8 +623,8 @@ if (mode == 1) & (mode_vinc == 0)
         end
 
         fprintf('\n')
-        fprintf('Estimated direction = %8.3f°\n', angleDIR);
-        fprintf('Standard deviation  = %8.3f°\n', sigma_angleDIR);
+        fprintf('Estimated direction = %8.3fï¿½\n', angleDIR);
+        fprintf('Standard deviation  = %8.3fï¿½\n', sigma_angleDIR);
         fprintf('\n')
 
         fclose(fid_dyn);
