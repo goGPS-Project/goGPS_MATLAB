@@ -624,6 +624,8 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     set(handles.text_snr_thres_unit, 'Enable', 'on');
     set(handles.min_sat, 'Enable', 'on');
     set(handles.text_min_sat, 'Enable', 'on');
+    set(handles.stopGOstop, 'Enable', 'on');
+    set(handles.text_stopGOstop, 'Enable', 'on');
     set(handles.dyn_mod, 'Enable', 'on');
     set(handles.text_dyn_mod, 'Enable', 'on');
     
@@ -680,6 +682,8 @@ else
     set(handles.dtm_path, 'Enable', 'off');
     set(handles.text_dtm_path, 'Enable', 'off');
     set(handles.browse_dtm_path, 'Enable', 'off');
+    set(handles.stopGOstop, 'Enable', 'off');
+    set(handles.text_stopGOstop, 'Enable', 'off');
     set(handles.dyn_mod, 'Enable', 'off');
     set(handles.text_dyn_mod, 'Enable', 'off');
 end
@@ -945,6 +949,8 @@ else
     set(handles.dtm_path, 'Enable', 'off');
     set(handles.text_dtm_path, 'Enable', 'off');
     set(handles.browse_dtm_path, 'Enable', 'off');
+    set(handles.stopGOstop, 'Enable', 'off');
+    set(handles.text_stopGOstop, 'Enable', 'off');
     set(handles.dyn_mod, 'Enable', 'off');
     set(handles.text_dyn_mod, 'Enable', 'off');
     set(handles.weight_0, 'Enable', 'off');
