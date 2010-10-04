@@ -554,6 +554,9 @@ h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 
 flag = 1;
 setappdata(gcf, 'run', flag);
 
+%store previous position
+pos_t = pos_R;
+
 %infinite loop
 while flag
 
@@ -803,7 +806,9 @@ while flag
         satObs = find(pr_R(:,i) ~= 0);
 
         %positioning by Bancroft algorithm
-        [pos_t] = input_bancroft(pr_R(satObs,i), satObs, time_GPS, Eph);
+        if length(satObs) >= 4
+            [pos_t] = input_bancroft(pr_R(satObs,i), satObs, time_GPS, Eph);
+        end
 
         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], length(satObs), time_R(b), HDOP));
         fwrite(master,nmea_update);
