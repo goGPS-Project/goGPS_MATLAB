@@ -624,8 +624,6 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     set(handles.text_snr_thres_unit, 'Enable', 'on');
     set(handles.min_sat, 'Enable', 'on');
     set(handles.text_min_sat, 'Enable', 'on');
-    set(handles.stopGOstop, 'Enable', 'on');
-    set(handles.text_stopGOstop, 'Enable', 'on');
     set(handles.dyn_mod, 'Enable', 'on');
     set(handles.text_dyn_mod, 'Enable', 'on');
     
@@ -730,6 +728,8 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
     set(handles.constraint, 'Enable', 'on');
     set(handles.ref_path, 'Enable', 'on');
     ref_path_Callback(handles.ref_path, eventdata, handles);
+    set(handles.stopGOstop, 'Enable', 'on');
+    set(handles.text_stopGOstop, 'Enable', 'on');
 elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
@@ -750,6 +750,8 @@ elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     set(handles.constraint, 'Value', 0);
     constraint_Callback(handles.constraint, eventdata, handles);
     set(handles.constraint, 'Enable', 'off');
+    set(handles.stopGOstop, 'Enable', 'off');
+    set(handles.text_stopGOstop, 'Enable', 'off');
 else
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
@@ -766,6 +768,8 @@ else
     set(handles.constraint, 'Value', 0);
     constraint_Callback(handles.constraint, eventdata, handles);
     set(handles.constraint, 'Enable', 'off');
+    set(handles.stopGOstop, 'Enable', 'off');
+    set(handles.text_stopGOstop, 'Enable', 'off');
 end
 
 if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
@@ -860,6 +864,9 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.plotproc, 'Enable', 'on');
     plotproc_Callback(handles.plotproc, eventdata, handles);
     
+    set(handles.stopGOstop, 'Enable', 'on');
+    set(handles.text_stopGOstop, 'Enable', 'on');
+    
     %enable weights
     set(handles.weight_0, 'Enable', 'on');
     set(handles.weight_1, 'Enable', 'on');
@@ -949,8 +956,6 @@ else
     set(handles.dtm_path, 'Enable', 'off');
     set(handles.text_dtm_path, 'Enable', 'off');
     set(handles.browse_dtm_path, 'Enable', 'off');
-    set(handles.stopGOstop, 'Enable', 'off');
-    set(handles.text_stopGOstop, 'Enable', 'off');
     set(handles.dyn_mod, 'Enable', 'off');
     set(handles.text_dyn_mod, 'Enable', 'off');
     set(handles.weight_0, 'Enable', 'off');
@@ -1008,6 +1013,9 @@ else
         set(handles.text_mountpoint, 'Enable', 'off');
         set(handles.text_username, 'Enable', 'off');
         set(handles.text_password, 'Enable', 'off');
+        
+        set(handles.stopGOstop, 'Enable', 'on');
+        set(handles.text_stopGOstop, 'Enable', 'on');
 
     elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
 
@@ -1033,6 +1041,9 @@ else
         set(handles.text_approx_lat_unit, 'Enable', 'on');
         set(handles.text_approx_lon_unit, 'Enable', 'on');
         set(handles.text_approx_h_unit, 'Enable', 'on');
+        
+        set(handles.stopGOstop, 'Enable', 'off');
+        set(handles.text_stopGOstop, 'Enable', 'off');
 
     elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
 
@@ -1058,6 +1069,9 @@ else
         set(handles.text_approx_lat_unit, 'Enable', 'off');
         set(handles.text_approx_lon_unit, 'Enable', 'off');
         set(handles.text_approx_h_unit, 'Enable', 'off');
+        
+        set(handles.stopGOstop, 'Enable', 'on');
+        set(handles.text_stopGOstop, 'Enable', 'on');
     end
 end
 
