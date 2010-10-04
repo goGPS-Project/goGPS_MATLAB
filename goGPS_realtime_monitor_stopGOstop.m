@@ -551,7 +551,7 @@ start_time = start_time + dtime - 1;
 b = 1;
 
 %buffer dimension
-B = 20;
+B = 3600;
 
 %buffer initialization
 tick_M = zeros(B,1);      % empty/full master buffer
@@ -1267,32 +1267,42 @@ while flag
     %-------------------------------------
 
     fprintf('\n');
-    fprintf('BUFFER (ROVER):  ');
-    for i = B : -1 : 1
-        if (tick_R(i) == 1)
-            fprintf('x');
-        else
-            fprintf('o');
-        end
+%     fprintf('BUFFER (ROVER):  ');
+%     for i = B : -1 : 1
+%         if (tick_R(i) == 1)
+%             fprintf('x');
+%         else
+%             fprintf('o');
+%         end
+%     end
+%     fprintf('  --- time --->\n');
+    if (tick_R(1) == 1)
+        fprintf('ROVER  LOCKED\n');
+    else
+        fprintf('ROVER  UNLOCKED\n');
     end
-    fprintf('  --- time --->\n');
-    fprintf('BUFFER (MASTER): ');
-    for i = B : -1 : 1
-        if (tick_M(i) == 1)
-            fprintf('x');
-        else
-            fprintf('o');
-        end
+%     fprintf('BUFFER (MASTER): ');
+%     for i = B : -1 : 1
+%         if (tick_M(i) == 1)
+%             fprintf('x');
+%         else
+%             fprintf('o');
+%         end
+%     end
+%     fprintf('  --- time --->\n');
+    if (tick_M(1) == 1)
+        fprintf('MASTER LOCKED\n');
+    else
+        fprintf('MASTER UNLOCKED\n');
     end
-    fprintf('  --- time --->\n');
-    fprintf('                 ');
-    for i = B : -1 : 1
-        if (i == min(b,B))
-            fprintf('^');
-        else
-            fprintf(' ');
-        end
-    end
+%     fprintf('                 ');
+%     for i = B : -1 : 1
+%         if (i == min(b,B))
+%             fprintf('^');
+%         else
+%             fprintf(' ');
+%         end
+%     end
     fprintf('\n');
     
     %if the conditions to initialize the Kalman filter have not yet been met
