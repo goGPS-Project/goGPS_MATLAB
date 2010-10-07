@@ -55,7 +55,7 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 %-----------------------------------------------------------
 
 fid = fopen(dat_filename,'rt');      % open file
-fgets(fid);                      % jump the header
+fgets(fid);                          % jump the header
 data = fscanf(fid,'%d %f %f %f %f %f %f %f %f %f %f %f',[12 inf])';
 fclose(fid);
 clear dat_filename
@@ -83,7 +83,7 @@ nodes(:,2) = nodes(:,2) - y0_start;    % new y nodes
 if ~isempty(cov_filename)
 
     fid = fopen(cov_filename,'rt');      % open file
-    fgets(fid);                      % jump the header
+    %fgets(fid);                          % jump the header
     variances = fscanf(fid,'%f %f %f %f %f %f',[6 inf])';
     fclose(fid);
     clear cov_filename
@@ -344,7 +344,7 @@ while loop
         B2_1_rot = R * B2_1;
         B2_2_rot = R * B2_2;
         B3_1_rot = R * B3_1;
-        B3_2_rot = R * B3_2;
+        B3_2_rot = R * B3_2; %#ok<NASGU>
 
         clear R T
         clear B2_1 B2_2 B3_1 B3_2
@@ -430,7 +430,7 @@ end
 %-------------------------------------------------------------------------
 % check whether there are points that are not classified
 
-pos = find(table(:,end) == 0);
+pos = table(:,end) == 0;
 table(pos,:) = [];  % delete data with the label 0
 clear pos
 

@@ -118,7 +118,7 @@ clear dy1 dy2
 %-----------------------------------------------------------
 
 % finding the maximum angle
-pos = find(table(:,2) == max(table(:,2))); 
+[null_max pos] = max(table(:,2)); %#ok<ASGLU>
 
 while (table(pos,2) > angle_threshold) && (size(table,1) > 3)
 
@@ -167,7 +167,7 @@ while (table(pos,2) > angle_threshold) && (size(table,1) > 3)
     end
 
     % finding the maximum angle
-    pos = find(table(: , 2) == max(table(: , 2)) ); %finding the minimum postion
+    [null_max pos] = max(table(:,2)); %#ok<ASGLU>
 
     %---------------------------------
     % plotting the node
