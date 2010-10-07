@@ -1,7 +1,7 @@
-function [table, nodes] = B_arcsClustering (dat_filename, cov_filename, filename, nodes, dN1, dN2, delta)
+function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, filename, nodes, dN1, dN2, delta)
 
 % SYNTAX:
-%   [table, nodes] = B_arcsClustering (dat_filename, cov_filename, filename, nodes, dN1, dN2, delta);
+%   [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, filename, nodes, dN1, dN2, delta);
 %
 % INPUT:
 %   dat_filename = input data file name

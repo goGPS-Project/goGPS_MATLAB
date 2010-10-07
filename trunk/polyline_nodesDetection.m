@@ -1,7 +1,7 @@
-function [nodes] = A_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold)
+function [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold)
 
 % SYNTAX:
-%   [nodes] = A_nodesAGNES (filename, dN1, dN2, angle_threshold, dist_threshold);
+%   [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold);
 %
 % INPUT:
 %   filename = input data file name
@@ -118,9 +118,9 @@ clear dy1 dy2
 %-----------------------------------------------------------
 
 % finding the maximum angle
-pos = find(table(:,2) == max(table(:,2)) ); 
+pos = find(table(:,2) == max(table(:,2))); 
 
-while (table(pos,2) > angle_threshold) &&  (size(table,1) > 3)
+while (table(pos,2) > angle_threshold) && (size(table,1) > 3)
 
     table(pos,:) = []; % merging or combining
 

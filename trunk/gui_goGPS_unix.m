@@ -2456,8 +2456,14 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 try
     serialInfo = instrhwinfo('serial');
-    set(hObject, 'String', serialInfo.AvailableSerialPorts);
 catch
+end
+if (~isempty(serialInfo.AvailableSerialPorts))
+    set(hObject, 'String', serialInfo.AvailableSerialPorts);
+else
+    notAvailable = cell(1);
+    notAvailable{1} = 'NA';
+    set(hObject, 'String', notAvailable);
 end
 
 
@@ -2623,4 +2629,4 @@ function polyline_Callback(hObject, eventdata, handles)
 % hObject    handle to polyline (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-polyline;
+gui_polyline_sympl_unix;
