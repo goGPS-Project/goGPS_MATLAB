@@ -1,7 +1,7 @@
-function [nodes] = C_leastSquaresFit (tab_filename, nod_filename, nodes, flag, dist_threshold)
+function [nodes] = polyline_leastSquaresFit (tab_filename, nod_filename, nodes, flag, dist_threshold)
 
 % SYNTAX:
-%   [nodes] = C_leastSquaresFit (filename, nodes);
+%   [nodes] = polyline_leastSquaresFit (filename, nodes);
 %
 % INPUT:
 %   tab_filename = input data file name (table)
