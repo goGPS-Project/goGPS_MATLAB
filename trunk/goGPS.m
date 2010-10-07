@@ -1617,23 +1617,25 @@ if (mode < 12)
         KHDOP_thres = 2;
     end
 
-    %master station coordinates
-    for i = 1 : nObs
-        if (sum(abs(pos_M(:,i))) ~= 0)
-            XM = pos_M(1,i);
-            YM = pos_M(2,i);
-            ZM = pos_M(3,i);
-
-            %conversion from cartesian to geodetic coordinates
-            [phiM(i), lamM(i), hM(i)] = cart2geod(XM, YM, ZM);
-
-            %conversion from radians to degrees
-            lamM(i) = lamM(i)*180/pi;
-            phiM(i) = phiM(i)*180/pi;
-        else
-            lamM(i) = 0;
-            phiM(i) = 0;
-            hM(i) = 0;
+    if (mode ~= 2) & (mode ~= 4) & (mode ~= 6)
+        %master station coordinates
+        for i = 1 : nObs
+            if (sum(abs(pos_M(:,i))) ~= 0)
+                XM = pos_M(1,i);
+                YM = pos_M(2,i);
+                ZM = pos_M(3,i);
+                
+                %conversion from cartesian to geodetic coordinates
+                [phiM(i), lamM(i), hM(i)] = cart2geod(XM, YM, ZM);
+                
+                %conversion from radians to degrees
+                lamM(i) = lamM(i)*180/pi;
+                phiM(i) = phiM(i)*180/pi;
+            else
+                lamM(i) = 0;
+                phiM(i) = 0;
+                hM(i) = 0;
+            end
         end
     end
 
@@ -1784,28 +1786,31 @@ end
 % REPRESENTATION OF THE ESTIMATED ERROR COVARIANCE (AND TEXT FILE SAVING)
 %----------------------------------------------------------------------------------------------
 
-if (mode < 12) & (flag_cov == 1) & (mode_vinc == 0) & (~isempty(EAST_KAL))
+if (mode < 12) & (mode_vinc == 0) & (~isempty(EAST_KAL))
 
     %display information
     fprintf('Writing estimated error covariance file...\n');
     %covariance propagation
     Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1],:));
-    %trajectory plotting
-    figure
-    plot(EAST_KAL, NORTH_KAL, '.r'); axis equal
-    xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
-
-    hold on
-    for i = 1 : size(Cee_ENU,3)         % ellipse definition
-        T = chol(Cee_ENU(1:2,1:2,i));   % Cholesky decomposition
-        n = size(x_circle,1);
-        x_ellipse = zeros(n,2);         % pre-allocation
-        for j = 1 : n                   % ellipse definition
-            x_ellipse(j,:) = x_circle(j,:) * T + [EAST_KAL(i), NORTH_KAL(i)];
+    
+    if (flag_cov == 1)
+        %trajectory plotting
+        figure
+        plot(EAST_KAL, NORTH_KAL, '.r'); axis equal
+        xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
+        
+        hold on
+        for i = 1 : size(Cee_ENU,3)         % ellipse definition
+            T = chol(Cee_ENU(1:2,1:2,i));   % Cholesky decomposition
+            n = size(x_circle,1);
+            x_ellipse = zeros(n,2);         % pre-allocation
+            for j = 1 : n                   % ellipse definition
+                x_ellipse(j,:) = x_circle(j,:) * T + [EAST_KAL(i), NORTH_KAL(i)];
+            end
+            plot(x_ellipse(:,1),x_ellipse(:,2));
         end
-        plot(x_ellipse(:,1),x_ellipse(:,2));
+        hold off
     end
-    hold off
 
     %file saving
     fid_cov = fopen([filerootOUT '_cov.txt'], 'wt');
