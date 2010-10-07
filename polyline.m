@@ -1,11 +1,13 @@
-function polyline(filerootIN, angle_threshold)
+function polyline(filerootIN, angle_threshold, dN1, dN2)
 
 % SYNTAX:
-%   polyline(filerootIN, angle_threshold);
+%   polyline(filerootIN, angle_threshold, dN1, dN2);
 %
 % INPUT:
 %   filerootIN = input file root (rover data, binary stream)
 %   angle_threshold = threshold on the angle between arcs [degrees]
+%   dN1 = number of neglected points at the beginning of the path
+%   dN2 = number of neglected points at the end of the path
 %
 % DESCRIPTION:
 %   Polyline simplification algorithm.
@@ -45,9 +47,6 @@ cov_filename = [filerootIN '_cov.txt'];
 tab_filename = [filerootIN '_table.txt'];
 nod_filename = [filerootIN '_node.txt'];
 
-dN1 = 0; % disregarded points at the beginning
-dN2 = 5; % disregarded points at the end
-
 % threshold on the angle between arcs
 angle_threshold = angle_threshold * pi/180;
 
@@ -66,6 +65,9 @@ dist_threshold_update_iter1 = 2; % (typically the same)
 flag_iter0 = 1;   % (0/1) = (independent/weighted)
 flag_iter1 = 1;
 
+% minimum number of nodes (threshold on "compression level")
+% min_nodes = 3;
+
 %-----------------------------------------------------------
 % STEP 1 - ITERATION 0
 %-----------------------------------------------------------
@@ -76,7 +78,7 @@ flag_iter1 = 1;
 % STEP 2 - ITERATION 0
 %-----------------------------------------------------------
 
-[table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, tab_filename, nodes, dN1, dN2, delta_iter0);
+[table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, tab_filename, nodes, dN1, dN2, delta_iter0); %#ok<ASGLU>
 
 %-----------------------------------------------------------
 % STEP 3 - ITERATION 0
@@ -88,12 +90,12 @@ flag_iter1 = 1;
 % STEP 2 - ITERATION 1
 %-----------------------------------------------------------
 
-[table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, tab_filename, nodes, dN1, dN2, delta_iter1);
+[table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, tab_filename, nodes, dN1, dN2, delta_iter1); %#ok<ASGLU>
 
 %-----------------------------------------------------------
 % STEP 3 - ITERATION 1
 %-----------------------------------------------------------
 
-[nodes] = polyline_leastSquaresFit (tab_filename, nod_filename, nodes, flag_iter1, dist_threshold_update_iter1);
+[nodes] = polyline_leastSquaresFit (tab_filename, nod_filename, nodes, flag_iter1, dist_threshold_update_iter1); %#ok<NASGU>
 
 %-----------------------------------------------------------

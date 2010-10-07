@@ -22,7 +22,7 @@ function varargout = gui_polyline_sympl(varargin)
 
 % Edit the above text to modify the response to help gui_polyline_sympl
 
-% Last Modified by GUIDE v2.5 07-Oct-2010 14:55:14
+% Last Modified by GUIDE v2.5 07-Oct-2010 17:31:46
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -128,6 +128,8 @@ function execute_button_Callback(hObject, eventdata, handles)
 filerootIN = get(handles.data_stream,'String');
 filerootIN(filerootIN == '\') = '/';
 angle = str2double(get(handles.angle_thres,'String'));
+dN1 = str2double(get(handles.disreg_begin,'String'));
+dN2 = str2double(get(handles.disreg_end,'String'));
 
 % wait_dlg = waitbar(0,'Please wait...');
 
@@ -135,7 +137,7 @@ angle = str2double(get(handles.angle_thres,'String'));
 d1 = dir([filerootIN '_position.txt']);
 d2 = dir([filerootIN '_cov.txt']);
 if ~isempty(d1) & ~isempty(d2)
-    polyline(filerootIN, angle);
+    polyline(filerootIN, angle, dN1, dN2);
 else
     msgbox('Both *_position.txt and *_cov.txt files are needed to run the polyline simplification algorithm.');
 end
@@ -164,6 +166,52 @@ function angle_thres_Callback(hObject, eventdata, handles)
 % --- Executes during object creation, after setting all properties.
 function angle_thres_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to angle_thres (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function disreg_begin_Callback(hObject, eventdata, handles)
+% hObject    handle to disreg_begin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of disreg_begin as text
+%        str2double(get(hObject,'String')) returns contents of disreg_begin as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function disreg_begin_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to disreg_begin (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function disreg_end_Callback(hObject, eventdata, handles)
+% hObject    handle to disreg_end (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of disreg_end as text
+%        str2double(get(hObject,'String')) returns contents of disreg_end as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function disreg_end_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to disreg_end (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
