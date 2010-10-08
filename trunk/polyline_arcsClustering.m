@@ -80,7 +80,9 @@ nodes(:,2) = nodes(:,2) - y0_start;    % new y nodes
 % loading the variances
 %-----------------------------------------------------------
 
-if ~isempty(cov_filename)
+d = dir(cov_filename);
+
+if ~isempty(d)
 
     fid = fopen(cov_filename,'rt');      % open file
     %fgets(fid);                          % jump the header
