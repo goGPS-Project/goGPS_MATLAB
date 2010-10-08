@@ -1,13 +1,25 @@
-function polyline(filerootIN, angle_threshold, dN1, dN2)
+function polyline(filerootIN, angle_threshold, dist_threshold_AGNES, dN1, dN2, ...
+    delta_iter0, delta_iter1, dist_threshold_update_iter0, dist_threshold_update_iter1, ...
+    flag_iter0, flag_iter1, min_nodes)
 
 % SYNTAX:
-%   polyline(filerootIN, angle_threshold, dN1, dN2);
+%   polyline(filerootIN, angle_threshold, dN1, dN2, ...
+%   delta_iter0, delta_iter1, dist_threshold_update_iter0, dist_threshold_update_iter1, ...
+%   flag_iter0, flag_iter1, min_nodes);
 %
 % INPUT:
 %   filerootIN = input file root (rover data, binary stream)
 %   angle_threshold = threshold on the angle between arcs [degrees]
+%   dist_threshold_AGNES = threshold on the distance between nodes (AGNES method)
 %   dN1 = number of neglected points at the beginning of the path
 %   dN2 = number of neglected points at the end of the path
+%   delta_iter0 = bounding box dimension (iteration 0)
+%   delta_iter1 = bounding box dimension (iteration 1) (typically to be reduced)
+%   dist_threshold_update_iter0 = threshold on the distance between old/new nodes (iteration 0)
+%   dist_threshold_update_iter1 = threshold on the distance between old/new nodes (iteration 1)
+%   flag_iter0 = weighted observations flag (0/1) = (independent/weighted) (iteration 0)
+%   flag_iter1 = weighted observations flag (0/1) = (independent/weighted) (iteration 1)
+%   min_nodes = minimum number of nodes (threshold on "compression level")
 %
 % DESCRIPTION:
 %   Polyline simplification algorithm.
@@ -50,29 +62,11 @@ nod_filename = [filerootIN '_node.txt'];
 % threshold on the angle between arcs
 angle_threshold = angle_threshold * pi/180;
 
-% threshold on the distance between nodes (AGNES method)
-dist_threshold_AGNES = 2;
-
-% bounding box dimension
-delta_iter0 = 1;
-delta_iter1 = 0.5; % (typically to be reduced)
-
-% threshold on the distance between old/new nodes
-dist_threshold_update_iter0 = 2;
-dist_threshold_update_iter1 = 2; % (typically the same)
-
-% weighted observations
-flag_iter0 = 1;   % (0/1) = (independent/weighted)
-flag_iter1 = 1;
-
-% minimum number of nodes (threshold on "compression level")
-% min_nodes = 3;
-
 %-----------------------------------------------------------
 % STEP 1 - ITERATION 0
 %-----------------------------------------------------------
 
-[nodes] = polyline_nodesDetection (dat_filename, dN1, dN2, angle_threshold, dist_threshold_AGNES);
+[nodes] = polyline_nodesDetection (dat_filename, dN1, dN2, angle_threshold, dist_threshold_AGNES, min_nodes);
 
 %-----------------------------------------------------------
 % STEP 2 - ITERATION 0

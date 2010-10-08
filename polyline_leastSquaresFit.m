@@ -17,7 +17,7 @@ function [nodes] = polyline_leastSquaresFit (tab_filename, nod_filename, nodes, 
 %   Least-squares adjustment for each arc.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Lisa Pertusini*, Mirko Reguzzoni**, Alemu Befkadu
 %
@@ -126,8 +126,8 @@ yNodes = zeros (NN+1,1);
 % for i = 1 : NN-1;
 %     xNodes(i+1) = (par(i+1,2) * xm(i+1) - par(i,2) * xm(i) + par(i,1) - par(i+1,1)) / (par(i+1,2) - par(i,2));  % node of each segment in x direction
 %     yNodes(i+1) =  par(i,2) * (xNodes(i+1)-xm(i)) + par(i,1);                                                   % node of each segment in y direction
-%      if (xNodes(i+1) < min(nodes(i,1),nodes(i+2,1))) || (xNodes(i+1) > max(nodes(i,1),nodes(i+2,1))) || ...
-%         (yNodes(i+1) < min(nodes(i,2),nodes(i+2,2))) || (yNodes(i+1) > max(nodes(i,2),nodes(i+2,2)))
+%      if (xNodes(i+1) < min(nodes(i,1),nodes(i+2,1))) | (xNodes(i+1) > max(nodes(i,1),nodes(i+2,1))) | ...
+%         (yNodes(i+1) < min(nodes(i,2),nodes(i+2,2))) | (yNodes(i+1) > max(nodes(i,2),nodes(i+2,2)))
 %            xNodes(i+1) = xA(i+1);              % node of each segment in x direction
 %            yNodes(i+1) = (yA(i+1) + yB(i))/2;  % node of each segment in y direction
 %      end

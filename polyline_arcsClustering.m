@@ -21,7 +21,7 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 %   Classify data belonging to each arc.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Lisa Pertusini*, Mirko Reguzzoni**, Alemu Befkadu
 %
@@ -358,7 +358,7 @@ while loop
             up = max(B2_1_rot(2), B2_2_rot(2));
             down = min(B2_1_rot(2), B2_2_rot(2));
 
-            if (T_rot(j,1) >= left) && (T_rot(j,1) <= right) && (T_rot(j,2) >= down) && (T_rot(j,2) <= up)
+            if (T_rot(j,1) >= left) & (T_rot(j,1) <= right) & (T_rot(j,2) >= down) & (T_rot(j,2) <= up)
                 table(j,4+i) = 1;
             else
                 table(j,4+i) = 0;
