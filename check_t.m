@@ -19,7 +19,6 @@ function [corrTime] = check_t(time)
 % Kai Borre 04-01-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%
 %----------------------------------------------------------------------------------------------
 
 half_week = 302400;     % seconds

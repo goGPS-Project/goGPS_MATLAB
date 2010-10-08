@@ -15,10 +15,9 @@ function [Eph] = RINEX_get_nav_GLO(file_nav_GLO)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Graduate School for Creative Cities, Osaka City University, Japan
+% Portions of code contributed by Sara Lucca
 %
 % Partially based on RINEXE.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------

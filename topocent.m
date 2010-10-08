@@ -23,7 +23,6 @@ function [Az, El, D] = topocent(Xr, Xs)
 % Kai Borre 09-26-97
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%
 %----------------------------------------------------------------------------------------------
 
 %conversion from geocentric cartesian to geodetic coordinates

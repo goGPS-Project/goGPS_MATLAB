@@ -20,7 +20,6 @@ function [pos] = bancroft(B_pass)
 % Kai Borre 04-30-95, improved by C.C. Goad 11-24-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%
 %----------------------------------------------------------------------------------------------
 
 global v_light Omegae_dot

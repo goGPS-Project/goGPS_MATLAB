@@ -19,10 +19,7 @@ function LS_goGPS_SA_cod_loop(time, Eph_R, pr1_R, pr2_R, snr_R, iono, phase)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
-%
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Graduate School for Creative Cities, Osaka City University, Japan
+% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

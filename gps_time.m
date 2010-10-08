@@ -21,7 +21,6 @@ function [week, sec_of_week] = gps_time(julday)
 % Kai Borre 05-20-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%
 %----------------------------------------------------------------------------------------------
 
 

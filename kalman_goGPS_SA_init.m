@@ -20,10 +20,7 @@ function kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, pr2_Rsat, ph
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009 Mirko Reguzzoni*, Eugenio Realini**
-%
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Media Center, Osaka City University, Japan
+% Copyright (C) 2009 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

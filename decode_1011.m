@@ -32,10 +32,9 @@ function [data] = decode_1011(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**, Sara Lucca*
+% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Graduate School for Creative Cities, Osaka City University, Japan
+% Portions of code contributed by Sara Lucca
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

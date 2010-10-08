@@ -23,10 +23,9 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009-2010 Lisa Pertusini*, Mirko Reguzzoni**, Alemu Befkadu
+% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-%
+% Portions of code contributed by Lisa Pertusini, Alemu Befkadu
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

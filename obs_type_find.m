@@ -25,10 +25,7 @@ function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
-%
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Graduate School for Creative Cities, Osaka City University, Japan
+% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %
 % Partially based on FOBS_TYP.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------

@@ -19,10 +19,7 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
-%
-% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
-% ** Graduate School for Creative Cities, Osaka City University, Japan
+% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %
 % Partially based on FEPOCH_0.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
