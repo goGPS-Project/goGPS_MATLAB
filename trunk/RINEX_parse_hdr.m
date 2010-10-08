@@ -21,7 +21,6 @@ function [Obs_types, pos_M, ifound_types] = RINEX_parse_hdr(file)
 % Kai Borre 09-23-97
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%
 %----------------------------------------------------------------------------------------------
 
 ifound_types = 0;

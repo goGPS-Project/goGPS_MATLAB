@@ -10,7 +10,3 @@ Y = [sum(q .* y0); sum(q .* y0 .* (x0-xm))];
 x_par = inv(N) * Y;
 
 % Cxx = sigma02 * inv(N); % covariance matrix
-
-
-
-       

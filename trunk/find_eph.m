@@ -22,7 +22,6 @@ function icol = find_eph(Eph, sv, time)
 % Kai Borre and C.C. Goad 11-26-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%
 %----------------------------------------------------------------------------------------------
 
 isat = find(Eph(1,:) == sv);

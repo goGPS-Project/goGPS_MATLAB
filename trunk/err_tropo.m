@@ -16,8 +16,10 @@ function [tropocorr] = err_tropo(elev, h)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009 Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %
+% Portions of code contributed by Laboratorio di Geomatica, Polo Regionale di Como,
+%    Politecnico di Milano, Italy
 %----------------------------------------------------------------------------------------------
 
 %Saastamoinen model requires positive ellipsoidal height

@@ -22,7 +22,6 @@ function jd = julday(y,m,d,h)
 % Kai Borre 02-14-01
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%
 %----------------------------------------------------------------------------------------------
 
 if m <= 2

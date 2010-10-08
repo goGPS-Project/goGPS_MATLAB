@@ -20,7 +20,6 @@ function [X_sat_rot] = e_r_corr(traveltime, X_sat)
 % Copyright (C) Kai Borre
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%
 %----------------------------------------------------------------------------------------------
 
 global Omegae_dot

@@ -20,7 +20,10 @@ function [ionocorr] = err_iono(ionoparams, Lat, Lon, Az, El, T)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
 %
-% Copyright (C) 2009 Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Laboratorio di Geomatica, Polo Regionale di Como,
+%    Politecnico di Milano, Italy
 %
 % Algorithm taken from Leick, A. (2004) "GPS Satellite Surveying - 2nd Edition"
 % John Wiley & Sons, Inc., New York, pp. 301-303

@@ -31,11 +31,4 @@ m = par(2);
 q = par(1) - m*xm;
 
 s2m = invN(2,2);
-s2q = invN(1,1);
-
-
-
-
-
-
-       
+s2q = invN(1,1);   
