@@ -1,7 +1,7 @@
-function [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold)
+function [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold, min_nodes)
 
 % SYNTAX:
-%   [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold);
+%   [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold, min_nodes);
 %
 % INPUT:
 %   filename = input data file name
@@ -9,6 +9,7 @@ function [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold,
 %   dN2 = disregarded points at the end
 %   angle_threshold = threshold on the angle between arcs [radiants]
 %   dist_threshold = threshold on the distance between nodes [meters]
+%   min_nodes = minimum number of nodes
 %
 % OUTPUT:
 %   nodes = coordinates of the selected nodes
@@ -17,7 +18,7 @@ function [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold,
 %   Determine the nodes using an agglomerative method.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1 alpha
+%                           goGPS v0.1.2 alpha
 %
 % Copyright (C) 2009-2010 Lisa Pertusini*, Mirko Reguzzoni**, Alemu Befkadu
 %
@@ -120,7 +121,7 @@ clear dy1 dy2
 % finding the maximum angle
 [null_max pos] = max(table(:,2)); %#ok<ASGLU>
 
-while (table(pos,2) > angle_threshold) && (size(table,1) > 3)
+while (table(pos,2) > angle_threshold) & (size(table,1) > min_nodes)
 
     table(pos,:) = []; % merging or combining
 
@@ -136,7 +137,7 @@ while (table(pos,2) > angle_threshold) && (size(table,1) > 3)
     %---------------------------------
 
     % updating the dissimilarity table
-    if (pos ~= 2) && (pos ~= size(table,1))
+    if (pos ~= 2) & (pos ~= size(table,1))
         j = pos-2;
         c1 = (x0( table(j+1,1) )-x0( table(j,1) )) * (x0( table(j+1,1) )-x0( table(j+2,1) ));
         c2 = (y0( table(j+1,1) )-y0( table(j,1) )) * (y0( table(j+1,1) )-y0( table(j+2,1) ));
@@ -209,7 +210,7 @@ clear nodes
 i = 1;
 while i < (size(table,1))
     j = i+1;
-    while (j <= size(table,1) && (sqrt((x0(table(i,1)) - x0(table(j,1)))^2 + (y0(table(i,1)) - y0(table(j,1)))^2) < dist_threshold))
+    while (j <= size(table,1) & (sqrt((x0(table(i,1)) - x0(table(j,1)))^2 + (y0(table(i,1)) - y0(table(j,1)))^2) < dist_threshold))
         table(j,:) = [];
     end
     i = i+1;
