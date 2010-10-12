@@ -265,7 +265,15 @@ function output_type_SelectionChangeFcn(hObject, eventdata, handles)
 if (hObject == handles.out_rinex)
     set(handles.flag_rover_stream, 'Enable', 'on');
     set(handles.flag_master_stream, 'Enable', 'on');
+    %if the output folder is the default one
+    if (strcmp(get(handles.data_out_folder, 'String'), '../data'))
+        set(handles.data_out_folder, 'String', '../data/data_RINEX');
+    end
 else
     set(handles.flag_rover_stream, 'Enable', 'off');
     set(handles.flag_master_stream, 'Enable', 'off');
+    %if the output folder is the default one
+    if (strcmp(get(handles.data_out_folder, 'String'), '../data/data_RINEX'))
+        set(handles.data_out_folder, 'String', '../data');
+    end
 end
