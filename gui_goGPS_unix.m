@@ -2402,9 +2402,13 @@ function go_button_Callback(hObject, eventdata, handles)
 % hObject    handle to go_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-saveState(handles,'../data/settings/last_settings.mat');
-
-uiresume(handles.main_panel);
+d = dir(get(handles.gogps_data_output,'String'));
+if isempty(d)
+    msgbox('Output folder does not exist. Please browse to an existing folder.');
+else
+    saveState(handles,'../data/settings/last_settings.mat');
+    uiresume(handles.main_panel);
+end
 
 % --- Executes on button press in load_button.
 function load_button_Callback(hObject, eventdata, handles)
