@@ -620,8 +620,8 @@ if (mode == 1) & (mode_vinc == 0)
         end
 
         fprintf('\n')
-        fprintf('Estimated direction = %8.3f�\n', angleDIR);
-        fprintf('Standard deviation  = %8.3f�\n', sigma_angleDIR);
+        fprintf('Estimated direction = %8.3f degrees\n', angleDIR);
+        fprintf('Standard deviation  = %8.3f degrees\n', sigma_angleDIR);
         fprintf('\n')
 
         fclose(fid_dyn);
