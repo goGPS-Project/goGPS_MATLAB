@@ -1,7 +1,7 @@
-function [EAST, NORTH, h] = cart2plan(X, Y, Z)
+function [EAST, NORTH, h, utm_zone] = cart2plan(X, Y, Z)
 
 % SYNTAX:
-%   [EAST, NORTH, h] = cart2plan(X, Y, Z);
+%   [EAST, NORTH, h, utm_zone] = cart2plan(X, Y, Z);
 %
 % INPUT:
 %   X = X axis cartesian coordinate
@@ -12,6 +12,7 @@ function [EAST, NORTH, h] = cart2plan(X, Y, Z)
 %   EAST = EAST coordinate
 %   NORTH = NORTH coordinate
 %   h = ellipsoidal height
+%   utm_zone = UTM zone (example: '32 T')
 %
 % DESCRIPTION:
 %   Conversion from cartesian coordinates to planimetric coordinates (UTM WGS84).
@@ -40,6 +41,6 @@ function [EAST, NORTH, h] = cart2plan(X, Y, Z)
 [phi, lam, h] = cart2geod(X, Y, Z);
 
 %projection to UTM
-[EAST, NORTH] = geod2plan(phi, lam);
+[EAST, NORTH, utm_zone] = geod2plan(phi, lam);
 
 %-------------------------------------------------------------------------------

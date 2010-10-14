@@ -1,7 +1,7 @@
-function [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold, min_nodes)
+function [nodes, utm_zone] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold, min_nodes)
 
 % SYNTAX:
-%   [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold, min_nodes);
+%   [nodes, utm_zone] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold, dist_threshold, min_nodes);
 %
 % INPUT:
 %   filename = input data file name
@@ -13,6 +13,7 @@ function [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold,
 %
 % OUTPUT:
 %   nodes = coordinates of the selected nodes
+%   utm_zone = UTM zone of the node coordinates
 %
 % DESCRIPTION:
 %   Determine the nodes using an agglomerative method.
@@ -57,7 +58,7 @@ function [nodes] = polyline_nodesDetection (filename, dN1, dN2, angle_threshold,
 
 fid = fopen(filename,'rt');      % open file
 fgets(fid);                      % jump the header
-data = fscanf(fid,'%d %f %f %f %f %f %f %f %f %f %f %f',[12 inf])';
+data = fscanf(fid,'%d %f %f %f %f %f %f %4c %f %f %f %f %f',[16 inf])';
 fclose(fid);
 clear filename
 
@@ -65,8 +66,9 @@ clear filename
 % assigning the data
 %-----------------------------------------------------------
 
-x0 = data(:,6);    % x coordinates
-y0 = data(:,5);    % y coordinates
+x0 = data(:,6);       % x coordinates
+y0 = data(:,5);       % y coordinates
+utm_zone = char([data(:,8) data(:,9) data(:,10) data(:,11)]); % UTM zones
 clear data
 
 %-----------------------------------------------------------

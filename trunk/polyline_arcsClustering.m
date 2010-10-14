@@ -55,7 +55,7 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 
 fid = fopen(dat_filename,'rt');      % open file
 fgets(fid);                          % jump the header
-data = fscanf(fid,'%d %f %f %f %f %f %f %f %f %f %f %f',[12 inf])';
+data = fscanf(fid,'%d %f %f %f %f %f %f %4c %f %f %f %f %f',[16 inf])';
 fclose(fid);
 clear dat_filename
 

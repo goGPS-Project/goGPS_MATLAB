@@ -63,7 +63,7 @@ angle_threshold = angle_threshold * pi/180;
 % STEP 1 - ITERATION 0
 %-----------------------------------------------------------
 
-[nodes] = polyline_nodesDetection (dat_filename, dN1, dN2, angle_threshold, dist_threshold_AGNES, min_nodes);
+[nodes, utm_zone] = polyline_nodesDetection (dat_filename, dN1, dN2, angle_threshold, dist_threshold_AGNES, min_nodes);
 
 %-----------------------------------------------------------
 % STEP 2 - ITERATION 0
@@ -87,6 +87,46 @@ angle_threshold = angle_threshold * pi/180;
 % STEP 3 - ITERATION 1
 %-----------------------------------------------------------
 
-[nodes] = polyline_leastSquaresFit (tab_filename, nod_filename, nodes, flag_iter1, dist_threshold_update_iter1); %#ok<NASGU>
+[nodes] = polyline_leastSquaresFit (tab_filename, nod_filename, nodes, flag_iter1, dist_threshold_update_iter1);
 
 %-----------------------------------------------------------
+
+%-------------------------------------------------------------------------
+% print the result in a KML file
+
+line_colorR = 'ff00ffff';
+line_width = 2;
+
+pos = find(filerootIN == '/');
+kml_name = filerootIN(pos(end)+1:end);
+
+fid_kml = fopen([filerootIN '_polyline.kml'], 'wt');
+    fprintf(fid_kml, '<?xml version="1.0" encoding="UTF-8"?>\n');
+    fprintf(fid_kml, '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">\n');
+    fprintf(fid_kml, '<Document>\n');
+    fprintf(fid_kml, '\t<name>%s</name>\n', [kml_name '_polyline.kml']);
+    fprintf(fid_kml, '\t<snippet>created by goGPS</snippet>\n');
+    fprintf(fid_kml, '\t<Style id="goLine1">\n');
+    fprintf(fid_kml, '\t\t<LineStyle>\n');
+    fprintf(fid_kml, '\t\t\t<color>%s</color>\n',line_colorR);
+    fprintf(fid_kml, '\t\t\t<width>%d</width>\n' ,line_width);
+    fprintf(fid_kml, '\t\t</LineStyle>\n');
+    fprintf(fid_kml, '\t</Style>\n');
+    fprintf(fid_kml, '\t<Placemark>\n');
+    fprintf(fid_kml, '\t\t<name>Rover track (simplified polyline)</name>\n');
+    fprintf(fid_kml, '\t\t<styleUrl>#goLine1</styleUrl>\n');
+    fprintf(fid_kml, '\t\t<LineString>\n');
+    fprintf(fid_kml, '\t\t\t<coordinates>\n\t\t\t\t');
+    for i = 1 : length(nodes)
+        [nodes_lat, nodes_lon] = utm2deg(nodes(i,1), nodes(i,2), utm_zone(i,:));
+        fprintf(fid_kml, '%.8f,%.8f,0 ',nodes_lon,nodes_lat);
+    end
+    fprintf(fid_kml, '\n\t\t\t</coordinates>\n');
+    fprintf(fid_kml, '\t\t</LineString>\n');
+    fprintf(fid_kml, '\t</Placemark>\n');
+    fprintf(fid_kml, '</Document>\n</kml>');
+    fclose(fid_kml);
+
+end
+
+%-------------------------------------------------------------------------
