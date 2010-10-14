@@ -45,7 +45,7 @@ global kml_filename
 %"clampedToGround" plots the points attached to the ground
 %"absolute" uses the height defined in the tag <coordinates>;
 %N.B. Google Earth uses orthometric heights
-z_pos = 'clampedToGround';
+z_pos = 'clampToGround';
 %z_pos = 'absolute';
 
 %URL to load the icon for the rover position
@@ -56,9 +56,9 @@ iconM = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
 
 %string representing the ARGB color of the points
 if (nsat >= 4)
-    point_colorR = 'FFF5005A';
+    point_colorR = 'fff5005a';
 else
-    point_colorR = 'FF0000FF';
+    point_colorR = 'ff0000ff';
 end
 
 %point size
@@ -71,7 +71,7 @@ label_colorR = point_colorR;
 label_scaleR = 0.7;
 
 %string representing the ARGB color of the points
-point_colorM = 'FF00FFFF';
+point_colorM = 'ff00ffff';
 
 %point size
 scaleM = 0.8;
@@ -135,58 +135,61 @@ while (fkml == -1)
     fkml=fopen(kml_filename,'wt');
 end
 
-fprintf(fkml, '<?xml version="1.0" standalone="yes"?>\n');
-fprintf(fkml, '<kml creator="goGPS" xmlns="http://earth.google.com/kml/2.2">\n');
-fprintf(fkml, '  <Document>\n');
-fprintf(fkml, '    <name><![CDATA[%s]]></name>\n', kml_filename);
-fprintf(fkml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
+pos = find(kml_filename == '/');
+kml_name = kml_filename(pos(end)+1:end);
+
+fprintf(fkml, '<?xml version="1.0" encoding="UTF-8"?>\n');
+fprintf(fkml, '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">\n');
+fprintf(fkml, '<Document>\n');
+fprintf(fkml, '\t<name>%s</name>\n', kml_name);
+fprintf(fkml, '\t<snippet>created by goGPS</snippet>\n');
+fprintf(fkml, '\t\t<Style id="go1">\n');
+fprintf(fkml, '\t\t\t<IconStyle>\n');
+fprintf(fkml, '\t\t\t\t<color>%s</color>\n',point_colorR);
+fprintf(fkml, '\t\t\t\t<colorMode>normal</colorMode>\n');
+fprintf(fkml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
+fprintf(fkml, '\t\t\t\t<Icon>\n');
+fprintf(fkml, '\t\t\t\t\t<href>%s</href>\n',iconR);
+fprintf(fkml, '\t\t\t\t</Icon>\n');
+fprintf(fkml, '\t\t\t</IconStyle>\n');
+fprintf(fkml, '\t\t\t<LabelStyle>\n');
+fprintf(fkml, '\t\t\t\t<color>%s</color>\n',label_colorR);
+fprintf(fkml, '\t\t\t\t<scale>%s</scale>\n',label_scaleR);
+fprintf(fkml, '\t\t\t</LabelStyle>\n');
+fprintf(fkml, '\t\t</Style>\n');
+fprintf(fkml, '\t\t<Style id="master">\n');
+fprintf(fkml, '\t\t\t<IconStyle>\n');
+fprintf(fkml, '\t\t\t\t<color>%s</color>\n',point_colorM);
+fprintf(fkml, '\t\t\t\t<colorMode>normal</colorMode>\n');
+fprintf(fkml, '\t\t\t\t<scale>%.2f</scale>\n',scaleM);
+fprintf(fkml, '\t\t\t\t<Icon>\n');
+fprintf(fkml, '\t\t\t\t\t<href>%s</href>\n',iconM);
+fprintf(fkml, '\t\t\t\t</Icon>\n');
+fprintf(fkml, '\t\t\t</IconStyle>\n');
+fprintf(fkml, '\t\t\t<LabelStyle>\n');
+fprintf(fkml, '\t\t\t\t<color>%s</color>\n',label_colorM);
+fprintf(fkml, '\t\t\t\t<scale>%s</scale>\n',label_scaleM);
+fprintf(fkml, '\t\t\t</LabelStyle>\n');
+fprintf(fkml, '\t\t</Style>\n');
 if (lamM ~= 0 | phiM ~= 0 | hM ~= 0)
-    fprintf(fkml, '      <Placemark>\n');
-    fprintf(fkml, '        <name>Master station</name>\n');
-    fprintf(fkml, '        <Point>\n');
-    fprintf(fkml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-    fprintf(fkml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM,phiM,hM);
-    fprintf(fkml, '        </Point>\n');
-    fprintf(fkml, '        <Snippet></Snippet>\n');
-    fprintf(fkml, '        <Style>\n');
-    fprintf(fkml, '          <IconStyle>\n');
-    fprintf(fkml, '            <Icon>\n');
-    fprintf(fkml, '              <href>%s</href>\n',iconM);
-    fprintf(fkml, '            </Icon>\n');
-    fprintf(fkml, '            <color>%s</color>\n',point_colorM);
-    fprintf(fkml, '            <colorMode>normal</colorMode>\n');
-    fprintf(fkml, '            <scale>%.2f</scale>\n',scaleM);
-    fprintf(fkml, '          </IconStyle>\n');
-    fprintf(fkml, '          <LabelStyle>\n');
-    fprintf(fkml, '            <color>%s</color>\n',label_colorM);
-    fprintf(fkml, '            <scale>%s</scale>\n',label_scaleM);
-    fprintf(fkml, '          </LabelStyle>\n');
-    fprintf(fkml, '        </Style>\n');
-    fprintf(fkml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation:</i> %.1f m<br/> <i>Time:</i> %s-%s-%s %s:%s:%s]]></description>\n',phiM,lamM,hM,year,month,day,hour,minute,second);
-    fprintf(fkml, '      </Placemark>\n');
+    fprintf(fkml, '\t\t<Placemark>\n');
+    fprintf(fkml, '\t\t\t<name>Master station</name>\n');
+    fprintf(fkml, '\t\t\t<description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation:</i> %.1f m<br/> <i>Time:</i> %s-%s-%s %s:%s:%s]]></description>\n',phiM,lamM,hM,year,month,day,hour,minute,second);
+    fprintf(fkml, '\t\t\t<styleUrl>#master</styleUrl>\n');
+    fprintf(fkml, '\t\t\t<Point>\n');
+    fprintf(fkml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
+    fprintf(fkml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM,phiM,hM);
+    fprintf(fkml, '\t\t\t</Point>\n');
+    fprintf(fkml, '\t\t</Placemark>\n');
 end
-fprintf(fkml, '      <Placemark>\n');
-fprintf(fkml, '        <name>%d</name>\n', nsat);
-fprintf(fkml, '        <Point>\n');
-fprintf(fkml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-fprintf(fkml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamR,phiR,hR);
-fprintf(fkml, '        </Point>\n');
-fprintf(fkml, '        <Snippet></Snippet>\n');
-fprintf(fkml, '        <Style>\n');
-fprintf(fkml, '          <IconStyle>\n');
-fprintf(fkml, '            <Icon>\n');
-fprintf(fkml, '              <href>%s</href>\n',iconR);
-fprintf(fkml, '            </Icon>\n');
-fprintf(fkml, '            <color>%s</color>\n',point_colorR);
-fprintf(fkml, '            <colorMode>normal</colorMode>\n');
-fprintf(fkml, '            <scale>%.2f</scale>\n',scaleR);
-fprintf(fkml, '          </IconStyle>\n');
-fprintf(fkml, '          <LabelStyle>\n');
-fprintf(fkml, '            <color>%s</color>\n',label_colorR);
-fprintf(fkml, '            <scale>%s</scale>\n',label_scaleR);
-fprintf(fkml, '          </LabelStyle>\n');
-fprintf(fkml, '        </Style>\n');
-fprintf(fkml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation:</i> %.1f m<br/> <i>Satellites:</i> %d <br/> <i>Time:</i> %s-%s-%s %s:%s:%s]]></description>\n',phiR,lamR,hR,nsat,year,month,day,hour,minute,second);
-fprintf(fkml, '      </Placemark>\n');
-fprintf(fkml, '  </Document>\n</kml>');
+fprintf(fkml, '\t\t<Placemark>\n');
+fprintf(fkml, '\t\t\t<name>%d</name>\n', nsat);
+fprintf(fkml, '\t\t\t<description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation:</i> %.1f m<br/> <i>Satellites:</i> %d <br/> <i>Time:</i> %s-%s-%s %s:%s:%s]]></description>\n',phiR,lamR,hR,nsat,year,month,day,hour,minute,second);
+fprintf(fkml, '\t\t\t<styleUrl>#go1</styleUrl>\n');
+fprintf(fkml, '\t\t\t<Point>\n');
+fprintf(fkml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
+fprintf(fkml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamR,phiR,hR);
+fprintf(fkml, '\t\t\t</Point>\n');
+fprintf(fkml, '\t\t</Placemark>\n');
+fprintf(fkml, '</Document>\n</kml>');
 fclose(fkml);

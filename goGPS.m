@@ -1360,7 +1360,7 @@ if (mode < 12)
     lam_KAL = lam_KAL * 180/pi;
 
     %coordinate transformation (UTM)
-    [EAST_KAL, NORTH_KAL] = cart2plan(X_KAL, Y_KAL, Z_KAL);
+    [EAST_KAL, NORTH_KAL, h_null, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
 
     %initialization (-9999 = no data available)
     if (mode_vinc == 1) | (mode == 3) | (mode == 4)
@@ -1371,7 +1371,7 @@ if (mode < 12)
 
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
-    fprintf(fid_out, 'GPS time\tLatitude\tLongitude\th (ellips.)\tUTM North\tUTM East\th (AMSL)\tECEF X\t\tECEF Y\t\tECEF Z\t\tHDOP\tKHDOP\n');
+    fprintf(fid_out, 'GPS time\tLatitude\tLongitude\th (ellips.)\tUTM North\tUTM East\th (AMSL)\tUTM zone\tECEF X\t\tECEF Y\t\tECEF Z\t\tHDOP\tKHDOP\n');
     for i = 1 : nObs
         if (geoid.ncols ~= 0)
             %geoid ondulation interpolation
@@ -1381,7 +1381,7 @@ if (mode < 12)
         end
 
         %file writing
-        fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t\t%.3f\t%.3f\t%.3f\t\t%s\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
     fclose(fid_out);
 end
@@ -1580,22 +1580,24 @@ if (mode < 12)
     %"clampedToGround" plots the points attached to the ground
     %"absolute" uses the height defined in the tag <coordinates>;
     %N.B. Google Earth uses orthometric heights
-    z_pos = 'clampedToGround';
+    z_pos = 'clampToGround';
     %z_pos = 'absolute';
     %URL to load the icon for the points
     iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
     iconM = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
     iconP = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
-    good_point_colorR = 'FFF5005A';
-    bad_point_colorR = 'FF0000FF';
-    dyn_point_colorR = 'FF00FFFF';
-    point_colorM = 'FF00FFFF';
-    point_colorP = 'FF32CD32';
+    good_point_colorR = 'fff5005a';
+    bad_point_colorR = 'ff0000ff';
+    dyn_point_colorR = 'ff00ffff';
+    point_colorM = 'ff00ffff';
+    point_colorP = 'ff32cd32';
     %point size
     scaleR = 0.2;
     scaleM = 0.8;
     scaleP = 0.8;
-    line_colorR = 'FFF5005A';
+    %line color and thickness
+    line_colorR = 'fff5005a';
+    line_widthR = 1;
     %label color
     label_colorM = point_colorM;
     label_colorP = point_colorP;
@@ -1635,121 +1637,124 @@ if (mode < 12)
             end
         end
     end
+    
+    pos = find(filerootOUT == '/');
+    kml_name = filerootOUT(pos(end)+1:end);
 
     %file saving (Google Earth KML)
     fid_kml = fopen([filerootOUT '.kml'], 'wt');
-    fprintf(fid_kml, '<?xml version="1.0" standalone="yes"?>\n');
-    fprintf(fid_kml, '<kml creator="goGPS" xmlns="http://earth.google.com/kml/2.2">\n');
-    fprintf(fid_kml, '  <Document>\n');
-    fprintf(fid_kml, '    <name><![CDATA[%s]]></name>\n', [filerootOUT '.kml']);
-    fprintf(fid_kml, '    <Snippet><![CDATA[created by goGPS]]></Snippet>\n');
-    fprintf(fid_kml, '      <Style id="go1">\n');
-    fprintf(fid_kml, '        <IconStyle>\n');
-    fprintf(fid_kml, '          <color>%s</color>\n',good_point_colorR);
-    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleR);
-    fprintf(fid_kml, '          <Icon>\n');
-    fprintf(fid_kml, '            <href>%s</href>\n',iconR);
-    fprintf(fid_kml, '          </Icon>\n');
-    fprintf(fid_kml, '        </IconStyle>\n');
-    fprintf(fid_kml, '      </Style>\n');
-    fprintf(fid_kml, '      <Style id="go2">\n');
-    fprintf(fid_kml, '        <IconStyle>\n');
-    fprintf(fid_kml, '          <color>%s</color>\n',bad_point_colorR);
-    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleR);
-    fprintf(fid_kml, '          <Icon>\n');
-    fprintf(fid_kml, '            <href>%s</href>\n',iconR);
-    fprintf(fid_kml, '          </Icon>\n');
-    fprintf(fid_kml, '        </IconStyle>\n');
-    fprintf(fid_kml, '      </Style>\n');
-    fprintf(fid_kml, '      <Style id="go3">\n');
-    fprintf(fid_kml, '        <IconStyle>\n');
-    fprintf(fid_kml, '          <color>%s</color>\n',dyn_point_colorR);
-    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleR);
-    fprintf(fid_kml, '          <Icon>\n');
-    fprintf(fid_kml, '            <href>%s</href>\n',iconR);
-    fprintf(fid_kml, '          </Icon>\n');
-    fprintf(fid_kml, '        </IconStyle>\n');
-    fprintf(fid_kml, '      </Style>\n');
-    fprintf(fid_kml, '      <Style id="master">\n');
-    fprintf(fid_kml, '        <IconStyle>\n');
-    fprintf(fid_kml, '          <Icon>\n');
-    fprintf(fid_kml, '            <href>%s</href>\n',iconM);
-    fprintf(fid_kml, '          </Icon>\n');
-    fprintf(fid_kml, '          <color>%s</color>\n',point_colorM);
-    fprintf(fid_kml, '          <colorMode>normal</colorMode>\n');
-    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleM);
-    fprintf(fid_kml, '        </IconStyle>\n');
-    fprintf(fid_kml, '        <LabelStyle>\n');
-    fprintf(fid_kml, '          <color>%s</color>\n',label_colorM);
-    fprintf(fid_kml, '          <scale>%s</scale>\n',label_scaleM);
-    fprintf(fid_kml, '        </LabelStyle>\n');
-    fprintf(fid_kml, '      </Style>\n');
-    fprintf(fid_kml, '      <Style id="ppos">\n');
-    fprintf(fid_kml, '        <IconStyle>\n');
-    fprintf(fid_kml, '          <Icon>\n');
-    fprintf(fid_kml, '            <href>%s</href>\n',iconP);
-    fprintf(fid_kml, '          </Icon>\n');
-    fprintf(fid_kml, '          <color>%s</color>\n',point_colorP);
-    fprintf(fid_kml, '          <colorMode>normal</colorMode>\n');
-    fprintf(fid_kml, '          <scale>%.2f</scale>\n',scaleP);
-    fprintf(fid_kml, '        </IconStyle>\n');
-    fprintf(fid_kml, '        <LabelStyle>\n');
-    fprintf(fid_kml, '          <color>%s</color>\n',label_colorP);
-    fprintf(fid_kml, '          <scale>%s</scale>\n',label_scaleP);
-    fprintf(fid_kml, '        </LabelStyle>\n');
-    fprintf(fid_kml, '      </Style>\n');
+    fprintf(fid_kml, '<?xml version="1.0" encoding="UTF-8"?>\n');
+    fprintf(fid_kml, '<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">\n');
+    fprintf(fid_kml, '<Document>\n');
+    fprintf(fid_kml, '\t<name>%s</name>\n', [kml_name '.kml']);
+    fprintf(fid_kml, '\t<snippet>created by goGPS</snippet>\n');
+    fprintf(fid_kml, '\t\t<Style id="go1">\n');
+    fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',good_point_colorR);
+    fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
+    fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+    fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
+    fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+    fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+    fprintf(fid_kml, '\t\t</Style>\n');
+    fprintf(fid_kml, '\t\t<Style id="go2">\n');
+    fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',bad_point_colorR);
+    fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
+    fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+    fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
+    fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+    fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+    fprintf(fid_kml, '\t\t</Style>\n');
+    fprintf(fid_kml, '\t\t<Style id="go3">\n');
+    fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',dyn_point_colorR);
+    fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleR);
+    fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+    fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconR);
+    fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+    fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+    fprintf(fid_kml, '\t\t</Style>\n');
+    fprintf(fid_kml, '\t\t<Style id="master">\n');
+    fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',point_colorM);
+    fprintf(fid_kml, '\t\t\t\t<colorMode>normal</colorMode>\n');
+    fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleM);
+    fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+    fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconM);
+    fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+    fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+    fprintf(fid_kml, '\t\t\t<LabelStyle>\n');
+    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',label_colorM);
+    fprintf(fid_kml, '\t\t\t\t<scale>%s</scale>\n',label_scaleM);
+    fprintf(fid_kml, '\t\t\t</LabelStyle>\n');
+    fprintf(fid_kml, '\t\t</Style>\n');
+    fprintf(fid_kml, '\t\t<Style id="ppos">\n');
+    fprintf(fid_kml, '\t\t\t<IconStyle>\n');
+    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',point_colorP);
+    fprintf(fid_kml, '\t\t\t\t<colorMode>normal</colorMode>\n');
+    fprintf(fid_kml, '\t\t\t\t<scale>%.2f</scale>\n',scaleP);
+    fprintf(fid_kml, '\t\t\t\t<Icon>\n');
+    fprintf(fid_kml, '\t\t\t\t\t<href>%s</href>\n',iconP);
+    fprintf(fid_kml, '\t\t\t\t</Icon>\n');
+    fprintf(fid_kml, '\t\t\t</IconStyle>\n');
+    fprintf(fid_kml, '\t\t\t<LabelStyle>\n');
+    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',label_colorP);
+    fprintf(fid_kml, '\t\t\t\t<scale>%s</scale>\n',label_scaleP);
+    fprintf(fid_kml, '\t\t\t</LabelStyle>\n');
+    fprintf(fid_kml, '\t\t</Style>\n');
+    fprintf(fid_kml, '\t\t<Style id="goLine1">\n');
+    fprintf(fid_kml, '\t\t\t<LineStyle>\n');
+    fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',line_colorR);
+    fprintf(fid_kml, '\t\t\t\t<width>%d</width>\n',line_widthR);
+    fprintf(fid_kml, '\t\t\t</LineStyle>\n');
+    fprintf(fid_kml, '\t\t</Style>\n');
     if (mode ~= 2) & (mode ~= 4) & (mode ~= 6)
         for i = 1 : length(phiM)
             if (lamM(i) ~= 0 | phiM(i) ~= 0 | hM(i) ~= 0)
                 if (i == 1) | (lamM(i)~=lamM(i-1) | phiM(i)~=phiM(i-1) | hM(i)~=hM(i-1))
-                    fprintf(fid_kml, '      <Placemark>\n');
-                    fprintf(fid_kml, '        <styleUrl>#master</styleUrl>\n');
-                    fprintf(fid_kml, '        <name>Master station</name>\n');
-                    fprintf(fid_kml, '        <Point>\n');
-                    fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-                    fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
-                    fprintf(fid_kml, '        </Point>\n');
-                    fprintf(fid_kml, '        <Snippet></Snippet>\n');
-                    fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
-                    fprintf(fid_kml, '      </Placemark>\n');
+                    fprintf(fid_kml, '\t\t<Placemark>\n');
+                    fprintf(fid_kml, '\t\t\t<name>Master station</name>\n');
+                    fprintf(fid_kml, '\t\t\t<description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiM(i),lamM(i),hM(i));
+                    fprintf(fid_kml, '\t\t\t<styleUrl>#master</styleUrl>\n');
+                    fprintf(fid_kml, '\t\t\t<Point>\n');
+                    fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
+                    fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
+                    fprintf(fid_kml, '\t\t\t</Point>\n');
+                    fprintf(fid_kml, '\t\t</Placemark>\n');
                 end
             end
         end
     end
-    fprintf(fid_kml, '      <Placemark>\n');
-    fprintf(fid_kml, '      <name>Rover track</name>\n');
-    fprintf(fid_kml, '        <Style>\n');
-    fprintf(fid_kml, '          <LineStyle>\n');
-    fprintf(fid_kml, '            <color>%s</color>\n',line_colorR);
-    fprintf(fid_kml, '          </LineStyle>\n');
-    fprintf(fid_kml, '        </Style>\n');
-    fprintf(fid_kml, '        <LineString>\n');
-    fprintf(fid_kml, '          <coordinates>\n');
+    fprintf(fid_kml, '\t\t<Placemark>\n');
+    fprintf(fid_kml, '\t\t<name>Rover track</name>\n');
+    fprintf(fid_kml, '\t\t\t<styleUrl>#goLine1</styleUrl>\n');
+    fprintf(fid_kml, '\t\t\t<LineString>\n');
+    fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
     for i = 1 : length(phi_KAL)
-        fprintf(fid_kml, '            %.8f,%.8f,0.000\n',lam_KAL(i),phi_KAL(i));
+        fprintf(fid_kml, '%.8f,%.8f,0 ',lam_KAL(i),phi_KAL(i));
     end
-    fprintf(fid_kml, '          </coordinates>\n');
-    fprintf(fid_kml, '        </LineString>\n');
-    fprintf(fid_kml, '      </Placemark>\n');
-    fprintf(fid_kml, '      <Folder>\n');
-    fprintf(fid_kml, '      <name>Rover positioning</name>\n');
+    fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
+    fprintf(fid_kml, '\t\t\t</LineString>\n');
+    fprintf(fid_kml, '\t\t</Placemark>\n');
+    fprintf(fid_kml, '\t\t<Folder>\n');
+    fprintf(fid_kml, '\t\t<name>Rover positioning</name>\n');
     for i = 1 : length(phi_KAL)
-        fprintf(fid_kml, '      <Placemark>\n');
+        fprintf(fid_kml, '\t\t<Placemark>\n');
         if (pivot(i) == 0)
-            fprintf(fid_kml, '        <styleUrl>#go3</styleUrl>\n');
+            fprintf(fid_kml, '\t\t\t<styleUrl>#go3</styleUrl>\n');
         elseif (KHDOP(i)>KHDOP_thres)
-            fprintf(fid_kml, '        <styleUrl>#go2</styleUrl>\n');
+            fprintf(fid_kml, '\t\t\t<styleUrl>#go2</styleUrl>\n');
         else
-            fprintf(fid_kml, '        <styleUrl>#go1</styleUrl>\n');
+            fprintf(fid_kml, '\t\t\t<styleUrl>#go1</styleUrl>\n');
         end
-        fprintf(fid_kml, '        <Point>\n');
-        fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-        fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
-        fprintf(fid_kml, '        </Point>\n');
-        fprintf(fid_kml, '        <Snippet></Snippet>\n');
-        fprintf(fid_kml, '      </Placemark>\n');
+        fprintf(fid_kml, '\t\t\t<Point>\n');
+        fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
+        fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lam_KAL(i),phi_KAL(i),h_KAL(i));
+        fprintf(fid_kml, '\t\t\t</Point>\n');
+        fprintf(fid_kml, '\t\t</Placemark>\n');
     end
-    fprintf(fid_kml, '      </Folder>\n');
+    fprintf(fid_kml, '\t\t</Folder>\n');
 
     if (mode ~= 3) & (mode ~= 4)
         if (o1 == 1)
@@ -1761,19 +1766,18 @@ if (mode < 12)
             lamP = lamP*180/pi;
             phiP = phiP*180/pi;
 
-            fprintf(fid_kml, '      <Placemark>\n');
-            fprintf(fid_kml, '        <styleUrl>#ppos</styleUrl>\n');
-            fprintf(fid_kml, '        <name>Static positioning</name>\n');
-            fprintf(fid_kml, '        <Point>\n');
-            fprintf(fid_kml, '          <altitudeMode>%s</altitudeMode>\n',z_pos);
-            fprintf(fid_kml, '          <coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP,phiP,hP);
-            fprintf(fid_kml, '        </Point>\n');
-            fprintf(fid_kml, '        <Snippet></Snippet>\n');
-            fprintf(fid_kml, '        <description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP,lamP,hP);
-            fprintf(fid_kml, '      </Placemark>\n');
+            fprintf(fid_kml, '\t\t<Placemark>\n');
+            fprintf(fid_kml, '\t\t\t<name>Static positioning</name>\n');
+            fprintf(fid_kml, '\t\t\t<description><![CDATA[ <i>Latitude:</i> %.8f &#176;<br/> <i>Longitude:</i> %.8f &#176;<br/> <i>Elevation (ellips.):</i> %.1f m<br/>]]></description>\n',phiP,lamP,hP);
+            fprintf(fid_kml, '\t\t\t<styleUrl>#ppos</styleUrl>\n');
+            fprintf(fid_kml, '\t\t\t<Point>\n');
+            fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
+            fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamP,phiP,hP);
+            fprintf(fid_kml, '\t\t\t</Point>\n');
+            fprintf(fid_kml, '\t\t</Placemark>\n');
         end
     end
-    fprintf(fid_kml, '  </Document>\n</kml>');
+    fprintf(fid_kml, '</Document>\n</kml>');
     fclose(fid_kml);
 
 end
