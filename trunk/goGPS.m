@@ -389,7 +389,7 @@ end
 
 %check if the dataset was surveyed in stop-GO-stop mode
 d = dir([filerootIN '_dyn_00.bin']);
-if (flag_stopGOstop & isempty(d))
+if (mode < 10 & flag_stopGOstop & isempty(d))
     disp('Warning: dataset was not surveyed in stop-go-stop mode:');
     disp(' Switching off stop-go-stop mode...');
     flag_stopGOstop = 0;
