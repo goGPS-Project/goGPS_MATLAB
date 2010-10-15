@@ -359,6 +359,7 @@ data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
 %visualization
 fprintf('\n');
 fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
+fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 
 %pseudoranges
 pr_R = zeros(32,1);
@@ -2321,10 +2322,16 @@ if (reply_save)
     end
 end
 
-fprintf('\n')
-fprintf('Estimated direction = %8.3f°\n', angleDIR);
-fprintf('Standard deviation  = %8.3f°\n', sigma_angleDIR);
-fprintf('\n')
+try
+    fprintf('\n')
+    fprintf('Estimated direction = %8.3f degrees\n', angleDIR);
+    fprintf('Standard deviation  = %8.3f degrees\n', sigma_angleDIR);
+    fprintf('\n')
+catch
+    fprintf('\n');
+    fprintf('Insufficient data to estimate a direction\n');
+    fprintf('\n');
+end
 
 %connection closing
 fclose(master);

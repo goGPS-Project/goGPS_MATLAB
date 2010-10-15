@@ -359,6 +359,7 @@ data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
 %visualization
 fprintf('\n');
 fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
+fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 
 %pseudoranges
 pr_R = zeros(32,1);

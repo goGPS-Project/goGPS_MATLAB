@@ -131,7 +131,7 @@ while (~reply_save)
         delete(rover);
     end
     % create new serial object
-    rover = serial (COMportR,'BaudRate',57600);
+    rover = serial(COMportR,'BaudRate',57600);
     set(rover,'InputBufferSize',16384);
     set(rover,'FlowControl','hardware');
     set(rover,'RequestToSend','on');
@@ -161,7 +161,7 @@ while (~reply_RATE)
         delete(rover);
     end
     % create new serial object
-    rover = serial (COMportR,'BaudRate',57600);
+    rover = serial(COMportR,'BaudRate',57600);
     set(rover,'InputBufferSize',16384);
     set(rover,'FlowControl','hardware');
     set(rover,'RequestToSend','on');
@@ -191,7 +191,7 @@ while (~reply_RAW)
         delete(rover);
     end
     % create new serial object
-    rover = serial (COMportR,'BaudRate',57600);
+    rover = serial(COMportR,'BaudRate',57600);
     set(rover,'InputBufferSize',16384);
     set(rover,'FlowControl','hardware');
     set(rover,'RequestToSend','on');
@@ -267,6 +267,7 @@ data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
 %visualization
 fprintf('\n');
 fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
+fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 
 %pseudoranges
 pr_R = zeros(32,1);
