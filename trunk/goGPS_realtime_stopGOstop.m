@@ -640,13 +640,15 @@ dtime = 1;
 if (flag_plotproc)
     h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 40 20], 'string', 'GO', ...
         'callback', 'setappdata(gcf, ''run'', 2)');
+    h2 = uicontrol(gcf, 'style', 'text', 'position', [70 10 160 15], 'string', 'Current state: "STOP"');
     set(gcf, 'name', 'goGPS', 'toolbar', 'figure');
 else
     f1 = figure;
     s1 = get(0,'ScreenSize');
-    set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'Navigation');
+    set(f1, 'position', [s1(3)-240-20 s1(4)-100-40 240 100], 'menubar', 'none', 'name', 'Navigation');
     h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'GO', ...
         'callback', 'setappdata(gcf, ''run'', 2)');
+    h2 = uicontrol(gcf, 'style', 'text', 'position', [40 70 160 15], 'string', 'Current state: "STOP"');
 end
 
 flag = 1;
@@ -669,14 +671,16 @@ while flag
     % mode management
     %-------------------------------------
 
-    if (flag == 2) && (order == 1)       % STOP --> GO
-        order = 2;                       % constant velocity model
-        set(h1, 'string', 'STOP');       % write STOP
+    if (flag == 2) && (order == 1)                  % STOP --> GO
+        order = 2;                                  % constant velocity model
+        set(h1, 'string', 'STOP');                  % write STOP
         set(h1, 'callback', 'setappdata(gcf, ''run'', 3)');
-    elseif (flag == 3) && (order == 2)   % GO --> STOP
-        order = 1;                       % constant position model
-        set(h1, 'string', 'END');        % write END
+        set(h2, 'string', 'Current state: "GO"');   % change current state
+    elseif (flag == 3) && (order == 2)              % GO --> STOP
+        order = 1;                                  % constant position model
+        set(h1, 'string', 'END');                   % write END
         set(h1, 'callback', 'setappdata(gcf, ''run'', 0)');
+        set(h2, 'string', 'Current state: "STOP"'); % change current state
         iDIR = iDIR+1;
     end
     
