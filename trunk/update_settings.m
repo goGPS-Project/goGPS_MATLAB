@@ -46,7 +46,7 @@ for i = 1 : nmax
     %get the number of characters in the filename
     fn_length = size(got,2);
 
-    %check that the filename has the ".hdr" extension
+    %check that the filename has the ".mat" extension
     if (fn_length >= 4 & strcmp(got(fn_length - 3 : fn_length), '.mat'))
         
         j = j+1;
