@@ -508,7 +508,7 @@ if (mode == 1) & (mode_vinc == 0)
         kalman_goGPS_init_model (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), order, 1);
         % kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
 
-        [E0(index,1), N0(index,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+        [E0(index,1), N0(index,1), h_null, utmzone0(index,:)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
         Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
         sigmaq_E0(index,1) = Cee_ENU(1,1);
         sigmaq_N0(index,1) = Cee_ENU(2,2);
@@ -568,7 +568,7 @@ if (mode == 1) & (mode_vinc == 0)
             [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), order, 1);
             % [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
 
-            [E0(index,1), N0(index,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+            [E0(index,1), N0(index,1), h_null, utmzone0(index,:)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
             Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
             sigmaq_E0(index,1) = Cee_ENU(1,1);
             sigmaq_N0(index,1) = Cee_ENU(2,2);
@@ -576,6 +576,7 @@ if (mode == 1) & (mode_vinc == 0)
             if (index == 1)
                 mDIR = 0; qDIR = 0; angleDIR = 0;
                 P1 = [E0(index), N0(index)]; P2 = P1;
+                utmzone1 = utmzone0(index,:); utmzone2 = utmzone1;
             else
                 [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0);
                 m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
@@ -584,7 +585,9 @@ if (mode == 1) & (mode_vinc == 0)
                 X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
                 P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
                 P2 = [X2, mDIR*X2+qDIR ];
-                angleDIR = atan2(P2(2)-P1(2),P2(1)-P1(1)) * 180/pi;
+                utmzone1 = utmzone0(1,:);
+                utmzone2 = utmzone0(end,:);
+                angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
                 sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                 % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
             end
@@ -618,9 +621,13 @@ if (mode == 1) & (mode_vinc == 0)
             end
 
         end
+        
+        %Azimuth computation
+        i = find(angleDIR < 0);
+        angleDIR(i) = angleDIR(i) + 360;
 
         fprintf('\n')
-        fprintf('Estimated direction = %8.3f degrees\n', angleDIR);
+        fprintf('Estimated azimuth = %8.3f degrees\n', angleDIR);
         fprintf('Standard deviation  = %8.3f degrees\n', sigma_angleDIR);
         fprintf('\n')
 
@@ -1595,9 +1602,12 @@ if (mode < 12)
     scaleR = 0.2;
     scaleM = 0.8;
     scaleP = 0.8;
-    %line color and thickness
+    %line color and thickness (rover track)
     line_colorR = 'fff5005a';
     line_widthR = 1;
+    %line color and thickness (stop-go-stop direction)
+    line_colorG = 'ff0000ff';
+    line_widthG = 4;
     %label color
     label_colorM = point_colorM;
     label_colorP = point_colorP;
@@ -1709,6 +1719,14 @@ if (mode < 12)
     fprintf(fid_kml, '\t\t\t\t<width>%d</width>\n',line_widthR);
     fprintf(fid_kml, '\t\t\t</LineStyle>\n');
     fprintf(fid_kml, '\t\t</Style>\n');
+    if (flag_stopGOstop & mode < 10)
+        fprintf(fid_kml, '\t\t<Style id="goLine2">\n');
+        fprintf(fid_kml, '\t\t\t<LineStyle>\n');
+        fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',line_colorG);
+        fprintf(fid_kml, '\t\t\t\t<width>%d</width>\n',line_widthG);
+        fprintf(fid_kml, '\t\t\t</LineStyle>\n');
+        fprintf(fid_kml, '\t\t</Style>\n');
+    end
     if (mode ~= 2) & (mode ~= 4) & (mode ~= 6)
         for i = 1 : length(phiM)
             if (lamM(i) ~= 0 | phiM(i) ~= 0 | hM(i) ~= 0)
@@ -1737,6 +1755,22 @@ if (mode < 12)
     fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
     fprintf(fid_kml, '\t\t\t</LineString>\n');
     fprintf(fid_kml, '\t\t</Placemark>\n');
+    if (flag_stopGOstop & mode < 10)
+        
+        [P1Lat, P1Lon] = utm2deg(P1(1), P1(2), utmzone1);
+        [P2Lat, P2Lon] = utm2deg(P2(1), P2(2), utmzone2);
+        
+        fprintf(fid_kml, '\t\t<Placemark>\n');
+        fprintf(fid_kml, '\t\t<name>Estimated direction</name>\n');
+        fprintf(fid_kml, '\t\t\t<styleUrl>#goLine2</styleUrl>\n');
+        fprintf(fid_kml, '\t\t\t<LineString>\n');
+        fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
+        fprintf(fid_kml, '%.8f,%.8f,0 ',P1Lon,P1Lat);
+        fprintf(fid_kml, '%.8f,%.8f,0 ',P2Lon,P2Lat);
+        fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
+        fprintf(fid_kml, '\t\t\t</LineString>\n');
+        fprintf(fid_kml, '\t\t</Placemark>\n');
+    end
     fprintf(fid_kml, '\t\t<Folder>\n');
     fprintf(fid_kml, '\t\t<name>Rover positioning</name>\n');
     for i = 1 : length(phi_KAL)
