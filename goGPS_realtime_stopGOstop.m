@@ -1554,7 +1554,7 @@ end
                     X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
                     P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
                     P2 = [X2, mDIR*X2+qDIR ];
-                    angleDIR = atan2(P2(2)-P1(2),P2(1)-P1(1)) * 180/pi;
+                    angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
                     sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                     %sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
                 end
@@ -1688,7 +1688,7 @@ end
                         X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
                         P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
                         P2 = [X2, mDIR*X2+qDIR ];
-                        angleDIR = atan2(P2(2)-P1(2),P2(1)-P1(1)) * 180/pi;
+                        angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
                         sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                         % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
                     end
@@ -1821,7 +1821,7 @@ end
                         X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
                         P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
                         P2 = [X2, mDIR*X2+qDIR ];
-                        angleDIR = atan2(P2(2)-P1(2),P2(1)-P1(1)) * 180/pi;
+                        angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
                         sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                         % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
                     end
@@ -2014,7 +2014,7 @@ end
                             X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
                             P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
                             P2 = [X2, mDIR*X2+qDIR ];
-                            angleDIR = atan2(P2(2)-P1(2),P2(1)-P1(1)) * 180/pi;
+                            angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
                             sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                             % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
                         end
@@ -2147,7 +2147,7 @@ end
                         X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
                         P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
                         P2 = [X2, mDIR*X2+qDIR ];
-                        angleDIR = atan2(P2(2)-P1(2),P2(1)-P1(1)) * 180/pi;
+                        angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
                         sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                         % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
                     end
@@ -2327,8 +2327,12 @@ if (reply_save)
 end
 
 try
+    %Azimuth computation
+    i = find(angleDIR < 0);
+    angleDIR(i) = angleDIR(i) + 360;
+
     fprintf('\n')
-    fprintf('Estimated direction = %8.3f degrees\n', angleDIR);
+    fprintf('Estimated azimuth = %8.3f degrees\n', angleDIR);
     fprintf('Standard deviation  = %8.3f degrees\n', sigma_angleDIR);
     fprintf('\n')
 catch
