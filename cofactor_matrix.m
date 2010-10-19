@@ -1,7 +1,7 @@
 function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
 
 % SYNTAX:
-%   [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot);
+%   [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
 %
 % INPUT:
 %   elR = satellite elevations (ROVER)
@@ -19,9 +19,12 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
 %   strategy (determined by "weights" global variable).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

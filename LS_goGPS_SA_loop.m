@@ -1,17 +1,14 @@
-function LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, ph1_R, ph2_R, snr_R, iono, phase)
+function LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, snr_R, phase)
 
 % SYNTAX:
-%   LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr1_M, pr2_R, ph1_R, ph2_R, snr_R, iono, phase);
+%   LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr1_M, pr2_R, snr_R, phase);
 %
 % INPUT:
 %   time = GPS time
 %   Eph_R = satellite ephemerides
 %   pr1_R = ROVER code observations (L1 carrier)
 %   pr2_R = ROVER code observations (L2 carrier)
-%   ph1_R = ROVER phase observations (L1 carrier)
-%   ph2_R = ROVER phase observations (L2 carrier)
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
-%   iono = ionosphere parameters
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -19,9 +16,12 @@ function LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, ph1_R, ph2_R, snr_R, iono, 
 %   Standalone code positioning by least squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -48,26 +48,16 @@ global PDOP HDOP VDOP
 %covariance matrix initialization
 cov_pos_SA = [];
 
-%--------------------------------------------------------------------------------------------
-% SATELLITE SELECTION
-%--------------------------------------------------------------------------------------------
+%----------------%
+%--- BANCROFT ---%
+%----------------%
 
-if (length(phase) == 2)
-    sat_pr = find( (pr1_R ~= 0) & (pr2_R ~= 0) );
-    sat = find( (pr1_R ~= 0) & (ph1_R ~= 0) & ...
-                (pr2_R ~= 0) & (ph2_R ~= 0) );
+%visible satellites (ROVER)
+if (phase == 1)
+   sat_pr = find(pr1_R ~= 0);
 else
-    if (phase == 1)
-        sat_pr = find( (pr1_R ~= 0) );
-        sat = find( (pr1_R ~= 0) & (ph1_R ~= 0) );
-    else
-        sat_pr = find( (pr2_R ~= 0) );
-        sat = find( (pr2_R ~= 0) & (ph2_R ~= 0) );
-    end
+   sat_pr = find(pr2_R ~= 0);
 end
-
-%only satellites with code and phase
-sat_pr = sat;
 
 if (size(sat_pr,1) >= 4)
 
@@ -110,16 +100,15 @@ if (size(sat_pr,1) >= 4)
    
    %satellite configuration
    conf_sat = zeros(32,1);
-   conf_sat(sat_pr,1) = -1;
-   conf_sat(sat,1) = +1;
+   conf_sat(sat_pr,1) = +1;
    
    %no cycle-slips when working with code only
    conf_cs = zeros(32,1);
    
    if (phase == 1)
-       [pos_SA, cov_pos_SA, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phase_SA(pos_R(1:3), pr1_R(sat_pr), ph1_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R, 1, iono);
+       [pos_SA, cov_pos_SA, PDOP, HDOP, VDOP] = code_SA(pos_R(1:3), pr1_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R);
    else
-       [pos_SA, cov_pos_SA, N_stim, cov_N_stim, PDOP, HDOP, VDOP] = code_phase_SA(pos_R(1:3), pr2_R(sat_pr), ph2_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R, 2, iono);
+       [pos_SA, cov_pos_SA, PDOP, HDOP, VDOP] = code_SA(pos_R(1:3), pr2_R(sat_pr), snr_R(sat_pr), sat_pr, time, Eph_R);
    end
 else
    fprintf('Less than 4 satellites\n');

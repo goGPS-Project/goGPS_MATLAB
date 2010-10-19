@@ -5,9 +5,12 @@
 %   User-defined global settings.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -124,7 +127,7 @@ pos_M_man = [XM; YM; ZM];
 % KALMAN FILTER
 %-------------------------------------------------------------------------------
 
-global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
+global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 
@@ -132,9 +135,9 @@ global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_
 sigmaq0 = 9;
 
 %variance of velocity coordinates [m^2/s^2]
-sigmaq_vE = 1e-1;
-sigmaq_vN = 1e-1;
-sigmaq_vU = 1e-1;
+sigmaq_velx = 1e-1;
+sigmaq_vely = 1e-1;
+sigmaq_velz = 1e-1;
 sigmaq_vel = 1e-0;
 
 %variance of code observations [m^2]

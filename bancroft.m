@@ -14,15 +14,16 @@ function [pos] = bancroft(B_pass)
 %   having at least 4 visible satellites.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) Kai Borre
 % Kai Borre 04-30-95, improved by C.C. Goad 11-24-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
+%
 %----------------------------------------------------------------------------------------------
 
-global v_light Omegae_dot
+global v_light %made global for usage in goGPS
 
 pos = zeros(4,1);
 
@@ -39,7 +40,7 @@ for iter = 1:2
          rho = (x-pos(1))^2+(y-pos(2))^2+(z-pos(3))^2;
          traveltime = sqrt(rho)/v_light;
       end
-      angle = traveltime*Omegae_dot;
+      angle = traveltime*7.292115147e-5;
       cosa = cos(angle);
       sina = sin(angle);
       B(i,1) =	cosa*x + sina*y;

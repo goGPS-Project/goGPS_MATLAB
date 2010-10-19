@@ -22,9 +22,12 @@ function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   Code-only Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -41,7 +44,7 @@ function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global sigmaq0
+global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz
 global cutoff o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
@@ -74,6 +77,12 @@ T = [T0      Z_o1_o1 Z_o1_o1;
 
 %identity matrix for following computations
 I = eye(o3);
+
+%model error covariance matrix
+Cvv = zeros(o3);
+Cvv(o1,o1) = sigmaq_velx;
+Cvv(o2,o2) = sigmaq_vely;
+Cvv(o3,o3) = sigmaq_velz; %#ok<NASGU>
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE SELECTION

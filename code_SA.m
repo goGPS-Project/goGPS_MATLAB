@@ -25,9 +25,12 @@ function [xR, Cxx, PDOP, HDOP, VDOP, A] = code_SA(posR, pr1_R, snr_R, sat, time,
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -96,15 +99,22 @@ for i = 1 : nsat
     %save tropospheric errors
     tr = [tr; err_tropo_RS];
     
-    %computation of ionospheric errors
-    err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
-    
-    %save ionospheric errors
-    io = [io; err_iono_RS];
+    %if ionospheric parameters are available
+    if (nargin == 7)
+        
+        %computation of ionospheric errors
+        err_iono_RS = err_iono(iono, phiR, lamR, azR, elR(i), time);
+        
+        %save ionospheric errors
+        io = [io; err_iono_RS];
+    end
 end
 
 %correction of the b known term
-b = b + tr + io;
+b = b + tr;
+if (nargin == 7)
+   b = b + io;
+end
 
 %number of observations
 n = length(y0);

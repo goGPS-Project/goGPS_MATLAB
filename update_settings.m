@@ -12,9 +12,12 @@ function update_settings(settings_dir_path, field, value)
 %   Utility to update goGPS settings file.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -32,16 +35,16 @@ function update_settings(settings_dir_path, field, value)
 %----------------------------------------------------------------------------------------------
 
 %directory containing settings files
-settings_dir = dir(settings_dir_path);
+dtm_dir = dir(settings_dir_path);
 
 %check the number of files contained in the directory
-nmax = size(settings_dir,1);
+nmax = size(dtm_dir,1);
 
 j = 0;
 for i = 1 : nmax
 
     %read the name of the i-th file
-    got = getfield(settings_dir,{i,1},'name');
+    got = getfield(dtm_dir,{i,1},'name');
 
     %get the number of characters in the filename
     fn_length = size(got,2);

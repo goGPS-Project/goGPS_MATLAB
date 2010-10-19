@@ -14,21 +14,14 @@ function [tropocorr] = err_tropo(elev, h)
 %   Computation of the pseudorange correction due to tropospheric refraction.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009 Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
 %
-% Portions of code contributed by Laboratorio di Geomatica, Polo Regionale di Como,
-%    Politecnico di Milano, Italy
 %----------------------------------------------------------------------------------------------
 
-%Saastamoinen model requires positive ellipsoidal height
-if (h < 0)
-    h = 0;
-end
-
 if (h < 5000)
-    elev=abs(elev)*pi/180;
+    elev=abs(elev);
     
 	%Standard atmosphere - Berg, 1948 (Bernese)
     %pressure [mbar]
@@ -50,10 +43,10 @@ if (h < 5000)
     
     B = interp1(h_a, B_a, h);
     
-    e = 0.01*H*exp(-37.2465+0.213166*T-0.000256908*T^2);
+    e= 0.01*H*exp(-37.2465+0.213166*T-0.000256908*T^2);
     
     %tropospheric error
-    tropocorr = ((0.002277/sin(elev)) * (P - (B/(tan(elev))^2)) + (0.002277/sin(elev)) * (1255/T + 0.05) * e);
+    tropocorr = ((0.002277/sin(elev*pi/180)) * (P - (B/(tan(elev*pi/180))^2)) + (0.002277/sin(elev*pi/180)) * (1255/T + 0.05) * e);
 else
     tropocorr = zeros(length(elev));
 end

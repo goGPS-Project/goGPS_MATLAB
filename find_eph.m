@@ -16,12 +16,13 @@ function icol = find_eph(Eph, sv, time)
 %   (with respect to the specified GPS time) in the ephemerides matrix.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
 % Copyright (C) Kai Borre
 % Kai Borre and C.C. Goad 11-26-96
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
+%
 %----------------------------------------------------------------------------------------------
 
 isat = find(Eph(1,:) == sv);

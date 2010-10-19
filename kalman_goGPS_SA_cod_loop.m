@@ -23,9 +23,12 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_cod_loop
 %   Standalone positioning using code.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -42,7 +45,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_cod_loop
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global sigmaq_vE sigmaq_vN sigmaq_vU
+global sigmaq_velx sigmaq_vely sigmaq_velz
 global min_nsat cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
@@ -72,17 +75,14 @@ distM = zeros(32,1);
 %----------------------------------------------------------------------------------------
 
 %re-initialization of Cvv matrix of the model error
-% (if a static model is used, no noise is added)
 Cvv = zeros(o3);
-if (o1 > 1)
-    Cvv(o1,o1) = sigmaq_vE;
-    Cvv(o2,o2) = sigmaq_vN;
-    Cvv(o3,o3) = sigmaq_vU;
-    
-    %propagate diagonal local cov matrix to global cov matrix
-    Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
-end
+Cvv(o1,o1) = sigmaq_velx;
+Cvv(o2,o2) = sigmaq_vely;
+Cvv(o3,o3) = sigmaq_velz;
 
+if o1 == 1
+    Cvv = zeros(o3);
+end
 %------------------------------------------------------------------------------------
 % SATELLITE SELECTION
 %------------------------------------------------------------------------------------

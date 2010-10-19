@@ -15,9 +15,12 @@ function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
 %   File conversion from rover stream (UBX binary) to RINEX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -238,40 +241,36 @@ if (~isempty(data_rover_all))
         if (nargin == 3)
             waitbar(i/N,wait_dlg)
         end
-
+        
         sat = find(pr1_R(:,i) ~= 0);
         n = length(sat);
-
-        %if no observations are available, do not write anything
-        if (n > 0)
-            fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
-                date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), n);
-            if (n>12)
-                for j = 1 : 12
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
-                fprintf(fid_obs,'\n');
-                fprintf(fid_obs,'%32s','');
-                for j = 13 : n
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
-            else
-                for j = 1 : n
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
+        fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
+            date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), n);
+        if (n>12)
+            for j = 1 : 12
+                fprintf(fid_obs,'G%02d',sat(j));
             end
             fprintf(fid_obs,'\n');
-            for j = 1 : n
-                fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                if (ph1_R(sat(j),i) > 1e-100)
-                    fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                else
-                    fprintf(fid_obs,'                ');
-                end
-                fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                fprintf(fid_obs,'%14.3f %1d',dop_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                fprintf(fid_obs,'\n');
+            fprintf(fid_obs,'%32s','');
+            for j = 13 : n
+                fprintf(fid_obs,'G%02d',sat(j));
             end
+        else
+            for j = 1 : n
+                fprintf(fid_obs,'G%02d',sat(j));
+            end
+        end
+        fprintf(fid_obs,'\n');
+        for j = 1 : n
+            fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+            if (ph1_R(sat(j),i) > 1e-100)
+                fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+            else
+                fprintf(fid_obs,'                ');
+            end
+            fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+            fprintf(fid_obs,'%14.3f %1d',dop_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+            fprintf(fid_obs,'\n');
         end
     end
     

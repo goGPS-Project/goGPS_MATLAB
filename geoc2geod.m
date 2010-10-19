@@ -1,22 +1,30 @@
-function [Cyy] = local2globalCov(Cxx, X)
+function [phiD, lambdaD, h] = geoc2geod(phiC, lambdaC, r, a, e)
 
 % SYNTAX:
-%   [Cyy] = local2globalCov(Cxx, X);
+%   [phiD, lambdaD, h] = geoc2geod(phiC, lambdaC, r, a, e);
 %
 % INPUT:
-%   Cxx = input covariance matrices
-%   X   = position vectors
+%   phiC    = geocentric latitude                [rad]
+%   lambdaC = longitude                          [rad]
+%   r       = radius                             [m]
+%   a       = ellipsoid semi-major axis          [m]
+%   e       = ellipsoid eccentricity
 %
 % OUTPUT:
-%   Cyy = output covariance matrices
+%   phiD    = geodetic latitude                  [rad]
+%   lambdaD = longitude                          [rad]
+%   h       = ellipsoidal height                 [m]
 %
 % DESCRIPTION:
-%   Covariance propagation from local-level reference frame to Earth-fixed reference frame
+%   Conversion from geocentric to geodetic coordinates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -33,21 +41,15 @@ function [Cyy] = local2globalCov(Cxx, X)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%initialize new covariance matrices
-Cyy = zeros(size(Cxx));
+psi = atan(tan(phiC)/sqrt(1-e^2));
 
-for i = 1 : size(X,2)
+phiD = atan((r.*sin(phiC) + e^2*a/sqrt(1-e^2) * (sin(psi)).^3) ./ ...
+    			(r.*cos(phiC) - e^2*a * (cos(psi)).^3));
 
-    %geodetic coordinates
-    [phi, lam, h] = cart2geod(X(1,i), X(2,i), X(3,i)); %#ok<NASGU>
+lambdaD = lambdaC;
 
-    %rotation matrix from global to local reference system
-    R = [-sin(lam) cos(lam) 0;
-         -sin(phi)*cos(lam) -sin(phi)*sin(lam) cos(phi);
-         +cos(phi)*cos(lam) +cos(phi)*sin(lam) sin(phi)];
+N = a ./ sqrt(1 - e^2 * sin(phiD).^2);
 
-    %covariance propagation
-    Cyy(:,:,i) = R' * Cxx(:,:,i) * R;
-end
+h = r .* cos(phiC)./cos(phiD) - N;
 
 %----------------------------------------------------------------------------------------------

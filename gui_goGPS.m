@@ -22,27 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 27-Sep-2010 15:44:04
-
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
-%
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
-%----------------------------------------------------------------------------------------------
-%
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
-%
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
-%
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+% Last Modified by GUIDE v2.5 28-Jun-2010 15:07:53
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -110,7 +90,7 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(21,1);
+    varargout = cell(20,1);
     return
 end
 contents_mode = cellstr(get(handles.mode,'String'));
@@ -161,7 +141,6 @@ flag_NTRIP = get(handles.use_ntrip,'Value');
 flag_amb = get(handles.plot_amb,'Value');
 flag_skyplot = get(handles.no_skyplot_snr,'Value');
 flag_plotproc = get(handles.plotproc,'Value');
-flag_stopGOstop = get(handles.stopGOstop,'Value');
 filerootIN = get(handles.gogps_data_input,'String');
 filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
 filerootIN(filerootIN == '\') = '/';
@@ -218,17 +197,16 @@ varargout{9} = flag_NTRIP;
 varargout{10} = flag_amb;
 varargout{11} = flag_skyplot;
 varargout{12} = flag_plotproc;
-varargout{13} = flag_stopGOstop;
-varargout{14} = filerootIN;
-varargout{15} = filerootOUT;
-varargout{16} = filename_R_obs;
-varargout{17} = filename_R_nav;
-varargout{18} = filename_M_obs;
-varargout{19} = filename_M_nav;
-varargout{20} = filename_ref;
-varargout{21} = pos_M_man;
+varargout{13} = filerootIN;
+varargout{14} = filerootOUT;
+varargout{15} = filename_R_obs;
+varargout{16} = filename_R_nav;
+varargout{17} = filename_M_obs;
+varargout{18} = filename_M_nav;
+varargout{19} = filename_ref;
+varargout{20} = pos_M_man;
 
-global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
+global sigmaq0 sigmaq_velx sigmaq_vely sigmaq_velz sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global h_antenna
@@ -238,9 +216,9 @@ global nmea_init
 global flag_LS_N_estim
 
 sigmaq0 = str2double(get(handles.std_init,'String'))^2;
-sigmaq_vE = str2double(get(handles.std_X,'String'))^2;
-sigmaq_vN = str2double(get(handles.std_Y,'String'))^2;
-sigmaq_vU = str2double(get(handles.std_Z,'String'))^2;
+sigmaq_velx = str2double(get(handles.std_X,'String'))^2;
+sigmaq_vely = str2double(get(handles.std_Y,'String'))^2;
+sigmaq_velz = str2double(get(handles.std_Z,'String'))^2;
 sigmaq_vel = str2double(get(handles.std_vel,'String'))^2;
 sigmaq_cod1 = str2double(get(handles.std_code,'String'))^2;
 sigmaq_cod2 = 0.16;
@@ -249,17 +227,13 @@ if (get(handles.toggle_std_phase,'Value'))
 else
     sigmaq_ph = 1e30;
 end
-sigmaq0_N = 100;
+sigmaq0_N = 1000;
 if (get(handles.toggle_std_dtm,'Value'))
     sigmaq_dtm = str2double(get(handles.std_dtm,'String'))^2;
 else
     sigmaq_dtm = 1e30;
 end
 min_nsat = str2double(get(handles.min_sat,'String'));
-if (mode == 2)
-    disp('Minimum number of satellites is forced to 4 (for stand-alone positioning)');
-    min_nsat = 4;
-end
 cutoff = str2double(get(handles.cut_off,'String'));
 snr_threshold = str2double(get(handles.snr_thres,'String'));
 cs_threshold = str2double(get(handles.cs_thresh,'String'));
@@ -391,7 +365,6 @@ state.approx_lon = get(handles.approx_lon,'String');
 state.approx_h = get(handles.approx_h,'String');
 state.diff_amb_estim = get(handles.diff_amb_estim,'Value');
 state.LS_amb_estim = get(handles.LS_amb_estim,'Value');
-state.stopGOstop = get(handles.stopGOstop,'Value');
 
 save(filename, 'state');
 
@@ -472,7 +445,6 @@ set(handles.approx_lon,'String', state.approx_lon);
 set(handles.approx_h,'String', state.approx_h);
 set(handles.diff_amb_estim,'Value', state.diff_amb_estim);
 set(handles.LS_amb_estim,'Value', state.LS_amb_estim);
-set(handles.stopGOstop,'Value', state.stopGOstop);
 
 plot_amb_Callback(handles.plot_amb, [], handles);
 if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
@@ -617,8 +589,8 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     cell_contents = cell(3,1);
     cell_contents{1} = 'Code stand-alone';
     cell_contents{2} = 'Code double difference';
-    cell_contents{3} = 'Code and phase stand-alone';
-    cell_contents{4} = 'Code and phase double difference';
+    %cell_contents{3} = 'Code and phase stand-alone';
+    cell_contents{3} = 'Code and phase double difference';
     set(handles.code_dd_sa, 'String', cell_contents);
 
     set(handles.std_code, 'Enable', 'on');
@@ -700,8 +672,6 @@ else
     set(handles.dtm_path, 'Enable', 'off');
     set(handles.text_dtm_path, 'Enable', 'off');
     set(handles.browse_dtm_path, 'Enable', 'off');
-    set(handles.stopGOstop, 'Enable', 'off');
-    set(handles.text_stopGOstop, 'Enable', 'off');
     set(handles.dyn_mod, 'Enable', 'off');
     set(handles.text_dyn_mod, 'Enable', 'off');
 end
@@ -728,7 +698,8 @@ function code_dd_sa_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns code_dd_sa contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from code_dd_sa
 contents = cellstr(get(hObject,'String'));
-if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
+if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference') | ...
+    strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone'))
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
             (get(handles.plotproc,'Value'))
@@ -745,33 +716,6 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
     set(handles.snr_thres, 'Enable', 'on');
     set(handles.text_snr_thres, 'Enable', 'on');
     set(handles.text_snr_thres_unit, 'Enable', 'on');
-    set(handles.constraint, 'Enable', 'on');
-    set(handles.ref_path, 'Enable', 'on');
-    ref_path_Callback(handles.ref_path, eventdata, handles);
-    set(handles.stopGOstop, 'Enable', 'on');
-    set(handles.text_stopGOstop, 'Enable', 'on');
-elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
-    check_mode = cellstr(get(handles.mode,'String'));
-    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
-            (get(handles.plotproc,'Value'))
-        set(handles.plot_amb, 'Enable', 'on');
-        plot_amb_Callback(handles.plot_amb, [], handles);
-    end
-    set(handles.cs_thresh, 'Enable', 'on');
-    set(handles.text_cs_thresh, 'Enable', 'on');
-    set(handles.text_cs_thresh_unit, 'Enable', 'on');
-    set(handles.diff_amb_estim, 'Enable', 'off');
-    set(handles.LS_amb_estim, 'Enable', 'off');
-    set(handles.toggle_std_phase, 'Enable', 'on');
-    toggle_std_phase_Callback(handles.toggle_std_phase, eventdata, handles);
-    set(handles.snr_thres, 'Enable', 'on');
-    set(handles.text_snr_thres, 'Enable', 'on');
-    set(handles.text_snr_thres_unit, 'Enable', 'on');
-    set(handles.constraint, 'Value', 0);
-    constraint_Callback(handles.constraint, eventdata, handles);
-    set(handles.constraint, 'Enable', 'off');
-    set(handles.stopGOstop, 'Enable', 'off');
-    set(handles.text_stopGOstop, 'Enable', 'off');
 else
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
@@ -785,55 +729,15 @@ else
     set(handles.toggle_std_phase, 'Enable', 'off');
     set(handles.std_phase, 'Enable', 'off');
     set(handles.text_std_phase_unit, 'Enable', 'off');
+end
+if (strcmp(contents{get(hObject,'Value')},'Code and phase double difference'))
+    set(handles.constraint, 'Enable', 'on');
+    set(handles.ref_path, 'Enable', 'on');
+    ref_path_Callback(handles.ref_path, eventdata, handles);
+else
     set(handles.constraint, 'Value', 0);
     constraint_Callback(handles.constraint, eventdata, handles);
     set(handles.constraint, 'Enable', 'off');
-    set(handles.stopGOstop, 'Enable', 'off');
-    set(handles.text_stopGOstop, 'Enable', 'off');
-end
-
-if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
-        strcmp(contents{get(hObject,'Value')},'Code stand-alone')
-    
-    set(handles.RINEX_master_obs, 'Enable', 'off');
-    set(handles.text_RINEX_master_obs, 'Enable', 'off');
-    set(handles.browse_master_obs, 'Enable', 'off');
-    set(handles.RINEX_master_nav, 'Enable', 'off');
-    set(handles.text_RINEX_master_nav, 'Enable', 'off');
-    set(handles.browse_master_nav, 'Enable', 'off');
-    set(handles.plot_master, 'Enable', 'off');
-    set(handles.master_pos, 'Enable', 'off');
-    set(handles.crs, 'Enable', 'off');
-    set(handles.master_X, 'Enable', 'off');
-    set(handles.master_Y, 'Enable', 'off');
-    set(handles.master_Z, 'Enable', 'off');
-    set(handles.text_master_X, 'Enable', 'off');
-    set(handles.text_master_Y, 'Enable', 'off');
-    set(handles.text_master_Z, 'Enable', 'off');
-    set(handles.text_master_X_unit, 'Enable', 'off');
-    set(handles.text_master_Y_unit, 'Enable', 'off');
-    set(handles.text_master_Z_unit, 'Enable', 'off');
-    set(handles.master_lat, 'Enable', 'off');
-    set(handles.master_lon, 'Enable', 'off');
-    set(handles.master_h, 'Enable', 'off');
-    set(handles.text_master_lat, 'Enable', 'off');
-    set(handles.text_master_lon, 'Enable', 'off');
-    set(handles.text_master_h, 'Enable', 'off');
-    set(handles.text_master_lat_unit, 'Enable', 'off');
-    set(handles.text_master_lon_unit, 'Enable', 'off');
-    set(handles.text_master_h_unit, 'Enable', 'off');
-else
-    if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
-        set(handles.RINEX_master_obs, 'Enable', 'on');
-        set(handles.text_RINEX_master_obs, 'Enable', 'on');
-        set(handles.browse_master_obs, 'Enable', 'on');
-        set(handles.RINEX_master_nav, 'Enable', 'on');
-        set(handles.text_RINEX_master_nav, 'Enable', 'on');
-        set(handles.browse_master_nav, 'Enable', 'on');
-    end
-    set(handles.plot_master, 'Enable', 'on');
-    set(handles.master_pos, 'Enable', 'on');
-    master_pos_Callback(handles.master_pos, [], handles);
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -883,9 +787,6 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     
     set(handles.plotproc, 'Enable', 'on');
     plotproc_Callback(handles.plotproc, eventdata, handles);
-    
-    set(handles.stopGOstop, 'Enable', 'on');
-    set(handles.text_stopGOstop, 'Enable', 'on');
     
     %enable weights
     set(handles.weight_0, 'Enable', 'on');
@@ -1033,9 +934,6 @@ else
         set(handles.text_mountpoint, 'Enable', 'off');
         set(handles.text_username, 'Enable', 'off');
         set(handles.text_password, 'Enable', 'off');
-        
-        set(handles.stopGOstop, 'Enable', 'on');
-        set(handles.text_stopGOstop, 'Enable', 'on');
 
     elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
 
@@ -1061,9 +959,6 @@ else
         set(handles.text_approx_lat_unit, 'Enable', 'on');
         set(handles.text_approx_lon_unit, 'Enable', 'on');
         set(handles.text_approx_h_unit, 'Enable', 'on');
-        
-        set(handles.stopGOstop, 'Enable', 'off');
-        set(handles.text_stopGOstop, 'Enable', 'off');
 
     elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
 
@@ -1089,9 +984,6 @@ else
         set(handles.text_approx_lat_unit, 'Enable', 'off');
         set(handles.text_approx_lon_unit, 'Enable', 'off');
         set(handles.text_approx_h_unit, 'Enable', 'off');
-        
-        set(handles.stopGOstop, 'Enable', 'on');
-        set(handles.text_stopGOstop, 'Enable', 'on');
     end
 end
 
@@ -1685,12 +1577,16 @@ if (hObject == handles.rinex_files)
 
     set(handles.RINEX_rover_obs, 'Enable', 'on');
     set(handles.RINEX_rover_nav, 'Enable', 'on');
+    set(handles.RINEX_master_obs, 'Enable', 'on');
+    set(handles.RINEX_master_nav, 'Enable', 'on');
     set(handles.browse_rover_obs, 'Enable', 'on');
     set(handles.browse_rover_nav, 'Enable', 'on');
+    set(handles.browse_master_obs, 'Enable', 'on');
+    set(handles.browse_master_nav, 'Enable', 'on');
     set(handles.text_RINEX_rover_obs, 'Enable', 'on');
     set(handles.text_RINEX_rover_nav, 'Enable', 'on');
-
-    code_dd_sa_Callback(handles.code_dd_sa, eventdata, handles);
+    set(handles.text_RINEX_master_obs, 'Enable', 'on');
+    set(handles.text_RINEX_master_nav, 'Enable', 'on');
 
     set(handles.gogps_data_input, 'Enable', 'off');
     set(handles.browse_gogps_input, 'Enable', 'off');
@@ -2399,15 +2295,9 @@ function go_button_Callback(hObject, eventdata, handles)
 % hObject    handle to go_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+saveState(handles,'../data/settings/last_settings.mat');
 
-%check if the output folder exists
-d = dir(get(handles.gogps_data_output,'String'));
-if isempty(d)
-    msgbox('Output folder does not exist. Please browse to an existing folder.');
-else
-    saveState(handles,'../data/settings/last_settings.mat');
-    uiresume(handles.main_panel);
-end
+uiresume(handles.main_panel);
 
 % --- Executes on button press in load_button.
 function load_button_Callback(hObject, eventdata, handles)
@@ -2479,15 +2369,10 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 try
     serialInfo = instrhwinfo('serial');
+    set(hObject, 'String', serialInfo.AvailableSerialPorts);
 catch
 end
-if (~isempty(serialInfo.AvailableSerialPorts))
-    set(hObject, 'String', serialInfo.AvailableSerialPorts);
-else
-    notAvailable = cell(1);
-    notAvailable{1} = 'NA';
-    set(hObject, 'String', notAvailable);
-end
+
 
 % --- Executes on button press in exit.
 function exit_Callback(hObject, eventdata, handles)
@@ -2635,20 +2520,3 @@ else
     set(handles.plot_master, 'Enable', 'off');
     set(handles.plot_amb, 'Enable', 'off');
 end
-
-
-% --- Executes on button press in stopGOstop.
-function stopGOstop_Callback(hObject, eventdata, handles)
-% hObject    handle to stopGOstop (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of stopGOstop
-
-
-% --------------------------------------------------------------------
-function polyline_Callback(hObject, eventdata, handles)
-% hObject    handle to polyline (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-gui_polyline_simplification;

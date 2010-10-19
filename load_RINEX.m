@@ -42,9 +42,12 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   and the MASTER. Select epochs they have in common.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -64,10 +67,6 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 Eph_RR = zeros(17,32);
 Eph_MR = zeros(17,32);
 
-Eph_M = zeros(29,32);
-iono_M = zeros(8,1);
-pos_M = zeros(3,1);
-
 if (nargin == 5)
     waitbar(0.33,wait_dlg,'Reading navigation files...')
 end
@@ -82,13 +81,11 @@ if (nargin == 5)
     waitbar(0.66,wait_dlg)
 end
 
-if (nargin > 2)
-    %parse RINEX navigation file (MASTER)
-    [Eph_M, iono_M] = RINEX_get_nav(nome_FM_nav);
-    
-    %parse RINEX navigation file (MASTER)
-    % [Eph_MR] = RINEX_get_nav_GLO(nome_FM_glo);
-end
+%parse RINEX navigation file (MASTER)
+[Eph_M, iono_M] = RINEX_get_nav(nome_FM_nav);
+
+%parse RINEX navigation file (MASTER)
+% [Eph_MR] = RINEX_get_nav_GLO(nome_FM_glo);
 
 if (nargin == 5)
     waitbar(1,wait_dlg)
@@ -99,10 +96,8 @@ end
 %open RINEX observation file (ROVER)
 FR_oss = fopen(nome_FR_oss,'r');
 
-if (nargin > 2)
-    %open RINEX observation file (MASTER)
-    FM_oss = fopen(nome_FM_oss,'r');
-end
+%open RINEX observation file (MASTER)
+FM_oss = fopen(nome_FM_oss,'r');
 
 %-------------------------------------------------------------------------------
 
@@ -112,19 +107,16 @@ end
 
 %parse RINEX header
 [obs_typ_R,  null, info_base_R] = RINEX_parse_hdr(FR_oss); %#ok<ASGLU>
+[obs_typ_M, pos_M, info_base_M] = RINEX_parse_hdr(FM_oss);
 
 %check the availability of basic data to parse the RINEX file (ROVER)
 if (info_base_R == 0)
     error('Basic data is missing in the ROVER RINEX header')
 end
 
-if (nargin > 2)
-    [obs_typ_M, pos_M, info_base_M] = RINEX_parse_hdr(FM_oss);
-    
-    %check the availability of basic data to parse the RINEX file (MASTER)
-    if (info_base_M == 0)
-        error('Basic data is missing in the ROVER RINEX header')
-    end
+%check the availability of basic data to parse the RINEX file (MASTER)
+if (info_base_M == 0) 
+    error('Basic data is missing in the ROVER RINEX header')
 end
 
 if (nargin == 5)
@@ -141,37 +133,33 @@ end
 
 %-------------------------------------------------------------------------------
 
-if (nargin > 2)
-    %read data for the first epoch (MASTER)
-    [time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
-    
-    %read MASTER observations
-    [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
-end
+%read data for the first epoch (MASTER)
+[time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+
+%read MASTER observations
+[obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
 %-------------------------------------------------------------------------------
 
 if (nargin == 5)
     waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
 end
 
-if (nargin > 2)
-    while (time_GPS_M < time_GPS_R)
-        
-        %read data for the current epoch (MASTER)
-        [time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
-        
-        %read MASTER observations
-        [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
-    end
-    
-    while (time_GPS_R < time_GPS_M)
-        
-        %read data for the current epoch (ROVER)
-        [time_GPS_R, sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
-        
-        %read ROVER observations
-        [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
-    end
+while (time_GPS_M < time_GPS_R)
+
+    %read data for the current epoch (MASTER)
+    [time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+
+    %read MASTER observations
+    [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
+end
+
+while (time_GPS_R < time_GPS_M)
+
+    %read data for the current epoch (ROVER)
+    [time_GPS_R, sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+
+    %read ROVER observations
+    [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
 end
 
 if (nargin == 5)
@@ -195,11 +183,11 @@ while (~feof(FR_oss))
     pr2_R(:,k) = zeros(32,1);
     ph1_R(:,k) = zeros(32,1);
     ph2_R(:,k) = zeros(32,1);
-    snr_R(:,k) = zeros(32,1);
     pr1_M(:,k) = zeros(32,1);
     pr2_M(:,k) = zeros(32,1);
     ph1_M(:,k) = zeros(32,1);
     ph2_M(:,k) = zeros(32,1);
+    snr_R(:,k) = zeros(32,1);
     snr_M(:,k) = zeros(32,1);
 
     %variable initialization (GLONASS)
@@ -207,11 +195,11 @@ while (~feof(FR_oss))
     pr2_RR(:,k) = zeros(32,1);
     ph1_RR(:,k) = zeros(32,1);
     ph2_RR(:,k) = zeros(32,1);
-    snr_RR(:,k) = zeros(32,1);
     pr1_MR(:,k) = zeros(32,1);
     pr2_MR(:,k) = zeros(32,1);
     ph1_MR(:,k) = zeros(32,1);
     ph2_MR(:,k) = zeros(32,1);
+    snr_RR(:,k) = zeros(32,1);
     snr_MR(:,k) = zeros(32,1);
 
     if (time_GPS_R == time_GPS(k))
@@ -222,13 +210,13 @@ while (~feof(FR_oss))
         ph1_R(:,k) = obs_GPS_R.L1;
         %ph2_R(:,k) = obs_GPS_R.L2;
         snr_R(:,k) = obs_GPS_R.S1;
-        
+
         %read ROVER observations (GLONASS)
-        % pr1_RR(:,k) = obs_GLO_R.C1;
-        % %pr2_RR(:,k) = obs_GLO_R.P2;
-        % ph1_RR(:,k) = obs_GLO_R.L1;
-        % %ph2_RR(:,k) = obs_GLO_R.L2;
-        % snr_RR(:,k) = obs_GLO_R.S1;
+%         pr1_RR(:,k) = obs_GLO_R.C1;
+%         %pr2_RR(:,k) = obs_GLO_R.P2;
+%         ph1_RR(:,k) = obs_GLO_R.L1;
+%         %ph2_RR(:,k) = obs_GLO_R.L2;
+%         snr_RR(:,k) = obs_GLO_R.S1;
 
         %read data for the current epoch (ROVER)
         [time_GPS_R, sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
@@ -238,35 +226,33 @@ while (~feof(FR_oss))
 
     end
 
-    if (nargin > 2)
-        if (time_GPS_M == time_GPS(k))
-            
-            %read MASTER observations (GPS)
-            pr1_M(:,k) = obs_GPS_M.C1;
-            %pr2_M(:,k) = obs_GPS_M.P2;
-            ph1_M(:,k) = obs_GPS_M.L1;
-            %ph2_M(:,k) = obs_GPS_M.L2;
-            snr_M(:,k) = obs_GPS_M.S1;
-            
-            %read MASTER observations (GLONASS)
-            % pr1_MR(:,k) = obs_GLO_M.C1;
-            % %pr2_MR(:,k) = obs_GLO_M.P2;
-            % ph1_MR(:,k) = obs_GLO_M.L1;
-            % %ph2_MR(:,k) = obs_GLO_M.L2;
-            % snr_MR(:,k) = obs_GLO_M.S1;
-            
-            %read data for the current epoch (MASTER)
-            [time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
-            
-            %read MASTER observations
-            [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
-            
-        end
-        
-        %ignore rover tail
-        if (time_GPS_R > time_GPS_M)
-            break
-        end
+    if (time_GPS_M == time_GPS(k))
+
+        %read MASTER observations (GPS)
+        pr1_M(:,k) = obs_GPS_M.C1;
+        %pr2_M(:,k) = obs_GPS_M.P2;
+        ph1_M(:,k) = obs_GPS_M.L1;
+        %ph2_M(:,k) = obs_GPS_M.L2;
+        snr_M(:,k) = obs_GPS_M.S1;
+
+        %read MASTER observations (GLONASS)
+%         pr1_MR(:,k) = obs_GLO_M.C1;
+%         %pr2_MR(:,k) = obs_GLO_M.P2;
+%         ph1_MR(:,k) = obs_GLO_M.L1;
+%         %ph2_MR(:,k) = obs_GLO_M.L2;
+%         snr_MR(:,k) = obs_GLO_M.S1;
+
+        %read data for the current epoch (MASTER)
+        [time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+
+        %read MASTER observations
+        [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
+
+    end
+    
+    %ignore rover tail
+    if (time_GPS_R > time_GPS_M)
+        break
     end
 
     k = k+1;
@@ -285,6 +271,4 @@ time_GPS(end) = [];
 
 %close RINEX files
 fclose(FR_oss);
-if (nargin > 2)
-    fclose(FM_oss);
-end
+fclose(FM_oss);

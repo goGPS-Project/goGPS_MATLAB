@@ -14,9 +14,12 @@ function goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M)
 %   output data saving (observations).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.1 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -131,7 +134,7 @@ while (~reply_save)
         delete(rover);
     end
     % create new serial object
-    rover = serial(COMportR,'BaudRate',57600);
+    rover = serial (COMportR,'BaudRate',57600);
     set(rover,'InputBufferSize',16384);
     set(rover,'FlowControl','hardware');
     set(rover,'RequestToSend','on');
@@ -161,7 +164,7 @@ while (~reply_RATE)
         delete(rover);
     end
     % create new serial object
-    rover = serial(COMportR,'BaudRate',57600);
+    rover = serial (COMportR,'BaudRate',57600);
     set(rover,'InputBufferSize',16384);
     set(rover,'FlowControl','hardware');
     set(rover,'RequestToSend','on');
@@ -191,7 +194,7 @@ while (~reply_RAW)
         delete(rover);
     end
     % create new serial object
-    rover = serial(COMportR,'BaudRate',57600);
+    rover = serial (COMportR,'BaudRate',57600);
     set(rover,'InputBufferSize',16384);
     set(rover,'FlowControl','hardware');
     set(rover,'RequestToSend','on');
@@ -267,7 +270,6 @@ data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
 %visualization
 fprintf('\n');
 fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
-fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 
 %pseudoranges
 pr_R = zeros(32,1);
@@ -306,6 +308,7 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
         rover_1 = get(rover,'BytesAvailable');
         pause(0.1);
         rover_2 = get(rover,'BytesAvailable');
+
     end
 
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
@@ -343,6 +346,7 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
         end
     end
 
+
     %satellites with ephemerides available
     satEph = find(sum(abs(Eph))~=0);
 
@@ -352,9 +356,6 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
 
     %satellites with observations available
     satObs = find(pr_R ~= 0);
-    
-    %display current number of satellites
-    fprintf('Number of visible satellites with ephemerides: %d\n', length(satObs));
 
 end
 
@@ -389,7 +390,7 @@ while (~sync_rover)
         
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
-        pause(0.1);
+        pause(0.05);
         rover_2 = get(rover,'BytesAvailable');
         
         %visualization
@@ -469,6 +470,31 @@ if (master_1 == master_2) & (master_1 == 0)
     fopen(master);
 end
 
+% %go to the subsequent epoch
+% while (current_time-start_time < 1)
+%     current_time = toc;
+% end
+%
+% %GPS epoch increment
+% time_GPS = time_GPS + 1;
+
+%go to the subsequent epoch(s)
+dtime = ceil(current_time-start_time);
+while (current_time-start_time < dtime)
+    current_time = toc;
+end
+
+%DEBUG tick(0) bug
+if (dtime - 1) > 1
+    fprintf('WARNING! Master connection delay=%d sec\n', dtime - 1);
+end
+
+%GPS epoch increment
+time_GPS = time_GPS + dtime;
+
+%starting time re-initialization
+start_time = start_time + dtime - 1;
+
 %--------------------------------------------------------
 % buffer settings
 %--------------------------------------------------------
@@ -477,7 +503,7 @@ end
 b = 1;
 
 %buffer dimension
-B = 120;
+B = 20;
 
 %buffer initialization
 tick_M = zeros(B,1);      % empty/full master buffer
@@ -510,8 +536,14 @@ master_update = 1;
 master_waiting = 0;
 
 %--------------------------------------------------------
-% figure management
+% master/rover data acquisition and position computation
 %--------------------------------------------------------
+
+%counter initialization
+t = 1;
+
+%time increment initialization (default 1 sec)
+dtime = 1;
 
 %loop control initialization
 f1 = figure;
@@ -521,40 +553,6 @@ h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 
     'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
 flag = 1;
 setappdata(gcf, 'run', flag);
-
-%store previous position
-pos_t = pos_R;
-
-%--------------------------------------------------------
-% start time synchronization
-%--------------------------------------------------------
-
-%go to the subsequent epoch(s)
-dtime = ceil(current_time-start_time);
-while (current_time-start_time < dtime)
-    current_time = toc;
-end
-
-%DEBUG tick(0) bug
-if (dtime - 1) > 1
-    fprintf('WARNING! Master connection delay=%d sec\n', dtime - 1);
-end
-
-%GPS epoch increment
-time_GPS = time_GPS + dtime;
-
-%starting time re-initialization
-start_time = start_time + dtime - 1;
-
-%--------------------------------------------------------
-% master/rover data acquisition and position computation
-%--------------------------------------------------------
-
-%counter initialization
-t = 1;
-
-%time increment initialization (default 1 sec)
-dtime = 1;
 
 %infinite loop
 while flag
@@ -805,9 +803,7 @@ while flag
         satObs = find(pr_R(:,i) ~= 0);
 
         %positioning by Bancroft algorithm
-        if length(satObs) >= 4
-            [pos_t] = input_bancroft(pr_R(satObs,i), satObs, time_GPS, Eph);
-        end
+        [pos_t] = input_bancroft(pr_R(satObs,i), satObs, time_GPS, Eph);
 
         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], length(satObs), time_R(b), HDOP));
         fwrite(master,nmea_update);
@@ -1205,42 +1201,32 @@ while flag
     %-------------------------------------
 
     fprintf('\n');
-%     fprintf('BUFFER (ROVER):  ');
-%     for i = B : -1 : 1
-%         if (tick_R(i) == 1)
-%             fprintf('x');
-%         else
-%             fprintf('o');
-%         end
-%     end
-%     fprintf('  --- time --->\n');
-    if (tick_R(1) == 1)
-        fprintf('ROVER  LOCKED\n');
-    else
-        fprintf('ROVER  UNLOCKED\n');
+    fprintf('BUFFER (ROVER):  ');
+    for i = B : -1 : 1
+        if (tick_R(i) == 1)
+            fprintf('x');
+        else
+            fprintf('o');
+        end
     end
-%     fprintf('BUFFER (MASTER): ');
-%     for i = B : -1 : 1
-%         if (tick_M(i) == 1)
-%             fprintf('x');
-%         else
-%             fprintf('o');
-%         end
-%     end
-%     fprintf('  --- time --->\n');
-    if (tick_M(1) == 1)
-        fprintf('MASTER LOCKED\n');
-    else
-        fprintf('MASTER UNLOCKED\n');
+    fprintf('  --- time --->\n');
+    fprintf('BUFFER (MASTER): ');
+    for i = B : -1 : 1
+        if (tick_M(i) == 1)
+            fprintf('x');
+        else
+            fprintf('o');
+        end
     end
-%     fprintf('                 ');
-%     for i = B : -1 : 1
-%         if (i == min(b,B))
-%             fprintf('^');
-%         else
-%             fprintf(' ');
-%         end
-%     end
+    fprintf('  --- time --->\n');
+    fprintf('                 ');
+    for i = B : -1 : 1
+        if (i == min(b,B))
+            fprintf('^');
+        else
+            fprintf(' ');
+        end
+    end
     fprintf('\n');
     
     %if the conditions to initialize the Kalman filter have not yet been met
