@@ -519,31 +519,6 @@ if (master_1 == master_2) & (master_1 == 0)
     fopen(master);
 end
 
-% %go to the subsequent epoch
-% while (current_time-start_time < 1)
-%     current_time = toc;
-% end
-%
-% %GPS epoch increment
-% time_GPS = time_GPS + 1;
-
-%go to the subsequent epoch(s)
-dtime = ceil(current_time-start_time);
-while (current_time-start_time < dtime)
-    current_time = toc;
-end
-
-%DEBUG tick(0) bug
-if (dtime - 1) > 1
-    fprintf('WARNING! Master connection delay=%d sec\n', dtime - 1);
-end
-
-%GPS epoch increment
-time_GPS = time_GPS + dtime;
-
-%starting time re-initialization
-start_time = start_time + dtime - 1;
-
 %--------------------------------------------------------
 % buffer settings
 %--------------------------------------------------------
@@ -585,14 +560,8 @@ master_update = 1;
 master_waiting = 0;
 
 %--------------------------------------------------------
-% master/rover data acquisition and position computation
+% figure management
 %--------------------------------------------------------
-
-%counter initialization
-t = 1;
-
-%time increment initialization (default 1 sec)
-dtime = 1;
 
 %loop control initialization
 if (flag_plotproc)
@@ -610,6 +579,37 @@ else
     flag = 1;
     setappdata(gcf, 'run', flag);
 end
+
+%--------------------------------------------------------
+% start time synchronization
+%--------------------------------------------------------
+
+%go to the subsequent epoch(s)
+dtime = ceil(current_time-start_time);
+while (current_time-start_time < dtime)
+    current_time = toc;
+end
+
+%DEBUG tick(0) bug
+if (dtime - 1) > 1
+    fprintf('WARNING! Master connection delay=%d sec\n', dtime - 1);
+end
+
+%GPS epoch increment
+time_GPS = time_GPS + dtime;
+
+%starting time re-initialization
+start_time = start_time + dtime - 1;
+
+%--------------------------------------------------------
+% master/rover data acquisition and position computation
+%--------------------------------------------------------
+
+%counter initialization
+t = 1;
+
+%time increment initialization (default 1 sec)
+dtime = 1;
 
 %infinite loop
 while flag
