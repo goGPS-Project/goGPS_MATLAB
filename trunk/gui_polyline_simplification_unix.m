@@ -78,6 +78,11 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+%load last used settings, if any
+if exist('../data/settings/last_settings_polyline.mat','file')
+    loadState(handles, '../data/settings/last_settings_polyline.mat');
+end
+
 %pixels
 set(hObject, 'Units', 'pixels' );
 
@@ -100,6 +105,45 @@ function varargout = gui_polyline_simplification_unix_OutputFcn(hObject, eventda
 % handles    structure with handles and user data (see GUIDATA)
 
 % Get default command line output from handles structure
+
+
+% --------------------------------------------------------------------
+function saveState(handles,filename)
+filerootIN = get(handles.data_stream,'String');
+filerootIN(filerootIN == '\') = '/';
+state.data_stream = filerootIN;
+state.angle_threshold = str2double(get(handles.angle_thres,'String'));
+state.dist_threshold_AGNES = str2double(get(handles.dist_thres,'String'));
+state.dN1 = str2double(get(handles.disreg_begin,'String'));
+state.dN2 = str2double(get(handles.disreg_end,'String'));
+state.delta_iter0 = str2double(get(handles.delta_iter0,'String'));
+state.delta_iter1 = str2double(get(handles.delta_iter1,'String'));
+state.dist_threshold_update_iter0 = str2double(get(handles.dist_thres_update_iter0,'String'));
+state.dist_threshold_update_iter1 = str2double(get(handles.dist_thres_update_iter1,'String'));
+state.flag_iter0 = get(handles.flag_iter0,'Value');
+state.flag_iter1 = get(handles.flag_iter1,'Value');
+state.min_nodes = str2double(get(handles.min_nodes,'String'));
+
+save(filename, 'state');
+
+
+% --------------------------------------------------------------------
+function loadState(handles,filename)
+
+load(filename);
+
+set(handles.data_stream, 'String', state.data_stream);
+set(handles.angle_thres, 'String', state.angle_threshold);
+set(handles.dist_thres, 'String', state.dist_threshold_AGNES);
+set(handles.disreg_begin, 'String', state.dN1);
+set(handles.disreg_end, 'String', state.dN2);
+set(handles.delta_iter0, 'String', state.delta_iter0);
+set(handles.delta_iter1, 'String', state.delta_iter1);
+set(handles.dist_thres_update_iter0, 'String', state.dist_threshold_update_iter0);
+set(handles.dist_thres_update_iter1, 'String', state.dist_threshold_update_iter1);
+set(handles.flag_iter0, 'Value', state.flag_iter0);
+set(handles.flag_iter1, 'Value', state.flag_iter1);
+set(handles.min_nodes, 'String', state.min_nodes);
 
 
 function data_stream_Callback(hObject, eventdata, handles) %#ok<*DEFNU>
@@ -181,6 +225,9 @@ else
         msgbox('Both *_position.txt and *_cov.txt files are needed to run the weighted polyline simplification algorithm.');
     end
 end
+
+%save settings
+saveState(handles,'../data/settings/last_settings_polyline.mat');
 
 % close(wait_dlg)
 
