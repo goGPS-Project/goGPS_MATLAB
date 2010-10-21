@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 27-Sep-2010 15:44:04
+% Last Modified by GUIDE v2.5 20-Oct-2010 19:39:18
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.2 alpha
@@ -2652,3 +2652,18 @@ function polyline_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_polyline_simplification;
+
+
+% --------------------------------------------------------------------
+function help_Callback(hObject, eventdata, handles)
+% hObject    handle to help (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
+% --------------------------------------------------------------------
+function about_Callback(hObject, eventdata, handles)
+% hObject    handle to about (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+gui_about;
