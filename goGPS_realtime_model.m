@@ -367,6 +367,7 @@ pr_R = zeros(32,1);
 Eph = zeros(29,32);
 %satellites with observations available
 satObs = [];
+nsatObs_old = [];
 %satellites with ephemerides available
 satEph = [];
 
@@ -441,13 +442,15 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
     %delete data if ephemerides are not available
     delsat = setdiff(1:32,satEph);
     pr_R(delsat)  = 0;
-
+    
     %satellites with observations available
     satObs = find(pr_R ~= 0);
     
-    %display current number of satellites
-    fprintf('Number of visible satellites with ephemerides: %d\n', length(satObs));
-
+    if (isempty(nsatObs_old) | length(satObs) ~= nsatObs_old)
+        %display current number of satellites
+        fprintf('Number of visible satellites with ephemerides: %d\n', length(satObs));
+        nsatObs_old = length(satObs);
+    end
 end
 
 %positioning by Bancroft algorithm
