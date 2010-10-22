@@ -93,12 +93,27 @@ angle_threshold = angle_threshold * pi/180;
 
 %-------------------------------------------------------------------------
 % print the result in a KML file
-
+%"clampToGround" plots the points attached to the ground
+%"absolute" uses the height defined in the tag <coordinates>;
+%N.B. Google Earth uses orthometric heights
+z_pos = 'clampToGround';
+%z_pos = 'absolute';
+%URL to load the icon for the points
+iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
+%node color
+node_colorR = 'ff32cd32';
+%point size
+scaleR = 0.3;
+%track color
 line_colorR = 'ff00ffff';
+%trackwidth
 line_width = 2;
 
 pos = find(filerootIN == '/');
 kml_name = filerootIN(pos(end)+1:end);
+
+nNodes = size(nodes, 1);
+[nodes_lat, nodes_lon] = utm2deg(nodes(:,1), nodes(:,2), utm_zone(1:nNodes,:));
 
 fid_kml = fopen([filerootIN '_polyline.kml'], 'wt');
     fprintf(fid_kml, '<?xml version="1.0" encoding="UTF-8"?>\n');
@@ -106,6 +121,15 @@ fid_kml = fopen([filerootIN '_polyline.kml'], 'wt');
     fprintf(fid_kml, '<Document>\n');
     fprintf(fid_kml, '\t<name>%s</name>\n', [kml_name '_polyline.kml']);
     fprintf(fid_kml, '\t<snippet>created by goGPS</snippet>\n');
+    fprintf(fid_kml, '\t<Style id="go1">\n');
+    fprintf(fid_kml, '\t\t<IconStyle>\n');
+    fprintf(fid_kml, '\t\t\t<color>%s</color>\n',node_colorR);
+    fprintf(fid_kml, '\t\t\t<scale>%.2f</scale>\n',scaleR);
+    fprintf(fid_kml, '\t\t\t<Icon>\n');
+    fprintf(fid_kml, '\t\t\t\t<href>%s</href>\n',iconR);
+    fprintf(fid_kml, '\t\t\t</Icon>\n');
+    fprintf(fid_kml, '\t\t</IconStyle>\n');
+    fprintf(fid_kml, '\t</Style>\n');
     fprintf(fid_kml, '\t<Style id="goLine1">\n');
     fprintf(fid_kml, '\t\t<LineStyle>\n');
     fprintf(fid_kml, '\t\t\t<color>%s</color>\n',line_colorR);
@@ -118,12 +142,23 @@ fid_kml = fopen([filerootIN '_polyline.kml'], 'wt');
     fprintf(fid_kml, '\t\t<LineString>\n');
     fprintf(fid_kml, '\t\t\t<coordinates>\n\t\t\t\t');
     for i = 1 : length(nodes)
-        [nodes_lat, nodes_lon] = utm2deg(nodes(i,1), nodes(i,2), utm_zone(i,:));
-        fprintf(fid_kml, '%.8f,%.8f,0 ',nodes_lon,nodes_lat);
+        fprintf(fid_kml, '%.8f,%.8f,0 ',nodes_lon(i),nodes_lat(i));
     end
     fprintf(fid_kml, '\n\t\t\t</coordinates>\n');
     fprintf(fid_kml, '\t\t</LineString>\n');
     fprintf(fid_kml, '\t</Placemark>\n');
+    fprintf(fid_kml, '\t<Folder>\n');
+    fprintf(fid_kml, '\t<name>Polyline nodes</name>\n');
+    for i = 1 : length(nodes)
+        fprintf(fid_kml, '\t<Placemark>\n');
+        fprintf(fid_kml, '\t\t<styleUrl>#go1</styleUrl>\n');
+        fprintf(fid_kml, '\t\t<Point>\n');
+        fprintf(fid_kml, '\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
+        fprintf(fid_kml, '\t\t\t<coordinates>%.8f,%.8f,0</coordinates>\n',nodes_lon(i),nodes_lat(i));
+        fprintf(fid_kml, '\t\t</Point>\n');
+        fprintf(fid_kml, '\t</Placemark>\n');
+    end
+    fprintf(fid_kml, '\t</Folder>\n');
     fprintf(fid_kml, '</Document>\n</kml>');
     fclose(fid_kml);
 
