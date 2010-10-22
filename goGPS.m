@@ -1584,7 +1584,7 @@ end
 if (mode < 12)
     %display information
     fprintf('Writing KML file...\n');
-    %"clampedToGround" plots the points attached to the ground
+    %"clampToGround" plots the points attached to the ground
     %"absolute" uses the height defined in the tag <coordinates>;
     %N.B. Google Earth uses orthometric heights
     z_pos = 'clampToGround';
