@@ -138,36 +138,39 @@ while (~feof(fid))
         fit_int = 0;
     end
 
-    %save ephemerides (if IODC == IODE)
-    if (iodc == IODE)
-        Eph(1,i)  = svprn;
-        Eph(2,i)  = af2;
-        Eph(3,i)  = M0;
-        Eph(4,i)  = roota;
-        Eph(5,i)  = deltan;
-        Eph(6,i)  = ecc;
-        Eph(7,i)  = omega;
-        Eph(8,i)  = cuc;
-        Eph(9,i)  = cus;
-        Eph(10,i) = crc;
-        Eph(11,i) = crs;
-        Eph(12,i) = i0;
-        Eph(13,i) = idot;
-        Eph(14,i) = cic;
-        Eph(15,i) = cis;
-        Eph(16,i) = Omega0;
-        Eph(17,i) = Omegadot;
-        Eph(18,i) = toe;
-        Eph(19,i) = af0;
-        Eph(20,i) = af1;
-        Eph(21,i) = tom;
-        Eph(22,i) = IODE;
-        Eph(23,i) = code_on_L2;
-        Eph(24,i) = weekno;
-        Eph(25,i) = L2flag;
-        Eph(26,i) = svaccur;
-        Eph(27,i) = svhealth;
-        Eph(28,i) = tgd;
-        Eph(29,i) = fit_int;
+    %save ephemerides
+    Eph(1,i)  = svprn;
+    Eph(2,i)  = af2;
+    Eph(3,i)  = M0;
+    Eph(4,i)  = roota;
+    Eph(5,i)  = deltan;
+    Eph(6,i)  = ecc;
+    Eph(7,i)  = omega;
+    Eph(8,i)  = cuc;
+    Eph(9,i)  = cus;
+    Eph(10,i) = crc;
+    Eph(11,i) = crs;
+    Eph(12,i) = i0;
+    Eph(13,i) = idot;
+    Eph(14,i) = cic;
+    Eph(15,i) = cis;
+    Eph(16,i) = Omega0;
+    Eph(17,i) = Omegadot;
+    Eph(18,i) = toe;
+    Eph(19,i) = af0;
+    Eph(20,i) = af1;
+    Eph(21,i) = tom;
+    Eph(22,i) = IODE;
+    Eph(23,i) = code_on_L2;
+    Eph(24,i) = weekno;
+    Eph(25,i) = L2flag;
+    Eph(26,i) = svaccur;
+    Eph(27,i) = svhealth;
+    Eph(28,i) = tgd;
+    Eph(29,i) = fit_int;
+    
+    %if IODC and IODE do not match, issue a warning
+    if (iodc ~= IODE)
+        fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %02d, time %dh %dm %.1fs)\n',svprn,hour,minute,second);
     end
 end

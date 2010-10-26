@@ -218,9 +218,9 @@ while (~feof(FR_oss))
 
         %read ROVER observations (GPS)
         pr1_R(:,k) = obs_GPS_R.C1;
-        %pr2_R(:,k) = obs_GPS_R.P2;
+        pr2_R(:,k) = obs_GPS_R.P2;
         ph1_R(:,k) = obs_GPS_R.L1;
-        %ph2_R(:,k) = obs_GPS_R.L2;
+        ph2_R(:,k) = obs_GPS_R.L2;
         snr_R(:,k) = obs_GPS_R.S1;
         
         %read ROVER observations (GLONASS)
@@ -243,9 +243,9 @@ while (~feof(FR_oss))
             
             %read MASTER observations (GPS)
             pr1_M(:,k) = obs_GPS_M.C1;
-            %pr2_M(:,k) = obs_GPS_M.P2;
+            pr2_M(:,k) = obs_GPS_M.P2;
             ph1_M(:,k) = obs_GPS_M.L1;
-            %ph2_M(:,k) = obs_GPS_M.L2;
+            ph2_M(:,k) = obs_GPS_M.L2;
             snr_M(:,k) = obs_GPS_M.S1;
             
             %read MASTER observations (GLONASS)

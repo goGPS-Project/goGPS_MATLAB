@@ -97,22 +97,12 @@ for s = 1 : num_sat
         lin = [lin lin_add];
     end
     for k = 1 : num_obs_types
-        %variable initialization
-        snr = 0;
 
         %data save
         if (length(lin) < 2+16*(k-1)) | (isempty(sscanf(lin(2+16*(k-1):16*k-2),'%f')))
             obs = 0;
         else
             obs = sscanf(lin(2+16*(k-1):16*k-2),'%f');
-            if (k == col_L1) & (numel(lin)>=16*k)
-                snr = sscanf(lin(16*k),'%f');
-                %convert signal-to-noise ratio
-                snr = snr * 6;
-            end
-            if (k == col_S1) | (k == col_S2)
-                snr = obs;
-            end
         end
         
         %check and assign the observation type
@@ -125,6 +115,20 @@ for s = 1 : num_sat
                         obs_GLO.L1(sat(s)) = obs;
                     case 'S'
                         obs_SBS.L1(sat(s)) = obs;
+                end
+                if (numel(lin)>=16*k)
+                    snr = sscanf(lin(16*k),'%f');
+                    %convert signal-to-noise ratio
+                    snr = snr * 6;
+                    
+                    switch sat_types(s)
+                        case 'G'
+                            obs_GPS.S1(sat(s)) = snr;
+                        case 'R'
+                            obs_GLO.S1(sat(s)) = snr;
+                        case 'S'
+                            obs_SBS.S1(sat(s)) = snr;
+                    end
                 end
             case col_L2
                 switch sat_types(s)
@@ -165,20 +169,20 @@ for s = 1 : num_sat
             case col_S1
                 switch sat_types(s)
                     case 'G'
-                        obs_GPS.S1(sat(s)) = snr;
+                        obs_GPS.S1(sat(s)) = obs;
                     case 'R'
-                        obs_GLO.S1(sat(s)) = snr;
+                        obs_GLO.S1(sat(s)) = obs;
                     case 'S'
-                        obs_SBS.S1(sat(s)) = snr;
+                        obs_SBS.S1(sat(s)) = obs;
                 end
             case col_S2
                 switch sat_types(s)
                     case 'G'
-                        obs_GPS.S2(sat(s)) = snr;
+                        obs_GPS.S2(sat(s)) = obs;
                     case 'R'
-                        obs_GLO.S2(sat(s)) = snr;
+                        obs_GLO.S2(sat(s)) = obs;
                     case 'S'
-                        obs_SBS.S2(sat(s)) = snr;
+                        obs_SBS.S2(sat(s)) = obs;
                 end
             case col_D1
                 switch sat_types(s)
