@@ -284,7 +284,7 @@ else
     if (length(phase) == 2)
         comb_N_stim = [comb_N1_stim; comb_N2_stim];
         sigmaq_comb_N(sat) = diag(cov_comb_N1_stim);
-        sigmaq_comb_N(sat+nN) = diag(cov_comb_N2_stim);
+        sigmaq_comb_N(sat+32) = diag(cov_comb_N2_stim);
     else
         if (phase == 1)
             comb_N_stim = comb_N1_stim;
