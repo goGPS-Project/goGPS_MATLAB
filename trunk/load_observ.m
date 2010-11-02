@@ -76,7 +76,9 @@ end
 
 %-------------------------------------------------------------------------------
 
-waitbar(0.33,wait_dlg,'Synchronizing data...')
+if (nargin == 3)
+    waitbar(0.33,wait_dlg,'Synchronizing data...')
+end
 
 if ~isempty(time_R) & ~isempty(time_M)
 

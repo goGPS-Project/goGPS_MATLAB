@@ -129,76 +129,77 @@ while (pos + 15 <= length(msg))
             LEN2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN = LEN1 + (LEN2 * 2^8);      % little endian
 
-            if (pos + 8*LEN + 15 <= length(msg))
-
-                % checksum
-                CK_A = 0; CK_B = 0;
-                Nslices = (8*LEN + 31) / 8 + 1;           %pre-allocate to
-                slices = cell(1,Nslices);                 %increase speed
-                k = 1;
-                for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
-                    slices{k} = msg(j:j+7);
-                    k = k + 1;
-                end
-                slices = fbin2dec(slices);                 %call 'fbin2dec' only once (to optimize speed)
-                k = 1;
-                for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
-                    CK_A = CK_A + slices(k);
-                    CK_B = CK_B + CK_A;
-                    k = k + 1;
-                end
-                CK_A = dec2bin(mod(CK_A,256), 8);
-                CK_B = dec2bin(mod(CK_B,256), 8);
-
-                % if checksum matches
-                if strcmp(msg(pos + 8*LEN:pos + 8*LEN + 7), CK_A) & strcmp(msg(pos + 8*LEN + 8:pos + 8*LEN + 15), CK_B)
-
-                    % message identification
-                    switch class
-
-                        % RXM (receiver manager)
-                        case '02'
-                            switch id
-                                % RAW (raw measurement)
-                                case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
-                                    
-                                % SFRB (*OBSOLETE* subframe buffer - only for ionosphere parameters and leap seconds)
-                                case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
-
-                                % EPH (*OBSOLETE* ephemerides)
-                                case '31'
-                                    if (LEN == 104) %(ephemerides available)
-                                        [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
-                                    end
-                            end
-
-                        % AID (aiding messages)
-                        case '0B'
-                            switch id
-                                % HUI (sat. Health / UTC / Ionosphere)
-                                case '02', [data(:,i)] = decode_AID_HUI(msg(pos:pos+8*LEN-1));
-                                    
-                                % EPH (ephemerides)
-                                case '31'
-                                    if (LEN == 104) %(ephemerides available)
-                                        [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1));
-                                    end
-                            end
+            if (LEN ~= 0)
+                if (pos + 8*LEN + 15 <= length(msg))
+                    
+                    % checksum
+                    CK_A = 0; CK_B = 0;
+                    Nslices = (8*LEN + 31) / 8 + 1;           %pre-allocate to
+                    slices = cell(1,Nslices);                 %increase speed
+                    k = 1;
+                    for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
+                        slices{k} = msg(j:j+7);
+                        k = k + 1;
                     end
-
+                    slices = fbin2dec(slices);                 %call 'fbin2dec' only once (to optimize speed)
+                    k = 1;
+                    for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
+                        CK_A = CK_A + slices(k);
+                        CK_B = CK_B + CK_A;
+                        k = k + 1;
+                    end
+                    CK_A = dec2bin(mod(CK_A,256), 8);
+                    CK_B = dec2bin(mod(CK_B,256), 8);
+                    
+                    % if checksum matches
+                    if strcmp(msg(pos + 8*LEN:pos + 8*LEN + 7), CK_A) & strcmp(msg(pos + 8*LEN + 8:pos + 8*LEN + 15), CK_B)
+                        
+                        % message identification
+                        switch class
+                            
+                            % RXM (receiver manager)
+                            case '02'
+                                switch id
+                                    % RAW (raw measurement)
+                                    case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
+                                        
+                                        % SFRB (*OBSOLETE* subframe buffer - only for ionosphere parameters and leap seconds)
+                                    case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
+                                        
+                                        % EPH (*OBSOLETE* ephemerides)
+                                    case '31'
+                                        if (LEN == 104) %(ephemerides available)
+                                            [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
+                                        end
+                                end
+                                
+                                % AID (aiding messages)
+                            case '0B'
+                                switch id
+                                    % HUI (sat. Health / UTC / Ionosphere)
+                                    case '02', [data(:,i)] = decode_AID_HUI(msg(pos:pos+8*LEN-1));
+                                        
+                                        % EPH (ephemerides)
+                                    case '31'
+                                        if (LEN == 104) %(ephemerides available)
+                                            [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1));
+                                        end
+                                end
+                        end
+                        
+                    else
+                        %fprintf('Checksum error!\n');
+                    end
+                    
+                    % skip the message body
+                    pos = pos + 8*LEN;
+                    
+                    % skip the 2 checksum bytes
+                    pos = pos + 16;
                 else
-                    %fprintf('Checksum error!\n');
+                    break
                 end
-
-                % skip the message body
-                pos = pos + 8*LEN;
-
-                % skip the 2 checksum bytes
-                pos = pos + 16;
-            else
-                break
             end
-
         else
             break
         end

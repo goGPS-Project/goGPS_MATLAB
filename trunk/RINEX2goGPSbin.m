@@ -107,9 +107,15 @@ if (~isempty(dir(filename_M_obs)))
     if (nargin == 2)
         waitbar(0.33,wait_dlg,'Synchronizing data...')
     end
-    
+
     if ~isempty(time_R) & ~isempty(time_M)
-        
+
+        if (size(pos_M,2) == 1)
+            pos_M(1,1:length(time_M)) = pos_M(1);
+            pos_M(2,1:length(time_M)) = pos_M(2);
+            pos_M(3,1:length(time_M)) = pos_M(3);
+        end
+
         %head synchronization
         if (time_R(1) < time_M(1))
             pos = find(time_R < time_M(1));
@@ -118,9 +124,9 @@ if (~isempty(dir(filename_M_obs)))
             pr1_R(:,pos)   = [];                       %code observations
             ph1_R(:,pos)   = [];                       %phase observations
             snr_R(:,pos)   = [];                       %signal-to-noise ratio
-            iono(:,pos) = [];                          %ionosphere parameters
+            iono(:,pos)    = [];                       %ionosphere parameters
         end
-        
+
         if (time_M(1) < time_R(1))
             pos = find(time_M < time_R(1));
             time_M(pos)    = [];                       %GPS time
@@ -138,7 +144,7 @@ if (~isempty(dir(filename_M_obs)))
             pr1_R(:,pos)   = [];                       %code observations
             ph1_R(:,pos)   = [];                       %phase observations
             snr_R(:,pos)   = [];                       %signal-to-noise ratio
-            iono(:,pos) = [];                          %ionosphere parameters
+            iono(:,pos)    = [];                       %ionosphere parameters
         end
         
         if (time_M(end) > time_R(end))
@@ -170,8 +176,8 @@ if (~isempty(dir(filename_M_obs)))
             for i = 1 : length(newtime_R)
                 
                 pos = find(time_R == newtime_R(i) - 1);  %position before the "holes"
-                
-                time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
+
+                time_R = [time_R(1:pos)   newtime_R(i)   time_R(pos+1:end)];
                 week_R = [week_R(1:pos);  0;             week_R(pos+1:end)];
                 pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
                 ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
@@ -194,7 +200,7 @@ if (~isempty(dir(filename_M_obs)))
                 
                 pos = find(time_M == newtime_M(i) - 1);  %position before the "holes"
                 
-                time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
+                time_M = [time_M(1:pos)   newtime_M(i)   time_M(pos+1:end)];
                 pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
                 ph1_M  = [ph1_M(:,1:pos)  zeros(32,1)    ph1_M(:,pos+1:end)];
                 snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
@@ -233,22 +239,22 @@ end
 %select ionosphere parameters source
 if (isempty(dir(filename_M_obs)))
     iono(1,1:epochs) = iono_R(1);
-    iono(2,1:epochs) = iono_R(1);
-    iono(3,1:epochs) = iono_R(1);
-    iono(4,1:epochs) = iono_R(1);
-    iono(5,1:epochs) = iono_R(1);
-    iono(6,1:epochs) = iono_R(1);
-    iono(7,1:epochs) = iono_R(1);
-    iono(8,1:epochs) = iono_R(1);
+    iono(2,1:epochs) = iono_R(2);
+    iono(3,1:epochs) = iono_R(3);
+    iono(4,1:epochs) = iono_R(4);
+    iono(5,1:epochs) = iono_R(5);
+    iono(6,1:epochs) = iono_R(6);
+    iono(7,1:epochs) = iono_R(7);
+    iono(8,1:epochs) = iono_R(8);
 else
     iono(1,1:epochs) = iono_M(1);
-    iono(2,1:epochs) = iono_M(1);
-    iono(3,1:epochs) = iono_M(1);
-    iono(4,1:epochs) = iono_M(1);
-    iono(5,1:epochs) = iono_M(1);
-    iono(6,1:epochs) = iono_M(1);
-    iono(7,1:epochs) = iono_M(1);
-    iono(8,1:epochs) = iono_M(1);
+    iono(2,1:epochs) = iono_M(2);
+    iono(3,1:epochs) = iono_M(3);
+    iono(4,1:epochs) = iono_M(4);
+    iono(5,1:epochs) = iono_M(5);
+    iono(6,1:epochs) = iono_M(6);
+    iono(7,1:epochs) = iono_M(7);
+    iono(8,1:epochs) = iono_M(8);
 end
 
 %master position

@@ -38,12 +38,14 @@ for jsat = 1:m
 
     %satellite position correction (clock and Earth rotation)
     [X, tcorr] = sat_corr(Eph, sv(jsat), time, pr(jsat));
-
-    corrected_pseudorange = pr(jsat) + v_light * tcorr;
-    B(jsat,1) = X(1);
-    B(jsat,2) = X(2);
-    B(jsat,3) = X(3);
-    B(jsat,4) = corrected_pseudorange;
+    
+    if (~isempty(X))
+        corrected_pseudorange = pr(jsat) + v_light * tcorr;
+        B(jsat,1) = X(1);
+        B(jsat,2) = X(2);
+        B(jsat,3) = X(3);
+        B(jsat,4) = corrected_pseudorange;
+    end
 end
 
 %approximate position by Bancroft algorithm

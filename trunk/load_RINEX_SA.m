@@ -97,14 +97,6 @@ end
 
 %-------------------------------------------------------------------------------
 
-%read data for the first epoch
-[time_GPS, sat, sat_types, date] = RINEX_get_epoch(F_oss);
-
-%read observations
-[obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(F_oss, sat, sat_types, obs_typ); %#ok<NASGU>
-
-%-------------------------------------------------------------------------------
-
 if (nargin == 3)
     waitbar(1,wait_dlg)
 end
@@ -133,11 +125,17 @@ while (~feof(F_oss))
     ph2_GLO(:,k) = zeros(32,1);
     snr_GLO(:,k) = zeros(32,1);
     
+    %read data for the current epoch
+    [time_GPS(k), sat, sat_types, date(k,:)] = RINEX_get_epoch(F_oss);
+    
+    %read observations
+    [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(F_oss, sat, sat_types, obs_typ); %#ok<NASGU>
+    
     %read observations (GPS)
     pr1(:,k) = obs_GPS.C1;
-    %pr2(:,k) = obs_GPS.P2;
+    pr2(:,k) = obs_GPS.P2;
     ph1(:,k) = obs_GPS.L1;
-    %ph2(:,k) = obs_GPS.L2;
+    ph2(:,k) = obs_GPS.L2;
     snr(:,k) = obs_GPS.S1;
     
     %read observations (GLONASS)
@@ -148,19 +146,11 @@ while (~feof(F_oss))
     % snr_GLO(:,k) = obs_GLO.S1;
     
     k = k+1;
-    
-    %read data for the current epoch
-    [time_GPS(k), sat, sat_types, date(k,:)] = RINEX_get_epoch(F_oss);
-    
-    %read observations
-    [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(F_oss, sat, sat_types, obs_typ); %#ok<NASGU>
 end
 
 if (nargin == 3)
     waitbar(1,wait_dlg)
 end
-
-time_GPS(end) = [];
 
 %-------------------------------------------------------------------------------
 

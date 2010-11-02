@@ -45,16 +45,16 @@ global v_light
 global lambda1 lambda2
 
 %number of visible satellites
-nsat = size(posS,1);
+nsat = length(prRS_app);
 
 A = [];
 
 for i = 1 : nsat
 
     %design matrix computation
-    A = [A; ((posR_app(1) - posS(i,1)) / prRS_app(i)) ...
-            ((posR_app(2) - posS(i,2)) / prRS_app(i)) ...
-            ((posR_app(3) - posS(i,3)) / prRS_app(i))];
+    A = [A; ((posR_app(1) - posS(1,i)) / prRS_app(i)) ...
+            ((posR_app(2) - posS(2,i)) / prRS_app(i)) ...
+            ((posR_app(3) - posS(3,i)) / prRS_app(i))];
 end
 
 prstim_pr1 = prRS_app + v_light*(dtR - dtS) + err_tropo_RS + err_iono_RS;

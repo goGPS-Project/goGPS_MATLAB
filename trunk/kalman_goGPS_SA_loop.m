@@ -209,7 +209,7 @@ end
 j = 1;
 bad_sat = [];
 
-posS = zeros(32,3);
+posS = zeros(3,32);
 dtS = zeros(32,1);
 prRS_app = zeros(32,1);
 err_tropo_RS = zeros(32,1);
@@ -220,15 +220,18 @@ for i = 1:size(sat_pr)
     i_sat = sat_pr(i);
 
     %satellite position (with clock error and Earth rotation corrections)
-    [posS(i_sat,:) dtS(i_sat)] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat), posR_app);
+    [posS_tmp dtS_tmp] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat), posR_app);
     
-    if (~isempty(posS))
-
+    if (~isempty(posS_tmp))
+        
+        posS(:,i_sat) = posS_tmp;
+        dtS(i_sat,1) = dtS_tmp;
+        
         %computation of the satellite azimuth and elevation
-        [azR(i_sat), elR(i_sat), distR(i_sat)] = topocent(posR_app, posS(i_sat,:));
+        [azR(i_sat), elR(i_sat), distR(i_sat)] = topocent(posR_app, posS(:,i_sat)');
         
         %computation of ROVER-SATELLITE approximated pseudorange
-        prRS_app(i_sat) = sqrt(sum((posR_app - posS(i_sat,:)').^2));
+        prRS_app(i_sat) = sqrt(sum((posR_app - posS(:,i_sat)).^2));
         
         %computation of tropospheric errors
         err_tropo_RS(i_sat) = err_tropo(elR(i_sat), h_app);
@@ -238,7 +241,7 @@ for i = 1:size(sat_pr)
     end
     
     %test ephemerides availability, elevation and signal-to-noise ratio
-    if (isempty(posS) | elR(i_sat) < cutoff | snr_R(i_sat) < snr_threshold)
+    if (isempty(posS_tmp) | elR(i_sat) < cutoff | snr_R(i_sat) < snr_threshold)
         bad_sat(j,1) = i_sat;
         j = j + 1;
     end
@@ -375,8 +378,8 @@ if (nsat >= min_nsat)
     %------------------------------------------------------------------------------------
     
     if (length(phase) == 2)
-        [N1_slip, N1_born, dtR1] = amb_estimate_LS_SA(posR_app, posS(sat_pr,:), dtS(sat_pr), pr1_Rat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-        [N2_slip, N2_born, dtR2] = amb_estimate_LS_SA(posR_app, posS(sat_pr,:), dtS(sat_pr), pr2_Rat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<NASGU>
+        [N1_slip, N1_born, dtR1] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+        [N2_slip, N2_born, dtR2] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<NASGU>
         
         %choose one of the two estimates
         dtR = dtR1;
@@ -403,9 +406,9 @@ if (nsat >= min_nsat)
         end
     else
         if (phase == 1)
-            [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(sat_pr,:), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+            [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
         else
-            [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(sat_pr,:), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+            [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
         end
         
         if (check_on)
@@ -430,7 +433,7 @@ if (nsat >= min_nsat)
     p = find(ismember(sat_pr,sat)==1);
 
     %function that calculates the Kalman filter parameters
-    [alfa, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(posR_app, posS(sat_pr,:), prRS_app(sat_pr), dtR, dtS(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr));
+    [alfa, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(posR_app, posS(:,sat_pr), prRS_app(sat_pr), dtR, dtS(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr));
 
     %zeroes vector useful in matrix definitions
     Z_1_nN = zeros(1,nN);
