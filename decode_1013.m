@@ -15,7 +15,7 @@ function [data] = decode_1013(msg)
 %          2.4)  DF053 = No. of Message ID Announcements to Follow
 %          2.5)  DF054 = Leap Seconds, GPS-UTC
 %          3.1)  DF055 = Message ID
-%          3.2)  DF056 = Message SyncFlag (0 = Asyncronous, 1 = Syncronous)
+%          3.2)  DF056 = Message SyncFlag (0 = Asynchronous, 1 = Synchronous)
 %          3.3)  DF057 = Message transmission interval
 %
 % DESCRIPTION:
