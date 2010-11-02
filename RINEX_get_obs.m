@@ -116,7 +116,7 @@ for s = 1 : num_sat
                     case 'S'
                         obs_SBS.L1(sat(s)) = obs;
                 end
-                if (numel(lin)>=16*k)
+                if (numel(lin)>=16*k) & isempty(col_S1)
                     snr = sscanf(lin(16*k),'%f');
                     %convert signal-to-noise ratio
                     snr = snr * 6;
@@ -138,6 +138,20 @@ for s = 1 : num_sat
                         obs_GLO.L2(sat(s)) = obs;
                     case 'S'
                         obs_SBS.L2(sat(s)) = obs;
+                end
+                if (numel(lin)>=16*k) & isempty(col_S2)
+                    snr = sscanf(lin(16*k),'%f');
+                    %convert signal-to-noise ratio
+                    snr = snr * 6;
+                    
+                    switch sat_types(s)
+                        case 'G'
+                            obs_GPS.S2(sat(s)) = snr;
+                        case 'R'
+                            obs_GLO.S2(sat(s)) = snr;
+                        case 'S'
+                            obs_SBS.S2(sat(s)) = snr;
+                    end
                 end
             case col_C1
                 switch sat_types(s)

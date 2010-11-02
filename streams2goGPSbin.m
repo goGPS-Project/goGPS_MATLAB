@@ -38,10 +38,10 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 %ROVER and MASTER stream reading
 if (nargin == 3)
     [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-        iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN, wait_dlg); %#ok<ASGLU>
+        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_string] = load_stream(filerootIN, wait_dlg); %#ok<ASGLU>
 else
     [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-        iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream(filerootIN); %#ok<ASGLU>
+        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_string] = load_stream(filerootIN); %#ok<ASGLU>
 end
 
 satEph = find(sum(abs(Eph(:,:,1)))~=0);
@@ -50,42 +50,44 @@ if ~isempty(data_master_all)
 else
     satObs = find(pr1_R(:,1) ~= 0);
 end
-while (length(satEph) < length(satObs)) | (length(satObs) < 4)
-    
-    time_GPS(1) = [];
-    week_R(1)   = [];
-    time_R(1)   = [];
-    time_M(1)   = [];
-    pr1_R(:,1)  = [];
-    pr1_M(:,1)  = [];
-    ph1_R(:,1)  = [];
-    ph1_M(:,1)  = [];
-    snr_R(:,1)  = [];
-    snr_M(:,1)  = [];
-    pos_M(:,1)  = [];
-    Eph(:,:,1)  = [];
-    iono(:,1)   = [];
-    loss_R(1)   = [];
-    loss_M(1)   = [];
-
-    if ~isempty(data_master_all)
-        satObs = find((pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-    else
-        satObs = find(pr1_R(:,1) ~= 0);
+if (~isempty(satEph))
+    while (length(satEph) < length(satObs)) | (length(satObs) < 4)
+        
+        time_GPS(1) = [];
+        week_R(1)   = [];
+        time_R(1)   = [];
+        time_M(1)   = [];
+        pr1_R(:,1)  = [];
+        pr1_M(:,1)  = [];
+        ph1_R(:,1)  = [];
+        ph1_M(:,1)  = [];
+        snr_R(:,1)  = [];
+        snr_M(:,1)  = [];
+        pos_M(:,1)  = [];
+        Eph(:,:,1)  = [];
+        iono(:,1)   = [];
+        loss_R(1)   = [];
+        loss_M(1)   = [];
+        
+        if ~isempty(data_master_all)
+            satObs = find((pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
+        else
+            satObs = find(pr1_R(:,1) ~= 0);
+        end
+        satEph = find(sum(abs(Eph(:,:,1)))~=0);
     end
-    satEph = find(sum(abs(Eph(:,:,1)))~=0);
-end
-
-%remove observations without ephemerides
-for i = 1 : length(time_GPS)
-    satEph = find(sum(abs(Eph(:,:,i)))~=0);
-    delsat = setdiff(1:32,satEph);
-    pr1_R(delsat,i) = 0;
-    pr1_M(delsat,i) = 0;
-    ph1_R(delsat,i) = 0;
-    ph1_M(delsat,i) = 0;
-    snr_R(delsat,i) = 0;
-    snr_M(delsat,i) = 0;
+    
+    %remove observations without ephemerides
+    for i = 1 : length(time_GPS)
+        satEph = find(sum(abs(Eph(:,:,i)))~=0);
+        delsat = setdiff(1:32,satEph);
+        pr1_R(delsat,i) = 0;
+        pr1_M(delsat,i) = 0;
+        ph1_R(delsat,i) = 0;
+        ph1_M(delsat,i) = 0;
+        snr_R(delsat,i) = 0;
+        snr_M(delsat,i) = 0;
+    end
 end
 
 %complete/partial path
@@ -120,6 +122,7 @@ end
 %open output files
 fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
 
 %"file hour" variable
 hour = 0;
@@ -157,6 +160,11 @@ for t = 1 : length(time_GPS)
     fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
 end
 
+if (~isempty(nmea_string))
+    fprintf(fid_nmea, '%s', nmea_string);
+end
+
 %close files
 fclose(fid_obs);
 fclose(fid_eph);
+fclose(fid_nmea);

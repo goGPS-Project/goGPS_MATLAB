@@ -49,40 +49,42 @@ if (~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootR '_eph_*'])) & 
     
     satEph = find(sum(abs(Eph(:,:,1)))~=0);
     satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-    while (length(satEph) < length(satObs)) | (length(satObs) < 4)
+    if (~isempty(satEph))
+        while (length(satEph) < length(satObs)) | (length(satObs) < 4)
+            
+            time_GPS(1) = [];
+            week_R(1)   = [];
+            time_R(1)   = [];
+            time_M(1)   = [];
+            pr1_R(:,1)  = [];
+            pr1_M(:,1)  = [];
+            ph1_R(:,1)  = [];
+            ph1_M(:,1)  = [];
+            snr_R(:,1)  = [];
+            snr_M(:,1)  = [];
+            pos_M(:,1)  = [];
+            Eph(:,:,1)  = [];
+            iono(:,1)   = [];
+            loss_R(1)   = [];
+            loss_M(1)   = [];
+            
+            %satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
+            %satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
+            satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
+            satEph = find(sum(abs(Eph(:,:,1)))~=0);
+        end
         
-        time_GPS(1) = [];
-        week_R(1)   = [];
-        time_R(1)   = [];
-        time_M(1)   = [];
-        pr1_R(:,1)  = [];
-        pr1_M(:,1)  = [];
-        ph1_R(:,1)  = [];
-        ph1_M(:,1)  = [];
-        snr_R(:,1)  = [];
-        snr_M(:,1)  = [];
-        pos_M(:,1)  = [];
-        Eph(:,:,1)  = [];
-        iono(:,1)   = [];
-        loss_R(1)   = [];
-        loss_M(1)   = [];
-        
-        %satObs_R = find( (pr1_R(:,1) ~= 0) & (ph1_R(:,1) ~= 0) );
-        %satObs_M = find( (pr1_M(:,1) ~= 0) & (ph1_M(:,1) ~= 0) );
-        satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-        satEph = find(sum(abs(Eph(:,:,1)))~=0);
-    end
-    
-    %remove observations without ephemerides
-    for i = 1 : length(time_GPS)
-        satEph = find(sum(abs(Eph(:,:,i)))~=0);
-        delsat = setdiff(1:32,satEph);
-        pr1_R(delsat,i) = 0;
-        pr1_M(delsat,i) = 0;
-        ph1_R(delsat,i) = 0;
-        ph1_M(delsat,i) = 0;
-        snr_R(delsat,i) = 0;
-        snr_M(delsat,i) = 0;
+        %remove observations without ephemerides
+        for i = 1 : length(time_GPS)
+            satEph = find(sum(abs(Eph(:,:,i)))~=0);
+            delsat = setdiff(1:32,satEph);
+            pr1_R(delsat,i) = 0;
+            pr1_M(delsat,i) = 0;
+            ph1_R(delsat,i) = 0;
+            ph1_M(delsat,i) = 0;
+            snr_R(delsat,i) = 0;
+            snr_M(delsat,i) = 0;
+        end
     end
     
     %complete/partial path

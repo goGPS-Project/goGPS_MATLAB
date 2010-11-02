@@ -1,12 +1,13 @@
 function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-          iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg)
+          iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_string] = load_stream (fileroot, wait_dlg)
 
 % SYNTAX:
 %   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-%    iono, loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot, wait_dlg);
+%    iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_string] = load_stream (fileroot, wait_dlg);
 %
 % INPUT:
 %   fileroot = name of the file to be read
+%   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
 %   time_GPS = reference GPS time
@@ -23,7 +24,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, s
 %   loss_M   = flag for the MASTER loss of signal
 %   data_rover_all  = ROVER overall stream
 %   data_master_all = MASTER overall stream
-%   wait_dlg = optional handler to waitbar figure
+%   nmea_string = string containing the receiver NMEA sentences
 %
 % DESCRIPTION:
 %   Reading of the streams trasmitted by the u-blox receiver (ROVER) and
@@ -92,9 +93,9 @@ if ~isempty(data_rover_all)
 
     %message decoding
     if (nargin == 2)
-        [cell_rover] = decode_ublox(data_rover_all, wait_dlg);
+        [cell_rover, nmea_string] = decode_ublox(data_rover_all, wait_dlg);
     else
-        [cell_rover] = decode_ublox(data_rover_all);
+        [cell_rover, nmea_string] = decode_ublox(data_rover_all);
     end
 
     %initialization (to make the writing faster)
@@ -138,7 +139,8 @@ if ~isempty(data_rover_all)
 
             i = i + 1;
 
-            Eph_R(:,:,i) = Eph_R(:,:,i-1);                %previous epoch ephemerides copying
+            Eph_R(:,:,i) = Eph_R(:,:,i-1);          %previous epoch ephemerides copying
+            iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying
             
         %RXM-SFRB message data save
         elseif (strcmp(cell_rover{1,j},'RXM-SFRB'))
@@ -416,6 +418,7 @@ end
 
 %signal losses
 time_GPS = union(time_R,time_M);                     %overall reference time
+
 if ~isempty(time_GPS)
 
     time_GPS = (time_GPS(1) : 1 : time_GPS(end))';   %GPS time without interruptions
