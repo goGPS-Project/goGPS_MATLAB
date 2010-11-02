@@ -22,7 +22,7 @@ function [data] = decode_1012(msg)
 %          3.5)  (DF045 * 0.25) = signal-to-noise ratio vector in dBHz on L1(from 0 to 63.75 dBHz)
 %          3.6)  DF046 = vector code type on L2: C/A=0, P=1, reserved=2,3
 %          3.7)  ((DF041 + DF047) * 0.02) + (DF044 * 599584.92) = code observation vector on L2
-%          3.8)  (oss. di codice L1 + (DF048*0.0005)) / lambda2 = phase observation vector on L2
+%          3.8)  (code observation L1 + (DF048*0.0005)) / lambda2 = phase observation vector on L2
 %          3.9)  DF049 = how long L2 has been locked? index vector (cycle-slip=0)
 %          3.10) (DF050 * 0.25) = signal-to-noise ratio vector in dBHz on L2(from 0 to 63.75 dBHz)
 %          3.11) (DF040 - 7) * 0.5625 + 1602.0 = frequency vector on L1

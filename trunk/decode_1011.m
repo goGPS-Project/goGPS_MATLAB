@@ -11,17 +11,17 @@ function [data] = decode_1011(msg)
 %          1.1) DF002 = message number = 1011
 %          2.1) DF003 = Reference station ID
 %          2.2) DF034 = GLONASS epoch time tk (ms)
-%          2.3) DF005 = Syncronous GNSS flag (0 = no GNSS obs. for the same epoch, 1 = other GNSS obs.)
-%          2.4) DF035 = N� of GLONASS satellite signal processed
+%          2.3) DF005 = Synchronous GNSS flag (0 = no GNSS obs. for the same epoch, 1 = other GNSS obs.)
+%          2.4) DF035 = Number of GLONASS satellite signal processed
 %          2.5) DF036 = GLONASS Divergence-free Smoothing Indicator (0 = not used, 1 = used)
 %          2.6) DF037 = GLONASS Smoothing Interval - flag (see table 3.4-4 - RTCM manual)
 %          3.1) DF039 = GLONASS L1 Code Indicator (0 = C/A, 1 = P)
-%          3.2) DF041 = GLONASS L1 pseudorange (m)
-%          3.3) DF042 = (DF041*0.02 + DF017*0.0005) / lambda1 = GLONASS L1 PhaseRange � L1 Pseudorange (m)
+%          3.2) DF041 = GLONASS L1 Pseudorange (m)
+%          3.3) DF042 = (DF041*0.02 + DF017*0.0005) / lambda1 = GLONASS L1 PhaseRange - L1 Pseudorange (m)
 %          3.4) DF043 = GLONASS L1 Lock Time Indicator (if there is a cycle slip it is set to 0)
 %          3.5) DF046 = GLONASS L2 Code Indicator (0 = C/A, 1 = P, 2-3 reserved)
 %          3.6)(DF041*0.02 + DF047*0.02) = GLONASS L2-L1 Pseudorange Difference (m)
-%          3.7)(DF041*0.02 + DF048*0.0005) = GLONASS L2 PhaseRange � L1 Pseudorange (m)
+%          3.7)(DF041*0.02 + DF048*0.0005) = GLONASS L2 PhaseRange - L1 Pseudorange (m)
 %          3.8) DF049 = GLONASS L2 Lock Time Indicator(if there is a cycle slip it is set to 0)
 %          3.9)(DF040 - 7) * 0.5625 + 1602.0 = frequency vector on L1 [MHz]
 %          3.10)(DF040 - 7) * 0.4375 + 1246.0 = frequency vector on L2 [MHz]
