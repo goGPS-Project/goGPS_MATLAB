@@ -18,7 +18,7 @@ function KML_write_cov (lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date)
 %   Write a KML file (Goole Earth).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

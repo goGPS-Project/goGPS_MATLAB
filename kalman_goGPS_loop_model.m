@@ -36,7 +36,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model 
 %   Addition and loss of satellites, cycle slips e pivot changes are considered.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

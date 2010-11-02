@@ -25,7 +25,7 @@ function varargout = gui_decode_stream(varargin)
 % Last Modified by GUIDE v2.5 28-Jun-2010 15:18:49
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

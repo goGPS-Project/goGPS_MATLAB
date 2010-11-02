@@ -22,7 +22,7 @@ function [interp_value] = grid_bilin_interp(X_approx, Y_approx, grid, ncols, nro
 %   of a georeferenced grid in correspondence of a point of given coordinates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

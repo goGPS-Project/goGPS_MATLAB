@@ -15,7 +15,7 @@ function [parity, decoded_word] = gps_parity(precbits, word)
 %   GPS parity checking and decoding algorithm (used also for RTCM2.x data).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

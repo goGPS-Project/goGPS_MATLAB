@@ -34,7 +34,7 @@ function [N_stim_slip, N_stim_born, dtR] = amb_estimate_LS_SA(posR_app, posS, dt
 %   receiver clock error using a least-squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

@@ -25,7 +25,7 @@ function varargout = gui_merge_goGPSbin_unix(varargin)
 % Last Modified by GUIDE v2.5 01-Jul-2010 10:36:26
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
