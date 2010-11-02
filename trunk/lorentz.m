@@ -14,7 +14,7 @@ function [p] = lorentz(x,y)
 %   Computation of the Lorentz inner product.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) Kai Borre
 % Kai Borre 04-22-95

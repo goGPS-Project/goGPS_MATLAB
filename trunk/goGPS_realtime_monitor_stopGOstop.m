@@ -14,7 +14,7 @@ function goGPS_realtime_monitor_stopGOstop(filerootOUT, flag_NTRIP, flag_ms_pos,
 %   output data saving (observations).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

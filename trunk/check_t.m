@@ -13,7 +13,7 @@ function [corrTime] = check_t(time)
 %   Function accounting for beginning or end of week crossover.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) Kai Borre
 % Kai Borre 04-01-96

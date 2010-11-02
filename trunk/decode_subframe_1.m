@@ -24,7 +24,7 @@ function [data] = decode_subframe_1(msg)
 %   Decode GPS subframe 1 (WORDS 3-10), according to IS-GPS-200D.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

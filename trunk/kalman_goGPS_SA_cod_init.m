@@ -16,7 +16,7 @@ function kalman_goGPS_SA_cod_init (time, Eph, iono, pr1_Rsat, pr2_Rsat, snr_R, p
 %   Standalone code-only Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.2 alpha
+%                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
