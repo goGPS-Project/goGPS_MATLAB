@@ -1,18 +1,19 @@
 function [pr1, ph1, pr2, ph2, Eph, iono, snr, ...
           pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, Eph_GLO, snr_GLO, ...
           time_GPS, date, pos] = ...
-          load_RINEX_SA(nome_F_oss, nome_F_nav, wait_dlg)
+          load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, Eph, iono, snr_R, ...
 %         pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, Eph_GLO, snr_GLO, ...
 %         time_GPS, date, pos] = ...
-%         load_RINEX_SA(nome_F_oss, nome_F_nav, wait_dlg);
+%         load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time);
 %
 % INPUT:
-%   nome_F_oss = RINEX observation file
-%   nome_F_nav = RINEX navigation file
+%   name_F_oss = RINEX observation file
+%   name_F_nav = RINEX navigation file
 %   wait_dlg = optional handler to waitbar figure
+%   max_time = optional maximum time to stop RINEX parsing
 %
 % OUTPUT:
 %   pr1 = code observation (L1 carrier)
@@ -62,7 +63,7 @@ if (nargin == 3)
 end
 
 %parse RINEX navigation file
-[Eph, iono] = RINEX_get_nav(nome_F_nav);
+[Eph, iono] = RINEX_get_nav(name_F_nav);
 
 if (nargin == 3)
     waitbar(0.66,wait_dlg)
@@ -75,7 +76,7 @@ end
 %-------------------------------------------------------------------------------
 
 %open RINEX observation file
-F_oss = fopen(nome_F_oss,'r');
+F_oss = fopen(name_F_oss,'r');
 
 %-------------------------------------------------------------------------------
 
@@ -144,6 +145,10 @@ while (~feof(F_oss))
     % ph1_GLO(:,k) = obs_GLO.L1;
     % %ph2_GLO(:,k) = obs_GLO.L2;
     % snr_GLO(:,k) = obs_GLO.S1;
+    
+    if (nargin > 3 & time_GPS(k) >= max_time)
+        break
+    end
     
     k = k+1;
 end

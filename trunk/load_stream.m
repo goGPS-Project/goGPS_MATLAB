@@ -1,9 +1,9 @@
 function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-          iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_string] = load_stream (fileroot, wait_dlg)
+          iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream (fileroot, wait_dlg)
 
 % SYNTAX:
 %   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-%    iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_string] = load_stream (fileroot, wait_dlg);
+%    iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream (fileroot, wait_dlg);
 %
 % INPUT:
 %   fileroot = name of the file to be read
@@ -24,7 +24,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, s
 %   loss_M   = flag for the MASTER loss of signal
 %   data_rover_all  = ROVER overall stream
 %   data_master_all = MASTER overall stream
-%   nmea_string = string containing the receiver NMEA sentences
+%   nmea_sentences = cell-array containing the receiver NMEA sentences
 %
 % DESCRIPTION:
 %   Reading of the streams trasmitted by the u-blox receiver (ROVER) and
@@ -51,6 +51,8 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, s
 %----------------------------------------------------------------------------------------------
 
 global lambda1
+
+nmea_sentences = cell(0);
 
 if (nargin == 2)
     waitbar(0.5,wait_dlg,'Reading rover stream files...')
@@ -93,9 +95,9 @@ if ~isempty(data_rover_all)
 
     %message decoding
     if (nargin == 2)
-        [cell_rover, nmea_string] = decode_ublox(data_rover_all, wait_dlg);
+        [cell_rover, nmea_sentences] = decode_ublox(data_rover_all, wait_dlg);
     else
-        [cell_rover, nmea_string] = decode_ublox(data_rover_all);
+        [cell_rover, nmea_sentences] = decode_ublox(data_rover_all);
     end
 
     %initialization (to make the writing faster)

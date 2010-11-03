@@ -1,7 +1,7 @@
-function [data, nmea_string] = decode_ublox(msg, wait_dlg)
+function [data, nmea_sentences] = decode_ublox(msg, wait_dlg)
 
 % SYNTAX:
-%   [data, nmea_string] = decode_ublox(msg, wait_dlg);
+%   [data, nmea_sentences] = decode_ublox(msg, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received by the u-blox receiver
@@ -10,7 +10,7 @@ function [data, nmea_string] = decode_ublox(msg, wait_dlg)
 % OUTPUT:
 %   data = cell-array that contains the decoded u-blox messages
 %          (message class and id are in the first cell-array field)
-%   nmea_string = string containing all NMEA sentences found in input msg
+%   nmea_sentences = cell-array containing all NMEA sentences found in input msg
 %
 % DESCRIPTION:
 %   u-blox UBX messages decoding (also in sequence).
@@ -66,7 +66,8 @@ pos_NMEA = findstr(msg, codeBIN_NMEA);   % NMEA message initial index
 
 % output variable initialization
 data = cell(0);
-
+nmea_sentences = cell(0);
+nmea_counter = 1;
 nmea_string = '';
 
 % find the index of the first message, if any
@@ -100,7 +101,7 @@ if (nargin == 2)
 end
 
 while (pos + 15 <= length(msg))
-    
+
     if (nargin == 2)
         waitbar(pos/length(msg),wait_dlg)
     end
@@ -230,6 +231,10 @@ while (pos + 15 <= length(msg))
             pos = pos + 8;
             nmea_string = [nmea_string char(fbin2dec(msg(pos:pos+7)))];
             pos = pos + 8;
+            
+            nmea_sentences{nmea_counter,1} = nmea_string;
+            nmea_counter = nmea_counter + 1;
+            nmea_string = '';
         else
             % if a NMEA sentence is started but its end is not available,
             % just jump over the header and continue

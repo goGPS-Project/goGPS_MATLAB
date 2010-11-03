@@ -90,13 +90,13 @@ while (~feof(fid))
     lin7 = fgetl(fid);
     lin8 = fgetl(fid);
 
-    svprn  = str2num(lin1(1:2));
+    svprn  = str2num(lin1(1:2)); %#ok<*ST2NM>
     year   = str2num(lin1(3:6)); %#ok<NASGU>
     month  = str2num(lin1(7:9)); %#ok<NASGU>
     day    = str2num(lin1(10:12)); %#ok<NASGU>
-    hour   = str2num(lin1(13:15)); %#ok<NASGU>
-    minute = str2num(lin1(16:18)); %#ok<NASGU>
-    second = str2num(lin1(19:22)); %#ok<NASGU>
+    hour   = str2num(lin1(13:15)); 
+    minute = str2num(lin1(16:18)); 
+    second = str2num(lin1(19:22)); 
     af0    = str2num(lin1(23:41));
     af1    = str2num(lin1(42:60));
     af2    = str2num(lin1(61:79));
