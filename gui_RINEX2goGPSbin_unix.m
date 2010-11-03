@@ -264,6 +264,9 @@ function browse_master_nav_file_Callback(hObject, eventdata, handles)
 
 if (filename ~= 0)
     set(handles.master_nav_file,'String',fullfile(pathname, filename));
+    if isempty(get(handles.rover_nav_file,'String'))
+        set(handles.rover_nav_file,'String',fullfile(pathname, filename));
+    end
 end
 
 
@@ -342,4 +345,7 @@ function browse_rover_nav_file_Callback(hObject, eventdata, handles)
 
 if (filename ~= 0)
     set(handles.rover_nav_file,'String',fullfile(pathname, filename));
+    if isempty(get(handles.master_nav_file,'String'))
+        set(handles.master_nav_file,'String',fullfile(pathname, filename));
+    end
 end

@@ -37,7 +37,14 @@ function RINEX2goGPSbin(filename_R_obs, filename_R_nav, filename_M_obs, filename
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-if (isempty(dir(filename_R_nav)))
+if (isempty(dir(filename_R_nav)) & isempty(dir(filename_M_nav)))
+    if (nargin == 6)
+        msgbox('Navigation data (ephemerides) are required to create goGPS binary data.');
+    else
+        fprintf('Navigation data (ephemerides) are required to create goGPS binary data.\n');
+    end
+    return
+elseif (isempty(dir(filename_R_nav)))
     filename_R_nav = filename_M_nav;
 elseif (isempty(dir(filename_M_nav)))
     filename_M_nav = filename_R_nav;
@@ -93,7 +100,7 @@ if (~isempty(dir(filename_M_obs)))
             Eph_M, iono_M, snr_M, ...
             pr1_MR, ph1_MR, pr2_MR, ph2_MR, ...
             Eph_MR, snr_MR, time_M, date, pos_M] = ...
-            load_RINEX_SA(filename_M_obs, filename_M_nav, wait_dlg); %#ok<ASGLU>
+            load_RINEX_SA(filename_M_obs, filename_M_nav, wait_dlg, time_GPS(end)); %#ok<ASGLU>
     else
         [pr1_M, ph1_M, pr2_M, ph2_M, ...
             Eph_M, iono_M, snr_M, ...
@@ -271,7 +278,7 @@ else
     satObs = find(pr1_R(:,1) ~= 0);
 end
 while (length(satEph) < length(satObs)) | (length(satObs) < 4)
-    
+
     time_GPS(1) = [];
     week_R(1)   = [];
     time_R(1)   = [];
@@ -293,6 +300,8 @@ while (length(satEph) < length(satObs)) | (length(satObs) < 4)
     end
     satEph = find(sum(abs(Eph(:,:,1)))~=0);
 end
+
+epochs = length(time_GPS);
 
 %remove observations without ephemerides
 for i = 1 : epochs

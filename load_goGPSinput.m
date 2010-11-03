@@ -121,6 +121,9 @@ i = 0;                                                              %epoch count
 hour = 0;                                                           %hour index (integer)
 hour_str = num2str(hour,'%02d');                                    %hour index (string)
 d = dir([fileroot '_eph_' hour_str '.bin']);                        %file to be read
+if isempty(d)
+    Eph = zeros(29,32,length(time_GPS(:,1)));
+end
 while ~isempty(d)
     fprintf(['Reading: ' fileroot '_eph_' hour_str '.bin\n']);
     num_bytes = d.bytes;                                            %file size (number of bytes)

@@ -811,7 +811,7 @@ while flag
         %dep_rover = strcat(dep_rover,data_rover);
 
         %message decoding
-        [cell_rover, nmea_string] = decode_ublox(data_rover);
+        [cell_rover, nmea_sentences] = decode_ublox(data_rover);
 
         %data type counters
         nRAW = 0;
@@ -885,8 +885,11 @@ end
         end
 
         %NMEA data save
-        if (~isempty(nmea_string))
-            fprintf(fid_nmea, '%s', nmea_string);
+        if (~isempty(nmea_sentences))
+            n = size(nmea_sentences,1);
+            for i = 1 : n
+                fprintf(fid_nmea, '%s', char(nmea_sentences(i,1)));
+            end
 
             type = [type 'NMEA '];
         end

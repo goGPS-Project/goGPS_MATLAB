@@ -35,8 +35,8 @@ function goGPSbinMerge(filerootR, filerootM, filerootOUT, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-if (~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootR '_eph_*'])) & ...
-    ~isempty(dir([filerootM '_obs_*'])) & ~isempty(dir([filerootM '_eph_*'])))
+if ~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootM '_obs_*'])) ...
+    & (~isempty(dir([filerootR '_eph_*'])) | ~isempty(dir([filerootM '_eph_*'])))
     
     %ROVER and MASTER datasets reading
     if (nargin == 4)
@@ -46,10 +46,12 @@ if (~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootR '_eph_*'])) & 
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
             iono, loss_R, loss_M] = load_observ(filerootR, filerootM);
     end
-    
-    satEph = find(sum(abs(Eph(:,:,1)))~=0);
-    satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
-    if (~isempty(satEph))
+
+    EphAvailable = find(Eph(1,:,:)~=0, 1);
+    %if the dataset has ephemerides available at least for one epoch
+    if (~isempty(EphAvailable))
+        satEph = find(sum(abs(Eph(:,:,1)))~=0);
+        satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
         while (length(satEph) < length(satObs)) | (length(satObs) < 4)
             
             time_GPS(1) = [];
@@ -85,8 +87,15 @@ if (~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootR '_eph_*'])) & 
             snr_R(delsat,i) = 0;
             snr_M(delsat,i) = 0;
         end
+    else
+        if (nargin == 4)
+            msgbox('Ephemerides are required to create goGPS binary data.');
+        else
+            fprintf('Ephemerides are required to create goGPS binary data.\n');
+        end
+        return
     end
-    
+
     %complete/partial path
     tMin = 1;
     tMax = 1e30;

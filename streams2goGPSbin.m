@@ -38,19 +38,21 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 %ROVER and MASTER stream reading
 if (nargin == 3)
     [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_string] = load_stream(filerootIN, wait_dlg); %#ok<ASGLU>
+        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN, wait_dlg); %#ok<ASGLU>
 else
     [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_string] = load_stream(filerootIN); %#ok<ASGLU>
+        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN); %#ok<ASGLU>
 end
 
-satEph = find(sum(abs(Eph(:,:,1)))~=0);
+EphAvailable = find(Eph(1,:,:)~=0, 1);
 if ~isempty(data_master_all)
     satObs = find((pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
 else
     satObs = find(pr1_R(:,1) ~= 0);
 end
-if (~isempty(satEph))
+%if the dataset has ephemerides available at least for one epoch
+if (~isempty(EphAvailable))
+    satEph = find(sum(abs(Eph(:,:,1)))~=0);
     while (length(satEph) < length(satObs)) | (length(satObs) < 4)
         
         time_GPS(1) = [];
@@ -88,6 +90,12 @@ if (~isempty(satEph))
         snr_R(delsat,i) = 0;
         snr_M(delsat,i) = 0;
     end
+else
+    if (nargin == 3)
+        msgbox('Warning: this dataset does not contain ephemerides!');
+    else
+        fprintf('Warning: this dataset does not contain ephemerides!\n');
+    end
 end
 
 %complete/partial path
@@ -121,8 +129,9 @@ end
 
 %open output files
 fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
-fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
-fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
+if (~isempty(EphAvailable))
+    fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+end
 
 %"file hour" variable
 hour = 0;
@@ -146,25 +155,37 @@ for t = 1 : length(time_GPS)
         
         hour = floor(t/3600);
         hour_str = num2str(hour,'%02d');
-        
+
         fclose(fid_obs);
-        fclose(fid_eph);
-        
+        if (~isempty(EphAvailable))
+            fclose(fid_eph);
+        end
+
         fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
-        fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+        if (~isempty(EphAvailable))
+            fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+        end
         
     end
-    
-    Eph_t = Eph(:,:,t);
+
     fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
-    fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
+    if (~isempty(EphAvailable))
+        Eph_t = Eph(:,:,t);
+        fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
+    end
 end
 
-if (~isempty(nmea_string))
-    fprintf(fid_nmea, '%s', nmea_string);
+if (~isempty(nmea_sentences))
+    fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
+    n = size(nmea_sentences,1);
+    for i = 1 : n
+        fprintf(fid_nmea, '%s', char(nmea_sentences(i,1)));
+    end
+    fclose(fid_nmea);
 end
 
 %close files
 fclose(fid_obs);
-fclose(fid_eph);
-fclose(fid_nmea);
+if (~isempty(EphAvailable))
+    fclose(fid_eph);
+end
