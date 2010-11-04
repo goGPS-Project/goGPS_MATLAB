@@ -1,4 +1,4 @@
-function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R)
+function goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov,
@@ -1074,10 +1074,13 @@ end
         snr_M(:,1:dtime) = zeros(32,dtime);
         %pos_M current cell keeps the latest value(s), until it is updated
         % by a new RTCM message (3, 1005 or 1006)
-        pos_M(1,1:dtime) = pos_M(1,1);
-        pos_M(2,1:dtime) = pos_M(2,1);
-        pos_M(3,1:dtime) = pos_M(3,1);
-
+        pos = find(pos_M(1+dtime:end) ~= 0);
+        if (~isempty(pos))
+            pos = pos(3) / 3;
+            pos_M(1,1:dtime) = pos_M(1,pos+dtime);
+            pos_M(2,1:dtime) = pos_M(2,pos+dtime);
+            pos_M(3,1:dtime) = pos_M(3,pos+dtime);
+        end
     else
 
         %buffer to zero
@@ -1261,7 +1264,9 @@ end
 
             %if a master position is awaiting indexing
             if(index ~= 0 & master_waiting)
-                pos_M(:,index) = [coordX_M; coordY_M; coordZ_M];
+                pos_M(1,1:index) = coordX_M;
+                pos_M(2,1:index) = coordY_M;
+                pos_M(3,1:index) = coordZ_M;
                 master_update = 0;
                 master_waiting = 0;
             end
@@ -1318,7 +1323,7 @@ end
     end
 
     fprintf('Station position:');
-    if (sum(abs(pos_M(:,i))) ~= 0)
+    if (sum(sum(abs(pos_M(:,i:end)))) ~= 0)
         fprintf(' X=%.4f, Y=%.4f, Z=%.4f km\n', pos_M(1,i)/1000, pos_M(2,i)/1000, pos_M(3,i)/1000);
     else
         fprintf(' not available\n');
