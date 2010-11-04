@@ -1460,10 +1460,8 @@ if (mode < 12) & (~isempty(EAST_KAL))
     xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
     hold on
     if (o1 == 1) & (mode ~= 3) & (mode ~= 4)
-        %coordinate transformation (UTM)
-        [EAST_stat, NORTH_stat, h_stat] = cart2plan(Xhat_t_t(1,end), Xhat_t_t(o1+1,end), Xhat_t_t(o2+1,end));
         %static positioning solution plotting
-        plot(EAST_stat, NORTH_stat, '*b');
+        plot(EAST_KAL(end), NORTH_KAL(end), '*b');
 %        %covariance propagation
 %        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],end), Xhat_t_t([1 o1+1 o2+1],end));
         
@@ -1478,9 +1476,9 @@ if (mode < 12) & (~isempty(EAST_KAL))
     if (o1 == 1) & (mode ~= 3) & (mode ~= 4)
         text(0,0.95,'----------------');
         text(0,0.90,'Final position (UTM)');
-        text(0,0.83,sprintf('E: %.3f m', EAST_stat));
-        text(0,0.78,sprintf('N: %.3f m', NORTH_stat));
-        text(0,0.73,sprintf('h(ell.): %.3f m', h_stat));
+        text(0,0.83,sprintf('E: %.3f m', EAST_KAL(end)));
+        text(0,0.78,sprintf('N: %.3f m', NORTH_KAL(end)));
+        text(0,0.73,sprintf('h(ell.): %.3f m', h_KAL(end)));
 %         text(0,0.62,'----------------');
 %         text(0,0.57,'Position estimation error');
 %         text(0,0.50,sprintf('E: %.4f m', Cee_ENU(1,1)));
@@ -1499,7 +1497,7 @@ if (mode < 12) & (~isempty(EAST_KAL))
     plot(EAST_KAL); grid on
     hold on
     if (o1 == 1) & (mode ~= 3) & (mode ~= 4)
-        plot([1, nObs], [EAST_stat EAST_stat],'r');
+        plot([1, nObs], [EAST_KAL(end) EAST_KAL(end)],'r');
         title('East coordinates (blue); Final positioning (red)');
     else
         title('East coordinates');
@@ -1510,7 +1508,7 @@ if (mode < 12) & (~isempty(EAST_KAL))
     plot(NORTH_KAL); grid on
     hold on
     if (o1 == 1) & (mode ~= 3) & (mode ~= 4)
-        plot([1, nObs], [NORTH_stat NORTH_stat],'r');
+        plot([1, nObs], [NORTH_KAL(end) NORTH_KAL(end)],'r');
         title('North coordinates (blue); Final positioning (red)');
     else
         title('North coordinates');
@@ -1749,7 +1747,7 @@ if (mode < 12)
     fprintf(fid_kml, '\t\t\t<styleUrl>#goLine1</styleUrl>\n');
     fprintf(fid_kml, '\t\t\t<LineString>\n');
     fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
-    for i = 1 : length(phi_KAL)
+    for i = 1 : nObs
         fprintf(fid_kml, '%.8f,%.8f,0 ',lam_KAL(i),phi_KAL(i));
     end
     fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
@@ -1773,7 +1771,7 @@ if (mode < 12)
     end
     fprintf(fid_kml, '\t\t<Folder>\n');
     fprintf(fid_kml, '\t\t<name>Rover positioning</name>\n');
-    for i = 1 : length(phi_KAL)
+    for i = 1 : nObs
         fprintf(fid_kml, '\t\t<Placemark>\n');
         if (pivot(i) == 0)
             fprintf(fid_kml, '\t\t\t<styleUrl>#go3</styleUrl>\n');
@@ -1791,14 +1789,11 @@ if (mode < 12)
     fprintf(fid_kml, '\t\t</Folder>\n');
 
     if (mode ~= 3) & (mode ~= 4)
-        if (o1 == 1)
+        if (o1 == 1) & (nObs ~= 0)
             %point positioning coordinates
-            %conversion from cartesian to geodetic coordinates
-            [phiP, lamP, hP] = cart2geod(Xhat_t_t(1,end), Xhat_t_t(o1+1,end), Xhat_t_t(o2+1,end));
-
-            %conversion from radians to degrees
-            lamP = lamP*180/pi;
-            phiP = phiP*180/pi;
+            phiP = phi_KAL(end);
+            lamP = lam_KAL(end);
+            hP   = h_KAL(end);
 
             fprintf(fid_kml, '\t\t<Placemark>\n');
             fprintf(fid_kml, '\t\t\t<name>Static positioning</name>\n');
