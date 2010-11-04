@@ -130,14 +130,19 @@ function browse_data_stream_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
-    {'*.bin','Stream data (*.bin)'}, ...
+    {'*.ubx;*_rover_??.bin;*_master_??.bin','UBX stream data (*.ubx,*_rover_??.bin,*_master_??.bin)'}, ...
     'Choose stream data','../data');
 
 if (filename ~= 0)
-    pos = find(filename == '_');
-    filename = filename(1:pos(end-1)-1);
+    if (~strcmp(filename(end-3:end),'.ubx'))
+        pos = find(filename == '_');
+        filename_out = filename(1:pos(end-1)-1);
+    else
+        pos = strfind(filename,'.ubx');
+        filename_out = filename(1:pos(end)-1);
+    end
     set(handles.data_stream,'String',fullfile(pathname, filename));
-    set(handles.data_out_name,'String',filename);
+    set(handles.data_out_name,'String',filename_out);
 end
 
 
