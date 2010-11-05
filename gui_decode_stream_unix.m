@@ -136,13 +136,15 @@ function browse_data_stream_Callback(hObject, eventdata, handles)
 if (filename ~= 0)
     if (~strcmp(filename(end-3:end),'.ubx'))
         pos = find(filename == '_');
-        filename_out = filename(1:pos(end-1)-1);
+        filename = filename(1:pos(end-1)-1);
+        set(handles.data_stream,'String',fullfile(pathname, filename));
+        set(handles.data_out_name,'String',filename);
     else
         pos = strfind(filename,'.ubx');
         filename_out = filename(1:pos(end)-1);
+        set(handles.data_stream,'String',fullfile(pathname, filename));
+        set(handles.data_out_name,'String',filename_out);
     end
-    set(handles.data_stream,'String',fullfile(pathname, filename));
-    set(handles.data_out_name,'String',filename_out);
 end
 
 

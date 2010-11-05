@@ -38,13 +38,13 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 %ROVER and MASTER stream reading
 if (nargin == 3)
     [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
-        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN, wait_dlg);
+        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN, wait_dlg); %#ok<*ASGLU>
 else
     [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
         iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN);
 end
 
-if (~isempty(data_rover_all))
+if (~isempty(Eph))
 
     EphAvailable = find(Eph(1,:,:)~=0, 1);
 
@@ -100,97 +100,97 @@ if (~isempty(data_rover_all))
         else
             fprintf('Warning: this dataset does not contain ephemerides!\n');
         end
-    end
+    end 
+end
+
+%complete/partial path
+tMin = 1;
+tMax = 1e30;
+tMin = max(tMin,1);
+tMax = min(tMax,length(time_GPS));
+time_GPS = time_GPS(tMin:tMax);
+week_R = week_R(tMin:tMax);
+time_R = time_R(tMin:tMax);
+time_M = time_M(tMin:tMax);
+pr1_R = pr1_R(:,tMin:tMax);
+pr1_M = pr1_M(:,tMin:tMax);
+ph1_R = ph1_R(:,tMin:tMax);
+ph1_M = ph1_M(:,tMin:tMax);
+snr_R = snr_R(:,tMin:tMax);
+snr_M = snr_M(:,tMin:tMax);
+pos_M = pos_M(:,tMin:tMax);
+Eph = Eph(:,:,tMin:tMax);
+iono = iono(:,tMin:tMax);
+
+%do not overwrite existing files
+i = 1;
+j = length(filerootOUT);
+while (~isempty(dir([filerootOUT '_obs*.bin'])) | ...
+        ~isempty(dir([filerootOUT '_eph*.bin'])) )
     
-    %complete/partial path
-    tMin = 1;
-    tMax = 1e30;
-    tMin = max(tMin,1);
-    tMax = min(tMax,length(time_GPS));
-    time_GPS = time_GPS(tMin:tMax);
-    week_R = week_R(tMin:tMax);
-    time_R = time_R(tMin:tMax);
-    time_M = time_M(tMin:tMax);
-    pr1_R = pr1_R(:,tMin:tMax);
-    pr1_M = pr1_M(:,tMin:tMax);
-    ph1_R = ph1_R(:,tMin:tMax);
-    ph1_M = ph1_M(:,tMin:tMax);
-    snr_R = snr_R(:,tMin:tMax);
-    snr_M = snr_M(:,tMin:tMax);
-    pos_M = pos_M(:,tMin:tMax);
-    Eph = Eph(:,:,tMin:tMax);
-    iono = iono(:,tMin:tMax);
-    
-    %do not overwrite existing files
-    i = 1;
-    j = length(filerootOUT);
-    while (~isempty(dir([filerootOUT '_obs*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_eph*.bin'])) )
-        
-        filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
-        i = i + 1;
-    end
-    
-    %open output files
-    fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
-    if (~isempty(EphAvailable))
-        fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
-    end
-    
-    %"file hour" variable
-    hour = 0;
+    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
+    i = i + 1;
+end
+
+%open output files
+fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
+if (~isempty(EphAvailable))
+    fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+end
+
+%"file hour" variable
+hour = 0;
+
+if (nargin == 3)
+    waitbar(0,wait_dlg,'Writing goGPS binary data...')
+end
+
+%write output files
+for t = 1 : length(time_GPS)
     
     if (nargin == 3)
-        waitbar(0,wait_dlg,'Writing goGPS binary data...')
+        waitbar(t/length(time_GPS),wait_dlg)
     end
     
-    %write output files
-    for t = 1 : length(time_GPS)
+    %-------------------------------------
+    % file management
+    %-------------------------------------
+    
+    if (floor(t/3600) > hour)
         
-        if (nargin == 3)
-            waitbar(t/length(time_GPS),wait_dlg)
-        end
+        hour = floor(t/3600);
+        hour_str = num2str(hour,'%02d');
         
-        %-------------------------------------
-        % file management
-        %-------------------------------------
-        
-        if (floor(t/3600) > hour)
-            
-            hour = floor(t/3600);
-            hour_str = num2str(hour,'%02d');
-            
-            fclose(fid_obs);
-            if (~isempty(EphAvailable))
-                fclose(fid_eph);
-            end
-            
-            fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
-            if (~isempty(EphAvailable))
-                fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
-            end
-            
-        end
-        
-        fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
+        fclose(fid_obs);
         if (~isempty(EphAvailable))
-            Eph_t = Eph(:,:,t);
-            fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
+            fclose(fid_eph);
         end
+        
+        fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
+        if (~isempty(EphAvailable))
+            fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+        end
+        
     end
     
-    if (~isempty(nmea_sentences))
-        fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
-        n = size(nmea_sentences,1);
-        for i = 1 : n
-            fprintf(fid_nmea, '%s', char(nmea_sentences(i,1)));
-        end
-        fclose(fid_nmea);
-    end
-    
-    %close files
-    fclose(fid_obs);
+    fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
     if (~isempty(EphAvailable))
-        fclose(fid_eph);
+        Eph_t = Eph(:,:,t);
+        fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
     end
+end
+
+if (~isempty(nmea_sentences))
+    fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
+    n = size(nmea_sentences,1);
+    for i = 1 : n
+        fprintf(fid_nmea, '%s', char(nmea_sentences(i,1)));
+    end
+    fclose(fid_nmea);
+end
+
+%close files
+fclose(fid_obs);
+if (~isempty(EphAvailable))
+    fclose(fid_eph);
 end

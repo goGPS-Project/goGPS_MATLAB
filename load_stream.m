@@ -81,7 +81,6 @@ while ~isempty(d)
 end
 
 %ROVER stream reading (.ubx file)
-data_rover_all = [];                                                 %overall stream
 d = dir(fileroot);                                                   %file to be read
 if ~isempty(d)
     if (nargin == 1)
