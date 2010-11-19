@@ -133,6 +133,12 @@ if (~isempty(data_master_all))
             
             i = i+1;                                      %epoch counter increase
             
+            if (cell_master{3,j}(:,1) == 0)
+                code_type = 'C1';
+            else
+                code_type = 'P1';
+            end
+            
         elseif (cell_master{1,j} == 1004)                 %RTCM 1004 message
             
             time_M(i)   = cell_master{2,j}(2);            %GPS time logging
@@ -146,6 +152,12 @@ if (~isempty(data_master_all))
             flag_L2 = 1;
             
             i = i+1;
+            
+            if (cell_master{3,j}(:,1) == 0)
+                code_type = 'C1';
+            else
+                code_type = 'P1';
+            end
 
         elseif ((cell_master{1,j} == 1005) | (cell_master{1,j} == 1006)) & (pos_M == 0)
                 
@@ -167,7 +179,6 @@ if (~isempty(data_master_all))
             end
         end
     end
-    clear cell_master
     clear Ncell pos sat tom
     
     %residual data erase (after initialization)
@@ -210,14 +221,16 @@ if (~isempty(data_master_all))
     fprintf(fid_obs,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
     fprintf(fid_obs,'     1     1                                                WAVELENGTH FACT L1/2\n');
     if (flag_L2)
-        fprintf(fid_obs,'     6    C1    P2    L1    L2    S1    S2                  # / TYPES OF OBSERV \n');
+        fprintf(fid_obs,['     6    ' code_type '    P2    L1    L2    S1    S2                  # / TYPES OF OBSERV \n']);
     else
-        fprintf(fid_obs,'     3    C1    L1    S1                                    # / TYPES OF OBSERV \n');
+        fprintf(fid_obs,['     3    ' code_type '    L1    S1                                    # / TYPES OF OBSERV \n']);
     end
     fprintf(fid_obs,'     1                                                      INTERVAL            \n');
     fprintf(fid_obs,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
         date(1,1), date(1,2), date(1,3), date(1,4), date(1,5), date(1,6));
     fprintf(fid_obs,'                                                            END OF HEADER       \n');
+    
+    clear cell_master
     
     %-------------------------------------------------------------------------------
     
