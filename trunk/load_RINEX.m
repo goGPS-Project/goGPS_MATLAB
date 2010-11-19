@@ -217,7 +217,11 @@ while (~feof(FR_oss))
     if (time_GPS_R == time_GPS(k))
 
         %read ROVER observations (GPS)
-        pr1_R(:,k) = obs_GPS_R.C1;
+        if (obs_GPS_R.P1)
+            pr1_R(:,k) = obs_GPS_R.P1;
+        else
+            pr1_R(:,k) = obs_GPS_R.C1;
+        end
         pr2_R(:,k) = obs_GPS_R.P2;
         ph1_R(:,k) = obs_GPS_R.L1;
         ph2_R(:,k) = obs_GPS_R.L2;
@@ -242,7 +246,11 @@ while (~feof(FR_oss))
         if (time_GPS_M == time_GPS(k))
             
             %read MASTER observations (GPS)
-            pr1_M(:,k) = obs_GPS_M.C1;
+            if (obs_GPS_M.P1)
+                pr1_M(:,k) = obs_GPS_M.P1;
+            else
+                pr1_M(:,k) = obs_GPS_M.C1;
+            end
             pr2_M(:,k) = obs_GPS_M.P2;
             ph1_M(:,k) = obs_GPS_M.L1;
             ph2_M(:,k) = obs_GPS_M.L2;
