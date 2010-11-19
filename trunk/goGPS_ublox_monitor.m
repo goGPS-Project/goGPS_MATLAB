@@ -354,10 +354,27 @@ while flag
 
                 %counter increment
                 t = t+1;
-
-                %data save
-                fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; zeros(32,1); snr_R; zeros(3,1); iono(:,1)], 'double');
-                fwrite(fid_eph, [0; Eph(:)], 'double');
+                
+                %satellites with ephemerides available
+                satEph = find(sum(abs(Eph))~=0);
+                
+                %delete data if ephemerides are not available
+                delsat = setdiff(1:32,satEph);
+                pr_R(delsat,1)  = 0;
+                ph_R(delsat,1)  = 0;
+                snr_R(delsat,1) = 0;
+                
+                %satellites with observations available
+                satObs = find(pr_R(:,1) ~= 0);
+                
+                %if all the visible satellites ephemerides have been transmitted
+                %and the total number of satellites is >= 4
+                if (ismember(satObs,satEph)) & (length(satObs) >= 4)
+                    
+                    %data save
+                    fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; zeros(32,1); snr_R; zeros(3,1); iono(:,1)], 'double');
+                    fwrite(fid_eph, [0; Eph(:)], 'double');
+                end
 
                 type = [type 'RXM-RAW '];
                 nRAW = nRAW + 1;
