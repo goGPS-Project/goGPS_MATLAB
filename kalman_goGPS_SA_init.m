@@ -173,11 +173,30 @@ conf_cs = zeros(32,1);
 Z_om_1 = zeros(o1-1,1);
 sigmaq_N = zeros(nN,1);
 
-%ROVER positioning with code double differences
-if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+if (length(sat_pr) >= 4)
+    
+    %stand-alone ROVER positioning with code
+    if (phase(1) == 1)
+        [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+    else
+        [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+    end
+    
+    %second iteration to improve the accuracy
+    %obtained in the previous step (from some meters to some centimeters)
+    if (phase(1) == 1)
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+    else
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+    end
+    
+    if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
+        cov_pos_R = sigmaq0 * eye(3);
+    end
+    sigmaq_pos_R = diag(cov_pos_R);
+    
 else
-    [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+    error('%d satellites are not enough to make ROVER positioning in stand-alone\n', length(sat_pr));
 end
 
 %do not use least squares ambiguity estimation
