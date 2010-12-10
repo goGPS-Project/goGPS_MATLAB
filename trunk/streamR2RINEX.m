@@ -65,6 +65,22 @@ while ~isempty(d)
     hour_str = num2str(hour,'%02d');
     d = dir([fileroot '_rover_' hour_str '.bin']);                   %file to be read
 end
+
+%ROVER stream reading (.ubx file)
+d = dir(fileroot);                                                   %file to be read
+if ~isempty(d)
+    if (nargin == 1)
+        fprintf(['Reading: ' fileroot '\n']);
+    end
+    num_bytes = d.bytes;                                             %file size (number of bytes)
+    fid_rover = fopen(fileroot);                                     %file opening
+    data_rover_all = fread(fid_rover,num_bytes,'uint8');             %file reading
+    data_rover_all = dec2bin(data_rover_all,8);                      %conversion in binary number (N x 8bits matrix)
+    data_rover_all = data_rover_all';                                %transposed (8bits x N matrix)
+    data_rover_all = data_rover_all(:)';                             %conversion into a string (8N bits vector)
+    fclose(fid_rover);                                               %file closing
+end
+
 clear hour hour_str d
 clear data_rover fid_rover
 
