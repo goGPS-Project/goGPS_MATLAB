@@ -1,7 +1,7 @@
-function [satp] = sat_pos(t, Eph)
+function [satp, satv] = sat_pos(t, Eph)
 
 % SYNTAX:
-%   [satp] = sat_pos(t, Eph);
+%   [satp, satv] = sat_pos(t, Eph);
 %
 % INPUT:
 %   t = GPS time
@@ -9,10 +9,11 @@ function [satp] = sat_pos(t, Eph)
 %
 % OUTPUT:
 %   satp = satellite position (X,Y,Z)
+%   satv = satellite velocity
 %
 % DESCRIPTION:
-%   Computation of the satellite position (X,Y,Z) by means
-%   of its ephemerides .
+%   Computation of the satellite position (X,Y,Z) and velocity by means
+%   of its ephemerides.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -38,32 +39,60 @@ cus      =   Eph(9);
 crc      =  Eph(10);
 crs      =  Eph(11);
 i0       =  Eph(12);
-idot     =  Eph(13);
+IDOT     =  Eph(13);
 cic      =  Eph(14);
 cis      =  Eph(15);
 Omega0   =  Eph(16);
-Omegadot =  Eph(17);
+Omega_dot =  Eph(17);
 toe      =  Eph(18);
 
 %-------------------------------------------------------------------------------
 % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE COORDINATES
 %-------------------------------------------------------------------------------
 
-Ek = ecc_anomaly(t, Eph);
+[Ek, n] = ecc_anomaly(t, Eph);
 
 A = roota*roota;            %semi-major axis
 tk = check_t(t-toe);        %time from the ephemerides reference epoch
 fk = atan2(sqrt(1-ecc^2)*sin(Ek), cos(Ek)-ecc);
-phi = fk+omega;
-phi = rem(phi,2*pi);
-u = phi               + cuc*cos(2*phi)+cus*sin(2*phi);
-r = A*(1-ecc*cos(Ek)) + crc*cos(2*phi)+crs*sin(2*phi);
-ik = i0+idot*tk       + cic*cos(2*phi)+cis*sin(2*phi);
-Omega = Omega0+(Omegadot-Omegae_dot)*tk-Omegae_dot*toe;
-Omega = rem(Omega+2*pi,2*pi);
-x1 = cos(u)*r;
-y1 = sin(u)*r;
+phik = fk+omega;
+phik = rem(phik,2*pi);
+uk = phik               + cuc*cos(2*phik)+cus*sin(2*phik);
+rk = A*(1-ecc*cos(Ek)) + crc*cos(2*phik)+crs*sin(2*phik);
+ik = i0+IDOT*tk       + cic*cos(2*phik)+cis*sin(2*phik);
+Omegak = Omega0+(Omega_dot-Omegae_dot)*tk-Omegae_dot*toe;
+Omegak = rem(Omegak+2*pi,2*pi);
+x1k = cos(uk)*rk;
+y1k = sin(uk)*rk;
 %satellite coordinates (X,Y,Z)
-satp(1,1) = x1*cos(Omega)-y1*cos(ik)*sin(Omega);
-satp(2,1) = x1*sin(Omega)+y1*cos(ik)*cos(Omega);
-satp(3,1) = y1*sin(ik);
+xk = x1k*cos(Omegak)-y1k*cos(ik)*sin(Omegak);
+yk = x1k*sin(Omegak)+y1k*cos(ik)*cos(Omegak);
+zk = y1k*sin(ik);
+
+satp(1,1) = xk;
+satp(2,1) = yk;
+satp(3,1) = zk;
+
+%-------------------------------------------------------------------------------
+% ALGORITHM FOR THE COMPUTATION OF THE SATELLITE VELOCITY (as in Remondi,
+% GPS Solutions (2004) 8:181-183 )
+%-------------------------------------------------------------------------------
+if (nargout > 1)
+    Mk_dot = n;
+    Ek_dot = Mk_dot/(1-ecc*cos(Ek));
+    fk_dot = sin(Ek)*Ek_dot*(1+ecc*cos(fk)) / ((1-cos(Ek)*ecc)*sin(fk));
+    phik_dot = fk_dot;
+    uk_dot = phik_dot + 2*(cus*cos(2*phik)-cuc*sin(2*phik))*phik_dot;
+    rk_dot = A*ecc*sin(Ek)*Ek_dot + 2*(crs*cos(2*phik)-crc*sin(2*phik))*phik_dot;
+    ik_dot = IDOT + 2*(cis*cos(2*phik)-cic*sin(2*phik))*phik_dot;
+    Omegak_dot = Omega_dot - Omegae_dot;
+    x1k_dot = rk_dot*cos(uk) - y1k*uk_dot;
+    y1k_dot = rk_dot*sin(uk) + x1k*uk_dot;
+    xk_dot = x1k_dot*cos(Omegak) - y1k_dot*cos(ik)*sin(Omegak) + y1k*sin(ik)*sin(Omegak)*ik_dot - yk*Omegak_dot;
+    yk_dot = x1k_dot*sin(Omegak) + y1k_dot*cos(ik)*cos(Omegak) - y1k*sin(ik)*ik_dot*cos(Omegak) + xk*Omegak_dot;
+    zk_dot = y1k_dot*sin(ik) + y1k*cos(ik)*ik_dot;
+    
+    satv(1,1) = xk_dot;
+    satv(2,1) = yk_dot;
+    satv(3,1) = zk_dot;
+end
