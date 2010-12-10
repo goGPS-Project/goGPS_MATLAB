@@ -1,7 +1,7 @@
-function [Ek] = ecc_anomaly(t, Eph)
+function [Ek, n] = ecc_anomaly(t, Eph)
 
 % SYNTAX:
-%   [Ek] = ecc_anomaly(t, Eph);
+%   [Ek, n] = ecc_anomaly(t, Eph);
 %
 % INPUT:
 %   t = GPS time
@@ -9,6 +9,7 @@ function [Ek] = ecc_anomaly(t, Eph)
 %
 % OUTPUT:
 %   Ek = eccentric anomaly
+%   n = corrected mean motion [rad/sec]
 %
 % DESCRIPTION:
 %   Computation of the eccentric anomaly.
