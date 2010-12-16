@@ -142,18 +142,18 @@ while (pos + 15 <= length(msg))
                         slices{k} = msg(j:j+7);
                         k = k + 1;
                     end
-                    slices = fbin2dec(slices);                 %call 'fbin2dec' only once (to optimize speed)
-                    k = 1;
-                    for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
-                        CK_A = CK_A + slices(k);
+                    slices = fbin2dec(slices);                %call 'fbin2dec' only once (to optimize speed)
+                    for r = 1 : k-1
+                        CK_A = CK_A + slices(r);
                         CK_B = CK_B + CK_A;
-                        k = k + 1;
                     end
-                    CK_A = dec2bin(mod(CK_A,256), 8);
-                    CK_B = dec2bin(mod(CK_B,256), 8);
-                    
+                    CK_A = mod(CK_A,256);
+                    CK_B = mod(CK_B,256);
+                    CK_A_rec = fbin2dec(msg(pos + 8*LEN:pos + 8*LEN + 7));
+                    CK_B_rec = fbin2dec(msg(pos + 8*LEN + 8:pos + 8*LEN + 15));
+
                     % if checksum matches
-                    if strcmp(msg(pos + 8*LEN:pos + 8*LEN + 7), CK_A) & strcmp(msg(pos + 8*LEN + 8:pos + 8*LEN + 15), CK_B)
+                    if (CK_A == CK_A_rec) & (CK_B == CK_B_rec)
                         
                         % message identification
                         switch class
