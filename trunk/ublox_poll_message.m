@@ -1,7 +1,7 @@
 function ublox_poll_message(serialObj, ClassLab, MsgIDLab, payload_length, parameter)
 
 % SYNTAX:
-%   ublox_poll_message(serialObj, ClassLab, MsgIDLab, length, parameter)
+%   ublox_poll_message(serialObj, ClassLab, MsgIDLab, payload_length, parameter)
 %
 % INPUT:
 %   serialObj = serial Object identifier
