@@ -107,16 +107,38 @@ if ~isempty(data_rover_all)
     if (nargin == 1)
         fprintf('Decoding rover stream\n');
     end
+    
+    %detect binary format
+    header1 = 'B5';      % UBX header (hexadecimal value)
+    header2 = '62';      % UBX header (hexadecimal value)
+    codeHEX = [header1 header2];                % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
+    pos_UBX = findstr(data_rover_all, codeBIN); % message initial index
 
-    %message decoding
-    if (nargin == 2)
-        [cell_rover, nmea_sentences] = decode_ublox(data_rover_all, wait_dlg);
+    header1 = 'A0';      % SkyTraq header (hexadecimal value)
+    header2 = 'A1';      % SkyTraq header (hexadecimal value)
+    codeHEX = [header1 header2];                % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
+    pos_STQ = findstr(data_rover_all, codeBIN); % message initial index
+
+    if (length(pos_UBX) > length(pos_STQ))
+        %UBX format decoding
+        if (nargin == 2)
+            [cell_rover, nmea_sentences] = decode_ublox(data_rover_all, wait_dlg);
+        else
+            [cell_rover, nmea_sentences] = decode_ublox(data_rover_all);
+        end
     else
-        [cell_rover, nmea_sentences] = decode_ublox(data_rover_all);
+        %SkyTraq format decoding
+        if (nargin == 2)
+            [cell_rover, nmea_sentences] = decode_skytraq(data_rover_all, wait_dlg);
+        else
+            [cell_rover, nmea_sentences] = decode_skytraq(data_rover_all);
+        end
     end
 
     %initialization (to make the writing faster)
-    Ncell  = size(cell_rover,2);                          %number of read RTCM packets
+    Ncell  = size(cell_rover,2);                          %number of read UBX messages
     time_R = zeros(Ncell,1);                              %GPS time of week
     week_R = zeros(Ncell,1);                              %GPS week
     pr1_R  = zeros(32,Ncell);                             %code observations
@@ -135,6 +157,8 @@ if ~isempty(data_rover_all)
             waitbar(j/Ncell,wait_dlg)
         end
     
+        %%%%%%%%%%%%%%%%%%%%%% UBX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
         if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
             time_R(i) = round(cell_rover{2,j}(1));
             week_R(i) = cell_rover{2,j}(2);
@@ -188,6 +212,38 @@ if ~isempty(data_rover_all)
 
             %ionosphere parameters
             iono(:, i) = cell_rover{3,j}(9:16);
+            
+        %%%%%%%%%%%%%%%%%% SkyTraq messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+        %MEAS_TIME message data save
+        elseif (strcmp(cell_rover{1,j},'MEAS_TIME'))
+
+            time_R(i) = round(cell_rover{2,j}(3));
+            week_R(i) = cell_rover{2,j}(2);
+            
+        %RAW_MEAS message data save
+        elseif (strcmp(cell_rover{1,j},'RAW_MEAS'))
+
+            pr1_R(:,i) = cell_rover{3,j}(:,3);
+            ph1_R(:,i) = cell_rover{3,j}(:,4);
+            snr_R(:,i) = cell_rover{3,j}(:,2);
+
+            %manage "nearly null" data
+            pos = abs(ph1_R(:,i)) < 1e-100;
+            ph1_R(pos,i) = 0;
+
+            %phase adjustement
+            pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
+            if(sum(pos) ~= 0)
+                ambig = 2^23;
+                n = floor((pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
+                ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
+            end
+
+            i = i + 1;
+
+            Eph_R(:,:,i) = Eph_R(:,:,i-1);          %previous epoch ephemerides copying
+            iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying
 
         end
     end
