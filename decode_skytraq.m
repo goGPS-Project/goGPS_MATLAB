@@ -109,9 +109,6 @@ while (pos + 15 <= length(msg))
     % check if there is an header
     if (strcmp(msg(pos:pos+15),codeBIN))
 
-        % counter increment
-        i = i + 1;
-
         % skip the header (16 bit)
         pos = pos + 16;
 
@@ -142,6 +139,9 @@ while (pos + 15 <= length(msg))
                     % if checksum matches
                     if (CS == CS_rec)
                         
+                        % counter increment
+                        i = i + 1;
+                        
                         % message id (1 byte)
                         id = fbin2dec(msg(pos:pos+7));
                         id = dec2hex(id,2);
@@ -149,13 +149,13 @@ while (pos + 15 <= length(msg))
                         % message identification
                         switch id
                             % MEAS_TIME (Measurement time information)
-                            case 'DC', fprintf('TIME\n');
-                                
+                            case 'DC', [data(:,i)] = decode_skytraq_MEAS_TIME(msg(pos+8:pos+8*LEN-1));
+
                             % RAW_MEAS (Raw channel measurements)
-                            case 'DD', fprintf('RAW DATA\n');
+                            case 'DD', [data(:,i)] = decode_skytraq_RAW_MEAS(msg(pos+8:pos+8*LEN-1));
                                 
                             % SUBFRAME (Subframe buffer data)
-                            case 'E0', fprintf('SUBFRAME\n');
+                            case 'E0'
                         end
                     else
                         %fprintf('Checksum error!\n');
