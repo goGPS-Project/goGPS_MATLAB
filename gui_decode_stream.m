@@ -130,17 +130,27 @@ function browse_data_stream_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
-    {'*.ubx;*_rover_??.bin;*_master_??.bin','UBX stream data (*.ubx,*_rover_??.bin,*_master_??.bin)'}, ...
+    {'*.ubx;*_rover_??.bin;*_master_??.bin','UBX stream data (*.ubx,*_rover_??.bin,*_master_??.bin)'; ...
+     '*.stq;*_rover_??.bin;*_master_??.bin','SkyTraq stream data (*.stq,*_rover_??.bin,*_master_??.bin)'}, ...
     'Choose stream data','../data');
 
 if (filename ~= 0)
-    if (~strcmp(filename(end-3:end),'.ubx'))
+    if (~strcmp(filename(end-3:end),'.ubx') & ~strcmp(filename(end-3:end),'.stq') & ...
+        ~strcmp(filename(end-3:end),'.UBX') & ~strcmp(filename(end-3:end),'.STQ'))
         pos = find(filename == '_');
         filename = filename(1:pos(end-1)-1);
         set(handles.data_stream,'String',fullfile(pathname, filename));
         set(handles.data_out_name,'String',filename);
     else
-        pos = strfind(filename,'.ubx');
+        if strcmp(filename(end-3:end),'.ubx')
+            pos = strfind(filename,'.ubx');
+        elseif strcmp(filename(end-3:end),'.UBX')
+            pos = strfind(filename,'.UBX');
+        elseif strcmp(filename(end-3:end),'.stq')
+            pos = strfind(filename,'.stq');
+        elseif strcmp(filename(end-3:end),'.STQ')
+            pos = strfind(filename,'.STQ');
+        end
         filename_out = filename(1:pos(end)-1);
         set(handles.data_stream,'String',fullfile(pathname, filename));
         set(handles.data_out_name,'String',filename_out);
