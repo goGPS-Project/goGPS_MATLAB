@@ -66,7 +66,7 @@ while ~isempty(d)
     d = dir([fileroot '_rover_' hour_str '.bin']);                   %file to be read
 end
 
-%ROVER stream reading (.ubx file)
+%ROVER stream reading (.ubx or .stq file)
 d = dir(fileroot);                                                   %file to be read
 if ~isempty(d)
     if (nargin == 1)
@@ -111,6 +111,9 @@ if (~isempty(data_rover_all))
     pos_STQ = findstr(data_rover_all, codeBIN); % message initial index
 
     if (length(pos_UBX) > length(pos_STQ))
+        
+        receiver = 'u-blox';
+        
         %UBX format decoding
         if (nargin == 3)
             [cell_rover] = decode_ublox(data_rover_all, wait_dlg);
@@ -118,6 +121,8 @@ if (~isempty(data_rover_all))
             [cell_rover] = decode_ublox(data_rover_all);
         end
     else
+        receiver = 'SkyTraq';
+        
         %SkyTraq format decoding
         if (nargin == 3)
             [cell_rover] = decode_skytraq(data_rover_all, wait_dlg);
@@ -285,7 +290,7 @@ if (~isempty(data_rover_all))
     fprintf(fid_obs,'goGPS                                                       PGM / RUN BY / DATE \n');
     fprintf(fid_obs,'                                                            MARKER NAME         \n');
     fprintf(fid_obs,'                                                            OBSERVER / AGENCY   \n');
-    fprintf(fid_obs,'                    u-blox                                  REC # / TYPE / VERS \n');
+    fprintf(fid_obs,'                    %-20s                    REC # / TYPE / VERS \n', receiver);
     fprintf(fid_obs,'                                                            ANT # / TYPE        \n');
     % fprintf(fid_obs,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', XM, YM, ZM);
     fprintf(fid_obs,'        0.0000        0.0000        0.0000                  APPROX POSITION XYZ \n');
