@@ -59,7 +59,10 @@ while (isempty(header_end))
         iono(2) = data{2};
         iono(3) = data{3};
         iono(4) = data{4};
-        lin = fgetl(fid);
+        lin = [];
+        while isempty(lin)
+            lin = fgetl(fid);
+        end
         data = textscan(lin,'%f%f%f%f%*[^\n]');
         iono(5) = data{1};
         iono(6) = data{2};
@@ -79,16 +82,45 @@ i = 0;
 
 %parse the rest of the file and store ephemerides
 while (~feof(fid))
+    
+    lin1 = [];
+    lin2 = [];
+    lin3 = [];
+    lin4 = [];
+    lin5 = [];
+    lin6 = [];
+    lin7 = [];
+    lin8 = [];
 
     i = i+1;
-    lin1 = fgetl(fid);
-    lin2 = fgetl(fid);
-    lin3 = fgetl(fid);
-    lin4 = fgetl(fid);
-    lin5 = fgetl(fid);
-    lin6 = fgetl(fid);
-    lin7 = fgetl(fid);
-    lin8 = fgetl(fid);
+    while isempty(lin1)
+        lin1 = fgetl(fid);
+    end
+    while isempty(lin2)
+        lin2 = fgetl(fid);
+    end
+    while isempty(lin3)
+        lin3 = fgetl(fid);
+    end
+    while isempty(lin4)
+        lin4 = fgetl(fid);
+    end
+    while isempty(lin5)
+        lin5 = fgetl(fid);
+    end
+    while isempty(lin6)
+        lin6 = fgetl(fid);
+    end
+    while isempty(lin7)
+        lin7 = fgetl(fid);
+    end
+    while isempty(lin8)
+        lin8 = fgetl(fid);
+    end
+    
+    if (lin1 == -1)
+        break
+    end
 
     svprn  = str2num(lin1(1:2)); %#ok<*ST2NM>
     year   = str2num(lin1(3:6)); %#ok<NASGU>
