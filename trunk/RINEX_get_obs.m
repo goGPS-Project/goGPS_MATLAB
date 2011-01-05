@@ -82,6 +82,14 @@ obs_GPS.D2 = zeros(32,1);
 obs_GLO.D2 = zeros(32,1);
 obs_SBS.D2 = zeros(32,1);
 
+obs_GPS.TMP1 = zeros(32,1);
+obs_GLO.TMP1 = zeros(32,1);
+obs_SBS.TMP1 = zeros(32,1);
+
+obs_GPS.TMP2 = zeros(32,1);
+obs_GLO.TMP2 = zeros(32,1);
+obs_SBS.TMP2 = zeros(32,1);
+
 %data read and assignment
 for s = 1 : num_sat
     lin = fgetl(file_RINEX);
@@ -116,20 +124,22 @@ for s = 1 : num_sat
                     case 'S'
                         obs_SBS.L1(sat(s)) = obs;
                 end
-%                 if (numel(lin)>=16*k) & isempty(col_S1)
-%                     snr = sscanf(lin(16*k),'%f');
-%                     %convert signal-to-noise ratio
-%                     snr = snr * 6;
-%                     
-%                     switch sat_types(s)
-%                         case 'G'
-%                             obs_GPS.S1(sat(s)) = snr;
-%                         case 'R'
-%                             obs_GLO.S1(sat(s)) = snr;
-%                         case 'S'
-%                             obs_SBS.S1(sat(s)) = snr;
-%                     end
-%                 end
+                if (numel(lin)>=16*k)
+                    snr = sscanf(lin(16*k),'%f');
+                    %convert signal-to-noise ratio
+                    snr = snr * 6;
+                    
+                    if (~isempty(snr))
+                        switch sat_types(s)
+                            case 'G'
+                                obs_GPS.TMP1(sat(s)) = snr;
+                            case 'R'
+                                obs_GLO.TMP1(sat(s)) = snr;
+                            case 'S'
+                                obs_SBS.TMP1(sat(s)) = snr;
+                        end
+                    end
+                end
             case col_L2
                 switch sat_types(s)
                     case 'G'
@@ -139,20 +149,22 @@ for s = 1 : num_sat
                     case 'S'
                         obs_SBS.L2(sat(s)) = obs;
                 end
-%                 if (numel(lin)>=16*k) & isempty(col_S2)
-%                     snr = sscanf(lin(16*k),'%f');
-%                     %convert signal-to-noise ratio
-%                     snr = snr * 6;
-%                     
-%                     switch sat_types(s)
-%                         case 'G'
-%                             obs_GPS.S2(sat(s)) = snr;
-%                         case 'R'
-%                             obs_GLO.S2(sat(s)) = snr;
-%                         case 'S'
-%                             obs_SBS.S2(sat(s)) = snr;
-%                     end
-%                 end
+                if (numel(lin)>=16*k)
+                    snr = sscanf(lin(16*k),'%f');
+                    %convert signal-to-noise ratio
+                    snr = snr * 6;
+                    
+                    if (~isempty(snr))
+                        switch sat_types(s)
+                            case 'G'
+                                obs_GPS.TMP2(sat(s)) = snr;
+                            case 'R'
+                                obs_GLO.TMP2(sat(s)) = snr;
+                            case 'S'
+                                obs_SBS.TMP2(sat(s)) = snr;
+                        end
+                    end
+                end
             case col_C1
                 switch sat_types(s)
                     case 'G'
@@ -217,6 +229,29 @@ for s = 1 : num_sat
                         obs_SBS.D2(sat(s)) = obs;
                 end
         end
+    end
+    switch sat_types(s)
+        case 'G'
+            if (~obs_GPS.S1(sat(s)))
+                obs_GPS.S1(sat(s)) = obs_GPS.TMP1(sat(s));
+            end
+            if (~obs_GPS.S2(sat(s)))
+                obs_GPS.S2(sat(s)) = obs_GPS.TMP2(sat(s));
+            end
+        case 'R'
+            if (~obs_GLO.S1(sat(s)))
+                obs_GLO.S1(sat(s)) = obs_GLO.TMP1(sat(s));
+            end
+            if (~obs_GLO.S2(sat(s)))
+                obs_GLO.S2(sat(s)) = obs_GLO.TMP2(sat(s));
+            end
+        case 'S'
+            if (~obs_SBS.S1(sat(s)))
+                obs_SBS.S1(sat(s)) = obs_SBS.TMP1(sat(s));
+            end
+            if (~obs_SBS.S2(sat(s)))
+                obs_SBS.S2(sat(s)) = obs_SBS.TMP2(sat(s));
+            end
     end
 end
 
