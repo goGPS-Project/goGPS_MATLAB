@@ -106,6 +106,12 @@ if (o1 > 1)
 end
 
 %------------------------------------------------------------------------------------
+% RECEIVER PREDICTED POSITION AND VELOCITY
+%------------------------------------------------------------------------------------
+pos_R = X_t1_t([1,o1+1,o2+1]);
+vel_R = X_t1_t([2,o1+2,o2+2]);
+
+%------------------------------------------------------------------------------------
 % SATELLITE SELECTION
 %------------------------------------------------------------------------------------
 
@@ -138,23 +144,42 @@ bad_sat = [];
 
 for i = 1:size(sat_pr)
 
-    %satellite position correction (clock and Earth rotation)
-    Rot_X = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(sat_pr(i)), X_t1_t([1,o1+1,o2+1])');
+    %satellite position/velocity computation (clock and Earth rotation)
+    [pos_S, null_dt_S, pos_S_ttime, vel_S] = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(sat_pr(i)), pos_R'); %#ok<ASGLU>
 
-    if (~isempty(Rot_X))
+    if (~isempty(pos_S))
         %azimuth, elevation, ROVER-SATELLITE distance computation
-        [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(X_t1_t([1,o1+1,o2+1]), Rot_X');
+        [azR(sat_pr(i)), elR(sat_pr(i)), distR(sat_pr(i))] = topocent(X_t1_t([1,o1+1,o2+1]), pos_S');
         
         %azimuth, elevation, MASTER-SATELLITE distance computation
-        [azM(sat_pr(i)), elM(sat_pr(i)), distM(sat_pr(i))] = topocent(pos_M, Rot_X');
+        [azM(sat_pr(i)), elM(sat_pr(i)), distM(sat_pr(i))] = topocent(pos_M, pos_S');
     end
 
     %test ephemerides availability, elevation and signal-to-noise ratio
-    if (isempty(Rot_X) | elR(sat_pr(i)) < cutoff | snr_R(sat_pr(i)) < snr_threshold)
+    if (isempty(pos_S) | elR(sat_pr(i)) < cutoff | snr_R(sat_pr(i)) < snr_threshold)
         bad_sat(j,1) = sat_pr(i);
         j = j + 1;
     end
 
+    %approximate doppler measurement computation
+    LOS  = pos_S_ttime - pos_R;    %receiver-satellite line-of-sight vector
+    %LOSu = LOS / sqrt(LOS(1)^2 + LOS(2)^2 + LOS(3)^2); %receiver-satellite line-of-sight unit vector
+    LOSu = LOS / norm(LOS);        %receiver-satellite line-of-sight unit vector
+    vrel = vel_S - vel_R;          %receiver-satellite relative velocity vector
+    %radial_vel = vrel(1)*LOSu(1) + vrel(2)*LOSu(2) + vrel(3)*LOSu(3); %receiver-satellite radial velocity
+    radial_vel = dot(vrel,LOSu);   %receiver-satellite radial velocity
+    doppler_app1 = -(radial_vel/lambda1);
+    doppler_app2 = -(radial_vel/lambda2);
+
+    date = datevec(time/(3600*24) + 7*1565 + datenum([1980,1,6,0,0,0]));
+    if (date(4:6) == [6 0 0])
+%          sat_pr(i)
+%         pos_S
+%         pos_S_ttime
+%         vel_S
+%          doppler_app1
+%         doppler_app2
+    end
 end
 
 %removal of satellites without ephemerides or with elevation or SNR lower than the respective threshold
@@ -214,7 +239,7 @@ n = nsat - 1;
 %     end
 % 
 % else
-    pos_R = X_t1_t([1,o1+1,o2+1]);
+%     pos_R = X_t1_t([1,o1+1,o2+1]);
 % end
 
 % if (sqrt(sum((pos_R - X_t1_t([1,o1+1,o2+1])).^2))) <= 3
@@ -372,10 +397,10 @@ if (nsat >= min_nsat)
         y0_fas2 = [];
     end
 
-    %Y0 vector computation for DTM constrain
+    %Y0 vector computation for DTM constraint
     y0_dtm = [];
     if (h_dtm ~= tile_header.nodata)
-        y0_dtm = h_dtm + cos(phi_app)*cos(lam_app)*X_app + cos(phi_app)*sin(lam_app)*Y_app + sin(phi_app)*Z_app - h_app;
+        y0_dtm = h_dtm  - h_app + cos(phi_app)*cos(lam_app)*X_app + cos(phi_app)*sin(lam_app)*Y_app + sin(phi_app)*Z_app;
     end
 
     %construction of the total Y0 vector
@@ -722,11 +747,6 @@ Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
 KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
 KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
 KVDOP = sqrt(Cee_ENU(3,3));
-
-%   vvX = Xhat_t_t(2);
-%   vvY = Xhat_t_t(o1+2);
-%   vvZ = Xhat_t_t(o2+2);
-%   vvv = sqrt(vvX^2 + vvY^2 + vvZ^2);
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1) + Cee(o1+1,o1+1) + Cee(o2+1,o2+1));

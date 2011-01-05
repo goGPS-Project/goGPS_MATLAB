@@ -1,7 +1,7 @@
-function [X, tcorr] = sat_corr(Eph, sat, time, pr_Rsat, pos_R)
+function [Xcorr, tcorr, X, V] = sat_corr(Eph, sat, time, pr_Rsat, pos_R)
 
 % SYNTAX:
-%   [X, tcorr] = sat_corr(Eph, sat, time, pr_Rsat, pos_R);
+%   [Xcorr, tcorr, X, V] = sat_corr(Eph, sat, time, pr_Rsat, pos_R);
 %
 % INPUT:
 %   Eph = satellite ephemerides matrix
@@ -11,8 +11,10 @@ function [X, tcorr] = sat_corr(Eph, sat, time, pr_Rsat, pos_R)
 %   pos_R = rover position
 %
 % OUTPUT:
-%   X = corrected satellite position
+%   Xcorr = corrected satellite position
 %   tcorr = correction due to satellite clock error
+%   X = satellite position at transmission time
+%   V = satellite velocity
 %
 % DESCRIPTION:
 %   Correction of the satellite position by taking into account
@@ -32,8 +34,10 @@ global v_light
 % CLOCK ERROR CORRECTION
 %--------------------------------------------------------------------------------------------
 
-X = [];
+Xcorr = [];
 tcorr = [];
+X = [];
+V = [];
 
 k = find_eph(Eph, sat, time);
 
@@ -69,14 +73,20 @@ tx_GPS = tx_RAW - tcorr;
 %   tx_GPS = tx_GPS - tcorr;
 % end
 
-%position with original GPS time
-%X = sat_pos(time, Eph(:,k));
-
-%computation of clock-corrected satellite position
-X = sat_pos(tx_GPS, Eph(:,k));
+%computation of clock-corrected satellite position (and velocity)
+if (nargout > 2)
+    [X, V] = sat_pos(tx_GPS, Eph(:,k));
+    %position and velocity with original GPS time
+    %[X, V] = sat_pos(time, Eph(:,k));
+else
+    X = sat_pos(tx_GPS, Eph(:,k));
+    %position with original GPS time
+    %X = sat_pos(time, Eph(:,k));
+end
 
 %if the receiver position is not known, return
 if (nargin == 4)
+    Xcorr = X;
     return
 end
 
@@ -88,4 +98,5 @@ rho2 = (X(1) - pos_R(1))^2 + (X(2) - pos_R(2))^2 + (X(3) - pos_R(3))^2;
 traveltime = sqrt(rho2) / v_light;
 
 %computation of rotation-corrected satellite position
-X = e_r_corr(traveltime, X);
+Xcorr = e_r_corr(traveltime, X);
+
