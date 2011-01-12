@@ -19,7 +19,7 @@ function [nodes] = polyline_leastSquaresFit (tab_filename, nod_filename, nodes, 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Lisa Pertusini, Alemu Befkadu
 %----------------------------------------------------------------------------------------------

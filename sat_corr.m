@@ -23,7 +23,7 @@ function [Xcorr, tcorr, X, V] = sat_corr(Eph, sat, time, pr_Rsat, pos_R)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %
 % Partially based on scripts found in EASY suite by Kai Borre
 %----------------------------------------------------------------------------------------------

@@ -16,7 +16,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %
 % Partially based on RINEXE.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------

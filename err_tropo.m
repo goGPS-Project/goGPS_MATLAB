@@ -16,7 +16,7 @@ function [tropocorr] = err_tropo(elev, h)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Laboratorio di Geomatica, Polo Regionale di Como,
 %    Politecnico di Milano, Italy

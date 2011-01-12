@@ -21,7 +21,7 @@ function LS_goGPS_SA_loop(time, Eph_R, pr1_R, pr2_R, ph1_R, ph2_R, snr_R, iono, 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
