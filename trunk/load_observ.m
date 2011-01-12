@@ -31,7 +31,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, s
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

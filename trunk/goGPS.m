@@ -10,7 +10,7 @@
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -2039,13 +2039,13 @@ if (mode < 10) & (mode_vinc == 0) & (~isempty(ref_path)) & (~isempty(EAST_KAL))
     fprintf('-------- STATISTICS ------------');
     fprintf('\n');
     fprintf('Mean2D: %7.4f m\n',mean(dist2D));
-    fprintf('Std2D:  %7.4f m\n',std(dist2D));
+    fprintf('Std2D:  %7.4f m\n',std(dist2D,1));
     fprintf('RMS2D:  %7.4f m\n\n',sqrt(std(dist2D)^2+mean(dist2D)^2));
 
     [dist3D,proj] = ref_3d_projection(ref,EAST_KAL,NORTH_KAL,h_KAL);
 
     fprintf('Mean3D: %7.4f m\n',mean(dist3D));
-    fprintf('Std3D:  %7.4f m\n',std(dist3D));
+    fprintf('Std3D:  %7.4f m\n',std(dist3D,1));
     fprintf('RMS3D:  %7.4f m\n',sqrt(std(dist3D)^2+mean(dist3D)^2));
     fprintf('--------------------------------\n\n');
 end

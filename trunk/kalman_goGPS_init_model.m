@@ -31,7 +31,7 @@ function kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

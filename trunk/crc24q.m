@@ -15,7 +15,7 @@ function [parity] = crc24q(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %
 % ('rtcm3torinex.c', by Dirk Stöcker, BKG Ntrip Client (BNC) Version 1.6.1
 %  was used as a reference)
