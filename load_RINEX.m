@@ -270,17 +270,16 @@ while (~feof(FR_oss))
             [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
             
         end
-        
-        %ignore rover tail
-        if (time_GPS_R > time_GPS_M)
-            break
-        end
     end
 
     k = k+1;
     time_GPS(k,1) = time_GPS(k-1,1) + 1;
     date(k,:) = date_R(1,:);
-
+    
+    %ignore rover tail
+    if (nargin > 2) & (time_GPS_R > time_GPS_M)
+        break
+    end
 end
 
 if (nargin == 5)
