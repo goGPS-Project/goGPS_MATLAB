@@ -274,13 +274,13 @@ if (~isempty(data_master_all))
                 if (flag_L2)
                     fprintf(fid_obs,'%14.3f %1d',pr2_M(sat(j),i),floor(snr2_M(sat(j),i)/6));
                 end
-                if (ph1_M(sat(j),i) > 1e-100)
+                if (abs(ph1_M(sat(j),i)) > 1e-100)
                     fprintf(fid_obs,'%14.3f %1d',ph1_M(sat(j),i),floor(snr1_M(sat(j),i)/6));
                 else
                     fprintf(fid_obs,'                ');
                 end
                 if (flag_L2)
-                    if (ph2_M(sat(j),i) > 1e-100)
+                    if (abs(ph2_M(sat(j),i)) > 1e-100)
                         fprintf(fid_obs,'%14.3f %1d',ph2_M(sat(j),i),floor(snr2_M(sat(j),i)/6));
                     else
                         fprintf(fid_obs,'                ');
