@@ -242,7 +242,7 @@ if (~isempty(data_rover_all))
             ph1_R(pos,i) = 0;
 
             %phase adjustement
-            pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
+            pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e8;
             if(sum(pos) ~= 0)
                 ambig = 2^23;
                 n = floor((pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
@@ -341,7 +341,7 @@ if (~isempty(data_rover_all))
             fprintf(fid_obs,'\n');
             for j = 1 : n
                 fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                if (ph1_R(sat(j),i) > 1e-100)
+                if (abs(ph1_R(sat(j),i)) > 1e-100)
                     fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
                 else
                     fprintf(fid_obs,'                ');
