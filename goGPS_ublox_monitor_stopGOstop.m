@@ -404,7 +404,7 @@ while flag
             %RXM-RAW message
             if (strcmp(cell_rover{1,i},'RXM-RAW'))
 
-                time_R = round(cell_rover{2,i}(1));
+                time_R = cell_rover{2,i}(1);
                 week_R = cell_rover{2,i}(2);
                 ph_R   = cell_rover{3,i}(:,1);
                 pr_R   = cell_rover{3,i}(:,2);
