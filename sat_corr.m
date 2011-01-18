@@ -66,12 +66,12 @@ dt = check_t(tx_GPS - tom);
 tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
 tx_GPS = tx_RAW - tcorr;
 
-% N = 10;
-% for i = 1 : N
-%   dt = check_t(tx_GPS - tom);
-%   tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
-%   tx_GPS = tx_GPS - tcorr;
-% end
+N = 10;
+for i = 1 : N
+  dt = check_t(tx_GPS - tom);
+  tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
+  tx_GPS = tx_GPS - tcorr;
+end
 
 %computation of clock-corrected satellite position (and velocity)
 if (nargout > 2)
@@ -85,17 +85,18 @@ else
 end
 
 %if the receiver position is not known, return
-if (nargin == 4)
-    Xcorr = X;
-    return
-end
+% if (nargin == 4)
+%     Xcorr = X;
+%     return
+% end
 
 %--------------------------------------------------------------------------------------------
 % EARTH ROTATION ERROR CORRECTION
 %--------------------------------------------------------------------------------------------
 
-rho2 = (X(1) - pos_R(1))^2 + (X(2) - pos_R(2))^2 + (X(3) - pos_R(3))^2;
-traveltime = sqrt(rho2) / v_light;
+% rho2 = (X(1) - pos_R(1))^2 + (X(2) - pos_R(2))^2 + (X(3) - pos_R(3))^2;
+% traveltime = sqrt(rho2) / v_light;
+traveltime = time - tx_GPS;
 
 %computation of rotation-corrected satellite position
 Xcorr = e_r_corr(traveltime, X);
