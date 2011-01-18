@@ -160,7 +160,7 @@ if ~isempty(data_rover_all)
         %%%%%%%%%%%%%%%%%%%%%% UBX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
-            time_R(i) = round(cell_rover{2,j}(1));
+            time_R(i) = cell_rover{2,j}(1);
             week_R(i) = cell_rover{2,j}(2);
             pr1_R(:,i) = cell_rover{3,j}(:,2);
             ph1_R(:,i) = cell_rover{3,j}(:,1);
@@ -218,7 +218,7 @@ if ~isempty(data_rover_all)
         %MEAS_TIME message data save
         elseif (strcmp(cell_rover{1,j},'MEAS_TIME'))
 
-            time_R(i) = round(cell_rover{2,j}(3));
+            time_R(i) = cell_rover{2,j}(3);
             week_R(i) = cell_rover{2,j}(2);
             
         %RAW_MEAS message data save

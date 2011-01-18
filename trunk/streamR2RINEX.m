@@ -157,8 +157,7 @@ if (~isempty(data_rover_all))
         %%%%%%%%%%%%%%%%%%%%%% UBX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
         if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
-            %time_R(i)   = cell_rover{2,j}(1);
-            time_R(i)   = round(cell_rover{2,j}(1));
+            time_R(i)   = cell_rover{2,j}(1);
             week_R(i)   = cell_rover{2,j}(2);
             ph1_R(:,i)  = cell_rover{3,j}(:,1);
             pr1_R(:,i)  = cell_rover{3,j}(:,2);
@@ -226,7 +225,7 @@ if (~isempty(data_rover_all))
         %MEAS_TIME message data save
         elseif (strcmp(cell_rover{1,j},'MEAS_TIME'))
 
-            time_R(i) = round(cell_rover{2,j}(3));
+            time_R(i) = cell_rover{2,j}(3);
             week_R(i) = cell_rover{2,j}(2);
             
         %RAW_MEAS message data save
@@ -323,7 +322,7 @@ if (~isempty(data_rover_all))
         %if no observations are available, do not write anything
         if (n > 0)
             fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
-                date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), round(date(i,6)), n);
+                date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
             if (n>12)
                 for j = 1 : 12
                     fprintf(fid_obs,'G%02d',sat(j));
@@ -452,7 +451,7 @@ if (~isempty(data_rover_all))
                 date = datevec(tom/(3600*24) + 7*week_R(1) + datenum([1980,1,6,0,0,0]));
                 
                 lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
-                    satEph(j),date(1)-2000, date(2), date(3), date(4), date(5), round(date(6)), ...
+                    satEph(j),date(1)-2000, date(2), date(3), date(4), date(5), date(6), ...
                     af0, af1, af2);
                 linesE(1,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', IODE , crs, deltan, M0);
                 linesE(2,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
