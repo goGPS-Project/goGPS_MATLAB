@@ -475,17 +475,17 @@ set(handles.LS_amb_estim,'Value', state.LS_amb_estim);
 set(handles.stopGOstop,'Value', state.stopGOstop);
 
 plot_amb_Callback(handles.plot_amb, [], handles);
-if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
-    file_type_SelectionChangeFcn(handles.rinex_files, [], handles);
-else
-    file_type_SelectionChangeFcn(handles.gogps_data, [], handles);
-end
 constraint_Callback(handles.constraint, [], handles);
 plotproc_Callback(handles.constraint, [], handles);
 master_pos_Callback(handles.master_pos, [], handles);
 kalman_ls_Callback(handles.kalman_ls, [], handles);
 dyn_mod_Callback(handles.dyn_mod, [], handles);
 mode_Callback(handles.mode, [], handles);
+if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
+    file_type_SelectionChangeFcn(handles.rinex_files, [], handles);
+else
+    file_type_SelectionChangeFcn(handles.gogps_data, [], handles);
+end
 
 % --- Executes on selection change in mode.
 function mode_Callback(hObject, eventdata, handles)
