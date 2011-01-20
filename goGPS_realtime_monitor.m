@@ -362,7 +362,7 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
 end
 
 %positioning by Bancroft algorithm
-[pos_R, null] = input_bancroft(pr_R(satObs,1), satObs, time_GPS, Eph); %#ok<NASGU>
+[pos_R] = input_bancroft(pr_R(satObs,1), satObs, time_GPS, Eph);
 
 fprintf('ROVER approximate position computed using %d satellites\n', sum(pr_R ~= 0));
 

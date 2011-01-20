@@ -68,13 +68,10 @@ if (size(sat,1) >= 4)
 
    %ROVER positioning by means of Bancroft algorithm
    if (phase == 1)
-      [pos_R, pos_SAT] = input_bancroft(pr1_R(sat), sat, time, Eph_R);
+      [pos_R, pos_S] = input_bancroft(pr1_R(sat), sat, time, Eph_R);
    else
-      [pos_R, pos_SAT] = input_bancroft(pr2_R(sat), sat, time, Eph_R);
+      [pos_R, pos_S] = input_bancroft(pr2_R(sat), sat, time, Eph_R);
    end
-   
-   pos_R = pos_R(1:3);
-   pos_SAT = pos_SAT(:,1:3);
 
    %-----------------------------------------------------------------------------------
    % CHECK SATELLITE ELEVATION, PIVOT AND CUT-OFF
@@ -89,7 +86,7 @@ if (size(sat,1) >= 4)
    distM = zeros(32,1);
    
    %satellite azimuth, elevation, ROVER-SATELLITE distance
-   [azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_SAT);
+   [azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_S);
    
    %elevation cut-off
    sat_cutoff = find(elR > cutoff);

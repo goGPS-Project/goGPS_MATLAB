@@ -95,13 +95,10 @@ end
 %--------------------------------------------------------------------------------------------
 
 if (length(sat) >= 4)
-    [pos_R, pos_SAT] = input_bancroft(pr1_Rsat(sat), sat, time(1), Eph);
+    [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat), sat, time(1), Eph);
 else
     error('%d satellites are not enough to apply Bancroft algorithm\n', length(sat));
 end
-
-pos_R = pos_R(1:3);
-pos_SAT = pos_SAT(:,1:3);
 
 %------------------------------------------------------------------------------------
 % CHECK SATELLITE ELEVATION, PIVOT AND CUT-OFF
@@ -116,7 +113,7 @@ elM = zeros(32,1);
 distM = zeros(32,1);
 
 %satellite azimuth, elevation, ROVER-SATELLITE distance
-[azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_SAT);
+[azR(sat), elR(sat), distR(sat)] = topocent(pos_R, pos_S);
 
 %elevation cut-off
 sat_cutoff = find(elR > cutoff);
