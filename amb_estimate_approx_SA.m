@@ -62,10 +62,10 @@ lamR = lamR * 180 / pi;
 for m = 1 : size(sat,1)
     
     %new satellites position correction (clock and Earth rotation)
-    [pos_S dtS]= sat_corr(Eph, sat(m), time, pr_Rsat(m), pos_R);
+    [pos_S dtS]= sat_corr(Eph, sat(m), time, pr_Rsat(m));
 
     %computation of the satellite azimuth and elevation
-    [azR, elR] = topocent(pos_R, pos_S');
+    [azR, elR] = topocent(pos_R, pos_S'); %#ok<ASGLU>
     
     %computation of tropospheric errors
     err_tropo_RS = err_tropo(elR, hR);

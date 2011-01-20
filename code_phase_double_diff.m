@@ -94,7 +94,7 @@ nsat = size(sat,1);
 i = find(pivot == sat);
 
 %PIVOT position (with clock error and Earth rotation corrections)
-posP = sat_corr(Eph, sat(i), time, pr_R(i), pos_R_app);
+posP = sat_corr(Eph, sat(i), time, pr_R(i));
 
 %computation of ROVER-PIVOT and MASTER-PIVOT approximated pseudoranges
 prRP_app = sqrt(sum((pos_R_app - posP).^2));
@@ -132,7 +132,7 @@ for j = 1 : nsat
     if (sat(j) ~= pivot)
 
         %satellite position (with clock error and Earth rotation corrections)
-        posS(j,:) = sat_corr(Eph, sat(j), time, pr_R(j), pos_R_app);
+        posS(j,:) = sat_corr(Eph, sat(j), time, pr_R(j));
 
         %computation of the satellite azimuth and elevation
         [azR, elR(j)] = topocent(pos_R_app, posS(j,:));

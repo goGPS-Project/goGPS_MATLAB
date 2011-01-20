@@ -220,7 +220,7 @@ for i = 1:size(sat_pr)
     i_sat = sat_pr(i);
 
     %satellite position (with clock error and Earth rotation corrections)
-    [posS_tmp dtS_tmp] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat), posR_app);
+    [posS_tmp dtS_tmp] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat));
     
     if (~isempty(posS_tmp))
         

@@ -1,7 +1,7 @@
-function [pos, B] = input_bancroft(pr, sv, time, Eph)
+function [posR, posS, dtS] = input_bancroft(pr, sv, time, Eph)
 
 % SYNTAX:
-%   [pos, B] = input_bancroft(pr, sv, time, Eph);
+%   [posR, posS, dtS] = input_bancroft(pr, sv, time, Eph);
 %
 % INPUT:
 %   pr = observed code pseudoranges
@@ -10,8 +10,9 @@ function [pos, B] = input_bancroft(pr, sv, time, Eph)
 %   Eph = ephemerides matrix
 %
 % OUTPUT:
-%   pos = ROVER ground position (X,Y,Z)
-%   B = Bancroft matrix
+%   posR = ROVER ground position (X,Y,Z)
+%   posS = SATELLITE position (X, Y, Z)
+%   dtS = satellite clock error
 %
 % DESCRIPTION:
 %   Prepare input for Bancroft algorithm and run the algorithm.
@@ -37,20 +38,21 @@ B = [];
 for jsat = 1:m
 
     %satellite position correction (clock and Earth rotation)
-    [X, tcorr] = sat_corr(Eph, sv(jsat), time, pr(jsat));
-    
-    if (~isempty(X))
-        corrected_pseudorange = pr(jsat) + v_light * tcorr;
-        B(jsat,1) = X(1);
-        B(jsat,2) = X(2);
-        B(jsat,3) = X(3);
+    [posS(jsat,:), dtS(jsat)] = sat_corr(Eph, sv(jsat), time, pr(jsat));
+
+    if (~isempty(posS))
+        corrected_pseudorange = pr(jsat) + v_light * dtS(jsat);
+        B(jsat,1) = posS(jsat,1);
+        B(jsat,2) = posS(jsat,2);
+        B(jsat,3) = posS(jsat,3);
         B(jsat,4) = corrected_pseudorange;
     end
 end
 
 %approximate position by Bancroft algorithm
 pos = bancroft(B);
+posR = pos(1:3);
 
-%clock offset computation
-clock_offset = pos(4) / v_light;
-pos(4) = clock_offset * 1.e+9;
+% %clock offset computation
+% dtR = pos(4) / v_light;
+% pos(4) = dtR * 1.e+9;
