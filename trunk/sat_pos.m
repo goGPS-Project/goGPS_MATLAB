@@ -4,7 +4,7 @@ function [satp, satv] = sat_pos(t, Eph)
 %   [satp, satv] = sat_pos(t, Eph);
 %
 % INPUT:
-%   t = GPS time
+%   t = Clock-corrected GPS time
 %   Eph = ephemerides matrix
 %
 % OUTPUT:

@@ -45,6 +45,7 @@ function [xR, Cxx, PDOP, HDOP, VDOP, A] = code_SA(posR, pr1_R, snr_R, sat, time,
 %----------------------------------------------------------------------------------------------
 
 global v_light
+global rec_clock_error
 
 %number of visible satellites
 nsat = size(sat,1);
@@ -68,7 +69,7 @@ io = [];
 for i = 1 : nsat
     
     %satellite position (with clock error and Earth rotation corrections)
-    [posS dtS] = sat_corr(Eph, sat(i), time, pr1_R(i), posR);
+    [posS dtS] = sat_corr(Eph, sat(i), time, pr1_R(i));
 
     %computation of the satellite azimuth and elevation
     [azR, elR(i), distR] = topocent(posR, posS'); %#ok<NASGU>
@@ -85,10 +86,10 @@ for i = 1 : nsat
             ((posR(3) - posS(3)) / prRS_app) 1];
     
     %approximate pseudoranges
-    b = [b; prRS_app];
+    b = [b; prRS_app - v_light*dtS];
     
     %observed pseudoranges
-    y0 = [y0; prRS_obs + v_light*dtS];
+    y0 = [y0; prRS_obs];
     
     %computation of tropospheric errors
     err_tropo_RS = err_tropo(elR(i), hR);
@@ -118,6 +119,7 @@ Q = cofactor_matrix_SA(elR, snr_R, sat);
 %least squares solution
 x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
 xR = posR + x(1:3);
+rec_clock_error = x(4) / v_light;
 
 %estimation of the variance of the observation error
 y_stim = A*x + b;

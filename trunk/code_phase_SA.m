@@ -73,7 +73,7 @@ lamR = lamR * 180 / pi;
 
 for i = 1 : nsat
     %satellite position (with clock error and Earth rotation corrections)
-    [posS(i,:) dtS(i)] = sat_corr(Eph, sat(i), time, pr_R(i), pos_R_app);
+    [posS(i,:) dtS(i)] = sat_corr(Eph, sat(i), time, pr_R(i));
 
     %computation of the satellite azimuth and elevation
     [azR, elR(i)] = topocent(pos_R_app, posS(i,:));

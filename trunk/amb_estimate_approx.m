@@ -57,7 +57,7 @@ global lambda2
 i = find(pivot == sat);
 
 %PIVOT position correction (clock and rotation)
-Rot_Xpivot = sat_corr(Eph, sat(i), time, pr_Rsat(i), pos_R);
+Rot_Xpivot = sat_corr(Eph, sat(i), time, pr_Rsat(i));
 
 %ROVER,MASTER-PIVOT approximate pseudorange estimate
 pr_stim_RP = sqrt(sum((pos_R - Rot_Xpivot).^2));
@@ -71,7 +71,7 @@ ph_MP = ph_Msat(i);
 for m = 1 : size(sat,1)
     
     %new satellites position correction (clock and Earth rotation)
-    Rot_X = sat_corr(Eph, sat(m), time, pr_Rsat(m), pos_R);
+    Rot_X = sat_corr(Eph, sat(m), time, pr_Rsat(m));
     
     %ROVER,MASTER-SATELLITES pseudorange estimate
     pr_stim_Rsat(m,1) = sqrt(sum((pos_R - Rot_X).^2));

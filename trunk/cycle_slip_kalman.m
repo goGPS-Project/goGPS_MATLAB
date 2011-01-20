@@ -61,7 +61,7 @@ nsat = size(sat,1);
 i = find(pivot == sat);
 
 %PIVOT position (with clock error and Earth rotation corrections)
-posP = sat_corr(Eph, sat(i), time, pr_Rsat(i), posR);
+posP = sat_corr(Eph, sat(i), time, pr_Rsat(i));
 
 %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
 pr_RP_stim = sqrt(sum((posR - posP).^2));
@@ -78,7 +78,7 @@ pr_stim = [];
 for i = 1 : nsat
 
     %satellite position (with clock error and Earth rotation corrections)
-    posS = sat_corr(Eph, sat(i), time, pr_Rsat(i), posR);
+    posS = sat_corr(Eph, sat(i), time, pr_Rsat(i));
 
     %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
     pr_RS_stim = sqrt(sum((posR - posS).^2));

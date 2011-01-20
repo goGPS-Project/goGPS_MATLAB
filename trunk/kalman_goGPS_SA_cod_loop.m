@@ -108,7 +108,7 @@ bad_sat = [];
 for i = 1:size(sat_pr)
 
     %satellite position correction (clock and Earth rotation)
-    Rot_X = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(i), X_t1_t([1,o1+1,o2+1])');
+    Rot_X = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(i));
 
     if (~isempty(Rot_X))
         %azimuth, elevation, ROVER-SATELLITE distance computation

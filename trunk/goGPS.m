@@ -317,7 +317,7 @@ if (mode < 10) %post-processing
         time_GPS = time_GPS(1) + (0 : 1 : length(time_M)-1)';
 
         %date
-        date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+        date = datevec(time_GPS/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
 
         %other variables
         pr2_M = zeros(size(pr1_M));
