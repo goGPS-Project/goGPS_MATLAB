@@ -145,7 +145,7 @@ bad_sat = [];
 for i = 1:size(sat_pr)
 
     %satellite position/velocity computation (clock and Earth rotation)
-    [pos_S, null_dt_S, pos_S_ttime, vel_S] = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(sat_pr(i)), pos_R'); %#ok<ASGLU>
+    [pos_S, null_dt_S, pos_S_ttime, vel_S, ttime] = sat_corr(Eph, sat_pr(i), time, pr1_Rsat(sat_pr(i))); %#ok<ASGLU>
 
     if (~isempty(pos_S))
         %azimuth, elevation, ROVER-SATELLITE distance computation
@@ -160,26 +160,14 @@ for i = 1:size(sat_pr)
         bad_sat(j,1) = sat_pr(i);
         j = j + 1;
     end
-
-    %approximate doppler measurement computation
-    LOS  = pos_S_ttime - pos_R;    %receiver-satellite line-of-sight vector
-    %LOSu = LOS / sqrt(LOS(1)^2 + LOS(2)^2 + LOS(3)^2); %receiver-satellite line-of-sight unit vector
-    LOSu = LOS / norm(LOS);        %receiver-satellite line-of-sight unit vector
-    vrel = vel_S - vel_R;          %receiver-satellite relative velocity vector
-    %radial_vel = vrel(1)*LOSu(1) + vrel(2)*LOSu(2) + vrel(3)*LOSu(3); %receiver-satellite radial velocity
-    radial_vel = dot(vrel,LOSu);   %receiver-satellite radial velocity
-    doppler_app1 = -(radial_vel/lambda1);
-    doppler_app2 = -(radial_vel/lambda2);
-
-    date = datevec(time/(3600*24) + 7*1565 + datenum([1980,1,6,0,0,0]));
-    if (date(4:6) == [6 0 0])
-%          sat_pr(i)
-%         pos_S
-%         pos_S_ttime
-%         vel_S
-%          doppler_app1
-%         doppler_app2
-    end
+    
+    %DEBUG
+%     date = datevec(time/(3600*24) + 7*1565 + datenum([1980,1,6,0,0,0]));
+%     if (date(4:6) == [6 0 0])
+%         %computation of approximate doppler shift
+%         [doppler_app1(i), doppler_app2(i)] = doppler_shift_approx(pos_R, vel_R, pos_S_ttime, vel_S, ttime, sat_pr(i), Eph);
+%         doppler_app1
+%     end
 end
 
 %removal of satellites without ephemerides or with elevation or SNR lower than the respective threshold
