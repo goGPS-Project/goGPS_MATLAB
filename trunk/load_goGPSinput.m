@@ -109,7 +109,7 @@ while ~isempty(d)
 end
 
 %force top-of-second measurements
-time_R = round(time_R);
+% time_R = round(time_R);
 
 %-------------------------------------------------------------------------------
 
@@ -145,7 +145,7 @@ end
 
 %-------------------------------------------------------------------------------
 
-delay = time_GPS - time_R;                %processing delays
+delay = time_GPS - round(time_R);         %processing delays
 
 loss_R = zeros(length(time_R),1);         %ROVER losses initialization
 loss_M = zeros(length(time_M),1);         %MASTER losses initialization
