@@ -121,7 +121,7 @@ err_tropo_RP = err_tropo(elR(i), hR);
 err_tropo_MP = err_tropo(elM(i), hM);
 
 %if ionospheric parameters are available
-if (nargin == 14)
+if (nargin > 13)
 
    %ROVER-PIVOT and MASTER-PIVOT ionospheric error computation
    err_iono_RP = err_iono(iono, phiR, lamR, azR, elR(i), time);
@@ -147,7 +147,7 @@ for j = 1 : nsat
         err_tropo_MS(j) = err_tropo(elM(j), hM);
 
         %if ionospheric parameters are available
-        if (nargin == 14)
+        if (nargin > 13)
 
             %computation of ionospheric errors
             err_iono_RS(j) = err_iono(iono, phiR, lamR, azR, elR(j), time);
@@ -187,12 +187,11 @@ for j = 1 : nsat
         tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
 
         %if ionospheric parameters are available
-        if (nargin == 14)
+        if (nargin > 13)
 
             %computation of crossed ionospheric errors
             io = [io; (err_iono_RS(j) - err_iono_MS(j)) - (err_iono_RP - err_iono_MP)];
         end
-
     end
 end
 
@@ -228,7 +227,7 @@ for j = 1 : nsat
         tr = [tr; (err_tropo_RS(j) - err_tropo_MS(j)) - (err_tropo_RP - err_tropo_MP)];
 
         %if ionospheric parameters are available
-        if (nargin == 14)
+        if (nargin > 13)
 
             %computation of crossed ionospheric errors
             io = [io; -((err_iono_RS(j) - err_iono_MS(j)) - (err_iono_RP - err_iono_MP))];
@@ -242,7 +241,7 @@ b = comb_pr_app;
 
 %correction of the b known term
 b = b + tr;
-if (nargin == 14)
+if (nargin > 13)
    b = b + io;
 end
 
