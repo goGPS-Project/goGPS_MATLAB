@@ -349,7 +349,7 @@ if (nsat >= min_nsat)
     if ~isempty(sat)
         
         %Test presence/absence of a cycle-slip at the current epoch.
-        %The state of the system is changed only for phase ambiguities
+        %The state of the system is not changed yet
         if (length(phase) == 2)
             [check_cs1, N_slip1, sat_slip1] = cycle_slip_kalman_SA(X_t1_t(o3+1:o3+32), pr1_Rsat(sat), ph1_Rsat(sat), err_iono_RS, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
             [check_cs2, N_slip2, sat_slip2] = cycle_slip_kalman_SA(X_t1_t(o3+33:o3+64), pr2_Rsat(sat), ph2_Rsat(sat), (lambda2/lambda1)^2 * err_iono_RS, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
@@ -378,8 +378,8 @@ if (nsat >= min_nsat)
     %------------------------------------------------------------------------------------
     
     if (length(phase) == 2)
-        [N1_slip, N1_born, dtR1] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-        [N2_slip, N2_born, dtR2] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<NASGU>
+        [N1_slip, N1_born, dtR1] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+        [N2_slip, N2_born, dtR2] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<NASGU>
         
         %choose one of the two estimates
         dtR = dtR1;
@@ -417,7 +417,7 @@ if (nsat >= min_nsat)
             Cvv(o3+sat_born,o3+sat_born) = sigmaq0_N * eye(size(sat_born,1));
         end
         
-        if (check_cs == 1)
+        if (check_cs)
             conf_cs(sat_slip) = 1;
             X_t1_t(o3+sat_slip) = N_slip;
             Cvv(o3+sat_slip,o3+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));

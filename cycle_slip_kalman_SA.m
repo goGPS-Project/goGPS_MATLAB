@@ -3,7 +3,7 @@ function [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(N_kalman, ...
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(N_kalman, ...
-%    pr_Rsat, ph_Rsat, err_iono_RS, sat, alfa, phase);
+%    pr_Rsat, ph_Rsat, err_iono_RS, sat, sat_born, alfa, phase);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
@@ -11,6 +11,7 @@ function [slip, N_slip, sat_slip] = cycle_slip_kalman_SA(N_kalman, ...
 %   ph_Rsat = ROVER-SATELLITE phase observation
 %   iono_err = ionospheric error
 %   sat = visible satellites configuration
+%   sat_born = new satellites (added in this epoch)
 %   alfa = cycle-slip detection threshold
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %

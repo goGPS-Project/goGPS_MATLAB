@@ -253,9 +253,9 @@ else
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
         [     pos_R,      cov_pos_R, comb_N1_stim(sat), cov_comb_N1_stim, PDOP, HDOP, VDOP] = code_phase_double_diff(pos_R, pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 1, iono);
-        [null_pos_R, null_cov_pos_R, comb_N2_stim(sat), cov_comb_N2_stim]    = code_phase_double_diff(pos_R, pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 2, iono); %#ok<ASGLU>
+        [null_pos_R, null_cov_pos_R, comb_N2_stim(sat), cov_comb_N2_stim] = code_phase_double_diff(pos_R, pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 2, iono); %#ok<ASGLU>
     end
-    
+
     if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
         cov_pos_R = sigmaq0 * eye(3);
     end
