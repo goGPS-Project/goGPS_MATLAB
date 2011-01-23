@@ -1,27 +1,36 @@
-function [A, ddc_app, ddc, ddp] = input_kalman(posR, pr_Rsat, ph_Rsat, ...
-         posM, pr_Msat, ph_Msat, time, sat, pivot, Eph, phase)
+function [A, prstim_pr, prstim_ph, ddc, ddp] = input_kalman(posR_app, posS, ...
+          prRS_app, prMS_app, pr_Rsat, ph_Rsat, pr_Msat, ph_Msat, ...
+          err_tropo_RS, err_iono_RS, err_tropo_MS, err_iono_MS, ...
+          sat, pivot, phase)
 
 % SYNTAX:
-%   [A, ddc_app, ddc, ddp] = input_kalman(posR, pr_Rsat, ph_Rsat, ...
-%   posM, pr_Msat, ph_Msat, time, sat, pivot, Eph, phase);
+%   [A, prstim_pr, prstim_ph, ddc, ddp] = input_kalman(posR_app, posS, ...
+%         prRS_app, prMS_app, pr_Rsat, ph_Rsat, pr_Msat, ph_Msat, ...
+%         err_tropo_RS, err_iono_RS, err_tropo_MS, err_iono_MS, ...
+%         sat, pivot, phase);
 %
 % INPUT:
-%   posR = receiver position (X,Y,Z)
+%   posR_app = receiver position (X,Y,Z)
+%   posS = satellite posizion (X,Y,Z)
+%   prRS_app = ROVER-SATELLITE approximate pseudorange
+%   prMS_app = MASTER-SATELLITE approximate pseudorange
 %   pr_Rsat = ROVER-SATELLITE code pseudorange
 %   ph_Rsat = ROVER-SATELLITE phase observations
-%   posM = MASTER position (X,Y,Z)
 %   pr_Msat = MASTER-SATELLITE code pseudorange
 %   ph_Msat = MASTER-SATELLITE phase observations
-%   time = GPS time
+%   err_tropoRS = ROVER-SATELLITE tropospheric error
+%   err_ionoRS = ROVER-SATELLITE ionospheric error
+%   err_tropoMS = MASTER-SATELLITE tropospheric error
+%   err_ionoMS = MASTER-SATELLITE ionospheric error
 %   sat = configuration of visible satellites
 %   pivot = pivot satellite
-%   Eph = ephemerides matrix
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % OUTPUT:
 %   A = parameters obtained from the linearization of the observation equation,
 %       e.g. ((xR-xS)/prRS)-((xR-xP)/prRP)
-%   ddc_app = approximated code double differences
+%   prstim_pr = approximated code double differences
+%   prstim_ph = approximated phase double differences
 %   ddc = observed code double differences
 %   ddp = observed phase double differences
 %
@@ -54,23 +63,23 @@ global lambda1;
 global lambda2;
 
 %number of visible satellites
-nsat = size(sat,1);
+nsat = length(prRS_app);
 
 %PIVOT search
 i = find(pivot == sat);
 
-%PIVOT position (with clock error and Earth rotation corrections)
-posP = sat_corr(Eph, sat(i), time, pr_Rsat(i));
+%PIVOT satellite position
+posP = posS(:,i);
 
-%computation of ROVER-PIVOT and MASTER-PIVOT approximated pseudoranges
-prRP_app = sqrt(sum((posR - posP).^2));
-prMP_app = sqrt(sum((posM - posP).^2));
+%ROVER-PIVOT and MASTER-PIVOT approximate pseudoranges
+prRP_app = prRS_app(i);
+prMP_app = prMS_app(i);
 
-%observed code pseudorange
+%ROVER-PIVOT and MASTER-PIVOT code observations
 prRP = pr_Rsat(i);
 prMP = pr_Msat(i);
 
-%phase observations
+%ROVER-PIVOT and MASTER-PIVOT phase observations
 if (phase == 1)
     phRP = lambda1 * ph_Rsat(i);
     phMP = lambda1 * ph_Msat(i);
@@ -79,29 +88,32 @@ else
     phMP = lambda2 * ph_Msat(i);
 end
 
+%ROVER-PIVOT and MASTER-PIVOT tropospheric errors
+err_tropo_RP = err_tropo_RS(i);
+err_tropo_MP = err_tropo_MS(i);
+
+%ROVER-PIVOT and MASTER-PIVOT ionospheric errors
+err_iono_RP = err_iono_RS(i);
+err_iono_MP = err_iono_MS(i);
+
 A = [];
 ddc_app = [];
 ddc = [];
 ddp = [];
+tr = [];
+io = [];
 
 %computation of all the linear combinations between PIVOT and other satellites
 for i = 1 : nsat
     if (sat(i) ~= pivot)
 
-        %satellite position (with clock error and Earth rotation corrections)
-        posS = sat_corr(Eph, sat(i), time, pr_Rsat(i));
-
-        %computation of the ROVER-SATELLITE and MASTER-SATELLITE approximated pseudoranges
-        prRS_app = sqrt(sum((posR - posS).^2));
-        prMS_app = sqrt(sum((posM - posS).^2));
-
         %construction of the transition matrix
-        A = [A; (((posR(1) - posS(1)) / prRS_app) - ((posR(1) - posP(1)) / prRP_app)) ...
-                (((posR(2) - posS(2)) / prRS_app) - ((posR(2) - posP(2)) / prRP_app)) ...
-                (((posR(3) - posS(3)) / prRS_app) - ((posR(3) - posP(3)) / prRP_app))];
+        A = [A; (((posR_app(1) - posS(1,i)) / prRS_app(i)) - ((posR_app(1) - posP(1)) / prRP_app)) ...
+                (((posR_app(2) - posS(2,i)) / prRS_app(i)) - ((posR_app(2) - posP(2)) / prRP_app)) ...
+                (((posR_app(3) - posS(3,i)) / prRS_app(i)) - ((posR_app(3) - posP(3)) / prRP_app))];
 
         %computation of the estimated code double differences
-        ddc_app = [ddc_app; (prRS_app - prMS_app) - (prRP_app - prMP_app)];
+        ddc_app = [ddc_app; (prRS_app(i) - prMS_app(i)) - (prRP_app - prMP_app)];
 
         %computation of the observed code double differences
         ddc = [ddc; (pr_Rsat(i) - pr_Msat(i)) - (prRP - prMP)];
@@ -112,5 +124,19 @@ for i = 1 : nsat
         else
             ddp = [ddp; (lambda2 * ph_Rsat(i) - lambda2 * ph_Msat(i)) - (phRP - phMP)];
         end
+        
+        %computation of tropospheric residuals
+        tr = [tr; (err_tropo_RS(i) - err_tropo_MS(i)) - (err_tropo_RP - err_tropo_MP)];
+        
+        %computation of ionospheric residuals
+        io = [io; (err_iono_RS(i) - err_iono_MS(i)) - (err_iono_RP - err_iono_MP)];
     end
+end
+
+if (phase == 1)
+    prstim_pr = ddc_app + tr + io;
+    prstim_ph = ddc_app + tr - io;
+else
+    prstim_pr = ddc_app + tr + io*(lambda2/lambda1)^2;
+    prstim_ph = ddc_app + tr - io*(lambda2/lambda1)^2;
 end

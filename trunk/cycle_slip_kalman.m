@@ -1,16 +1,17 @@
 function [slip, N_slip, sat_slip] = cycle_slip_kalman(N_kalman, ...
-         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, pivot, sat, sat_born, alfa, phase)
+         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, doppler_pred_range, pivot, sat, sat_born, alfa, phase)
 
 % SYNTAX:
-%   [slip, N_slip, sat_slip] = cycle_slip_kalman(posM, posR, N_kalman, ...
-%   ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, Eph, time, pivot, sat, alfa, phase);
+%   [slip, N_slip, sat_slip] = cycle_slip_kalman(N_kalman, ...
+%   ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, doppler_pred_range, pivot, sat, alfa, phase);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
 %   ph_Rsat = ROVER-SATELLITE phase observation
 %   ph_Msat = MASTER-SATELLITE phase observation
-%   pr_Rsat = ROVER-SATELLITE code pseudorange
-%   pr_Msat = MASTER-SATELLITE code pseudorange
+%   pr_Rsat = ROVER-SATELLITE code pseudorange observation
+%   pr_Msat = MASTER-SATELLITE code pseudorange observation
+%   doppler_pred_range = predicted range based on phase and Doppler observations from previous epoch
 %   pivot = PIVOT satellite
 %   sat = visible satellites configuration
 %   sat_born = new satellites (added in this epoch)
@@ -133,17 +134,25 @@ slip = 0;
 %cycle-slip detection
 for i = 1 : nsat
 
-    %test on the estimated value of the phase ambiguities
-    if (~ismember(sat(i),sat_born) & (sat(i) ~= pivot) & (abs(N_kalman(sat(i)) - N_stim(i)) > alfa))
+    if (~ismember(sat(i),sat_born) & (sat(i) ~= pivot))
 
-        %save of the new phase ambiguity estimation
-        N_slip = [N_slip; N_stim(i)];
+        %test on:
+        % - Kalman-estimated phase ambiguities compared with code-phase range (double differences)
+        %   (abs(N_kalman(sat(i)) - N_stim(i)) > alfa)
+        % - Doppler-predicted phase range compared to observed phase range (ROVER only)
+        if (abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
 
-        %save of the slipped satellite
-        sat_slip = [sat_slip; sat(i)];
+            %save of the new phase ambiguity estimation
+            N_slip = [N_slip; N_stim(i)];
 
-        %flag identifying a cycle-slip
-        slip = 1;
+            %save of the slipped satellite
+            sat_slip = [sat_slip; sat(i)];
+
+            %flag identifying a cycle-slip
+            slip = 1;
+%             fprintf('Cycle-slip on satellite %d: range difference = %.3f\n', sat(i), doppler_pred_range(i) - ph_Rsat(i));        
+%             pause
+        end
     end
 end
 

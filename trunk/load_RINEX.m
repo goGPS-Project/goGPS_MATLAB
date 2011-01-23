@@ -1,13 +1,13 @@
 function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-          Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
+          dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
           pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-          Eph_RR, Eph_MR, snr_RR, snr_MR, ...
+          dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
           time_GPS, date, pos_M] = ...
           load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav, wait_dlg)
 
 % SYNTAX:
 %   [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%    Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
+%    dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
 %    pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
 %    Eph_RR, Eph_MR, snr_RR, snr_MR, ...
 %    time_GPS, date, pos_M] = ...
@@ -29,10 +29,32 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   pr2_M = code observation (L2 carrier, MASTER)
 %   ph2_R = phase observation (L2 carrier, ROVER)
 %   ph2_M = phase observation (L2 carrier, MASTER)
+%   dop1_R = Doppler observation (L1 carrier, ROVER)
+%   dop1_M = Doppler observation (L1 carrier, MASTER)
+%   dop2_R = Doppler observation (L2 carrier, ROVER)
+%   dop2_M = Doppler observation (L2 carrier, MASTER)
 %   Eph_R = matrix containing 29 ephemerides for each satellite (ROVER)
 %   Eph_M = matrix containing 29 ephemerides for each satellite (MASTER)
 %   iono_R = matrix containing ionosphere parameters (ROVER)
 %   iono_M = matrix containing ionosphere parameters (MASTER)
+%   snr_R = signal-to-noise ratio (ROVER)
+%   snr_M = signal-to-noise ratio (MASTER)
+%   pr1_RR = code observation (GLONASS, L1 carrier, ROVER)
+%   pr1_MR = code observation (GLONASS, L1 carrier, MASTER)
+%   ph1_RR = phase observation (GLONASS, L1 carrier, ROVER)
+%   ph1_MR = phase observation (GLONASS, L1 carrier, MASTER)
+%   pr2_RR = code observation (GLONASS, L2 carrier, ROVER)
+%   pr2_MR = code observation (GLONASS, L2 carrier, MASTER)
+%   ph2_RR = phase observation (GLONASS, L2 carrier, ROVER)
+%   ph2_MR = phase observation (GLONASS, L2 carrier, MASTER)
+%   dop1_RR = Doppler observation (GLONASS, L1 carrier, ROVER)
+%   dop1_MR = Doppler observation (GLONASS, L1 carrier, MASTER)
+%   dop2_RR = Doppler observation (GLONASS, L2 carrier, ROVER)
+%   dop2_MR = Doppler observation (GLONASS, L2 carrier, MASTER)
+%   Eph_RR = matrix containing 29 ephemerides for each satellite (GLONASS, ROVER)
+%   Eph_MR = matrix containing 29 ephemerides for each satellite (GLONASS, MASTER)
+%   snr_RR = signal-to-noise ratio (GLONASS, ROVER)
+%   snr_MR = signal-to-noise ratio (GLONASS, MASTER)
 %   time_GPS = GPS time of ROVER observations
 %   date = date (year,month,day,hour,minute,second)
 %   pos_M = master station approximate position
@@ -195,23 +217,31 @@ while (~feof(FR_oss))
     pr2_R(:,k) = zeros(32,1);
     ph1_R(:,k) = zeros(32,1);
     ph2_R(:,k) = zeros(32,1);
+    dop1_R(:,k) = zeros(32,1);
+    dop2_R(:,k) = zeros(32,1);
     snr_R(:,k) = zeros(32,1);
     pr1_M(:,k) = zeros(32,1);
     pr2_M(:,k) = zeros(32,1);
     ph1_M(:,k) = zeros(32,1);
     ph2_M(:,k) = zeros(32,1);
     snr_M(:,k) = zeros(32,1);
+    dop1_M(:,k) = zeros(32,1);
+    dop2_M(:,k) = zeros(32,1);
 
     %variable initialization (GLONASS)
     pr1_RR(:,k) = zeros(32,1);
     pr2_RR(:,k) = zeros(32,1);
     ph1_RR(:,k) = zeros(32,1);
     ph2_RR(:,k) = zeros(32,1);
+    dop1_RR(:,k) = zeros(32,1);
+    dop2_RR(:,k) = zeros(32,1);
     snr_RR(:,k) = zeros(32,1);
     pr1_MR(:,k) = zeros(32,1);
     pr2_MR(:,k) = zeros(32,1);
     ph1_MR(:,k) = zeros(32,1);
     ph2_MR(:,k) = zeros(32,1);
+    dop1_MR(:,k) = zeros(32,1);
+    dop2_MR(:,k) = zeros(32,1);
     snr_MR(:,k) = zeros(32,1);
 
     if (time_GPS_R == time_GPS(k))
@@ -225,6 +255,8 @@ while (~feof(FR_oss))
         pr2_R(:,k) = obs_GPS_R.P2;
         ph1_R(:,k) = obs_GPS_R.L1;
         ph2_R(:,k) = obs_GPS_R.L2;
+        dop1_R(:,k) = obs_GPS_R.D1;
+        dop2_R(:,k) = obs_GPS_R.D2;
         snr_R(:,k) = obs_GPS_R.S1;
         
         %read ROVER observations (GLONASS)
@@ -232,6 +264,8 @@ while (~feof(FR_oss))
         % %pr2_RR(:,k) = obs_GLO_R.P2;
         % ph1_RR(:,k) = obs_GLO_R.L1;
         % %ph2_RR(:,k) = obs_GLO_R.L2;
+        % dop1_RR(:,k) = obs_GLO_R.D1;
+        % %dop2_RR(:,k) = obs_GLO_R.D2;
         % snr_RR(:,k) = obs_GLO_R.S1;
 
         %read data for the current epoch (ROVER)
@@ -254,6 +288,8 @@ while (~feof(FR_oss))
             pr2_M(:,k) = obs_GPS_M.P2;
             ph1_M(:,k) = obs_GPS_M.L1;
             ph2_M(:,k) = obs_GPS_M.L2;
+            dop1_M(:,k) = obs_GPS_M.D1;
+            dop2_M(:,k) = obs_GPS_M.D2;
             snr_M(:,k) = obs_GPS_M.S1;
             
             %read MASTER observations (GLONASS)
@@ -261,6 +297,8 @@ while (~feof(FR_oss))
             % %pr2_MR(:,k) = obs_GLO_M.P2;
             % ph1_MR(:,k) = obs_GLO_M.L1;
             % %ph2_MR(:,k) = obs_GLO_M.L2;
+            % dop1_MR(:,k) = obs_GLO_M.D1;
+            % %dop2_MR(:,k) = obs_GLO_M.D2;
             % snr_MR(:,k) = obs_GLO_M.S1;
             
             %read data for the current epoch (MASTER)
