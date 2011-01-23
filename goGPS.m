@@ -192,17 +192,17 @@ if (mode < 10) %post-processing
         if (mode == 2) | (mode == 4) | (mode == 6)
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-                Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
+                dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
                 pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-                Eph_RR, Eph_MR, snr_RR, snr_MR, ...
+                dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
                 time_GPS, date, pos_M] = ...
                 load_RINEX(filename_R_obs, filename_R_nav);
         else
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-                Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
+                dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
                 pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-                Eph_RR, Eph_MR, snr_RR, snr_MR, ...
+                dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
                 time_GPS, date, pos_M] = ...
                 load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
         end
@@ -238,6 +238,10 @@ if (mode < 10) %post-processing
         ph1_M(delsat,:) = 0;
         ph2_R(delsat,:) = 0;
         ph2_M(delsat,:) = 0;
+        dop1_R(delsat,:) = 0;
+        dop1_M(delsat,:) = 0;
+        dop2_R(delsat,:) = 0;
+        dop2_M(delsat,:) = 0;
         snr_R(delsat,:) = 0;
         snr_M(delsat,:) = 0;
 
@@ -251,6 +255,10 @@ if (mode < 10) %post-processing
         %ph1_MR(delsat,:) = 0;
         %ph2_RR(delsat,:) = 0;
         %ph2_MR(delsat,:) = 0;
+        %dop1_RR(delsat,:) = 0;
+        %dop1_MR(delsat,:) = 0;
+        %dop2_RR(delsat,:) = 0;
+        %dop2_MR(delsat,:) = 0;
         %snr_RR(delsat,:) = 0;
         %snr_MR(delsat,:) = 0;
 
@@ -263,6 +271,10 @@ if (mode < 10) %post-processing
         %pr2_M = pr2_M(:,end:-1:1);
         %ph2_R = ph2_R(:,end:-1:1);
         %ph2_M = ph2_M(:,end:-1:1);
+        %dop1_R = dop1_R(:,end:-1:1);
+        %dop1_M = dop1_M(:,end:-1:1);
+        %dop2_R = dop2_R(:,end:-1:1);
+        %dop2_M = dop2_M(:,end:-1:1);
         %snr_R = snr_R(:,end:-1:1);
         %snr_M = snr_M(:,end:-1:1);
 
@@ -275,6 +287,10 @@ if (mode < 10) %post-processing
         %pr2_MR = pr2_MR(:,end:-1:1);
         %ph2_RR = ph2_RR(:,end:-1:1);
         %ph2_MR = ph2_MR(:,end:-1:1);
+        %dop1_RR = dop1_RR(:,end:-1:1);
+        %dop1_MR = dop1_MR(:,end:-1:1);
+        %dop2_RR = dop2_RR(:,end:-1:1);
+        %dop2_MR = dop2_MR(:,end:-1:1);
         %snr_RR = snr_RR(:,end:-1:1);
         %snr_MR = snr_MR(:,end:-1:1);
 
@@ -414,7 +430,7 @@ if (mode == 1) & (mode_vinc == 0)
             Eph_t = Eph(:,:,1);
         end
 
-        kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
+        kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop1_R(:,1), dop2_R(:,1), snr_R(:,1), snr_M(:,1), 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -451,7 +467,7 @@ if (mode == 1) & (mode_vinc == 0)
                 Eph_t = Eph(:,:,t);
             end
 
-            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop1_R(:,t), dop2_R(:,t), snr_R(:,t), snr_M(:,t), 1);
 
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -1920,9 +1936,9 @@ end
 %    s1 = sum(abs(conf_sat));
 %    plot(s1,'b.-');
 %    s2 = [0; pivot(2:end) - pivot(1:end-1)];
-%    plot(find(s2>0),s1(find(s2>0)),'r.')
+%    plot(find(s2>0),s1(s2>0),'r.')
 %    s3 = sum(conf_cs);
-%    plot(find(s3>0),s3(find(s3>0)),'g.');
+%    plot(find(s3>0),s3(s3>0),'g.');
 %    axis([1 size(conf_sat,2) 0 max(s1)])
 %    hold off;
 %    clear s1 s2 s3
@@ -1999,7 +2015,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 % if (mode == 1) | (mode == 2)
-%
+% 
 %    for i = 1 : 32
 %       index = find(conf_sat(i,:) == 1)';
 %       index_cs = find(conf_cs(i,:) == 1)';
@@ -2020,7 +2036,35 @@ end
 %          title(['Combination of estimated ambiguities between PIVOT and SATELLITE ',num2str(i)]);
 %       end
 %    end
-%
+% 
+% end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF LAMBDA1*L1-P1
+%----------------------------------------------------------------------------------------------
+
+% %rover
+% if (mode == 1) | (mode == 2)
+%    for i = 1 : 32
+%       index = find(conf_sat(i,:) == 1)';
+%       if ~isempty(index)
+%          figure
+%          plot(index,lambda1*ph1_R(i,index)-pr1_R(i,index),'b.-'); grid on;
+%          title(['ROVER: lambda1*L1-P1 for SATELLITE ',num2str(i)]);
+%       end
+%    end
+% end
+% 
+% %master
+% if (mode == 1) | (mode == 2)
+%    for i = 1 : 32
+%       index = find(conf_sat(i,:) == 1)';
+%       if ~isempty(index)
+%          figure
+%          plot(index,lambda1*ph1_M(i,index)-pr1_M(i,index),'b.-'); grid on;
+%          title(['MASTER: lambda1*L1-P1 for SATELLITE ',num2str(i)]);
+%       end
+%    end
 % end
 
 %----------------------------------------------------------------------------------------------
