@@ -1,18 +1,17 @@
-function [slip, N_slip, sat_slip] = cycle_slip_kalman(N_kalman, ...
-         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, doppler_pred_range, pivot, sat, sat_born, alfa, phase)
+function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
+         pr_Rsat, ph_Rsat, err_iono_RS, doppler_pred_range, sat, sat_born, alfa, phase)
 
 % SYNTAX:
-%   [slip, N_slip, sat_slip] = cycle_slip_kalman(N_kalman, ...
-%   ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, doppler_pred_range, pivot, sat, alfa, phase);
+%   [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
+%    pr_Rsat, ph_Rsat, err_iono_RS, doppler_pred_range, sat, sat_born, alfa, phase);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
+%   pr_Rsat = ROVER-SATELLITE code observation
 %   ph_Rsat = ROVER-SATELLITE phase observation
-%   ph_Msat = MASTER-SATELLITE phase observation
-%   pr_Rsat = ROVER-SATELLITE code pseudorange observation
-%   pr_Msat = MASTER-SATELLITE code pseudorange observation
-%   doppler_pred_range = predicted range based on phase and Doppler observations from previous epoch
-%   pivot = PIVOT satellite
+%   err_iono_RS = ionospheric error
+%   doppler_pred_range = predicted range based on phase and Doppler
+%   observations from previous epoch
 %   sat = visible satellites configuration
 %   sat_born = new satellites (added in this epoch)
 %   alfa = cycle-slip detection threshold
@@ -25,7 +24,8 @@ function [slip, N_slip, sat_slip] = cycle_slip_kalman(N_kalman, ...
 %
 % DESCRIPTION:
 %   Detects the presence of cycle-slips and in case estimates
-%   the new phase ambiguities.
+%   the new phase ambiguities. Estimation of the satellite-receiver
+%   range on the basis of the Kalman filter.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -47,84 +47,19 @@ function [slip, N_slip, sat_slip] = cycle_slip_kalman(N_kalman, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%variables initialization
+%variable initialization
 global lambda1
 global lambda2
 
 %number of visible satellites
 nsat = size(sat,1);
 
-%PIVOT position research
-i = find(pivot == sat);
-
-%pivot code observations
-pr_RP = pr_Rsat(i);
-pr_MP = pr_Msat(i);
-
-%pivot phase observations
-ph_RP = ph_Rsat(i);
-ph_MP = ph_Msat(i);
-
-%observed code double differences
-comb_pr = (pr_Rsat - pr_Msat) - (pr_RP - pr_MP);
-
-%observed phase double differences
-comb_ph = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
-
-%linear combination of initial ambiguity estimate
+%phase ambiguities estimation
 if (phase == 1)
-    N_stim = ((comb_pr - comb_ph * lambda1)) / lambda1;
+    N_stim = (pr_Rsat - lambda1 * ph_Rsat - 2 * err_iono_RS) / lambda1;
 else
-    N_stim = ((comb_pr - comb_ph * lambda2)) / lambda2;
+    N_stim = (pr_Rsat - lambda2 * ph_Rsat - 2 * err_iono_RS) / lambda2;
 end
-
-% %variable initialization
-% global lambda1;
-% global lambda2;
-% 
-% %number of visible satellites
-% nsat = size(sat,1);
-% 
-% %PIVOT search
-% i = find(pivot == sat);
-% 
-% %PIVOT position (with clock error and Earth rotation corrections)
-% posP = sat_corr(Eph, sat(i), time, pr_Rsat(i));
-% 
-% %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
-% pr_RP_stim = sqrt(sum((posR - posP).^2));
-% pr_MP_stim = sqrt(sum((posM - posP).^2));
-% 
-% %phase observations
-% ph_RP = ph_Rsat(i);
-% ph_MP = ph_Msat(i);
-% 
-% %initialization
-% pr_stim = [];
-% 
-% %computation for all the satellites, PIVOT included
-% for i = 1 : nsat
-% 
-%     %satellite position (with clock error and Earth rotation corrections)
-%     posS = sat_corr(Eph, sat(i), time, pr_Rsat(i));
-% 
-%     %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
-%     pr_RS_stim = sqrt(sum((posR - posS).^2));
-%     pr_MS_stim = sqrt(sum((posM - posS).^2));
-% 
-%     %computation of crossed pseudoranges
-%     pr_stim = [pr_stim; (pr_RS_stim - pr_MS_stim) - (pr_RP_stim - pr_MP_stim)];
-% end
-% 
-% %observed phase double difference
-% ddp = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
-% 
-% %phase ambiguities estimation
-% if (phase == 1)
-%     N_stim = pr_stim / lambda1 - ddp;
-% else
-%     N_stim = pr_stim / lambda2 - ddp;
-% end
 
 %initialization
 N_slip = [];
@@ -134,7 +69,8 @@ slip = 0;
 %cycle-slip detection
 for i = 1 : nsat
 
-    if (~ismember(sat(i),sat_born) & (sat(i) ~= pivot))
+    %test on the estimated value of the phase ambiguities
+    if (~ismember(sat(i),sat_born))
 
         %test on:
         % - Kalman-estimated phase ambiguities compared with code-phase range (double differences)
@@ -155,5 +91,3 @@ for i = 1 : nsat
         end
     end
 end
-
-%-------------------------------------------------------------------------------
