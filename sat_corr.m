@@ -97,7 +97,8 @@ end
 
 % rho2 = (X(1) - pos_R(1))^2 + (X(2) - pos_R(2))^2 + (X(3) - pos_R(3))^2;
 % traveltime = sqrt(rho2) / v_light;
-traveltime = time + rec_clock_error - tx_GPS;
+%traveltime = time + tx_GPS;
+traveltime = time + rec_clock_error(end) - tx_GPS;
 
 %computation of rotation-corrected satellite position
 Xcorr = e_r_corr(traveltime, X);

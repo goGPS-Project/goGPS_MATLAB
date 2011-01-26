@@ -119,7 +119,7 @@ Q = cofactor_matrix_SA(elR, snr_R, sat);
 %least squares solution
 x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
 xR = posR + x(1:3);
-rec_clock_error = x(4) / v_light;
+rec_clock_error = [rec_clock_error; x(4) / v_light];
 
 %estimation of the variance of the observation error
 y_stim = A*x + b;
