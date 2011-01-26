@@ -492,6 +492,7 @@ pr_M   = zeros(32,B);     % master code buffer
 pr_R   = zeros(32,B);     % rover code buffer
 ph_M   = zeros(32,B);     % master phase buffer
 ph_R   = zeros(32,B);     % rover phase buffer
+dop_R  = zeros(32,B);     % rover Doppler buffer
 snr_M  = zeros(32,B);     % master SNR buffer
 snr_R  = zeros(32,B);     % rover SNR buffer
 if (flag_ms_pos)
@@ -642,6 +643,7 @@ while flag
         week_R(1+dtime:end)  = week_R(1:end-dtime);
         pr_R(:,1+dtime:end)  = pr_R(:,1:end-dtime);
         ph_R(:,1+dtime:end)  = ph_R(:,1:end-dtime);
+        dop_R(:,1+dtime:end) = dop_R(:,1:end-dtime);
         snr_R(:,1+dtime:end) = snr_R(:,1:end-dtime);
 
         %current cell to zero
@@ -650,6 +652,7 @@ while flag
         week_R(1:dtime)  = zeros(dtime,1);
         pr_R(:,1:dtime)  = zeros(32,dtime);
         ph_R(:,1:dtime)  = zeros(32,dtime);
+        dop_R(:,1:dtime) = zeros(32,dtime);
         snr_R(:,1:dtime) = zeros(32,dtime);
 
     else
@@ -660,6 +663,7 @@ while flag
         week_R = zeros(B,1);
         pr_R   = zeros(32,B);
         ph_R   = zeros(32,B);
+        dop_R  = zeros(32,B);
         snr_R  = zeros(32,B);
 
     end
@@ -702,6 +706,7 @@ while flag
                     week_R(index)  = cell_rover{2,i}(2);
                     pr_R(:,index)  = cell_rover{3,i}(:,2);
                     ph_R(:,index)  = cell_rover{3,i}(:,1);
+                    dop_R(:,index) = cell_rover{3,i}(:,3);
                     snr_R(:,index) = cell_rover{3,i}(:,6);
 
                     %manage "nearly null" data
@@ -1267,6 +1272,7 @@ while flag
         pr_M(delsat,1)  = 0;
         ph_R(delsat,1)  = 0;
         ph_M(delsat,1)  = 0;
+        dop_R(delsat,1) = 0;
         snr_R(delsat,1) = 0;
         snr_M(delsat,1) = 0;
         
@@ -1281,7 +1287,7 @@ while flag
             %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
             
             %input data save
-            fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
+            fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             
             %counter increment
@@ -1337,7 +1343,7 @@ while flag
         while (b > B)
             
             %input data save
-            fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
+            fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             
             %counter increment
@@ -1365,6 +1371,7 @@ while flag
                 pr_M(delsat,b)  = 0;
                 ph_R(delsat,b)  = 0;
                 ph_M(delsat,b)  = 0;
+                dop_R(delsat,b) = 0;
                 snr_R(delsat,b) = 0;
                 snr_M(delsat,b) = 0;
 
@@ -1372,7 +1379,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 
                 %counter increment
@@ -1400,6 +1407,7 @@ while flag
                 pr_M(delsat,b)  = 0;
                 ph_R(delsat,b)  = 0;
                 ph_M(delsat,b)  = 0;
+                dop_R(delsat,b) = 0;
                 snr_R(delsat,b) = 0;
                 snr_M(delsat,b) = 0;
 
@@ -1407,7 +1415,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 
                 %counter increment
@@ -1484,6 +1492,7 @@ while flag
                     pr_M(delsat,b)  = 0;
                     ph_R(delsat,b)  = 0;
                     ph_M(delsat,b)  = 0;
+                    dop_R(delsat,b) = 0;
                     snr_R(delsat,b) = 0;
                     snr_M(delsat,b) = 0;
 
@@ -1491,7 +1500,7 @@ while flag
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %output data save
-                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
+                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                     
                     %counter increment
@@ -1518,6 +1527,7 @@ while flag
                 pr_M(delsat,b)  = 0;
                 ph_R(delsat,b)  = 0;
                 ph_M(delsat,b)  = 0;
+                dop_R(delsat,b) = 0;
                 snr_R(delsat,b) = 0;
                 snr_M(delsat,b) = 0;
 
@@ -1525,7 +1535,7 @@ while flag
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 
                 %counter increment

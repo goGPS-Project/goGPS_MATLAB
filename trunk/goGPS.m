@@ -85,7 +85,7 @@ else
     % DEFINITION OF THE FUNCTIONING MODE (TEXTUAL INTERFACE)
     %-------------------------------------------------------------------------------------------
 
-    mode =   1;       % functioning mode
+    mode = 1;         % functioning mode
     % POST-PROCESSING
     % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
     % mode=2  --> KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT (to be implemented)
@@ -300,7 +300,7 @@ if (mode < 10) %post-processing
     else %mode_data == 1
 
         %read data from goGPS saved files
-        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
+        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
             pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
 
         %read surveying mode
@@ -319,6 +319,7 @@ if (mode < 10) %post-processing
             pr1_M(:,1)   = [];                         %code observations
             ph1_R(:,1)   = [];                         %phase observations
             ph1_M(:,1)   = [];                         %phase observations
+            dop1_R(:,1)  = [];                         %Doppler observations
             snr_R(:,1)   = [];                         %signal-to-noise ratio
             snr_M(:,1)   = [];                         %signal-to-noise ratio
             pos_M(:,1)   = [];                         %master position
@@ -340,6 +341,7 @@ if (mode < 10) %post-processing
         pr2_R = zeros(size(pr1_R));
         ph2_M = zeros(size(ph1_M));
         ph2_R = zeros(size(ph1_R));
+        dop2_R = zeros(size(dop1_R));
 
         %complete/partial path
         tMin = 1;
@@ -358,6 +360,8 @@ if (mode < 10) %post-processing
         pr2_M = pr2_M(:,tMin:tMax);
         ph2_R = ph2_R(:,tMin:tMax);
         ph2_M = ph2_M(:,tMin:tMax);
+        dop1_R = dop1_R(:,tMin:tMax);
+        dop2_R = dop2_R(:,tMin:tMax);
         snr_R = snr_R(:,tMin:tMax);
         snr_M = snr_M(:,tMin:tMax);
         pos_M = pos_M(:,tMin:tMax);
@@ -400,7 +404,7 @@ else %real-time
     pr2_R = zeros(32,1);
     ph2_M = zeros(32,1);
     ph2_R = zeros(32,1);
-
+    dop2_R = zeros(32,1);
 end
 
 %check if the dataset was surveyed in stop-GO-stop mode
@@ -430,7 +434,7 @@ if (mode == 1) & (mode_vinc == 0)
             Eph_t = Eph(:,:,1);
         end
 
-        kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop1_R(:,1), dop2_R(:,1), snr_R(:,1), snr_M(:,1), 1);
+        kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), snr_R(:,1), snr_M(:,1), 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -467,7 +471,7 @@ if (mode == 1) & (mode_vinc == 0)
                 Eph_t = Eph(:,:,t);
             end
 
-            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop1_R(:,t), dop2_R(:,t), snr_R(:,t), snr_M(:,t), 1);
+            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), snr_R(:,t), snr_M(:,t), 1);
 
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -521,8 +525,8 @@ if (mode == 1) & (mode_vinc == 0)
         order = fread(fid_dyn,1,'uint8');
         index = 1;
 
-        kalman_goGPS_init_model (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), order, 1);
-        % kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
+        kalman_goGPS_init_model (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), snr_R(:,1), snr_M(:,1), order, 1);
+        % kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), snr_R(:,1), snr_M(:,1), 1);
 
         [E0(index,1), N0(index,1), h_null, utmzone0(index,:)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
         Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
@@ -581,8 +585,8 @@ if (mode == 1) & (mode_vinc == 0)
                 index = index+1;
             end
 
-            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), order, 1);
-            % [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), snr_R(:,t), snr_M(:,t), order, 1);
+            % [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), snr_R(:,t), snr_M(:,t), 1);
 
             [E0(index,1), N0(index,1), h_null, utmzone0(index,:)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
             Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
@@ -676,7 +680,7 @@ elseif (mode == 1) & (mode_vinc == 1)
     %(this constrained mode works only for circuits)
     ref_loop = [ref_path; ref_path];
 
-    kalman_goGPS_vinc_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), snr_R(:,1), snr_M(:,1), 1, ref_loop);
+    kalman_goGPS_vinc_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R, snr_R(:,1), snr_M(:,1), 1, ref_loop);
 
     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -708,7 +712,7 @@ elseif (mode == 1) & (mode_vinc == 1)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), 1, ref_loop);
+        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R, snr_R(:,t), snr_M(:,t), 1, ref_loop);
 
         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -1283,10 +1287,10 @@ elseif (mode == 7)
 elseif (mode == 11)
 
     if (flag_stopGOstop == 0)
-        goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
-        % goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
+        goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R);
+        % goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R);
     else
-        goGPS_realtime_stopGOstop(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R);
+        goGPS_realtime_stopGOstop(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R);
     end
     
     %----------------------------------------------------------------------------------------------
@@ -1336,7 +1340,7 @@ if (mode < 12)
 
     %observation file (OBS) and ephemerides file (EPH) reading
     if (mode == 11)
-        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
+        [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
             pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
     end
 
@@ -2044,27 +2048,65 @@ end
 %----------------------------------------------------------------------------------------------
 
 % %rover
-% if (mode == 1) | (mode == 2)
-%    for i = 1 : 32
-%       index = find(conf_sat(i,:) == 1)';
-%       if ~isempty(index)
-%          figure
-%          plot(index,lambda1*ph1_R(i,index)-pr1_R(i,index),'b.-'); grid on;
-%          title(['ROVER: lambda1*L1-P1 for SATELLITE ',num2str(i)]);
-%       end
-%    end
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,lambda1*ph1_R(i,index)-pr1_R(i,index),'b.-'); grid on;
+%         title(['ROVER: lambda1*L1-P1 for SATELLITE ',num2str(i)]);
+%     end
 % end
 % 
 % %master
-% if (mode == 1) | (mode == 2)
-%    for i = 1 : 32
-%       index = find(conf_sat(i,:) == 1)';
-%       if ~isempty(index)
-%          figure
-%          plot(index,lambda1*ph1_M(i,index)-pr1_M(i,index),'b.-'); grid on;
-%          title(['MASTER: lambda1*L1-P1 for SATELLITE ',num2str(i)]);
-%       end
-%    end
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,lambda1*ph1_M(i,index)-pr1_M(i,index),'b.-'); grid on;
+%         title(['MASTER: lambda1*L1-P1 for SATELLITE ',num2str(i)]);
+%     end
+% end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF PSEUDORANGE AND PHASE MEASUREMENT
+%----------------------------------------------------------------------------------------------
+
+% %rover pseudorange
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,pr1_R(i,index),'b.-'); grid on;
+%         title(['ROVER: PSEUDORANGE for SATELLITE ',num2str(i)]);
+%     end
+% end
+% %rover phase measurement
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,ph1_R(i,index),'b.-'); grid on;
+%         title(['ROVER: PHASE MEASUREMENT for SATELLITE ',num2str(i)]);
+%     end
+% end
+% 
+% %master pseudorange
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,pr1_M(i,index),'b.-'); grid on;
+%         title(['MASTER: PSEUDORANGE for SATELLITE ',num2str(i)]);
+%     end
+% end
+% %master phase measurement
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,ph1_M(i,index),'b.-'); grid on;
+%         title(['MASTER: PHASE MEASUREMENT for SATELLITE ',num2str(i)]);
+%     end
 % end
 
 %----------------------------------------------------------------------------------------------

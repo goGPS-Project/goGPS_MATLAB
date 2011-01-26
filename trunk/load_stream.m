@@ -1,8 +1,8 @@
-function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
           iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream (fileroot, wait_dlg)
 
 % SYNTAX:
-%   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+%   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
 %    iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream (fileroot, wait_dlg);
 %
 % INPUT:
@@ -18,6 +18,10 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, s
 %   pr1_M    = MASTER-SATELLITE code-pseudorange (carrier L1)
 %   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
 %   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
+%   dop1_R   = ROVER-SATELLITE Doppler observations (carrier L1)
+%   snr_R    = ROVER-SATELLITE signal-to-noise ratio
+%   snr_M    = MASTER-SATELLITE signal-to-noise ratio
+%   pos_M    = MASTER station position
 %   Eph      = matrix of 29 ephemerides for each satellite
 %   iono     = ionosphere parameters
 %   loss_R   = flag for the ROVER loss of signal
@@ -142,6 +146,7 @@ if ~isempty(data_rover_all)
     time_R = zeros(Ncell,1);                              %GPS time of week
     week_R = zeros(Ncell,1);                              %GPS week
     pr1_R  = zeros(32,Ncell);                             %code observations
+    dop1_R = zeros(32,Ncell);                             %doppler measurements
     ph1_R  = zeros(32,Ncell);                             %phase observations
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     Eph_R  = zeros(29,32,Ncell);                          %ephemerides
@@ -164,6 +169,7 @@ if ~isempty(data_rover_all)
             week_R(i) = cell_rover{2,j}(2);
             pr1_R(:,i) = cell_rover{3,j}(:,2);
             ph1_R(:,i) = cell_rover{3,j}(:,1);
+            dop1_R(:,i) = cell_rover{3,j}(:,3);
             snr_R(:,i) = cell_rover{3,j}(:,6);
 
             %manage "nearly null" data
@@ -227,6 +233,7 @@ if ~isempty(data_rover_all)
             pr1_R(:,i) = cell_rover{3,j}(:,3);
             ph1_R(:,i) = cell_rover{3,j}(:,4);
             snr_R(:,i) = cell_rover{3,j}(:,2);
+            dop1_R(:,i) = cell_rover{3,j}(:,5);
 
             %manage "nearly null" data
             pos = abs(ph1_R(:,i)) < 1e-100;
@@ -253,6 +260,7 @@ if ~isempty(data_rover_all)
     week_R(i:end)  = [];
     pr1_R(:,i:end) = [];
     ph1_R(:,i:end) = [];
+    dop1_R(:,i:end)  = [];
     Eph_R(:,:,i:end) = [];
     iono(:,i:end) = [];
 
@@ -268,6 +276,7 @@ else
     week_R = [];                         %GPS week
     pr1_R  = [];                         %code observations
     ph1_R  = [];                         %phase observations
+    dop1_R = [];                         %doppler measurement
     snr_R  = [];                         %signal-to-noise ratio
     Eph_R  = [];                         %ephemerides
     iono   = [];                         %ionosphere parameters
@@ -435,22 +444,29 @@ if (nargin == 2)
     waitbar(0.33,wait_dlg,'Synchronizing data...')
 end
 
+%round time values for synchronizing rover and master epochs
+roundtime_R = round(time_R);
+roundtime_M = round(time_M);
+
 if ~isempty(time_R) & ~isempty(time_M)
 
     %head synchronization
-    if (time_R(1) < time_M(1))
-        pos = find(time_R < time_M(1));
+    if (roundtime_R(1) < roundtime_M(1))
+        pos = find(roundtime_R < roundtime_M(1));
+        roundtime_R(pos) = [];                     %GPS time (rounded)
         time_R(pos)    = [];                       %GPS time
         week_R(pos)    = [];                       %GPS week
         pr1_R(:,pos)   = [];                       %code observations
         ph1_R(:,pos)   = [];                       %phase observations
         snr_R(:,pos)   = [];                       %signal-to-noise ratio
+        dop1_R(:,pos)  = [];                       %doppler measurement
         Eph_R(:,:,pos) = [];                       %ephemerides
         iono(:,pos) = [];                          %ionosphere parameters
     end
 
-    if (time_M(1) < time_R(1))
-        pos = find(time_M < time_R(1));
+    if (roundtime_M(1) < roundtime_R(1))
+        pos = find(roundtime_M < roundtime_R(1));
+        roundtime_M(pos) = [];                     %GPS time (rounded)
         time_M(pos)    = [];                       %GPS time
         pr1_M(:,pos)   = [];                       %code observations
         ph1_M(:,pos)   = [];                       %phase observations
@@ -460,19 +476,22 @@ if ~isempty(time_R) & ~isempty(time_M)
     end
 
     %tail synchronization
-    if (time_R(end) > time_M(end))
-        pos = find(time_R > time_M(end));
+    if (roundtime_R(end) > roundtime_M(end))
+        pos = find(roundtime_R > roundtime_M(end));
+        roundtime_R(pos) = [];                     %GPS time (rounded)
         time_R(pos)    = [];                       %GPS time
         week_R(pos)    = [];                       %GPS week
         pr1_R(:,pos)   = [];                       %code observations
         ph1_R(:,pos)   = [];                       %phase observations
         snr_R(:,pos)   = [];                       %signal-to-noise ratio
+        dop1_R(:,pos)  = [];                       %doppler measurement
         Eph_R(:,:,pos) = [];                       %ephemerides
         iono(:,pos) = [];                          %ionosphere parameters
     end
 
-    if (time_M(end) > time_R(end))
-        pos = find(time_M > time_R(end));
+    if (roundtime_M(end) > roundtime_R(end))
+        pos = find(roundtime_M > roundtime_R(end));
+        roundtime_M(pos) = [];                     %GPS time (rounded)
         time_M(pos)    = [];                       %GPS time
         pr1_M(:,pos)   = [];                       %code observations
         ph1_M(:,pos)   = [];                       %phase observations
@@ -490,26 +509,27 @@ if (nargin == 2)
 end
 
 %signal losses
-time_GPS = union(time_R,time_M);                     %overall reference time
+time_GPS = union(roundtime_R,roundtime_M);           %overall reference time
 
 if ~isempty(time_GPS)
 
     time_GPS = (time_GPS(1) : 1 : time_GPS(end))';   %GPS time without interruptions
 
-    loss_R = 1 - ismember(time_GPS,time_R);          %losses of signal (ROVER)
-    loss_M = 1 - ismember(time_GPS,time_M);          %losses of signal (MASTER)
+    loss_R = 1 - ismember(time_GPS,roundtime_R);     %losses of signal (ROVER)
+    loss_M = 1 - ismember(time_GPS,roundtime_M);     %losses of signal (MASTER)
 
     if ~isempty(time_R)
 
-        newtime_R = setdiff(time_GPS, time_R);       %ROVER missing epochs
+        newtime_R = setdiff(time_GPS, roundtime_R);  %ROVER missing epochs
         for i = 1 : length(newtime_R)
 
-            pos = find(time_R == newtime_R(i) - 1);  %position before the "holes"
+            pos = find(roundtime_R == newtime_R(i) - 1);  %position before the "holes"
 
             time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
             week_R = [week_R(1:pos);  0;             week_R(pos+1:end)];
             pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
             ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
+            dop1_R = [dop1_R(:,1:pos) zeros(32,1)    dop1_R(:,pos+1:end)];
             snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
             iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
 
@@ -520,6 +540,7 @@ if ~isempty(time_GPS)
         week_R = zeros(1,length(time_GPS));
         pr1_R  = zeros(32,length(time_GPS));
         ph1_R  = zeros(32,length(time_GPS));
+        dop1_R = zeros(32,length(time_GPS));
         snr_R  = zeros(32,length(time_GPS));
         Eph_R  = zeros(29,32,length(time_GPS));
         iono   = zeros(8,length(time_GPS));
@@ -527,10 +548,10 @@ if ~isempty(time_GPS)
 
     if ~isempty(time_M)
 
-        newtime_M = setdiff(time_GPS, time_M);       %MASTER missing epochs
+        newtime_M = setdiff(time_GPS, roundtime_M);  %MASTER missing epochs
         for i = 1 : length(newtime_M)
 
-            pos = find(time_M == newtime_M(i) - 1);  %position before the "holes"
+            pos = find(roundtime_M == newtime_M(i) - 1);  %position before the "holes"
 
             time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
             pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];

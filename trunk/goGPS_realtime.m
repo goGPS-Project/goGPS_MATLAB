@@ -1,4 +1,4 @@
-function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R)
+function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov,
@@ -22,6 +22,7 @@ function goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag
 %   pr2_R = code pseudorange ROVER-SATELLITE (carrier L2)
 %   ph2_M = phase observation MASTER-SATELLITE (carrier L2)
 %   ph2_R = phase observation ROVER-SATELLITE (carrier L2)
+%   dop2_R = Doppler observation ROVER-SATELLITE (carrier L2)
 %
 % DESCRIPTION:
 %   goGPS real-time algorithm: stream reading and synchronization,
@@ -74,6 +75,7 @@ fid_rover = fopen([filerootOUT '_rover_00.bin'],'w+');
 %  pr_R     --> double, [32,1]
 %  ph_M     --> double, [32,1]
 %  ph_R     --> double, [32,1]
+%  dop_R    --> double, [32,1]
 %  snr_M    --> double, [32,1]
 %  snr_R    --> double, [32,1]
 %  XM       --> double, [1,1]
@@ -542,6 +544,7 @@ pr_M   = zeros(32,B);     % master code buffer
 pr_R   = zeros(32,B);     % rover code buffer
 ph_M   = zeros(32,B);     % master phase buffer
 ph_R   = zeros(32,B);     % rover phase buffer
+dop_R  = zeros(32,B);     % rover Doppler buffer
 snr_M  = zeros(32,B);     % master SNR buffer
 snr_R  = zeros(32,B);     % rover SNR buffer
 if (flag_ms_pos)
@@ -705,6 +708,7 @@ while flag
         week_R(1+dtime:end)  = week_R(1:end-dtime);
         pr_R(:,1+dtime:end)  = pr_R(:,1:end-dtime);
         ph_R(:,1+dtime:end)  = ph_R(:,1:end-dtime);
+        dop_R(:,1+dtime:end) = dop_R(:,1:end-dtime);
         snr_R(:,1+dtime:end) = snr_R(:,1:end-dtime);
 
         %current cell to zero
@@ -713,6 +717,7 @@ while flag
         week_R(1:dtime)  = zeros(dtime,1);
         pr_R(:,1:dtime)  = zeros(32,dtime);
         ph_R(:,1:dtime)  = zeros(32,dtime);
+        dop_R(:,1:dtime) = zeros(32,dtime);
         snr_R(:,1:dtime) = zeros(32,dtime);
 
     else
@@ -723,6 +728,7 @@ while flag
         week_R = zeros(B,1);
         pr_R   = zeros(32,B);
         ph_R   = zeros(32,B);
+        dop_R  = zeros(32,B);
         snr_R  = zeros(32,B);
 
     end
@@ -770,6 +776,7 @@ end
                     week_R(index)  = cell_rover{2,i}(2);
                     pr_R(:,index)  = cell_rover{3,i}(:,2);
                     ph_R(:,index)  = cell_rover{3,i}(:,1);
+                    dop_R(:,index)  = cell_rover{3,i}(:,3);
                     snr_R(:,index) = cell_rover{3,i}(:,6);
 
                     %manage "nearly null" data
@@ -1315,6 +1322,7 @@ end
             pr_M(delsat,1)  = 0;
             ph_R(delsat,1)  = 0;
             ph_M(delsat,1)  = 0;
+            dop_R(delsat,1) = 0;
             snr_R(delsat,1) = 0;
             snr_M(delsat,1) = 0;
 
@@ -1329,7 +1337,7 @@ end
             %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
+                fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
 
                 %WARNING: with just 4 satellites the least squares problem
@@ -1338,9 +1346,9 @@ end
 
                 %Kalman filter
                 if (mode_vinc == 0)
-                    kalman_goGPS_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,1), snr_M(:,1), 1);
+                    kalman_goGPS_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,1), snr_M(:,1), 1);
                 else
-                    kalman_goGPS_vinc_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, 1, ref_path);
+                    kalman_goGPS_vinc_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,1), snr_M(:,1), 1, ref_path);
                 end
                 
                 %output data save
@@ -1458,7 +1466,7 @@ end
                 date = clock;
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
+                fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
 
                 %Kalman filter
@@ -1561,6 +1569,7 @@ end
                     pr_M(delsat,b)  = 0;
                     ph_R(delsat,b)  = 0;
                     ph_M(delsat,b)  = 0;
+                    dop_R(delsat,b) = 0;
                     snr_R(delsat,b) = 0;
                     snr_M(delsat,b) = 0;
 
@@ -1568,14 +1577,14 @@ end
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %input data save
-                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
+                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1);
                     else
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
 
                     %output data save
@@ -1670,6 +1679,7 @@ end
                     pr_M(delsat,b)  = 0;
                     ph_R(delsat,b)  = 0;
                     ph_M(delsat,b)  = 0;
+                    dop_R(delsat,b) = 0;
                     snr_R(delsat,b) = 0;
                     snr_M(delsat,b) = 0;
 
@@ -1677,14 +1687,14 @@ end
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %input data save
-                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
+                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1);
                     else
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
 
                     %output data save
@@ -1829,6 +1839,7 @@ end
                         pr_M(delsat,b)  = 0;
                         ph_R(delsat,b)  = 0;
                         ph_M(delsat,b)  = 0;
+                        dop_R(delsat,b) = 0;
                         snr_R(delsat,b) = 0;
                         snr_M(delsat,b) = 0;
 
@@ -1836,24 +1847,14 @@ end
                         satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                         %output data save
-                        fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
+                        fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                         fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                        %dep_time_M(t)  = time_M(b);    %master time
-                        %dep_time_R(t)  = time_R(b);    %rover time (it should be = master time)
-                        %dep_pr_M(:,t)  = pr_M(:,b);    %master code
-                        %dep_pr_R(:,t)  = pr_R(:,b);    %rover code
-                        %dep_ph_M(:,t)  = ph_M(:,b);    %master phase
-                        %dep_ph_R(:,t)  = ph_R(:,b);    %rover phase
-                        %dep_snr_M(:,t) = snr_M(:,b);   %master SNR
-                        %dep_snr_R(:,t) = snr_R(:,b);   %rover SNR
-                        %dep_pos_M(:,t) = pos_M(:,b);   %master station coordinates
-                        %dep_Eph(:,:,t) = Eph(:,:);     %available ephemerides (at time = time_GPS)
 
                         %Kalman filter
                         if (mode_vinc == 0)
-                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1);
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1, ref_path);
                         end
 
                         %output data save
@@ -1948,6 +1949,7 @@ end
                     pr_M(delsat,b)  = 0;
                     ph_R(delsat,b)  = 0;
                     ph_M(delsat,b)  = 0;
+                    dop_R(delsat,b) = 0;
                     snr_R(delsat,b) = 0;
                     snr_M(delsat,b) = 0;
 
@@ -1955,14 +1957,14 @@ end
                     satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
 
                     %input data save
-                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
+                    fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1);
                     else
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), pr2_R, pr2_M, ph2_R, ph2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
 
                     %output data save

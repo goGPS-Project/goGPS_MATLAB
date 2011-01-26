@@ -37,10 +37,10 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 
 %ROVER and MASTER stream reading
 if (nargin == 3)
-    [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+    [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
         iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN, wait_dlg); %#ok<*ASGLU>
 else
-    [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+    [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
         iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN);
 end
 
@@ -67,6 +67,7 @@ if (~isempty(Eph))
             pr1_M(:,1)  = [];
             ph1_R(:,1)  = [];
             ph1_M(:,1)  = [];
+            dop1_R(:,1) = [];
             snr_R(:,1)  = [];
             snr_M(:,1)  = [];
             pos_M(:,1)  = [];
@@ -87,12 +88,13 @@ if (~isempty(Eph))
         for i = 1 : length(time_GPS)
             satEph = find(sum(abs(Eph(:,:,i)))~=0);
             delsat = setdiff(1:32,satEph);
-            pr1_R(delsat,i) = 0;
-            pr1_M(delsat,i) = 0;
-            ph1_R(delsat,i) = 0;
-            ph1_M(delsat,i) = 0;
-            snr_R(delsat,i) = 0;
-            snr_M(delsat,i) = 0;
+            pr1_R(delsat,i)  = 0;
+            pr1_M(delsat,i)  = 0;
+            ph1_R(delsat,i)  = 0;
+            ph1_M(delsat,i)  = 0;
+            dop1_R(delsat,i) = 0;
+            snr_R(delsat,i)  = 0;
+            snr_M(delsat,i)  = 0;
         end
     else
         if (nargin == 3)
@@ -116,6 +118,7 @@ pr1_R = pr1_R(:,tMin:tMax);
 pr1_M = pr1_M(:,tMin:tMax);
 ph1_R = ph1_R(:,tMin:tMax);
 ph1_M = ph1_M(:,tMin:tMax);
+dop1_R = dop1_R(:,tMin:tMax);
 snr_R = snr_R(:,tMin:tMax);
 snr_M = snr_M(:,tMin:tMax);
 pos_M = pos_M(:,tMin:tMax);
@@ -173,7 +176,7 @@ for t = 1 : length(time_GPS)
         
     end
     
-    fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
+    fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); dop1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
     if (~isempty(EphAvailable))
         Eph_t = Eph(:,:,t);
         fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
