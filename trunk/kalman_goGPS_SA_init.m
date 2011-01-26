@@ -1,16 +1,18 @@
-function kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, pr2_Rsat, ph2_Rsat, snr_R, phase)
+function kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, pr2_Rsat, ph2_Rsat, dop2_Rsat, snr_R, phase)
 
 % SYNTAX:
-%   kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, pr2_Rsat, ph2_Rsat, snr_R, phase);
+%   kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, pr2_Rsat, ph2_Rsat, dop2_Rsat, snr_R, phase);
 %
 % INPUT:
 %   time = GPS time
 %   Eph = satellite ephemerides
 %   iono = ionosphere parameters
-%   pr1_Rsat = ROVER-SATELLITE code pseudorange (L1 carrier)
-%   ph1_Rsat = ROVER-SATELLITE phase observation (carrier L1)
-%   pr2_Rsat = ROVER-SATELLITE code pseudorange (L2 carrier)
-%   ph2_Rsat = ROVER-SATELLITE phase observation (carrier L2)
+%   pr1_Rsat  = ROVER-SATELLITE code pseudorange (L1 carrier)
+%   ph1_Rsat  = ROVER-SATELLITE phase observation (carrier L1)
+%   dop1_Rsat = ROVER_SATELLITE Doppler observation (carrier L1)
+%   pr2_Rsat  = ROVER-SATELLITE code pseudorange (L2 carrier)
+%   ph2_Rsat  = ROVER-SATELLITE phase observation (carrier L2)
+%   dop2_Rsat = ROVER_SATELLITE Doppler observation (carrier L2)
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   phase = L1 carrier (phase=1) L2 carrier (phase=2)
 %
@@ -43,6 +45,7 @@ global cutoff o1 o2 o3 nN
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
+global doppler_pred_range1 doppler_pred_range2
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -174,9 +177,9 @@ if (length(sat_pr) >= 4)
     
     %stand-alone ROVER positioning with code
     if (phase(1) == 1)
-        [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+        [pos_R, cov_pos_R] = code_SA(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono); %#ok<NASGU>
     else
-        [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+        [pos_R, cov_pos_R] = code_SA(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono); %#ok<NASGU>
     end
     
     %second iteration to improve the accuracy
@@ -190,7 +193,7 @@ if (length(sat_pr) >= 4)
     if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
         cov_pos_R = sigmaq0 * eye(3);
     end
-    sigmaq_pos_R = diag(cov_pos_R);
+    sigmaq_pos_R = diag(cov_pos_R); %#ok<NASGU>
     
 else
     error('%d satellites are not enough to make ROVER positioning in stand-alone\n', length(sat_pr));
@@ -305,6 +308,12 @@ Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
 Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigmaq_N);
+
+%--------------------------------------------------------------------------------------------
+% DOPPLER-BASED PREDICTION OF PHASE RANGES
+%--------------------------------------------------------------------------------------------
+doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
 
 %--------------------------------------------------------------------------------------------
 % INITIAL KALMAN FILTER DOP

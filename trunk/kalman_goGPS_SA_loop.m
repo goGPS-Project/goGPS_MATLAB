@@ -1,16 +1,18 @@
-function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop(time, Eph, iono, pr1_Rsat, ph1_Rsat, pr2_Rsat, ph2_Rsat, snr_R, phase)
+function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop(time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, pr2_Rsat, ph2_Rsat, dop2_Rsat, snr_R, phase)
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop(time, Eph, iono, pr1_Rsat, ph1_Rsat, pr2_Rsat, ph2_Rsat, snr_R, phase);
+%   [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop(time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, pr2_Rsat, ph2_Rsat, dop2_Rsat, snr_R, phase);
 %
 % INPUT:
 %   time = GPS time
 %   Eph = satellite ephemerides
 %   iono = ionospheric parameters
-%   pr1_Rsat = ROVER-SATELLITE code pseudorange (L1 carrier)
-%   ph1_Rsat = ROVER-SATELLITE phase observation (carrier L1)
-%   pr2_Rsat = ROVER-SATELLITE code pseudorange (L2 carrier)
-%   ph2_Rsat = ROVER-SATELLITE phase observation (carrier L2)
+%   pr1_Rsat  = ROVER-SATELLITE code pseudorange (L1 carrier)
+%   ph1_Rsat  = ROVER-SATELLITE phase observation (L1 carrier)
+%   dop1_Rsat = ROVER_SATELLITE Doppler observation (L1 carrier)
+%   pr2_Rsat  = ROVER-SATELLITE code pseudorange (L2 carrier)
+%   ph2_Rsat  = ROVER-SATELLITE phase observation (L2 carrier)
+%   dop2_Rsat = ROVER_SATELLITE Doppler observation (L2 carrier)
 %   snr_R = signal-to-noise ratio for ROVER observations
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
@@ -55,6 +57,7 @@ global h_antenna
 global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
+global doppler_pred_range1 doppler_pred_range2
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -351,17 +354,17 @@ if (nsat >= min_nsat)
         %Test presence/absence of a cycle-slip at the current epoch.
         %The state of the system is not changed yet
         if (length(phase) == 2)
-            [check_cs1, N_slip1, sat_slip1] = cycle_slip_kalman_SA(X_t1_t(o3+1:o3+32), pr1_Rsat(sat), ph1_Rsat(sat), err_iono_RS, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
-            [check_cs2, N_slip2, sat_slip2] = cycle_slip_kalman_SA(X_t1_t(o3+33:o3+64), pr2_Rsat(sat), ph2_Rsat(sat), (lambda2/lambda1)^2 * err_iono_RS, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+32), pr1_Rsat(sat), ph1_Rsat(sat), err_iono_RS, doppler_pred_range1(sat), sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+33:o3+64), pr2_Rsat(sat), ph2_Rsat(sat), (lambda2/lambda1)^2 * err_iono_RS, doppler_pred_range2(sat), sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
             
             if (check_cs1 | check_cs2)
                 check_cs = 1;
             end
         else
             if (phase == 1)
-                [check_cs, N_slip, sat_slip] = cycle_slip_kalman_SA(X_t1_t(o3+1:o3+32), pr1_Rsat(sat), ph1_Rsat(sat), err_iono_RS(sat), sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+32), pr1_Rsat(sat), ph1_Rsat(sat), err_iono_RS(sat), doppler_pred_range1(sat), sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
             else
-                [check_cs, N_slip, sat_slip] = cycle_slip_kalman_SA(X_t1_t(o3+33:o3+64), pr2_Rsat(sat), ph2_Rsat(sat), (lambda2/lambda1)^2 * err_iono_RS(sat), sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+33:o3+64), pr2_Rsat(sat), ph2_Rsat(sat), (lambda2/lambda1)^2 * err_iono_RS(sat), doppler_pred_range2(sat), sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
             end
         end
     else
@@ -573,6 +576,12 @@ if (nsat >= min_nsat)
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
     HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
     VDOP = sqrt(cov_ENU(3,3));
+    
+    %--------------------------------------------------------------------------------------------
+    % DOPPLER-BASED PREDICTION OF PHASE RANGES
+    %--------------------------------------------------------------------------------------------
+    doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+    doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
 
 else
     %to point out that notwithstanding the satellite configuration,
@@ -620,11 +629,6 @@ Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
 KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
 KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
 KVDOP = sqrt(Cee_ENU(3,3));
-
-%   vvX = Xhat_t_t(2,end);
-%   vvY = Xhat_t_t(o1+2,end);
-%   vvZ = Xhat_t_t(o2+2,end);
-%   vvv = sqrt(vvX(end)^2 + vvY(end)^2 + vvZ(end)^2);
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1,end) + Cee(o1+1,o1+1,end) + Cee(o2+1,o2+1,end));
