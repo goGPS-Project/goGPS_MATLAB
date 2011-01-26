@@ -1,23 +1,27 @@
 function kalman_goGPS_vinc_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-         ph1_Rsat, ph1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, snr_R, snr_M, phase, ref)
+         ph1_Rsat, ph1_Msat, dop1_Rsat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
+         dop2_Rsat, snr_R, snr_M, phase, ref)
 
 % SYNTAX:
 %   kalman_goGPS_vinc_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-%   ph1_Rsat, ph1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, snr_R, snr_M, phase, ref);
+%        ph1_Rsat, ph1_Msat, dop1_Rsat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
+%        dop2_Rsat, snr_R, snr_M, phase, ref);
 %
 % INPUT:
 %   pos_M = Master given coordinates (X,Y,Z)
 %   time = GPS time
 %   Eph = satellites ephemerides
 %   iono = ionosphere parameters (vector of zeros if not available)
-%   pr1_Rsat = ROVER-SATELLITE code-pseudorange (carrier L1)
-%   pr1_Msat = MASTER-SATELLITE code-pseudorange (carrier L1)
-%   ph1_Rsat = ROVER-SATELLITE phase observations (carrier L1)
-%   ph1_Msat = MASTER-SATELLITE phase observations (carrier L1)
-%   pr2_Rsat = ROVER-SATELLITE code-pseudorange (carrier L2)
-%   pr2_Msat = MASTER-SATELLITE code-pseudorange (carrier L2)
-%   ph2_Rsat = ROVER-SATELLITE phase observations (carrier L2)
-%   ph2_Msat = MASTER-SATELLITE phase observations (carrier L2)
+%   pr1_Rsat  = ROVER-SATELLITE code-pseudorange (carrier L1)
+%   pr1_Msat  = MASTER-SATELLITE code-pseudorange (carrier L1)
+%   ph1_Rsat  = ROVER-SATELLITE phase observations (carrier L1)
+%   ph1_Msat  = MASTER-SATELLITE phase observations (carrier L1)
+%   dop1_Rsat = ROVER_SATELLITE Doppler observation (carrier L1)
+%   pr2_Rsat  = ROVER-SATELLITE code-pseudorange (carrier L2)
+%   pr2_Msat  = MASTER-SATELLITE code-pseudorange (carrier L2)
+%   ph2_Rsat  = ROVER-SATELLITE phase observations (carrier L2)
+%   ph2_Msat  = MASTER-SATELLITE phase observations (carrier L2)
+%   dop2_Rsat = ROVER_SATELLITE Doppler observation (carrier L2)
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   phase = carrier L1 (phase=1), carrier L2 (phase=2)
@@ -58,6 +62,7 @@ global s0 ax ay az
 global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
+global doppler_pred_range1 doppler_pred_range2
 
 %--------------------------------------------------------------------------------------------
 % SINGLE / DOUBLE FREQUENCY SELECTION
@@ -379,3 +384,9 @@ Cee(:,:) = zeros(o1+nN);
 Cee(1,1) = sigmaq_s_R;
 Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+1:o1+nN,o1+1:o1+nN) = diag(sigmaq_comb_N);
+
+%--------------------------------------------------------------------------------------------
+% DOPPLER-BASED PREDICTION OF PHASE RANGES
+%--------------------------------------------------------------------------------------------
+doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);

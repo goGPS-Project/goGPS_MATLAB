@@ -138,7 +138,7 @@ if (~isempty(data_rover_all))
     week_R = zeros(Ncell,1);                              %GPS week
     ph1_R  = zeros(32,Ncell);                             %phase observations
     pr1_R  = zeros(32,Ncell);                             %code observations
-    dop_R  = zeros(32,Ncell);                             %doppler measurements
+    dop1_R = zeros(32,Ncell);                             %doppler measurements
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     lock_R = zeros(32,Ncell);                             %loss of lock indicator
     Eph_R  = zeros(29,32,Ncell);                          %broadcast ephemerides
@@ -161,7 +161,7 @@ if (~isempty(data_rover_all))
             week_R(i)   = cell_rover{2,j}(2);
             ph1_R(:,i)  = cell_rover{3,j}(:,1);
             pr1_R(:,i)  = cell_rover{3,j}(:,2);
-            dop_R(:,i)  = cell_rover{3,j}(:,3);
+            dop1_R(:,i) = cell_rover{3,j}(:,3);
             snr_R(:,i)  = cell_rover{3,j}(:,6);
             lock_R(:,i) = cell_rover{3,j}(:,7);
             
@@ -234,7 +234,7 @@ if (~isempty(data_rover_all))
             pr1_R(:,i) = cell_rover{3,j}(:,3);
             ph1_R(:,i) = cell_rover{3,j}(:,4);
             snr_R(:,i) = cell_rover{3,j}(:,2);
-            dop_R(:,i)  = cell_rover{3,j}(:,5);
+            dop1_R(:,i) = cell_rover{3,j}(:,5);
 
             %manage "nearly null" data
             pos = abs(ph1_R(:,i)) < 1e-100;
@@ -263,7 +263,7 @@ if (~isempty(data_rover_all))
     week_R(i:end)    = [];
     ph1_R(:,i:end)   = [];
     pr1_R(:,i:end)   = [];
-    dop_R(:,i:end)   = [];
+    dop1_R(:,i:end)  = [];
     snr_R(:,i:end)   = [];
     lock_R(:,i:end)  = [];
     Eph_R(:,:,i:end) = [];
@@ -346,7 +346,7 @@ if (~isempty(data_rover_all))
                     fprintf(fid_obs,'                ');
                 end
                 fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                fprintf(fid_obs,'%14.3f %1d',dop_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                fprintf(fid_obs,'%14.3f %1d',dop1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
                 fprintf(fid_obs,'\n');
             end
         end

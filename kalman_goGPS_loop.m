@@ -1,26 +1,26 @@
 function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
-         (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ph1_Rsat, ph1_Msat, ...
-         pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, dop1_Rsat, dop2_Rsat, snr_R, snr_M, phase)
+         (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ph1_Rsat, ph1_Msat, dop1_Rsat, ...
+         pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, dop2_Rsat, snr_R, snr_M, phase)
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
-%   (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ph1_Rsat, ph1_Msat, ...
-%   pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, dop1_Rsat, dop2_Rsat, snr_R, snr_M, phase);
+%   (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ph1_Rsat, ph1_Msat, dop1_Rsat, ...
+%   pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, dop2_Rsat, snr_R, snr_M, phase);
 %
 % INPUT:
 %   pos_M = master position (X,Y,Z)
 %   time = GPS time
 %   Eph = satellite ephemerides
 %   iono = ionospheric parameters (not used)
-%   pr1_Rsat = ROVER-SATELLITE code pseudorange (L1 carrier)
-%   pr1_Msat = MASTER-SATELLITE code pseudorange (L1 carrier)
-%   ph1_Rsat = ROVER-SATELLITE phase observation (L1 carrier)
-%   ph1_Msat = MASTER-SATELLITE phase observation (L1 carrier)
-%   pr2_Rsat = ROVER-SATELLITE code pseudorange (L2 carrier)
-%   pr2_Msat = MASTER-SATELLITE code pseudorange (L2 carrier)
-%   ph2_Rsat = ROVER-SATELLITE phase observation (L2 carrier)
-%   ph2_Msat = MASTER-SATELLITE phase observation (L2 carrier)
+%   pr1_Rsat  = ROVER-SATELLITE code pseudorange (L1 carrier)
+%   pr1_Msat  = MASTER-SATELLITE code pseudorange (L1 carrier)
+%   ph1_Rsat  = ROVER-SATELLITE phase observation (L1 carrier)
+%   ph1_Msat  = MASTER-SATELLITE phase observation (L1 carrier)
 %   dop1_Rsat = ROVER_SATELLITE Doppler observation (L1 carrier)
+%   pr2_Rsat  = ROVER-SATELLITE code pseudorange (L2 carrier)
+%   pr2_Msat  = MASTER-SATELLITE code pseudorange (L2 carrier)
+%   ph2_Rsat  = ROVER-SATELLITE phase observation (L2 carrier)
+%   ph2_Msat  = MASTER-SATELLITE phase observation (L2 carrier)
 %   dop2_Rsat = ROVER_SATELLITE Doppler observation (L2 carrier)
 %   snr_R = signal-to-noise ratio for ROVER observations
 %   snr_M = signal-to-noise ratio for MASTER observations

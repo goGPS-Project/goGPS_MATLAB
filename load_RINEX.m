@@ -83,6 +83,8 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global v_light
+
 Eph_RR = zeros(17,32);
 Eph_MR = zeros(17,32);
 
@@ -307,6 +309,47 @@ while (~feof(FR_oss))
             %read MASTER observations
             [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
             
+            %continuity check on pseudoranges
+            diff = 0;
+            for s = 1 : 32
+                %find the first satellite available with data on current
+                %and previous epoch
+                if (obs_GPS_M.C1(s) & pr1_M(s,k) | obs_GPS_M.P1(s) & pr1_M(s,k))
+                    if (obs_GPS_M.P1)
+                        %check whether the pseudorange has increased or
+                        %decreased by a large amount
+                        if (obs_GPS_M.P1(s)-pr1_M(s,k) > 2e5)
+                            diff = -v_light/1000;
+                        elseif (pr1_M(s,k)-obs_GPS_M.P1(s) > 2e5)
+                            diff = v_light/1000;
+                        end
+                        %in case, apply the correction
+                        if (diff ~= 0)
+                            pos = find(obs_GPS_M.P1 ~= 0);
+                            obs_GPS_M.P1(pos) = obs_GPS_M.P1(pos) + diff;
+                            pos = find(obs_GPS_M.P2 ~= 0);
+                            obs_GPS_M.P2(pos) = obs_GPS_M.P2(pos) + diff;
+                        end
+                    else
+                        %check whether the pseudorange has increased or
+                        %decreased by a large amount
+                        if (obs_GPS_M.C1(s)-pr1_M(s,k) > 2e5)
+                            diff = -v_light/1000;
+                        elseif (pr1_M(s,k)-obs_GPS_M.C1(s) > 2e5)
+                            diff = v_light/1000;
+                        end
+                        %in case, apply the correction
+                        if (diff ~= 0)
+                            pos = find(obs_GPS_M.C1 ~= 0);
+                            obs_GPS_M.C1(pos) = obs_GPS_M.C1(pos) + diff;
+                            pos = find(obs_GPS_M.P2 ~= 0);
+                            obs_GPS_M.P2(pos) = obs_GPS_M.P2(pos) + diff;
+                        end
+                    end
+                    %once the check has been made, break the loop
+                    break
+                end
+            end
         end
     end
 

@@ -426,6 +426,7 @@ while flag
                 delsat = setdiff(1:32,satEph);
                 pr_R(delsat,1)  = 0;
                 ph_R(delsat,1)  = 0;
+                dop_R(delsat,1) = 0;
                 snr_R(delsat,1) = 0;
                 
                 %satellites with observations available
@@ -436,7 +437,7 @@ while flag
                 if (ismember(satObs,satEph)) & (length(satObs) >= 4)
                     
                     %data save
-                    fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; zeros(32,1); snr_R; zeros(3,1); iono(:,1)], 'double');
+                    fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono(:,1)], 'double');
                     fwrite(fid_eph, [0; Eph(:)], 'double');
                     fwrite(fid_dyn, order, 'int8');
                 end
