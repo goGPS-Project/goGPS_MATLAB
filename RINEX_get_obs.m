@@ -255,3 +255,10 @@ for s = 1 : num_sat
     end
 end
 
+%remove unnecessary fields
+obs_GPS = rmfield(obs_GPS,'TMP1');
+obs_GPS = rmfield(obs_GPS,'TMP2');
+obs_GLO = rmfield(obs_GLO,'TMP1');
+obs_GLO = rmfield(obs_GLO,'TMP2');
+obs_SBS = rmfield(obs_SBS,'TMP1');
+obs_SBS = rmfield(obs_SBS,'TMP2');
