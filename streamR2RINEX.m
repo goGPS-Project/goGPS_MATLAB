@@ -170,12 +170,12 @@ if (~isempty(data_rover_all))
             ph1_R(pos,i) = 0;
             
             %phase adjustement
-            pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
-            if(sum(pos) ~= 0)
-                ambig = 2^23;
-                n = floor( (pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
-                ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
-            end
+%             pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
+%             if(sum(pos) ~= 0)
+%                 ambig = 2^23;
+%                 n = floor( (pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
+%                 ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
+%             end
             
             %keep just "on top of second" measurements
             %if (time_R(i)- floor(time_R(i)) == 0)
@@ -241,12 +241,12 @@ if (~isempty(data_rover_all))
             ph1_R(pos,i) = 0;
 
             %phase adjustement
-            pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e8;
-            if(sum(pos) ~= 0)
-                ambig = 2^23;
-                n = floor((pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
-                ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
-            end
+%             pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e8;
+%             if(sum(pos) ~= 0)
+%                 ambig = 2^23;
+%                 n = floor((pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
+%                 ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
+%             end
 
             i = i + 1;
 

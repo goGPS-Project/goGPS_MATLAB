@@ -850,11 +850,11 @@ end
                     pos = abs(ph_R(:,index)) < 1e-100;
                     ph_R(pos,index) = 0;
 
-                    %phase adjustement
-                    pos = abs(ph_R(:,index)) > 0 & abs(ph_R(:,index)) < 1e7;
-                    ambig = 2^23;
-                    n = floor( (pr_R(pos,index)/lambda1-ph_R(pos,index)) / ambig + 0.5 );
-                    ph_R(pos,index) = ph_R(pos,index) + n*ambig;
+%                     %phase adjustement
+%                     pos = abs(ph_R(:,index)) > 0 & abs(ph_R(:,index)) < 1e7;
+%                     ambig = 2^23;
+%                     n = floor( (pr_R(pos,index)/lambda1-ph_R(pos,index)) / ambig + 0.5 );
+%                     ph_R(pos,index) = ph_R(pos,index) + n*ambig;
 
                     type = [type 'RXM-RAW '];
 
@@ -1273,16 +1273,16 @@ end
         end
     end
 
-    %Resolution of 2^23 cy carrier phase ambiguity
-    %caused by 32-bit data field restrictions (RTCM2)
-    if(test_master & is_rtcm2)
-        for i = 1 : length(index_ph)
-            pos = find(ph_M(:,index_ph(i)) & pr_M(:,index_ph(i)));
-            ambig = 2^23;
-            n = floor( (pr_M(pos,index_ph(i))/lambda1-ph_M(pos,index_ph(i))) / ambig + 0.5 );
-            ph_M(pos,index_ph(i)) = ph_M(pos,index_ph(i)) + n*ambig;
-        end
-    end
+%     %Resolution of 2^23 cy carrier phase ambiguity
+%     %caused by 32-bit data field restrictions (RTCM2)
+%     if(test_master & is_rtcm2)
+%         for i = 1 : length(index_ph)
+%             pos = find(ph_M(:,index_ph(i)) & pr_M(:,index_ph(i)));
+%             ambig = 2^23;
+%             n = floor( (pr_M(pos,index_ph(i))/lambda1-ph_M(pos,index_ph(i))) / ambig + 0.5 );
+%             ph_M(pos,index_ph(i)) = ph_M(pos,index_ph(i)) + n*ambig;
+%         end
+%     end
 
     %time reading (end of master decoding)
     current_time = toc;
