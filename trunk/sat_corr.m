@@ -1,13 +1,13 @@
-function [Xcorr, tcorr, X, V, tx_GPS] = sat_corr(Eph, sat, time, pr_Rsat)
+function [Xcorr, tcorr, X, V, tx_GPS] = sat_corr(Eph, sat, time, pseudorange)
 
 % SYNTAX:
-%   [Xcorr, tcorr, X, V, tx_GPS] = sat_corr(Eph, sat, time, pr_Rsat);
+%   [Xcorr, tcorr, X, V, tx_GPS] = sat_corr(Eph, sat, time, pseudorange);
 %
 % INPUT:
 %   Eph = satellite ephemerides matrix
 %   sat = satellite id number
 %   time = GPS time
-%   pr_Rsat = ROVER-SATELLITE code pseudorange
+%   pseudorange = code pseudorange
 %
 % OUTPUT:
 %   Xcorr = corrected satellite position
@@ -29,7 +29,6 @@ function [Xcorr, tcorr, X, V, tx_GPS] = sat_corr(Eph, sat, time, pr_Rsat)
 %----------------------------------------------------------------------------------------------
 
 global v_light
-global rec_clock_error
 
 %--------------------------------------------------------------------------------------------
 % CLOCK ERROR CORRECTION
@@ -54,7 +53,7 @@ af1   = Eph(20,k);
 tom   = Eph(21,k);
 tgd   = Eph(28,k); %This correction term is only for the benefit of "single-frequency" (L1 P(Y) or L2 P(Y)) users
 
-tx_RAW = time - pr_Rsat / v_light;
+tx_RAW = time - pseudorange / v_light;
 
 %relativistic correction term computation
 Ek = ecc_anomaly(tx_RAW, Eph(:,k));
@@ -95,10 +94,7 @@ end
 % EARTH ROTATION ERROR CORRECTION
 %--------------------------------------------------------------------------------------------
 
-% rho2 = (X(1) - pos_R(1))^2 + (X(2) - pos_R(2))^2 + (X(3) - pos_R(3))^2;
-% traveltime = sqrt(rho2) / v_light;
-%traveltime = time + tx_GPS;
-traveltime = time + rec_clock_error(end) - tx_GPS;
+traveltime = time - tx_GPS;
 
 %computation of rotation-corrected satellite position
 Xcorr = e_r_corr(traveltime, X);

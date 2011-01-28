@@ -429,17 +429,17 @@ if (nsat >= min_nsat)
         %Test presence/absence of a cycle-slip at the current epoch.
         %The state of the system is not changed yet
         if (length(phase) == 2)
-            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), doppler_pred_range1(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
-            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), doppler_pred_range2(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
 
             if (check_cs1 | check_cs2)
                 check_cs = 1;
             end
         else
             if (phase == 1)
-                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), doppler_pred_range1(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
             else
-                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), doppler_pred_range2(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
             end
         end
     else
@@ -457,10 +457,10 @@ if (nsat >= min_nsat)
 
     if (check_on | check_cs)
         if (length(phase) == 2)
-            %[N1_slip, N1_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), err_iono_RS(sat_pr), err_iono_MS(sat_pr), pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-            %[N2_slip, N2_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_MS(sat_pr), pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-            [N1_slip, N1_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), err_iono_RS(sat_pr), err_iono_MS(sat_pr), pivot, phase, X_t1_t(o3+sat_pr));
-            [N2_slip, N2_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_MS(sat_pr), pivot, phase, X_t1_t(o3+sat_pr));
+            [N1_slip, N1_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), err_iono_RS(sat_pr), err_iono_MS(sat_pr), pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+            [N2_slip, N2_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_MS(sat_pr), pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+            %[N1_slip, N1_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), err_iono_RS(sat_pr), err_iono_MS(sat_pr), pivot, phase, X_t1_t(o3+sat_pr));
+            %[N2_slip, N2_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_MS(sat_pr), pivot, phase, X_t1_t(o3+sat_pr));
             
             if (check_on)
                 X_t1_t(o3+sat_born,1) = N1_born;
@@ -662,8 +662,12 @@ if (nsat >= min_nsat)
     %--------------------------------------------------------------------------------------------
     % DOPPLER-BASED PREDICTION OF PHASE RANGES
     %--------------------------------------------------------------------------------------------
-    doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
-    doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    if (dop1_Rsat(sat))
+        doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+    end
+    if (dop2_Rsat(sat))
+        doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    end
 
 else
     %to point out that notwithstanding the satellite configuration,

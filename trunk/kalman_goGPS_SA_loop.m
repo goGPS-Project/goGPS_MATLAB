@@ -410,6 +410,7 @@ if (nsat >= min_nsat)
     else
         if (phase == 1)
             [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+            %[N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr));
         else
             [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
         end
@@ -580,8 +581,12 @@ if (nsat >= min_nsat)
     %--------------------------------------------------------------------------------------------
     % DOPPLER-BASED PREDICTION OF PHASE RANGES
     %--------------------------------------------------------------------------------------------
-    doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
-    doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    if (dop1_Rsat(sat))
+        doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+    end
+    if (dop2_Rsat(sat))
+        doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    end
 
 else
     %to point out that notwithstanding the satellite configuration,
