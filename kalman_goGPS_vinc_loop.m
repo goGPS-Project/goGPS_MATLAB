@@ -543,8 +543,12 @@ if (nsat >= min_nsat)
     %--------------------------------------------------------------------------------------------
     % DOPPLER-BASED PREDICTION OF PHASE RANGES
     %--------------------------------------------------------------------------------------------
-    doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
-    doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    if (dop1_Rsat(sat))
+        doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+    end
+    if (dop2_Rsat(sat))
+        doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    end
 
 else
     %to point out that notwithstanding the satellite configuration,

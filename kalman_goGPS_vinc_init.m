@@ -388,5 +388,9 @@ Cee(o1+1:o1+nN,o1+1:o1+nN) = diag(sigmaq_comb_N);
 %--------------------------------------------------------------------------------------------
 % DOPPLER-BASED PREDICTION OF PHASE RANGES
 %--------------------------------------------------------------------------------------------
-doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
-doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+if (dop1_Rsat(sat))
+    doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+end
+if (dop2_Rsat(sat))
+    doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+end
