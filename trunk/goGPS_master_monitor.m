@@ -289,22 +289,22 @@ while flag
                 pr2_M = zeros(32,1);
             end
 
-            %Resolution of 2^23 cy carrier phase ambiguity
-            %caused by 32-bit data field restrictions
-
-            pos = find(ph1_M & pr1_M);
-            if (~isempty(pos))
-                ambig = 2^23;
-                n = floor( (pr1_M(pos)/lambda1-ph1_M(pos)) / ambig + 0.5 );
-                ph1_M(pos) = ph1_M(pos) + n*ambig;
-            end
-
-            pos = find(ph2_M & pr1_M);
-            if (~isempty(pos))
-                ambig = 2^23;
-                n = floor( (pr1_M(pos)/lambda2-ph2_M(pos)) / ambig + 0.5 );
-                ph2_M(pos) = ph2_M(pos) + n*ambig;
-            end
+%             %Resolution of 2^23 cy carrier phase ambiguity
+%             %caused by 32-bit data field restrictions
+% 
+%             pos = find(ph1_M & pr1_M);
+%             if (~isempty(pos))
+%                 ambig = 2^23;
+%                 n = floor( (pr1_M(pos)/lambda1-ph1_M(pos)) / ambig + 0.5 );
+%                 ph1_M(pos) = ph1_M(pos) + n*ambig;
+%             end
+% 
+%             pos = find(ph2_M & pr1_M);
+%             if (~isempty(pos))
+%                 ambig = 2^23;
+%                 n = floor( (pr1_M(pos)/lambda2-ph2_M(pos)) / ambig + 0.5 );
+%                 ph2_M(pos) = ph2_M(pos) + n*ambig;
+%             end
 
             %visualization
             fprintf('\n');
