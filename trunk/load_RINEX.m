@@ -2,7 +2,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
           dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
           pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
           dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-          time_GPS, date, pos_M] = ...
+          time_GPS, time_GPS_R, time_GPS_M, date, pos_M] = ...
           load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav, wait_dlg)
 
 % SYNTAX:
@@ -55,7 +55,9 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   Eph_MR = matrix containing 29 ephemerides for each satellite (GLONASS, MASTER)
 %   snr_RR = signal-to-noise ratio (GLONASS, ROVER)
 %   snr_MR = signal-to-noise ratio (GLONASS, MASTER)
-%   time_GPS = GPS time of ROVER observations
+%   time_GPS = reference GPS time
+%   time_GPS_R = rover GPS time
+%   time_GPS_M = master GPS time
 %   date = date (year,month,day,hour,minute,second)
 %   pos_M = master station approximate position
 %
@@ -84,10 +86,12 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %----------------------------------------------------------------------------------------------
 
 global v_light
+%global lambda1
 
 Eph_RR = zeros(17,32);
 Eph_MR = zeros(17,32);
 
+time_GPS_M = 0;
 Eph_M = zeros(29,32);
 iono_M = zeros(8,1);
 pos_M = zeros(3,1);
@@ -246,7 +250,7 @@ while (~feof(FR_oss))
     dop2_MR(:,k) = zeros(32,1);
     snr_MR(:,k) = zeros(32,1);
 
-    if (time_GPS_R == time_GPS(k))
+    if (round(time_GPS_R(k)) == time_GPS(k))
 
         %read ROVER observations (GPS)
         if (obs_GPS_R.P1)
@@ -271,15 +275,56 @@ while (~feof(FR_oss))
         % snr_RR(:,k) = obs_GLO_R.S1;
 
         %read data for the current epoch (ROVER)
-        [time_GPS_R, sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+        [time_GPS_R(k+1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
 
         %read ROVER observations
         [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
 
+%         %continuity check on pseudoranges
+%         diff = 0;
+%         for s = 1 : 32
+%             %find the first satellite available with data on current
+%             %and previous epoch
+%             if (obs_GPS_R.C1(s) & pr1_R(s,k) | obs_GPS_R.P1(s) & pr1_R(s,k))
+%                 if (obs_GPS_R.P1)
+%                     %check whether the pseudorange has increased or
+%                     %decreased by a large amount
+%                     if (obs_GPS_R.P1(s)-pr1_R(s,k) > 2e5)
+%                         diff = -v_light/1000;
+%                     elseif (pr1_R(s,k)-obs_GPS_R.P1(s) > 2e5)
+%                         diff = v_light/1000;
+%                     end
+%                     %in case, apply the correction
+%                     if (diff ~= 0)
+%                         pos = find(obs_GPS_R.P1 ~= 0);
+%                         obs_GPS_R.P1(pos) = obs_GPS_R.P1(pos) + diff;
+%                         pos = find(obs_GPS_R.P2 ~= 0);
+%                         obs_GPS_R.P2(pos) = obs_GPS_R.P2(pos) + diff;
+%                     end
+%                 else
+%                     %check whether the pseudorange has increased or
+%                     %decreased by a large amount
+%                     if (obs_GPS_R.C1(s)-pr1_R(s,k) > 2e5)
+%                         diff = -v_light/1000;
+%                     elseif (pr1_R(s,k)-obs_GPS_R.C1(s) > 2e5)
+%                         diff = v_light/1000;
+%                     end
+%                     %in case, apply the correction
+%                     if (diff ~= 0)
+%                         pos = find(obs_GPS_R.C1 ~= 0);
+%                         obs_GPS_R.C1(pos) = obs_GPS_R.C1(pos) + diff;
+%                         pos = find(obs_GPS_R.P2 ~= 0);
+%                         obs_GPS_R.P2(pos) = obs_GPS_R.P2(pos) + diff;
+%                     end
+%                 end
+%                 %once the check has been made, break the loop
+%                 break
+%             end
+%         end
     end
 
     if (nargin > 2)
-        if (time_GPS_M == time_GPS(k))
+        if (round(time_GPS_M(k)) == time_GPS(k))
             
             %read MASTER observations (GPS)
             if (obs_GPS_M.P1)
@@ -294,6 +339,14 @@ while (~feof(FR_oss))
             dop2_M(:,k) = obs_GPS_M.D2;
             snr_M(:,k) = obs_GPS_M.S1;
             
+%             %phase adjustement
+%             pos = abs(ph1_M(:,k)) > 0 & abs(ph1_M(:,k)) < 1e8;
+%             if(sum(pos) ~= 0)
+%                 ambig = 2^23;
+%                 n = floor((pr1_M(pos,k)/lambda1-ph1_M(pos,k)) / ambig + 0.5 );
+%                 ph1_M(pos,k) = ph1_M(pos,k) + n*ambig;
+%             end
+            
             %read MASTER observations (GLONASS)
             % pr1_MR(:,k) = obs_GLO_M.C1;
             % %pr2_MR(:,k) = obs_GLO_M.P2;
@@ -304,52 +357,52 @@ while (~feof(FR_oss))
             % snr_MR(:,k) = obs_GLO_M.S1;
             
             %read data for the current epoch (MASTER)
-            [time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+            [time_GPS_M(k+1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
             
             %read MASTER observations
             [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
             
-            %continuity check on pseudoranges
-            diff = 0;
-            for s = 1 : 32
-                %find the first satellite available with data on current
-                %and previous epoch
-                if (obs_GPS_M.C1(s) & pr1_M(s,k) | obs_GPS_M.P1(s) & pr1_M(s,k))
-                    if (obs_GPS_M.P1)
-                        %check whether the pseudorange has increased or
-                        %decreased by a large amount
-                        if (obs_GPS_M.P1(s)-pr1_M(s,k) > 2e5)
-                            diff = -v_light/1000;
-                        elseif (pr1_M(s,k)-obs_GPS_M.P1(s) > 2e5)
-                            diff = v_light/1000;
-                        end
-                        %in case, apply the correction
-                        if (diff ~= 0)
-                            pos = find(obs_GPS_M.P1 ~= 0);
-                            obs_GPS_M.P1(pos) = obs_GPS_M.P1(pos) + diff;
-                            pos = find(obs_GPS_M.P2 ~= 0);
-                            obs_GPS_M.P2(pos) = obs_GPS_M.P2(pos) + diff;
-                        end
-                    else
-                        %check whether the pseudorange has increased or
-                        %decreased by a large amount
-                        if (obs_GPS_M.C1(s)-pr1_M(s,k) > 2e5)
-                            diff = -v_light/1000;
-                        elseif (pr1_M(s,k)-obs_GPS_M.C1(s) > 2e5)
-                            diff = v_light/1000;
-                        end
-                        %in case, apply the correction
-                        if (diff ~= 0)
-                            pos = find(obs_GPS_M.C1 ~= 0);
-                            obs_GPS_M.C1(pos) = obs_GPS_M.C1(pos) + diff;
-                            pos = find(obs_GPS_M.P2 ~= 0);
-                            obs_GPS_M.P2(pos) = obs_GPS_M.P2(pos) + diff;
-                        end
-                    end
-                    %once the check has been made, break the loop
-                    break
-                end
-            end
+%             %continuity check on pseudoranges
+%             diff = 0;
+%             for s = 1 : 32
+%                 %find the first satellite available with data on current
+%                 %and previous epoch
+%                 if (obs_GPS_M.C1(s) & pr1_M(s,k) | obs_GPS_M.P1(s) & pr1_M(s,k))
+%                     if (obs_GPS_M.P1)
+%                         %check whether the pseudorange has increased or
+%                         %decreased by a large amount
+%                         if (obs_GPS_M.P1(s)-pr1_M(s,k) > 2e5)
+%                             diff = -v_light/1000;
+%                         elseif (pr1_M(s,k)-obs_GPS_M.P1(s) > 2e5)
+%                             diff = v_light/1000;
+%                         end
+%                         %in case, apply the correction
+%                         if (diff ~= 0)
+%                             pos = find(obs_GPS_M.P1 ~= 0);
+%                             obs_GPS_M.P1(pos) = obs_GPS_M.P1(pos) + diff;
+%                             pos = find(obs_GPS_M.P2 ~= 0);
+%                             obs_GPS_M.P2(pos) = obs_GPS_M.P2(pos) + diff;
+%                         end
+%                     else
+%                         %check whether the pseudorange has increased or
+%                         %decreased by a large amount
+%                         if (obs_GPS_M.C1(s)-pr1_M(s,k) > 2e5)
+%                             diff = -v_light/1000;
+%                         elseif (pr1_M(s,k)-obs_GPS_M.C1(s) > 2e5)
+%                             diff = v_light/1000;
+%                         end
+%                         %in case, apply the correction
+%                         if (diff ~= 0)
+%                             pos = find(obs_GPS_M.C1 ~= 0);
+%                             obs_GPS_M.C1(pos) = obs_GPS_M.C1(pos) + diff;
+%                             pos = find(obs_GPS_M.P2 ~= 0);
+%                             obs_GPS_M.P2(pos) = obs_GPS_M.P2(pos) + diff;
+%                         end
+%                     end
+%                     %once the check has been made, break the loop
+%                     break
+%                 end
+%             end
         end
     end
 
@@ -358,7 +411,7 @@ while (~feof(FR_oss))
     date(k,:) = date_R(1,:);
     
     %ignore rover tail
-    if (nargin > 2) & (time_GPS_R > time_GPS_M)
+    if (nargin > 2) & (time_GPS_R(k) > time_GPS_M(k))
         break
     end
 end
