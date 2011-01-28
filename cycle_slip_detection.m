@@ -1,5 +1,5 @@
 function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, doppler_pred_range, pivot, sat, sat_born, alfa, phase)
+         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, posR, posM, posS, doppler_pred_range, pivot, sat, sat_born, alfa, phase)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
@@ -89,7 +89,7 @@ end
 % i = find(pivot == sat);
 % 
 % %PIVOT position (with clock error and Earth rotation corrections)
-% posP = sat_corr(Eph, sat(i), time, pr_Rsat(i));
+% posP = posS(:,i);
 % 
 % %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
 % pr_RP_stim = sqrt(sum((posR - posP).^2));
@@ -105,12 +105,9 @@ end
 % %computation for all the satellites, PIVOT included
 % for i = 1 : nsat
 % 
-%     %satellite position (with clock error and Earth rotation corrections)
-%     posS = sat_corr(Eph, sat(i), time, pr_Rsat(i));
-% 
 %     %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
-%     pr_RS_stim = sqrt(sum((posR - posS).^2));
-%     pr_MS_stim = sqrt(sum((posM - posS).^2));
+%     pr_RS_stim = sqrt(sum((posR - posS(i)).^2));
+%     pr_MS_stim = sqrt(sum((posM - posS(i)).^2));
 % 
 %     %computation of crossed pseudoranges
 %     pr_stim = [pr_stim; (pr_RS_stim - pr_MS_stim) - (pr_RP_stim - pr_MP_stim)];
@@ -137,10 +134,9 @@ for i = 1 : nsat
     if (~ismember(sat(i),sat_born) & (sat(i) ~= pivot))
 
         %test on:
-        % - Kalman-estimated phase ambiguities compared with code-phase range (double differences)
-        %   (abs(N_kalman(sat(i)) - N_stim(i)) > alfa)
+        % - Kalman-estimated phase ambiguities compared with ambiguities estimated by using approximate pseudorange (double differences)
         % - Doppler-predicted phase range compared to observed phase range (ROVER only)
-        if (abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
+        if (abs(N_kalman(sat(i)) - N_stim(i)) > 10) | ((doppler_pred_range(i)) & (abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa))
 
             %save of the new phase ambiguity estimation
             N_slip = [N_slip; N_stim(i)];

@@ -195,7 +195,7 @@ if (mode < 10) %post-processing
                 dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
                 pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-                time_GPS, date, pos_M] = ...
+                time_GPS, time_R, time_M, date, pos_M] = ...
                 load_RINEX(filename_R_obs, filename_R_nav);
         else
 
@@ -203,7 +203,7 @@ if (mode < 10) %post-processing
                 dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
                 pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-                time_GPS, date, pos_M] = ...
+                time_GPS, time_R, time_M, date, pos_M] = ...
                 load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
         end
 
@@ -220,13 +220,9 @@ if (mode < 10) %post-processing
         else
             Eph = Eph_M;
         end
-
+        
         %select ionosphere parameters source
         iono = iono_R;
-
-        %needed to write obs and eph files
-        %time_R = time_GPS;
-        %time_M = time_GPS;
 
         %remove satellites without ephemerides (GPS)
         delsat = setdiff(1:32,unique(Eph(1,:)));
@@ -855,6 +851,7 @@ elseif (mode == 3)
     end
 
     LS_goGPS_loop (time_GPS(1), Eph_t, pos_M(:,1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), iono, 1);
+    %LS_goGPS_loop_NEW (time_R(1), time_M(1), Eph_t, pos_M(:,1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), iono, 1);
 
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -890,6 +887,7 @@ elseif (mode == 3)
         end
 
         LS_goGPS_loop (time_GPS(t), Eph_t, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), iono, 1);
+        %LS_goGPS_loop_NEW (time_R(t), time_M(t), Eph_t, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), iono, 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -2106,6 +2104,74 @@ end
 %         figure
 %         plot(index,ph1_M(i,index),'b.-'); grid on;
 %         title(['MASTER: PHASE MEASUREMENT for SATELLITE ',num2str(i)]);
+%     end
+% end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF CODE AND PHASE DOUBLE DIFFERENCES
+%----------------------------------------------------------------------------------------------
+
+% %code
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     index_pivot = intersect(index, find(pivot == i));
+%     if ~isempty(index) & (length(index) ~= length(index_pivot))
+%         figure
+%         title(['ROVER: CODE DOUBLE DIFFERENCES between SATELLITE ',num2str(i),'and PIVOT']);
+%         hold on
+%         grid on
+%         for j = 1 : length(time_GPS)
+%             if (conf_sat(i,j) & i ~= pivot(j))
+%                 plot(j,(pr1_R(i,j)-pr1_M(i,j))-(pr1_R(pivot(j),j)-pr1_M(pivot(j),j)),'b.');
+%             end
+%         end
+%     end
+% end
+% 
+% %phase
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     index_pivot = intersect(index, find(pivot == i));
+%     if ~isempty(index) & (length(index) ~= length(index_pivot))
+%         figure
+%         title(['ROVER: PHASE DOUBLE DIFFERENCES between SATELLITE ',num2str(i),'and PIVOT']);
+%         hold on
+%         grid on
+%         for j = 1 : length(time_GPS)
+%             if (conf_sat(i,j) & i ~= pivot(j))
+%                 plot(j,(ph1_R(i,j)-ph1_M(i,j))-(ph1_R(pivot(j),j)-ph1_M(pivot(j),j)),'b.');
+%             end
+%         end
+%     end
+% end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF THE SECOND DERIVATIVE OF THE PHASE RANGE
+%----------------------------------------------------------------------------------------------
+
+% %rover
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         figure
+%         phase_rate = ph1_R(i,2:end)-ph1_R(i,1:end-1);
+%         phase_rate_variations = phase_rate(2:end)-phase_rate(1:end-1);
+%         phase_rate_variations(abs(phase_rate_variations)>1e7) = [];
+%         plot(phase_rate_variations,'b-'); grid on;
+%         title(['ROVER: PHASE RATE VARIATIONS for SATELLITE ',num2str(i)]);
+%     end
+% end
+% 
+% %master
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         figure
+%         phase_rate = ph1_M(i,2:end)-ph1_M(i,1:end-1);
+%         phase_rate_variations = phase_rate(2:end)-phase_rate(1:end-1);
+%         phase_rate_variations(abs(phase_rate_variations)>1e7) = [];
+%         plot(phase_rate_variations,'b-'); grid on;
+%         title(['ROVER: PHASE RATE VARIATIONS for SATELLITE ',num2str(i)]);
 %     end
 % end
 

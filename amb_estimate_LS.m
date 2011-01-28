@@ -57,7 +57,6 @@ function [N_stim_slip, N_stim_born] = amb_estimate_LS(posR_app, posS, pr_R, pr_M
 %variable initialization
 global lambda1 lambda2
 global sigmaq_cod1 sigmaq_ph sigmaq0_N
-% global clock_delay_thresh
 
 if (phase == 1)
     lambda = lambda1;

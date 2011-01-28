@@ -83,9 +83,9 @@ else
     if (phi<-0.416)
         phi=-0.416;
     end
-    
+
     lambda=Lon+((psi*sin(Az*pi))/cos(phi*pi));
-    
+
     ro=phi+0.064*cos((lambda-1.617)*pi);
     
     t=lambda*43200+T;
