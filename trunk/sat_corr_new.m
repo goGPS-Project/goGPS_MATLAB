@@ -29,7 +29,6 @@ function [Xcorr, tcorr, X, V, tx_GPS] = sat_corr(Eph, sat, time, pseudorange)
 %----------------------------------------------------------------------------------------------
 
 global v_light
-global rec_clock_error
 
 %--------------------------------------------------------------------------------------------
 % CLOCK ERROR CORRECTION
@@ -95,7 +94,7 @@ end
 % EARTH ROTATION ERROR CORRECTION
 %--------------------------------------------------------------------------------------------
 
-traveltime = time + rec_clock_error - tx_GPS;
+traveltime = time - tx_GPS;
 
 %computation of rotation-corrected satellite position
 Xcorr = e_r_corr(traveltime, X);
