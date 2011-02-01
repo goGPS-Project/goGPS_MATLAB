@@ -47,7 +47,6 @@ global cutoff o1 o2 o3
 global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
-global rec_clock_error
 
 cov_pos_MQ = [];
 
@@ -76,12 +75,12 @@ if (size(sat,1) >= 4)
     
     for i = 1 : size(sat,1)
         %satellite position computation (ROVER)
-        [posS_R(sat(i),:), dtS_R(sat(i))] = sat_corr(Eph, sat(i), time_R, pr1_R(sat(i)));
+        [posS_R(sat(i),:), dtS_R(sat(i))] = sat_corr_new(Eph, sat(i), time_R, pr1_R(sat(i)));
     end
     
     for i = 1 : size(sat,1)
         %satellite position computation (MASTER)
-        [posS_M(sat(i),:), dtS_M(sat(i))] = sat_corr(Eph, sat(i), time_M, pr1_M(sat(i)));
+        [posS_M(sat(i),:), dtS_M(sat(i))] = sat_corr_new(Eph, sat(i), time_M, pr1_M(sat(i)));
     end
     
     %ROVER positioning by means of Bancroft algorithm
@@ -103,12 +102,12 @@ if (size(sat,1) >= 4)
     
     for i = 1 : size(sat,1)
         %satellite position computation (ROVER)
-        [posS_R(sat(i),:), dtS_R(sat(i))] = sat_corr(Eph, sat(i), time_R, pr1_R(sat(i)));
+        [posS_R(sat(i),:), dtS_R(sat(i))] = sat_corr_new(Eph, sat(i), time_R, pr1_R(sat(i)));
     end
     
     for i = 1 : size(sat,1)
         %satellite position computation (MASTER)
-        [posS_M(sat(i),:), dtS_M(sat(i))] = sat_corr(Eph, sat(i), time_M, pr1_M(sat(i)));
+        [posS_M(sat(i),:), dtS_M(sat(i))] = sat_corr_new(Eph, sat(i), time_M, pr1_M(sat(i)));
     end
     
     %initialization
