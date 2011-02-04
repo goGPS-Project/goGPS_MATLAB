@@ -136,7 +136,8 @@ for i = 1 : nsat
         %test on:
         % - Kalman-estimated phase ambiguities compared with ambiguities estimated by using approximate pseudorange (double differences)
         % - Doppler-predicted phase range compared to observed phase range (ROVER only)
-        if (abs(N_kalman(sat(i)) - N_stim(i)) > 10) | ((doppler_pred_range(i)) & (abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa))
+        %if ((abs(N_kalman(sat(i)) - N_stim(i)) > 100) || doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
+        if (doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
 
             %save of the new phase ambiguity estimation
             N_slip = [N_slip; N_stim(i)];

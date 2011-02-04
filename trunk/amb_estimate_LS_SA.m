@@ -173,6 +173,7 @@ if (nargin == 11)
     %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
     %with respect to input code and phase variances)
     Q(nsat+1:end,nsat+1:end) = (sigmaq_ph * eye(n - nsat) + lambda^2*Cee_N_kalman(p,p)) .* Q2;
+    Q(nsat+pos,nsat+pos) = (sigmaq0_N * eye(length(pos)));
 else
     Q(nsat+1:end,nsat+1:end) = sigmaq_ph * Q2;
 end
