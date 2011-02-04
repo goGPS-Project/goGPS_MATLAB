@@ -86,7 +86,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %----------------------------------------------------------------------------------------------
 
 global v_light
-%global lambda1
+% global lambda1
 
 Eph_RR = zeros(17,32);
 Eph_MR = zeros(17,32);
@@ -265,6 +265,14 @@ while (~feof(FR_oss))
         dop2_R(:,k) = obs_GPS_R.D2;
         snr_R(:,k) = obs_GPS_R.S1;
         
+%         %phase adjustement
+%         pos = abs(ph1_R(:,k)) > 0 & abs(ph1_R(:,k)) < 1e7;
+%         if(sum(pos) ~= 0)
+%             ambig = 2^23;
+%             n = floor((pr1_R(pos,k)/lambda1-ph1_R(pos,k)) / ambig + 0.5 );
+%             ph1_R(pos,k) = ph1_R(pos,k) + n*ambig;
+%         end
+        
         %read ROVER observations (GLONASS)
         % pr1_RR(:,k) = obs_GLO_R.C1;
         % %pr2_RR(:,k) = obs_GLO_R.P2;
@@ -273,12 +281,13 @@ while (~feof(FR_oss))
         % dop1_RR(:,k) = obs_GLO_R.D1;
         % %dop2_RR(:,k) = obs_GLO_R.D2;
         % snr_RR(:,k) = obs_GLO_R.S1;
-
-        %read data for the current epoch (ROVER)
-        [time_GPS_R(k+1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
-
-        %read ROVER observations
-        [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
+    end
+    
+    %read data for the current epoch (ROVER)
+    [time_GPS_R(k+1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+    
+    %read ROVER observations
+    [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
 
 %         %continuity check on pseudoranges
 %         diff = 0;
@@ -321,7 +330,6 @@ while (~feof(FR_oss))
 %                 break
 %             end
 %         end
-    end
 
     if (nargin > 2)
         if (round(time_GPS_M(k)) == time_GPS(k))
@@ -340,7 +348,7 @@ while (~feof(FR_oss))
             snr_M(:,k) = obs_GPS_M.S1;
             
 %             %phase adjustement
-%             pos = abs(ph1_M(:,k)) > 0 & abs(ph1_M(:,k)) < 1e8;
+%             pos = abs(ph1_M(:,k)) > 0 & abs(ph1_M(:,k)) < 1e7;
 %             if(sum(pos) ~= 0)
 %                 ambig = 2^23;
 %                 n = floor((pr1_M(pos,k)/lambda1-ph1_M(pos,k)) / ambig + 0.5 );
@@ -355,12 +363,13 @@ while (~feof(FR_oss))
             % dop1_MR(:,k) = obs_GLO_M.D1;
             % %dop2_MR(:,k) = obs_GLO_M.D2;
             % snr_MR(:,k) = obs_GLO_M.S1;
+        end
             
-            %read data for the current epoch (MASTER)
-            [time_GPS_M(k+1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
-            
-            %read MASTER observations
-            [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
+        %read data for the current epoch (MASTER)
+        [time_GPS_M(k+1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+        
+        %read MASTER observations
+        [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
             
 %             %continuity check on pseudoranges
 %             diff = 0;
@@ -403,7 +412,6 @@ while (~feof(FR_oss))
 %                     break
 %                 end
 %             end
-        end
     end
 
     k = k+1;
@@ -411,7 +419,7 @@ while (~feof(FR_oss))
     date(k,:) = date_R(1,:);
     
     %ignore rover tail
-    if (nargin > 2) & (time_GPS_R(k) > time_GPS_M(k))
+    if (nargin > 2) & (round(time_GPS_R(k)) > round(time_GPS_M(k)))
         break
     end
 end

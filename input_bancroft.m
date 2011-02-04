@@ -27,6 +27,7 @@ function [posR, posS, dtS] = input_bancroft(pr, sv, time, Eph)
 %----------------------------------------------------------------------------------------------
 
 global v_light
+global rec_clock_error
 
 %number of pseudorange observations
 m = size(pr,1);
@@ -53,6 +54,6 @@ end
 pos = bancroft(B);
 posR = pos(1:3);
 
-% %clock offset computation
-% dtR = pos(4) / v_light;
+%clock offset computation
+rec_clock_error = pos(4) / v_light;
 % pos(4) = dtR * 1.e+9;
