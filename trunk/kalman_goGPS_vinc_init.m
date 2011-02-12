@@ -62,7 +62,7 @@ global s0 ax ay az
 global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
-global doppler_pred_range1 doppler_pred_range2
+global doppler_pred_range1_R doppler_pred_range2_R
 
 %--------------------------------------------------------------------------------------------
 % SINGLE / DOUBLE FREQUENCY SELECTION
@@ -282,7 +282,7 @@ sigmaq_s_R = (ax(i)^2*sigmaq_pos_R(1) + ay(i)^2*sigmaq_pos_R(2) + az(i)^2*sigmaq
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-if (size(sat) < 4)
+if (size(sat) <= 5)
     
     %satellite combinations initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
@@ -389,8 +389,8 @@ Cee(o1+1:o1+nN,o1+1:o1+nN) = diag(sigmaq_comb_N);
 % DOPPLER-BASED PREDICTION OF PHASE RANGES
 %--------------------------------------------------------------------------------------------
 if (dop1_Rsat(sat))
-    doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+    doppler_pred_range1_R(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
 end
 if (dop2_Rsat(sat))
-    doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
 end

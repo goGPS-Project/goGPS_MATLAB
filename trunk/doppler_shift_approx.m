@@ -1,7 +1,7 @@
-function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S, vel_S, time, sat, Eph)
+function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S, vel_S, time, rec_clock_drift, sat, Eph)
 
 % SYNTAX:
-%   [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S, vel_S, time, sat, Eph);
+%   [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S, vel_S, time, rec_clock_drift, sat, Eph);
 %
 % INPUT:
 %   pos_R = approximate rover position
@@ -10,6 +10,7 @@ function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S
 %   vel_S = satellite velocity at transmission time
 %   time = signal transmission GPS time
 %   sat = satellite id number
+%   rec_clock_drift = receiver clock drift
 %   Eph = satellite ephemerides matrix
 %
 % OUTPUT:
@@ -51,7 +52,6 @@ af1   = Eph(20,k);
 tom   = Eph(21,k);
 dt = check_t(time - tom);
 sat_clock_drift = af1 + 2*af2*dt; %satellite clock drift
-ubx_clock_drift = -4.2e-7;        %ublox AEK-4T receiver clock drift (TEMPORARY)
-doppler_app1 = -(radial_vel + v_light*(ubx_clock_drift - sat_clock_drift)) / lambda1;
-doppler_app2 = -(radial_vel + v_light*(ubx_clock_drift - sat_clock_drift)) / lambda2;
+doppler_app1 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda1;
+doppler_app2 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda2;
 

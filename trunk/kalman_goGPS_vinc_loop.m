@@ -72,7 +72,7 @@ global s0 ax ay az
 global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
-global doppler_pred_range1 doppler_pred_range2
+global doppler_pred_range1_R doppler_pred_range2_R
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -325,17 +325,17 @@ if (nsat >= min_nsat)
         %Test presence/absence of a cycle-slip at the current epoch.
         %The state of the system is not changed yet
         if (length(phase) == 2)
-            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), doppler_pred_range1(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
-            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o1+33:o1+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), doppler_pred_range2(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), doppler_pred_range1_R(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o1+33:o1+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), doppler_pred_range2_R(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
 
             if (check_cs1 | check_cs2)
                 check_cs = 1;
             end
         else
             if (phase == 1)
-                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), doppler_pred_range1(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o1+1:o1+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), doppler_pred_range1_R(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
             else
-                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o1+1:o1+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), doppler_pred_range2(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o1+1:o1+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), doppler_pred_range2_R(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
             end
         end
     else
@@ -543,11 +543,13 @@ if (nsat >= min_nsat)
     %--------------------------------------------------------------------------------------------
     % DOPPLER-BASED PREDICTION OF PHASE RANGES
     %--------------------------------------------------------------------------------------------
+    doppler_pred_range1_R = zeros(32,1);
+    doppler_pred_range2_R = zeros(32,1);
     if (dop1_Rsat(sat))
-        doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+        doppler_pred_range1_R(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
     end
     if (dop2_Rsat(sat))
-        doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+        doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
     end
 
 else

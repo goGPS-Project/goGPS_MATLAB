@@ -192,16 +192,16 @@ if (mode < 10) %post-processing
         if (mode == 2) | (mode == 4) | (mode == 6)
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-                dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
-                pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
+                dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr1_R, snr1_M, ...
+                snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, date, pos_M] = ...
                 load_RINEX(filename_R_obs, filename_R_nav);
         else
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-                dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr_R, snr_M, ...
-                pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
+                dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr1_R, snr1_M, ...
+                snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, date, pos_M] = ...
                 load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
@@ -220,6 +220,10 @@ if (mode < 10) %post-processing
         else
             Eph = Eph_M;
         end
+        
+        %TEMP
+        snr_R = snr1_R;
+        snr_M = snr1_M;
         
         %select ionosphere parameters source
         iono = iono_R;
@@ -2146,32 +2150,78 @@ end
 % end
 
 %----------------------------------------------------------------------------------------------
-% REPRESENTATION OF THE SECOND DERIVATIVE OF THE PHASE RANGE
+% REPRESENTATION OF PSEUDORANGE DERIVATIVES
 %----------------------------------------------------------------------------------------------
 
 % %rover
 % for i = 1 : 32
 %     index = find(conf_sat(i,:) == 1)';
 %     if ~isempty(index)
+%         interval = time_R(index(2)) - time_R(index(1));
 %         figure
-%         phase_rate = ph1_R(i,2:end)-ph1_R(i,1:end-1);
-%         phase_rate_variations = phase_rate(2:end)-phase_rate(1:end-1);
-%         phase_rate_variations(abs(phase_rate_variations)>1e7) = [];
-%         plot(phase_rate_variations,'b-'); grid on;
-%         title(['ROVER: PHASE RATE VARIATIONS for SATELLITE ',num2str(i)]);
+%         pr_rate = (pr1_R(i,index(2):index(end))-pr1_R(i,index(1):index(end-1)))./interval;
+%         plot(index(1:end-1), pr_rate,'b-');
+%         title(['ROVER: PSEUDORANGE RATE for SATELLITE ',num2str(i)]);
+%         figure
+%         pr_rate_variations = (pr_rate(2:end)-pr_rate(1:end-1))./interval^2;
+%         pr_rate_variations(abs(pr_rate_variations)>1e7) = [];
+%         plot(index(1:end-2), pr_rate_variations,'b-');
+%         title(['ROVER: PSEUDORANGE RATE VARIATIONS for SATELLITE ',num2str(i)]);
 %     end
 % end
-% 
+
 % %master
 % for i = 1 : 32
 %     index = find(conf_sat(i,:) == 1)';
 %     if ~isempty(index)
+%         interval = time_M(index(2)) - time_M(index(1));
 %         figure
-%         phase_rate = ph1_M(i,2:end)-ph1_M(i,1:end-1);
-%         phase_rate_variations = phase_rate(2:end)-phase_rate(1:end-1);
+%         pr_rate = (pr1_M(i,index(2):index(end))-pr1_M(i,index(1):index(end-1)))./interval;
+%         plot(index(1:end-1), pr_rate,'b-');
+%         title(['MASTER: PSEUDORANGE RATE for SATELLITE ',num2str(i)]);
+%         figure
+%         pr_rate_variations = (pr_rate(2:end)-pr_rate(1:end-1))./interval^2;
+%         pr_rate_variations(abs(pr_rate_variations)>1e7) = [];
+%         plot(index(1:end-2), pr_rate_variations,'b-');
+%         title(['MASTER: PSEUDORANGE RATE VARIATIONS for SATELLITE ',num2str(i)]);
+%     end
+% end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF PHASE RANGE DERIVATIVES
+%----------------------------------------------------------------------------------------------
+
+% %rover
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         interval = time_R(index(2)) - time_R(index(1));
+%         figure
+%         phase_rate = (ph1_R(i,index(2):index(end))-ph1_R(i,index(1):index(end-1)))./interval;
+%         plot(index(1:end-1), phase_rate,'b-');
+%         title(['ROVER: PHASE RATE for SATELLITE ',num2str(i)]);
+%         figure
+%         phase_rate_variations = (phase_rate(2:end)-phase_rate(1:end-1))./interval;
 %         phase_rate_variations(abs(phase_rate_variations)>1e7) = [];
-%         plot(phase_rate_variations,'b-'); grid on;
+%         plot(index(1:end-2), phase_rate_variations,'b-');
 %         title(['ROVER: PHASE RATE VARIATIONS for SATELLITE ',num2str(i)]);
+%     end
+% end
+
+% %master
+% for i = 1 : 32
+%     index = find(conf_sat(i,:) == 1)';
+%     if ~isempty(index)
+%         interval = time_M(index(2)) - time_M(index(1));
+%         figure
+%         phase_rate = (ph1_M(i,index(2):index(end))-ph1_M(i,index(1):index(end-1)))./interval;
+%         plot(index(1:end-1), phase_rate,'b-');
+%         title(['MASTER: PHASE RATE for SATELLITE ',num2str(i)]);
+%         figure
+%         phase_rate_variations = (phase_rate(2:end)-phase_rate(1:end-1))./interval^2;
+%         phase_rate_variations(abs(phase_rate_variations)>1e7) = [];
+%         plot(index(1:end-2), phase_rate_variations,'b-');
+%         title(['MASTER: PHASE RATE VARIATIONS for SATELLITE ',num2str(i)]);
 %     end
 % end
 

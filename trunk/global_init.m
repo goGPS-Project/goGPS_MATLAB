@@ -159,15 +159,15 @@ global master rover %#ok<NUSED>
 %-------------------------------------------------------------------------------
 
 global rec_clock_error
-global doppler_pred_range1
-global doppler_pred_range2
+global doppler_pred_range1_R
+global doppler_pred_range2_R
 
 %receiver clock error
 rec_clock_error = 0;
 
 %Doppler-predicted range
-doppler_pred_range1 = zeros(32,1);
-doppler_pred_range2 = zeros(32,1);
+doppler_pred_range1_R = zeros(32,1);
+doppler_pred_range2_R = zeros(32,1);
 
 %-------------------------------------------------------------------------------
 % MASTER STATION

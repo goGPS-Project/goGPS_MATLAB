@@ -45,7 +45,7 @@ global cutoff o1 o2 o3 nN
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
-global doppler_pred_range1 doppler_pred_range2
+global doppler_pred_range1_R doppler_pred_range2_R
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -313,10 +313,10 @@ Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigmaq_N);
 % DOPPLER-BASED PREDICTION OF PHASE RANGES
 %--------------------------------------------------------------------------------------------
 if (dop1_Rsat(sat))
-    doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+    doppler_pred_range1_R(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
 end
 if (dop2_Rsat(sat))
-    doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
 end
 
 %--------------------------------------------------------------------------------------------

@@ -71,7 +71,7 @@ global h_antenna
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
-global doppler_pred_range1 doppler_pred_range2
+global doppler_pred_range1_R doppler_pred_range2_R
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -111,7 +111,7 @@ end
 % RECEIVER PREDICTED POSITION AND VELOCITY
 %------------------------------------------------------------------------------------
 posR_app = X_t1_t([1,o1+1,o2+1]);
-velR_app = X_t1_t([2,o1+2,o2+2]);
+%velR_app = X_t1_t([2,o1+2,o2+2]);
 
 %------------------------------------------------------------------------------------
 % SATELLITE SELECTION
@@ -241,8 +241,8 @@ dtS = zeros(32,1);
 pos_S_ttime = zeros(3,32);
 vel_S = zeros(3,32);
 ttime = zeros(32,1);
-doppler_app1 = zeros(32,1);
-doppler_app2 = zeros(32,1);
+%doppler1_Rapp = zeros(32,1);
+%doppler2_Rapp = zeros(32,1);
 prRS_app = zeros(32,1);
 prMS_app = zeros(32,1);
 err_tropo_RS = zeros(32,1);
@@ -272,7 +272,7 @@ for i = 1:size(sat_pr)
         %computation of ROVER-SATELLITE approximated pseudorange
         prRS_app(i_sat) = sqrt(sum((posR_app - posS(:,i_sat)).^2));
         prMS_app(i_sat) = sqrt(sum((pos_M - posS(:,i_sat)).^2));
-        
+
         %computation of tropospheric errors
         err_tropo_RS(i_sat) = err_tropo(elR(i_sat), hR_app);
         err_tropo_MS(i_sat) = err_tropo(elM(i_sat), hM);
@@ -288,13 +288,8 @@ for i = 1:size(sat_pr)
         j = j + 1;
     end
     
-%DEBUG
-%   date = datevec(time/(3600*24) + 7*1565 + datenum([1980,1,6,0,0,0]));
-%   if (date(4:6) == [6 0 0])
-%       %computation of approximate doppler shift
-    [doppler_app1(i_sat), doppler_app2(i_sat)] = doppler_shift_approx(posR_app, velR_app, pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1), i_sat, Eph);
-%       doppler_app1
-%   end
+%DEBUG (still needs receiver clock drift input)
+%    [doppler1_Rapp(i_sat), doppler2_Rapp(i_sat)] = doppler_shift_approx(posR_app, velR_app, pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1), rec_clock_drift, i_sat, Eph);
 end
 
 %removal of satellites without ephemerides or with elevation or SNR lower than the respective threshold
@@ -379,7 +374,58 @@ if (nsat >= min_nsat)
         
         %new satellites
         sat_born = setdiff(sat,sat_old);
-        sat_born = setdiff(sat_born,pivot);
+        
+        %if a new satellite is going to be the pivot, its ambiguity needs
+        %to be estimated before applying the pivot change
+        if ~isempty(find(sat_born == pivot, 1))
+            %if it is not the only satellite with phase
+            if (length(sat) > 1)
+                %if the former pivot is still among satellites with phase
+                if ~isempty(find(sat == pivot_old, 1))
+                    %set the old pivot as temporary pivot
+                    pivot_tmp = pivot_old;
+                else
+                    %find the best candidate as temporary pivot
+                    sat_tmp = setdiff(sat,pivot);
+                    [max_elR, i] = max(elR(sat_tmp)); %#ok<ASGLU>
+                    pivot_tmp = sat_tmp(i);
+                    %reset the ambiguities of other satellites according to the temporary pivot
+                    sat_born = sat;
+                    sat_born = setdiff(sat_born,pivot_tmp);
+                    pivot_old = pivot_tmp;
+                end
+                sat_slip1 = [];
+                sat_slip2 = [];
+                sat_slip = [];
+                if (length(phase) == 2)
+                    [N1_slip, N1_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), err_iono_RS(sat_pr), err_iono_MS(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
+                    [N2_slip, N2_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_MS(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
+                    %[N1_slip, N1_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), err_iono_RS(sat_pr), err_iono_MS(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr)); %#ok<ASGLU>
+                    %[N2_slip, N2_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_MS(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr)); %#ok<ASGLU>
+
+                    X_t1_t(o3+sat_born,1) = N1_born;
+                    X_t1_t(o3+32+sat_born,1) = N2_born;
+                    %Cvv(o3+sat_born,o3+sat_born) = sigmaq_N1_born * eye(size(sat_born,1));
+                    %Cvv(o3+32+sat_born,o3+32+sat_born) = sigmaq_N2_born * eye(size(sat_born,1));
+                    Cvv(o3+sat_born,o3+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                    Cvv(o3+32+sat_born,o3+32+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                else
+                    if (phase == 1)
+                        [N_slip, N_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), err_iono_RS(sat_pr), err_iono_MS(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
+                        %[N_slip, N_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), err_iono_RS(sat_pr), err_iono_MS(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr)); %#ok<ASGLU>
+                    else
+                        [N_slip, N_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_MS(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
+                        %[N_slip, N_born] = amb_estimate_LS(posR_app, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_RS(sat_pr), err_tropo_MS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_MS(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr)); %#ok<ASGLU>
+                    end
+                    
+                    X_t1_t(o3+sat_born,1) = N_born;
+                    %Cvv(o3+sat_born,o3+sat_born) = sigmaq_N_born * eye(size(sat_born,1));
+                    Cvv(o3+sat_born,o3+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                end
+            end
+            sat_born = setdiff(sat_born,pivot);
+            check_on = 0;
+        end
     end
 
     %------------------------------------------------------------------------------------
@@ -429,18 +475,34 @@ if (nsat >= min_nsat)
         %Test presence/absence of a cycle-slip at the current epoch.
         %The state of the system is not changed yet
         if (length(phase) == 2)
-            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
-            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1_R(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2_R(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
 
             if (check_cs1 | check_cs2)
                 check_cs = 1;
             end
+
+%            %if the pivot slips, all ambiguity combinations must be re-estimated
+%            if ~isempty(find(sat_slip1 == pivot, 1))
+%                sat_born = [];
+%                sat_slip1 = sat;
+%            end
+%            if ~isempty(find(sat_slip2 == pivot, 1))
+%                sat_born = [];
+%                sat_slip2 = sat;
+%            end
         else
             if (phase == 1)
-                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1_R(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
             else
-                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2_R(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
             end
+
+%            %if the pivot slips, all ambiguity combinations must be re-estimated
+%            if ~isempty(find(sat_slip == pivot, 1))
+%                sat_born = [];
+%                sat_slip = sat;
+%            end
         end
     else
         sat_slip1 = [];
@@ -662,11 +724,13 @@ if (nsat >= min_nsat)
     %--------------------------------------------------------------------------------------------
     % DOPPLER-BASED PREDICTION OF PHASE RANGES
     %--------------------------------------------------------------------------------------------
+    doppler_pred_range1_R = zeros(32,1);
+    doppler_pred_range2_R = zeros(32,1);
     if (ph1_Rsat(sat) & dop1_Rsat(sat))
-        doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+        doppler_pred_range1_R(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
     end
     if (ph2_Rsat(sat) & dop2_Rsat(sat))
-        doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+        doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
     end
 
 else
