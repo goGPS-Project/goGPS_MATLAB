@@ -61,7 +61,7 @@ global cutoff snr_threshold o1 o2 o3 nN %order
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
-global doppler_pred_range1 doppler_pred_range2
+global doppler_pred_range1_R doppler_pred_range2_R
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -216,7 +216,7 @@ end
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-if (size(sat) < 4)
+if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1)
     
     %ROVER positioning with code double differences
     if (phase(1) == 1)
@@ -323,10 +323,10 @@ Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigmaq_comb_N);
 % DOPPLER-BASED PREDICTION OF PHASE RANGES
 %--------------------------------------------------------------------------------------------
 if (dop1_Rsat(sat))
-    doppler_pred_range1(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
+    doppler_pred_range1_R(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
 end
 if (dop2_Rsat(sat))
-    doppler_pred_range2(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
 end
 
 %--------------------------------------------------------------------------------------------

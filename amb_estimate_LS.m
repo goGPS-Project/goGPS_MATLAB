@@ -56,7 +56,7 @@ function [N_stim_slip, N_stim_born] = amb_estimate_LS(posR_app, posS, pr_R, pr_M
 
 %variable initialization
 global lambda1 lambda2
-global sigmaq_cod1 sigmaq_ph sigmaq0_N
+global sigmaq_cod1 sigmaq_ph
 
 if (phase == 1)
     lambda = lambda1;
@@ -214,13 +214,13 @@ Q(1:nsat-1,1:nsat-1) = sigmaq_cod1 * Q1;
 if (nargin == 23)
     %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
     %with respect to input code and phase variances)
-    [null, pos] = intersect(sat(p),sat_amb); %#ok<ASGLU>
     Q(nsat:end,nsat:end) = (sigmaq_ph * eye(n - (nsat - 1)) + lambda^2*Cee_N_kalman(p,p)) .* Q2;
-    Q(nsat-1+pos,nsat-1+pos) = (sigmaq0_N * eye(length(pos)));
 else
     Q(nsat:end,nsat:end) = sigmaq_ph * Q2;
 end
-
+% sat_slip
+% Q
+% pause
 % A_cod = A(1:nsat-1,:);
 % Q_cod = Q(1:nsat-1,1:nsat-1);
 % y0_cod = y0(1:nsat-1);
