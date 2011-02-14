@@ -58,6 +58,22 @@ while ~isempty(d)
     hour_str = num2str(hour,'%02d');
     d = dir([fileroot '_master_' hour_str '.bin']);                  %file to be read
 end
+
+%MASTER stream reading (non-goGPS binary format)
+d = dir(fileroot);                                                   %file to be read
+if ~isempty(d)
+    if (nargin == 1)
+        fprintf(['Reading: ' fileroot '\n']);
+    end
+    num_bytes = d.bytes;                                             %file size (number of bytes)
+    fid_master = fopen(fileroot);                                    %file opening
+    data_master_all = fread(fid_master,num_bytes,'uint8');           %file reading
+    data_master_all = dec2bin(data_master_all,8);                    %conversion in binary number (N x 8bits matrix)
+    data_master_all = data_master_all';                              %transposed (8bits x N matrix)
+    data_master_all = data_master_all(:)';                           %conversion into a string (8N bits vector)
+    fclose(fid_master);                                              %file closing
+end
+
 clear hour hour_str d
 clear data_master fid_master
 

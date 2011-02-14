@@ -131,12 +131,14 @@ function browse_data_stream_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
     {'*.ubx;*_rover_??.bin;*_master_??.bin','UBX stream data (*.ubx,*_rover_??.bin,*_master_??.bin)'; ...
-     '*.stq;*_rover_??.bin;*_master_??.bin','SkyTraq stream data (*.stq,*_rover_??.bin,*_master_??.bin)'}, ...
+     '*.stq;*_rover_??.bin;*_master_??.bin','SkyTraq stream data (*.stq,*_rover_??.bin,*_master_??.bin)'; ...
+     '*.rtcm','RTCM stream data (*.rtcm)'}, ...
     'Choose stream data','../data');
 
 if (filename ~= 0)
-    if (~strcmp(filename(end-3:end),'.ubx') & ~strcmp(filename(end-3:end),'.stq') & ...
-        ~strcmp(filename(end-3:end),'.UBX') & ~strcmp(filename(end-3:end),'.STQ'))
+    if (~strcmp(filename(end-3:end),'.ubx') & ~strcmp(filename(end-3:end),'.UBX') & ...
+        ~strcmp(filename(end-3:end),'.stq') & ~strcmp(filename(end-3:end),'.STQ') & ...
+        ~strcmp(filename(end-4:end),'.rtcm') & ~strcmp(filename(end-4:end),'.RTCM'))
         pos = find(filename == '_');
         filename = filename(1:pos(end-1)-1);
         set(handles.data_stream,'String',fullfile(pathname, filename));
@@ -150,6 +152,10 @@ if (filename ~= 0)
             pos = strfind(filename,'.stq');
         elseif strcmp(filename(end-3:end),'.STQ')
             pos = strfind(filename,'.STQ');
+        elseif strcmp(filename(end-4:end),'.rtcm')
+            pos = strfind(filename,'.rtcm');
+        elseif strcmp(filename(end-4:end),'.RTCM')
+            pos = strfind(filename,'.RTCM');
         end
         filename_out = filename(1:pos(end)-1);
         set(handles.data_stream,'String',fullfile(pathname, filename));
