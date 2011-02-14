@@ -2158,6 +2158,41 @@ end
 %     index = find(pr1_R(i,:) ~= 0)';
 %     if ~isempty(index)
 %         pr = pr1_R(i,index);
+%         interval = time_R(index(2)) - time_R(index(1));
+%         pr_der1 = zeros(length(index)-1,1);
+%         pr_der2 = zeros(length(index)-2,1);
+%         for j = 1 : length(index)-1
+%             if (index(j+1) == index(j) + interval)
+%                 pr_der1(j) = (pr(j+1)-pr(j))/interval;
+%             else
+%                 if (j > 1)
+%                     pr_der1(j) = pr_der1(j-1);
+%                 end
+%             end
+%             if (j <= length(index)-2)
+%                 if (index(j+2) == index(j) + 2*interval)
+%                     pr_der2(j) = (pr(j+2)-2*pr(j+1)+pr(j))/interval^2;
+%                 else
+%                     if (j > 1)
+%                         pr_der2(j) = pr_der2(j-1);
+%                     end
+%                 end
+%             end
+%         end
+%         figure
+%         plot(index(1:end-1), pr_der1,'b-');
+%         title(['ROVER: PSEUDORANGE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
+%         figure
+%         plot(index(1:end-2), pr_der2,'b-');
+%         title(['ROVER: PSEUDORANGE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
+%     end
+% end
+
+% %master
+% for i = 1 : 32
+%     index = find(pr1_M(i,:) ~= 0)';
+%     if ~isempty(index)
+%         pr = pr1_M(i,index);
 %         interval = time_M(index(2)) - time_M(index(1));
 %         pr_der1 = zeros(length(index)-1,1);
 %         pr_der2 = zeros(length(index)-2,1);
@@ -2181,47 +2216,12 @@ end
 %         end
 %         figure
 %         plot(index(1:end-1), pr_der1,'b-');
-%         title(['ROVER: PHASE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
+%         title(['MASTER: PSEUDORANGE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
 %         figure
 %         plot(index(1:end-2), pr_der2,'b-');
-%         title(['ROVER: PHASE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
+%         title(['MASTER: PSEUDORANGE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
 %     end
 % end
-
-%master
-for i = 1 : 32
-    index = find(pr1_M(i,:) ~= 0)';
-    if ~isempty(index)
-        pr = pr1_M(i,index);
-        interval = time_M(index(2)) - time_M(index(1));
-        pr_der1 = zeros(length(index)-1,1);
-        pr_der2 = zeros(length(index)-2,1);
-        for j = 1 : length(index)-1
-            if (index(j+1) == index(j) + interval)
-                pr_der1(j) = (pr(j+1)-pr(j))/interval;
-            else
-                if (j > 1)
-                    pr_der1(j) = pr_der1(j-1);
-                end
-            end
-            if (j <= length(index)-2)
-                if (index(j+2) == index(j) + 2*interval)
-                    pr_der2(j) = (pr(j+2)-2*pr(j+1)+pr(j))/interval^2;
-                else
-                    if (j > 1)
-                        pr_der2(j) = pr_der2(j-1);
-                    end
-                end
-            end
-        end
-        figure
-        plot(index(1:end-1), pr_der1,'b-');
-        title(['MASTER: PHASE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
-        figure
-        plot(index(1:end-2), pr_der2,'b-');
-        title(['MASTER: PHASE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
-    end
-end
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF PHASE RANGE DERIVATIVES
@@ -2232,7 +2232,7 @@ end
 %     index = find(ph1_R(i,:) ~= 0)';
 %     if ~isempty(index)
 %         ph = ph1_R(i,index);
-%         interval = time_M(index(2)) - time_M(index(1));
+%         interval = time_R(index(2)) - time_R(index(1));
 %         ph_der1 = zeros(length(index)-1,1);
 %         ph_der2 = zeros(length(index)-2,1);
 %         for j = 1 : length(index)-1
