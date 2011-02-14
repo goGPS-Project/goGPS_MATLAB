@@ -2070,48 +2070,6 @@ end
 % end
 
 %----------------------------------------------------------------------------------------------
-% REPRESENTATION OF PSEUDORANGE AND PHASE MEASUREMENT
-%----------------------------------------------------------------------------------------------
-
-% %rover pseudorange
-% for i = 1 : 32
-%     index = find(conf_sat(i,:) == 1)';
-%     if ~isempty(index)
-%         figure
-%         plot(index,pr1_R(i,index),'b.-'); grid on;
-%         title(['ROVER: PSEUDORANGE for SATELLITE ',num2str(i)]);
-%     end
-% end
-% %rover phase measurement
-% for i = 1 : 32
-%     index = find(conf_sat(i,:) == 1)';
-%     if ~isempty(index)
-%         figure
-%         plot(index,ph1_R(i,index),'b.-'); grid on;
-%         title(['ROVER: PHASE MEASUREMENT for SATELLITE ',num2str(i)]);
-%     end
-% end
-% 
-% %master pseudorange
-% for i = 1 : 32
-%     index = find(conf_sat(i,:) == 1)';
-%     if ~isempty(index)
-%         figure
-%         plot(index,pr1_M(i,index),'b.-'); grid on;
-%         title(['MASTER: PSEUDORANGE for SATELLITE ',num2str(i)]);
-%     end
-% end
-% %master phase measurement
-% for i = 1 : 32
-%     index = find(conf_sat(i,:) == 1)';
-%     if ~isempty(index)
-%         figure
-%         plot(index,ph1_M(i,index),'b.-'); grid on;
-%         title(['MASTER: PHASE MEASUREMENT for SATELLITE ',num2str(i)]);
-%     end
-% end
-
-%----------------------------------------------------------------------------------------------
 % REPRESENTATION OF CODE AND PHASE DOUBLE DIFFERENCES
 %----------------------------------------------------------------------------------------------
 
@@ -2150,42 +2108,120 @@ end
 % end
 
 %----------------------------------------------------------------------------------------------
+% REPRESENTATION OF PSEUDORANGE AND PHASE MEASUREMENT
+%----------------------------------------------------------------------------------------------
+
+% %rover pseudorange
+% for i = 1 : 32
+%     index = find(pr1_R(i,:) ~= 0)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,pr1_R(i,index),'b.-'); grid on;
+%         title(['ROVER: PSEUDORANGE for SATELLITE ',num2str(i)]);
+%     end
+% end
+% %rover phase measurement
+% for i = 1 : 32
+%     index = find(ph1_R(i,:) ~= 0)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,ph1_R(i,index),'b.-'); grid on;
+%         title(['ROVER: PHASE MEASUREMENT for SATELLITE ',num2str(i)]);
+%     end
+% end
+% 
+% %master pseudorange
+% for i = 1 : 32
+%     index = find(pr1_M(i,:) ~= 0)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,pr1_M(i,index),'b.-'); grid on;
+%         title(['MASTER: PSEUDORANGE for SATELLITE ',num2str(i)]);
+%     end
+% end
+% %master phase measurement
+% for i = 1 : 32
+%     index = find(ph1_M(i,:) ~= 0)';
+%     if ~isempty(index)
+%         figure
+%         plot(index,ph1_M(i,index),'b.-'); grid on;
+%         title(['MASTER: PHASE MEASUREMENT for SATELLITE ',num2str(i)]);
+%     end
+% end
+
+%----------------------------------------------------------------------------------------------
 % REPRESENTATION OF PSEUDORANGE DERIVATIVES
 %----------------------------------------------------------------------------------------------
 
 % %rover
 % for i = 1 : 32
-%     index = find(conf_sat(i,:) == 1)';
+%     index = find(pr1_R(i,:) ~= 0)';
 %     if ~isempty(index)
-%         interval = time_R(index(2)) - time_R(index(1));
+%         pr = pr1_R(i,index);
+%         interval = time_M(index(2)) - time_M(index(1));
+%         pr_der1 = zeros(length(index)-1,1);
+%         pr_der2 = zeros(length(index)-2,1);
+%         for j = 1 : length(index)-1
+%             if (index(j+1) == index(j) + interval)
+%                 pr_der1(j) = (pr(j+1)-pr(j))/interval;
+%             else
+%                 if (j > 1)
+%                     pr_der1(j) = pr_der1(j-1);
+%                 end
+%             end
+%             if (j <= length(index)-2)
+%                 if (index(j+2) == index(j) + 2*interval)
+%                     pr_der2(j) = (pr(j+2)-2*pr(j+1)+pr(j))/interval^2;
+%                 else
+%                     if (j > 1)
+%                         pr_der2(j) = pr_der2(j-1);
+%                     end
+%                 end
+%             end
+%         end
 %         figure
-%         pr_rate = (pr1_R(i,index(2):index(end))-pr1_R(i,index(1):index(end-1)))./interval;
-%         plot(index(1:end-1), pr_rate,'b-');
-%         title(['ROVER: PSEUDORANGE RATE for SATELLITE ',num2str(i)]);
+%         plot(index(1:end-1), pr_der1,'b-');
+%         title(['ROVER: PHASE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
 %         figure
-%         pr_rate_variations = (pr_rate(2:end)-pr_rate(1:end-1))./interval^2;
-%         pr_rate_variations(abs(pr_rate_variations)>1e7) = [];
-%         plot(index(1:end-2), pr_rate_variations,'b-');
-%         title(['ROVER: PSEUDORANGE RATE VARIATIONS for SATELLITE ',num2str(i)]);
+%         plot(index(1:end-2), pr_der2,'b-');
+%         title(['ROVER: PHASE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
 %     end
 % end
 
-% %master
-% for i = 1 : 32
-%     index = find(conf_sat(i,:) == 1)';
-%     if ~isempty(index)
-%         interval = time_M(index(2)) - time_M(index(1));
-%         figure
-%         pr_rate = (pr1_M(i,index(2):index(end))-pr1_M(i,index(1):index(end-1)))./interval;
-%         plot(index(1:end-1), pr_rate,'b-');
-%         title(['MASTER: PSEUDORANGE RATE for SATELLITE ',num2str(i)]);
-%         figure
-%         pr_rate_variations = (pr_rate(2:end)-pr_rate(1:end-1))./interval^2;
-%         pr_rate_variations(abs(pr_rate_variations)>1e7) = [];
-%         plot(index(1:end-2), pr_rate_variations,'b-');
-%         title(['MASTER: PSEUDORANGE RATE VARIATIONS for SATELLITE ',num2str(i)]);
-%     end
-% end
+%master
+for i = 1 : 32
+    index = find(pr1_M(i,:) ~= 0)';
+    if ~isempty(index)
+        pr = pr1_M(i,index);
+        interval = time_M(index(2)) - time_M(index(1));
+        pr_der1 = zeros(length(index)-1,1);
+        pr_der2 = zeros(length(index)-2,1);
+        for j = 1 : length(index)-1
+            if (index(j+1) == index(j) + interval)
+                pr_der1(j) = (pr(j+1)-pr(j))/interval;
+            else
+                if (j > 1)
+                    pr_der1(j) = pr_der1(j-1);
+                end
+            end
+            if (j <= length(index)-2)
+                if (index(j+2) == index(j) + 2*interval)
+                    pr_der2(j) = (pr(j+2)-2*pr(j+1)+pr(j))/interval^2;
+                else
+                    if (j > 1)
+                        pr_der2(j) = pr_der2(j-1);
+                    end
+                end
+            end
+        end
+        figure
+        plot(index(1:end-1), pr_der1,'b-');
+        title(['MASTER: PHASE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
+        figure
+        plot(index(1:end-2), pr_der2,'b-');
+        title(['MASTER: PHASE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
+    end
+end
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF PHASE RANGE DERIVATIVES
@@ -2193,35 +2229,71 @@ end
 
 % %rover
 % for i = 1 : 32
-%     index = find(conf_sat(i,:) == 1)';
+%     index = find(ph1_R(i,:) ~= 0)';
 %     if ~isempty(index)
-%         interval = time_R(index(2)) - time_R(index(1));
+%         ph = ph1_R(i,index);
+%         interval = time_M(index(2)) - time_M(index(1));
+%         ph_der1 = zeros(length(index)-1,1);
+%         ph_der2 = zeros(length(index)-2,1);
+%         for j = 1 : length(index)-1
+%             if (index(j+1) == index(j) + interval)
+%                 ph_der1(j) = (ph(j+1)-ph(j))/interval;
+%             else
+%                 if (j > 1)
+%                     ph_der1(j) = ph_der1(j-1);
+%                 end
+%             end
+%             if (j <= length(index)-2)
+%                 if (index(j+2) == index(j) + 2*interval)
+%                     ph_der2(j) = (ph(j+2)-2*ph(j+1)+ph(j))/interval^2;
+%                 else
+%                     if (j > 1)
+%                         ph_der2(j) = ph_der2(j-1);
+%                     end
+%                 end
+%             end
+%         end
 %         figure
-%         phase_rate = (ph1_R(i,index(2):index(end))-ph1_R(i,index(1):index(end-1)))./interval;
-%         plot(index(1:end-1), phase_rate,'b-');
-%         title(['ROVER: PHASE RATE for SATELLITE ',num2str(i)]);
+%         plot(index(1:end-1), ph_der1,'b-');
+%         title(['ROVER: PHASE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
 %         figure
-%         phase_rate_variations = (phase_rate(2:end)-phase_rate(1:end-1))./interval;
-%         phase_rate_variations(abs(phase_rate_variations)>1e7) = [];
-%         plot(index(1:end-2), phase_rate_variations,'b-');
-%         title(['ROVER: PHASE RATE VARIATIONS for SATELLITE ',num2str(i)]);
+%         plot(index(1:end-2), ph_der2,'b-');
+%         title(['ROVER: PHASE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
 %     end
 % end
 
 % %master
 % for i = 1 : 32
-%     index = find(conf_sat(i,:) == 1)';
+%     index = find(ph1_M(i,:) ~= 0)';
 %     if ~isempty(index)
+%         ph = ph1_M(i,index);
 %         interval = time_M(index(2)) - time_M(index(1));
+%         ph_der1 = zeros(length(index)-1,1);
+%         ph_der2 = zeros(length(index)-2,1);
+%         for j = 1 : length(index)-1
+%             if (index(j+1) == index(j) + interval)
+%                 ph_der1(j) = (ph(j+1)-ph(j))/interval;
+%             else
+%                 if (j > 1)
+%                     ph_der1(j) = ph_der1(j-1);
+%                 end
+%             end
+%             if (j <= length(index)-2)
+%                 if (index(j+2) == index(j) + 2*interval)
+%                     ph_der2(j) = (ph(j+2)-2*ph(j+1)+ph(j))/interval^2;
+%                 else
+%                     if (j > 1)
+%                         ph_der2(j) = ph_der2(j-1);
+%                     end
+%                 end
+%             end
+%         end
 %         figure
-%         phase_rate = (ph1_M(i,index(2):index(end))-ph1_M(i,index(1):index(end-1)))./interval;
-%         plot(index(1:end-1), phase_rate,'b-');
-%         title(['MASTER: PHASE RATE for SATELLITE ',num2str(i)]);
+%         plot(index(1:end-1), ph_der1,'b-');
+%         title(['MASTER: PHASE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
 %         figure
-%         phase_rate_variations = (phase_rate(2:end)-phase_rate(1:end-1))./interval^2;
-%         phase_rate_variations(abs(phase_rate_variations)>1e7) = [];
-%         plot(index(1:end-2), phase_rate_variations,'b-');
-%         title(['MASTER: PHASE RATE VARIATIONS for SATELLITE ',num2str(i)]);
+%         plot(index(1:end-2), ph_der2,'b-');
+%         title(['MASTER: PHASE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
 %     end
 % end
 
