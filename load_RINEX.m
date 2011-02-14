@@ -346,18 +346,21 @@ end
 
 while (~feof(FR_oss))
 
-    %read data for the current epoch (ROVER)
-    [time_GPS_R(k), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+    if (round(time_GPS_R(k-1)) == time_GPS(k-1))
+        %read data for the current epoch (ROVER)
+        [time_GPS_R(k), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+    else
+        time_GPS_R(k) = time_GPS_R(k-1);
+        time_GPS_R(k-1) = 0;
+    end
 
     if (nargin > 2)
-        %read data for the current epoch (MASTER)
-        [time_GPS_M(k), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
-
-        if (round(time_GPS_R(k)) > round(time_GPS_M(k)))
-            %ignore rover tail
-            time_GPS_R(k) = [];
-            time_GPS_M(k) = [];
-            break
+        if (round(time_GPS_M(k-1)) == time_GPS(k-1))
+            %read data for the current epoch (MASTER)
+            [time_GPS_M(k), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+        else
+            time_GPS_M(k) = time_GPS_M(k-1);
+            time_GPS_M(k-1) = 0;
         end
     end
     
@@ -397,12 +400,12 @@ while (~feof(FR_oss))
     
     date(k,:) = date_R(1,:);
     
-    %read ROVER observations
-    [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
-    
     time_GPS(k,1) = time_GPS(k-1,1) + interval;
 
     if (round(time_GPS_R(k)) == time_GPS(k))
+
+        %read ROVER observations
+        [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
 
         %read ROVER observations (GPS)
         if (obs_GPS_R.P1 == 0)
@@ -429,11 +432,11 @@ while (~feof(FR_oss))
     end
 
     if (nargin > 2)
-        
-        %read MASTER observations
-        [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
 
         if (round(time_GPS_M(k)) == time_GPS(k))
+            
+            %read MASTER observations
+            [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
             
             %read MASTER observations (GPS)
             if (obs_GPS_M.P1 == 0)
