@@ -44,6 +44,19 @@ fprintf('Reading RINEX files...\n');
     dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
     time_GPS, time_R, time_M, date, posR] = load_RINEX(filename_obs, filename_nav); %#ok<ASGLU>
 
+%remove epochs without data (GPS)
+delepochs = find(time_R == 0);
+if ~isempty(delepochs)
+    fprintf('%d epochs deleted because without data\n', length(delepochs));
+end
+time_R(:,delepochs) = [];
+pr1_R(:,delepochs) = [];
+pr2_R(:,delepochs) = [];
+ph1_R(:,delepochs) = [];
+ph2_R(:,delepochs) = [];
+snr1_R(:,delepochs) = [];
+snr2_R(:,delepochs) = [];
+
 %number of epochs
 nEpochs = length(time_R);
 
@@ -90,6 +103,7 @@ for i = 1 : nEpochs
             end
         end
     else
+        dtR(i) = dtR(i-1);
         if (i > 1)
             dtRdot(i-1) = dtRdot(i-2);
         end
@@ -100,7 +114,17 @@ fprintf('Searching for clock drift discontinuities...\n');
 
 %check if there is any discontinuity in the clock drift
 sigma_dtRdot = std(dtRdot);
-disc = find((abs(dtRdot-mean(dtRdot))) > 3*sigma_dtRdot);
+%3*sigma_dtRdot is not enough, because some clock oscillations can trespass
+%the threshold even without a clock shift
+%disc = find((abs(dtRdot-mean(dtRdot))) > 3*sigma_dtRdot);
+disc = find((abs(dtRdot-mean(dtRdot))) > 20*sigma_dtRdot);
+
+%display the clock error
+figure
+plot(dtR)
+%display the clock drift
+figure
+plot(dtRdot)
 
 if ~isempty(disc)
     
