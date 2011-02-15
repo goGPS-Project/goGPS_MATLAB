@@ -133,7 +133,7 @@ if (~isempty(data_rover_all))
     clear data_rover_all
     
     %initialization (to make writing faster)
-    Ncell  = size(cell_rover,2);                          %number of read RTCM packets
+    Ncell  = size(cell_rover,2);                          %number of read UBX messages
     time_R = zeros(Ncell,1);                              %GPS time of week
     week_R = zeros(Ncell,1);                              %GPS week
     ph1_R  = zeros(32,Ncell);                             %phase observations

@@ -154,7 +154,7 @@ while (pos + 15 <= length(msg))
 
                     % if checksum matches
                     if (CK_A == CK_A_rec) & (CK_B == CK_B_rec)
-                        
+
                         % message identification
                         switch class
                             
@@ -164,23 +164,23 @@ while (pos + 15 <= length(msg))
                                     % RAW (raw measurement)
                                     case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
                                         
-                                        % SFRB (*OBSOLETE* subframe buffer - only for ionosphere parameters and leap seconds)
+                                    % SFRB (*OBSOLETE* subframe buffer - only for ionosphere parameters and leap seconds)
                                     case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
                                         
-                                        % EPH (*OBSOLETE* ephemerides)
+                                    % EPH (*OBSOLETE* ephemerides)
                                     case '31'
                                         if (LEN == 104) %(ephemerides available)
                                             [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
                                         end
                                 end
                                 
-                                % AID (aiding messages)
+                            % AID (aiding messages)
                             case '0B'
                                 switch id
                                     % HUI (sat. Health / UTC / Ionosphere)
                                     case '02', [data(:,i)] = decode_AID_HUI(msg(pos:pos+8*LEN-1));
                                         
-                                        % EPH (ephemerides)
+                                    % EPH (ephemerides)
                                     case '31'
                                         if (LEN == 104) %(ephemerides available)
                                             [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1));
@@ -189,7 +189,7 @@ while (pos + 15 <= length(msg))
                         end
                         
                     else
-                        %fprintf('Checksum error!\n');
+                        fprintf('Checksum error!\n');
                     end
                     
                     % skip the message body
