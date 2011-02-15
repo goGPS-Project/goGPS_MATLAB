@@ -120,6 +120,13 @@ sigma_dtRdot = std(dtRdot);
 %disc = find((abs(dtRdot-mean(dtRdot))) > 3*sigma_dtRdot);
 disc = find((abs(dtRdot-mean(dtRdot))) > 20*sigma_dtRdot);
 
+%remove deleted epochs from discontinuities, because otherwise
+%Doppler-predicted observations are going to be used on the wrong epochs;
+%if an epoch is missing the discontinuity cannot be fixed
+for i = 1 : length(delepochs)
+	disc = setdiff(disc,(delepochs(i)-i));
+end
+
 %display the clock error
 figure
 plot(dtR)
@@ -129,7 +136,11 @@ plot(dtRdot)
 
 if ~isempty(disc)
     
-    fprintf('Fixing %d discontinuities...\n', length(disc));
+    if (isempty(delepochs))
+        fprintf('Fixing %d discontinuities...\n', length(disc));
+    else
+        fprintf('Fixing %d discontinuities (missing epochs will not be fixed)...\n', length(disc));
+    end
     
     %remove the discontinuities in order to compute a proper moving average later on
     for i = 1 : length(disc)
@@ -325,5 +336,9 @@ if ~isempty(disc)
     %close RINEX observation file
     fclose(fid_obs);
 else
-    fprintf('No fixing required.\n');
+    if (isempty(delepochs))
+        fprintf('No fixing required.\n');
+    else
+        fprintf('No fixing required (missing epochs are not fixed).\n');
+    end
 end
