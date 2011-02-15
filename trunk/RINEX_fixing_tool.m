@@ -56,6 +56,7 @@ ph1_R(:,delepochs) = [];
 ph2_R(:,delepochs) = [];
 snr1_R(:,delepochs) = [];
 snr2_R(:,delepochs) = [];
+date(delepochs,:) = [];
 
 %number of epochs
 nEpochs = length(time_R);
@@ -104,7 +105,7 @@ for i = 1 : nEpochs
         end
     else
         dtR(i) = dtR(i-1);
-        if (i > 1)
+        if (i > 2)
             dtRdot(i-1) = dtRdot(i-2);
         end
     end
