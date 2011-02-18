@@ -528,14 +528,19 @@ if (mode == 1) & (mode_vinc == 0)
         kalman_goGPS_init_model (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), snr_R(:,1), snr_M(:,1), order, 1);
         % kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), snr_R(:,1), snr_M(:,1), 1);
 
-        [E0(index,1), N0(index,1), h_null, utmzone0(index,:)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
-        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+        X_init = Xhat_t_t([1 o1+1 o2+1]);
+        X_ENU = global2localPos(Xhat_t_t([1 o1+1 o2+1]), X_init);
+        E0(index,1) = X_ENU(1,1);
+        N0(index,1) = X_ENU(2,1);
+        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), X_init);
         sigmaq_E0(index,1) = Cee_ENU(1,1);
         sigmaq_N0(index,1) = Cee_ENU(2,2);
         sigma_EN0(index,1) = Cee_ENU(1,2);
         mDIR = 0; qDIR = 0; angleDIR = 0;
         sigma_angleDIR = 0;
         P1 = [E0(index), N0(index)]; P2 = P1;
+        P1_ENU = [P1(1); P1(2); X_ENU(3,1)];
+        P2_ENU = [P2(1); P2(2); X_ENU(3,1)];
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -588,15 +593,18 @@ if (mode == 1) & (mode_vinc == 0)
             [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), snr_R(:,t), snr_M(:,t), order, 1);
             % [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), snr_R(:,t), snr_M(:,t), 1);
 
-            [E0(index,1), N0(index,1), h_null, utmzone0(index,:)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
-            Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+            X_ENU = global2localPos(Xhat_t_t([1 o1+1 o2+1]), X_init);
+            E0(index,1) = X_ENU(1,1);
+            N0(index,1) = X_ENU(2,1);
+            Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), X_init);
             sigmaq_E0(index,1) = Cee_ENU(1,1);
             sigmaq_N0(index,1) = Cee_ENU(2,2);
             sigma_EN0(index,1) = Cee_ENU(1,2);
             if (index == 1)
                 mDIR = 0; qDIR = 0; angleDIR = 0;
                 P1 = [E0(index), N0(index)]; P2 = P1;
-                utmzone1 = utmzone0(index,:); utmzone2 = utmzone1;
+                P1_ENU = [P1(1); P1(2); X_ENU(3,1)];
+                P2_ENU = [P2(1); P2(2); X_ENU(3,1)];
             else
                 [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0);
                 m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
@@ -605,8 +613,8 @@ if (mode == 1) & (mode_vinc == 0)
                 X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
                 P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
                 P2 = [X2, mDIR*X2+qDIR ];
-                utmzone1 = utmzone0(1,:);
-                utmzone2 = utmzone0(end,:);
+                P1_ENU = [P1(1); P1(2); X_ENU(3,1)];
+                P2_ENU = [P2(1); P2(2); X_ENU(3,1)];
                 angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
                 sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                 % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
@@ -639,16 +647,27 @@ if (mode == 1) & (mode_vinc == 0)
                     pause(0.01);
                 end
             end
-
         end
         
-        %Azimuth computation
-        i = find(angleDIR < 0);
-        angleDIR(i) = angleDIR(i) + 360;
+        %azimuth computation
+        if (angleDIR < 0)
+            angleDIR = angleDIR + 360;
+        end
+
+        %conversion to sexagesimal degrees
+        angleDIR_deg = floor(angleDIR);
+        min_dec = (angleDIR-angleDIR_deg)*60;
+        angleDIR_min = floor(min_dec);
+        angleDIR_sec = (min_dec - angleDIR_min)*60;
+        %---------------------------------
+        sigma_angleDIR_deg = floor(sigma_angleDIR);
+        min_dec = (sigma_angleDIR-sigma_angleDIR_deg)*60;
+        sigma_angleDIR_min = floor(min_dec);
+        sigma_angleDIR_sec = (min_dec - sigma_angleDIR_min)*60;
 
         fprintf('\n')
-        fprintf('Estimated azimuth = %8.3f degrees\n', angleDIR);
-        fprintf('Standard deviation  = %8.3f degrees\n', sigma_angleDIR);
+        fprintf('Estimated azimuth = %d deg %d min %6.3f sec\n', angleDIR_deg, angleDIR_min, angleDIR_sec);
+        fprintf('Standard deviation  = %d deg %d min %6.3f sec\n', sigma_angleDIR_deg, sigma_angleDIR_min, sigma_angleDIR_sec);
         fprintf('\n')
 
         fclose(fid_dyn);
@@ -1777,16 +1796,18 @@ if (mode < 12)
     fprintf(fid_kml, '\t\t</Placemark>\n');
     if (flag_stopGOstop & mode < 10)
         
-        [P1Lat, P1Lon] = utm2deg(P1(1), P1(2), utmzone1);
-        [P2Lat, P2Lon] = utm2deg(P2(1), P2(2), utmzone2);
+        P1_GLB = local2globalPos(P1_ENU, X_init);
+        P2_GLB = local2globalPos(P2_ENU, X_init);
+        [P1Lat, P1Lon] = cart2geod(P1_GLB(1), P1_GLB(2), P1_GLB(3));
+        [P2Lat, P2Lon] = cart2geod(P2_GLB(1), P2_GLB(2), P2_GLB(3));
         
         fprintf(fid_kml, '\t\t<Placemark>\n');
         fprintf(fid_kml, '\t\t<name>Estimated direction</name>\n');
         fprintf(fid_kml, '\t\t\t<styleUrl>#goLine2</styleUrl>\n');
         fprintf(fid_kml, '\t\t\t<LineString>\n');
         fprintf(fid_kml, '\t\t\t\t<coordinates>\n\t\t\t\t\t');
-        fprintf(fid_kml, '%.8f,%.8f,0 ',P1Lon,P1Lat);
-        fprintf(fid_kml, '%.8f,%.8f,0 ',P2Lon,P2Lat);
+        fprintf(fid_kml, '%.8f,%.8f,0 ',P1Lon*180/pi,P1Lat*180/pi);
+        fprintf(fid_kml, '%.8f,%.8f,0 ',P2Lon*180/pi,P2Lat*180/pi);
         fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
         fprintf(fid_kml, '\t\t\t</LineString>\n');
         fprintf(fid_kml, '\t\t</Placemark>\n');
