@@ -136,7 +136,7 @@ for i = 1 : nsat
         %test on:
         % - Kalman-estimated phase ambiguities compared with ambiguities estimated by using approximate pseudorange (double differences)
         % - Doppler-predicted phase range compared to observed phase range (ROVER only)
-        if ((abs(N_kalman(sat(i)) - N_stim(i)) > 50) || doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
+        if ((abs(N_kalman(sat(i)) - N_stim(i)) > 50) | (doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa))
         %if (doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
 
             %save of the new phase ambiguity estimation
@@ -147,7 +147,7 @@ for i = 1 : nsat
 
             %flag identifying a cycle-slip
             slip = 1;
-%             fprintf('Cycle-slip on satellite %d: range difference = %.3f\n', sat(i), doppler_pred_range(i) - ph_Rsat(i));        
+%             fprintf('Cycle-slip on satellite %d: range difference = %.3f\n', sat(i), doppler_pred_range(i) - ph_Rsat(i));
 %             pause
         end
     end

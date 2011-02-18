@@ -257,7 +257,7 @@ if (~isempty(data_rover_all))
     end
     clear cell_rover
     clear Ncell pos sat tom
-    
+
     %residual data erase (after initialization)
     time_R(i:end)    = [];
     week_R(i:end)    = [];
@@ -268,7 +268,7 @@ if (~isempty(data_rover_all))
     lock_R(:,i:end)  = [];
     Eph_R(:,:,i:end) = [];
     iono(:,i:end)    = [];
-    
+
     %date decoding
     date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
     
@@ -283,7 +283,7 @@ if (~isempty(data_rover_all))
     
     %create RINEX observation file
     fid_obs = fopen([filename '.obs'],'wt');
-    
+
     %write header
     fprintf(fid_obs,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
     fprintf(fid_obs,'goGPS                                                       PGM / RUN BY / DATE \n');

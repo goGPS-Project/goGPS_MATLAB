@@ -530,7 +530,7 @@ while flag
             
             if (t > 0) & (pos_M ~= 0)
                 %data save
-                fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(32,1); ph1_M; zeros(32,1); snr1_M; zeros(32,1); pos_M(:,1); zeros(8,1)], 'double');
+                fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(32,1); ph1_M; zeros(32,1); zeros(32,1); snr1_M; zeros(32,1); pos_M(:,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [0; Eph(:)], 'double');
             end
 

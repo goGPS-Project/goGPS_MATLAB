@@ -54,16 +54,12 @@ if (~isempty(dir(filename_R_obs)))
     
     %ROVER RINEX files reading
     if (nargin == 6)
-        [pr1_R, ph1_R, pr2_R, ph2_R, ...
-            Eph_R, iono_R, snr_R, ...
-            pr1_RR, ph1_RR, pr2_RR, ph2_RR, ...
-            Eph_RR, snr_RR, time_R, date] = ...
+        [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, Eph_R, iono_R, snr_R, ...
+            pr1_RR, ph1_RR, pr2_RR, ph2_RR, Eph_RR, snr_RR, time_R, date] = ...
             load_RINEX_SA(filename_R_obs, filename_R_nav, wait_dlg); %#ok<ASGLU>
     else
-        [pr1_R, ph1_R, pr2_R, ph2_R, ...
-            Eph_R, iono_R, snr_R, ...
-            pr1_RR, ph1_RR, pr2_RR, ph2_RR, ...
-            Eph_RR, snr_RR, time_R, date] = ...
+        [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, Eph_R, iono_R, snr_R, ...
+            pr1_RR, ph1_RR, pr2_RR, ph2_RR, Eph_RR, snr_RR, time_R, date] = ...
             load_RINEX_SA(filename_R_obs, filename_R_nav); %#ok<ASGLU>
     end
     
@@ -85,27 +81,24 @@ epochs = length(time_GPS);
 
 %MASTER variable initialization
 time_M = zeros(epochs);
-pr1_M = zeros(32,epochs);
-ph1_M = zeros(32,epochs);
-snr_M = zeros(32,epochs);
-pos_M = zeros(3,epochs);
-Eph_M = zeros(29,32,epochs);
-iono = zeros(8,epochs);
+pr1_M  = zeros(32,epochs);
+ph1_M  = zeros(32,epochs);
+dop1_M = zeros(32,epochs);
+snr_M  = zeros(32,epochs);
+pos_M  = zeros(3,epochs);
+Eph_M  = zeros(29,32,epochs);
+iono   = zeros(8,epochs);
 
 if (~isempty(dir(filename_M_obs)))
     
     %MASTER RINEX files reading
     if (nargin == 6)
-        [pr1_M, ph1_M, pr2_M, ph2_M, ...
-            Eph_M, iono_M, snr_M, ...
-            pr1_MR, ph1_MR, pr2_MR, ph2_MR, ...
-            Eph_MR, snr_MR, time_M, date, pos_M] = ...
+        [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph_M, iono_M, snr_M, ...
+            pr1_MR, ph1_MR, pr2_MR, ph2_MR, Eph_MR, snr_MR, time_M, date, pos_M] = ...
             load_RINEX_SA(filename_M_obs, filename_M_nav, wait_dlg, time_GPS(end)); %#ok<ASGLU>
     else
-        [pr1_M, ph1_M, pr2_M, ph2_M, ...
-            Eph_M, iono_M, snr_M, ...
-            pr1_MR, ph1_MR, pr2_MR, ph2_MR, ...
-            Eph_MR, snr_MR, time_M, date, pos_M] = ...
+        [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph_M, iono_M, snr_M, ...
+            pr1_MR, ph1_MR, pr2_MR, ph2_MR, Eph_MR, snr_MR, time_M, date, pos_M] = ...
             load_RINEX_SA(filename_M_obs, filename_M_nav); %#ok<ASGLU>
     end
 
@@ -115,27 +108,34 @@ if (~isempty(dir(filename_M_obs)))
         waitbar(0.33,wait_dlg,'Synchronizing data...')
     end
 
+    %round time values for synchronizing rover and master epochs
+    roundtime_R = round(time_R);
+    roundtime_M = round(time_M);
+    
     if ~isempty(time_R) & ~isempty(time_M)
-
+        
         if (size(pos_M,2) == 1)
             pos_M(1,1:length(time_M)) = pos_M(1);
             pos_M(2,1:length(time_M)) = pos_M(2);
             pos_M(3,1:length(time_M)) = pos_M(3);
         end
-
+        
         %head synchronization
-        if (time_R(1) < time_M(1))
-            pos = find(time_R < time_M(1));
+        if (roundtime_R(1) < roundtime_M(1))
+            pos = find(roundtime_R < roundtime_M(1));
+            roundtime_R(pos) = [];                     %GPS time (rounded)
             time_R(pos)    = [];                       %GPS time
             week_R(pos)    = [];                       %GPS week
             pr1_R(:,pos)   = [];                       %code observations
             ph1_R(:,pos)   = [];                       %phase observations
             snr_R(:,pos)   = [];                       %signal-to-noise ratio
-            iono(:,pos)    = [];                       %ionosphere parameters
+            dop1_R(:,pos)  = [];                       %doppler measurement
+            iono(:,pos) = [];                          %ionosphere parameters
         end
-
-        if (time_M(1) < time_R(1))
-            pos = find(time_M < time_R(1));
+        
+        if (roundtime_M(1) < roundtime_R(1))
+            pos = find(roundtime_M < roundtime_R(1));
+            roundtime_M(pos) = [];                     %GPS time (rounded)
             time_M(pos)    = [];                       %GPS time
             pr1_M(:,pos)   = [];                       %code observations
             ph1_M(:,pos)   = [];                       %phase observations
@@ -144,18 +144,21 @@ if (~isempty(dir(filename_M_obs)))
         end
         
         %tail synchronization
-        if (time_R(end) > time_M(end))
-            pos = find(time_R > time_M(end));
+        if (roundtime_R(end) > roundtime_M(end))
+            pos = find(roundtime_R > roundtime_M(end));
+            roundtime_R(pos) = [];                     %GPS time (rounded)
             time_R(pos)    = [];                       %GPS time
             week_R(pos)    = [];                       %GPS week
             pr1_R(:,pos)   = [];                       %code observations
             ph1_R(:,pos)   = [];                       %phase observations
             snr_R(:,pos)   = [];                       %signal-to-noise ratio
-            iono(:,pos)    = [];                       %ionosphere parameters
+            dop1_R(:,pos)  = [];                       %doppler measurement
+            iono(:,pos) = [];                          %ionosphere parameters
         end
         
-        if (time_M(end) > time_R(end))
-            pos = find(time_M > time_R(end));
+        if (roundtime_M(end) > roundtime_R(end))
+            pos = find(roundtime_M > roundtime_R(end));
+            roundtime_M(pos) = [];                     %GPS time (rounded)
             time_M(pos)    = [];                       %GPS time
             pr1_M(:,pos)   = [];                       %code observations
             ph1_M(:,pos)   = [];                       %phase observations
@@ -172,22 +175,24 @@ if (~isempty(dir(filename_M_obs)))
     end
     
     %signal losses
-    time_GPS = union(time_R,time_M);                     %overall reference time
+    time_GPS = union(roundtime_R,roundtime_M);           %overall reference time
+    
     if ~isempty(time_GPS)
         
         time_GPS = (time_GPS(1) : 1 : time_GPS(end))';   %GPS time without interruptions
         
         if ~isempty(time_R)
             
-            newtime_R = setdiff(time_GPS, time_R);       %ROVER missing epochs
+            newtime_R = setdiff(time_GPS, roundtime_R);  %ROVER missing epochs
             for i = 1 : length(newtime_R)
                 
-                pos = find(time_R == newtime_R(i) - 1);  %position before the "holes"
-
-                time_R = [time_R(1:pos)   newtime_R(i)   time_R(pos+1:end)];
+                pos = find(roundtime_R == newtime_R(i) - 1);  %position before the "holes"
+                
+                time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
                 week_R = [week_R(1:pos);  0;             week_R(pos+1:end)];
                 pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
                 ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
+                dop1_R = [dop1_R(:,1:pos) zeros(32,1)    dop1_R(:,pos+1:end)];
                 snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
                 iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
             end
@@ -196,18 +201,19 @@ if (~isempty(dir(filename_M_obs)))
             week_R = zeros(1,length(time_GPS));
             pr1_R  = zeros(32,length(time_GPS));
             ph1_R  = zeros(32,length(time_GPS));
+            dop1_R = zeros(32,length(time_GPS));
             snr_R  = zeros(32,length(time_GPS));
             iono   = zeros(8,length(time_GPS));
         end
         
         if ~isempty(time_M)
             
-            newtime_M = setdiff(time_GPS, time_M);       %MASTER missing epochs
+            newtime_M = setdiff(time_GPS, roundtime_M);  %MASTER missing epochs
             for i = 1 : length(newtime_M)
                 
-                pos = find(time_M == newtime_M(i) - 1);  %position before the "holes"
+                pos = find(roundtime_M == newtime_M(i) - 1);  %position before the "holes"
                 
-                time_M = [time_M(1:pos)   newtime_M(i)   time_M(pos+1:end)];
+                time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
                 pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
                 ph1_M  = [ph1_M(:,1:pos)  zeros(32,1)    ph1_M(:,pos+1:end)];
                 snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
@@ -277,6 +283,7 @@ if (~isempty(dir(filename_M_obs)))
 else
     satObs = find(pr1_R(:,1) ~= 0);
 end
+
 while (length(satEph) < length(satObs)) | (length(satObs) < 4)
 
     time_GPS(1) = [];
@@ -287,6 +294,8 @@ while (length(satEph) < length(satObs)) | (length(satObs) < 4)
     pr1_M(:,1)  = [];
     ph1_R(:,1)  = [];
     ph1_M(:,1)  = [];
+    dop1_R(:,1) = [];
+    dop1_M(:,1) = [];
     snr_R(:,1)  = [];
     snr_M(:,1)  = [];
     pos_M(:,1)  = [];
@@ -307,12 +316,14 @@ epochs = length(time_GPS);
 for i = 1 : epochs
     satEph = find(sum(abs(Eph(:,:,i)))~=0);
     delsat = setdiff(1:32,satEph);
-    pr1_R(delsat,i) = 0;
-    pr1_M(delsat,i) = 0;
-    ph1_R(delsat,i) = 0;
-    ph1_M(delsat,i) = 0;
-    snr_R(delsat,i) = 0;
-    snr_M(delsat,i) = 0;
+    pr1_R(delsat,i)  = 0;
+    pr1_M(delsat,i)  = 0;
+    ph1_R(delsat,i)  = 0;
+    ph1_M(delsat,i)  = 0;
+    dop1_R(delsat,i) = 0;
+    dop1_M(delsat,i) = 0;
+    snr_R(delsat,i)  = 0;
+    snr_M(delsat,i)  = 0;
 end
 
 %complete/partial path
@@ -328,6 +339,8 @@ pr1_R = pr1_R(:,tMin:tMax);
 pr1_M = pr1_M(:,tMin:tMax);
 ph1_R = ph1_R(:,tMin:tMax);
 ph1_M = ph1_M(:,tMin:tMax);
+dop1_R = dop1_R(:,tMin:tMax);
+dop1_M = dop1_M(:,tMin:tMax);
 snr_R = snr_R(:,tMin:tMax);
 snr_M = snr_M(:,tMin:tMax);
 pos_M = pos_M(:,tMin:tMax);
@@ -380,7 +393,7 @@ for t = 1 : length(time_GPS)
     end
     
     Eph_t = Eph(:,:,t);
-    fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
+    fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); dop1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');
     fwrite(fid_eph, [time_GPS(t); Eph_t(:)], 'double');
 end
 
