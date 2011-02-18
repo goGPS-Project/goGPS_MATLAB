@@ -105,6 +105,9 @@ if (~isempty(Eph))
     end 
 end
 
+%add dummy Doppler observation variable for master (not available through RTCM)
+dop1_M = zeros(32,length(time_GPS));
+
 %complete/partial path
 tMin = 1;
 tMax = 1e30;
@@ -119,6 +122,7 @@ pr1_M = pr1_M(:,tMin:tMax);
 ph1_R = ph1_R(:,tMin:tMax);
 ph1_M = ph1_M(:,tMin:tMax);
 dop1_R = dop1_R(:,tMin:tMax);
+dop1_M = dop1_M(:,tMin:tMax);
 snr_R = snr_R(:,tMin:tMax);
 snr_M = snr_M(:,tMin:tMax);
 pos_M = pos_M(:,tMin:tMax);

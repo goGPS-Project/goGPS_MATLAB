@@ -1,10 +1,10 @@
-function [pr1, ph1, pr2, ph2, Eph, iono, snr, ...
+function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr, ...
           pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, Eph_GLO, snr_GLO, ...
           time_GPS, date, pos] = ...
           load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, Eph, iono, snr_R, ...
+%   [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr_R, ...
 %         pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, Eph_GLO, snr_GLO, ...
 %         time_GPS, date, pos] = ...
 %         load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time);
@@ -20,6 +20,8 @@ function [pr1, ph1, pr2, ph2, Eph, iono, snr, ...
 %   ph1 = phase observation (L1 carrier)
 %   pr2 = code observation (L2 carrier)
 %   ph2 = phase observation (L2 carrier)
+%   dop1 = Doppler observation (L1 carrier)
+%   dop2 = Doppler observation (L2 carrier)
 %   Eph = matrix containing 29 ephemerides for each satellite
 %   iono = matrix containing ionosphere parameters
 %   snr = signal-to-noise ratio
@@ -113,11 +115,13 @@ end
 while (~feof(F_oss))
 
     %variable initialization (GPS)
-    pr1(:,k) = zeros(32,1);
-    pr2(:,k) = zeros(32,1);
-    ph1(:,k) = zeros(32,1);
-    ph2(:,k) = zeros(32,1);
-    snr(:,k) = zeros(32,1);
+    pr1(:,k)  = zeros(32,1);
+    pr2(:,k)  = zeros(32,1);
+    ph1(:,k)  = zeros(32,1);
+    ph2(:,k)  = zeros(32,1);
+    dop1(:,k) = zeros(32,1);
+    dop2(:,k) = zeros(32,1);
+    snr(:,k)  = zeros(32,1);
 
     %variable initialization (GLONASS)
     pr1_GLO(:,k) = zeros(32,1);
@@ -133,11 +137,13 @@ while (~feof(F_oss))
     [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(F_oss, sat, sat_types, obs_typ); %#ok<NASGU>
     
     %read observations (GPS)
-    pr1(:,k) = obs_GPS.C1;
-    pr2(:,k) = obs_GPS.P2;
-    ph1(:,k) = obs_GPS.L1;
-    ph2(:,k) = obs_GPS.L2;
-    snr(:,k) = obs_GPS.S1;
+    pr1(:,k)  = obs_GPS.C1;
+    pr2(:,k)  = obs_GPS.P2;
+    ph1(:,k)  = obs_GPS.L1;
+    ph2(:,k)  = obs_GPS.L2;
+    dop1(:,k) = obs_GPS.D1;
+    dop2(:,k) = obs_GPS.D2;
+    snr(:,k)  = obs_GPS.S1;
     
     %read observations (GLONASS)
     % pr1_GLO(:,k) = obs_GLO.C1;
