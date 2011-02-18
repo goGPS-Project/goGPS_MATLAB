@@ -541,6 +541,10 @@ if (mode == 1) & (mode_vinc == 0)
         P1 = [E0(index), N0(index)]; P2 = P1;
         P1_ENU = [P1(1); P1(2); X_ENU(3,1)];
         P2_ENU = [P2(1); P2(2); X_ENU(3,1)];
+        P1_GLB = local2globalPos(P1_ENU, X_init);
+        P2_GLB = local2globalPos(P2_ENU, X_init);
+        [P1_UTM_E, P1_UTM_N] = cart2plan(P1_GLB(1), P1_GLB(2), P1_GLB(3));
+        [P2_UTM_E, P2_UTM_N] = cart2plan(P2_GLB(1), P2_GLB(2), P2_GLB(3));
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -550,10 +554,10 @@ if (mode == 1) & (mode_vinc == 0)
         if (flag_plotproc)
             if (flag_cov == 0)
                 if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
-                rtplot_matlab_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), P1, P2, flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
+                rtplot_matlab_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
             else
                 if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
-                rtplot_matlab_cov_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
+                rtplot_matlab_cov_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
             end
             if (flag_amb == 1)
                 rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
@@ -619,6 +623,10 @@ if (mode == 1) & (mode_vinc == 0)
                 sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
                 % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
             end
+            P1_GLB = local2globalPos(P1_ENU, X_init);
+            P2_GLB = local2globalPos(P2_ENU, X_init);
+            [P1_UTM_E, P1_UTM_N] = cart2plan(P1_GLB(1), P1_GLB(2), P1_GLB(3));
+            [P2_UTM_E, P2_UTM_N] = cart2plan(P2_GLB(1), P2_GLB(2), P2_GLB(3));
             pause(0.05)
 
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -629,10 +637,10 @@ if (mode == 1) & (mode_vinc == 0)
             if (flag_plotproc)
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
-                    rtplot_matlab_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), P1, P2, flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
+                    rtplot_matlab_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
                 else
                     if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
-                    rtplot_matlab_cov_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
+                    rtplot_matlab_cov_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
                 end
                 if (flag_amb == 1)
                     rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
@@ -1796,8 +1804,6 @@ if (mode < 12)
     fprintf(fid_kml, '\t\t</Placemark>\n');
     if (flag_stopGOstop & mode < 10)
         
-        P1_GLB = local2globalPos(P1_ENU, X_init);
-        P2_GLB = local2globalPos(P2_ENU, X_init);
         [P1Lat, P1Lon] = cart2geod(P1_GLB(1), P1_GLB(2), P1_GLB(3));
         [P2Lat, P2Lon] = cart2geod(P2_GLB(1), P2_GLB(2), P2_GLB(3));
         
