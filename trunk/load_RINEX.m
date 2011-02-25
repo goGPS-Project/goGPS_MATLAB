@@ -90,7 +90,6 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 Eph_RR = zeros(17,32);
 Eph_MR = zeros(17,32);
 
-time_GPS_M = 0;
 Eph_M = zeros(29,32);
 iono_M = zeros(8,1);
 
@@ -163,42 +162,46 @@ interval = 1;
 
 %-------------------------------------------------------------------------------
 
+nEpochs = 30000;
+
 %variable initialization (GPS)
-pr1_R(:,1) = zeros(32,1);
-pr2_R(:,1) = zeros(32,1);
-ph1_R(:,1) = zeros(32,1);
-ph2_R(:,1) = zeros(32,1);
-dop1_R(:,1) = zeros(32,1);
-dop2_R(:,1) = zeros(32,1);
-snr1_R(:,1) = zeros(32,1);
-snr2_R(:,1) = zeros(32,1);
-pr1_M(:,1) = zeros(32,1);
-pr2_M(:,1) = zeros(32,1);
-ph1_M(:,1) = zeros(32,1);
-ph2_M(:,1) = zeros(32,1);
-snr1_M(:,1) = zeros(32,1);
-snr2_M(:,1) = zeros(32,1);
-dop1_M(:,1) = zeros(32,1);
-dop2_M(:,1) = zeros(32,1);
+time_GPS_R = zeros(nEpochs,1);
+time_GPS_M = zeros(nEpochs,1);
+pr1_R = zeros(32,nEpochs);
+pr2_R = zeros(32,nEpochs);
+ph1_R = zeros(32,nEpochs);
+ph2_R = zeros(32,nEpochs);
+dop1_R = zeros(32,nEpochs);
+dop2_R = zeros(32,nEpochs);
+snr1_R = zeros(32,nEpochs);
+snr2_R = zeros(32,nEpochs);
+pr1_M = zeros(32,nEpochs);
+pr2_M = zeros(32,nEpochs);
+ph1_M = zeros(32,nEpochs);
+ph2_M = zeros(32,nEpochs);
+snr1_M = zeros(32,nEpochs);
+snr2_M = zeros(32,nEpochs);
+dop1_M = zeros(32,nEpochs);
+dop2_M = zeros(32,nEpochs);
 
 %variable initialization (GLONASS)
-pr1_RR(:,1) = zeros(32,1);
-pr2_RR(:,1) = zeros(32,1);
-ph1_RR(:,1) = zeros(32,1);
-ph2_RR(:,1) = zeros(32,1);
-dop1_RR(:,1) = zeros(32,1);
-dop2_RR(:,1) = zeros(32,1);
-snr_RR(:,1) = zeros(32,1);
-pr1_MR(:,1) = zeros(32,1);
-pr2_MR(:,1) = zeros(32,1);
-ph1_MR(:,1) = zeros(32,1);
-ph2_MR(:,1) = zeros(32,1);
-dop1_MR(:,1) = zeros(32,1);
-dop2_MR(:,1) = zeros(32,1);
-snr_MR(:,1) = zeros(32,1);
+pr1_RR = zeros(32,1);
+pr2_RR = zeros(32,1);
+ph1_RR = zeros(32,1);
+ph2_RR = zeros(32,1);
+dop1_RR = zeros(32,1);
+dop2_RR = zeros(32,1);
+snr_RR = zeros(32,1);
+pr1_MR = zeros(32,1);
+pr2_MR = zeros(32,1);
+ph1_MR = zeros(32,1);
+ph2_MR = zeros(32,1);
+dop1_MR = zeros(32,1);
+dop2_MR = zeros(32,1);
+snr_MR = zeros(32,1);
 
 %read data for the first epoch (ROVER)
-[time_GPS_R, sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+[time_GPS_R(1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
 
 %read ROVER observations
 [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
@@ -230,7 +233,7 @@ snr2_R(:,1) = obs_GPS_R.S2;
 
 if (nargin > 2)
     %read data for the first epoch (MASTER)
-    [time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+    [time_GPS_M(1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
     
     %read MASTER observations
     [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
@@ -265,10 +268,10 @@ if (nargin == 5)
 end
 
 if (nargin > 2)
-    while (round(time_GPS_M) < round(time_GPS_R))
+    while (round(time_GPS_M(1)) < round(time_GPS_R(1)))
         
         %read data for the current epoch (MASTER)
-        [time_GPS_M, sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+        [time_GPS_M(1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
         
         %read MASTER observations
         [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<NASGU>
@@ -297,10 +300,10 @@ if (nargin > 2)
         % snr_MR(:,1) = obs_GLO_M.S1;
     end
     
-    while (round(time_GPS_R) < round(time_GPS_M))
+    while (round(time_GPS_R(1)) < round(time_GPS_M(1)))
         
         %read data for the current epoch (ROVER)
-        [time_GPS_R, sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+        [time_GPS_R(1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
         
         %read ROVER observations
         [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<NASGU>
@@ -337,7 +340,7 @@ end
 %-------------------------------------------------------------------------------
 
 k = 2;
-time_GPS(1,1) = round(time_GPS_R);
+time_GPS(1,1) = round(time_GPS_R(1));
 date(1,:) = date_R(1,:);
 
 if (nargin == 5)
@@ -351,6 +354,9 @@ while (~feof(FR_oss))
         [time_GPS_R(k), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
     else
         time_GPS_R(k) = time_GPS_R(k-1);
+        if (time_GPS_R(k-1) ~= 0)
+            fprintf('Missing epoch %f (ROVER)\n', time_GPS(k-1));
+        end
         time_GPS_R(k-1) = 0;
     end
 
@@ -360,48 +366,62 @@ while (~feof(FR_oss))
             [time_GPS_M(k), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
         else
             time_GPS_M(k) = time_GPS_M(k-1);
+            if (time_GPS_M(k-1) ~= 0)
+                fprintf('Missing epoch %f (MASTER)\n', time_GPS(k-1));
+            end
             time_GPS_M(k-1) = 0;
         end
     end
-    
-    %variable initialization (GPS)
-    pr1_R(:,k) = zeros(32,1);
-    pr2_R(:,k) = zeros(32,1);
-    ph1_R(:,k) = zeros(32,1);
-    ph2_R(:,k) = zeros(32,1);
-    dop1_R(:,k) = zeros(32,1);
-    dop2_R(:,k) = zeros(32,1);
-    snr1_R(:,k) = zeros(32,1);
-    snr2_R(:,k) = zeros(32,1);
-    pr1_M(:,k) = zeros(32,1);
-    pr2_M(:,k) = zeros(32,1);
-    ph1_M(:,k) = zeros(32,1);
-    ph2_M(:,k) = zeros(32,1);
-    snr1_M(:,k) = zeros(32,1);
-    snr2_M(:,k) = zeros(32,1);
-    dop1_M(:,k) = zeros(32,1);
-    dop2_M(:,k) = zeros(32,1);
 
-    %variable initialization (GLONASS)
-    pr1_RR(:,k) = zeros(32,1);
-    pr2_RR(:,k) = zeros(32,1);
-    ph1_RR(:,k) = zeros(32,1);
-    ph2_RR(:,k) = zeros(32,1);
-    dop1_RR(:,k) = zeros(32,1);
-    dop2_RR(:,k) = zeros(32,1);
-    snr_RR(:,k) = zeros(32,1);
-    pr1_MR(:,k) = zeros(32,1);
-    pr2_MR(:,k) = zeros(32,1);
-    ph1_MR(:,k) = zeros(32,1);
-    ph2_MR(:,k) = zeros(32,1);
-    dop1_MR(:,k) = zeros(32,1);
-    dop2_MR(:,k) = zeros(32,1);
-    snr_MR(:,k) = zeros(32,1);
+    if (k > nEpochs)
+        %variable initialization (GPS)
+        pr1_R(:,k) = zeros(32,1);
+        pr2_R(:,k) = zeros(32,1);
+        ph1_R(:,k) = zeros(32,1);
+        ph2_R(:,k) = zeros(32,1);
+        dop1_R(:,k) = zeros(32,1);
+        dop2_R(:,k) = zeros(32,1);
+        snr1_R(:,k) = zeros(32,1);
+        snr2_R(:,k) = zeros(32,1);
+        pr1_M(:,k) = zeros(32,1);
+        pr2_M(:,k) = zeros(32,1);
+        ph1_M(:,k) = zeros(32,1);
+        ph2_M(:,k) = zeros(32,1);
+        snr1_M(:,k) = zeros(32,1);
+        snr2_M(:,k) = zeros(32,1);
+        dop1_M(:,k) = zeros(32,1);
+        dop2_M(:,k) = zeros(32,1);
+        
+%         %variable initialization (GLONASS)
+%         pr1_RR(:,k) = zeros(32,1);
+%         pr2_RR(:,k) = zeros(32,1);
+%         ph1_RR(:,k) = zeros(32,1);
+%         ph2_RR(:,k) = zeros(32,1);
+%         dop1_RR(:,k) = zeros(32,1);
+%         dop2_RR(:,k) = zeros(32,1);
+%         snr_RR(:,k) = zeros(32,1);
+%         pr1_MR(:,k) = zeros(32,1);
+%         pr2_MR(:,k) = zeros(32,1);
+%         ph1_MR(:,k) = zeros(32,1);
+%         ph2_MR(:,k) = zeros(32,1);
+%         dop1_MR(:,k) = zeros(32,1);
+%         dop2_MR(:,k) = zeros(32,1);
+%         snr_MR(:,k) = zeros(32,1);
+
+        nEpochs = nEpochs  + 1;
+    end
     
     date(k,:) = date_R(1,:);
-    
-    time_GPS(k,1) = time_GPS(k-1,1) + interval;
 
+%     if((date_R(1,5) == 0 & round(date_R(1,6)) == 0) | (date_R(1,5) == 59 & round(date_R(1,6)) == 60))
+%         fprintf('\n%dy %dm %dd %dh:%dm:%fs', date_R(1,1), date_R(1,2), date_R(1,3), date_R(1,4), date_R(1,5), date_R(1,6));
+%     end
+%     if(mod(round(date_R(1,5)),10) == 0 & (round(date_R(1,6)) == 0 | round(date_R(1,6)) == 60))
+%         fprintf('.');
+%     end
+
+    time_GPS(k,1) = time_GPS(k-1,1) + interval;
+    
     if (round(time_GPS_R(k)) == time_GPS(k))
 
         %read ROVER observations
@@ -465,6 +485,40 @@ while (~feof(FR_oss))
     
     k = k+1;
 end
+
+%remove empty slots
+time_GPS_R(k:nEpochs) = [];
+time_GPS_M(k:nEpochs) = [];
+pr1_R(:,k:nEpochs) = [];
+pr2_R(:,k:nEpochs) = [];
+ph1_R(:,k:nEpochs) = [];
+ph2_R(:,k:nEpochs) = [];
+dop1_R(:,k:nEpochs) = [];
+dop2_R(:,k:nEpochs) = [];
+snr1_R(:,k:nEpochs) = [];
+snr2_R(:,k:nEpochs) = [];
+pr1_M(:,k:nEpochs) = [];
+pr2_M(:,k:nEpochs) = [];
+ph1_M(:,k:nEpochs) = [];
+ph2_M(:,k:nEpochs) = [];
+snr1_M(:,k:nEpochs) = [];
+snr2_M(:,k:nEpochs) = [];
+dop1_M(:,k:nEpochs) = [];
+dop2_M(:,k:nEpochs) = [];
+% pr1_RR(:,k:nEpochs) = [];
+% pr2_RR(:,k:nEpochs) = [];
+% ph1_RR(:,k:nEpochs) = [];
+% ph2_RR(:,k:nEpochs) = [];
+% dop1_RR(:,k:nEpochs) = [];
+% dop2_RR(:,k:nEpochs) = [];
+% snr_RR(:,k:nEpochs) = [];
+% pr1_MR(:,k:nEpochs) = [];
+% pr2_MR(:,k:nEpochs) = [];
+% ph1_MR(:,k:nEpochs) = [];
+% ph2_MR(:,k:nEpochs) = [];
+% dop1_MR(:,k:nEpochs) = [];
+% dop2_MR(:,k:nEpochs) = [];
+% snr_MR(:,k:nEpochs) = [];
 
 if (nargin == 5)
     waitbar(1,wait_dlg)

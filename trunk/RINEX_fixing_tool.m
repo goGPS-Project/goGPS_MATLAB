@@ -1,4 +1,4 @@
-function RINEX_fixing_tool(filename_obs, filename_nav)
+%function RINEX_fixing_tool(filename_obs, filename_nav)
 
 % SYNTAX:
 %   RINEX_fixing_tool(filename_obs, filename_nav);
@@ -33,6 +33,15 @@ function RINEX_fixing_tool(filename_obs, filename_nav)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+%filename_obs = '../../test/switzerland/static-manno-home/static-switzerland-manno-home_rover.obs';
+%filename_nav = '../../test/switzerland/static-manno-home/static-switzerland-manno-home_rover.nav';
+%filename_obs = '../../test/switzerland/static-manno-cryms/static-switzerland-manno-cryms_rover.obs';
+%filename_obs = '../../test/switzerland/static-manno-cryms/VirA052L.11o';
+%filename_nav = '../../test/switzerland/static-manno-cryms/static-switzerland-manno-cryms_rover.nav';
+filename_obs = '../../test/italy/goPilastro/raw/como_pillar_rover.obs';
+%filename_obs = '../../test/italy/goPilastro/raw/como_pillar_master.10o';
+filename_nav = '../../test/italy/goPilastro/raw/como_pillar_rover.nav';
+
 global_init;
 
 fprintf('Reading RINEX files...\n');
@@ -44,19 +53,11 @@ fprintf('Reading RINEX files...\n');
     dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
     time_GPS, time_R, time_M, date, posR] = load_RINEX(filename_obs, filename_nav); %#ok<ASGLU>
 
-%remove epochs without data (GPS)
+%detect epochs without data (GPS)
 delepochs = find(time_R == 0);
 if ~isempty(delepochs)
-    fprintf('%d epochs deleted because without data\n', length(delepochs));
+    fprintf('%d epochs without data\n', length(delepochs));
 end
-time_R(:,delepochs) = [];
-pr1_R(:,delepochs) = [];
-pr2_R(:,delepochs) = [];
-ph1_R(:,delepochs) = [];
-ph2_R(:,delepochs) = [];
-snr1_R(:,delepochs) = [];
-snr2_R(:,delepochs) = [];
-date(delepochs,:) = [];
 
 %number of epochs
 nEpochs = length(time_R);
@@ -80,7 +81,21 @@ dtRdot = zeros(nEpochs-1,1);
 doppler_app1 = zeros(32,nEpochs);
 doppler_app2 = zeros(32,nEpochs);
 
-fprintf('Computing satellite positions and receiver clock drift...\n');
+if (posR == 0)
+    %find available satellites
+    sat = find(pr1_R(:,1) ~= 0);
+
+    %find corresponding ephemeris
+    Eph_t = rt_find_eph (Eph_R, time_R(1));
+    
+    [posR] = input_bancroft(pr1_R(sat,1), sat, time_R(1), Eph_t);
+end
+
+%----------------------------------------------------------------------------------------------
+% RECEIVER CLOCK ERROR AND DRIFT
+%----------------------------------------------------------------------------------------------
+
+fprintf('Computing receiver clock error and drift...\n');
 
 for i = 1 : nEpochs
 
@@ -90,13 +105,13 @@ for i = 1 : nEpochs
     %find corresponding ephemeris
     Eph_t = rt_find_eph (Eph_R, time_R(i));
 
-    if (size(sat,1) >= 4)
+    if (size(sat,1) >= 5)
         %estimate receiver clock error by Bancroft algorithm
         input_bancroft(pr1_R(sat,i), sat, time_R(i), Eph_t);
         
         %store receiver clock error in an array for later use
         dtR(i) = rec_clock_error; %#ok<NODEF>
-        
+
         if (i > 1)
             %receiver clock drift
             if (dtR(i) ~= 0 && dtR(i-1) ~= 0)
@@ -104,21 +119,22 @@ for i = 1 : nEpochs
             end
         end
     else
-        dtR(i) = dtR(i-1);
         if (i > 2)
-            dtRdot(i-1) = dtRdot(i-2);
+            dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
+            dtRdot(i-1) = (dtR(i) - dtR(i-1));
         end
     end
 end
 
-fprintf('Searching for clock drift discontinuities...\n');
+%----------------------------------------------------------------------------------------------
+% RECEIVER CLOCK DISCONTINUITIES (DETECTION)
+%----------------------------------------------------------------------------------------------
+
+fprintf('Detecting clock drift discontinuities... ');
 
 %check if there is any discontinuity in the clock drift
-sigma_dtRdot = std(dtRdot);
-%3*sigma_dtRdot is not enough, because some clock oscillations can trespass
-%the threshold even without a clock shift
-%disc = find((abs(dtRdot-mean(dtRdot))) > 3*sigma_dtRdot);
-disc = find((abs(dtRdot-mean(dtRdot))) > 20*sigma_dtRdot);
+clock_thresh = 1e-4;
+disc = find((abs(dtRdot-mean(dtRdot))) > clock_thresh);
 
 %remove deleted epochs from discontinuities, because otherwise
 %Doppler-predicted observations are going to be used on the wrong epochs;
@@ -133,125 +149,244 @@ plot(dtR)
 %display the clock drift
 figure
 plot(dtRdot)
+hold on
+plot([1, nEpochs], [clock_thresh clock_thresh],'r');
+
+fprintf('%d detected.\n', length(disc));
+
+%----------------------------------------------------------------------------------------------
+% DOPPLER SHIFT
+%----------------------------------------------------------------------------------------------
+
+fprintf('Computing Doppler shift...\n');
+
+%remove the discontinuities in order to compute a proper moving average later on
+for i = 1 : length(disc)
+    if (disc(i) < 5)
+        dtRdot(disc(i)) = median([dtRdot(1) dtRdot(10)]);
+    elseif (disc(i) <= nEpochs-6)
+        dtRdot(disc(i)) = median([dtRdot(disc(i)-4) dtRdot(disc(i)+5)]);
+    elseif (disc(i) > nEpochs-6)
+        dtRdot(disc(i)) = median([dtRdot(nEpochs-10) dtRdot(nEpochs-1)]);
+    end
+end
+
+for i = 1 : nEpochs
+    
+    %find available satellites
+    sat = find(pr1_R(:,i) ~= 0);
+    
+    %find corresponding ephemeris
+    Eph_t = rt_find_eph (Eph_R, time_R(i));
+    
+    %initialization
+    posS = zeros(3,32);
+    dtS  = zeros(32,1);
+    posS_ttime = zeros(3,32);
+    velS = zeros(3,32);
+    ttime = zeros(32,1);
+    
+    %read the receiver clock error from the array
+    rec_clock_error = dtR(i); %#ok<NASGU>
+    
+    for j = 1 : size(sat,1)
+        %satellite position computation (corrected using receiver clock error)
+        [posS(:,sat(j)), dtS(sat(j)), posS_ttime(:,sat(j)), velS(:,sat(j)), ttime(sat(j))] = sat_corr(Eph_t, sat(j), time_R(i), pr1_R(sat(j),i));
+    end
+    
+    %get an estimation of the receiver clock drift by moving average
+    if (i < 50)
+        avg_dtRdot = mean(dtRdot(1:100));
+    elseif (i <= nEpochs-51)
+        avg_dtRdot = mean(dtRdot(i-49:i+50));
+    elseif (i > nEpochs-51)
+        avg_dtRdot = mean(dtRdot(nEpochs-100:nEpochs-1));
+    end
+    
+    %Doppler shift computation using the estimated receiver clock drift
+    for j = 1 : size(sat,1)
+        [doppler_app1(sat(j),i), doppler_app2(sat(j),i)] = doppler_shift_approx(posR, zeros(3,1), posS_ttime(:,sat(j)), velS(:,sat(j)), ttime(sat(j)), avg_dtRdot, sat(j), Eph_t);
+    end
+end
+
+% %DISPLAY FOR DEBUG
+% for i = 2 : nEpochs
+%     %find available satellites
+%     sat = find(pr1_R(:,i) ~= 0);
+%
+%     %display GPS time
+%     time_R(i)
+%
+%     %display difference between observed phase and Doppler-predicted phase
+%     diff = ph1_R(sat,i) - (ph1_R(sat,i-1) - doppler_app1(sat,i-1))
+%
+%     pos = find(abs(diff) > 1);
+%     if (~isempty(pos))
+%         pause
+%     end
+% end
+
+%----------------------------------------------------------------------------------------------
+% RECEIVER CLOCK DISCONTINUITIES (FIXING)
+%----------------------------------------------------------------------------------------------
 
 if ~isempty(disc)
-    
+
     if (isempty(delepochs))
-        fprintf('Fixing %d discontinuities...\n', length(disc));
+        fprintf('Fixing %d clock discontinuities...\n', length(disc));
     else
-        fprintf('Fixing %d discontinuities (missing epochs will not be fixed)...\n', length(disc));
+        fprintf('Fixing %d clock discontinuities (missing epochs will not be fixed)...\n', length(disc));
     end
-    
-    %remove the discontinuities in order to compute a proper moving average later on
-    for i = 1 : length(disc)
-        if (disc(i) < 5)
-            dtRdot(disc(i)) = median([dtRdot(1) dtRdot(10)]);
-        elseif (disc(i) <= nEpochs-6)
-            dtRdot(disc(i)) = median([dtRdot(disc(i)-4) dtRdot(disc(i)+5)]);
-        elseif (disc(i) > nEpochs-6)
-            dtRdot(disc(i)) = median([dtRdot(nEpochs-10) dtRdot(nEpochs-1)]);
-        end
-    end
-    
-    for i = 1 : nEpochs
-        
-        %find available satellites
-        sat = find(pr1_R(:,i) ~= 0);
-        
-        %find corresponding ephemeris
-        Eph_t = rt_find_eph (Eph_R, time_R(i));
-        
-        %initialization
-        posS = zeros(3,32);
-        dtS  = zeros(32,1);
-        posS_ttime = zeros(3,32);
-        velS = zeros(3,32);
-        ttime = zeros(32,1);
-        
-        %read the receiver clock error from the array
-        rec_clock_error = dtR(i); %#ok<NASGU>
-        
-        for j = 1 : size(sat,1)
-            %satellite position computation
-            [posS(:,sat(j)), dtS(sat(j)), posS_ttime(:,sat(j)), velS(:,sat(j)), ttime(sat(j))] = sat_corr(Eph_t, sat(j), time_R(i), pr1_R(sat(j),i));
-        end
-        
-        %get an estimation of the receiver clock drift by moving average
-        if (i < 50)
-            avg_dtRdot = mean(dtRdot(1:100));
-        elseif (i <= nEpochs-51)
-            avg_dtRdot = mean(dtRdot(i-49:i+50));
-        elseif (i > nEpochs-51)
-            avg_dtRdot = mean(dtRdot(nEpochs-100:nEpochs-1));
-        end
-        
-        %Doppler shift computation using the estimated receiver clock drift
-        for j = 1 : size(sat,1)
-            [doppler_app1(sat(j),i), doppler_app2(sat(j),i)] = doppler_shift_approx(posR, zeros(3,1), posS_ttime(:,sat(j)), velS(:,sat(j)), ttime(sat(j)), avg_dtRdot, sat(j), Eph_t);
-        end
-    end
-    
-    % %DISPLAY FOR DEBUG
-    % for i = 2 : nEpochs
-    %     %find available satellites
-    %     sat = find(pr1_R(:,i) ~= 0);
-    %
-    %     %display GPS time
-    %     time_R(i)
-    %
-    %     %display difference between observed phase and Doppler-predicted phase
-    %     diff = ph1_R(sat,i) - (ph1_R(sat,i-1) - doppler_app1(sat,i-1))
-    %
-    %     pos = find(abs(diff) > 1);
-    %     if (~isempty(pos))
-    %         pause
-    %     end
-    % end
     
     for i = 1 : length(disc)
-        %check the presence of (and in case correct) any code "ambiguity" shift
-        for s = 1 : 32
-            if (pr1_R(s,disc(i)+1) & pr1_R(s,disc(i)))
-                if (abs(pr1_R(s,disc(i)+1)-pr1_R(s,disc(i))) > 2e5)
-                    diff = v_light * 0.001;
-                    if (pr1_R(s,disc(i)+1)<pr1_R(s,disc(i)))
-                        diff = -diff;
-                    end
-                    n = round(abs(pr1_R(s,disc(i)+1)-pr1_R(s,disc(i)))/diff);
-                    for j = disc(i)+1 : nEpochs
-                        pos = find(pr1_R(:,j) ~= 0);
-                        pr1_R(pos,j) = pr1_R(pos,j) - diff*n;
-                        pos = find(pr2_R(:,j) ~= 0);
-                        pr2_R(pos,j) = pr2_R(pos,j) - diff*n;
-                    end
-                end
-                break
-            end
-        end
-        
+
         %correct code and phase for clock shift effect
         for s = 1 : 32
             if (ph1_R(s,disc(i)+1) & ph1_R(s,disc(i)))
-                diff1 = ph1_R(s,disc(i)+1) - (ph1_R(s,disc(i)) - doppler_app1(s,disc(i)));
-                diff2 = ph2_R(s,disc(i)+1) - (ph2_R(s,disc(i)) - doppler_app2(s,disc(i)));
+                if (dop1_R(s,disc(i)) ~= 0)
+                    doppler1 = dop1_R(s,disc(i));
+                else
+                    doppler1 = doppler_app1(s,disc(i));
+                end
+                if (dop2_R(s,disc(i)) ~= 0)
+                    doppler2 = dop2_R(s,disc(i));
+                else
+                    doppler2 = doppler_app2(s,disc(i));
+                end
+                diff1_pr = pr1_R(s,disc(i)+1) - (pr1_R(s,disc(i)) - doppler1*lambda1);
+                diff2_pr = pr2_R(s,disc(i)+1) - (pr2_R(s,disc(i)) - doppler2*lambda2);
+                diff1_ph = ph1_R(s,disc(i)+1) - (ph1_R(s,disc(i)) - doppler1);
+                diff2_ph = ph2_R(s,disc(i)+1) - (ph2_R(s,disc(i)) - doppler2);
                 for j = disc(i)+1 : nEpochs
                     if (pr1_R(s,j) ~= 0)
-                        pr1_R(s,j) = pr1_R(s,j) - diff1*lambda1;
+                        pr1_R(s,j) = pr1_R(s,j) - diff1_pr;
                     end
                     if (pr2_R(s,j) ~= 0)
-                        pr2_R(s,j) = pr2_R(s,j) - diff2*lambda2;
+                        pr2_R(s,j) = pr2_R(s,j) - diff2_pr;
                     end
                     if (ph1_R(s,j) ~= 0)
-                        ph1_R(s,j) = ph1_R(s,j) - diff1;
+                        ph1_R(s,j) = ph1_R(s,j) - diff1_ph;
                     end
                     if (ph2_R(s,j) ~= 0)
-                        ph2_R(s,j) = ph2_R(s,j) - diff2;
+                        ph2_R(s,j) = ph2_R(s,j) - diff2_ph;
                     end
                 end
             end
         end
     end
+end
+
+%----------------------------------------------------------------------------------------------
+% CYCLE SLIPS (DETECTION AND FIXING)
+%----------------------------------------------------------------------------------------------
+
+fprintf('Detecting cycle slips... ');
+
+%cycle-slip threshold
+cs_thresh = 3;
+
+flag_cs = 0;
+
+for s = 1 : 32
     
+    % L1
+    index = find(ph1_R(s,:) ~= 0)';
+    if ~isempty(index)
+        ph = ph1_R(s,:);
+        j = 1;
+        while (ph(j+1) == 0 | ph(j) == 0)
+            interval = time_R(j+1) - time_R(j);
+            j = j + 1;
+        end
+        ph_der2 = zeros(nEpochs-2,1);
+        for j = 1 : nEpochs-1
+            if (j <= nEpochs-2)
+                if (ph(j+2) ~= 0 & ph(j+1) ~= 0 & ph(j) ~= 0)
+                    ph_der2(j) = (ph(j+2)-2*ph(j+1)+ph(j))/interval^2;
+                end
+            end
+        end
+
+        %check if there is any cycle slip for satellite s
+        cs = find((ph_der2-mean(ph_der2)) > cs_thresh);
+        
+        if ~isempty(cs)
+            
+            if (flag_cs == 0)
+                fprintf('\n');
+            end
+            fprintf('SAT %d: fixing %d cycle slips on L1...\n', s, length(cs));
+            
+            for j = 1 : length(cs)
+                if (dop1_R(s,cs(j)+1) ~= 0)
+                    doppler1 = dop1_R(s,cs(j)+1);
+                else
+                    doppler1 = doppler_app1(s,cs(j)+1);
+                end
+                diff1_ph = ph1_R(s,cs(j)+2) - (ph1_R(s,cs(j)+1) - doppler1);
+                for k = cs(j)+2 : nEpochs
+                    if (ph1_R(s,k) ~= 0)
+                        ph1_R(s,k) = ph1_R(s,k) - diff1_ph;
+                    end
+                end
+            end
+            
+            flag_cs = 1;
+        end
+    end
+    
+    % L2
+    index = find(ph2_R(s,:) ~= 0)';
+    if ~isempty(index)
+        ph = ph2_R(s,:);
+        j = 1;
+        while (ph(j+1) == 0 | ph(j) == 0)
+            interval = time_R(j+1) - time_R(j);
+            j = j + 1;
+        end
+        ph_der2 = zeros(nEpochs-2,1);
+        for j = 1 : nEpochs-1
+            if (j <= nEpochs-2)
+                if (ph(j+2) ~= 0 & ph(j+1) ~= 0 & ph(j) ~= 0)
+                    ph_der2(j) = (ph(j+2)-2*ph(j+1)+ph(j))/interval^2;
+                end
+            end
+        end
+
+        %check if there is any cycle slip for satellite s
+        cs = find((ph_der2-mean(ph_der2)) > cs_thresh);
+        
+        if ~isempty(cs)
+            
+            if (flag_cs == 0)
+                fprintf('\n');
+            end
+            fprintf('SAT %d: fixing %d cycle slips on L2...\n', s, length(cs));
+            
+            for j = 1 : length(cs)
+                if (dop2_R(s,cs(j)+1) ~= 0)
+                    doppler2 = dop2_R(s,cs(j)+1);
+                else
+                    doppler2 = doppler_app2(s,cs(j)+1);
+                end
+                diff2_ph = ph2_R(s,cs(j)+2) - (ph2_R(s,cs(j)+1) - doppler2);
+                for k = cs(j)+2 : nEpochs
+                    if (ph2_R(s,k) ~= 0)
+                        ph2_R(s,k) = ph2_R(s,k) - diff2_ph;
+                    end
+                end
+            end
+            
+            flag_cs = 1;
+        end
+    end
+end
+if (flag_cs == 0)
+    fprintf('none detected.\n');
+end
+
+if (~isempty(disc) | flag_cs)
+
     %----------------------------------------------------------------------------------------------
     % WRITE FIXED RINEX OBSERVATION FILE
     %----------------------------------------------------------------------------------------------
@@ -313,8 +448,16 @@ if ~isempty(disc)
             end
             fprintf(fid_obs,'\n');
             for j = 1 : n
-                fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
-                fprintf(fid_obs,'%14.3f %1d',pr2_R(sat(j),i),floor(snr2_R(sat(j),i)/6));
+                if (abs(pr1_R(sat(j),i)) > 1e-100)
+                    fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
+                else
+                    fprintf(fid_obs,'                ');
+                end
+                if (abs(pr2_R(sat(j),i)) > 1e-100)
+                    fprintf(fid_obs,'%14.3f %1d',pr2_R(sat(j),i),floor(snr2_R(sat(j),i)/6));
+                else
+                    fprintf(fid_obs,'                ');
+                end
                 if (abs(ph1_R(sat(j),i)) > 1e-100)
                     fprintf(fid_obs,'%14.3f %1d',ph1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
                 else
@@ -325,9 +468,17 @@ if ~isempty(disc)
                 else
                     fprintf(fid_obs,'                ');
                 end
-                fprintf(fid_obs,'%14.3f %1d',snr1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
+                if (abs(snr1_R(sat(j),i)) > 1e-100)
+                    fprintf(fid_obs,'%14.3f %1d',snr1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
+                else
+                    fprintf(fid_obs,'                ');
+                end
                 fprintf(fid_obs,'\n');
-                fprintf(fid_obs,'%14.3f %1d',snr2_R(sat(j),i),floor(snr2_R(sat(j),i)/6));
+                if (abs(snr2_R(sat(j),i)) > 1e-100)
+                    fprintf(fid_obs,'%14.3f %1d',snr2_R(sat(j),i),floor(snr2_R(sat(j),i)/6));
+                else
+                    fprintf(fid_obs,'                ');
+                end
                 fprintf(fid_obs,'\n');
             end
         end
