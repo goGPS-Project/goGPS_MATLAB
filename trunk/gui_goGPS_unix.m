@@ -477,13 +477,13 @@ plotproc_Callback(handles.constraint, [], handles);
 master_pos_Callback(handles.master_pos, [], handles);
 kalman_ls_Callback(handles.kalman_ls, [], handles);
 dyn_mod_Callback(handles.dyn_mod, [], handles);
+mode_Callback(handles.mode, [], handles);
+stopGOstop_Callback(handles.stopGOstop, [], handles);
 if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
     file_type_SelectionChangeFcn(handles.rinex_files, [], handles);
 else
     file_type_SelectionChangeFcn(handles.gogps_data, [], handles);
 end
-mode_Callback(handles.mode, [], handles);
-stopGOstop_Callback(handles.stopGOstop, [], handles);
 
 % --- Executes on selection change in mode.
 function mode_Callback(hObject, eventdata, handles)
@@ -1700,57 +1700,59 @@ function file_type_SelectionChangeFcn(hObject, eventdata, handles)
 %	OldValue: handle of the previously selected object or empty if none was selected
 %	NewValue: handle of the currently selected object
 % handles    structure with handles and user data (see GUIDATA)
-if (hObject == handles.rinex_files)
-
-    set(handles.RINEX_rover_obs, 'Enable', 'on');
-    set(handles.RINEX_rover_nav, 'Enable', 'on');
-    set(handles.browse_rover_obs, 'Enable', 'on');
-    set(handles.browse_rover_nav, 'Enable', 'on');
-    set(handles.text_RINEX_rover_obs, 'Enable', 'on');
-    set(handles.text_RINEX_rover_nav, 'Enable', 'on');
-
-    code_dd_sa_Callback(handles.code_dd_sa, [], handles);
-
-    set(handles.gogps_data_input, 'Enable', 'off');
-    set(handles.browse_gogps_input, 'Enable', 'off');
-    set(handles.text_gogps_input, 'Enable', 'off');
-    
-    set(handles.stopGOstop, 'Enable', 'off');
-    set(handles.stopGOstop, 'Value', 0);
-    set(handles.text_stopGOstop, 'Enable', 'off');
-    stopGOstop_Callback(handles.stopGOstop, [], handles);
-    
-    cell_contents = cell(3,1);
-    cell_contents{1} = 'Const. velocity';
-    cell_contents{2} = 'Const. acceleration';
-    cell_contents{3} = 'Static';
-    old_value = get(handles.dyn_mod, 'Value');
-    if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
-    set(handles.dyn_mod, 'String', cell_contents);
-
-else
-    set(handles.RINEX_rover_obs, 'Enable', 'off');
-    set(handles.RINEX_rover_nav, 'Enable', 'off');
-    set(handles.RINEX_master_obs, 'Enable', 'off');
-    set(handles.RINEX_master_nav, 'Enable', 'off');
-    set(handles.browse_rover_obs, 'Enable', 'off');
-    set(handles.browse_rover_nav, 'Enable', 'off');
-    set(handles.browse_master_obs, 'Enable', 'off');
-    set(handles.browse_master_nav, 'Enable', 'off');
-    set(handles.text_RINEX_rover_obs, 'Enable', 'off');
-    set(handles.text_RINEX_rover_nav, 'Enable', 'off');
-    set(handles.text_RINEX_master_obs, 'Enable', 'off');
-    set(handles.text_RINEX_master_nav, 'Enable', 'off');
-
-    set(handles.gogps_data_input, 'Enable', 'on');
-    set(handles.browse_gogps_input, 'Enable', 'on');
-    set(handles.text_gogps_input, 'Enable', 'on');
-    
-    set(handles.stopGOstop, 'Enable', 'on');
-    set(handles.text_stopGOstop, 'Enable', 'on');
-    stopGOstop_Callback(handles.stopGOstop, [], handles);
-    
-    code_dd_sa_Callback(handles.code_dd_sa, [], handles);
+if (strcmp(get(handles.rinex_files, 'Enable'),'on'))
+    if (hObject == handles.rinex_files)
+        
+        set(handles.RINEX_rover_obs, 'Enable', 'on');
+        set(handles.RINEX_rover_nav, 'Enable', 'on');
+        set(handles.browse_rover_obs, 'Enable', 'on');
+        set(handles.browse_rover_nav, 'Enable', 'on');
+        set(handles.text_RINEX_rover_obs, 'Enable', 'on');
+        set(handles.text_RINEX_rover_nav, 'Enable', 'on');
+        
+        code_dd_sa_Callback(handles.code_dd_sa, [], handles);
+        
+        set(handles.gogps_data_input, 'Enable', 'off');
+        set(handles.browse_gogps_input, 'Enable', 'off');
+        set(handles.text_gogps_input, 'Enable', 'off');
+        
+        set(handles.stopGOstop, 'Enable', 'off');
+        set(handles.stopGOstop, 'Value', 0);
+        set(handles.text_stopGOstop, 'Enable', 'off');
+        stopGOstop_Callback(handles.stopGOstop, [], handles);
+        
+        cell_contents = cell(3,1);
+        cell_contents{1} = 'Const. velocity';
+        cell_contents{2} = 'Const. acceleration';
+        cell_contents{3} = 'Static';
+        old_value = get(handles.dyn_mod, 'Value');
+        if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
+        set(handles.dyn_mod, 'String', cell_contents);
+        
+    else
+        set(handles.RINEX_rover_obs, 'Enable', 'off');
+        set(handles.RINEX_rover_nav, 'Enable', 'off');
+        set(handles.RINEX_master_obs, 'Enable', 'off');
+        set(handles.RINEX_master_nav, 'Enable', 'off');
+        set(handles.browse_rover_obs, 'Enable', 'off');
+        set(handles.browse_rover_nav, 'Enable', 'off');
+        set(handles.browse_master_obs, 'Enable', 'off');
+        set(handles.browse_master_nav, 'Enable', 'off');
+        set(handles.text_RINEX_rover_obs, 'Enable', 'off');
+        set(handles.text_RINEX_rover_nav, 'Enable', 'off');
+        set(handles.text_RINEX_master_obs, 'Enable', 'off');
+        set(handles.text_RINEX_master_nav, 'Enable', 'off');
+        
+        set(handles.gogps_data_input, 'Enable', 'on');
+        set(handles.browse_gogps_input, 'Enable', 'on');
+        set(handles.text_gogps_input, 'Enable', 'on');
+        
+        set(handles.stopGOstop, 'Enable', 'on');
+        set(handles.text_stopGOstop, 'Enable', 'on');
+        stopGOstop_Callback(handles.stopGOstop, [], handles);
+        
+        code_dd_sa_Callback(handles.code_dd_sa, [], handles);
+    end
 end
 
 
