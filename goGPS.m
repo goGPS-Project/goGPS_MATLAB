@@ -1330,22 +1330,28 @@ elseif (mode == 7)
     fclose(fid_dop);
     fclose(fid_conf);
 
-    %----------------------------------------------------------------------------------------------
-    % REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 11)
-
-    if (flag_stopGOstop == 0)
+    
+    if (flag_var_dyn_model == 0)
         goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R);
-        % goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R);
     else
-        goGPS_realtime_stopGOstop(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R);
+        if (flag_stopGOstop == 0)
+            %disable skyplot and signal-to-noise ratio
+            flag_skyplot = 0;
+
+            goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R);
+        else
+            goGPS_realtime_stopGOstop(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R);
+        end
     end
     
-    %----------------------------------------------------------------------------------------------
-    % REAL-TIME: ROVER MONITORING
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% REAL-TIME: ROVER MONITORING
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 12)
 
@@ -1355,17 +1361,17 @@ elseif (mode == 12)
         goGPS_ublox_monitor_stopGOstop(filerootOUT);
     end
 
-    %----------------------------------------------------------------------------------------------
-    % REAL-TIME: MASTER MONITORING
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% REAL-TIME: MASTER MONITORING
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 13)
 
     goGPS_master_monitor(filerootOUT, flag_NTRIP);
 
-    %----------------------------------------------------------------------------------------------
-    % REAL-TIME: ROVER AND MASTER MONITORING
-    %----------------------------------------------------------------------------------------------
+%----------------------------------------------------------------------------------------------
+% REAL-TIME: ROVER AND MASTER MONITORING
+%----------------------------------------------------------------------------------------------
 
 elseif (mode == 14)
 
