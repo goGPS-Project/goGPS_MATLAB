@@ -10,18 +10,24 @@ function [N_stim_slip, N_stim_born] = amb_estimate_LS(posR_app, posS, pr_R, pr_M
 % INPUT:
 %   posR_app = receiver position (X,Y,Z)
 %   posS = satellite positions (X,Y,Z)
-%   dtS = satellite clock error
 %   pr_R = ROVER-SATELLITE code pseudorange
+%   pr_M = MASTER-SATELLITE code pseudorange
 %   ph_R = ROVER-SATELLITE phase measurement
+%   ph_M = MASTER-SATELLITE phase measurement
 %   snr_R = ROVER signal-to-noise ratio
+%   snr_M = MASTER signal-to-noise ratio
 %   el_R = ROVER satellite elevation
+%   el_M = MASTER satellite elevation
 %   sat_pr = available satellites
 %   sat = available satellites with phase
 %   sat_slip = slipped satellites
 %   sat_born = new satellites
-%   prRS_app = approximate pseudorange
-%   err_tropoRS = tropospheric error
-%   err_ionoRS = ionospheric error
+%   prRS_app = ROVER-SATELLITE approximate pseudorange
+%   prMS_app = MASTER-SATELLITE approximate pseudorange
+%   err_tropoRS = ROVER-SATELLITE tropospheric error
+%   err_tropoMS = MASTER-SATELLITE tropospheric error
+%   err_ionoRS = ROVER-SATELLITE ionospheric error
+%   err_ionoMS = MASTER-SATELLITE ionospheric error
 %   pivot = ID of pivot satellite
 %   phase = GPS frequency selector
 %   N_kalman = phase ambiguities estimated by Kalman filter
@@ -65,6 +71,9 @@ else
     lambda = lambda2;
 end
 
+N_stim_slip = [];
+N_stim_born = [];
+
 %number of visible satellites
 nsat_pr = size(sat_pr,1);
 
@@ -107,27 +116,45 @@ nsat_born = size(sat_born,1);
 sat_amb = [sat_slip; sat_born];
 nsat_amb = nsat_slip + nsat_born;
 
+s = 1;
+b = 1;
+
 %if the number of observations is not sufficient to apply least squares adjustment
 if (nsat_pr + nsat - 2 <= 3 + nsat - 1)
-    %observed code double differences
-    comb_pr = (pr_Rsat(sat_slip) - pr_Msat(sat_slip)) - (pr_RP - pr_MP);
     
-    %observed phase double differences
-    comb_ph = (ph_Rsat(sat_slip) - ph_Msat(sat_slip)) - (ph_RP - ph_MP);
-    
-    %linear combination of ambiguities
-    N_stim_slip = ((comb_pr - comb_ph * lambda)) / lambda;
-    %sigmaq_N_stim_slip = 4*sigmaq_cod1 / lambda^2;
-    
-    %observed code double differences
-    comb_pr = (pr_Rsat(sat_born) - pr_Msat(sat_born)) - (pr_RP - pr_MP);
-    
-    %observed phase double differences
-    comb_ph = (ph_Rsat(sat_born) - ph_Msat(sat_born)) - (ph_RP - ph_MP);
-    
-    %linear combination of ambiguities
-    N_stim_born = ((comb_pr - comb_ph * lambda)) / lambda;
-    %sigmaq_N_stim_born = 4*sigmaq_cod1 / lambda^2;
+    for i = 1 : nsat_pr
+        
+        if (sat_pr(i) ~= pivot)
+            
+            if (ismember(sat_pr(i),sat_slip))
+                %observed code double differences
+                comb_pr = (pr_R(i) - pr_M(i)) - (prRP_obs - prMP_obs);
+                
+                %observed phase double differences
+                comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
+                
+                %linear combination of ambiguities
+                N_stim_slip(s) = ((comb_pr - comb_ph * lambda)) / lambda;
+                %sigmaq_N_stim_slip = 4*sigmaq_cod1 / lambda^2;
+                
+                s = s + 1;
+            end
+            
+            if (ismember(sat_pr(i),sat_born))
+                %observed code double differences
+                comb_pr = (pr_R(i) - pr_M(i)) - (prRP_obs - prMP_obs);
+                
+                %observed phase double differences
+                comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
+                
+                %linear combination of ambiguities
+                N_stim_born(b) = ((comb_pr - comb_ph * lambda)) / lambda;
+                %sigmaq_N_stim_born = 4*sigmaq_cod1 / lambda^2;
+                
+                b = b + 1;
+            end
+        end
+    end
 else
     A = [];
     tr = [];
@@ -279,12 +306,8 @@ else
     
     if (nsat_slip ~= 0)
         N_stim_slip = x(4 : 4 + nsat_slip - 1);
-    else
-        N_stim_slip = [];
     end
     if (nsat_born ~= 0)
         N_stim_born = x(4 + nsat_slip : 4 + nsat_amb - 1);
-    else
-        N_stim_born = [];
     end
 end
