@@ -11,7 +11,7 @@
 %
 % DESCRIPTION:
 %   Script that checks and in case fixes observation discontinuities in
-%   RINEX files due to receiver clock shifts.
+%   RINEX files due to receiver clock shifts and cycle slips.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -38,8 +38,8 @@
 %filename_obs = '../../test/switzerland/static-manno-cryms/static-switzerland-manno-cryms_rover.obs';
 %filename_obs = '../../test/switzerland/static-manno-cryms/VirA052L.11o';
 %filename_nav = '../../test/switzerland/static-manno-cryms/static-switzerland-manno-cryms_rover.nav';
-filename_obs = '../../test/italy/goPilastro/raw/como_pillar_rover.obs';
-%filename_obs = '../../test/italy/goPilastro/raw/como_pillar_master.10o';
+%filename_obs = '../../test/italy/goPilastro/raw/como_pillar_rover.obs';
+filename_obs = '../../test/italy/goPilastro/raw/como_pillar_master.10o';
 filename_nav = '../../test/italy/goPilastro/raw/como_pillar_rover.nav';
 
 global_init;
@@ -101,16 +101,36 @@ for i = 1 : nEpochs
 
     %find available satellites
     sat = find(pr1_R(:,i) ~= 0);
-
+    
     %find corresponding ephemeris
     Eph_t = rt_find_eph (Eph_R, time_R(i));
-
+    
+    posS = zeros(size(sat,1),3);
+    
+    for j = 1 : size(sat,1)
+        %satellite position computation
+        [posS(j,:)] = sat_corr(Eph_t, sat(j), time_R(i), pr1_R(sat(j),i));
+    end
+    
     if (size(sat,1) >= 5)
-        %estimate receiver clock error by Bancroft algorithm
-        input_bancroft(pr1_R(sat,i), sat, time_R(i), Eph_t);
-        
+
+        %initialization
+        azR = zeros(32,1);
+        elR = zeros(32,1);
+        distR = zeros(32,1);
+
+        %satellite azimuth, elevation, ROVER-SATELLITE distance
+        [azR(sat), elR(sat), distR(sat)] = topocent(posR, posS);
+
+        %elevation cut-off
+        sat_cutoff = find(elR > cutoff);
+        sat = intersect(sat,sat_cutoff);
+
+        %estimate receiver clock error
+        code_SA(posR, pr1_R(sat,i), snr_R(sat,i), sat, time_R(i), Eph_t, iono_R);
+
         %store receiver clock error in an array for later use
-        dtR(i) = rec_clock_error; %#ok<NODEF>
+        dtR(i) = rec_clock_error;
 
         if (i > 1)
             %receiver clock drift
@@ -187,10 +207,10 @@ for i = 1 : nEpochs
     ttime = zeros(32,1);
     
     %read the receiver clock error from the array
-    rec_clock_error = dtR(i); %#ok<NASGU>
+    rec_clock_error = dtR(i);
     
     for j = 1 : size(sat,1)
-        %satellite position computation (corrected using receiver clock error)
+        %satellite position computation
         [posS(:,sat(j)), dtS(sat(j)), posS_ttime(:,sat(j)), velS(:,sat(j)), ttime(sat(j))] = sat_corr(Eph_t, sat(j), time_R(i), pr1_R(sat(j),i));
     end
     
@@ -238,7 +258,37 @@ if ~isempty(disc)
         fprintf('Fixing %d clock discontinuities (missing epochs will not be fixed)...\n', length(disc));
     end
     
+    %correct pseudorange for receiver clock error
+    for s = 1 : 32
+        for i = 1 : nEpochs
+            if (pr1_R(s,i) ~= 0)
+                pr1_R(s,i) = pr1_R(s,i) - v_light*dtR(i);
+            end
+        end
+    end
+    
     for i = 1 : length(disc)
+        
+%         %check the presence of (and in case correct) any code "ambiguity" shift
+%         % (useful to correct also those satellites with a signal outage during a clock discontinuity)
+%         for s = 1 : 32
+%             if (pr1_R(s,disc(i)+1) & pr1_R(s,disc(i)))
+%                 if (abs(pr1_R(s,disc(i)+1)-pr1_R(s,disc(i))) > 2e5)
+%                     diff = v_light * (dtR(disc(i)+1) - dtR(disc(i)));
+%                     %if (pr1_R(s,disc(i)+1)<pr1_R(s,disc(i)))
+%                         %diff = -diff;
+%                     %end
+%                     %n = round(abs(pr1_R(s,disc(i)+1)-pr1_R(s,disc(i)))/diff);
+%                     for j = disc(i)+1 : nEpochs
+%                         pos = find(pr1_R(:,j) ~= 0);
+%                         pr1_R(pos,j) = pr1_R(pos,j) - diff;%*n;
+%                         pos = find(pr2_R(:,j) ~= 0);
+%                         pr2_R(pos,j) = pr2_R(pos,j) - diff;%*n;
+%                     end
+%                 end
+%                 break
+%             end
+%         end
 
         %correct code and phase for clock shift effect
         for s = 1 : 32
@@ -253,17 +303,17 @@ if ~isempty(disc)
                 else
                     doppler2 = doppler_app2(s,disc(i));
                 end
-                diff1_pr = pr1_R(s,disc(i)+1) - (pr1_R(s,disc(i)) - doppler1*lambda1);
-                diff2_pr = pr2_R(s,disc(i)+1) - (pr2_R(s,disc(i)) - doppler2*lambda2);
+                %diff1_pr = pr1_R(s,disc(i)+1) - (pr1_R(s,disc(i)) - doppler1*lambda1);
+                %diff2_pr = pr2_R(s,disc(i)+1) - (pr2_R(s,disc(i)) - doppler2*lambda2);
                 diff1_ph = ph1_R(s,disc(i)+1) - (ph1_R(s,disc(i)) - doppler1);
                 diff2_ph = ph2_R(s,disc(i)+1) - (ph2_R(s,disc(i)) - doppler2);
                 for j = disc(i)+1 : nEpochs
-                    if (pr1_R(s,j) ~= 0)
-                        pr1_R(s,j) = pr1_R(s,j) - diff1_pr;
-                    end
-                    if (pr2_R(s,j) ~= 0)
-                        pr2_R(s,j) = pr2_R(s,j) - diff2_pr;
-                    end
+%                     if (pr1_R(s,j) ~= 0)
+%                         pr1_R(s,j) = pr1_R(s,j) - diff1_pr;
+%                     end
+%                     if (pr2_R(s,j) ~= 0)
+%                         pr2_R(s,j) = pr2_R(s,j) - diff2_pr;
+%                     end
                     if (ph1_R(s,j) ~= 0)
                         ph1_R(s,j) = ph1_R(s,j) - diff1_ph;
                     end
@@ -293,22 +343,25 @@ for s = 1 : 32
     index = find(ph1_R(s,:) ~= 0)';
     if ~isempty(index)
         ph = ph1_R(s,:);
-        j = 1;
-        while (ph(j+1) == 0 | ph(j) == 0)
-            interval = time_R(j+1) - time_R(j);
-            j = j + 1;
+        if (sum(dop1_R(s,:)) ~= 0)
+            dp = dop1_R(s,:);
+        else
+            dp = doppler_app1(s,:);
         end
-        ph_der2 = zeros(nEpochs-2,1);
-        for j = 1 : nEpochs-1
-            if (j <= nEpochs-2)
-                if (ph(j+2) ~= 0 & ph(j+1) ~= 0 & ph(j) ~= 0)
-                    ph_der2(j) = (ph(j+2)-2*ph(j+1)+ph(j))/interval^2;
-                end
+        diff_ph = zeros(nEpochs-1,1);
+        for j = 2 : nEpochs
+            if (ph(j) ~= 0 & ph(j-1) ~= 0 & dp(j-1) ~= 0)
+                diff_ph(j) = ph(j) - (ph(j-1) - dp(j-1));
             end
         end
 
         %check if there is any cycle slip for satellite s
-        cs = find((ph_der2-mean(ph_der2)) > cs_thresh);
+        cs = find(abs(diff_ph) > cs_thresh);
+        
+        figure
+        plot(abs(diff_ph))
+        hold on
+        plot([1, nEpochs-1], [cs_thresh cs_thresh],'r');
         
         if ~isempty(cs)
             
@@ -316,17 +369,11 @@ for s = 1 : 32
                 fprintf('\n');
             end
             fprintf('SAT %d: fixing %d cycle slips on L1...\n', s, length(cs));
-            
+ 
             for j = 1 : length(cs)
-                if (dop1_R(s,cs(j)+1) ~= 0)
-                    doppler1 = dop1_R(s,cs(j)+1);
-                else
-                    doppler1 = doppler_app1(s,cs(j)+1);
-                end
-                diff1_ph = ph1_R(s,cs(j)+2) - (ph1_R(s,cs(j)+1) - doppler1);
-                for k = cs(j)+2 : nEpochs
+                for k = cs(j) : nEpochs
                     if (ph1_R(s,k) ~= 0)
-                        ph1_R(s,k) = ph1_R(s,k) - diff1_ph;
+                        ph1_R(s,k) = ph1_R(s,k) - diff_ph(cs(j));
                     end
                 end
             end
@@ -339,40 +386,32 @@ for s = 1 : 32
     index = find(ph2_R(s,:) ~= 0)';
     if ~isempty(index)
         ph = ph2_R(s,:);
-        j = 1;
-        while (ph(j+1) == 0 | ph(j) == 0)
-            interval = time_R(j+1) - time_R(j);
-            j = j + 1;
+        if (sum(dop2_R(s,:)) ~= 0)
+            dp = dop2_R(s,:);
+        else
+            dp = doppler_app2(s,:);
         end
-        ph_der2 = zeros(nEpochs-2,1);
-        for j = 1 : nEpochs-1
-            if (j <= nEpochs-2)
-                if (ph(j+2) ~= 0 & ph(j+1) ~= 0 & ph(j) ~= 0)
-                    ph_der2(j) = (ph(j+2)-2*ph(j+1)+ph(j))/interval^2;
-                end
+        diff_ph = zeros(nEpochs-1,1);
+        for j = 2 : nEpochs
+            if (ph(j) ~= 0 & ph(j-1) ~= 0 & dp(j-1) ~= 0)
+                diff_ph(j) = ph(j) - (ph(j-1) - dp(j-1));
             end
         end
 
         %check if there is any cycle slip for satellite s
-        cs = find((ph_der2-mean(ph_der2)) > cs_thresh);
+        cs = find(abs(diff_ph) > cs_thresh);
         
         if ~isempty(cs)
             
             if (flag_cs == 0)
                 fprintf('\n');
             end
-            fprintf('SAT %d: fixing %d cycle slips on L2...\n', s, length(cs));
+            fprintf('SAT %d: fixing %d cycle slips on L1...\n', s, length(cs));
             
             for j = 1 : length(cs)
-                if (dop2_R(s,cs(j)+1) ~= 0)
-                    doppler2 = dop2_R(s,cs(j)+1);
-                else
-                    doppler2 = doppler_app2(s,cs(j)+1);
-                end
-                diff2_ph = ph2_R(s,cs(j)+2) - (ph2_R(s,cs(j)+1) - doppler2);
-                for k = cs(j)+2 : nEpochs
+                for k = cs(j) : nEpochs
                     if (ph2_R(s,k) ~= 0)
-                        ph2_R(s,k) = ph2_R(s,k) - diff2_ph;
+                        ph2_R(s,k) = ph2_R(s,k) - diff_ph(cs(j));
                     end
                 end
             end
