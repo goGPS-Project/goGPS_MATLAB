@@ -726,10 +726,10 @@ if (nsat >= min_nsat)
     %--------------------------------------------------------------------------------------------
     doppler_pred_range1_R = zeros(32,1);
     doppler_pred_range2_R = zeros(32,1);
-    if (ph1_Rsat(sat) & dop1_Rsat(sat))
+    if (dop1_Rsat(sat))
         doppler_pred_range1_R(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
     end
-    if (ph2_Rsat(sat) & dop2_Rsat(sat))
+    if (dop2_Rsat(sat))
         doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
     end
 
