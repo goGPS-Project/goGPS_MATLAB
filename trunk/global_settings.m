@@ -269,15 +269,3 @@ hApp = 20;
 %Initial NMEA sentence required by some NTRIP casters
 nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
 
-%-------------------------------------------------------------------------------
-% AMBIGUITY ESTIMATION
-%-------------------------------------------------------------------------------
-
-global flag_LS_N_estim
-
-%use least squares ambiguity estimation when new satellites
-% are available and when cycle slips occur (0 = NO; 1 = YES)
-%
-% NOTE: LS amb. estimation is automatically switched off when the number of
-% satellites with phase available is not sufficient (< 4 incl. pivot)
-flag_LS_N_estim = 0;

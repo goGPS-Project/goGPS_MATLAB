@@ -110,7 +110,7 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(21,1);
+    varargout = cell(22,1);
     return
 end
 contents_mode = cellstr(get(handles.mode,'String'));
@@ -151,6 +151,12 @@ if (get(handles.file_type, 'SelectedObject') == handles.rinex_files)
     mode_data = 0;
 else %goGPS data
     mode_data = 1;
+end
+contents_dyn_mod = cellstr(get(handles.dyn_mod,'String'));
+if (strcmp(contents_dyn_mod{get(handles.dyn_mod,'Value')},'Variable'))
+    flag_var_dyn_model = 1;
+else
+    flag_var_dyn_model = 0;
 end
 mode_ref = get(handles.ref_path,'Value');
 flag_ms_pos = get(handles.master_pos,'Value');
@@ -218,15 +224,16 @@ varargout{9} = flag_NTRIP;
 varargout{10} = flag_amb;
 varargout{11} = flag_skyplot;
 varargout{12} = flag_plotproc;
-varargout{13} = flag_stopGOstop;
-varargout{14} = filerootIN;
-varargout{15} = filerootOUT;
-varargout{16} = filename_R_obs;
-varargout{17} = filename_R_nav;
-varargout{18} = filename_M_obs;
-varargout{19} = filename_M_nav;
-varargout{20} = filename_ref;
-varargout{21} = pos_M_man;
+varargout{13} = flag_var_dyn_model;
+varargout{14} = flag_stopGOstop;
+varargout{15} = filerootIN;
+varargout{16} = filerootOUT;
+varargout{17} = filename_R_obs;
+varargout{18} = filename_R_nav;
+varargout{19} = filename_M_obs;
+varargout{20} = filename_M_nav;
+varargout{21} = filename_ref;
+varargout{22} = pos_M_man;
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -235,7 +242,6 @@ global h_antenna
 global tile_header tile_georef dtm_dir
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
 global nmea_init
-global flag_LS_N_estim
 
 sigmaq0 = str2double(get(handles.std_init,'String'))^2;
 sigmaq_vE = str2double(get(handles.std_X,'String'))^2;
@@ -303,11 +309,6 @@ lamApp = str2double(get(handles.approx_lon,'String'));
 hApp = str2double(get(handles.approx_h,'String'));
 [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, 6378137, 1/298.257222101);
 nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
-if (get(handles.amb_estim, 'SelectedObject') == handles.diff_amb_estim)
-    flag_LS_N_estim = 0;
-elseif (get(handles.amb_estim, 'SelectedObject') == handles.LS_amb_estim)
-    flag_LS_N_estim = 1;
-end
 
 %close main panel
 delete(gcf)
@@ -389,8 +390,6 @@ state.password = get(handles.password,'Userdata');
 state.approx_lat = get(handles.approx_lat,'String');
 state.approx_lon = get(handles.approx_lon,'String');
 state.approx_h = get(handles.approx_h,'String');
-state.diff_amb_estim = get(handles.diff_amb_estim,'Value');
-state.LS_amb_estim = get(handles.LS_amb_estim,'Value');
 state.stopGOstop = get(handles.stopGOstop,'Value');
 
 save(filename, 'state');
@@ -470,8 +469,6 @@ show_password_Callback(handles.show_password, [], handles);
 set(handles.approx_lat,'String', state.approx_lat);
 set(handles.approx_lon,'String', state.approx_lon);
 set(handles.approx_h,'String', state.approx_h);
-set(handles.diff_amb_estim,'Value', state.diff_amb_estim);
-set(handles.LS_amb_estim,'Value', state.LS_amb_estim);
 set(handles.stopGOstop,'Value', state.stopGOstop);
 
 plot_amb_Callback(handles.plot_amb, [], handles);
@@ -480,12 +477,13 @@ plotproc_Callback(handles.constraint, [], handles);
 master_pos_Callback(handles.master_pos, [], handles);
 kalman_ls_Callback(handles.kalman_ls, [], handles);
 dyn_mod_Callback(handles.dyn_mod, [], handles);
-mode_Callback(handles.mode, [], handles);
 if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
     file_type_SelectionChangeFcn(handles.rinex_files, [], handles);
 else
     file_type_SelectionChangeFcn(handles.gogps_data, [], handles);
 end
+mode_Callback(handles.mode, [], handles);
+stopGOstop_Callback(handles.stopGOstop, [], handles);
 
 % --- Executes on selection change in mode.
 function mode_Callback(hObject, eventdata, handles)
@@ -509,7 +507,7 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     set(handles.kalman_ls, 'Enable', 'off');
     set(handles.kalman_ls, 'Value', 1);
     set(handles.code_dd_sa, 'Enable', 'off');
-    set(handles.code_dd_sa, 'Value', 3);
+    set(handles.code_dd_sa, 'Value', 4);
     set(handles.rinex_files, 'Enable', 'off');
     set(handles.gogps_data, 'Enable', 'off');
     
@@ -588,6 +586,8 @@ else
     set(handles.text_mountpoint, 'Enable', 'off');
     set(handles.text_username, 'Enable', 'off');
     set(handles.text_password, 'Enable', 'off');
+    
+    stopGOstop_Callback(handles.stopGOstop, [], handles);
 
 end
 
@@ -614,7 +614,7 @@ function kalman_ls_Callback(hObject, eventdata, handles)
 %enable Kalman filters settings
 contents = cellstr(get(hObject,'String'));
 if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
-    cell_contents = cell(3,1);
+    cell_contents = cell(4,1);
     cell_contents{1} = 'Code stand-alone';
     cell_contents{2} = 'Code double difference';
     cell_contents{3} = 'Code and phase stand-alone';
@@ -648,6 +648,8 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     set(handles.text_dyn_mod, 'Enable', 'on');
     
     dyn_mod_Callback(handles.dyn_mod, eventdata, handles);
+    
+    stopGOstop_Callback(handles.stopGOstop, [], handles);
 else
     cell_contents = cell(2,1);
     cell_contents{1} = 'Code stand-alone';
@@ -690,8 +692,6 @@ else
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
-    set(handles.diff_amb_estim, 'Enable', 'off');
-    set(handles.LS_amb_estim, 'Enable', 'off');
     set(handles.min_sat, 'Enable', 'off');
     set(handles.text_min_sat, 'Enable', 'off');
     set(handles.antenna_h, 'Enable', 'off');
@@ -738,8 +738,6 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
     set(handles.cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh_unit, 'Enable', 'on');
-    set(handles.diff_amb_estim, 'Enable', 'on');
-    set(handles.LS_amb_estim, 'Enable', 'on');
     set(handles.toggle_std_phase, 'Enable', 'on');
     toggle_std_phase_Callback(handles.toggle_std_phase, eventdata, handles);
     set(handles.snr_thres, 'Enable', 'on');
@@ -750,6 +748,13 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
     ref_path_Callback(handles.ref_path, eventdata, handles);
     set(handles.stopGOstop, 'Enable', 'on');
     set(handles.text_stopGOstop, 'Enable', 'on');
+    stopGOstop_Callback(handles.stopGOstop, [], handles);
+    cell_contents = cell(4,1);
+    cell_contents{1} = 'Const. velocity';
+    cell_contents{2} = 'Const. acceleration';
+    cell_contents{3} = 'Static';
+    cell_contents{4} = 'Variable';
+    set(handles.dyn_mod, 'String', cell_contents);
 elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
@@ -760,8 +765,6 @@ elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     set(handles.cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh, 'Enable', 'on');
     set(handles.text_cs_thresh_unit, 'Enable', 'on');
-    set(handles.diff_amb_estim, 'Enable', 'off');
-    set(handles.LS_amb_estim, 'Enable', 'off');
     set(handles.toggle_std_phase, 'Enable', 'on');
     toggle_std_phase_Callback(handles.toggle_std_phase, eventdata, handles);
     set(handles.snr_thres, 'Enable', 'on');
@@ -772,6 +775,14 @@ elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     set(handles.constraint, 'Enable', 'off');
     set(handles.stopGOstop, 'Enable', 'off');
     set(handles.text_stopGOstop, 'Enable', 'off');
+    set(handles.dyn_mod, 'Enable', 'on');
+    cell_contents = cell(3,1);
+    cell_contents{1} = 'Const. velocity';
+    cell_contents{2} = 'Const. acceleration';
+    cell_contents{3} = 'Static';
+    old_value = get(handles.dyn_mod, 'Value');
+    if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
+    set(handles.dyn_mod, 'String', cell_contents);
 else
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
@@ -780,8 +791,6 @@ else
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
-    set(handles.diff_amb_estim, 'Enable', 'off');
-    set(handles.LS_amb_estim, 'Enable', 'off');
     set(handles.toggle_std_phase, 'Enable', 'off');
     set(handles.std_phase, 'Enable', 'off');
     set(handles.text_std_phase_unit, 'Enable', 'off');
@@ -790,6 +799,17 @@ else
     set(handles.constraint, 'Enable', 'off');
     set(handles.stopGOstop, 'Enable', 'off');
     set(handles.text_stopGOstop, 'Enable', 'off');
+    check_KF = cellstr(get(handles.kalman_ls,'String'));
+    if (strcmp(check_KF{get(handles.mode,'Value')},'Kalman filter'))
+        set(handles.dyn_mod, 'Enable', 'on');
+    end
+    cell_contents = cell(3,1);
+    cell_contents{1} = 'Const. velocity';
+    cell_contents{2} = 'Const. acceleration';
+    cell_contents{3} = 'Static';
+    old_value = get(handles.dyn_mod, 'Value');
+    if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
+    set(handles.dyn_mod, 'String', cell_contents);
 end
 
 if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
@@ -886,6 +906,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     
     set(handles.stopGOstop, 'Enable', 'on');
     set(handles.text_stopGOstop, 'Enable', 'on');
+    stopGOstop_Callback(handles.stopGOstop, [], handles);
     
     %enable weights
     set(handles.weight_0, 'Enable', 'on');
@@ -960,8 +981,6 @@ else
     set(handles.cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh, 'Enable', 'off');
     set(handles.text_cs_thresh_unit, 'Enable', 'off');
-    set(handles.diff_amb_estim, 'Enable', 'off');
-    set(handles.LS_amb_estim, 'Enable', 'off');
     set(handles.cut_off, 'Enable', 'off');
     set(handles.text_cut_off, 'Enable', 'off');
     set(handles.text_cut_off_unit, 'Enable', 'off');
@@ -1690,11 +1709,24 @@ if (hObject == handles.rinex_files)
     set(handles.text_RINEX_rover_obs, 'Enable', 'on');
     set(handles.text_RINEX_rover_nav, 'Enable', 'on');
 
-    code_dd_sa_Callback(handles.code_dd_sa, eventdata, handles);
+    code_dd_sa_Callback(handles.code_dd_sa, [], handles);
 
     set(handles.gogps_data_input, 'Enable', 'off');
     set(handles.browse_gogps_input, 'Enable', 'off');
     set(handles.text_gogps_input, 'Enable', 'off');
+    
+    set(handles.stopGOstop, 'Enable', 'off');
+    set(handles.stopGOstop, 'Value', 0);
+    set(handles.text_stopGOstop, 'Enable', 'off');
+    stopGOstop_Callback(handles.stopGOstop, [], handles);
+    
+    cell_contents = cell(3,1);
+    cell_contents{1} = 'Const. velocity';
+    cell_contents{2} = 'Const. acceleration';
+    cell_contents{3} = 'Static';
+    old_value = get(handles.dyn_mod, 'Value');
+    if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
+    set(handles.dyn_mod, 'String', cell_contents);
 
 else
     set(handles.RINEX_rover_obs, 'Enable', 'off');
@@ -1713,8 +1745,13 @@ else
     set(handles.gogps_data_input, 'Enable', 'on');
     set(handles.browse_gogps_input, 'Enable', 'on');
     set(handles.text_gogps_input, 'Enable', 'on');
+    
+    set(handles.stopGOstop, 'Enable', 'on');
+    set(handles.text_stopGOstop, 'Enable', 'on');
+    stopGOstop_Callback(handles.stopGOstop, [], handles);
+    
+    code_dd_sa_Callback(handles.code_dd_sa, [], handles);
 end
-
 
 
 function gogps_data_output_prefix_Callback(hObject, eventdata, handles)
@@ -2282,12 +2319,13 @@ else
     set(handles.text_std_X_unit, 'Enable', 'on');
     set(handles.text_std_Y_unit, 'Enable', 'on');
     set(handles.text_std_Z_unit, 'Enable', 'on');
-    if (strcmp(contents{get(hObject,'Value')},'Const. velocity'))
-        order = 2;
-    else
+    if (strcmp(contents{get(hObject,'Value')},'Const. acceleration'))
         order = 3;
+    else
+        order = 2;
     end
 end
+
 
 % --- Executes during object creation, after setting all properties.
 function dyn_mod_CreateFcn(hObject, eventdata, handles)
@@ -2300,7 +2338,6 @@ function dyn_mod_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
 
 
 function approx_lat_Callback(hObject, eventdata, handles)
@@ -2489,6 +2526,7 @@ else
     set(hObject, 'String', notAvailable);
 end
 
+
 % --- Executes on button press in exit.
 function exit_Callback(hObject, eventdata, handles)
 % hObject    handle to exit (see GCBO)
@@ -2626,7 +2664,7 @@ if (get(hObject,'Value'))
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
         set(handles.plot_amb, 'Enable', 'on');
-        plot_amb_Callback(handles.plot_amb, eventdata, handles);
+        plot_amb_Callback(handles.plot_amb, [], handles);
     end
 else
     set(handles.no_skyplot_snr, 'Enable', 'off');
@@ -2644,6 +2682,12 @@ function stopGOstop_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of stopGOstop
+check_nav = cellstr(get(handles.nav_mon,'String'));
+if (get(hObject,'Value') | (~strcmp(check_nav{get(handles.nav_mon,'Value')},'Navigation')))
+    set(handles.dyn_mod, 'Enable', 'off');
+else
+    set(handles.dyn_mod, 'Enable', 'on');
+end
 
 
 % --------------------------------------------------------------------
