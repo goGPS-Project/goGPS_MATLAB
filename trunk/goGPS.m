@@ -1357,6 +1357,7 @@ elseif (mode == 12)
 
     if (flag_stopGOstop == 0)
         goGPS_ublox_monitor(filerootOUT);
+        %goGPS_skytraq_monitor(filerootOUT);
     else
         goGPS_ublox_monitor_stopGOstop(filerootOUT);
     end
