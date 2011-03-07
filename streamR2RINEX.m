@@ -198,7 +198,7 @@ if (~isempty(data_rover_all))
             tom = cell_rover{2,j}(21);                   %time of measurement
             
             %if the ephemerides are not already available
-            if (isempty(find(Eph_R(21,sat,:) ==  tom, 1)))
+            if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(21,sat,:) ==  tom, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
             end
             
@@ -210,7 +210,7 @@ if (~isempty(data_rover_all))
             tom = cell_rover{2,j}(21);                   %time of measurement
 
             %if the ephemerides are not already available
-            if (sat ~= 0 & isempty(find(Eph_R(21,sat,:) ==  tom, 1)))
+            if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(21,sat,:) ==  tom, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
             end
             
