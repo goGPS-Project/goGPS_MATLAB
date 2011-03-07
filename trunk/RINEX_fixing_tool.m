@@ -35,14 +35,22 @@
 
 %filename_obs = '../../test/switzerland/static-manno-home/static-switzerland-manno-home_rover.obs';
 %filename_nav = '../../test/switzerland/static-manno-home/static-switzerland-manno-home_rover.nav';
+
 %filename_obs = '../../test/switzerland/static-manno-cryms/static-switzerland-manno-cryms_rover.obs';
 %filename_obs = '../../test/switzerland/static-manno-cryms/VirA052L.11o';
 %filename_nav = '../../test/switzerland/static-manno-cryms/static-switzerland-manno-cryms_rover.nav';
-%filename_obs = '../../test/italy/goPilastro/raw/como_pillar_rover.obs';
-filename_obs = '../../test/italy/goPilastro/raw/como_pillar_master.10o';
+
+filename_obs = '../../test/italy/goPilastro/raw/como_pillar_rover.obs';
+%filename_obs = '../../test/italy/goPilastro/raw/como_pillar_master.10o';
 filename_nav = '../../test/italy/goPilastro/raw/como_pillar_rover.nav';
 
+%filename_obs = '../../test/japan/110303_static_OCU/RINEX/static-osaka-skytraq_rover.obs';
+%filename_obs = '../../test/japan/110303_static_OCU/RINEX/static_osaka_ublox_rover.obs';
+%filename_nav = '../../test/japan/110303_static_OCU/RINEX/static_osaka_ublox_rover.nav';
+
 global_init;
+cutoff = 15;
+weights = 1;
 
 fprintf('Reading RINEX files...\n');
 
@@ -127,7 +135,7 @@ for i = 1 : nEpochs
         sat = intersect(sat,sat_cutoff);
 
         %estimate receiver clock error
-        code_SA(posR, pr1_R(sat,i), snr_R(sat,i), sat, time_R(i), Eph_t, iono_R);
+        code_SA(posR, pr1_R(sat,i), snr1_R(sat,i), sat, time_R(i), Eph_t, iono_R);
 
         %store receiver clock error in an array for later use
         dtR(i) = rec_clock_error;
@@ -154,7 +162,7 @@ fprintf('Detecting clock drift discontinuities... ');
 
 %check if there is any discontinuity in the clock drift
 clock_thresh = 1e-4;
-disc = find((abs(dtRdot-mean(dtRdot))) > clock_thresh);
+disc = find(abs(dtRdot-mean(dtRdot)) > clock_thresh);
 
 %remove deleted epochs from discontinuities, because otherwise
 %Doppler-predicted observations are going to be used on the wrong epochs;
@@ -166,9 +174,9 @@ end
 %display the clock error
 figure
 plot(dtR)
-%display the clock drift
+%display the absolute value of the clock drift
 figure
-plot(dtRdot)
+plot(abs(dtRdot))
 hold on
 plot([1, nEpochs], [clock_thresh clock_thresh],'r');
 
@@ -267,8 +275,8 @@ if ~isempty(disc)
         end
     end
     
-    for i = 1 : length(disc)
-        
+%     for i = 1 : length(disc)
+%         
 %         %check the presence of (and in case correct) any code "ambiguity" shift
 %         % (useful to correct also those satellites with a signal outage during a clock discontinuity)
 %         for s = 1 : 32
@@ -289,41 +297,41 @@ if ~isempty(disc)
 %                 break
 %             end
 %         end
-
-        %correct code and phase for clock shift effect
-        for s = 1 : 32
-            if (ph1_R(s,disc(i)+1) & ph1_R(s,disc(i)))
-                if (dop1_R(s,disc(i)) ~= 0)
-                    doppler1 = dop1_R(s,disc(i));
-                else
-                    doppler1 = doppler_app1(s,disc(i));
-                end
-                if (dop2_R(s,disc(i)) ~= 0)
-                    doppler2 = dop2_R(s,disc(i));
-                else
-                    doppler2 = doppler_app2(s,disc(i));
-                end
-                %diff1_pr = pr1_R(s,disc(i)+1) - (pr1_R(s,disc(i)) - doppler1*lambda1);
-                %diff2_pr = pr2_R(s,disc(i)+1) - (pr2_R(s,disc(i)) - doppler2*lambda2);
-                diff1_ph = ph1_R(s,disc(i)+1) - (ph1_R(s,disc(i)) - doppler1);
-                diff2_ph = ph2_R(s,disc(i)+1) - (ph2_R(s,disc(i)) - doppler2);
-                for j = disc(i)+1 : nEpochs
+% 
+%         %correct code and phase for clock shift effect
+%         for s = 1 : 32
+%             if (ph1_R(s,disc(i)+1) & ph1_R(s,disc(i)))
+%                 if (dop1_R(s,disc(i)) ~= 0)
+%                     doppler1 = dop1_R(s,disc(i));
+%                 else
+%                     doppler1 = doppler_app1(s,disc(i));
+%                 end
+%                 if (dop2_R(s,disc(i)) ~= 0)
+%                     doppler2 = dop2_R(s,disc(i));
+%                 else
+%                     doppler2 = doppler_app2(s,disc(i));
+%                 end
+%                 %diff1_pr = pr1_R(s,disc(i)+1) - (pr1_R(s,disc(i)) - doppler1*lambda1);
+%                 %diff2_pr = pr2_R(s,disc(i)+1) - (pr2_R(s,disc(i)) - doppler2*lambda2);
+%                 diff1_ph = ph1_R(s,disc(i)+1) - (ph1_R(s,disc(i)) - doppler1);
+%                 diff2_ph = ph2_R(s,disc(i)+1) - (ph2_R(s,disc(i)) - doppler2);
+%                 for j = disc(i)+1 : nEpochs
 %                     if (pr1_R(s,j) ~= 0)
 %                         pr1_R(s,j) = pr1_R(s,j) - diff1_pr;
 %                     end
 %                     if (pr2_R(s,j) ~= 0)
 %                         pr2_R(s,j) = pr2_R(s,j) - diff2_pr;
 %                     end
-                    if (ph1_R(s,j) ~= 0)
-                        ph1_R(s,j) = ph1_R(s,j) - diff1_ph;
-                    end
-                    if (ph2_R(s,j) ~= 0)
-                        ph2_R(s,j) = ph2_R(s,j) - diff2_ph;
-                    end
-                end
-            end
-        end
-    end
+%                     if (ph1_R(s,j) ~= 0)
+%                         ph1_R(s,j) = ph1_R(s,j) - diff1_ph;
+%                     end
+%                     if (ph2_R(s,j) ~= 0)
+%                         ph2_R(s,j) = ph2_R(s,j) - diff2_ph;
+%                     end
+%                 end
+%             end
+%         end
+%     end
 end
 
 %----------------------------------------------------------------------------------------------
