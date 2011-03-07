@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 20-Oct-2010 19:39:18
+% Last Modified by GUIDE v2.5 07-Mar-2011 10:52:40
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -2713,3 +2713,26 @@ function about_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_about;
+
+
+% --- Executes on selection change in protocol_select.
+function protocol_select_Callback(hObject, eventdata, handles)
+% hObject    handle to protocol_select (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns protocol_select contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from protocol_select
+
+
+% --- Executes during object creation, after setting all properties.
+function protocol_select_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to protocol_select (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
