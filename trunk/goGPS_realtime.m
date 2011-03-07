@@ -385,7 +385,10 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
             %satellite number
             sat = cell_rover{2,i}(1);
 
-            Eph(:, sat) = cell_rover{2,i}(:);
+            if (~isempty(sat) & sat > 0)
+                Eph(:, sat) = cell_rover{2,i}(:);
+            end
+
             
         %AID-HUI message data save
         elseif (strcmp(cell_rover{1,i},'AID-HUI'))
@@ -801,7 +804,9 @@ end
                 %satellite number
                 sat = cell_rover{2,i}(1);
 
-                Eph(:, sat) = cell_rover{2,i}(:);
+                if (~isempty(sat) & sat > 0)
+                    Eph(:, sat) = cell_rover{2,i}(:);
+                end
 
                 if (nEPH == 0)
                     type = [type 'AID-EPH '];

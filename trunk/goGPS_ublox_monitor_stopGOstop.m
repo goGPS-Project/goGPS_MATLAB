@@ -462,7 +462,9 @@ while flag
                 %satellite number
                 sat = cell_rover{2,i}(1);
 
-                Eph(:, sat) = cell_rover{2,i}(:);
+                if (~isempty(sat) & sat > 0)
+                    Eph(:, sat) = cell_rover{2,i}(:);
+                end
 
                 if (nEPH == 0)
                     type = [type 'AID-EPH '];

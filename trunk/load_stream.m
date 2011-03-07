@@ -203,7 +203,9 @@ if ~isempty(data_rover_all)
             %satellite number
             sat = cell_rover{2,j}(1);
 
-            Eph_R(:,sat,i) = cell_rover{2,j}(:);
+            if (~isempty(sat) & sat > 0)
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);
+            end
             
         %AID-EPH message data save
         elseif (strcmp(cell_rover{1,j},'AID-EPH'))
@@ -211,7 +213,9 @@ if ~isempty(data_rover_all)
             %satellite number
             sat = cell_rover{2,j}(1);
 
-            Eph_R(:,sat,i) = cell_rover{2,j}(:);
+            if (~isempty(sat) & sat > 0)
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);
+            end
             
         %AID-HUI message data save
         elseif (strcmp(cell_rover{1,j},'AID-HUI'))
