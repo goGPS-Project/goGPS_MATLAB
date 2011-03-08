@@ -1,11 +1,11 @@
 function kalman_goGPS_vinc_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-         ph1_Rsat, ph1_Msat, dop1_Rsat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
-         dop2_Rsat, snr_R, snr_M, phase, ref)
+              ph1_Rsat, ph1_Msat, dop1_Rsat, dop1_Msat, pr2_Rsat, pr2_Msat, ...
+              ph2_Rsat, ph2_Msat, dop2_Rsat, dop2_Msat, snr_R, snr_M, phase, ref)
 
 % SYNTAX:
 %   kalman_goGPS_vinc_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-%        ph1_Rsat, ph1_Msat, dop1_Rsat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
-%        dop2_Rsat, snr_R, snr_M, phase, ref);
+%        ph1_Rsat, ph1_Msat, dop1_Rsat, dop1_Msat, pr2_Rsat, pr2_Msat, ...
+%        ph2_Rsat, ph2_Msat, dop2_Rsat, dop2_Msat, snr_R, snr_M, phase, ref);
 %
 % INPUT:
 %   pos_M = Master given coordinates (X,Y,Z)
@@ -63,6 +63,7 @@ global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
 global doppler_pred_range1_R doppler_pred_range2_R
+global doppler_pred_range1_M doppler_pred_range2_M
 
 %--------------------------------------------------------------------------------------------
 % SINGLE / DOUBLE FREQUENCY SELECTION
@@ -393,4 +394,10 @@ if (dop1_Rsat(sat))
 end
 if (dop2_Rsat(sat))
     doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+end
+if (dop1_Msat(sat))
+    doppler_pred_range1_M(sat,1) = ph1_Msat(sat) - dop1_Msat(sat);
+end
+if (dop2_Msat(sat))
+    doppler_pred_range2_M(sat,1) = ph2_Msat(sat) - dop2_Msat(sat);
 end

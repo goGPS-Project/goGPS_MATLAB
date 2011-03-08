@@ -1,9 +1,9 @@
-function goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_R)
+function goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov,
 %   flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path, pos_M,
-%   iono, pr2_M, pr2_R, ph2_M, ph2_R);
+%   dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
 %
 % INPUT:
 %   filerootOUT = output file prefix
@@ -18,10 +18,13 @@ function goGPS_realtime_model(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov
 %   ref_path = reference path
 %   mat_path = reference path adjacency matrix
 %   pos_M = master station position (X,Y,Z)
+%   dop1_M = Doppler observation MASTER-SATELLITE (carrier L1)
 %   pr2_M = code pseudorange MASTER-SATELLITE (carrier L2)
 %   pr2_R = code pseudorange ROVER-SATELLITE (carrier L2)
 %   ph2_M = phase observation MASTER-SATELLITE (carrier L2)
 %   ph2_R = phase observation ROVER-SATELLITE (carrier L2)
+%   dop2_M = Doppler observation MASTER-SATELLITE (carrier L2)
+%   dop2_R = Doppler observation ROVER-SATELLITE (carrier L2)
 %
 % DESCRIPTION:
 %   goGPS real-time algorithm: stream reading and synchronization,
@@ -1424,9 +1427,9 @@ end
 
                 %Kalman filter
                 if (mode_vinc == 0)
-                    kalman_goGPS_init_model (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,1), snr_M(:,1), order, 1);
+                    kalman_goGPS_init_model (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), order, 1);
                 else % to be done
-                    kalman_goGPS_vinc_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,1), snr_M(:,1), 1, ref_path);
+                    kalman_goGPS_vinc_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1, ref_path);
                 end
                 
                 %output data save
@@ -1550,9 +1553,9 @@ end
 
                 %Kalman filter
                 if (mode_vinc == 0)
-                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), pr2_R, pr2_M, ph2_R, ph2_M, zeros(32,1), zeros(32,1), order, 1); %#ok<NASGU>
+                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), order, 1); %#ok<NASGU>
                 else % to be done
-                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), pr2_R, pr2_M, ph2_R, ph2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
+                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
                 end
 
                 %output data save
@@ -1662,9 +1665,9 @@ end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), order, 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), order, 1);
                     else % to be done
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
 
                     %output data save
@@ -1773,9 +1776,9 @@ end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), order, 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), order, 1);
                     else % to be done
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
 
                     %output data save
@@ -1934,9 +1937,9 @@ end
 
                         %Kalman filter
                         if (mode_vinc == 0)
-                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), order, 1);
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), order, 1);
                         else % to be done
-                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                         end
 
                         %output data save
@@ -2045,9 +2048,9 @@ end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), order, 1);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), order, 1);
                     else % to be done
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
 
                     %output data save

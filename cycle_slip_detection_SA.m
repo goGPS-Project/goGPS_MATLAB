@@ -75,7 +75,7 @@ for i = 1 : nsat
         %test on:
         % - Kalman-estimated phase ambiguities compared with code-phase range (double differences)
         % - Doppler-predicted phase range compared to observed phase range
-        if ((abs(N_kalman(sat(i)) - N_stim(i)) > 50) || (doppler_pred_range(i) & (abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)))
+        if ((abs(N_kalman(sat(i)) - N_stim(i)) > 50) | (doppler_pred_range(i) & (abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)))
         %if (doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
 
             %save of the new phase ambiguity estimation

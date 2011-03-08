@@ -1,11 +1,13 @@
 function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
          (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ph1_Rsat, ph1_Msat, dop1_Rsat, ...
-         pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, dop2_Rsat, snr_R, snr_M, phase)
+         dop1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, dop2_Rsat, dop2_Msat, ...
+         snr_R, snr_M, phase)
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
 %   (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ph1_Rsat, ph1_Msat, dop1_Rsat, ...
-%   pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, dop2_Rsat, snr_R, snr_M, phase);
+%    dop1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, dop2_Rsat, dop2_Msat, ...
+%    snr_R, snr_M, phase);
 %
 % INPUT:
 %   pos_M = master position (X,Y,Z)
@@ -16,12 +18,14 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop ...
 %   pr1_Msat  = MASTER-SATELLITE code pseudorange (L1 carrier)
 %   ph1_Rsat  = ROVER-SATELLITE phase observation (L1 carrier)
 %   ph1_Msat  = MASTER-SATELLITE phase observation (L1 carrier)
-%   dop1_Rsat = ROVER_SATELLITE Doppler observation (L1 carrier)
+%   dop1_Rsat = ROVER-SATELLITE Doppler observation (L1 carrier)
+%   dop1_Msat = MASTER-SATELLITE Doppler observation (L1 carrier)
 %   pr2_Rsat  = ROVER-SATELLITE code pseudorange (L2 carrier)
 %   pr2_Msat  = MASTER-SATELLITE code pseudorange (L2 carrier)
 %   ph2_Rsat  = ROVER-SATELLITE phase observation (L2 carrier)
 %   ph2_Msat  = MASTER-SATELLITE phase observation (L2 carrier)
-%   dop2_Rsat = ROVER_SATELLITE Doppler observation (L2 carrier)
+%   dop2_Rsat = ROVER-SATELLITE Doppler observation (L2 carrier)
+%   dop2_Msat = MASTER-SATELLITE Doppler observation (L2 carrier)
 %   snr_R = signal-to-noise ratio for ROVER observations
 %   snr_M = signal-to-noise ratio for MASTER observations
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
@@ -72,6 +76,7 @@ global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
+global doppler_pred_range1_M doppler_pred_range2_M
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -475,8 +480,8 @@ if (nsat >= min_nsat)
         %Test presence/absence of a cycle-slip at the current epoch.
         %The state of the system is not changed yet
         if (length(phase) == 2)
-            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1_R(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
-            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2_R(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+            [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+            [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+33:o3+64), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
 
             if (check_cs1 | check_cs2)
                 check_cs = 1;
@@ -493,9 +498,9 @@ if (nsat >= min_nsat)
 %            end
         else
             if (phase == 1)
-                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1_R(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph1_Rsat(sat), ph1_Msat(sat), pr1_Rsat(sat), pr1_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
             else
-                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2_R(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_Rsat(sat), ph2_Msat(sat), pr2_Rsat(sat), pr2_Msat(sat), posR_app, pos_M, posS(:,sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
             end
 
 %            %if the pivot slips, all ambiguity combinations must be re-estimated
@@ -726,11 +731,19 @@ if (nsat >= min_nsat)
     %--------------------------------------------------------------------------------------------
     doppler_pred_range1_R = zeros(32,1);
     doppler_pred_range2_R = zeros(32,1);
+    doppler_pred_range1_M = zeros(32,1);
+    doppler_pred_range2_M = zeros(32,1);
     if (dop1_Rsat(sat))
         doppler_pred_range1_R(sat,1) = ph1_Rsat(sat) - dop1_Rsat(sat);
     end
     if (dop2_Rsat(sat))
         doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+    end
+    if (dop1_Msat(sat))
+        doppler_pred_range1_M(sat,1) = ph1_Msat(sat) - dop1_Msat(sat);
+    end
+    if (dop2_Msat(sat))
+        doppler_pred_range2_M(sat,1) = ph2_Msat(sat) - dop2_Msat(sat);
     end
 
 else

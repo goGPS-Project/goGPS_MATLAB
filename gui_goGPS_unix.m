@@ -153,7 +153,7 @@ else %goGPS data
     mode_data = 1;
 end
 contents_dyn_mod = cellstr(get(handles.dyn_mod,'String'));
-if (strcmp(contents_dyn_mod{get(handles.dyn_mod,'Value')},'Variable'))
+if (strcmp(contents_dyn_mod{get(handles.dyn_mod,'Value')},'Variable') | get(handles.stopGOstop,'Value'))
     flag_var_dyn_model = 1;
 else
     flag_var_dyn_model = 0;
