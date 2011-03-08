@@ -1,11 +1,11 @@
 function kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-         ph1_Rsat, ph1_Msat, dop1_Rsat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
-         dop2_Rsat, snr_R, snr_M, phase)
+         ph1_Rsat, ph1_Msat, dop1_Rsat, dop1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
+         dop2_Rsat, dop2_Msat, snr_R, snr_M, phase)
 
 % SYNTAX:
 %   kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
-%   ph1_Rsat, ph1_Msat, dop1_R, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
-%   dop2_R, snr_R, snr_M, phase);
+%   ph1_Rsat, ph1_Msat, dop1_Rsat, dop1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
+%   dop2_Rsat, dop2_Msat, snr_R, snr_M, phase);
 %
 % INPUT:
 %   pos_M = master known position (X,Y,Z)
@@ -16,12 +16,14 @@ function kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   pr1_Msat  = MASTER-SATELLITE code pseudorange (carrier L1)
 %   ph1_Rsat  = ROVER-SATELLITE phase observation (carrier L1)
 %   ph1_Msat  = MASTER-SATELLITE phase observation (carrier L1)
-%   dop1_Rsat = ROVER_SATELLITE Doppler observation (carrier L1)
+%   dop1_Rsat = ROVER-SATELLITE Doppler observation (carrier L1)
+%   dop1_Msat = MASTER-SATELLITE Doppler observation (carrier L1)
 %   pr2_Rsat  = ROVER-SATELLITE code pseudorange (carrier L2)
 %   pr2_Msat  = MASTER-SATELLITE code pseudorange (carrier L2)
 %   ph2_Rsat  = ROVER-SATELLITE phase observation (carrier L2)
 %   ph2_Msat  = MASTER-SATELLITE phase observation (carrier L2)
-%   dop2_Rsat = ROVER_SATELLITE Doppler observation (carrier L2)
+%   dop2_Rsat = ROVER-SATELLITE Doppler observation (carrier L2)
+%   dop2_Msat = MASTER-SATELLITE Doppler observation (carrier L2)
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   phase = carrier L1 (phase=1) carrier L2 (phase=2)
@@ -61,6 +63,7 @@ global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
+global doppler_pred_range1_M doppler_pred_range2_M
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -318,6 +321,12 @@ if (dop1_Rsat(sat))
 end
 if (dop2_Rsat(sat))
     doppler_pred_range2_R(sat,1) = ph2_Rsat(sat) - dop2_Rsat(sat);
+end
+if (dop1_Msat(sat))
+    doppler_pred_range1_M(sat,1) = ph1_Msat(sat) - dop1_Msat(sat);
+end
+if (dop2_Msat(sat))
+    doppler_pred_range2_M(sat,1) = ph2_Msat(sat) - dop2_Msat(sat);
 end
 
 %--------------------------------------------------------------------------------------------

@@ -1,9 +1,11 @@
 function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, posR, posM, posS, doppler_pred_range, pivot, sat, sat_born, alfa, phase)
+         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, posR, posM, posS, ...
+         doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-%   ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, doppler_pred_range, pivot, sat, alfa, phase);
+%   ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, posR, posM, posS, ...
+%   doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
@@ -11,11 +13,12 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
 %   ph_Msat = MASTER-SATELLITE phase observation
 %   pr_Rsat = ROVER-SATELLITE code pseudorange observation
 %   pr_Msat = MASTER-SATELLITE code pseudorange observation
-%   doppler_pred_range = predicted range based on phase and Doppler observations from previous epoch
+%   doppler_pred_range_R = ROVER-SATELLITE Doppler-based predicted range
+%   doppler_pred_range_M = MASTER-SATELLITE Doppler-based predicted range
 %   pivot = PIVOT satellite
 %   sat = visible satellites configuration
 %   sat_born = new satellites (added in this epoch)
-%   alfa = cycle-slip detection threshold
+%   alpha = cycle-slip detection threshold
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % OUTPUT:
@@ -135,9 +138,11 @@ for i = 1 : nsat
 
         %test on:
         % - Kalman-estimated phase ambiguities compared with ambiguities estimated by using approximate pseudorange (double differences)
-        % - Doppler-predicted phase range compared to observed phase range (ROVER only)
-        if ((abs(N_kalman(sat(i)) - N_stim(i)) > 50) | (doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa))
-        %if (doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
+        % - Doppler-predicted phase range compared to observed phase range (ROVER and MASTER)
+        if ((abs(N_kalman(sat(i)) - N_stim(i)) > 50) | ...
+           (doppler_pred_range_R(i) & abs(doppler_pred_range_R(i) - ph_Rsat(i)) > alpha) | ...
+           (doppler_pred_range_M(i) & abs(doppler_pred_range_M(i) - ph_Msat(i)) > alpha))
+        %if (doppler_pred_range_R(i) & abs(doppler_pred_range_R(i) - ph_Rsat(i)) > alpha)
 
             %save of the new phase ambiguity estimation
             N_slip = [N_slip; N_stim(i)];
@@ -147,7 +152,7 @@ for i = 1 : nsat
 
             %flag identifying a cycle-slip
             slip = 1;
-%             fprintf('Cycle-slip on satellite %d: range difference = %.3f\n', sat(i), doppler_pred_range(i) - ph_Rsat(i));
+%             fprintf('Cycle-slip on satellite %d: range difference = %.3f\n', sat(i), doppler_pred_range_R(i) - ph_Rsat(i));
 %             pause
         end
     end
