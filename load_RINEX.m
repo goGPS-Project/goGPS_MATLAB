@@ -1,23 +1,22 @@
 function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-          dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr1_R, snr1_M, ...
+          dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
           snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-          dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-          time_GPS, time_GPS_R, time_GPS_M, date, pos] = ...
-          load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav, wait_dlg)
+          dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
+          time_GPS, time_GPS_R, time_GPS_M, date, pos, Eph, iono, Eph_R] = ...
+          load_RINEX(filename_R_obs, filename_nav, filename_M_obs, wait_dlg)
 
 % SYNTAX:
 %   [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%    dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr1_R, snr1_M, ...
+%    dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
 %    snr1_R, snr1_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-%    Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-%    time_GPS, date, pos] = ...
-%   load_RINEX(nome_FR_oss, nome_FR_nav, nome_FM_oss, nome_FM_nav, wait_dlg);
+%    Eph_R, Eph_MR, snr_RR, snr_MR, ...
+%    time_GPS, date, pos, Eph, iono, Eph_R] = ...
+%   load_RINEX(filename_R_obs, filename_nav, filename_M_obs, wait_dlg);
 %
 % INPUT:
-%   nome_FR_oss = RINEX observation file (ROVER)
-%   nome_FR_nav = RINEX navigation file (ROVER)
-%   nome_FM_oss = RINEX observation file (MASTER)
-%   nome_FM_nav = RINEX navigation file (MASTER)
+%   filename_R_obs = RINEX observation file (ROVER)
+%   filename_M_obs = RINEX observation file (MASTER)
+%   filename_nav = RINEX navigation file
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -33,10 +32,6 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   dop1_M = Doppler observation (L1 carrier, MASTER)
 %   dop2_R = Doppler observation (L2 carrier, ROVER)
 %   dop2_M = Doppler observation (L2 carrier, MASTER)
-%   Eph_R = matrix containing 29 ephemerides for each satellite (ROVER)
-%   Eph_M = matrix containing 29 ephemerides for each satellite (MASTER)
-%   iono_R = matrix containing ionosphere parameters (ROVER)
-%   iono_M = matrix containing ionosphere parameters (MASTER)
 %   snr1_R = signal-to-noise ratio (L1 carrier, ROVER)
 %   snr1_M = signal-to-noise ratio (L1 carrier, MASTER)
 %   snr2_R = signal-to-noise ratio (L2 carrier, ROVER)
@@ -53,8 +48,6 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   dop1_MR = Doppler observation (GLONASS, L1 carrier, MASTER)
 %   dop2_RR = Doppler observation (GLONASS, L2 carrier, ROVER)
 %   dop2_MR = Doppler observation (GLONASS, L2 carrier, MASTER)
-%   Eph_RR = matrix containing 29 ephemerides for each satellite (GLONASS, ROVER)
-%   Eph_MR = matrix containing 29 ephemerides for each satellite (GLONASS, MASTER)
 %   snr_RR = signal-to-noise ratio (GLONASS, ROVER)
 %   snr_MR = signal-to-noise ratio (GLONASS, MASTER)
 %   time_GPS = reference GPS time
@@ -62,10 +55,13 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   time_GPS_M = master GPS time
 %   date = date (year,month,day,hour,minute,second)
 %   pos = master station position (rover if stand-alone)
+%   Eph = matrix containing 29 ephemerides for each satellite
+%   iono = vector containing ionosphere parameters
+%   Eph_R = matrix containing 29 ephemerides for each satellite (GLONASS)
 %
 % DESCRIPTION:
-%   Parse RINEX files (both observation and navigation) for both the ROVER
-%   and the MASTER. Select epochs they have in common.
+%   Parses RINEX files (observation and navigation) for both the ROVER
+%   and the MASTER. Selects epochs they have in common.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -87,33 +83,17 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-Eph_RR = zeros(17,32);
-Eph_MR = zeros(17,32);
-
-Eph_M = zeros(29,32);
-iono_M = zeros(8,1);
+Eph_R = zeros(17,32);
 
 if (nargin == 5)
-    waitbar(0.33,wait_dlg,'Reading navigation files...')
+    waitbar(0.5,wait_dlg,'Reading navigation files...')
 end
 
 %parse RINEX navigation file (ROVER)
-[Eph_R, iono_R] = RINEX_get_nav(nome_FR_nav);
+[Eph, iono] = RINEX_get_nav(filename_nav);
 
 %parse RINEX navigation file (ROVER)
-% [Eph_RR] = RINEX_get_nav_GLO(nome_FR_glo);
-
-if (nargin == 5)
-    waitbar(0.66,wait_dlg)
-end
-
-if (nargin > 2)
-    %parse RINEX navigation file (MASTER)
-    [Eph_M, iono_M] = RINEX_get_nav(nome_FM_nav);
-    
-    %parse RINEX navigation file (MASTER)
-    % [Eph_MR] = RINEX_get_nav_GLO(nome_FM_glo);
-end
+% [Eph_R] = RINEX_get_nav_GLO(filename_nav_GLO);
 
 if (nargin == 5)
     waitbar(1,wait_dlg)
@@ -122,11 +102,11 @@ end
 %-------------------------------------------------------------------------------
 
 %open RINEX observation file (ROVER)
-FR_oss = fopen(nome_FR_oss,'r');
+FR_oss = fopen(filename_R_obs,'r');
 
 if (nargin > 2)
     %open RINEX observation file (MASTER)
-    FM_oss = fopen(nome_FM_oss,'r');
+    FM_oss = fopen(filename_M_obs,'r');
 end
 
 %-------------------------------------------------------------------------------
@@ -519,6 +499,37 @@ dop2_M(:,k:nEpochs) = [];
 % dop1_MR(:,k:nEpochs) = [];
 % dop2_MR(:,k:nEpochs) = [];
 % snr_MR(:,k:nEpochs) = [];
+
+%remove rover tail
+if (nargin > 2)
+    flag_tail = 1;
+    while (flag_tail)
+        if (time_GPS_M(end) == 0)
+            date(end,:) = [];
+            time_GPS(end) = [];
+            time_GPS_R(end) = [];
+            time_GPS_M(end) = [];
+            pr1_R(:,end) = [];
+            pr2_R(:,end) = [];
+            ph1_R(:,end) = [];
+            ph2_R(:,end) = [];
+            dop1_R(:,end) = [];
+            dop2_R(:,end) = [];
+            snr1_R(:,end) = [];
+            snr2_R(:,end) = [];
+            pr1_M(:,end) = [];
+            pr2_M(:,end) = [];
+            ph1_M(:,end) = [];
+            ph2_M(:,end) = [];
+            snr1_M(:,end) = [];
+            snr2_M(:,end) = [];
+            dop1_M(:,end) = [];
+            dop2_M(:,end) = [];
+        else
+            flag_tail = 0;
+        end
+    end
+end
 
 if (nargin == 5)
     waitbar(1,wait_dlg)

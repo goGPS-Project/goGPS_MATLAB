@@ -65,10 +65,9 @@ end
 
 if (mode_data == 0)
 
-    filename_R_obs    = '../data/data_RINEX/basket/perim2.08o';
-    filename_R_nav    = '../data/data_RINEX/basket/COMO1190.08n';
-    filename_M_obs    = '../data/data_RINEX/basket/COMO1190.08o';
-    filename_M_nav    = '../data/data_RINEX/basket/COMO1190.08n';
+    filename_R_obs = '../data/data_RINEX/basket/perim2.08o';
+    filename_M_obs = '../data/data_RINEX/basket/COMO1190.08o';
+    filename_nav   = '../data/data_RINEX/basket/COMO1190.08n';
 
     %---------------------------------------------------------------------------
     % FILE CHECK
@@ -79,15 +78,11 @@ if (mode_data == 0)
         error('Warning: ROVER observation file not found.');
     end
 
-    if (~exist(filename_R_nav,'file'))
-        error('Warning: ROVER navigation file not found.');
-    end
-
     if (~exist(filename_M_obs,'file'))
         error('Warning: MASTER observation file not found.');
     end
 
-    if (~exist(filename_M_nav,'file'))
+    if (~exist(filename_nav,'file'))
         error('Warning: MASTER navigation file not found.');
     end
 

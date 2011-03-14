@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 07-Mar-2011 10:52:40
+% Last Modified by GUIDE v2.5 14-Mar-2011 16:49:32
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -110,7 +110,7 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(22,1);
+    varargout = cell(21,1);
     return
 end
 contents_mode = cellstr(get(handles.mode,'String'));
@@ -194,9 +194,8 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
    i = i + 1;
 end
 filename_R_obs = get(handles.RINEX_rover_obs,'String');
-filename_R_nav = get(handles.RINEX_rover_nav,'String');
 filename_M_obs = get(handles.RINEX_master_obs,'String');
-filename_M_nav = get(handles.RINEX_master_nav,'String');
+filename_nav = get(handles.RINEX_nav,'String');
 filename_ref = get(handles.ref_path_input,'String');
 
 contents = cellstr(get(handles.crs,'String'));
@@ -229,11 +228,10 @@ varargout{14} = flag_stopGOstop;
 varargout{15} = filerootIN;
 varargout{16} = filerootOUT;
 varargout{17} = filename_R_obs;
-varargout{18} = filename_R_nav;
-varargout{19} = filename_M_obs;
-varargout{20} = filename_M_nav;
-varargout{21} = filename_ref;
-varargout{22} = pos_M_man;
+varargout{18} = filename_M_obs;
+varargout{19} = filename_nav;
+varargout{20} = filename_ref;
+varargout{21} = pos_M_man;
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -339,9 +337,8 @@ state.plot_amb = get(handles.plot_amb, 'Value');
 state.no_skyplot_snr = get(handles.no_skyplot_snr, 'Value');
 state.plotproc = get(handles.plotproc, 'Value');
 state.RINEX_rover_obs = get(handles.RINEX_rover_obs,'String');
-state.RINEX_rover_nav = get(handles.RINEX_rover_nav,'String');
 state.RINEX_master_obs = get(handles.RINEX_master_obs,'String');
-state.RINEX_master_nav = get(handles.RINEX_master_nav,'String');
+state.RINEX_nav = get(handles.RINEX_nav,'String');
 state.gogps_data_input = get(handles.gogps_data_input,'String');
 state.gogps_data_output = get(handles.gogps_data_output,'String');
 state.gogps_data_output_prefix = get(handles.gogps_data_output_prefix,'String');
@@ -410,9 +407,8 @@ set(handles.plot_amb, 'Value', state.plot_amb);
 set(handles.no_skyplot_snr, 'Value', state.no_skyplot_snr);
 set(handles.plotproc, 'Value', state.plotproc);
 set(handles.RINEX_rover_obs,'String', state.RINEX_rover_obs);
-set(handles.RINEX_rover_nav,'String', state.RINEX_rover_nav);
 set(handles.RINEX_master_obs,'String', state.RINEX_master_obs);
-set(handles.RINEX_master_nav,'String', state.RINEX_master_nav);
+set(handles.RINEX_nav,'String', state.RINEX_nav);
 set(handles.gogps_data_input,'String', state.gogps_data_input);
 set(handles.gogps_data_output,'String', state.gogps_data_output);
 set(handles.gogps_data_output_prefix,'String', state.gogps_data_output_prefix);
@@ -520,17 +516,14 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
 
     %disable file input fields
     set(handles.RINEX_rover_obs, 'Enable', 'off');
-    set(handles.RINEX_rover_nav, 'Enable', 'off');
     set(handles.RINEX_master_obs, 'Enable', 'off');
-    set(handles.RINEX_master_nav, 'Enable', 'off');
+    set(handles.RINEX_nav, 'Enable', 'off');
     set(handles.browse_rover_obs, 'Enable', 'off');
-    set(handles.browse_rover_nav, 'Enable', 'off');
     set(handles.browse_master_obs, 'Enable', 'off');
-    set(handles.browse_master_nav, 'Enable', 'off');
+    set(handles.browse_nav, 'Enable', 'off');
     set(handles.text_RINEX_rover_obs, 'Enable', 'off');
-    set(handles.text_RINEX_rover_nav, 'Enable', 'off');
     set(handles.text_RINEX_master_obs, 'Enable', 'off');
-    set(handles.text_RINEX_master_nav, 'Enable', 'off');
+    set(handles.text_RINEX_nav, 'Enable', 'off');
     set(handles.gogps_data_input, 'Enable', 'off');
     set(handles.browse_gogps_input, 'Enable', 'off');
     set(handles.text_gogps_input, 'Enable', 'off');
@@ -818,9 +811,6 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
     set(handles.RINEX_master_obs, 'Enable', 'off');
     set(handles.text_RINEX_master_obs, 'Enable', 'off');
     set(handles.browse_master_obs, 'Enable', 'off');
-    set(handles.RINEX_master_nav, 'Enable', 'off');
-    set(handles.text_RINEX_master_nav, 'Enable', 'off');
-    set(handles.browse_master_nav, 'Enable', 'off');
     set(handles.plot_master, 'Enable', 'off');
     set(handles.master_pos, 'Enable', 'off');
     set(handles.crs, 'Enable', 'off');
@@ -847,9 +837,6 @@ else
         set(handles.RINEX_master_obs, 'Enable', 'on');
         set(handles.text_RINEX_master_obs, 'Enable', 'on');
         set(handles.browse_master_obs, 'Enable', 'on');
-        set(handles.RINEX_master_nav, 'Enable', 'on');
-        set(handles.text_RINEX_master_nav, 'Enable', 'on');
-        set(handles.browse_master_nav, 'Enable', 'on');
     end
     set(handles.plot_master, 'Enable', 'on');
     set(handles.master_pos, 'Enable', 'on');
@@ -1575,46 +1562,6 @@ if (filename ~= 0)
 end
 
 
-
-function RINEX_rover_nav_Callback(hObject, eventdata, handles)
-% hObject    handle to RINEX_rover_nav (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of RINEX_rover_nav as text
-%        str2double(get(hObject,'String')) returns contents of RINEX_rover_nav as a double
-
-
-% --- Executes during object creation, after setting all properties.
-function RINEX_rover_nav_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to RINEX_rover_nav (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in browse_rover_nav.
-function browse_rover_nav_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_rover_nav (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-[filename, pathname] = uigetfile( ...
-    {'*.nav;*.??n','RINEX navigation files (*.nav,*.??n)';
-    '*.nav','Navigation files (*.obs)'; ...
-    '*.??n','Navigation files (*.??o)'; ...
-    '*.*',  'All Files (*.*)'}, ...
-    'Choose a RINEX navigation file for the rover','../data/data_RINEX');
-
-if (filename ~= 0)
-    set(handles.RINEX_rover_nav,'String',fullfile(pathname, filename));
-end
-
-
 function RINEX_master_obs_Callback(hObject, eventdata, handles)
 % hObject    handle to RINEX_master_obs (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1654,18 +1601,18 @@ if (filename ~= 0)
 end
 
 
-function RINEX_master_nav_Callback(hObject, eventdata, handles)
-% hObject    handle to RINEX_master_nav (see GCBO)
+function RINEX_nav_Callback(hObject, eventdata, handles)
+% hObject    handle to RINEX_nav (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of RINEX_master_nav as text
-%        str2double(get(hObject,'String')) returns contents of RINEX_master_nav as a double
+% Hints: get(hObject,'String') returns contents of RINEX_nav as text
+%        str2double(get(hObject,'String')) returns contents of RINEX_nav as a double
 
 
 % --- Executes during object creation, after setting all properties.
-function RINEX_master_nav_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to RINEX_master_nav (see GCBO)
+function RINEX_nav_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to RINEX_nav (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1676,9 +1623,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 
-% --- Executes on button press in browse_master_nav.
-function browse_master_nav_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_master_nav (see GCBO)
+% --- Executes on button press in browse_nav.
+function browse_nav_Callback(hObject, eventdata, handles)
+% hObject    handle to browse_nav (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
@@ -1689,8 +1636,9 @@ function browse_master_nav_Callback(hObject, eventdata, handles)
     'Choose a RINEX navigation file for the master','../data/data_RINEX');
 
 if (filename ~= 0)
-    set(handles.RINEX_master_nav,'String',fullfile(pathname, filename));
+    set(handles.RINEX_nav,'String',fullfile(pathname, filename));
 end
+
 
 % --- Executes when selected object is changed in file_type.
 function file_type_SelectionChangeFcn(hObject, eventdata, handles)
@@ -1704,11 +1652,11 @@ if (strcmp(get(handles.rinex_files, 'Enable'),'on'))
     if (hObject == handles.rinex_files)
         
         set(handles.RINEX_rover_obs, 'Enable', 'on');
-        set(handles.RINEX_rover_nav, 'Enable', 'on');
+        set(handles.RINEX_nav, 'Enable', 'on');
         set(handles.browse_rover_obs, 'Enable', 'on');
-        set(handles.browse_rover_nav, 'Enable', 'on');
+        set(handles.browse_nav, 'Enable', 'on');
         set(handles.text_RINEX_rover_obs, 'Enable', 'on');
-        set(handles.text_RINEX_rover_nav, 'Enable', 'on');
+        set(handles.text_RINEX_nav, 'Enable', 'on');
         
         code_dd_sa_Callback(handles.code_dd_sa, [], handles);
         
@@ -1731,17 +1679,14 @@ if (strcmp(get(handles.rinex_files, 'Enable'),'on'))
         
     else
         set(handles.RINEX_rover_obs, 'Enable', 'off');
-        set(handles.RINEX_rover_nav, 'Enable', 'off');
         set(handles.RINEX_master_obs, 'Enable', 'off');
-        set(handles.RINEX_master_nav, 'Enable', 'off');
+        set(handles.RINEX_nav, 'Enable', 'off');
         set(handles.browse_rover_obs, 'Enable', 'off');
-        set(handles.browse_rover_nav, 'Enable', 'off');
         set(handles.browse_master_obs, 'Enable', 'off');
-        set(handles.browse_master_nav, 'Enable', 'off');
+        set(handles.browse_nav, 'Enable', 'off');
         set(handles.text_RINEX_rover_obs, 'Enable', 'off');
-        set(handles.text_RINEX_rover_nav, 'Enable', 'off');
         set(handles.text_RINEX_master_obs, 'Enable', 'off');
-        set(handles.text_RINEX_master_nav, 'Enable', 'off');
+        set(handles.text_RINEX_nav, 'Enable', 'off');
         
         set(handles.gogps_data_input, 'Enable', 'on');
         set(handles.browse_gogps_input, 'Enable', 'on');

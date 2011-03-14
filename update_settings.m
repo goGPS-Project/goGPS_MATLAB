@@ -6,7 +6,8 @@ function update_settings(settings_dir_path, field, value)
 % INPUT:
 %   settings_dir_path = path to settings folder
 %   field = name of the field to be added
-%   value = default value for the field (-1 to remove the field)
+%   value = default value for the field (-1 to remove the field; new field 
+%           name to rename the field)
 %
 % DESCRIPTION:
 %   Utility to update goGPS settings file.
@@ -55,12 +56,18 @@ for i = 1 : nmax
         %check if settings were loaded
         try
             if isstruct(state)
-                if (value ~= -1)
-                    %add the new field to 'state' struct
-                    state.(field) = value;
-                else
-                    %remove the specified field from the 'state' struct
+                if ischar(value)
+                    %rename "field" by using "value"
+                    state.(value) = state.(field);
                     state = rmfield(state,field);
+                else
+                    if(value ~= -1)
+                        %add the new field to 'state' struct
+                        state.(field) = value;
+                    else
+                        %remove the specified field from the 'state' struct
+                        state = rmfield(state,field);
+                    end
                 end
             end
         catch
