@@ -67,13 +67,13 @@ if (mode_user == 1)
     if (~isunix)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ...
-            filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
-            filename_M_nav, filename_ref, pos_M_man] = gui_goGPS;
+            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+            filename_nav, filename_ref, pos_M_man] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ...
-            filerootIN, filerootOUT, filename_R_obs, filename_R_nav, filename_M_obs, ...
-            filename_M_nav, filename_ref, pos_M_man] = gui_goGPS_unix;
+            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+            filename_nav, filename_ref, pos_M_man] = gui_goGPS_unix;
     end
 
     if (isempty(mode))
@@ -194,19 +194,19 @@ if (mode < 10) %post-processing
         if (mode == 2) | (mode == 4) | (mode == 6)
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-                dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr1_R, snr1_M, ...
+                dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
                 snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-                dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-                time_GPS, time_R, time_M, date, pos_M] = ...
-                load_RINEX(filename_R_obs, filename_R_nav);
+                dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
+                time_GPS, time_R, time_M, date, pos_M, Eph, iono, Eph_RR] = ...
+                load_RINEX(filename_R_obs, filename_nav);
         else
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-                dop1_R, dop1_M, dop2_R, dop2_M, Eph_R, Eph_M, iono_R, iono_M, snr1_R, snr1_M, ...
+                dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
                 snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-                dop1_RR, dop1_MR, dop2_RR, dop2_MR, Eph_RR, Eph_MR, snr_RR, snr_MR, ...
-                time_GPS, time_R, time_M, date, pos_M] = ...
-                load_RINEX(filename_R_obs, filename_R_nav, filename_M_obs, filename_M_nav);
+                dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
+                time_GPS, time_R, time_M, date, pos_M, Eph, iono, Eph_RR] = ...
+                load_RINEX(filename_R_obs, filename_nav, filename_M_obs);
         end
 
 %         %read surveying mode
@@ -216,19 +216,9 @@ if (mode < 10) %post-processing
 %             fclose(fid_dyn);
 %         end
         
-        %select ephemerides source
-        if (~Eph_M)
-            Eph = Eph_R;
-        else
-            Eph = Eph_M;
-        end
-        
         %TEMP
         snr_R = snr1_R;
         snr_M = snr1_M;
-        
-        %select ionosphere parameters source
-        iono = iono_R;
 
         %remove satellites without ephemerides (GPS)
         delsat = setdiff(1:32,unique(Eph(1,:)));
@@ -392,6 +382,12 @@ if (mode < 10) %post-processing
             fprintf('Warning: master position fixed to user-defined values:\n');
             fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
         end
+        
+%         % pre-process base station observations
+%         fprintf('-----------------------------------------------------\n');
+%         fprintf('MASTER pre-processing:\n');
+%         [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, dtR_M, dtRdot_M] = obs_pre_processing(pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph, iono, snr_M, time_M, pos_M);
+%         fprintf('-----------------------------------------------------\n');
     end
 
 else %real-time
@@ -2138,7 +2134,7 @@ end
 %     index_pivot = intersect(index, find(pivot == i));
 %     if ~isempty(index) & (length(index) ~= length(index_pivot))
 %         figure
-%         title(['ROVER: CODE DOUBLE DIFFERENCES between SATELLITE ',num2str(i),'and PIVOT']);
+%         title(['CODE DOUBLE DIFFERENCES between SATELLITE ',num2str(i),'and PIVOT']);
 %         hold on
 %         grid on
 %         for j = 1 : length(time_GPS)
@@ -2155,7 +2151,7 @@ end
 %     index_pivot = intersect(index, find(pivot == i));
 %     if ~isempty(index) & (length(index) ~= length(index_pivot))
 %         figure
-%         title(['ROVER: PHASE DOUBLE DIFFERENCES between SATELLITE ',num2str(i),'and PIVOT']);
+%         title(['PHASE DOUBLE DIFFERENCES between SATELLITE ',num2str(i),'and PIVOT']);
 %         hold on
 %         grid on
 %         for j = 1 : length(time_GPS)
