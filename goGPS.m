@@ -501,7 +501,6 @@ if (mode == 1) & (mode_vinc == 0)
                     pause(0.01);
                 end
             end
-
         end
 
         fclose(fid_kal);
@@ -1455,7 +1454,7 @@ if (mode < 12)
 
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
-    fprintf(fid_out, 'GPS time\tLatitude\tLongitude\tUTM East\tUTM North\th (ellips.)\th (AMSL)\tUTM zone\tECEF X\t\tECEF Y\t\tECEF Z\t\tHDOP\tKHDOP\n');
+    fprintf(fid_out, 'GPS time\tLatitude\tLongitude\th (ellips.)\tUTM North\tUTM East\th (AMSL)\tUTM zone\tECEF X\tECEF Y\tECEF Z\tHDOP\tKHDOP\n');
     for i = 1 : nObs
         if (geoid.ncols ~= 0)
             %geoid ondulation interpolation
@@ -1465,7 +1464,7 @@ if (mode < 12)
         end
 
         %file writing
-        fprintf(fid_out, '%d\t\t%.8f\t%.8f\t%.3f\t%.3f\t%.3f\t%.3f\t\t%s\t\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), EAST_KAL(i), NORTH_KAL(i), h_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        fprintf(fid_out, '%d\t%.8f\t%.8f\t%.3f\t%.3f\t%.3f\t%.3f\t%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
     fclose(fid_out);
 end
@@ -1921,6 +1920,7 @@ if (mode < 12) & (mode_vinc == 0) & (~isempty(EAST_KAL))
 
     %file saving
     fid_cov = fopen([filerootOUT '_cov.txt'], 'wt');
+    fprintf(fid_cov, 'EastEast\tEastNorth\tEastUp\tNorthNorth\tNorthUp\tUpUp\n');
     for i = 1 : length(phi_KAL)
         fprintf(fid_cov, '%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n', Cee_ENU(1,1,i), Cee_ENU(1,2,i), ...
             Cee_ENU(1,3,i), Cee_ENU(2,2,i), Cee_ENU(2,3,i), Cee_ENU(3,3,i));
