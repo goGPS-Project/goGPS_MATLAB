@@ -1014,9 +1014,8 @@ end
         snr_M(:,1:dtime) = zeros(32,dtime);
         %pos_M current cell keeps the latest value(s), until it is updated
         % by a new RTCM message (3, 1005 or 1006)
-        pos = find(pos_M(1+dtime:end) ~= 0);
+        pos = find(sum(pos_M(:,2+dtime:end),1) ~= 0);
         if (~isempty(pos))
-            pos = pos(3) / 3;
             pos_M(1,1:dtime) = pos_M(1,pos+dtime);
             pos_M(2,1:dtime) = pos_M(2,pos+dtime);
             pos_M(3,1:dtime) = pos_M(3,pos+dtime);
@@ -1478,9 +1477,9 @@ end
 
                 %Kalman filter
                 if (mode_vinc == 0)
-                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1); %#ok<NASGU>
+                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1); %#ok<NASGU>
                 else
-                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
+                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
                 end
 
                 %output data save
