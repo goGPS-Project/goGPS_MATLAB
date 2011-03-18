@@ -84,7 +84,7 @@ d = dir(cov_filename);
 if ~isempty(d)
 
     fid = fopen(cov_filename,'rt');      % open file
-    %fgets(fid);                          % jump the header
+    fgets(fid);                          % jump the header
     variances = fscanf(fid,'%f %f %f %f %f %f',[6 inf])';
     fclose(fid);
     clear cov_filename
