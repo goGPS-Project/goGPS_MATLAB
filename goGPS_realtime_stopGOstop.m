@@ -50,7 +50,6 @@ function goGPS_realtime_stopGOstop(filerootOUT, mode_vinc, flag_ms, flag_ge, fla
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global lambda1
 global o1 o2 nN order
 global COMportR master_ip master_port server_delay
 global nmea_init nmea_update_rate hui_poll_rate
@@ -1081,9 +1080,8 @@ end
         snr_M(:,1:dtime) = zeros(32,dtime);
         %pos_M current cell keeps the latest value(s), until it is updated
         % by a new RTCM message (3, 1005 or 1006)
-        pos = find(pos_M(1+dtime:end) ~= 0);
+        pos = find(sum(pos_M(:,2+dtime:end),1) ~= 0);
         if (~isempty(pos))
-            pos = pos(3) / 3;
             pos_M(1,1:dtime) = pos_M(1,pos+dtime);
             pos_M(2,1:dtime) = pos_M(2,pos+dtime);
             pos_M(3,1:dtime) = pos_M(3,pos+dtime);
@@ -1556,9 +1554,9 @@ end
 
                 %Kalman filter
                 if (mode_vinc == 0)
-                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), order, 1); %#ok<NASGU>
+                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), order, 1); %#ok<NASGU>
                 else % to be done
-                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
+                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
                 end
 
                 %direction estimation
