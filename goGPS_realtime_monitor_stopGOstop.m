@@ -1032,8 +1032,9 @@ while flag
         snr_M(:,1:dtime) = zeros(32,dtime);
         %pos_M current cell keeps the latest value(s), until it is updated
         % by a new RTCM message (3, 1005 or 1006)
-        pos = find(sum(pos_M(:,2+dtime:end),1) ~= 0);
+        pos = find(sum(pos_M(:,1+dtime:end)) ~= 0);
         if (~isempty(pos))
+            pos = pos(1);
             pos_M(1,1:dtime) = pos_M(1,pos+dtime);
             pos_M(2,1:dtime) = pos_M(2,pos+dtime);
             pos_M(3,1:dtime) = pos_M(3,pos+dtime);
