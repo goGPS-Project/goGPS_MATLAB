@@ -125,7 +125,7 @@ fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
 fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 
 %nmea sentences
-fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
+fid_nmea = fopen([filerootOUT '_rover_NMEA.txt'],'wt');
 
 %"file hour" variable
 hour = 0;

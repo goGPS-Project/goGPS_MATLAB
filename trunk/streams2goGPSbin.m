@@ -188,7 +188,7 @@ for t = 1 : length(time_GPS)
 end
 
 if (~isempty(nmea_sentences))
-    fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
+    fid_nmea = fopen([filerootOUT '_rover_NMEA.txt'],'wt');
     n = size(nmea_sentences,1);
     for i = 1 : n
         fprintf(fid_nmea, '%s', char(nmea_sentences(i,1)));
