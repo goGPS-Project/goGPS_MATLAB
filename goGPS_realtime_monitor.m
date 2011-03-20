@@ -70,7 +70,7 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %nmea sentences
-fid_nmea = fopen([filerootOUT '_ublox_NMEA.txt'],'wt');
+fid_nmea = fopen([filerootOUT '_rover_NMEA.txt'],'wt');
 
 %"file hour" variable
 hour = 0;
