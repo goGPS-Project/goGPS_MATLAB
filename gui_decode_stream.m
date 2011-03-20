@@ -247,6 +247,12 @@ filerootOUT = [get(handles.data_out_folder,'String') '\' get(handles.data_out_na
 filerootIN(filerootIN == '\') = '/';
 filerootOUT(filerootOUT == '\') = '/';
 
+flag_no_master = 0;
+if strcmp(filerootIN(end-3:end),'.ubx') | strcmp(filerootIN(end-3:end),'.UBX') | ...
+   strcmp(filerootIN(end-3:end),'.stq') | strcmp(filerootIN(end-3:end),'.STQ')
+    flag_no_master = 1;
+end
+
 wait_dlg = waitbar(0,'Please wait...');
 
 %check if RINEX or goGPS data is requested
@@ -260,7 +266,7 @@ elseif (get(handles.output_type, 'SelectedObject') == handles.out_rinex)
     if (~week)
         week = gui_GPS_week;
     end
-    if (week) & (get(handles.flag_master_stream,'Value'))
+    if (week) & (get(handles.flag_master_stream,'Value')) & (~flag_no_master)
         streamM2RINEX(filerootIN, [filerootOUT '_master'], week, wait_dlg);
     end
 end
