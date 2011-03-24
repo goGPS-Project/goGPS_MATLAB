@@ -66,7 +66,8 @@ elseif (strcmp(action, 'load'))
 
 end
 
-devices = '17';                                % devices: BBR, FLASH, I2C-EEPROM, SPI-FLASH
+%devices = '17';                                % devices: BBR, FLASH, I2C-EEPROM, SPI-FLASH
+devices = '07';                                % devices: BBR, FLASH, I2C-EEPROM
 
 codeDEC = [codeDEC; hex2dec(clear_mask); hex2dec(save_mask); hex2dec(load_mask); hex2dec(devices)];
 
