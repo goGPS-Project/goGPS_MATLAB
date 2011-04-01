@@ -37,25 +37,34 @@ function [parity] = crc24q(msg)
 
 parity = uint32(0);
 
-Nslices = length(msg) / 8;  %pre-allocate to increase speed
-slices = cell(1,Nslices);
+%check the length of the input string, in case make it splittable byte-wise
+remainder = rem(length(msg),8);
+if (remainder ~= 0)
+    fill = zeros(1,8-remainder);
+    msg = [num2str(fill,'%d') msg];
+end
+
+Nbits = length(msg);
+
+%pre-allocate to increase speed
+Nbytes = Nbits / 8;
+bytes = cell(1,Nbytes);
 k = 1;
-for j = 1 : 8 : length(msg)
-    slices{k} = msg(j:j+7);
+for j = 1 : 8 : Nbits
+    bytes{k} = msg(j:j+7);
     k = k + 1;
 end
-slices = bitshift(fbin2dec(slices), 16); %call 'fbin2dec' and 'bitshift' only
-slices = uint32(slices);                 % once (to optimize speed)
-k = 1;
-for i = 1 : 8 : length(msg)
-    parity = bitxor(parity, slices(k));
+%call 'fbin2dec' and 'bitshift' only once (to optimize speed)
+bytes = bitshift(fbin2dec(bytes), 16);
+bytes = uint32(bytes);
+for i = 1 : Nbytes
+    parity = bitxor(parity, bytes(i));
     for j = 1 : 8
         parity = bitshift(parity, 1);
         if bitand(parity, 16777216)
             parity = bitxor(parity, 25578747);
         end
     end
-    k = k + 1;
 end
 
 parity = dec2bin(parity, 24);
