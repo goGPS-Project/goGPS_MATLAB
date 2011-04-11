@@ -113,39 +113,7 @@ if(~isstruct(handles))
     varargout = cell(21,1);
     return
 end
-contents_mode = cellstr(get(handles.mode,'String'));
-contents_nav_mon = cellstr(get(handles.nav_mon,'String'));
-contents_kalman_ls = cellstr(get(handles.kalman_ls,'String'));
-contents_code_dd_sa = cellstr(get(handles.code_dd_sa,'String'));
-if (strcmp(contents_mode{get(handles.mode,'Value')},'Post-processing'))
-    if (strcmp(contents_kalman_ls{get(handles.kalman_ls,'Value')},'Kalman filter'))
-        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
-            mode = 1;
-        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone'))
-            mode = 2;
-        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
-            mode = 5;
-        else
-            mode = 6;
-        end
-    else %Least squares
-        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
-            mode = 3;
-        else
-            mode = 4;
-        end
-    end
-else %Real-time
-    if (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Navigation'))
-        mode = 11;
-    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
-        mode = 12;
-    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
-        mode = 13;
-    else %Rover and Master monitor
-        mode = 14;
-    end
-end
+mode = select_mode(handles);
 mode_vinc = get(handles.constraint,'Value');
 if (get(handles.file_type, 'SelectedObject') == handles.rinex_files)
     mode_data = 0;
@@ -2384,11 +2352,130 @@ function go_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%check if the output folder exists
-d = dir(get(handles.gogps_data_output,'String'));
-if isempty(d)
-    msgbox('Output folder does not exist. Please browse to an existing folder.');
+%master station coordinates
+crs_contents = cellstr(get(handles.crs,'String'));
+master_X = str2double(get(handles.master_X,'String'));
+master_Y = str2double(get(handles.master_Y,'String'));
+master_Z = str2double(get(handles.master_Z,'String'));
+master_lat = str2double(get(handles.master_lat,'String'));
+master_lon = str2double(get(handles.master_lon,'String'));
+master_h = str2double(get(handles.master_h,'String'));
+%KF parameters
+std_init = str2double(get(handles.std_init,'String'));
+std_X = str2double(get(handles.std_X,'String'));
+std_Y = str2double(get(handles.std_Y,'String'));
+std_Z = str2double(get(handles.std_Z,'String'));
+std_vel = str2double(get(handles.std_vel,'String'));
+std_code = str2double(get(handles.std_code,'String'));
+if (get(handles.toggle_std_phase,'Value'))
+    std_phase = str2double(get(handles.std_phase,'String'));
 else
+    std_phase = 1e30;
+end
+if (get(handles.toggle_std_dtm,'Value'))
+    std_dtm = str2double(get(handles.std_dtm,'String'));
+else
+    std_dtm = 1e30;
+end
+min_nsat = str2double(get(handles.min_sat,'String'));
+cutoff = str2double(get(handles.cut_off,'String'));
+snr_threshold = str2double(get(handles.snr_thres,'String'));
+cs_threshold = str2double(get(handles.cs_thresh,'String'));
+antenna_h = str2double(get(handles.antenna_h,'String'));
+%input files
+filerootIN = get(handles.gogps_data_input,'String');
+filename_R_obs = get(handles.RINEX_rover_obs,'String');
+filename_M_obs = get(handles.RINEX_master_obs,'String');
+filename_nav = get(handles.RINEX_nav,'String');
+ref_path = get(handles.ref_path, 'Value');
+filename_ref = get(handles.ref_path_input,'String');
+dtm_dir = get(handles.dtm_path,'String');
+%serial communication
+contents = cellstr(get(hObject,'String'));
+COMportR = contents{get(hObject,'Value')};
+%TCPIP / NTRIP
+flag_NTRIP = get(handles.use_ntrip,'Value');
+master_ip = get(handles.IP_address,'String');
+master_port = str2double(get(handles.port,'String'));
+ntrip_user = get(handles.username,'String');
+ntrip_pw = get(handles.password,'Userdata');
+ntrip_mountpoint = get(handles.mountpoint,'String');
+%functioning mode
+mode = select_mode(handles);
+
+ready = 1;
+
+%check if everything is OK before starting
+if isempty(dir(get(handles.gogps_data_output,'String')))
+    msgbox('Output folder does not exist. Please browse to an existing folder.'); ready = 0;
+end
+
+if (mode < 10) %if post-processing
+    if (get(handles.file_type, 'SelectedObject') == handles.gogps_data & (isempty(dir([filerootIN '_obs*.bin'])) | isempty(dir([filerootIN '_eph*.bin']))))
+        msgbox('Input goGPS binary files not found (both *_obs_* and *_eph_* files are needed).'); ready = 0;
+    elseif (get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_R_obs)))
+        msgbox('Input rover observation RINEX file not found.'); ready = 0;
+    elseif (mod(mode,2) & get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_M_obs)))
+        msgbox('Input master observation RINEX file not found.'); ready = 0;
+    elseif (get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_nav)))
+        msgbox('Input navigation RINEX file not found.'); ready = 0;
+    end
+end
+
+if (mode < 11) %if not rover and/or master monitor
+    if (ref_path & isempty(dir(filename_ref)))
+        msgbox('Input reference path file not found.'); ready = 0;
+    elseif ((mode == 1 | mode == 2) & get(handles.toggle_std_dtm,'Value'))
+        try
+            load([dtm_dir '/tiles/tile_header'], 'tile_header');
+            load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
+        catch
+            msgbox('DTM directory does not contain valid data.'); ready = 0;
+        end
+    elseif (mod(mode,2) & strcmp(get(handles.crs,'Enable'),'on') & ...
+            strcmp(crs_contents{get(handles.crs,'Value')},'ECEF (X,Y,Z)') & ...
+            ((isnan(master_X) | isnan(master_Y) | isnan(master_Z)) | ...
+            (master_X == 0 & master_Y == 0 & master_Z == 0)))
+        msgbox('Please provide valid values for the master station ECEF coordinates.'); ready = 0;
+    elseif (mod(mode,2) & strcmp(get(handles.crs,'Enable'),'on') & ...
+            strcmp(crs_contents{get(handles.crs,'Value')},'Geodetic coord. (lat,lon,h)') & ...
+            ((isnan(master_lat) | isnan(master_lon) | isnan(master_h)) | ...
+            (abs(master_lat) > 90 | abs(master_lon) > 180)))
+        msgbox('Please provide valid values for the master station geodetic coordinates.'); ready = 0;
+    elseif (isnan(std_init) | std_init < 0)
+        msgbox('Please provide a valid value for the initial state error standard deviation.'); ready = 0;
+    elseif (isnan(std_X) | std_X < 0)
+        msgbox('Please provide a valid value for the East coordinate error standard deviation.'); ready = 0;
+    elseif (isnan(std_Y) | std_Y < 0)
+        msgbox('Please provide a valid value for the North coordinate error standard deviation.'); ready = 0;
+    elseif (isnan(std_Z) | std_Z < 0)
+        msgbox('Please provide a valid value for the Up coordinate error standard deviation.'); ready = 0;
+    elseif (isnan(std_vel) | std_vel < 0)
+        msgbox('Please provide a valid value for the velocity coordinate error standard deviation.'); ready = 0;
+    elseif (isnan(std_code) | std_code < 0)
+        msgbox('Please provide a valid value for the code error standard deviation.'); ready = 0;
+    elseif (isnan(std_phase) | std_phase < 0)
+        msgbox('Please provide a valid value for the phase error standard deviation.'); ready = 0;
+    elseif (isnan(std_dtm) | std_dtm < 0)
+        msgbox('Please provide a valid value for the DTM error standard deviation.'); ready = 0;
+    elseif (isnan(min_nsat) | min_nsat < 0)
+        msgbox('Please provide a valid value for the minimum number of satellites.'); ready = 0;
+    elseif (isnan(cutoff) | cutoff < 0 | cutoff > 90)
+        msgbox('Please provide a valid value for the cutoff (between 0 and 90 degrees).'); ready = 0;
+    elseif (isnan(snr_threshold) | snr_threshold < 0 | snr_threshold > 60)
+        msgbox('Please provide a valid value for the SNR threshold (between 0 and 60 dB).'); ready = 0;
+    elseif (isnan(cs_threshold) | cs_threshold < 0)
+        msgbox('Please provide a valid value for the cycle slip threshold.'); ready = 0;
+    elseif (isnan(antenna_h) | antenna_h < 0)
+        msgbox('Please provide a valid value for the antenna height.'); ready = 0;
+    end
+end
+
+if (mode == 11 | mode == 12 | mode == 14) %if a COM connection to the rover is required
+    
+end
+
+if (ready)
     saveState(handles,'../data/settings/last_settings.mat');
     uiresume(handles.main_panel);
 end
@@ -2680,4 +2767,40 @@ function protocol_select_CreateFcn(hObject, eventdata, handles)
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
+end
+
+
+function mode = select_mode(handles)
+contents_mode = cellstr(get(handles.mode,'String'));
+contents_nav_mon = cellstr(get(handles.nav_mon,'String'));
+contents_kalman_ls = cellstr(get(handles.kalman_ls,'String'));
+contents_code_dd_sa = cellstr(get(handles.code_dd_sa,'String'));
+if (strcmp(contents_mode{get(handles.mode,'Value')},'Post-processing'))
+    if (strcmp(contents_kalman_ls{get(handles.kalman_ls,'Value')},'Kalman filter'))
+        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
+            mode = 1;
+        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone'))
+            mode = 2;
+        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
+            mode = 5;
+        else %Code stand-alone
+            mode = 6;
+        end
+    else %Least squares
+        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
+            mode = 3;
+        else %Code stand-alone
+            mode = 4;
+        end
+    end
+else %Real-time
+    if (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Navigation'))
+        mode = 11;
+    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
+        mode = 12;
+    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
+        mode = 13;
+    else %Rover and Master monitor
+        mode = 14;
+    end
 end
