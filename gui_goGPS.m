@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 14-Mar-2011 16:49:32
+% Last Modified by GUIDE v2.5 13-Apr-2011 16:08:45
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -208,7 +208,9 @@ global h_antenna
 global tile_header tile_georef dtm_dir
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
 global nmea_init
+global flag_doppler_cs
 
+flag_doppler_cs = get(handles.flag_doppler,'Value');
 sigmaq0 = str2double(get(handles.std_init,'String'))^2;
 sigmaq_vE = str2double(get(handles.std_X,'String'))^2;
 sigmaq_vN = str2double(get(handles.std_Y,'String'))^2;
@@ -248,6 +250,7 @@ snr_a = 30;
 snr_0 = 10;
 snr_1 = 50;
 snr_A = 30;
+amb_estim_select_Callback(handles.amb_estim_select, eventdata, handles);
 dyn_mod_Callback(handles.dyn_mod, eventdata, handles);
 o1 = order;
 o2 = order*2;
@@ -507,7 +510,6 @@ else
     set(handles.rinex_files, 'Enable', 'on');
     set(handles.gogps_data, 'Enable', 'on');
     set(handles.com_select, 'Enable', 'off');
-    set(handles.text_com_select, 'Enable', 'off');
     set(handles.use_ntrip, 'Enable', 'off');
     if (get(handles.plotproc,'Value'))
         set(handles.plot_amb, 'Enable', 'on');
@@ -844,7 +846,6 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.err_ellipse, 'Enable', 'on');
     set(handles.google_earth, 'Enable', 'on');
     set(handles.com_select, 'Enable', 'on');
-    set(handles.text_com_select, 'Enable', 'on');
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
     
@@ -980,7 +981,6 @@ else
     if (strcmp(contents{get(hObject,'Value')},'Rover monitor'))
 
         set(handles.com_select, 'Enable', 'on');
-        set(handles.text_com_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'off');
 
         %disable approximate position
@@ -1014,7 +1014,6 @@ else
     elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
 
         set(handles.com_select, 'Enable', 'off');
-        set(handles.text_com_select, 'Enable', 'off');
         set(handles.use_ntrip, 'Enable', 'on');
 
         %enable master connection
@@ -1042,7 +1041,6 @@ else
     elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
 
         set(handles.com_select, 'Enable', 'on');
-        set(handles.text_com_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'on');
         
         %enable master connection
@@ -2803,4 +2801,45 @@ else %Real-time
     else %Rover and Master monitor
         mode = 14;
     end
+end
+
+
+% --- Executes on button press in flag_doppler.
+function flag_doppler_Callback(hObject, eventdata, handles)
+% hObject    handle to flag_doppler (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of flag_doppler
+
+
+% --- Executes on selection change in amb_estim_select.
+function amb_estim_select_Callback(hObject, eventdata, handles)
+% hObject    handle to amb_estim_select (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns amb_estim_select contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from amb_estim_select
+global amb_estim_method
+contents = cellstr(get(hObject,'String'));
+selection = contents{get(hObject,'Value')};
+if (strcmp(selection, 'Observed code - phase difference'))
+    amb_estim_method = 0;
+elseif (strcmp(selection, 'Kalman-predicted code - phase difference'))
+    amb_estim_method = 1;
+else
+    amb_estim_method = 2;
+end
+
+% --- Executes during object creation, after setting all properties.
+function amb_estim_select_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to amb_estim_select (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end

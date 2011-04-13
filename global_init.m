@@ -127,6 +127,12 @@ global pivot_old
 %number of unknown phase ambiguities
 global nN
 
+%method used to estimate phase ambiguities
+%          - amb_estim_method=0: observed code - phase difference
+%          - amb_estim_method=1: Kalman-predicted code - phase difference
+%          - amb_estim_method=2: Least squares adjustment
+global amb_estim_method
+
 %initialization
 T = [];
 I = [];
@@ -139,6 +145,7 @@ conf_cs = [];
 pivot = [];
 pivot_old = [];
 nN = [];
+amb_estim_method = 0;
 
 %-------------------------------------------------------------------------------
 % KALMAN FILTER (CONSTRAINED VERSION)
@@ -159,6 +166,7 @@ global master rover %#ok<NUSED>
 %-------------------------------------------------------------------------------
 
 global rec_clock_error
+global flag_doppler_cs
 global doppler_pred_range1_R
 global doppler_pred_range2_R
 global doppler_pred_range1_M
@@ -166,6 +174,9 @@ global doppler_pred_range2_M
 
 %receiver clock error
 rec_clock_error = 0;
+
+%flag to enable Doppler-based cycle slip detection
+flag_doppler_cs = 0;
 
 %Doppler-predicted range (ROVER)
 doppler_pred_range1_R = zeros(32,1);

@@ -230,7 +230,7 @@ if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1)
     sigmaq_comb_N1 = zeros(32,1);
     sigmaq_comb_N2 = zeros(32,1);
     
-    %computation of the phase double differences in order to estimate N
+    %estimate N by code and phase comparison
     if ~isempty(sat)
         [comb_N1_stim(sat), sigmaq_comb_N1(sat)] = amb_estimate_observ(pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), pivot, sat, 1);
         [comb_N2_stim(sat), sigmaq_comb_N2(sat)] = amb_estimate_observ(pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), pivot, sat, 2);
