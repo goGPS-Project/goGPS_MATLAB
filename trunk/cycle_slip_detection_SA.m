@@ -1,20 +1,19 @@
 function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
-         pr_Rsat, ph_Rsat, err_iono_RS, doppler_pred_range, sat, sat_born, alfa, phase)
+         pr_Rsat, ph_Rsat, err_iono_RS, doppler_pred_range, sat, sat_born, alpha, phase)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
-%    pr_Rsat, ph_Rsat, err_iono_RS, doppler_pred_range, sat, sat_born, alfa, phase);
+%    pr_Rsat, ph_Rsat, err_iono_RS, doppler_pred_range, sat, sat_born, alpha, phase);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
 %   pr_Rsat = ROVER-SATELLITE code observation
 %   ph_Rsat = ROVER-SATELLITE phase observation
 %   err_iono_RS = ionospheric error
-%   doppler_pred_range = predicted range based on phase and Doppler
-%   observations from previous epoch
+%   doppler_pred_range = predicted range based on phase and Doppler observations from previous epoch
 %   sat = visible satellites configuration
 %   sat_born = new satellites (added in this epoch)
-%   alfa = cycle-slip detection threshold
+%   alpha = cycle-slip detection threshold
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % OUTPUT:
@@ -48,8 +47,8 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-global lambda1
-global lambda2
+global lambda1 lambda2
+global flag_doppler_cs
 
 %number of visible satellites
 nsat = size(sat,1);
@@ -66,18 +65,31 @@ N_slip = [];
 sat_slip = [];
 slip = 0;
 
+%disable Doppler-based cycle-slip detection if Doppler observations are not available either for the rover or the master
+if (flag_doppler_cs & doppler_pred_range == 0)
+    fprintf('Rover Doppler observations are not available: disabling Doppler-based cycle-slip detection.\n');
+    flag_doppler_cs = 0;
+end
+
 %cycle-slip detection
 for i = 1 : nsat
+    
+    cs = 0;
 
     %test on the estimated value of the phase ambiguities
     if (~ismember(sat(i),sat_born))
 
-        %test on:
-        % - Kalman-estimated phase ambiguities compared with code-phase range (double differences)
-        % - Doppler-predicted phase range compared to observed phase range
-        if ((abs(N_kalman(sat(i)) - N_stim(i)) > 30) | (doppler_pred_range(i) & (abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)))
-        %if (doppler_pred_range(i) & abs(doppler_pred_range(i) - ph_Rsat(i)) > alfa)
+        %Kalman-estimated phase ambiguities compared with ambiguities estimated by using the observed pseudorange
+        if (~flag_doppler_cs & (abs(N_kalman(sat(i)) - N_stim(i)) > alpha))
+            cs = 1;
+        end
 
+        %Doppler-predicted phase range compared to observed phase range
+        if (flag_doppler_cs & (abs(doppler_pred_range(i) - ph_Rsat(i)) > alpha))
+           cs = 1;
+        end
+
+        if (cs)
             %save of the new phase ambiguity estimation
             N_slip = [N_slip; N_stim(i)];
 
@@ -86,8 +98,6 @@ for i = 1 : nsat
 
             %flag identifying a cycle-slip
             slip = 1;
-%             fprintf('Cycle-slip on satellite %d: range difference = %.3f\n', sat(i), doppler_pred_range(i) - ph_Rsat(i));        
-%             pause
         end
     end
 end

@@ -368,7 +368,7 @@ if (mode < 10) %post-processing
     end
 
     if (mode ~= 2) & (mode ~= 4) & (mode ~= 6)
-        %MASTER station position management
+        %master station position management
         if (flag_ms_pos) & (sum(abs(pos_M)) ~= 0)
             if (size(pos_M,2) == 1)
                 pos_M(1,1:length(time_GPS)) = pos_M(1);
@@ -383,11 +383,11 @@ if (mode < 10) %post-processing
             fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
         end
         
-%         % pre-process base station observations
-%         fprintf('-----------------------------------------------------\n');
-%         fprintf('MASTER pre-processing:\n');
-%         [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, dtR_M, dtRdot_M] = obs_pre_processing(pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph, iono, snr_M, time_M, pos_M);
-%         fprintf('-----------------------------------------------------\n');
+        if (flag_doppler_cs)
+            %compute master station clock error and drift
+            fprintf('Computing master station clock error and drift...\n');
+            [dtM, dtMdot] = clock_error(pr1_M, Eph, iono, snr_M, time_M, pos_M);
+        end
     end
 
 else %real-time
