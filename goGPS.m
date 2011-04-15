@@ -68,7 +68,7 @@ if (mode_user == 1)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man] = gui_goGPS;
+            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ...
@@ -1336,7 +1336,7 @@ elseif (mode == 7)
 elseif (mode == 11)
     
     if (flag_var_dyn_model == 0)
-        goGPS_realtime(filerootOUT, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
+        goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
     else
         if (flag_stopGOstop == 0)
             %disable skyplot and signal-to-noise ratio
@@ -1353,12 +1353,30 @@ elseif (mode == 11)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == 12)
-
+    
     if (flag_stopGOstop == 0)
-        goGPS_ublox_monitor(filerootOUT);
-        %goGPS_skytraq_monitor(filerootOUT);
+        
+        if (protocol_idx == 0)
+            goGPS_ublox_monitor(filerootOUT);
+        elseif (protocol_idx == 1)
+            goGPS_fastrax_monitor(filerootOUT);
+        elseif (protocol_idx == 2)
+            goGPS_skytraq_monitor(filerootOUT);
+        end
+        
     else
         goGPS_ublox_monitor_stopGOstop(filerootOUT);
+    end
+
+    %dialog
+    selection = questdlg('Do you want to run goGPS binary stream decoder to create RINEX / goGPS binary files?',...
+        'Request Function',...
+        'Yes','No','Yes');
+    switch selection,
+        case 'Yes',
+            gui_decode_stream([filerootOUT]);
+        case 'No'
+            return
     end
 
 %----------------------------------------------------------------------------------------------

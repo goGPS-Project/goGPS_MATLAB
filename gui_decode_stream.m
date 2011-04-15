@@ -28,6 +28,8 @@ function varargout = gui_decode_stream(varargin)
 %                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -91,6 +93,13 @@ position(2) = (screenSize(4)-position(4))/2;
 
 %center the window
 set(hObject, 'Position', position);
+if (~isempty(varargin))
+    set(handles.data_stream,'String',varargin{1});
+    temp = varargin{1};
+    temp = temp( max(strfind(temp, '/'))+1:end );
+    set(handles.data_out_name,'String',temp);
+    clear temp
+end
 
 % --- Outputs from this function are returned to the command line.
 function varargout = gui_decode_stream_OutputFcn(hObject, eventdata, handles)  %#ok<*STOUT,*INUSD>
