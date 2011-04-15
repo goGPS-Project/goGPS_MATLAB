@@ -18,6 +18,8 @@ function [data] = decode_rtcm3(msg, wait_dlg)
 %                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -171,6 +173,11 @@ if ~isempty(pos_all)
                         %GLONASS ephemerides
                         case 1020
                             [data(:,i)] = decode_1020(msg(pos:pos+8*LEN-1));
+
+                        % not implemented
+                        case 1029
+                            [data(:,i)] = decode_1029(msg(pos:pos+8*LEN-1));
+                            
                     end
 
                     % move pointer
