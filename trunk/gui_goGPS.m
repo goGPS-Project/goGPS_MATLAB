@@ -28,6 +28,8 @@ function varargout = gui_goGPS(varargin)
 %                           goGPS v0.1.3 alpha
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -110,7 +112,7 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(21,1);
+    varargout = cell(22,1);
     return
 end
 mode = select_mode(handles);
@@ -179,6 +181,15 @@ else
 end
 pos_M_man = [XM; YM; ZM];
 
+contentsProt = cellstr(get(handles.protocol_select,'String'));
+if (strcmp(contentsProt{get(handles.protocol_select,'Value')},'UBX (u-blox)'))
+    protocol_idx = 0;
+elseif (strcmp(contentsProt{get(handles.protocol_select,'Value')},'iTalk (Fastrax)'))
+    protocol_idx = 1;
+elseif (strcmp(contentsProt{get(handles.protocol_select,'Value')},'SkyTraq'))
+    protocol_idx = 2;
+end
+
 varargout{1} = mode;
 varargout{2} = mode_vinc;
 varargout{3} = mode_data;
@@ -200,6 +211,7 @@ varargout{18} = filename_M_obs;
 varargout{19} = filename_nav;
 varargout{20} = filename_ref;
 varargout{21} = pos_M_man;
+varargout{22} = protocol_idx;
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -350,6 +362,7 @@ state.weight_2 = get(handles.weight_2,'Value');
 state.weight_3 = get(handles.weight_3,'Value');
 contents = cellstr(get(handles.com_select,'String'));
 state.com_select = contents{get(handles.com_select,'Value')};
+state.protocol_select = get(handles.protocol_select,'Value');
 state.IP_address = get(handles.IP_address,'String');
 state.port = get(handles.port,'String');
 state.mountpoint = get(handles.mountpoint,'String');
@@ -427,6 +440,7 @@ for i = 1 : numel(contents)
     end
 end
 set(handles.com_select,'Value', select);
+set(handles.protocol_select,'Value', state.protocol_select);
 set(handles.IP_address,'String', state.IP_address);
 set(handles.port,'String', state.port);
 set(handles.mountpoint,'String', state.mountpoint);
@@ -510,6 +524,7 @@ else
     set(handles.rinex_files, 'Enable', 'on');
     set(handles.gogps_data, 'Enable', 'on');
     set(handles.com_select, 'Enable', 'off');
+    set(handles.protocol_select, 'Enable', 'off');    
     set(handles.use_ntrip, 'Enable', 'off');
     if (get(handles.plotproc,'Value'))
         set(handles.plot_amb, 'Enable', 'on');
@@ -846,6 +861,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.err_ellipse, 'Enable', 'on');
     set(handles.google_earth, 'Enable', 'on');
     set(handles.com_select, 'Enable', 'on');
+    set(handles.protocol_select, 'Enable', 'on');
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
     
@@ -981,6 +997,7 @@ else
     if (strcmp(contents{get(hObject,'Value')},'Rover monitor'))
 
         set(handles.com_select, 'Enable', 'on');
+        set(handles.protocol_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'off');
 
         %disable approximate position
@@ -1014,6 +1031,7 @@ else
     elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
 
         set(handles.com_select, 'Enable', 'off');
+        set(handles.protocol_select, 'Enable', 'off');        
         set(handles.use_ntrip, 'Enable', 'on');
 
         %enable master connection
@@ -1041,6 +1059,7 @@ else
     elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
 
         set(handles.com_select, 'Enable', 'on');
+        set(handles.protocol_select, 'Enable', 'on');
         set(handles.use_ntrip, 'Enable', 'on');
         
         %enable master connection
