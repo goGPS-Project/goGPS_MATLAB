@@ -818,7 +818,8 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
     set(handles.text_master_lon_unit, 'Enable', 'off');
     set(handles.text_master_h_unit, 'Enable', 'off');
 else
-    if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
+    contents = cellstr(get(handles.mode,'String'));
+    if(get(handles.file_type, 'SelectedObject') == handles.rinex_files & ~strcmp(contents{get(handles.mode,'Value')},'Real-time'));
         set(handles.RINEX_master_obs, 'Enable', 'on');
         set(handles.text_RINEX_master_obs, 'Enable', 'on');
         set(handles.browse_master_obs, 'Enable', 'on');
@@ -2408,8 +2409,8 @@ ref_path = get(handles.ref_path, 'Value');
 filename_ref = get(handles.ref_path_input,'String');
 dtm_dir = get(handles.dtm_path,'String');
 %serial communication
-contents = cellstr(get(hObject,'String'));
-COMportR = contents{get(hObject,'Value')};
+contents = cellstr(get(handles.com_select,'String'));
+COMportR = contents{get(handles.com_select,'Value')};
 %TCPIP / NTRIP
 flag_NTRIP = get(handles.use_ntrip,'Value');
 master_ip = get(handles.IP_address,'String');
@@ -2489,7 +2490,9 @@ if (mode < 11) %if not rover and/or master monitor
 end
 
 if (mode == 11 | mode == 12 | mode == 14) %if a COM connection to the rover is required
-    
+    if(strcmp(COMportR, 'NA'))
+        msgbox('Please select an existing COM port.'); ready = 0;
+    end
 end
 
 if (ready)

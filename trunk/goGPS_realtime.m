@@ -862,7 +862,7 @@ while flag
 
                     %phase computation (only for Fastrax)
                     tick_PSEUDO = cell_rover{2,i}(4);
-                    if (tick_TRACK == tick_PSEUDO)
+                    if (protocol == 1 & tick_TRACK == tick_PSEUDO)
                         ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0);
                     end
 
