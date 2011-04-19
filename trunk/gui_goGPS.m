@@ -2415,8 +2415,6 @@ COMportR = contents{get(handles.com_select,'Value')};
 flag_NTRIP = get(handles.use_ntrip,'Value');
 master_ip = get(handles.IP_address,'String');
 master_port = str2double(get(handles.port,'String'));
-ntrip_user = get(handles.username,'String');
-ntrip_pw = get(handles.password,'Userdata');
 ntrip_mountpoint = get(handles.mountpoint,'String');
 %functioning mode
 mode = select_mode(handles);
@@ -2492,6 +2490,19 @@ end
 if (mode == 11 | mode == 12 | mode == 14) %if a COM connection to the rover is required
     if(strcmp(COMportR, 'NA'))
         msgbox('Please select an existing COM port.'); ready = 0;
+    end
+end
+
+if (mode == 11 | mode == 13 | mode == 14) %if a TCP/IP connection to the master is required
+    if (isempty(master_ip))
+        msgbox('Please provide an IP address for the connection to the master.'); ready = 0;
+    elseif (isnan(master_port) | master_port < 0 | master_port > 65535)
+        msgbox('Please provide a valid port number for the connection to the master (between 0 and 65535).'); ready = 0;
+    end
+    if (flag_NTRIP) %if a NTRIP connection is required
+        if (isempty(ntrip_mountpoint))
+            msgbox('Please provide a mountpoint for the NTRIP connection.'); ready = 0;
+        end
     end
 end
 
