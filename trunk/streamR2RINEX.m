@@ -36,10 +36,6 @@ function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global lambda1
-
-%----------------------------------------------------------------------------------------------
-
 week = 0;
 
 if (nargin == 3)
@@ -172,6 +168,9 @@ if (~isempty(data_rover_all))
         waitbar(0,wait_dlg,'Reading rover data...')
     end
     
+    %for SkyTraq
+    IOD_time = -1;
+    
     i = 1;
     for j = 1 : Ncell
         if (nargin == 3)
@@ -192,14 +191,6 @@ if (~isempty(data_rover_all))
             %manage "nearly null" data
             pos = abs(ph1_R(:,i)) < 1e-100;
             ph1_R(pos,i) = 0;
-            
-            %phase adjustement
-%             pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
-%             if(sum(pos) ~= 0)
-%                 ambig = 2^23;
-%                 n = floor( (pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
-%                 ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
-%             end
             
             %keep just "on top of second" measurements
             %if (time_R(i)- floor(time_R(i)) == 0)
@@ -249,33 +240,40 @@ if (~isempty(data_rover_all))
         %MEAS_TIME message data save
         elseif (strcmp(cell_rover{1,j},'MEAS_TIME'))
 
-            time_R(i) = cell_rover{2,j}(3);
-            week_R(i) = cell_rover{2,j}(2);
+            IOD_time = cell_rover{2,j}(1);
+            time_stq = cell_rover{2,j}(3);
+            week_stq = cell_rover{2,j}(2);
             
         %RAW_MEAS message data save
         elseif (strcmp(cell_rover{1,j},'RAW_MEAS'))
 
-            pr1_R(:,i) = cell_rover{3,j}(:,3);
-            ph1_R(:,i) = cell_rover{3,j}(:,4);
-            snr_R(:,i) = cell_rover{3,j}(:,2);
-            dop1_R(:,i) = cell_rover{3,j}(:,5);
-
-            %manage "nearly null" data
-            pos = abs(ph1_R(:,i)) < 1e-100;
-            ph1_R(pos,i) = 0;
-
-            %phase adjustement
-%             pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e8;
-%             if(sum(pos) ~= 0)
-%                 ambig = 2^23;
-%                 n = floor((pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
-%                 ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
-%             end
-
-            i = i + 1;
-
-            Eph_R(:,:,i) = Eph_R(:,:,i-1);          %previous epoch ephemerides copying
-            iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying
+            IOD_raw = cell_rover{2,j}(1);
+            if (IOD_raw == IOD_time)
+                time_R(i)  = time_stq;
+                week_R(i)  = week_stq;
+                pr1_R(:,i) = cell_rover{3,j}(:,3);
+                ph1_R(:,i) = cell_rover{3,j}(:,4);
+                snr_R(:,i) = cell_rover{3,j}(:,2);
+                dop1_R(:,i) = cell_rover{3,j}(:,5);
+                
+                %manage "nearly null" data
+                pos = abs(ph1_R(:,i)) < 1e-100;
+                ph1_R(pos,i) = 0;
+                
+                i = i + 1;
+            end
+            
+        %GPS Ephemeris data message data save
+        elseif (strcmp(cell_rover{1,j},'GPS_EPH'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            tom = cell_rover{2,j}(21);                   %time of measurement
+            
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(21,sat,:) ==  tom, 1)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+            end
 
         %%%%%%%%%%%%%%%%%%%%%% FTX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
         %TRACK message
@@ -440,7 +438,7 @@ if (~isempty(data_rover_all))
             iono = iono(:,pos(1));
         end
 
-        %create RINEX observation file
+        %create RINEX navigation file
         fid_nav = fopen([filename '.nav'],'wt');
         
         %write header

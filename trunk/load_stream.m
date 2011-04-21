@@ -155,6 +155,9 @@ if ~isempty(data_rover_all)
     if (nargin == 2)
         waitbar(0,wait_dlg,'Reading rover data...')
     end
+    
+    %for SkyTraq
+    IOD_time = -1;
 
     i = 1;
     for j = 1 : Ncell
@@ -228,33 +231,42 @@ if ~isempty(data_rover_all)
         %MEAS_TIME message data save
         elseif (strcmp(cell_rover{1,j},'MEAS_TIME'))
 
-            time_R(i) = cell_rover{2,j}(3);
-            week_R(i) = cell_rover{2,j}(2);
+            IOD_time = cell_rover{2,j}(1);
+            time_stq = cell_rover{2,j}(3);
+            week_stq = cell_rover{2,j}(2);
             
         %RAW_MEAS message data save
         elseif (strcmp(cell_rover{1,j},'RAW_MEAS'))
+            
+            IOD_raw = cell_rover{2,j}(1);
+            if (IOD_raw == IOD_time)
+                time_R(i)  = time_stq;
+                week_R(i)  = week_stq;
+                pr1_R(:,i) = cell_rover{3,j}(:,3);
+                ph1_R(:,i) = cell_rover{3,j}(:,4);
+                snr_R(:,i) = cell_rover{3,j}(:,2);
+                dop1_R(:,i) = cell_rover{3,j}(:,5);
+                
+                %manage "nearly null" data
+                pos = abs(ph1_R(:,i)) < 1e-100;
+                ph1_R(pos,i) = 0;
 
-            pr1_R(:,i) = cell_rover{3,j}(:,3);
-            ph1_R(:,i) = cell_rover{3,j}(:,4);
-            snr_R(:,i) = cell_rover{3,j}(:,2);
-            dop1_R(:,i) = cell_rover{3,j}(:,5);
-
-            %manage "nearly null" data
-            pos = abs(ph1_R(:,i)) < 1e-100;
-            ph1_R(pos,i) = 0;
-
-%             %phase adjustement
-%             pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e8;
-%             if(sum(pos) ~= 0)
-%                 ambig = 2^23;
-%                 n = floor((pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
-%                 ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
-%             end
-
-            i = i + 1;
-
-            Eph_R(:,:,i) = Eph_R(:,:,i-1);          %previous epoch ephemerides copying
-            iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying
+                i = i + 1;
+                
+                Eph_R(:,:,i) = Eph_R(:,:,i-1);          %previous epoch ephemerides copying
+                iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying
+            end
+            
+        %GPS Ephemeris data message data save
+        elseif (strcmp(cell_rover{1,j},'GPS_EPH'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0)
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);
+            end
 
         end
     end

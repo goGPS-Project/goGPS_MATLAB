@@ -87,8 +87,6 @@ end
 % serial object creation
 rover = serial (COMportR,'BaudRate',115200);
 set(rover,'InputBufferSize',16384);
-set(rover,'FlowControl','hardware');
-set(rover,'RequestToSend','on');
 fopen(rover);
 
 %------------------------------------------------------
@@ -188,9 +186,10 @@ h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 
 flag = 1;
 setappdata(gcf, 'run', flag);
 
+%first poll
+skytraq_poll_message(rover, '30', 0);
 %poll flags
-eph_polled = 0;
-hui_polled = 0;
+eph_polled = 1;
 
 %infinite loop
 while flag
@@ -220,6 +219,7 @@ while flag
         %data type counters
         nRAW = 0;
         nTIM = 0;
+        nEPH = 0;
         
         for i = 1 : size(cell_rover,2)
             
@@ -248,12 +248,46 @@ while flag
                 
                 %counter increment
                 t = t+1;
+                
+            %GPS Ephemeris data message data save
+            elseif (strcmp(cell_rover{1,i},'GPS_EPH'))
+                
+                %satellite number
+                sat = cell_rover{2,i}(1);
+
+                if (~isempty(sat) & sat > 0)
+                    Eph(:, sat) = cell_rover{2,i}(:);
+                end
+
+                if (nEPH == 0)
+                    type = [type 'GPS_EPH '];
+                end
+                nEPH = nEPH + 1;
             end
             
             if (nRAW > 0 & nTIM > 0)
                 
-                %data save
-                fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); zeros(8,1)], 'double');
+                %satellites with ephemerides available
+                satEph = find(sum(abs(Eph))~=0);
+                
+                %delete data if ephemerides are not available
+                delsat = setdiff(1:32,satEph);
+                pr_R(delsat,1)  = 0;
+                ph_R(delsat,1)  = 0;
+                dop_R(delsat,1) = 0;
+                snr_R(delsat,1) = 0;
+                
+                %satellites with observations available
+                satObs = find(pr_R(:,1) ~= 0);
+                
+                %if all the visible satellites ephemerides have been transmitted
+                %and the total number of satellites is >= 4
+                if (ismember(satObs,satEph)) & (length(satObs) >= 4)
+                    
+                    %data save
+                    fwrite(fid_obs, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono(:,1)], 'double');
+                    fwrite(fid_eph, [0; Eph(:)], 'double');
+                end
             end
         end
         
@@ -264,7 +298,7 @@ while flag
         fprintf('SkyTraq: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, rover_1, rover_2);
         fprintf('MSG types: %s\n', type);
 
-        %visualization (RXM-RAW information)
+        %visualization (TIME & RAW information)
         if (nRAW > 0 & nTIM > 0)
             sat_pr = find(pr_R ~= 0);       %satellites with code available
             sat_ph = find(ph_R ~= 0);       %satellites with phase available
@@ -277,6 +311,29 @@ while flag
                     sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), 0, snr_R(sat(j)), 0);
             end
         end
+        
+        %visualization (GPS_EPH information)
+        if (nEPH > 0)
+            sat = find(sum(abs(Eph))>0);
+            fprintf('Eph: ');
+            for i = 1 : length(sat)
+                fprintf('%d ', sat(i));
+            end
+            fprintf('\n');
+        end
+
+        %poll a new GPS_EPH message every 10 epochs
+        if (mod(current_time-start_time,10) < 1)
+            if (eph_polled == 0)
+                skytraq_poll_message(rover, '30', 0);
+                eph_polled = 1;
+            end
+        else
+            eph_polled = 0;
+        end
+        
+        %wait for asynchronous write to finish
+        pause(0.1);
     end
 
 

@@ -48,7 +48,7 @@ Min_bytes = 0;
 
 % String name in decoding phase (NA = Not Available)
 TimeRaw_id = 'NA';        % message with both timing and observations
-Eph_id     = 'NA';        % message with ephemeris
+Eph_id     = 'GPS_EPH';   % message with ephemeris
 Hui_id     = 'NA';        % message with ionosphere parameters
 Time_id    = 'MEAS_TIME'; % message with timing
 Raw_id     = 'RAW_MEAS';  % message with observations
