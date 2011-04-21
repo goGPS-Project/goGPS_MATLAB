@@ -35,6 +35,8 @@ function [data, nmea_sentences] = decode_ublox(msg, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+warning off
+
 %----------------------------------------------------------------------------------------------
 % UBX MESSAGE HEADER
 %----------------------------------------------------------------------------------------------
@@ -135,14 +137,14 @@ while (pos + 15 <= length(msg))
                     
                     % checksum
                     CK_A = 0; CK_B = 0;
-                    Nslices = (8*LEN + 31) / 8 + 1;           %pre-allocate to
-                    slices = cell(1,Nslices);                 %increase speed
+                    Nslices = (8*LEN + 31) / 8 + 1;    %pre-allocate to
+                    slices = cell(1,Nslices);          %increase speed
                     k = 1;
                     for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
                         slices{k} = msg(j:j+7);
                         k = k + 1;
                     end
-                    slices = fbin2dec(slices);                %call 'fbin2dec' only once (to optimize speed)
+                    slices = fbin2dec(slices);         %call 'fbin2dec' only once (to optimize speed)
                     for r = 1 : k-1
                         CK_A = CK_A + slices(r);
                         CK_B = CK_B + CK_A;
@@ -164,14 +166,14 @@ while (pos + 15 <= length(msg))
                                     % RAW (raw measurement)
                                     case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
                                         
-                                    % SFRB (*OBSOLETE* subframe buffer - only for ionosphere parameters and leap seconds)
-                                    case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
+                                    % SFRB (subframe buffer)
+                                    % case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
                                         
-                                    % EPH (*OBSOLETE* ephemerides)
-                                    case '31'
-                                        if (LEN == 104) %(ephemerides available)
-                                            [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
-                                        end
+                                    % EPH (*OBSOLETE* ephemeris)
+                                    %case '31'
+                                    %    if (LEN == 104) %(ephemeris available)
+                                    %        [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
+                                    %    end
                                 end
                                 
                             % AID (aiding messages)
@@ -180,9 +182,9 @@ while (pos + 15 <= length(msg))
                                     % HUI (sat. Health / UTC / Ionosphere)
                                     case '02', [data(:,i)] = decode_AID_HUI(msg(pos:pos+8*LEN-1));
                                         
-                                    % EPH (ephemerides)
+                                    % EPH (ephemeris)
                                     case '31'
-                                        if (LEN == 104) %(ephemerides available)
+                                        if (LEN == 104) %(ephemeris available)
                                             [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1));
                                         end
                                 end
