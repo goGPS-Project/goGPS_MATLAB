@@ -79,10 +79,11 @@ SVN = SVN(:)';
 SVN = fbin2dec((SVN(1:32)));
 
 %Hand-Over Word (4 bytes)
-HOW = msg(pos:pos+31); pos = pos + 32;
-HOW = fliplr(reshape(HOW,8,[]));                  % byte order inversion (little endian)
-HOW = HOW(:)';
-HOW = fbin2dec(HOW(28:30)); %#ok<*NASGU>
+% HOW = msg(pos:pos+31);
+pos = pos + 32;
+% HOW = fliplr(reshape(HOW,8,[]));                  % byte order inversion (little endian)
+% HOW = HOW(:)';
+% HOW = fbin2dec(HOW(28:30)); %#ok<*NASGU>
 
 %Subframe 1
 [subframe_1_data]  = decode_subframe_1(msg(pos:pos+255)); pos = pos + 256;

@@ -234,9 +234,7 @@ if (IODC == IODE) && (IODC == IODE)
     data{2}(29) = FitPeriod;
 end
 
-% Check, no PNR --> delete header to improve performa
+% Check, no PRN --> delete header to improve performance
 if sum(data{2,1}) == 0
     data{1} = '';
-end
-
 end
