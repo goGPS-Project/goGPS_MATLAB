@@ -185,11 +185,41 @@ while (~reply_RAW)
     reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
 end
 
-% disable all NMEA messages
-fprintf('Disabling u-blox receiver NMEA messages:\n');
+% disable subframe buffer output
+fprintf('Disabling u-blox receiver subframe buffer (SFRB) messages...\n');
 
-% ublox_CFG_MSG(rover, 'NMEA', 'GGA', 0); fprintf('Disabling GGA... ');
-ublox_CFG_MSG(rover, 'NMEA', 'GLL', 0); fprintf('GLL ');
+reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 0);
+tries = 0;
+
+while (~reply_SFRB)
+    tries = tries + 1;
+    if (tries > 3)
+        disp('It was not possible to disable SFRB messages.');
+        break
+    end
+    %close and delete old serial object
+    try
+        fclose(rover);
+        delete(rover);
+    catch
+        stopasync(rover);
+        fclose(rover);
+        delete(rover);
+    end
+    % create new serial object
+    rover = serial (COMportR,'BaudRate',57600);
+    set(rover,'InputBufferSize',16384);
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
+    fopen(rover);
+    reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 0);
+end
+
+% enable GGA messages, disable all other NMEA messages
+fprintf('Configuring u-blox receiver NMEA messages:\n');
+
+ublox_CFG_MSG(rover, 'NMEA', 'GGA', 1); fprintf('Enabling GGA...\n');
+ublox_CFG_MSG(rover, 'NMEA', 'GLL', 0); fprintf('Disabling GLL ');
 ublox_CFG_MSG(rover, 'NMEA', 'GSA', 0); fprintf('GSA ');
 ublox_CFG_MSG(rover, 'NMEA', 'GSV', 0); fprintf('GSV ');
 ublox_CFG_MSG(rover, 'NMEA', 'RMC', 0); fprintf('RMC ');
@@ -301,9 +331,13 @@ h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 
 flag = 1;
 setappdata(gcf, 'run', flag);
 
+%first poll
+ublox_poll_message(rover, 'AID', 'EPH', 0);
+pause(0.1);
+ublox_poll_message(rover, 'AID', 'HUI', 0);
 %poll flags
-eph_polled = 0;
-hui_polled = 0;
+eph_polled = 1;
+hui_polled = 1;
 
 %infinite loop
 while flag
