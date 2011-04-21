@@ -42,32 +42,47 @@ function [data] = decode_subframe_3(msg)
 %----------------------------------------------------------------------------------------------
 
 pos = 1;
+data = [];
+
+if (length(msg) == 256)     %32-bit WORDs (u-blox)
+    little_endian = 1;
+    delta = 32;
+    s = 9; %starting bit
+elseif (length(msg) == 192) %24-bit WORDs (SkyTraq)
+    little_endian = 0;
+    delta = 24;
+    s = 1; %starting bit
+else
+    return
+end
 
 %Subframe 3
-SF3D0 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 0 (=Word 3 in IS-GPS-200D)
-SF3D1 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 1 (=Word 4 in IS-GPS-200D)
-SF3D2 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 2 (=Word 5 in IS-GPS-200D)
-SF3D3 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 3 (=Word 6 in IS-GPS-200D)
-SF3D4 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 4 (=Word 7 in IS-GPS-200D)
-SF3D5 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 5 (=Word 8 in IS-GPS-200D)
-SF3D6 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 6 (=Word 9 in IS-GPS-200D)
-SF3D7 = msg(pos:pos+31); pos = pos + 32;          % subframe 3 - Word 7 (=Word 10 in IS-GPS-200D)
+SF3D0 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 3 - Word 0 (=Word 3 in IS-GPS-200D)
+SF3D1 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 3 - Word 1 (=Word 4 in IS-GPS-200D)
+SF3D2 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 3 - Word 2 (=Word 5 in IS-GPS-200D)
+SF3D3 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 3 - Word 3 (=Word 6 in IS-GPS-200D)
+SF3D4 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 3 - Word 4 (=Word 7 in IS-GPS-200D)
+SF3D5 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 3 - Word 5 (=Word 8 in IS-GPS-200D)
+SF3D6 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 3 - Word 6 (=Word 9 in IS-GPS-200D)
+SF3D7 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 3 - Word 7 (=Word 10 in IS-GPS-200D)
 
-SF3D0 = fliplr(reshape(SF3D0,8,[])); SF3D0 = SF3D0(:)';               %
-SF3D1 = fliplr(reshape(SF3D1,8,[])); SF3D1 = SF3D1(:)';               %
-SF3D2 = fliplr(reshape(SF3D2,8,[])); SF3D2 = SF3D2(:)';               %
-SF3D3 = fliplr(reshape(SF3D3,8,[])); SF3D3 = SF3D3(:)';               % byte order inversion (little endian)
-SF3D4 = fliplr(reshape(SF3D4,8,[])); SF3D4 = SF3D4(:)';               %
-SF3D5 = fliplr(reshape(SF3D5,8,[])); SF3D5 = SF3D5(:)';               %
-SF3D6 = fliplr(reshape(SF3D6,8,[])); SF3D6 = SF3D6(:)';               %
-SF3D7 = fliplr(reshape(SF3D7,8,[])); SF3D7 = SF3D7(:)';               %
+if (little_endian)
+    SF3D0 = fliplr(reshape(SF3D0,8,[])); SF3D0 = SF3D0(:)';               %
+    SF3D1 = fliplr(reshape(SF3D1,8,[])); SF3D1 = SF3D1(:)';               %
+    SF3D2 = fliplr(reshape(SF3D2,8,[])); SF3D2 = SF3D2(:)';               %
+    SF3D3 = fliplr(reshape(SF3D3,8,[])); SF3D3 = SF3D3(:)';               % byte order inversion (little endian)
+    SF3D4 = fliplr(reshape(SF3D4,8,[])); SF3D4 = SF3D4(:)';               %
+    SF3D5 = fliplr(reshape(SF3D5,8,[])); SF3D5 = SF3D5(:)';               %
+    SF3D6 = fliplr(reshape(SF3D6,8,[])); SF3D6 = SF3D6(:)';               %
+    SF3D7 = fliplr(reshape(SF3D7,8,[])); SF3D7 = SF3D7(:)';               %
+end
 
-data(1) = twos_complement(SF3D0(9:24)) * (2^-29);                     % Cic
-data(2) = twos_complement([SF3D0(25:32) SF3D1(9:32)]) * pi * (2^-31); % omega0
-data(3) = twos_complement(SF3D2(9:24)) * (2^-29);                     % Cis
-data(4) = twos_complement([SF3D2(25:32) SF3D3(9:32)]) * pi * (2^-31); % i0
-data(5) = twos_complement(SF3D4(9:24)) * (2^-5);                      % Crc
-data(6) = twos_complement([SF3D4(25:32) SF3D5(9:32)]) * pi * (2^-31); % omega
-data(7) = twos_complement(SF3D6(9:32)) * pi * (2^-43);                % omegadot
-data(8) = fbin2dec(SF3D7(9:16));                                           % IODE3
-data(9) = twos_complement(SF3D7(17:30)) * pi * (2^-43);               % IDOT
+data(1) = twos_complement(SF3D0(s:s+15)) * (2^-29);                          % Cic
+data(2) = twos_complement([SF3D0(s+16:s+23) SF3D1(s:s+23)]) * pi * (2^-31);  % omega0
+data(3) = twos_complement(SF3D2(s:s+15)) * (2^-29);                          % Cis
+data(4) = twos_complement([SF3D2(s+16:s+23) SF3D3(s:s+23)]) * pi * (2^-31);  % i0
+data(5) = twos_complement(SF3D4(s:s+15)) * (2^-5);                           % Crc
+data(6) = twos_complement([SF3D4(s+16:s+23) SF3D5(s:s+23)]) * pi * (2^-31);  % omega
+data(7) = twos_complement(SF3D6(s:s+23)) * pi * (2^-43);                     % omegadot
+data(8) = fbin2dec(SF3D7(s:s+7));                                            % IODE3
+data(9) = twos_complement(SF3D7(s+8:s+21)) * pi * (2^-43);                   % IDOT

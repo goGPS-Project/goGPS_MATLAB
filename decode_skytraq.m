@@ -1,7 +1,7 @@
-function [data, nmea_sentences] = decode_skytraq(msg, wait_dlg)
+function [data] = decode_skytraq(msg, wait_dlg)
 
 % SYNTAX:
-%   [data, nmea_sentences] = decode_skytraq(msg, wait_dlg);
+%   [data] = decode_skytraq(msg, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received by the SkyTraq receiver
@@ -10,7 +10,6 @@ function [data, nmea_sentences] = decode_skytraq(msg, wait_dlg)
 % OUTPUT:
 %   data = cell-array that contains the decoded SkyTraq messages
 %          (message class and id are in the first cell-array field)
-%   nmea_sentences = cell-array containing all NMEA sentences found in input msg
 %
 % DESCRIPTION:
 %   SkyTraq binary messages decoding (also in sequence).
@@ -34,6 +33,8 @@ function [data, nmea_sentences] = decode_skytraq(msg, wait_dlg)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+warning off
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE HEADER
@@ -66,9 +67,6 @@ pos_NMEA = findstr(msg, codeBIN_NMEA);   % NMEA message initial index
 
 % output variable initialization
 data = cell(0);
-nmea_sentences = cell(0);
-nmea_counter = 1;
-nmea_string = '';
 
 % find the index of the first message, if any
 if (~isempty(pos_HDR) & ~isempty(pos_NMEA))
@@ -138,7 +136,7 @@ while (pos + 15 <= length(msg))
                     
                     % if checksum matches
                     if (CS == CS_rec)
-                        
+
                         % counter increment
                         i = i + 1;
                         
@@ -154,8 +152,8 @@ while (pos + 15 <= length(msg))
                             % RAW_MEAS (Raw channel measurements)
                             case 'DD', [data(:,i)] = decode_skytraq_RAW_MEAS(msg(pos+8:pos+8*LEN-1));
                                 
-                            % SUBFRAME (Subframe buffer data)
-                            case 'E0'
+                            % GPS_EPH (GPS ephemeris data)
+                            case 'B1', [data(:,i)] = decode_skytraq_GPS_EPH(msg(pos+8:pos+8*LEN-1));
                         end
                     else
                         %fprintf('Checksum error!\n');
@@ -172,42 +170,6 @@ while (pos + 15 <= length(msg))
             end
         else
             break
-        end
-
-    % check if a NMEA sentence is starting
-    elseif (pos + 23 <= length(msg)) & (strcmp(msg(pos:pos+23),codeBIN_NMEA))
-        
-        % search for <CR><LF>
-        % The maximum number of characters for a valid NMEA 0183 sentence
-        % is 82, but in order not to miss invalid length NMEA sentences
-        % (i.e. not standard), a maximum of 100 characters is used.
-        % Thus the search for the end delimiter is restricted within
-        % 100*8 = 800 bits or the end of the message whichever comes first.
-        if ((length(msg)-pos)<799)
-            pos_ENDNMEA = findstr(msg(pos:end),[dec2bin(13,8) dec2bin(10,8)]);
-        else
-            pos_ENDNMEA = findstr(msg(pos:pos+799),[dec2bin(13,8) dec2bin(10,8)]);
-        end
-        
-        if ~isempty(pos_ENDNMEA)
-            % save the NMEA sentence
-            while (~strcmp(msg(pos:pos+7),'00001101'))
-                nmea_string = [nmea_string char(fbin2dec(msg(pos:pos+7)))];
-                pos = pos + 8;
-            end
-            
-            % save just <LF> (without <CR>, otherwise MATLAB fails in interpreting it)
-            pos = pos + 8;
-            nmea_string = [nmea_string char(fbin2dec(msg(pos:pos+7)))];
-            pos = pos + 8;
-            
-            nmea_sentences{nmea_counter,1} = nmea_string;
-            nmea_counter = nmea_counter + 1;
-            nmea_string = '';
-        else
-            % if a NMEA sentence is started but its end is not available,
-            % just jump over the header and continue
-            pos = pos + 24;
         end
 
     % check if there are other packages

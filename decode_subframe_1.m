@@ -44,34 +44,49 @@ function [data] = decode_subframe_1(msg)
 %----------------------------------------------------------------------------------------------
 
 pos = 1;
+data = [];
+
+if (length(msg) == 256)     %32-bit WORDs (u-blox)
+    little_endian = 1;
+    delta = 32;
+    s = 9; %starting bit
+elseif (length(msg) == 192) %24-bit WORDs (SkyTraq)
+    little_endian = 0;
+    delta = 24;
+    s = 1; %starting bit
+else
+    return
+end
 
 %Subframe 1
-SF1D0 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 0 (=Word 3 in IS-GPS-200D)
-SF1D1 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 1 (=Word 4 in IS-GPS-200D)
-SF1D2 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 2 (=Word 5 in IS-GPS-200D)
-SF1D3 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 3 (=Word 6 in IS-GPS-200D)
-SF1D4 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 4 (=Word 7 in IS-GPS-200D)
-SF1D5 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 5 (=Word 8 in IS-GPS-200D)
-SF1D6 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 6 (=Word 9 in IS-GPS-200D)
-SF1D7 = msg(pos:pos+31); pos = pos + 32;          % subframe 1 - Word 7 (=Word 10 in IS-GPS-200D)
+SF1D0 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 1 - Word 0 (=Word 3 in IS-GPS-200D)
+SF1D1 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 1 - Word 1 (=Word 4 in IS-GPS-200D)
+SF1D2 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 1 - Word 2 (=Word 5 in IS-GPS-200D)
+SF1D3 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 1 - Word 3 (=Word 6 in IS-GPS-200D)
+SF1D4 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 1 - Word 4 (=Word 7 in IS-GPS-200D)
+SF1D5 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 1 - Word 5 (=Word 8 in IS-GPS-200D)
+SF1D6 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 1 - Word 6 (=Word 9 in IS-GPS-200D)
+SF1D7 = msg(pos:pos+delta-1); pos = pos + delta;          % subframe 1 - Word 7 (=Word 10 in IS-GPS-200D)
 
-SF1D0 = fliplr(reshape(SF1D0,8,[])); SF1D0 = SF1D0(:)';               % byte order inversion (little endian)
-SF1D1 = fliplr(reshape(SF1D1,8,[])); SF1D1 = SF1D1(:)';               %
-SF1D4 = fliplr(reshape(SF1D4,8,[])); SF1D4 = SF1D4(:)';               %
-SF1D5 = fliplr(reshape(SF1D5,8,[])); SF1D5 = SF1D5(:)';               %
-SF1D6 = fliplr(reshape(SF1D6,8,[])); SF1D6 = SF1D6(:)';               %
-SF1D7 = fliplr(reshape(SF1D7,8,[])); SF1D7 = SF1D7(:)';               %
+if (little_endian)
+    SF1D0 = fliplr(reshape(SF1D0,8,[])); SF1D0 = SF1D0(:)';               % byte order inversion (little endian)
+    SF1D1 = fliplr(reshape(SF1D1,8,[])); SF1D1 = SF1D1(:)';               %
+    SF1D4 = fliplr(reshape(SF1D4,8,[])); SF1D4 = SF1D4(:)';               %
+    SF1D5 = fliplr(reshape(SF1D5,8,[])); SF1D5 = SF1D5(:)';               %
+    SF1D6 = fliplr(reshape(SF1D6,8,[])); SF1D6 = SF1D6(:)';               %
+    SF1D7 = fliplr(reshape(SF1D7,8,[])); SF1D7 = SF1D7(:)';               %
+end
 
-data(1) = fbin2dec(SF1D0(9:18));                          % weekno
-data(2) = fbin2dec(SF1D0(19:20));                         % code_on_L2
-data(3) = fbin2dec(SF1D0(21:24));                         % svaccur
-data(4) = fbin2dec(SF1D0(25:30));                         % svhealth
-IODC_2MSBs = SF1D0(31:32);                           % IODC_2MSBs
-IODC_8LSBs = SF1D5(9:16);                            % IODC_8LSBs
-data(5) = fbin2dec([IODC_2MSBs IODC_8LSBs]);              % IODC
-data(6) = fbin2dec(SF1D1(9));                             % L2flag
-data(7) = twos_complement(SF1D4(25:32)) * (2^-31);   % tgd
-data(8) = fbin2dec(SF1D5(17:32)) * (2^4);                 % toc
-data(9) = twos_complement(SF1D6(9:16)) * (2^-55);    % af2
-data(10) = twos_complement(SF1D6(17:32)) * (2^-43);  % af1
-data(11) = twos_complement(SF1D7(9:30)) * (2^-31);   % af0
+data(1) = fbin2dec(SF1D0(s:s+9));                        % weekno
+data(2) = fbin2dec(SF1D0(s+10:s+11));                    % code_on_L2
+data(3) = fbin2dec(SF1D0(s+12:s+15));                    % svaccur
+data(4) = fbin2dec(SF1D0(s+16:s+21));                    % svhealth
+IODC_2MSBs = SF1D0(s+22:s+23);                           % IODC_2MSBs
+IODC_8LSBs = SF1D5(s:s+7);                               % IODC_8LSBs
+data(5) = fbin2dec([IODC_2MSBs IODC_8LSBs]);             % IODC
+data(6) = fbin2dec(SF1D1(s));                            % L2flag
+data(7) = twos_complement(SF1D4(s+16:s+23)) * (2^-31);   % tgd
+data(8) = fbin2dec(SF1D5(s+8:s+23)) * (2^4);             % toc
+data(9) = twos_complement(SF1D6(s:s+7)) * (2^-55);       % af2
+data(10) = twos_complement(SF1D6(s+8:s+23)) * (2^-43);   % af1
+data(11) = twos_complement(SF1D7(s:s+21)) * (2^-31);     % af0

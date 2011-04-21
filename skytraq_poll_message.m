@@ -42,17 +42,15 @@ codeHEX = [header1; header2];
 HDR = hex2dec(codeHEX);
 ID  = hex2dec(MsgID);
 
-payload_length = hex2dec(2);
+payload_length = 2;
 message_body = parameter;
 
-codeDEC = [HDR; payload_length; ID; message_body];
+codeDEC = [HDR; 0; payload_length; ID; message_body];
 
 % checksum
 CS = 0;
-for k = 1 : payload_length
-    CS = bitxor(CS,ID);
-    CS = bitxor(CS,message_body);
-end
+CS = bitxor(CS,ID);
+CS = bitxor(CS,message_body);
 
 codeHEX = [header3; header4];
 HDR = hex2dec(codeHEX);
