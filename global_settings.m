@@ -122,6 +122,7 @@ pos_M_man = [XM; YM; ZM];
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
+global amb_restart_method
 
 %variance of initial state
 sigmaq0 = 9;
@@ -187,6 +188,9 @@ o1 = order;
 o2 = order*2;
 o3 = order*3;
 
+%ambiguity restart method
+amb_restart_method = 1;
+
 %-------------------------------------------------------------------------------
 % RECEIVER
 %-------------------------------------------------------------------------------
@@ -233,17 +237,7 @@ global nmea_init
 
 manCOMport = 'COM8';
 
-if (mode == 11 | mode == 12) & flag_COM == 1
-   %detect u-blox COM port
-   COMportR = ublox_COM_find();
-
-   if (isempty(COMportR))
-        %Override rover data input port
-        COMportR = manCOMport;
-   end
-else
-    COMportR = manCOMport;
-end
+COMportR = manCOMport;
 
 % %MASTER/NTRIP connection parameters
 % master_ip = 'xxx.xxx.xxx.xxx';

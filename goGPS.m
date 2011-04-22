@@ -383,14 +383,20 @@ if (mode < 10) %post-processing
             fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
         end
         
-        if (flag_doppler_cs)
+        if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
             %compute master station clock error and drift
-            fprintf('Computing master station clock error and drift...\n');
+            fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
             [dtM, dtMdot] = clock_error(pr1_M, Eph, iono, snr_M, time_M, pos_M);
+        else
+            dtM = zeros(size(dop1_M));
+            dtMdot = zeros(size(dop1_M));
         end
     end
 
 else %real-time
+    
+    %disable Doppler-based cycle-slips detection
+    flag_doppler_cs = 0;
 
     %initialize master position variable
     if (flag_ms_pos)
@@ -436,7 +442,7 @@ if (mode == 1) & (mode_vinc == 0)
             Eph_t = Eph(:,:,1);
         end
 
-        kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
+        kalman_goGPS_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), 1, dtMdot(1));
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -473,7 +479,7 @@ if (mode == 1) & (mode_vinc == 0)
                 Eph_t = Eph(:,:,t);
             end
 
-            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), 1, dtMdot(t));
 
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -525,7 +531,7 @@ if (mode == 1) & (mode_vinc == 0)
         flag_dyn = 1;
         order = fread(fid_dyn,1,'uint8');
         
-        kalman_goGPS_init_model (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), order, 1);
+        kalman_goGPS_init_model (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), order, 1, dtMdot(1));
 
         if (flag_stopGOstop == 1)
             index = 1;
@@ -594,7 +600,7 @@ if (mode == 1) & (mode_vinc == 0)
             order0 = order;
             order = fread(fid_dyn,1,'uint8');
             
-            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), order, 1);
+            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), order, 1, dtMdot(t));
             
             if (flag_stopGOstop == 1)
                 if (order > order0)
@@ -727,7 +733,7 @@ elseif (mode == 1) & (mode_vinc == 1)
     %(this constrained mode works only for circuits)
     ref_loop = [ref_path; ref_path];
 
-    kalman_goGPS_vinc_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), 1, ref_loop);
+    kalman_goGPS_vinc_init (pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), 1, ref_loop, dtMdot(1));
 
     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -759,7 +765,7 @@ elseif (mode == 1) & (mode_vinc == 1)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), 1, ref_loop);
+        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), 1, ref_loop, dtMdot(t));
 
         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');

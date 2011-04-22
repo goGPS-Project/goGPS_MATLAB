@@ -1,10 +1,10 @@
 function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, posR, posM, posS, ...
+         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, pr_RSapp, pr_MSapp,  ...
          doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-%   ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, posR, posM, posS, ...
+%   ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, prRS_app, prMS_app, ...
 %   doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase);
 %
 % INPUT:
@@ -13,6 +13,8 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
 %   ph_Msat = MASTER-SATELLITE phase observation
 %   pr_Rsat = ROVER-SATELLITE code pseudorange observation
 %   pr_Msat = MASTER-SATELLITE code pseudorange observation
+%   prRS_app = ROVER-SATELLITE approximate pseudorange
+%   prMS_app = MASTER-SATELLITE approximate pseudorange
 %   doppler_pred_range_R = ROVER-SATELLITE Doppler-based predicted range
 %   doppler_pred_range_M = MASTER-SATELLITE Doppler-based predicted range
 %   pivot = PIVOT satellite
@@ -57,70 +59,29 @@ global flag_doppler_cs
 %number of visible satellites
 nsat = size(sat,1);
 
-%PIVOT position research
+%PIVOT search
 i = find(pivot == sat);
 
-%pivot code observations
-pr_RP = pr_Rsat(i);
-pr_MP = pr_Msat(i);
+%ROVER-PIVOT and MASTER-PIVOT approximate pseudoranges
+pr_RPapp = pr_RSapp(i);
+pr_MPapp = pr_MSapp(i);
 
-%pivot phase observations
+%phase observations
 ph_RP = ph_Rsat(i);
 ph_MP = ph_Msat(i);
 
-%observed code double differences
-comb_pr = (pr_Rsat - pr_Msat) - (pr_RP - pr_MP);
+%approximate code double differences
+comb_pr = (pr_RSapp - pr_MSapp) - (pr_RPapp - pr_MPapp);
 
 %observed phase double differences
 comb_ph = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
 
-%linear combination of initial ambiguity estimate
+%phase ambiguities estimation
 if (phase == 1)
-    N_stim = ((comb_pr - comb_ph * lambda1)) / lambda1;
+    N_stim = comb_pr / lambda1 - comb_ph;
 else
-    N_stim = ((comb_pr - comb_ph * lambda2)) / lambda2;
+    N_stim = comb_pr / lambda2 - comb_ph;
 end
-
-% %number of visible satellites
-% nsat = size(sat,1);
-% 
-% %PIVOT search
-% i = find(pivot == sat);
-% 
-% %PIVOT position (with clock error and Earth rotation corrections)
-% posP = posS(:,i);
-% 
-% %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
-% pr_RP_stim = sqrt(sum((posR - posP).^2));
-% pr_MP_stim = sqrt(sum((posM - posP).^2));
-% 
-% %phase observations
-% ph_RP = ph_Rsat(i);
-% ph_MP = ph_Msat(i);
-% 
-% %initialization
-% pr_stim = [];
-% 
-% %computation for all the satellites, PIVOT included
-% for i = 1 : nsat
-% 
-%     %estimation of ROVER-PIVOT and MASTER-PIVOT pseudoranges
-%     pr_RS_stim = sqrt(sum((posR - posS(i)).^2));
-%     pr_MS_stim = sqrt(sum((posM - posS(i)).^2));
-% 
-%     %computation of crossed pseudoranges
-%     pr_stim = [pr_stim; (pr_RS_stim - pr_MS_stim) - (pr_RP_stim - pr_MP_stim)];
-% end
-% 
-% %observed phase double difference
-% ddp = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
-% 
-% %phase ambiguities estimation
-% if (phase == 1)
-%     N_stim = pr_stim / lambda1 - ddp;
-% else
-%     N_stim = pr_stim / lambda2 - ddp;
-% end
 
 %initialization
 N_slip = [];

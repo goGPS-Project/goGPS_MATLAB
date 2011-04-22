@@ -1,10 +1,9 @@
-function [N_stim_slip, N_stim_born, dtR] = amb_estimate_LS_SA(posR_app, posS, dtS, pr_R, ph_R, snr_R, ...
+function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(posR_app, posS, dtS, pr_R, ph_R, snr_R, ...
     el_R, sat, sat_slip, sat_born, prRS_app, err_tropo_RS, err_iono_RS, phase, N_kalman, Cee_N_kalman)
 
 % SYNTAX:
-%   [N_stim_slip, N_stim_born, dt_R] = amb_estimate_LS_SA(posR_app, posS, dtS, pr_R, ph_R, snr_R, ...
-%    el_R, sat, sat_slip, sat_born, prRS_app, err_tropo_RS, err_iono_RS, phase,
-%    N_kalman, Cee_N_kalman);
+%   [N_stim_slip, N_stim_born, dt_R] = ambiguity_init_SA(posR_app, posS, dtS, pr_R, ph_R, snr_R, ...
+%    el_R, sat, sat_slip, sat_born, prRS_app, err_tropo_RS, err_iono_RS, phase, N_kalman, Cee_N_kalman);
 %
 % INPUT:
 %   posR_app = receiver position (X,Y,Z)
@@ -53,7 +52,6 @@ function [N_stim_slip, N_stim_born, dtR] = amb_estimate_LS_SA(posR_app, posS, dt
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%variable initialization
 global v_light
 global lambda1 lambda2
 global sigmaq_cod1 sigmaq_ph
