@@ -1,9 +1,9 @@
-function [N_stim_slip, N_stim_born] = amb_estimate_LS(posR_app, posS, pr_R, pr_M, ...
+function [N_stim_slip, N_stim_born] = ambiguity_init(posR_app, posS, pr_R, pr_M, ...
     ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat, sat_slip, sat_born, prRS_app, prMS_app, ...
     err_tropo_RS, err_tropo_MS, err_iono_RS, err_iono_MS, pivot, phase, N_kalman, Cee_N_kalman)
 
 % SYNTAX:
-%   [N_stim_slip, N_stim_born] = amb_estimate_LS(posR_app, posS, pr_R, pr_M, ...
+%   [N_stim_slip, N_stim_born] = ambiguity_init(posR_app, posS, pr_R, pr_M, ...
 %   ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat, sat_slip, sat_born, prRS_app, prMS_app, ...
 %   err_tropo_RS, err_tropo_MS, err_iono_RS, err_iono_MS, pivot, phase, N_kalman, Cee_N_kalman);
 %
@@ -61,9 +61,9 @@ function [N_stim_slip, N_stim_born] = amb_estimate_LS(posR_app, posS, pr_R, pr_M
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%variable initialization
 global lambda1 lambda2
 global sigmaq_cod1 sigmaq_ph
+global amb_restart_method
 
 if (phase == 1)
     lambda = lambda1;
@@ -120,7 +120,8 @@ s = 1;
 b = 1;
 
 %if the number of observations is not sufficient to apply least squares adjustment
-if (nsat_pr + nsat - 2 <= 3 + nsat - 1)
+%or if the selected method is observed code - phase comparison
+if (nsat_pr + nsat - 2 <= 3 + nsat - 1) | (amb_restart_method == 0)
     
     for i = 1 : nsat_pr
         
@@ -134,7 +135,7 @@ if (nsat_pr + nsat - 2 <= 3 + nsat - 1)
                 comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
                 
                 %linear combination of ambiguities
-                N_stim_slip(s) = ((comb_pr - comb_ph * lambda)) / lambda;
+                N_stim_slip(s) = comb_pr / lambda - comb_ph;
                 %sigmaq_N_stim_slip = 4*sigmaq_cod1 / lambda^2;
                 
                 s = s + 1;
@@ -148,13 +149,56 @@ if (nsat_pr + nsat - 2 <= 3 + nsat - 1)
                 comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
                 
                 %linear combination of ambiguities
-                N_stim_born(b) = ((comb_pr - comb_ph * lambda)) / lambda;
+                N_stim_born(b) = comb_pr / lambda - comb_ph;
                 %sigmaq_N_stim_born = 4*sigmaq_cod1 / lambda^2;
                 
                 b = b + 1;
             end
         end
     end
+%if the number of observations is not sufficient to apply least squares adjustment
+%or if the selected method is Kalman-estimated code - phase comparison
+elseif (nsat_pr + nsat - 2 <= 3 + nsat - 1) | (amb_restart_method == 1)
+    
+    %KEPT AS A REFERENCE: it should be used in the calling functions and
+    %passed as an argument
+    %sigmaq_pos_R = diag(T*Cee*T');
+    %sigmaq_pos_R = sigmaq_pos_R([1,o1+1,o2+1]);
+    
+    for i = 1 : nsat_pr
+        
+        if (sat_pr(i) ~= pivot)
+            
+            if (ismember(sat_pr(i),sat_slip))
+                %Kalman-estimated code double differences
+                comb_pr = (prRS_app(i) - prMS_app(i)) - (prRP_app - prMP_app);
+                
+                %observed phase double differences
+                comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
+                
+                %linear combination of ambiguities
+                N_stim_slip(s) = comb_pr / lambda - comb_ph;
+                %sigmaq_N_stim = sum(sigmaq_pos_R) / lambda1^2;
+                
+                s = s + 1;
+            end
+            
+            if (ismember(sat_pr(i),sat_born))
+                %observed code double differences
+                comb_pr = (prRS_app(i) - prMS_app(i)) - (prRP_app - prMP_app);
+                
+                %observed phase double differences
+                comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
+                
+                %linear combination of ambiguities
+                N_stim_born(b) = comb_pr / lambda - comb_ph;
+                %sigmaq_N_stim = sum(sigmaq_pos_R) / lambda1^2;
+                
+                b = b + 1;
+            end
+        end
+    end
+%if the selected method is Least squares adjustment
 else
     A = [];
     tr = [];

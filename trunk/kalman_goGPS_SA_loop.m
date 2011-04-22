@@ -381,8 +381,8 @@ if (nsat >= min_nsat)
     %------------------------------------------------------------------------------------
     
     if (length(phase) == 2)
-        [N1_slip, N1_born, dtR1] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-        [N2_slip, N2_born, dtR2] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<NASGU>
+        [N1_slip, N1_born, dtR1] = ambiguity_init_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip1, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+        [N2_slip, N2_born, dtR2] = ambiguity_init_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip2, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<NASGU>
         
         %choose one of the two estimates
         dtR = dtR1;
@@ -409,10 +409,10 @@ if (nsat >= min_nsat)
         end
     else
         if (phase == 1)
-            [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-            %[N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr));
+            [N_slip, N_born, dtR] = ambiguity_init_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+            %[N_slip, N_born, dtR] = ambiguity_init_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr1_Rsat(sat_pr), ph1_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr));
         else
-            [N_slip, N_born, dtR] = amb_estimate_LS_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+            [N_slip, N_born, dtR] = ambiguity_init_SA(posR_app, posS(:,sat_pr), dtS(sat_pr), pr2_Rsat(sat_pr), ph2_Rsat(sat_pr), snr_R(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, prRS_app(sat_pr), err_tropo_RS(sat_pr), (lambda2/lambda1)^2 * err_iono_RS(sat_pr), phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
         end
         
         if (check_on)

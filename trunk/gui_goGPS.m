@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 13-Apr-2011 16:08:45
+% Last Modified by GUIDE v2.5 22-Apr-2011 11:06:59
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -262,7 +262,7 @@ snr_a = 30;
 snr_0 = 10;
 snr_1 = 50;
 snr_A = 30;
-amb_estim_select_Callback(handles.amb_estim_select, eventdata, handles);
+amb_select_Callback(handles.amb_select, eventdata, handles);
 dyn_mod_Callback(handles.dyn_mod, eventdata, handles);
 o1 = order;
 o2 = order*2;
@@ -351,6 +351,8 @@ state.toggle_std_dtm = get(handles.toggle_std_dtm,'Value');
 state.std_init = get(handles.std_init,'String');
 state.std_vel = get(handles.std_vel,'String');
 state.cs_thresh = get(handles.cs_thresh,'String');
+state.flag_doppler = get(handles.flag_doppler,'Value');
+state.amb_select = get(handles.amb_select,'Value');
 state.cut_off = get(handles.cut_off,'String');
 state.snr_thres = get(handles.snr_thres,'String');
 state.antenna_h = get(handles.antenna_h,'String');
@@ -422,6 +424,8 @@ set(handles.toggle_std_dtm,'Value', state.toggle_std_dtm);
 set(handles.std_init,'String', state.std_init);
 set(handles.std_vel,'String', state.std_vel);
 set(handles.cs_thresh,'String', state.cs_thresh);
+set(handles.flag_doppler,'Value', state.flag_doppler);
+set(handles.amb_select,'Value', state.amb_select);
 set(handles.cut_off,'String', state.cut_off);
 set(handles.snr_thres,'String', state.snr_thres);
 set(handles.antenna_h,'String', state.antenna_h);
@@ -495,6 +499,7 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
     set(handles.plotproc, 'Enable', 'on');
+    set(handles.flag_doppler, 'Enable', 'off');
     plotproc_Callback(handles.plotproc, eventdata, handles);
 
     nav_mon_Callback(handles.nav_mon, eventdata, handles);
@@ -682,6 +687,8 @@ else
     set(handles.text_stopGOstop, 'Enable', 'off');
     set(handles.dyn_mod, 'Enable', 'off');
     set(handles.text_dyn_mod, 'Enable', 'off');
+    set(handles.flag_doppler, 'Enable', 'off');
+    set(handles.amb_select, 'Enable', 'off');
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -733,6 +740,10 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
     cell_contents{3} = 'Static';
     cell_contents{4} = 'Variable';
     set(handles.dyn_mod, 'String', cell_contents);
+    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
+        set(handles.flag_doppler, 'Enable', 'on');
+    end
+    set(handles.amb_select, 'Enable', 'on');
 elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
@@ -761,6 +772,8 @@ elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     old_value = get(handles.dyn_mod, 'Value');
     if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
     set(handles.dyn_mod, 'String', cell_contents);
+    set(handles.flag_doppler, 'Enable', 'on');
+    set(handles.amb_select, 'Enable', 'off');
 else
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
@@ -788,6 +801,8 @@ else
     old_value = get(handles.dyn_mod, 'Value');
     if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
     set(handles.dyn_mod, 'String', cell_contents);
+    set(handles.flag_doppler, 'Enable', 'off');
+    set(handles.amb_select, 'Enable', 'off');
 end
 
 if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
@@ -994,6 +1009,8 @@ else
     set(handles.text_master_lat_unit, 'Enable', 'off');
     set(handles.text_master_lon_unit, 'Enable', 'off');
     set(handles.text_master_h_unit, 'Enable', 'off');
+    set(handles.flag_doppler, 'Enable', 'off');
+    set(handles.amb_select, 'Enable', 'off');
 
     if (strcmp(contents{get(hObject,'Value')},'Rover monitor'))
 
@@ -2846,28 +2863,28 @@ function flag_doppler_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of flag_doppler
 
 
-% --- Executes on selection change in amb_estim_select.
-function amb_estim_select_Callback(hObject, eventdata, handles)
-% hObject    handle to amb_estim_select (see GCBO)
+% --- Executes on selection change in amb_select.
+function amb_select_Callback(hObject, eventdata, handles)
+% hObject    handle to amb_select (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns amb_estim_select contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from amb_estim_select
-global amb_estim_method
+% Hints: contents = cellstr(get(hObject,'String')) returns amb_select contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from amb_select
+global amb_restart_method
 contents = cellstr(get(hObject,'String'));
 selection = contents{get(hObject,'Value')};
 if (strcmp(selection, 'Observed code - phase difference'))
-    amb_estim_method = 0;
+    amb_restart_method = 0;
 elseif (strcmp(selection, 'Kalman-predicted code - phase difference'))
-    amb_estim_method = 1;
+    amb_restart_method = 1;
 else
-    amb_estim_method = 2;
+    amb_restart_method = 2;
 end
 
 % --- Executes during object creation, after setting all properties.
-function amb_estim_select_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to amb_estim_select (see GCBO)
+function amb_select_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to amb_select (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

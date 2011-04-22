@@ -1,11 +1,11 @@
 function kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
          ph1_Rsat, ph1_Msat, dop1_Rsat, dop1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
-         dop2_Rsat, dop2_Msat, snr_R, snr_M, phase)
+         dop2_Rsat, dop2_Msat, snr_R, snr_M, phase, dtMdot)
 
 % SYNTAX:
 %   kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   ph1_Rsat, ph1_Msat, dop1_Rsat, dop1_Msat, pr2_Rsat, pr2_Msat, ph2_Rsat, ph2_Msat, ...
-%   dop2_Rsat, dop2_Msat, snr_R, snr_M, phase);
+%   dop2_Rsat, dop2_Msat, snr_R, snr_M, phase, dtMdot);
 %
 % INPUT:
 %   pos_M = master known position (X,Y,Z)
@@ -27,6 +27,7 @@ function kalman_goGPS_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   phase = carrier L1 (phase=1) carrier L2 (phase=2)
+%   dtMdot = master receiver clock drift
 %
 % DESCRIPTION:
 %   Kalman filter initialization with the computation of the ROVER
@@ -143,6 +144,21 @@ if (length(sat_pr) >= 4)
     [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
 else
     error('%d satellites are not enough to apply Bancroft algorithm\n', length(sat_pr));
+end
+
+%--------------------------------------------------------------------------------------------
+% SATELLITE POSITION CORRECTION (AND MASTER DOPPLER SHIFT COMPUTATION)
+%--------------------------------------------------------------------------------------------
+for i = 1:size(sat_pr)
+    
+    i_sat = sat_pr(i);
+    
+    %satellite position (with clock error and Earth rotation corrections)
+    [posS(:,i_sat), dt_S, pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1)] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat)); %#ok<ASGLU>
+
+    if (nargin > 19 & ~isempty(dtMdot) & dop1_Msat(i_sat) == 0)
+        [dop1_Msat(i_sat), dop2_Msat(i_sat)] = doppler_shift_approx(pos_M, zeros(3,1), pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1), dtMdot, i_sat, Eph);
+    end
 end
 
 %------------------------------------------------------------------------------------

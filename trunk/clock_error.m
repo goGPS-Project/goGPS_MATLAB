@@ -134,3 +134,5 @@ for i = 1 : length(disc)
         dtRdot(disc(i)) = median([dtRdot(nEpochs-10) dtRdot(nEpochs-1)]);
     end
 end
+
+dtRdot(end+1) = dtRdot(end);

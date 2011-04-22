@@ -173,9 +173,9 @@ for t = 1 : length(time_GPS)
             fclose(fid_eph);
         end
         
-        fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
+        fid_obs = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
         if (~isempty(EphAvailable))
-            fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+            fid_eph = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
         end
         
     end
