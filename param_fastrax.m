@@ -7,7 +7,7 @@ function [out] = param_fastrax
 %   out = data vector
 %
 % DESCRIPTION:
-%   Read fastrax receiver informations.
+%   Read Fastrax receiver informations.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.1.3 alpha
@@ -35,7 +35,7 @@ function [out] = param_fastrax
 out = cell(6,2);
 
 % String Name
-Str_name = 'fastrax';
+Str_name = 'Fastrax';
 
 % BaudRate - Serial
 BaudRate = 115200;
@@ -43,7 +43,7 @@ BaudRate = 115200;
 % Buffer size - USB
 Buffer_size = 92050;
 
-% Minimun number of bytes use to synchronize data
+% Minimun number of bytes used to synchronize data
 Min_bytes = 1000;
 
 % String name in decoding phase (NA = Not Available)

@@ -7,7 +7,7 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, flag
 %
 % INPUT:
 %   filerootOUT = output file prefix
-%   protocol    = protocol (e.g. 0-Ublox, 1-Fastrax, 2-SkyTraq)
+%   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq)
 %   mode_vinc   = constraint flag
 %   flag_ms     = plot master station flag
 %   flag_ge     =  google earth flag
@@ -65,7 +65,6 @@ global master rover
 %------------------------------------------------------
 % read protocol parameters
 %------------------------------------------------------
-% u-blox
 if (protocol == 0)
     prot_par = param_ublox;
 elseif (protocol == 1)
@@ -345,7 +344,7 @@ rover_1 = 0;
 rover_2 = 0;
 
 %starting epoch determination
-while (rover_1 ~= rover_2) || (rover_1 == 0) || (rover_1 < prot_par{4,1})
+while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
 
     %starting time
     current_time = toc;
@@ -557,7 +556,7 @@ while (~sync_rover)
     
     for i = 1 : size(cell_rover,2)
         
-        %RXM-RAW message data save
+        %Timing/raw message data save (RXM-RAW | PSEUDO)
         if (strcmp(cell_rover{1,i},prot_par{1,2}))
             
             %just information about the epoch is saved
@@ -874,7 +873,7 @@ while flag
 
         for i = 1 : size(cell_rover,2)
             
-            % TRACK message data save (only for Fastrax)
+            %Tracking message data save (TRACK)
             if (strcmp(cell_rover{1,i},prot_par{6,2}))
 
                 tick_TRACK    = cell_rover{2,i}(1);
@@ -882,7 +881,7 @@ while flag
                 
                 type = [type prot_par{6,2} ' '];
 
-            %RXM-RAW message data save
+            %Timing/raw message data save (RXM-RAW | PSEUDO)
             elseif (strcmp(cell_rover{1,i},prot_par{1,2}))
 
                 %buffer index computation
@@ -963,7 +962,7 @@ while flag
                     end
                 end
 
-            %Eph message data save
+            %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
             elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
                 %satellite number
@@ -979,7 +978,7 @@ while flag
 
                 nEPH = nEPH + 1;
                 
-            %Hui message data save
+            %Hui message data save (AID-HUI)
             elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
                 
                 %ionosphere parameters

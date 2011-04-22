@@ -1361,15 +1361,7 @@ elseif (mode == 11)
 elseif (mode == 12)
     
     if (flag_stopGOstop == 0)
-        
-        if (protocol_idx == 0)
-            goGPS_ublox_monitor(filerootOUT);
-        elseif (protocol_idx == 1)
-            goGPS_fastrax_monitor(filerootOUT);
-        elseif (protocol_idx == 2)
-            goGPS_skytraq_monitor(filerootOUT);
-        end
-        
+        goGPS_rover_monitor(filerootOUT, protocol_idx);
     else
         goGPS_ublox_monitor_stopGOstop(filerootOUT);
     end
