@@ -1,0 +1,10 @@
+update_settings('../data/settings', 'num_receivers', 1);    
+update_settings('../data/settings', 'com_select_0', 1);
+update_settings('../data/settings', 'com_select_1', 1);
+update_settings('../data/settings', 'com_select_2', 1);
+update_settings('../data/settings', 'com_select_3', 1);
+update_settings('../data/settings', 'protocol_select_0', 1);
+update_settings('../data/settings', 'protocol_select_1', 1);
+update_settings('../data/settings', 'protocol_select_2', 1);
+update_settings('../data/settings', 'protocol_select_3', 1);
+disp('Done!');

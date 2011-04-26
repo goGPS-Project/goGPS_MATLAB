@@ -42,6 +42,9 @@ fclose('all');
 % disable warnings
 warning off;
 
+% include all subdirectories
+addpath(genpath(pwd));
+
 % start evaluating computation time
 tic
 
@@ -367,7 +370,8 @@ if (mode < 10) %post-processing
         date = date(tMin:tMax,:);
     end
 
-    if (mode ~= 2) & (mode ~= 4) & (mode ~= 6)
+    %if processing with master station
+    if (mode == 1) | (mode == 3) | (mode == 5)
         %master station position management
         if (flag_ms_pos) & (sum(abs(pos_M)) ~= 0)
             if (size(pos_M,2) == 1)
@@ -390,6 +394,20 @@ if (mode < 10) %post-processing
         else
             dtM = zeros(size(dop1_M));
             dtMdot = zeros(size(dop1_M));
+        end
+        
+        %check the availability of master data
+        if (sum(sum(abs(pr1_M))) == 0)
+            switch mode
+                case 1, mode = 2;
+                case 3, mode = 4;
+                case 5, mode = 6;
+            end
+            if (mode_user == 1)
+                uiwait(msgbox('Warning: master data not available, forcing STAND-ALONE mode.','','modal'));
+            else
+                fprintf('Warning: master data not available, forcing stand-alone mode.\n');
+            end
         end
     end
 

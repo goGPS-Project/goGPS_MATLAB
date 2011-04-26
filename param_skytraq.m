@@ -35,7 +35,8 @@ function [out] = param_skytraq
 out = cell(6,2);
 
 % String Name
-Str_name = 'SkyTraq';
+Str_name = 'STQ';
+%Str_name = 'SkyTraq';
 
 % BaudRate - Serial
 BaudRate = 115200;

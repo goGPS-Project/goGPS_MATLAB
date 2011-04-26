@@ -35,7 +35,8 @@ function [out] = param_fastrax
 out = cell(6,2);
 
 % String Name
-Str_name = 'Fastrax';
+Str_name = 'FTX';
+%Str_name = 'Fastrax';
 
 % BaudRate - Serial
 BaudRate = 115200;
