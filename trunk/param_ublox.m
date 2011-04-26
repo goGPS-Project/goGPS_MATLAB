@@ -35,7 +35,8 @@ function [out] = param_ublox
 out = cell(6,2);
 
 % String Name
-Str_name = 'u-blox';
+Str_name = 'UBX';
+%Str_name = 'u-blox';
 
 % BaudRate - Serial
 BaudRate = 57600;

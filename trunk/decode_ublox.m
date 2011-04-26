@@ -191,7 +191,7 @@ while (pos + 15 <= length(msg))
                         end
                         
                     else
-                        fprintf('Checksum error!\n');
+                        %fprintf('Checksum error!\n');
                     end
                     
                     % skip the message body
