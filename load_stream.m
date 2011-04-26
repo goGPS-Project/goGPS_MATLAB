@@ -124,22 +124,40 @@ if ~isempty(data_rover_all)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
     pos_STQ = findstr(data_rover_all, codeBIN); % message initial index
+    
+    header1 = '3C';      % Fastrax header (hexadecimal value)
+    header2 = '21';      % Fastrax header (hexadecimal value)
+    codeHEX = [header1 header2];                % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
+    pos_FTX = findstr(data_rover_all, codeBIN); % message initial index
 
-    if (length(pos_UBX) > length(pos_STQ))
+    if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)))
+
         %UBX format decoding
         if (nargin == 2)
             [cell_rover, nmea_sentences] = decode_ublox(data_rover_all, wait_dlg);
         else
             [cell_rover, nmea_sentences] = decode_ublox(data_rover_all);
         end
-    else
+    elseif ((length(pos_STQ) > length(pos_UBX)) && (length(pos_STQ) > length(pos_FTX)))
+
         %SkyTraq format decoding
         if (nargin == 2)
-            [cell_rover, nmea_sentences] = decode_skytraq(data_rover_all, wait_dlg);
+            [cell_rover] = decode_skytraq(data_rover_all, wait_dlg);
         else
-            [cell_rover, nmea_sentences] = decode_skytraq(data_rover_all);
+            [cell_rover] = decode_skytraq(data_rover_all);
         end
+    elseif ((length(pos_FTX) > length(pos_UBX)) && (length(pos_FTX) > length(pos_STQ)))
+
+        %Fastrax format decoding
+        if (nargin == 2)
+            [cell_rover] = decode_fastrax_it03(data_rover_all, wait_dlg);
+        else
+            [cell_rover] = decode_fastrax_it03(data_rover_all);
+        end
+    
     end
+    clear data_rover_all
 
     %initialization (to make the writing faster)
     Ncell  = size(cell_rover,2);                          %number of read UBX messages
@@ -151,6 +169,9 @@ if ~isempty(data_rover_all)
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     Eph_R  = zeros(29,32,Ncell);                          %ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
+    tick_TRACK  = zeros(Ncell,1);
+    tick_PSEUDO = zeros(Ncell,1);
+    phase_TRACK = zeros(32,Ncell);                        %phase observations - TRACK
 
     if (nargin == 2)
         waitbar(0,wait_dlg,'Reading rover data...')
@@ -266,6 +287,49 @@ if ~isempty(data_rover_all)
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0)
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);
+            end
+            
+        %%%%%%%%%%%%%%%%%%%%%% FTX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
+        %TRACK message
+        elseif (strcmp(cell_rover{1,j},'TRACK'))
+            tick_TRACK(i)    = cell_rover{2,j}(1);
+            phase_TRACK(:,i) = cell_rover{3,j}(:,6);
+
+        %PSEUDO message data save
+        elseif (strcmp(cell_rover{1,j},'PSEUDO'))
+            time_R(i)   = cell_rover{2,j}(1);
+            week_R(i)   = cell_rover{2,j}(2);
+            ph1_R(:,i)  = cell_rover{3,j}(:,1);
+            pr1_R(:,i)  = cell_rover{3,j}(:,2);
+            dop1_R(:,i) = cell_rover{3,j}(:,3);
+            snr_R(:,i)  = cell_rover{3,j}(:,6);
+            
+            tick_PSEUDO(i) = cell_rover{2,j}(4);
+
+            if (tick_PSEUDO(i) == tick_TRACK(i))
+            	ph1_R(:,i) = phase_TRACK(:,i);
+            else
+                ph1_R(:,i) = 0;
+            end
+
+%             %manage "nearly null" data
+%             pos = abs(ph1_R(:,i)) < 1e-100;
+%             ph1_R(pos,i) = 0;
+
+            i = i + 1;
+
+            %iono(:, i) = iono(:, i-1);              %previous epoch iono parameters copying            
+            
+        %FTX-EPH message data save
+        elseif (strcmp(cell_rover{1,j},'FTX-EPH'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            tom = cell_rover{2,j}(21);                   %time of measurement
+
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(21,sat,:) ==  tom, 1)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
             end
 
         end
