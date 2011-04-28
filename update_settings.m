@@ -13,7 +13,7 @@ function update_settings(settings_dir_path, field, value)
 %   Utility to update goGPS settings file.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.3 alpha
+%                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -63,7 +63,10 @@ for i = 1 : nmax
                 else
                     if(value ~= -1)
                         %add the new field to 'state' struct
-                        state.(field) = value;
+                        % (if it does not already exist)
+                        if (~isfield(state,field))
+                            state.(field) = value;
+                        end
                     else
                         %remove the specified field from the 'state' struct
                         state = rmfield(state,field);
@@ -77,8 +80,8 @@ for i = 1 : nmax
     end
 end
 
-if (j == 0)
-    error(['No settings file found in folder ' settings_dir_path '.']);
-else
-    fprintf('%d settings files processed.\n', j);
-end
+% if (j == 0)
+%     error(['No settings file found in folder ' settings_dir_path '.']);
+% else
+%     fprintf('%d settings files processed.\n', j);
+% end

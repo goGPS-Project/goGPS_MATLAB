@@ -31,7 +31,7 @@ function goGPS_realtime_stopGOstop(filerootOUT, mode_vinc, flag_ms, flag_ge, fla
 %   positioning, plotting, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.3 alpha
+%                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

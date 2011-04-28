@@ -13,7 +13,7 @@ function goGPS_rover_monitor(filerootOUT, protocol)
 %   also including different protocols.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.3 alpha
+%                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

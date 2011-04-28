@@ -10,7 +10,7 @@ function goGPS_ublox_monitor_stopGOstop(filerootOUT)
 %   u-blox receiver monitor: stream reading, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.3 alpha
+%                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
