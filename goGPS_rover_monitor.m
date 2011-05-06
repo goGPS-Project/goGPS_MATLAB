@@ -35,13 +35,6 @@ function goGPS_rover_monitor(filerootOUT, protocol)
 global COMportR
 global rover
 
-%COMportR{1,1} = 'COM4';
-%COMportR{2,1} = 'COM11';
-%COMportR{3,1} = 'COM33';
-%protocol(1,1) = 0;
-%protocol(2,1) = 0;
-%protocol(3,1) = 1;
-
 %------------------------------------------------------
 % read protocol parameters
 %------------------------------------------------------
@@ -175,8 +168,8 @@ for r = 1 : nrec
                 delete(rover{r});
             end
             % create new serial object
-            rover{r} = serial (COMportR{r},'BaudRate',57600);
-            set(rover{r},'InputBufferSize',16384);
+            rover{r} = serial (COMportR{r},'BaudRate',prot_par{r}{2,1});
+            set(rover{r},'InputBufferSize',prot_par{r}{3,1});
             set(rover{r},'FlowControl','hardware');
             set(rover{r},'RequestToSend','on');
             fopen(rover{r});
@@ -205,8 +198,8 @@ for r = 1 : nrec
                 delete(rover{r});
             end
             % create new serial object
-            rover{r} = serial (COMportR{r},'BaudRate',57600);
-            set(rover{r},'InputBufferSize',16384);
+            rover{r} = serial (COMportR{r},'BaudRate',prot_par{r}{2,1});
+            set(rover{r},'InputBufferSize',prot_par{r}{3,1});
             set(rover{r},'FlowControl','hardware');
             set(rover{r},'RequestToSend','on');
             fopen(rover{r});
@@ -235,8 +228,8 @@ for r = 1 : nrec
                 delete(rover{r});
             end
             % create new serial object
-            rover{r} = serial (COMportR{r},'BaudRate',57600);
-            set(rover{r},'InputBufferSize',16384);
+            rover{r} = serial (COMportR{r},'BaudRate',prot_par{r}{2,1});
+            set(rover{r},'InputBufferSize',prot_par{r}{3,1});
             set(rover{r},'FlowControl','hardware');
             set(rover{r},'RequestToSend','on');
             fopen(rover{r});
@@ -265,8 +258,8 @@ for r = 1 : nrec
                 delete(rover{r});
             end
             % create new serial object
-            rover{r} = serial (COMportR{r},'BaudRate',57600);
-            set(rover{r},'InputBufferSize',16384);
+            rover{r} = serial (COMportR{r},'BaudRate',prot_par{r}{2,1});
+            set(rover{r},'InputBufferSize',prot_par{r}{3,1});
             set(rover{r},'FlowControl','hardware');
             set(rover{r},'RequestToSend','on');
             fopen(rover{r});
@@ -839,21 +832,28 @@ end
 diary off
 
 %------------------------------------------------------
-% RINEX conversion
-%------------------------------------------------------
-
-%visualization
-fprintf('\n');
-fprintf('RINEX CONVERSION\n');
-
-for r = 1 : nrec
-    recname = [prot_par{r}{1,1} num2str(r)];
-    streamR2RINEX([filerootOUT '_' recname],[filerootOUT '_' recname '_rover']);
-end
-
-%------------------------------------------------------
 % tasks at the end of the cycle
 %------------------------------------------------------
 
 %figure closing
 close(f1);
+
+%------------------------------------------------------
+% RINEX conversion
+%------------------------------------------------------
+
+%dialog
+selection = questdlg('Do you want to decode the binary streams and create RINEX files?',...
+    'Request Function',...
+    'Yes','No','Yes');
+switch selection,
+    case 'Yes',
+        %visualization
+        fprintf('\n');
+        fprintf('RINEX CONVERSION\n');
+        
+        for r = 1 : nrec
+            recname = [prot_par{r}{1,1} num2str(r)];
+            streamR2RINEX([filerootOUT '_' recname],[filerootOUT '_' recname '_rover']);
+        end
+end
