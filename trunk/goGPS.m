@@ -1410,7 +1410,7 @@ elseif (mode == 13)
 elseif (mode == 14)
 
     if (flag_stopGOstop == 0)
-        goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
+        goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, pos_M);
     else
         goGPS_realtime_monitor_stopGOstop(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
     end
