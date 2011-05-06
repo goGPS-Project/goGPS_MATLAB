@@ -1,10 +1,11 @@
-function goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M)
+function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, pos_M)
 
 % SYNTAX:
-%   goGPS_realtime_monitor(filerootOUT, flag_NTRIP, flag_ms_pos, pos_M);
+%   goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, pos_M);
 %
 % INPUT:
 %   filerootOUT = output file prefix
+%   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq)
 %   flag_NTRIP = use/don't use NTRIP flag
 %   flag_ms_pos = use/don't use RTCM master position
 %   pos_M = master station position (X,Y,Z)
@@ -40,6 +41,17 @@ global nmea_init nmea_update_rate
 global master rover
 
 %------------------------------------------------------
+% read protocol parameters
+%------------------------------------------------------
+if (protocol == 0)
+    prot_par = param_ublox;
+elseif (protocol == 1)
+    prot_par = param_fastrax;
+elseif (protocol == 2)
+    prot_par = param_skytraq;
+end
+
+%------------------------------------------------------
 % data file creation
 %------------------------------------------------------
 
@@ -70,7 +82,7 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %nmea sentences
-fid_nmea = fopen([filerootOUT '_rover_NMEA.txt'],'wt');
+fid_nmea = fopen([filerootOUT '_', prot_par{1,1},'_NMEA.txt'],'wt');
 
 %"file hour" variable
 hour = 0;
@@ -98,124 +110,21 @@ if ~isempty(obj1)
 end
 
 % serial object creation
-rover = serial (COMportR,'BaudRate',57600);
-set(rover,'InputBufferSize',16384);
-set(rover,'FlowControl','hardware');
-set(rover,'RequestToSend','on');
+rover = serial (COMportR,'BaudRate',prot_par{2,1});
+set(rover,'InputBufferSize',prot_par{3,1});
+if (protocol ~= 2)
+    set(rover,'FlowControl','hardware');
+    set(rover,'RequestToSend','on');
+end
 fopen(rover);
 
-%------------------------------------------------------
-% u-blox rover configuration
-%------------------------------------------------------
+if (protocol == 0)
+    %------------------------------------------------------
+    % u-blox rover configuration
+    %------------------------------------------------------
 
-% save receiver configuration
-fprintf('Saving u-blox receiver configuration...\n');
-
-reply_save = ublox_CFG_CFG(rover, 'save');
-tries = 0;
-
-while (~reply_save)
-    tries = tries + 1;
-    if (tries > 3)
-        disp('It was not possible to save the receiver configuration.');
-        break
-    end
-    %close and delete old serial object
-    try
-        fclose(rover);
-        delete(rover);
-    catch
-        stopasync(rover);
-        fclose(rover);
-        delete(rover);
-    end
-    % create new serial object
-    rover = serial(COMportR,'BaudRate',57600);
-    set(rover,'InputBufferSize',16384);
-    set(rover,'FlowControl','hardware');
-    set(rover,'RequestToSend','on');
-    fopen(rover);
-    reply_save = ublox_CFG_CFG(rover, 'save');
+    [rover, reply_save] = configure_ublox(rover, COMportR, prot_par, 1);
 end
-
-% set output rate to 1Hz
-fprintf('Setting measurement rate to 1Hz...\n');
-
-reply_RATE = ublox_CFG_RATE(rover, 1000, 1, 1);
-tries = 0;
-
-while (~reply_RATE)
-    tries = tries + 1;
-    if (tries > 3)
-        disp('It was not possible to set the receiver output rate to 1Hz.');
-        break
-    end
-    %close and delete old serial object
-    try
-        fclose(rover);
-        delete(rover);
-    catch
-        stopasync(rover);
-        fclose(rover);
-        delete(rover);
-    end
-    % create new serial object
-    rover = serial(COMportR,'BaudRate',57600);
-    set(rover,'InputBufferSize',16384);
-    set(rover,'FlowControl','hardware');
-    set(rover,'RequestToSend','on');
-    fopen(rover);
-    reply_RATE = ublox_CFG_RATE(rover, 1000, 1, 1);
-end
-
-% enable raw measurements output
-fprintf('Enabling u-blox receiver RAW measurements...\n');
-
-reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
-tries = 0;
-
-while (~reply_RAW)
-    tries = tries + 1;
-    if (tries > 3)
-        disp('It was not possible to configure the receiver to provide RAW data.');
-        break
-    end
-    %close and delete old serial object
-    try
-        fclose(rover);
-        delete(rover);
-    catch
-        stopasync(rover);
-        fclose(rover);
-        delete(rover);
-    end
-    % create new serial object
-    rover = serial(COMportR,'BaudRate',57600);
-    set(rover,'InputBufferSize',16384);
-    set(rover,'FlowControl','hardware');
-    set(rover,'RequestToSend','on');
-    fopen(rover);
-    reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
-end
-
-% disable NMEA messages
-fprintf('Disabling u-blox receiver NMEA messages...\n');
-
-% ublox_CFG_MSG(rover, 'NMEA', 'GGA', 0); fprintf('GGA ');
-ublox_CFG_MSG(rover, 'NMEA', 'GLL', 0); fprintf('GLL ');
-ublox_CFG_MSG(rover, 'NMEA', 'GSA', 0); fprintf('GSA ');
-ublox_CFG_MSG(rover, 'NMEA', 'GSV', 0); fprintf('GSV ');
-ublox_CFG_MSG(rover, 'NMEA', 'RMC', 0); fprintf('RMC ');
-ublox_CFG_MSG(rover, 'NMEA', 'VTG', 0); fprintf('VTG ');
-ublox_CFG_MSG(rover, 'NMEA', 'GRS', 0); fprintf('GRS ');
-ublox_CFG_MSG(rover, 'NMEA', 'GST', 0); fprintf('GST ');
-ublox_CFG_MSG(rover, 'NMEA', 'ZDA', 0); fprintf('ZDA ');
-ublox_CFG_MSG(rover, 'NMEA', 'GBS', 0); fprintf('GBS ');
-ublox_CFG_MSG(rover, 'NMEA', 'DTM', 0); fprintf('DTM ');
-ublox_CFG_MSG(rover, 'PUBX', '00', 0); fprintf('PUBX00 ');
-ublox_CFG_MSG(rover, 'PUBX', '01', 0); fprintf('PUBX01 ');
-ublox_CFG_MSG(rover, 'PUBX', '03', 0); fprintf('PUBX03 ');
-ublox_CFG_MSG(rover, 'PUBX', '04', 0); fprintf('PUBX04\n');
 
 %------------------------------------------------------
 % absolute time start
@@ -241,7 +150,7 @@ rover_1 = 0;
 rover_2 = 0;
 
 %starting epoch determination
-while (rover_1 ~= rover_2) | (rover_1 == 0)
+while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
 
     %starting time
     current_time = toc;
@@ -252,7 +161,7 @@ while (rover_1 ~= rover_2) | (rover_1 == 0)
     rover_2 = get(rover,'BytesAvailable');
 
     %visualization
-    fprintf('u-blox: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time, rover_1, rover_2);
+    fprintf([prot_par{1,1},': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1, rover_2);
 
 end
 
@@ -280,17 +189,27 @@ satEph = [];
 
 while(length(satObs) < 4 | ~ismember(satObs,satEph))
 
-    %poll available ephemerides
-    ublox_poll_message(rover, 'AID', 'EPH', 0);
+    if (protocol == 0)
+        %poll available ephemerides
+        ublox_poll_message(rover, 'AID', 'EPH', 0);
+        
+        %wait for asynchronous write to finish
+        pause(0.1);
+
+        %poll AID-HUI message (sat. Health / UTC / Ionosphere)
+        ublox_poll_message(rover, 'AID', 'HUI', 0);
+
+        %wait for asynchronous write to finish
+        pause(0.1);
+    end
     
-    %wait for asynchronous write to finish
-    pause(0.1);
-    
-    %poll AID-HUI message (sat. Health / UTC / Ionosphere)
-    ublox_poll_message(rover, 'AID', 'HUI', 0);
-    
-    %wait for asynchronous write to finish
-    pause(0.1);
+    if (protocol == 2)
+        %poll available ephemerides
+        skytraq_poll_message(rover, '30', 0);
+
+        %wait for asynchronous write to finish
+        pause(0.1);
+    end
 
     %initialization
     rover_1 = 0;
@@ -315,19 +234,42 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
     data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
 
     %message decoding
-    [cell_rover] = decode_ublox(data_rover);
+    if (protocol == 0)
+        [cell_rover] = decode_ublox(data_rover);
+    elseif (protocol == 1)
+        [cell_rover] = decode_fastrax_it03(data_rover);
+    elseif (protocol == 2)
+        [cell_rover] = decode_skytraq(data_rover);
+    end
+    
+    %for SkyTraq
+	IOD_time = -1;
 
     for i = 1 : size(cell_rover,2)
 
-        %RXM-RAW message data save
-        if (strcmp(cell_rover{1,i},'RXM-RAW'))
+        %Timing/raw message data save (RXM-RAW | PSEUDO)
+        if (strcmp(cell_rover{1,i},prot_par{1,2}))
 
             %just information needed for basic positioning is saved
             time_GPS  = round(cell_rover{2,i}(1));
             pr_R(:,1) = cell_rover{3,i}(:,2);
+        
+        %Timing message data save (MEAS_TIME)
+        elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
             
-        %AID-EPH message data save
-        elseif (strcmp(cell_rover{1,i},'AID-EPH'))
+            IOD_time = cell_rover{2,i}(1);
+            time_GPS = cell_rover{2,i}(3);
+            
+        %Raw message data save (RAW_MEAS)
+        elseif (strcmp(cell_rover{1,i},prot_par{5,2}))
+            
+            IOD_raw = cell_rover{2,i}(1);
+            if (IOD_raw == IOD_time)
+                pr_R = cell_rover{3,i}(:,3);
+            end
+            
+        %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
+        elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
             %satellite number
             sat = cell_rover{2,i}(1);
@@ -336,8 +278,9 @@ while(length(satObs) < 4 | ~ismember(satObs,satEph))
                 Eph(:, sat) = cell_rover{2,i}(:);
             end
 
-        %AID-HUI message data save
-        elseif (strcmp(cell_rover{1,i},'AID-HUI'))
+            
+        %Hui message data save (AID-HUI)
+        elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
 
             %ionosphere parameters
             iono(:, 1) = cell_rover{3,i}(9:16);
@@ -386,7 +329,7 @@ sync_rover = 0;
 while (~sync_rover)
     
     %starting epoch determination
-    while (rover_1 ~= rover_2) | (rover_1 == 0)
+    while (rover_1 ~= rover_2) || (rover_1 == 0) || (rover_1 < prot_par{4,1})
         
         %starting time
         current_time = toc;
@@ -397,7 +340,7 @@ while (~sync_rover)
         rover_2 = get(rover,'BytesAvailable');
         
         %visualization
-        fprintf('u-blox: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time, rover_1, rover_2);
+        fprintf([prot_par{1,1},': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1, rover_2);
         
     end
     
@@ -407,15 +350,29 @@ while (~sync_rover)
     data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
     
     %message decoding
-    [cell_rover] = decode_ublox(data_rover);
+    if (protocol == 0)
+        [cell_rover] = decode_ublox(data_rover);
+    elseif (protocol == 1)
+        [cell_rover] = decode_fastrax_it03(data_rover);
+    elseif (protocol == 2)
+        [cell_rover] = decode_skytraq(data_rover);
+    end
     
     for i = 1 : size(cell_rover,2)
         
-        %RXM-RAW message data save
-        if (strcmp(cell_rover{1,i},'RXM-RAW'))
+        %Timing/raw message data save (RXM-RAW | PSEUDO)
+        if (strcmp(cell_rover{1,i},prot_par{1,2}))
             
             %just information about the epoch is saved
             time_GPS = round(cell_rover{2,i}(1));
+            week_GPS = cell_rover{2,i}(2);
+            
+            sync_rover = 1;
+            
+        %Timing message data save (MEAS_TIME)
+        elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
+
+            time_GPS = cell_rover{2,i}(3);
             week_GPS = cell_rover{2,i}(2);
             
             sync_rover = 1;
@@ -632,7 +589,7 @@ while flag
     end
 
     %visualization
-    fprintf('u-blox: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, rover_1, rover_2);
+    fprintf([prot_par{1,1},': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time-start_time, rover_1, rover_2);
 
     %-------------------------------------
 
@@ -684,22 +641,47 @@ while flag
         data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
 
         %message decoding
-        [cell_rover, nmea_sentences] = decode_ublox(data_rover);
+        if (protocol == 0)
+            [cell_rover, nmea_sentences] = decode_ublox(data_rover);
+        elseif (protocol == 1)
+            [cell_rover] = decode_fastrax_it03(data_rover);
+            nmea_sentences = [];
+        elseif (protocol == 2)
+            [cell_rover] = decode_skytraq(data_rover);
+            nmea_sentences = [];
+        end
 
         %data type counters
-        nRAW = 0;
         nEPH = 0;
         nHUI = 0;
+        
+        %for Fastrax
+        tick_TRACK = 0;
+        
+        %for SkyTraq
+        IOD_time = -1;
 
         for i = 1 : size(cell_rover,2)
 
-            %RXM-RAW message data save
-            if (strcmp(cell_rover{1,i},'RXM-RAW'))
+            %Tracking message data save (TRACK)
+            if (strcmp(cell_rover{1,i},prot_par{6,2}))
+
+                tick_TRACK    = cell_rover{2,i}(1);
+                phase_TRACK   = cell_rover{3,i}(:,6);
+                
+                type = [type prot_par{6,2} ' '];
+
+            %Timing/raw message data save (RXM-RAW | PSEUDO)
+            elseif (strcmp(cell_rover{1,i},prot_par{1,2}))
 
                 %buffer index computation
                 index = time_GPS - round(cell_rover{2,i}(1)) + 1;
-
+                
                 if (index <= B)
+                    while (index < 1)
+                        time_GPS = time_GPS + 1;
+                        index = time_GPS - round(cell_rover{2,i}(1)) + 1;
+                    end
 
                     %buffer writing
                     tick_R(index)  = 1;
@@ -709,6 +691,12 @@ while flag
                     ph_R(:,index)  = cell_rover{3,i}(:,1);
                     dop_R(:,index) = cell_rover{3,i}(:,3);
                     snr_R(:,index) = cell_rover{3,i}(:,6);
+
+                    %phase computation (only for Fastrax)
+                    tick_PSEUDO = cell_rover{2,i}(4);
+                    if (protocol == 1 & tick_TRACK == tick_PSEUDO)
+                        ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0);
+                    end
 
                     %manage "nearly null" data
                     pos = abs(ph_R(:,index)) < 1e-100;
@@ -720,14 +708,52 @@ while flag
 %                     n = floor( (pr_R(pos,index)/lambda1-ph_R(pos,index)) / ambig + 0.5 );
 %                     ph_R(pos,index) = ph_R(pos,index) + n*ambig;
 
-                    type = [type 'RXM-RAW '];
-
-                    nRAW = nRAW + 1;
-
+                    type = [type prot_par{1,2} ' '];
                 end
                 
-            %AID-EPH message data save
-            elseif (strcmp(cell_rover{1,i},'AID-EPH'))
+            %Timing message data save (MEAS_TIME)
+            elseif (strcmp(cell_rover{1,i},prot_par{4,2}))
+                
+                IOD_time = cell_rover{2,i}(1);
+                time_stq = cell_rover{2,i}(3);
+                week_stq = cell_rover{2,i}(2);
+                
+                type = [type prot_par{4,2} ' '];
+                
+            %Raw message data save (RAW_MEAS)
+            elseif (strcmp(cell_rover{1,i},prot_par{5,2}))
+                
+                IOD_raw = cell_rover{2,i}(1);
+                if (IOD_raw == IOD_time)
+
+                    %buffer index computation
+                    index = time_GPS - time_stq + 1;
+                    
+                    if (index <= B)
+                        while (index < 1)
+                            time_GPS = time_GPS + 1;
+                            index = time_GPS - time_stq + 1;
+                        end
+                        
+                        %buffer writing
+                        tick_R(index)  = 1;
+                        time_R(index)  = round(time_stq);
+                        week_R(index)  = week_stq;
+                        pr_R(:,index)  = cell_rover{3,i}(:,3);
+                        ph_R(:,index)  = cell_rover{3,i}(:,4);
+                        snr_R(:,index) = cell_rover{3,i}(:,2);
+                        dop_R(:,index) = cell_rover{3,i}(:,5);
+                        
+                        %manage "nearly null" data
+                        pos = abs(ph_R(:,index)) < 1e-100;
+                        ph_R(pos,index) = 0;
+                        
+                        type = [type prot_par{5,2} ' '];
+                    end
+                end
+
+            %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
+            elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
                 %satellite number
                 sat = cell_rover{2,i}(1);
@@ -737,19 +763,19 @@ while flag
                 end
 
                 if (nEPH == 0)
-                    type = [type 'AID-EPH '];
+                    type = [type prot_par{2,2} ' '];
                 end
 
                 nEPH = nEPH + 1;
                 
-            %AID-HUI message data save
-            elseif (strcmp(cell_rover{1,i},'AID-HUI'))
+            %Hui message data save (AID-HUI)
+            elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
                 
                 %ionosphere parameters
                 iono(:, 1) = cell_rover{3,i}(9:16);
                 
                 if (nHUI == 0)
-                    type = [type 'AID-HUI '];
+                    type = [type prot_par{3,2} ' '];
                 end
                 nHUI = nHUI + 1;
 
@@ -779,7 +805,7 @@ while flag
     sat = union(sat_pr,sat_ph);          %satellites with code or phase available
 
     fprintf('decoding: %7.4f sec (%smessages)\n', current_time-start_time, type);
-    fprintf('GPStime=%d (%d satellites)\n', time_R(i), length(sat));
+    fprintf('GPStime=%7.4f (%d satellites)\n', time_R(i), length(sat));
 
     fprintf('P1 SAT:');
     for j = 1 : length(sat_pr)
@@ -863,8 +889,13 @@ while flag
 
                 %if ephemeris i is not present OR ephemeris i is too old
                 if (conf_eph(i) == 1) | (tk > 3600)
-                    ublox_poll_message(rover, 'AID', 'EPH', 1, dec2hex(s,2));
-                    fprintf('Satellite %d ephemeris polled\n', s);
+                    if (protocol == 0)
+                        ublox_poll_message(rover, 'AID', 'EPH', 1, dec2hex(s,2));
+                        fprintf('Satellite %d ephemeris polled\n', s);
+                    elseif (protocol == 2)
+                        skytraq_poll_message(rover, '30', s);
+                        fprintf('Satellite %d ephemeris polled\n', s);
+                    end
                     check = 1;
                 end
             end
@@ -1188,7 +1219,7 @@ while flag
 
         %fprintf('MSG types: %s\n', type);
         fprintf('decoding: %7.4f sec (%smessages)\n', current_time-start_time, type);
-        fprintf('GPStime=%d (%d satellites)\n', time_M(i), length(sat));
+        fprintf('GPStime=%7.4f (%d satellites)\n', time_M(i), length(sat));
 
         fprintf('P1 SAT:');
         for p = 1 : length(sat_pr)
@@ -1617,20 +1648,22 @@ end
 % tasks at the end of the cycle
 %------------------------------------------------------
 
-%load u-blox saved configuration
-if (reply_save)
-    fprintf('Restoring saved u-blox receiver configuration...\n');
-
-    reply_load = ublox_CFG_CFG(rover, 'load');
-    tries = 0;
-
-    while (reply_save & ~reply_load)
-        tries = tries + 1;
-        if (tries > 3)
-            disp('It was not possible to reload the receiver previous configuration.');
-            break
-        end
+if (protocol == 0)
+    %load u-blox saved configuration
+    if (reply_save)
+        fprintf('Restoring saved u-blox receiver configuration...\n');
+        
         reply_load = ublox_CFG_CFG(rover, 'load');
+        tries = 0;
+        
+        while (reply_save & ~reply_load)
+            tries = tries + 1;
+            if (tries > 3)
+                disp('It was not possible to reload the receiver previous configuration.');
+                break
+            end
+            reply_load = ublox_CFG_CFG(rover, 'load');
+        end
     end
 end
 

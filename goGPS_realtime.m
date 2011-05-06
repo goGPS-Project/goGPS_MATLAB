@@ -180,144 +180,7 @@ if (protocol == 0)
     % u-blox rover configuration
     %------------------------------------------------------
 
-    % save receiver configuration
-    fprintf('Saving u-blox receiver configuration...\n');
-
-    reply_save = ublox_CFG_CFG(rover, 'save');
-    tries = 0;
-
-    while (~reply_save)
-        tries = tries + 1;
-        if (tries > 3)
-            disp('It was not possible to save the receiver configuration.');
-            break
-        end
-        %close and delete old serial object
-        try
-            fclose(rover);
-            delete(rover);
-        catch
-            stopasync(rover);
-            fclose(rover);
-            delete(rover);
-        end
-        % create new serial object
-        rover = serial (COMportR,'BaudRate',prot_par{2,1});
-        set(rover,'InputBufferSize',prot_par{3,1});
-        set(rover,'FlowControl','hardware');
-        set(rover,'RequestToSend','on');
-        fopen(rover);
-        reply_save = ublox_CFG_CFG(rover, 'save');
-    end
-
-    % set output rate to 1Hz
-    fprintf('Setting measurement rate to 1Hz...\n');
-
-    reply_RATE = ublox_CFG_RATE(rover, 1000, 1, 1);
-    tries = 0;
-
-    while (~reply_RATE)
-        tries = tries + 1;
-        if (tries > 3)
-            disp('It was not possible to set the receiver output rate to 1Hz.');
-            break
-        end
-        %close and delete old serial object
-        try
-            fclose(rover);
-            delete(rover);
-        catch
-            stopasync(rover);
-            fclose(rover);
-            delete(rover);
-        end
-        % create new serial object
-        rover = serial (COMportR,'BaudRate',prot_par{2,1});
-        set(rover,'InputBufferSize',prot_par{3,1});
-        set(rover,'FlowControl','hardware');
-        set(rover,'RequestToSend','on');
-        fopen(rover);
-        reply_RATE = ublox_CFG_RATE(rover, 1000, 1, 1);
-    end
-
-    % enable raw measurements output
-    fprintf('Enabling u-blox receiver RAW measurements...\n');
-
-    reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
-    tries = 0;
-
-    while (~reply_RAW)
-        tries = tries + 1;
-        if (tries > 3)
-            disp('It was not possible to configure the receiver to provide RAW data.');
-            break
-        end
-        %close and delete old serial object
-        try
-            fclose(rover);
-            delete(rover);
-        catch
-            stopasync(rover);
-            fclose(rover);
-            delete(rover);
-        end
-        % create new serial object
-        rover = serial (COMportR,'BaudRate',prot_par{2,1});
-        set(rover,'InputBufferSize',prot_par{3,1});
-        set(rover,'FlowControl','hardware');
-        set(rover,'RequestToSend','on');
-        fopen(rover);
-        reply_RAW = ublox_CFG_MSG(rover, 'RXM', 'RAW', 1);
-    end
-
-    % disable subframe buffer output
-    fprintf('Disabling u-blox receiver subframe buffer (SFRB) messages...\n');
-    
-    reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 0);
-    tries = 0;
-    
-    while (~reply_SFRB)
-        tries = tries + 1;
-        if (tries > 3)
-            disp('It was not possible to disable SFRB messages.');
-            break
-        end
-        %close and delete old serial object
-        try
-            fclose(rover);
-            delete(rover);
-        catch
-            stopasync(rover);
-            fclose(rover);
-            delete(rover);
-        end
-        % create new serial object
-        rover = serial (COMportR,'BaudRate',prot_par{2,1});
-        set(rover,'InputBufferSize',prot_par{3,1});
-        set(rover,'FlowControl','hardware');
-        set(rover,'RequestToSend','on');
-        fopen(rover);
-        reply_SFRB = ublox_CFG_MSG(rover, 'RXM', 'SFRB', 0);
-    end
-    
-    % enable GGA messages, disable all other NMEA messages
-    fprintf('Configuring u-blox receiver NMEA messages:\n');
-    
-    ublox_CFG_MSG(rover, 'NMEA', 'GGA', 1); fprintf('Enabling GGA...\n');
-    ublox_CFG_MSG(rover, 'NMEA', 'GLL', 0); fprintf('Disabling GLL ');
-    ublox_CFG_MSG(rover, 'NMEA', 'GSA', 0); fprintf('GSA ');
-    ublox_CFG_MSG(rover, 'NMEA', 'GSV', 0); fprintf('GSV ');
-    ublox_CFG_MSG(rover, 'NMEA', 'RMC', 0); fprintf('RMC ');
-    ublox_CFG_MSG(rover, 'NMEA', 'VTG', 0); fprintf('VTG ');
-    ublox_CFG_MSG(rover, 'NMEA', 'GRS', 0); fprintf('GRS ');
-    ublox_CFG_MSG(rover, 'NMEA', 'GST', 0); fprintf('GST ');
-    ublox_CFG_MSG(rover, 'NMEA', 'ZDA', 0); fprintf('ZDA ');
-    ublox_CFG_MSG(rover, 'NMEA', 'GBS', 0); fprintf('GBS ');
-    ublox_CFG_MSG(rover, 'NMEA', 'DTM', 0); fprintf('DTM ');
-    ublox_CFG_MSG(rover, 'PUBX', '00', 0); fprintf('PUBX00 ');
-    ublox_CFG_MSG(rover, 'PUBX', '01', 0); fprintf('PUBX01 ');
-    ublox_CFG_MSG(rover, 'PUBX', '03', 0); fprintf('PUBX03 ');
-    ublox_CFG_MSG(rover, 'PUBX', '04', 0); fprintf('PUBX04\n');
+    [rover, reply_save] = configure_ublox(rover, COMportR, prot_par, 1);
 end
 
 %------------------------------------------------------
@@ -1077,7 +940,6 @@ while flag
                         skytraq_poll_message(rover, '30', s);
                         fprintf('Satellite %d ephemeris polled\n', s);
                     end
-                    % -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
                     check = 1;
                 end
             end
@@ -1407,7 +1269,7 @@ while flag
 
         %fprintf('MSG types: %s\n', type);
         fprintf('decoding: %7.4f sec (%smessages)\n', current_time-start_time, type);
-        fprintf('GPStime=%d (%d satellites)\n', time_M(i), length(sat));
+        fprintf('GPStime=%7.4f (%d satellites)\n', time_M(i), length(sat));
 
         fprintf('P1 SAT:');
         for p = 1 : length(sat_pr)
