@@ -1395,17 +1395,6 @@ elseif (mode == 12)
         goGPS_ublox_monitor_stopGOstop(filerootOUT);
     end
 
-    %dialog
-    selection = questdlg('Do you want to run goGPS binary stream decoder to create RINEX / goGPS binary files?',...
-        'Request Function',...
-        'Yes','No','Yes');
-    switch selection,
-        case 'Yes',
-            gui_decode_stream([filerootOUT]);
-        case 'No'
-            return
-    end
-
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: MASTER MONITORING
 %----------------------------------------------------------------------------------------------
