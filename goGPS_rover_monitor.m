@@ -146,7 +146,7 @@ for r = 1 : nrec
         % only one connection can be opened in writing mode
         fopen(rover{r});
 
-        [rover, reply_save] = configure_ublox(rover{r}, COMportR{r}, prot_par{r}, 1);
+        [rover{r}, reply_save] = configure_ublox(rover{r}, COMportR{r}, prot_par{r}, 1);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
