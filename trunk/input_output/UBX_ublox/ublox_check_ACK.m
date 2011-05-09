@@ -80,12 +80,11 @@ end
 reply = fread(serialObj, reply_1, 'uint8');
 
 % search for acknowledge in reply
-[null,index] = intersect(reply,ACK_DEC(1:4)); %#ok<ASGLU> 
-index = sort(index);
+index = strfind(reply',ACK_DEC(1:4)');
 
-if (~isempty(index)) & (length(reply(index(1):end)) >= 10)
+if (~isempty(index))
     % extract acknowledge message from reply
-    reply = reply(index(1):index(1)+9);
+    reply = reply(index:index+9);
 
     if (reply == ACK) %#ok<BDSCI>
         out = 1;
