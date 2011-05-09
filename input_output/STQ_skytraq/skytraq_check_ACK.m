@@ -1,16 +1,17 @@
-function skytraq_poll_message(serialObj, MsgID, parameter)
+function [out] = skytraq_check_ACK(serialObj, MsgID)
 
 % SYNTAX:
-%   skytraq_poll_message(serialObj, MsgID, parameter);
+%   [out] = skytraq_check_ACK(serialObj, MsgID);
 %
 % INPUT:
 %   serialObj = serial Object identifier
-%   MsgIDLab  = SkyTraq message ID ('11' = almanac; '30' = ephemeris)
-%   parameter = parameter sent to poll all satellites or one specific
-%               satellite data (0 = all; 1-32 specific satellite)
+%   MsgID  = message ID of the requested message (hex)
+%
+% OUTPUT:
+%   out = acknowledge outcome
 %
 % DESCRIPTION:
-%   Poll SkyTraq alamanac or ephemeris.
+%   Check acknowledge reply after polling SkyTraq messages.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
@@ -32,20 +33,22 @@ function skytraq_poll_message(serialObj, MsgID, parameter)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+out = 0;
+
 header1 = 'A0';                            % header init (hexadecimal value)
 header2 = 'A1';                            % header init (hexadecimal value)
 
 header3 = '0D';                            % header close (hexadecimal value)
 header4 = '0A';                            % header close (hexadecimal value)
 
+ID  = 131;
 payload_length = 2;
-ID  = hex2dec(MsgID);
-message_body = parameter;
+message_body = MsgID;
 
 codeHEX = [header1; header2];
 HDR = hex2dec(codeHEX);
 
-codeDEC = [HDR; 0; payload_length; ID; message_body];
+ACK_DEC = [HDR; 0; payload_length; ID; message_body];
 
 % checksum
 CS = 0;
@@ -55,20 +58,44 @@ CS = bitxor(CS,message_body);
 codeHEX = [header3; header4];
 HDR = hex2dec(codeHEX);
 
-codeDEC = [codeDEC; CS; HDR];
+ACK_DEC = [ACK_DEC; CS; HDR];
 
-% %serial port checking
-% reply_1 = get(serialObj, 'BytesAvailable');
-%
-% if (reply_1 ~= 0)
-%     %clear the serial port (data not decoded)
-%     reply = fread(serialObj, reply_1, 'uint8');
-% end
+%time acquisition
+start_time = toc;
 
-% send message
-% try
-    fwrite(serialObj, codeDEC, 'uint8', 'async');
-% catch
-%     stopasync(serialObj);
-%     fwrite(serialObj, codeDEC, 'uint8', 'async');
-% end
+%maximum waiting time
+dtMax = 0.5;
+
+reply_1 = 0;
+reply_2 = 0;
+
+while (reply_1 ~= reply_2) | (reply_1 == 0)
+    
+    %time acquisition
+    current_time = toc;
+    
+    %check if maximum waiting time is expired
+    if (current_time - start_time > dtMax)
+        return
+    end
+    
+    % serial port checking
+    reply_1 = get(serialObj, 'BytesAvailable');
+    pause(0.1);
+    reply_2 = get(serialObj, 'BytesAvailable');
+end
+
+reply = fread(serialObj, reply_1, 'uint8');
+
+% search for acknowledge in reply
+[null,index] = intersect(reply,ACK_DEC(1:6)); %#ok<ASGLU> 
+index = sort(index);
+
+if (~isempty(index)) & (length(reply(index(1):end)) >= 9)
+    % extract acknowledge message from reply
+    reply = reply(index(1):index(1)+8);
+
+    if (reply == ACK_DEC) %#ok<BDSCI>
+        out = 1;
+    end
+end
