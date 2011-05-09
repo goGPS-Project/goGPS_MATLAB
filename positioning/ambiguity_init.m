@@ -119,9 +119,8 @@ nsat_amb = nsat_slip + nsat_born;
 s = 1;
 b = 1;
 
-%if the number of observations is not sufficient to apply least squares adjustment
-%or if the selected method is observed code - phase comparison
-if (nsat_pr + nsat - 2 <= 3 + nsat - 1) | (amb_restart_method == 0)
+%if the selected method is observed code - phase comparison
+if (amb_restart_method == 0)
     
     for i = 1 : nsat_pr
         
