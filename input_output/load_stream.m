@@ -54,8 +54,6 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global lambda1
-
 nmea_sentences = cell(0);
 
 if (nargin == 2)
@@ -157,7 +155,6 @@ if ~isempty(data_rover_all)
         end
     
     end
-    clear data_rover_all
 
     %initialization (to make the writing faster)
     Ncell  = size(cell_rover,2);                          %number of read UBX messages
@@ -199,14 +196,6 @@ if ~isempty(data_rover_all)
             %manage "nearly null" data
             pos = abs(ph1_R(:,i)) < 1e-100;
             ph1_R(pos,i) = 0;
-
-%             %phase adjustement
-%             pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
-%             if(sum(pos) ~= 0)
-%                 ambig = 2^23;
-%                 n = floor((pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
-%                 ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
-%             end
 
             i = i + 1;
 
