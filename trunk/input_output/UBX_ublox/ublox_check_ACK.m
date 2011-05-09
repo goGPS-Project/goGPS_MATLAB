@@ -1,12 +1,12 @@
-function [out] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab)
+function [out] = ublox_check_ACK(serialObj, Class, MsgID)
 
 % SYNTAX:
-%   [out] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab);
+%   [out] = ublox_check_ACK(serialObj, Class, MsgID);
 %
 % INPUT:
 %   serialObj = serial Object identifier
-%   ClassLab  = u-blox message class (label - e.g. 'RXM')
-%   MsgIDLab  = u-blox message ID (label - e.g. 'RAW')
+%   Class  = u-blox message class (hexadecimal value)
+%   MsgID  = u-blox message ID (hexadecimal value)
 %
 % OUTPUT:
 %   out = acknowledge outcome
@@ -37,7 +37,7 @@ function [out] = ublox_check_ACK(serialObj, ClassLab, MsgIDLab)
 out = 0;
 
 % ACK-ACK message (without checksum)
-ACK_HEX = ['B5'; '62'; '05'; '01'; '02'; '00'; ClassLab; MsgIDLab];
+ACK_HEX = ['B5'; '62'; '05'; '01'; '02'; '00'; Class; MsgID];
 ACK_DEC = hex2dec(ACK_HEX);
 
 % checksum
@@ -81,10 +81,11 @@ reply = fread(serialObj, reply_1, 'uint8');
 
 % search for acknowledge in reply
 [null,index] = intersect(reply,ACK_DEC(1:4)); %#ok<ASGLU> 
+index = sort(index);
 
-if (~isempty(index)) & (length(reply(index(end):end)) >= 10)
+if (~isempty(index)) & (length(reply(index(1):end)) >= 10)
     % extract acknowledge message from reply
-    reply = reply(index(end):index(end)+9);
+    reply = reply(index(1):index(1)+9);
 
     if (reply == ACK) %#ok<BDSCI>
         out = 1;

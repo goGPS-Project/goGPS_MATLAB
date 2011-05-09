@@ -33,7 +33,6 @@ function goGPS_master_monitor(filerootOUT, flag_NTRIP)
 global master_ip master_port
 global nmea_init nmea_update_rate
 global master
-global lambda1 lambda2
 global server_delay
 
 %------------------------------------------------------
@@ -76,6 +75,7 @@ fopen(master);
 
 if (flag_NTRIP)
     ntripstring = NTRIP_string_generator(nmea_init);
+    %fprintf('NTRIP request [%s]',ntripstring);
     fwrite(master,ntripstring);
 end
 
@@ -288,23 +288,6 @@ while flag
             if (time_19P ~= time_M)
                 pr2_M = zeros(32,1);
             end
-
-%             %Resolution of 2^23 cy carrier phase ambiguity
-%             %caused by 32-bit data field restrictions
-% 
-%             pos = find(ph1_M & pr1_M);
-%             if (~isempty(pos))
-%                 ambig = 2^23;
-%                 n = floor( (pr1_M(pos)/lambda1-ph1_M(pos)) / ambig + 0.5 );
-%                 ph1_M(pos) = ph1_M(pos) + n*ambig;
-%             end
-% 
-%             pos = find(ph2_M & pr1_M);
-%             if (~isempty(pos))
-%                 ambig = 2^23;
-%                 n = floor( (pr1_M(pos)/lambda2-ph2_M(pos)) / ambig + 0.5 );
-%                 ph2_M(pos) = ph2_M(pos) + n*ambig;
-%             end
 
             %visualization
             fprintf('\n');
