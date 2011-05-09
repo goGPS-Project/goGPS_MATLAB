@@ -165,7 +165,14 @@ for r = 1 : nrec
         %visualization
         fprintf('\n');
         fprintf('CONFIGURATION (skytraq n.%d)\n',r);
-        fprintf('Not implemented...\n');
+        
+        % only one connection can be opened in writing mode
+        fopen(rover{r});
+
+        [rover{r}] = configure_skytraq(rover{r}, COMportR{r}, prot_par{r}, 1);
+
+        % temporary connection closure (for other receiver setup)
+        fclose(rover{r});
     end
 end
 

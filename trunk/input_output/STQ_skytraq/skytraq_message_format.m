@@ -1,16 +1,20 @@
-function skytraq_poll_message(serialObj, MsgID, parameter)
+function [out] = skytraq_message_format(serialObj, format, memory)
 
 % SYNTAX:
-%   skytraq_poll_message(serialObj, MsgID, parameter);
+%   [out] = skytraq_message_format(serialObj, format, memory);
 %
 % INPUT:
 %   serialObj = serial Object identifier
-%   MsgIDLab  = SkyTraq message ID ('11' = almanac; '30' = ephemeris)
-%   parameter = parameter sent to poll all satellites or one specific
-%               satellite data (0 = all; 1-32 specific satellite)
+%   format = parameter to specify whether to set NMEA or binary output
+%            (accepted values: 'NOOUT', 'NMEA', 'BIN'); default = 'BIN'
+%   memory = parameter to specify whether to update only the SRAM or
+%            SRAM+FLASH memory (accpeted values: 'SRAM', 'FLASH'); default = 'SRAM'
+%
+% OUTPUT:
+%   out = receiver reply
 %
 % DESCRIPTION:
-%   Poll SkyTraq alamanac or ephemeris.
+%   Set NMEA or binary format output on SkyTraq receivers.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
@@ -38,9 +42,24 @@ header2 = 'A1';                            % header init (hexadecimal value)
 header3 = '0D';                            % header close (hexadecimal value)
 header4 = '0A';                            % header close (hexadecimal value)
 
-payload_length = 2;
-ID  = hex2dec(MsgID);
-message_body = parameter;
+ID  = 9;
+payload_length = 3;
+
+%default values
+message_body1 = 2; %output binary data
+message_body2 = 0; %update only SRAM
+
+if (nargin > 1)
+    if (strcmp(format, 'NOOUT'))
+        message_body1 = 0;
+    elseif (strcmp(format, 'NMEA'))
+        message_body1 = 1;
+    end
+    if (strcmp(memory, 'FLASH'))
+        message_body2 = 1;
+    end
+end
+message_body = [message_body1; message_body2];
 
 codeHEX = [header1; header2];
 HDR = hex2dec(codeHEX);
@@ -50,7 +69,8 @@ codeDEC = [HDR; 0; payload_length; ID; message_body];
 % checksum
 CS = 0;
 CS = bitxor(CS,ID);
-CS = bitxor(CS,message_body);
+CS = bitxor(CS,message_body1);
+CS = bitxor(CS,message_body2);
 
 codeHEX = [header3; header4];
 HDR = hex2dec(codeHEX);
@@ -72,3 +92,5 @@ codeDEC = [codeDEC; CS; HDR];
 %     stopasync(serialObj);
 %     fwrite(serialObj, codeDEC, 'uint8', 'async');
 % end
+
+[out] = skytraq_check_ACK(serialObj, ID);
