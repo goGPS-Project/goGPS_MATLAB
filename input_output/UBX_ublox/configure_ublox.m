@@ -79,7 +79,7 @@ tries = 0;
 while (~reply_RATE)
     tries = tries + 1;
     if (tries > 3)
-        disp('It was not possible to set the receiver output rate to 1Hz.');
+        disp('It was not possible to set the receiver output rate to %dHz.\n', rate);
         break
     end
     % close and delete old serial object

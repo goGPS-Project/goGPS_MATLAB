@@ -36,36 +36,36 @@ function [serialObj] = configure_skytraq(serialObj, COMportR, prot_par, rate)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% % set output rate
-% if (nargin < 4)
-%     rate = 1;
-% end
-% fprintf('Setting measurement rate to %dHz...\n', rate);
-% 
-% reply_RATE = ublox_CFG_RATE(serialObj, 1000/rate, 1, 1);
-% tries = 0;
-% 
-% while (~reply_RATE)
-%     tries = tries + 1;
-%     if (tries > 3)
-%         disp('It was not possible to set the receiver output rate to 1Hz.');
-%         break
-%     end
-%     % close and delete old serial object
-%     try
-%         fclose(serialObj);
-%         delete(serialObj);
-%     catch
-%         stopasync(serialObj);
-%         fclose(serialObj);
-%         delete(serialObj);
-%     end
-%     % create new serial object
-%     serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
-%     set(serialObj,'InputBufferSize',prot_par{3,1});
-%     fopen(serialObj);
-%     reply_RATE = ublox_CFG_RATE(serialObj, 1000/rate, 1, 1);
-% end
+% set output rate (and raw measurement output)
+if (nargin < 4)
+    rate = 1;
+end
+fprintf('Enabling raw data output at %dHz measurement rate...\n', rate);
+
+reply_RATE = skytraq_binary_output_rate(serialObj, rate);
+tries = 0;
+
+while (~reply_RATE)
+    tries = tries + 1;
+    if (tries > 3)
+        disp('It was not possible to set the receiver output rate to %dHz.\n', rate);
+        break
+    end
+    % close and delete old serial object
+    try
+        fclose(serialObj);
+        delete(serialObj);
+    catch
+        stopasync(serialObj);
+        fclose(serialObj);
+        delete(serialObj);
+    end
+    % create new serial object
+    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
+    set(serialObj,'InputBufferSize',prot_par{3,1});
+    fopen(serialObj);
+    reply_RATE = skytraq_binary_output_rate(serialObj, rate);
+end
 
 % enable raw measurements output
 fprintf('Enabling SkyTraq receiver binary data output...\n');
