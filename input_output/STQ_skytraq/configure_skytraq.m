@@ -40,7 +40,7 @@ function [serialObj] = configure_skytraq(serialObj, COMportR, prot_par, rate)
 if (nargin < 4)
     rate = 1;
 end
-fprintf('Enabling raw data output at %dHz measurement rate...\n', rate);
+fprintf('Enabling raw data output at %dHz measurement rate... ', rate);
 
 reply_RATE = skytraq_binary_output_rate(serialObj, rate);
 tries = 0;
@@ -48,7 +48,6 @@ tries = 0;
 while (~reply_RATE)
     tries = tries + 1;
     if (tries > 3)
-        disp('It was not possible to set the receiver output rate to %dHz.\n', rate);
         break
     end
     % close and delete old serial object
@@ -67,8 +66,14 @@ while (~reply_RATE)
     reply_RATE = skytraq_binary_output_rate(serialObj, rate);
 end
 
-% enable raw measurements output
-fprintf('Enabling SkyTraq receiver binary data output...\n');
+if (reply_RATE)
+    fprintf('done\n');
+else
+    fprintf(2, 'failed\n');
+end
+
+% enable binary data output
+fprintf('Enabling SkyTraq receiver binary data output (NMEA output is automatically disabled)... ');
 
 reply_BIN = skytraq_message_format(serialObj);
 tries = 0;
@@ -76,7 +81,6 @@ tries = 0;
 while (~reply_BIN)
     tries = tries + 1;
     if (tries > 3)
-        disp('It was not possible to configure the receiver to output binary data.');
         break
     end
     % close and delete old serial object
@@ -95,22 +99,8 @@ while (~reply_BIN)
     reply_BIN = skytraq_message_format(serialObj);
 end
 
-% % enable GGA messages, disable all other NMEA messages
-% fprintf('Configuring u-blox receiver NMEA messages:\n');
-% 
-% ublox_CFG_MSG(serialObj, 'NMEA', 'GGA', 1); fprintf('Enabling GGA...\n');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'GLL', 0); fprintf('Disabling GLL ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'GSA', 0); fprintf('GSA ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'GSV', 0); fprintf('GSV ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'RMC', 0); fprintf('RMC ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'VTG', 0); fprintf('VTG ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'GRS', 0); fprintf('GRS ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'GST', 0); fprintf('GST ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'ZDA', 0); fprintf('ZDA ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'GBS', 0); fprintf('GBS ');
-% ublox_CFG_MSG(serialObj, 'NMEA', 'DTM', 0); fprintf('DTM ');
-% ublox_CFG_MSG(serialObj, 'PUBX', '00', 0); fprintf('PUBX00 ');
-% ublox_CFG_MSG(serialObj, 'PUBX', '01', 0); fprintf('PUBX01 ');
-% ublox_CFG_MSG(serialObj, 'PUBX', '03', 0); fprintf('PUBX03 ');
-% ublox_CFG_MSG(serialObj, 'PUBX', '04', 0); fprintf('PUBX04\n');
-
+if (reply_BIN)
+    fprintf('done\n');
+else
+    fprintf(2, 'failed\n');
+end
