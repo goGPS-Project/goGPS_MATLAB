@@ -163,6 +163,7 @@ snr1_M = zeros(32,nEpochs);
 snr2_M = zeros(32,nEpochs);
 dop1_M = zeros(32,nEpochs);
 dop2_M = zeros(32,nEpochs);
+date = zeros(nEpochs,6);
 
 %variable initialization (GLONASS)
 pr1_RR = zeros(32,1);
@@ -485,6 +486,7 @@ snr1_M(:,k:nEpochs) = [];
 snr2_M(:,k:nEpochs) = [];
 dop1_M(:,k:nEpochs) = [];
 dop2_M(:,k:nEpochs) = [];
+date(k:nEpochs,:) = [];
 % pr1_RR(:,k:nEpochs) = [];
 % pr2_RR(:,k:nEpochs) = [];
 % ph1_RR(:,k:nEpochs) = [];
