@@ -1,7 +1,7 @@
-function [serialObj, reply_SAVE] = configure_ublox(serialObj, COMportR, prot_par, rate)
+function [serialObj] = configure_fastrax(serialObj, COMportR, prot_par, rate)
 
 % SYNTAX:
-%   [serialObj, reply_SAVE] = configure_ublox(serialObj, COMportR, prot_par, rate);
+%   [serialObj] = configure_fastrax(serialObj, COMportR, prot_par, rate);
 %
 % INPUT:
 %   serialObj = handle to the rover serial object
@@ -11,10 +11,9 @@ function [serialObj, reply_SAVE] = configure_ublox(serialObj, COMportR, prot_par
 %
 % OUTPUT:
 %   serialObj = handle to the rover serial object (it may have been re-created)
-%   reply_SAVE = flag to verify that the receiver previous configuration was saved
 %
 % DESCRIPTION:
-%   Configure u-blox receivers to be used with goGPS.
+%   Configure Fastrax receivers to be used with goGPS.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
@@ -37,48 +36,18 @@ function [serialObj, reply_SAVE] = configure_ublox(serialObj, COMportR, prot_par
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% save receiver configuration
-fprintf('Saving receiver configuration... ');
+% iTalk transaction ID
+tran_id = 10;
 
-reply_SAVE = ublox_CFG_CFG(serialObj, 'save');
-tries = 0;
+italk_reset_default(serialObj, tran_id);
 
-while (~reply_SAVE)
-    tries = tries + 1;
-    if (tries > 3)
-        break
-    end
-    % close and delete old serial object
-    try
-        fclose(serialObj);
-        delete(serialObj);
-    catch
-        stopasync(serialObj);
-        fclose(serialObj);
-        delete(serialObj);
-    end
-    % create new serial object
-    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
-    set(serialObj,'InputBufferSize',prot_par{3,1});
-    set(serialObj,'FlowControl','hardware');
-    set(serialObj,'RequestToSend','on');
-    fopen(serialObj);
-    reply_SAVE = ublox_CFG_CFG(serialObj, 'save');
-end
-
-if (reply_SAVE)
-    fprintf('done\n');
-else
-    fprintf(2, 'failed\n');
-end
-
-% set output rate
+% set output rate (and raw measurement output)
 if (nargin < 4)
     rate = 1;
 end
 fprintf('Setting measurement rate to %dHz... ', rate);
 
-reply_RATE = ublox_CFG_RATE(serialObj, 1000/rate, 1, 1);
+reply_RATE = italk_TRACK_MEAS_INTERVAL(serialObj, tran_id, rate*1000);
 tries = 0;
 
 while (~reply_RATE)
@@ -98,10 +67,9 @@ while (~reply_RATE)
     % create new serial object
     serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
-    set(serialObj,'FlowControl','hardware');
-    set(serialObj,'RequestToSend','on');
     fopen(serialObj);
-    reply_RATE = ublox_CFG_RATE(serialObj, 1000/rate, 1, 1);
+    tran_id = tran_id + 1;
+    reply_RATE = italk_TRACK_MEAS_INTERVAL(serialObj, tran_id, rate*1000);
 end
 
 if (reply_RATE)
@@ -110,10 +78,81 @@ else
     fprintf(2, 'failed\n');
 end
 
+% enable GPS TOW synchronization
+fprintf('Enabling GPS TOW synchronization... ');
+
+tran_id = tran_id + 1;
+reply_SYNC = italk_PPS_SYNC_TRACK(serialObj, tran_id, 1);
+tries = 0;
+
+while (~reply_SYNC)
+    tries = tries + 1;
+    if (tries > 3)
+        break
+    end
+    % close and delete old serial object
+    try
+        fclose(serialObj);
+        delete(serialObj);
+    catch
+        stopasync(serialObj);
+        fclose(serialObj);
+        delete(serialObj);
+    end
+    % create new serial object
+    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
+    set(serialObj,'InputBufferSize',prot_par{3,1});
+    fopen(serialObj);
+    tran_id = tran_id + 1;
+    reply_SYNC = italk_PPS_SYNC_TRACK(serialObj, tran_id, 1);
+end
+
+if (reply_SYNC)
+    fprintf('done\n');
+else
+    fprintf(2, 'failed\n');
+end
+
+% set offset from GPS TOW
+fprintf('Setting offset from GPS TOW to zero... ');
+
+tran_id = tran_id + 1;
+reply_OFFSET = italk_PPS_MEAS_MS(serialObj, tran_id, 0);
+tries = 0;
+
+while (~reply_OFFSET)
+    tries = tries + 1;
+    if (tries > 3)
+        break
+    end
+    % close and delete old serial object
+    try
+        fclose(serialObj);
+        delete(serialObj);
+    catch
+        stopasync(serialObj);
+        fclose(serialObj);
+        delete(serialObj);
+    end
+    % create new serial object
+    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
+    set(serialObj,'InputBufferSize',prot_par{3,1});
+    fopen(serialObj);
+    tran_id = tran_id + 1;
+    reply_OFFSET = italk_PPS_MEAS_MS(serialObj, tran_id, 0);
+end
+
+if (reply_OFFSET)
+    fprintf('done\n');
+else
+    fprintf(2, 'failed\n');
+end
+
 % enable raw measurements output
 fprintf('Enabling raw data output... ');
 
-reply_RAW = ublox_CFG_MSG(serialObj, 'RXM', 'RAW', 1);
+tran_id = tran_id + 1;
+reply_RAW = italk_enable_raw(serialObj, tran_id);
 tries = 0;
 
 while (~reply_RAW)
@@ -133,10 +172,9 @@ while (~reply_RAW)
     % create new serial object
     serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
-    set(serialObj,'FlowControl','hardware');
-    set(serialObj,'RequestToSend','on');
     fopen(serialObj);
-    reply_RAW = ublox_CFG_MSG(serialObj, 'RXM', 'RAW', 1);
+    tran_id = tran_id + 1;
+    reply_RAW = italk_enable_raw(serialObj, tran_id);
 end
 
 if (reply_RAW)
@@ -144,58 +182,3 @@ if (reply_RAW)
 else
     fprintf(2, 'failed\n');
 end
-
-% disable subframe buffer output
-fprintf('Disabling u-blox receiver subframe buffer (SFRB) messages... ');
-
-reply_SFRB = ublox_CFG_MSG(serialObj, 'RXM', 'SFRB', 0);
-tries = 0;
-
-while (~reply_SFRB)
-    tries = tries + 1;
-    if (tries > 3)
-        break
-    end
-    % close and delete old serial object
-    try
-        fclose(serialObj);
-        delete(serialObj);
-    catch
-        stopasync(serialObj);
-        fclose(serialObj);
-        delete(serialObj);
-    end
-    % create new serial object
-    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
-    set(serialObj,'InputBufferSize',prot_par{3,1});
-    set(serialObj,'FlowControl','hardware');
-    set(serialObj,'RequestToSend','on');
-    fopen(serialObj);
-    reply_SFRB = ublox_CFG_MSG(serialObj, 'RXM', 'SFRB', 0);
-end
-
-if (reply_SFRB)
-    fprintf('done\n');
-else
-    fprintf(2, 'failed\n');
-end
-
-% enable GGA messages, disable all other NMEA messages
-fprintf('Configuring u-blox receiver NMEA messages:\n');
-
-ublox_CFG_MSG(serialObj, 'NMEA', 'GGA', 1); fprintf('Enabling GGA...\n');
-ublox_CFG_MSG(serialObj, 'NMEA', 'GLL', 0); fprintf('Disabling GLL ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'GSA', 0); fprintf('GSA ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'GSV', 0); fprintf('GSV ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'RMC', 0); fprintf('RMC ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'VTG', 0); fprintf('VTG ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'GRS', 0); fprintf('GRS ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'GST', 0); fprintf('GST ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'ZDA', 0); fprintf('ZDA ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'GBS', 0); fprintf('GBS ');
-ublox_CFG_MSG(serialObj, 'NMEA', 'DTM', 0); fprintf('DTM ');
-ublox_CFG_MSG(serialObj, 'PUBX', '00', 0); fprintf('PUBX00 ');
-ublox_CFG_MSG(serialObj, 'PUBX', '01', 0); fprintf('PUBX01 ');
-ublox_CFG_MSG(serialObj, 'PUBX', '03', 0); fprintf('PUBX03 ');
-ublox_CFG_MSG(serialObj, 'PUBX', '04', 0); fprintf('PUBX04\n');
-

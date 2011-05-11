@@ -124,7 +124,7 @@ for r = 1 : nrec
     % serial object creation
     rover{r} = serial (COMportR{r},'BaudRate',prot_par{r}{2,1});
     set(rover{r},'InputBufferSize',prot_par{r}{3,1});
-    if (protocol(r) ~= 2)
+    if (protocol(r) == 0)
         set(rover{r},'FlowControl','hardware');
         set(rover{r},'RequestToSend','on');
     end
@@ -157,7 +157,14 @@ for r = 1 : nrec
         %visualization
         fprintf('\n');
         fprintf('CONFIGURATION (fastrax n.%d)\n',r);
-        fprintf('Not implemented...\n');
+        
+        % only one connection can be opened in writing mode
+        fopen(rover{r});
+        
+        [rover{r}] = configure_fastrax(rover{r}, COMportR{r}, prot_par{r}, 1);
+
+        % temporary connection closure (for other receiver setup)
+        fclose(rover{r});
 
     % skytraq configuration
     elseif (protocol(r) == 2)
@@ -225,7 +232,7 @@ while (sum(test) > 0)
         rover_2(r) = get(rover{r},'BytesAvailable');
 
         %test condition
-        test(r) = (rover_1(r) ~= rover_2(r)) | (rover_1(r) == 0) | (rover_1(r) < prot_par{r}{4,1});
+        test(r) = (rover_1(r) ~= rover_2(r)) | (rover_1(r) == 0);% | (rover_1(r) < prot_par{r}{4,1});
 
         %visualization
         fprintf([prot_par{r}{1,1} '(' num2str(r) ')' ': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1(r), rover_2(r));
@@ -264,7 +271,7 @@ while (sum(test) > 0)
         rover_2(r) = get(rover{r},'BytesAvailable');
 
         %test condition
-        test(r) = (rover_1(r) ~= rover_2(r)) | (rover_1(r) == 0) | (rover_1(r) < prot_par{r}{4,1});
+        test(r) = (rover_1(r) ~= rover_2(r)) | (rover_1(r) == 0);% | (rover_1(r) < prot_par{r}{4,1});
 
         %visualization
         fprintf([prot_par{r}{1,1} '(' num2str(r) ')' ': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1(r), rover_2(r));

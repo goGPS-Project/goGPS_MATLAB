@@ -11,7 +11,7 @@ function [out] = skytraq_check_ACK(serialObj, MsgID)
 %   out = acknowledge outcome
 %
 % DESCRIPTION:
-%   Check acknowledge reply after polling SkyTraq messages.
+%   Check acknowledge reply after polling/sending SkyTraq messages.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
@@ -90,7 +90,7 @@ reply = fread(serialObj, reply_1, 'uint8');
 % search for acknowledge in reply
 index = strfind(reply',ACK_DEC(1:6)');
 
-if (~isempty(index))
+if (~isempty(index) & length(reply(index:end)) >= 9)
     % extract acknowledge message from reply
     reply = reply(index:index+8);
 
