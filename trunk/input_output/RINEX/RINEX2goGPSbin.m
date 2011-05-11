@@ -38,7 +38,7 @@ function RINEX2goGPSbin(filename_R_obs, filename_R_nav, filename_M_obs, filename
 %----------------------------------------------------------------------------------------------
 
 if (isempty(dir(filename_R_nav)) & isempty(dir(filename_M_nav)))
-    if (nargin == 6)
+    if (nargin >= 6)
         msgbox('Navigation data (ephemerides) are required to create goGPS binary data.');
     else
         fprintf('Navigation data (ephemerides) are required to create goGPS binary data.\n');
@@ -53,21 +53,24 @@ end
 if (~isempty(dir(filename_R_obs)))
     
     %ROVER RINEX files reading
-    if (nargin == 6)
-        [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, Eph_R, iono_R, snr_R, ...
-            pr1_RR, ph1_RR, pr2_RR, ph2_RR, Eph_RR, snr_RR, time_R, date] = ...
+    if (nargin >= 6)
+        [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, Eph_R, iono_R, snr1_R, snr2_R, ...
+            pr1_RR, ph1_RR, pr2_RR, ph2_RR, dop1_RR, dop2_RR, Eph_RR, snr_RR, time_R, date] = ...
             load_RINEX_SA(filename_R_obs, filename_R_nav, wait_dlg); %#ok<ASGLU>
     else
-        [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, Eph_R, iono_R, snr_R, ...
-            pr1_RR, ph1_RR, pr2_RR, ph2_RR, Eph_RR, snr_RR, time_R, date] = ...
+        [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, Eph_R, iono_R, snr1_R, snr2_R, ...
+            pr1_RR, ph1_RR, pr2_RR, ph2_RR, dop1_RR, dop2_RR, Eph_RR, snr_RR, time_R, date] = ...
             load_RINEX_SA(filename_R_obs, filename_R_nav); %#ok<ASGLU>
     end
     
+    %TEMP
+    snr_R = snr1_R;
+
     %GPS week number
     date(:,1) = date(:,1) + 2000;
     week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
 else
-    if (nargin == 6)
+    if (nargin >= 6)
         msgbox('Rover data are required to create goGPS binary data.');
     else
         fprintf('Rover data are required to create goGPS binary data.\n');
@@ -80,7 +83,7 @@ time_GPS = time_R;
 epochs = length(time_GPS);
 
 %MASTER variable initialization
-time_M = zeros(epochs);
+time_M = zeros(epochs,1);
 pr1_M  = zeros(32,epochs);
 ph1_M  = zeros(32,epochs);
 dop1_M = zeros(32,epochs);
@@ -92,19 +95,22 @@ iono   = zeros(8,epochs);
 if (~isempty(dir(filename_M_obs)))
     
     %MASTER RINEX files reading
-    if (nargin == 6)
-        [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph_M, iono_M, snr_M, ...
-            pr1_MR, ph1_MR, pr2_MR, ph2_MR, Eph_MR, snr_MR, time_M, date, pos_M] = ...
+    if (nargin >= 6)
+        [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph_M, iono_M, snr1_M, snr2_M, ...
+            pr1_MR, ph1_MR, pr2_MR, ph2_MR, dop1_MR, dop2_MR, Eph_MR, snr_MR, time_M, date, pos_M] = ...
             load_RINEX_SA(filename_M_obs, filename_M_nav, wait_dlg, time_GPS(end)); %#ok<ASGLU>
     else
-        [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph_M, iono_M, snr_M, ...
-            pr1_MR, ph1_MR, pr2_MR, ph2_MR, Eph_MR, snr_MR, time_M, date, pos_M] = ...
+        [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph_M, iono_M, snr1_M, snr2_M, ...
+            pr1_MR, ph1_MR, pr2_MR, ph2_MR, dop1_MR, dop2_MR, Eph_MR, snr_MR, time_M, date, pos_M] = ...
             load_RINEX_SA(filename_M_obs, filename_M_nav); %#ok<ASGLU>
     end
+    
+    %TEMP
+    snr_M = snr1_M;
 
     %--------------------------------------------------------------------------
     
-    if (nargin == 2)
+    if (nargin >= 6)
         waitbar(0.33,wait_dlg,'Synchronizing data...')
     end
 
@@ -170,7 +176,7 @@ if (~isempty(dir(filename_M_obs)))
     
     %-------------------------------------------------------------------------------
     
-    if (nargin == 2)
+    if (nargin >= 6)
         waitbar(0.66,wait_dlg)
     end
     
@@ -228,7 +234,7 @@ if (~isempty(dir(filename_M_obs)))
         end
     end
     
-    if (nargin == 2)
+    if (nargin >= 6)
         waitbar(1,wait_dlg)
     end
 end
@@ -275,8 +281,7 @@ pos_M(1,1:epochs) = pos_M(1);
 pos_M(2,1:epochs) = pos_M(2);
 pos_M(3,1:epochs) = pos_M(3);
 
-%remove epochs in which not all ephemerides are available or available
-%satellites are < 4
+%remove epochs in which not all ephemerides are available or available satellites are < 4
 satEph = find(sum(abs(Eph(:,:,1))) ~= 0);
 if (~isempty(dir(filename_M_obs)))
     satObs = find( (pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
@@ -364,14 +369,14 @@ fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 %"file hour" variable
 hour = 0;
 
-if (nargin == 6)
+if (nargin >= 6)
     waitbar(0,wait_dlg,'Writing goGPS binary data...')
 end
 
 %write output files
 for t = 1 : length(time_GPS)
     
-    if (nargin == 6)
+    if (nargin >= 6)
         waitbar(t/epochs,wait_dlg)
     end
     
@@ -387,8 +392,8 @@ for t = 1 : length(time_GPS)
         fclose(fid_obs);
         fclose(fid_eph);
         
-        fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
-        fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+        fid_obs    = fopen([filerootOUT '_obs_' hour_str '.bin'],'w+');
+        fid_eph    = fopen([filerootOUT '_eph_' hour_str '.bin'],'w+');
         
     end
     

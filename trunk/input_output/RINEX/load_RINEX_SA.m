@@ -1,12 +1,12 @@
-function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr, ...
-          pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, Eph_GLO, snr_GLO, ...
-          time_GPS, date, pos] = ...
+function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
+          pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, dop1_GLO, dop2_GLO, ...
+          Eph_GLO, snr_GLO, time_GPS, date, pos] = ...
           load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr_R, ...
-%         pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, Eph_GLO, snr_GLO, ...
-%         time_GPS, date, pos] = ...
+%   [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
+%         pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, dop1_GLO, dop2_GLO, ...
+%         Eph_GLO, snr_GLO, time_GPS, date, pos] = ...
 %         load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time);
 %
 % INPUT:
@@ -24,11 +24,14 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr, ...
 %   dop2 = Doppler observation (L2 carrier)
 %   Eph = matrix containing 29 ephemerides for each satellite
 %   iono = matrix containing ionosphere parameters
-%   snr = signal-to-noise ratio
+%   snr1 = signal-to-noise ratio (L1 carrier)
+%   snr2 = signal-to-noise ratio (L2 carrier)
 %   pr1_GLO = code observation (L1 carrier) (GLONASS)
 %   ph1_GLO = phase observation (L1 carrier) (GLONASS)
 %   pr2_GLO = code observation (L2 carrier) (GLONASS)
 %   ph2_GLO = phase observation (L2 carrier) (GLONASS)
+%   dop1 = Doppler observation (L1 carrier) (GLONASS)
+%   dop2 = Doppler observation (L2 carrier) (GLONASS)
 %   Eph_GLO = matrix containing 29 ephemerides for each satellite (GLONASS)
 %   snr_GLO = signal-to-noise ratio (GLONASS)
 %   time_GPS = GPS time of ROVER observations
@@ -60,18 +63,18 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr, ...
 
 Eph_GLO = zeros(17,32);
 
-if (nargin == 3)
+if (nargin >= 3)
     waitbar(0.33,wait_dlg,'Reading navigation files...')
 end
 
 %parse RINEX navigation file
 [Eph, iono] = RINEX_get_nav(name_F_nav);
 
-if (nargin == 3)
+if (nargin >= 3)
     waitbar(0.66,wait_dlg)
 end
 
-if (nargin == 3)
+if (nargin >= 3)
     waitbar(1,wait_dlg)
 end
 
@@ -82,7 +85,7 @@ F_oss = fopen(name_F_oss,'r');
 
 %-------------------------------------------------------------------------------
 
-if (nargin == 3)
+if (nargin >= 3)
     waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
 end
 
@@ -94,45 +97,74 @@ if (info_base == 0)
     error('Basic data is missing in the RINEX header')
 end
 
-if (nargin == 3)
+if (nargin >= 3)
     waitbar(1,wait_dlg)
 end
 
 %-------------------------------------------------------------------------------
 
-if (nargin == 3)
+if (nargin >= 3)
     waitbar(1,wait_dlg)
 end
 
 %-------------------------------------------------------------------------------
+
+nEpochs = 30000;
+
+%variable initialization (GPS)
+time_GPS = zeros(nEpochs,1);
+pr1 = zeros(32,nEpochs);
+pr2 = zeros(32,nEpochs);
+ph1 = zeros(32,nEpochs);
+ph2 = zeros(32,nEpochs);
+dop1 = zeros(32,nEpochs);
+dop2 = zeros(32,nEpochs);
+snr1 = zeros(32,nEpochs);
+snr2 = zeros(32,nEpochs);
+date = zeros(nEpochs,6);
+
+%variable initialization (GLONASS)
+pr1_GLO = zeros(32,1);
+pr2_GLO = zeros(32,1);
+ph1_GLO = zeros(32,1);
+ph2_GLO = zeros(32,1);
+dop1_GLO = zeros(32,1);
+dop2_GLO = zeros(32,1);
+snr_GLO = zeros(32,1);
 
 k = 1;
 
-if (nargin == 3)
+if (nargin >= 3)
     waitbar(0.5,wait_dlg,'Reading RINEX observations...')
 end
 
 while (~feof(F_oss))
 
-    %variable initialization (GPS)
-    pr1(:,k)  = zeros(32,1);
-    pr2(:,k)  = zeros(32,1);
-    ph1(:,k)  = zeros(32,1);
-    ph2(:,k)  = zeros(32,1);
-    dop1(:,k) = zeros(32,1);
-    dop2(:,k) = zeros(32,1);
-    snr(:,k)  = zeros(32,1);
+    if (k > nEpochs)
+        
+        %variable initialization (GPS)
+        pr1(:,k)  = zeros(32,1);
+        pr2(:,k)  = zeros(32,1);
+        ph1(:,k)  = zeros(32,1);
+        ph2(:,k)  = zeros(32,1);
+        dop1(:,k) = zeros(32,1);
+        dop2(:,k) = zeros(32,1);
+        snr1(:,k) = zeros(32,1);
+        snr2(:,k) = zeros(32,1);
+        
+        %variable initialization (GLONASS)
+        % pr1_GLO(:,k) = zeros(32,1);
+        % pr2_GLO(:,k) = zeros(32,1);
+        % ph1_GLO(:,k) = zeros(32,1);
+        % ph2_GLO(:,k) = zeros(32,1);
+        % snr_GLO(:,k) = zeros(32,1);
 
-    %variable initialization (GLONASS)
-    pr1_GLO(:,k) = zeros(32,1);
-    pr2_GLO(:,k) = zeros(32,1);
-    ph1_GLO(:,k) = zeros(32,1);
-    ph2_GLO(:,k) = zeros(32,1);
-    snr_GLO(:,k) = zeros(32,1);
+        nEpochs = nEpochs  + 1;
+    end
     
     %read data for the current epoch
     [time_GPS(k), sat, sat_types, date(k,:)] = RINEX_get_epoch(F_oss);
-    
+
     %read observations
     [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(F_oss, sat, sat_types, obs_typ); %#ok<NASGU>
     
@@ -143,7 +175,8 @@ while (~feof(F_oss))
     ph2(:,k)  = obs_GPS.L2;
     dop1(:,k) = obs_GPS.D1;
     dop2(:,k) = obs_GPS.D2;
-    snr(:,k)  = obs_GPS.S1;
+    snr1(:,k)  = obs_GPS.S1;
+    snr2(:,k)  = obs_GPS.S2;
     
     %read observations (GLONASS)
     % pr1_GLO(:,k) = obs_GLO.C1;
@@ -159,7 +192,25 @@ while (~feof(F_oss))
     k = k+1;
 end
 
-if (nargin == 3)
+%remove empty slots
+time_GPS(k:nEpochs) = [];
+pr1(:,k:nEpochs) = [];
+pr2(:,k:nEpochs) = [];
+ph1(:,k:nEpochs) = [];
+ph2(:,k:nEpochs) = [];
+dop1(:,k:nEpochs) = [];
+dop2(:,k:nEpochs) = [];
+snr1(:,k:nEpochs) = [];
+snr2(:,k:nEpochs) = [];
+% pr1_GLO(:,k:nEpochs) = [];
+% pr2_GLO(:,k:nEpochs) = [];
+% ph1_GLO(:,k:nEpochs) = [];
+% ph2_GLO(:,k:nEpochs) = [];
+% dop1_GLO(:,k:nEpochs) = [];
+% dop2_GLO(:,k:nEpochs) = [];
+% snr_GLO(:,k:nEpochs) = [];
+
+if (nargin >= 3)
     waitbar(1,wait_dlg)
 end
 
