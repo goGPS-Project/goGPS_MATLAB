@@ -54,7 +54,12 @@ pos_FTX = findstr(msg, codeBIN);          % message initial index
 
 % output variable initialization
 data = cell(0);
-pos  = pos_FTX(1);
+% find the index of the first message, if any
+if (~isempty(pos_FTX))
+    pos  = pos_FTX(1);
+else
+    return
+end
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE DECODING LOOP
