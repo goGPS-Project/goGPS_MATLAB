@@ -1001,6 +1001,13 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.text_stopGOstop, 'Enable', 'on');
     stopGOstop_Callback(handles.stopGOstop, [], handles);
     
+    cell_contents = cell(4,1);
+    cell_contents{1} = 'Const. velocity';
+    cell_contents{2} = 'Const. acceleration';
+    cell_contents{3} = 'Static';
+    cell_contents{4} = 'Variable';
+    set(handles.dyn_mod, 'String', cell_contents);
+    
     %enable weights
     set(handles.weight_0, 'Enable', 'on');
     set(handles.weight_1, 'Enable', 'on');
@@ -1088,8 +1095,6 @@ else
     set(handles.dtm_path, 'Enable', 'off');
     set(handles.text_dtm_path, 'Enable', 'off');
     set(handles.browse_dtm_path, 'Enable', 'off');
-    set(handles.dyn_mod, 'Enable', 'off');
-    %set(handles.text_dyn_mod, 'Enable', 'off');
     set(handles.weight_0, 'Enable', 'off');
     set(handles.weight_1, 'Enable', 'off');
     set(handles.weight_2, 'Enable', 'off');
@@ -1116,6 +1121,14 @@ else
     set(handles.text_master_h_unit, 'Enable', 'off');
     set(handles.flag_doppler, 'Enable', 'off');
     set(handles.amb_select, 'Enable', 'off');
+    
+    cell_contents = cell(2,1);
+    cell_contents{1} = 'Constant';
+    cell_contents{2} = 'Variable';
+    old_value = get(handles.dyn_mod, 'Value');
+    if (old_value == 3), set(handles.dyn_mod, 'Value', 1); end
+    if (old_value == 4), set(handles.dyn_mod, 'Value', 2); end
+    set(handles.dyn_mod, 'String', cell_contents);
 
     if (strcmp(contents{get(hObject,'Value')},'Rover monitor'))
 
@@ -1149,6 +1162,7 @@ else
         
         set(handles.stopGOstop, 'Enable', 'on');
         set(handles.text_stopGOstop, 'Enable', 'on');
+        stopGOstop_Callback(handles.stopGOstop, [], handles);
 
     elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
 
@@ -1163,6 +1177,8 @@ else
         set(handles.protocol_select_2, 'Enable', 'off');
         set(handles.protocol_select_3, 'Enable', 'off');        
         set(handles.use_ntrip, 'Enable', 'on');
+        set(handles.dyn_mod, 'Enable', 'off');
+        %set(handles.text_dyn_mod, 'Enable', 'off');
 
         %enable master connection
         set(handles.IP_address, 'Enable', 'on');
@@ -1221,6 +1237,7 @@ else
         
         set(handles.stopGOstop, 'Enable', 'on');
         set(handles.text_stopGOstop, 'Enable', 'on');
+        stopGOstop_Callback(handles.stopGOstop, [], handles);
     end
 end
 
@@ -2380,19 +2397,24 @@ if (strcmp(contents{get(hObject,'Value')},'Static'))
     set(handles.text_std_Y_unit, 'Enable', 'off');
     set(handles.text_std_Z_unit, 'Enable', 'off');
 else
-    set(handles.std_X, 'Enable', 'on');
-    set(handles.std_Y, 'Enable', 'on');
-    set(handles.std_Z, 'Enable', 'on');
-    set(handles.text_std_X, 'Enable', 'on');
-    set(handles.text_std_Y, 'Enable', 'on');
-    set(handles.text_std_Z, 'Enable', 'on');
-    set(handles.text_std_X_unit, 'Enable', 'on');
-    set(handles.text_std_Y_unit, 'Enable', 'on');
-    set(handles.text_std_Z_unit, 'Enable', 'on');
+    contents = cellstr(get(handles.nav_mon,'String'));
+    if (strcmp(contents{get(handles.nav_mon,'Value')},'Navigation'))
+        set(handles.std_X, 'Enable', 'on');
+        set(handles.std_Y, 'Enable', 'on');
+        set(handles.std_Z, 'Enable', 'on');
+        set(handles.text_std_X, 'Enable', 'on');
+        set(handles.text_std_Y, 'Enable', 'on');
+        set(handles.text_std_Z, 'Enable', 'on');
+        set(handles.text_std_X_unit, 'Enable', 'on');
+        set(handles.text_std_Y_unit, 'Enable', 'on');
+        set(handles.text_std_Z_unit, 'Enable', 'on');
+    end
     if (strcmp(contents{get(hObject,'Value')},'Const. acceleration'))
         order = 3;
-    else
+    elseif (strcmp(contents{get(hObject,'Value')},'Const. velocity'))
         order = 2;
+    else
+        order = 1;
     end
 end
 
@@ -2904,7 +2926,7 @@ function stopGOstop_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of stopGOstop
 check_nav = cellstr(get(handles.nav_mon,'String'));
 check_KF = cellstr(get(handles.kalman_ls,'String'));
-if (get(hObject,'Value') | ~strcmp(check_nav{get(handles.nav_mon,'Value')},'Navigation') | ~strcmp(check_KF{get(handles.kalman_ls,'Value')},'Kalman filter'))
+if (get(hObject,'Value') | strcmp(check_nav{get(handles.nav_mon,'Value')},'Master monitor') | ~strcmp(check_KF{get(handles.kalman_ls,'Value')},'Kalman filter'))
     set(handles.dyn_mod, 'Enable', 'off');
 else
     set(handles.dyn_mod, 'Enable', 'on');
