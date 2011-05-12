@@ -47,7 +47,7 @@ destination = '20';  % destination information
 
 msg_id   = '47';     % message id
 
-payload  = ['01';'00';'01';'00';'12';'C0';'0C';'00';'00';'00'];    % payload (bitmask to enable only TRACK and PSEUDO)
+payload  = ['01';'00';'01';'00';'12';'C0';'0C';'02';'00';'00'];    % payload (bitmask to enable only TRACK, PSEUDO and RAW EPHEMERIS)
 
 pay_size = size(payload,1)/2;               % payload size
 
