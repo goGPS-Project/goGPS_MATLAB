@@ -1,4 +1,4 @@
-function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R)
+function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, 
@@ -54,13 +54,18 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, flag
 %----------------------------------------------------------------------------------------------
 
 %global lambda1
-global o1 o2 nN
+global o1 o2 nN order
 global COMportR master_ip master_port server_delay
 global nmea_init nmea_update_rate hui_poll_rate
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
 global master rover
+
+if (flag_var_dyn_model)
+    %disable skyplot and signal-to-noise ratio
+    flag_skyplot = 0;
+end
 
 %------------------------------------------------------
 % read protocol parameters
@@ -132,6 +137,17 @@ fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
 %  KVDOP    --> double, [1,1]
 fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
 
+if (flag_var_dyn_model)
+    %dynamical model
+    %  order      --> int8,   [1,1]
+    %  sigmaq_vE  --> double, [1,1] - not used
+    %  sigmaq_vN  --> double, [1,1] - not used
+    %  sigmaq_vU  --> double, [1,1] - not used
+    %  sigmaq0    --> double, [1,1] - not used
+    %  sigmaq0_N  --> double, [1,1] - not used
+    fid_dyn = fopen([filerootOUT '_dyn_00.bin'],'w+');
+end
+
 %satellite configuration
 %  conf_sat --> int8, [32,1]
 %  conf_cs  --> int8, [32,1]
@@ -169,18 +185,26 @@ end
 % serial object creation
 rover = serial (COMportR,'BaudRate',prot_par{2,1});
 set(rover,'InputBufferSize',prot_par{3,1});
-if (protocol ~= 2)
+if (protocol == 0)
     set(rover,'FlowControl','hardware');
     set(rover,'RequestToSend','on');
 end
 fopen(rover);
 
 if (protocol == 0)
-    %------------------------------------------------------
-    % u-blox rover configuration
-    %------------------------------------------------------
-
+    
+    % u-blox configuration
     [rover, reply_save] = configure_ublox(rover, COMportR, prot_par, 1);
+
+elseif (protocol == 1)
+
+    % fastrax configuration
+    [rover] = configure_fastrax(rover, COMportR, prot_par, 1);
+
+elseif (protocol == 2)
+
+    % skytraq configuration
+    [rover] = configure_skytraq(rover, COMportR, prot_par, 1);
 end
 
 %------------------------------------------------------
@@ -216,7 +240,6 @@ while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
     rover_1 = get(rover,'BytesAvailable');
     pause(0.05);
     rover_2 = get(rover,'BytesAvailable');
-    
     %visualization
     fprintf([prot_par{1,1},': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1, rover_2);
 
@@ -273,7 +296,7 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
     rover_2 = 0;
 
     %starting epoch determination
-    while (rover_1 ~= rover_2) || (rover_1 == 0)
+    while (rover_1 ~= rover_2) | (rover_1 == 0)
 
         %starting time
         current_time = toc;
@@ -388,7 +411,7 @@ sync_rover = 0;
 while (~sync_rover)
     
     %starting epoch determination
-    while (rover_1 ~= rover_2) || (rover_1 == 0) || (rover_1 < prot_par{4,1})
+    while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
         
         %starting time
         current_time = toc;
@@ -536,19 +559,61 @@ master_waiting = 0;
 
 %loop control initialization
 if (flag_plotproc)
-    h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 40 20], 'string', 'STOP', ...
-        'callback', 'setappdata(gcf, ''run'', 0)');
+
+    if (~flag_var_dyn_model)
+        h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 40 20], 'string', 'STOP', ...
+   	        'callback', 'setappdata(gcf, ''run'', 0)');
+    else
+        % Create the button group.
+        h1 = uibuttongroup(gcf, 'visible','on');
+        
+        % Create three radio buttons in the button group.
+        u0 = uicontrol(gcf, 'style', 'pushbutton', 'position', [390 10 50 30], 'string', 'STOP', ...
+            'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)');
+        u1 = uicontrol(gcf, 'Style','Radio','String','static',...
+            'pos',[390 100 180 20],'parent', h1);
+        u2 = uicontrol(gcf, 'Style','Radio','String','const. velocity dynamic',...
+            'pos',[390 80 180 20],'parent', h1);
+        u3 = uicontrol(gcf, 'Style','Radio','String','const. acceleration dynamic',...
+            'pos',[390 60 180 20],'parent', h1);
+    end
+    
     set(gcf, 'name', 'goGPS', 'toolbar', 'figure');
-    flag = 1;
-    setappdata(gcf, 'run', flag);
 else
     f1 = figure;
     s1 = get(0,'ScreenSize');
-    set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'Navigation');
-    h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
-        'callback', 'setappdata(gcf, ''run'', 0)');
-    flag = 1;
-    setappdata(gcf, 'run', flag);
+
+    if (~flag_var_dyn_model)
+        set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'Navigation');
+        h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
+            'callback', 'setappdata(gcf, ''run'', 0)');
+    else
+        set(f1, 'position', [s1(3)-240-40 s1(4)-80-140 240 130], 'menubar', 'none', 'name', 'Navigation');
+        % Create the button group.
+        h1 = uibuttongroup(gcf, 'visible','on');
+        % Create three radio buttons in the button group.
+        u0 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 50 30], 'string', 'STOP', ...
+            'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)');
+        u1 = uicontrol(gcf, 'Style','Radio','String','static',...
+            'pos',[10 100 180 20],'parent', h1);
+        u2 = uicontrol(gcf, 'Style','Radio','String','const. velocity dynamic',...
+            'pos',[10 80 180 20],'parent', h1);
+        u3 = uicontrol(gcf, 'Style','Radio','String','const. acceleration dynamic',...
+            'pos',[10 60 180 20],'parent', h1);
+    end
+end
+
+flag = 1;
+setappdata(gcf, 'run', flag);
+
+if (flag_var_dyn_model)
+    if order == 1
+        set(h1, 'SelectedObject', u1)
+    elseif order == 2
+        set(h1, 'SelectedObject', u2)
+    else
+        set(h1, 'SelectedObject', u3)
+    end
 end
 
 %--------------------------------------------------------
@@ -609,6 +674,9 @@ while flag
         fclose(fid_kal);
         fclose(fid_sat);
         fclose(fid_dop);
+        if (flag_var_dyn_model)
+            fclose(fid_dyn);
+        end
         fclose(fid_conf);
         
         fid_master = fopen([filerootOUT '_master_' hour_str '.bin'],'w+');
@@ -618,8 +686,11 @@ while flag
         fid_kal    = fopen([filerootOUT '_kal_'    hour_str '.bin'],'w+');
         fid_sat    = fopen([filerootOUT '_sat_'    hour_str '.bin'],'w+');
         fid_dop    = fopen([filerootOUT '_dop_'    hour_str '.bin'],'w+');
+        if (flag_var_dyn_model)
+            fid_dyn    = fopen([filerootOUT '_dyn_'    hour_str '.bin'],'w+');
+        end
         fid_conf   = fopen([filerootOUT '_conf_'   hour_str '.bin'],'w+');
-
+        
     end
 
     %-------------------------------------
@@ -774,13 +845,6 @@ while flag
                     %manage "nearly null" data
                     pos = abs(ph_R(:,index)) < 1e-100;
                     ph_R(pos,index) = 0;
-
-%                     %phase adjustement
-%                     pos = abs(ph_R(:,index)) > 0 & abs(ph_R(:,index)) < 1e7;
-%                     ambig = 2^23;
-%                     n = floor( (pr_R(pos,index)/lambda1-ph_R(pos,index)) / ambig + 0.5 );
-%                     ph_R(pos,index) = ph_R(pos,index) + n*ambig;
-
                     type = [type prot_par{1,2} ' '];
                 end
                 
@@ -968,7 +1032,7 @@ while flag
     dtMax_master = 0.8;
 
     %multiple condition: while (I have not received the 19/1002/1004 message for the time_GPS epoch) AND (time is not expired)
-    while ((test_master == 0) && (current_time-start_time-step_time < dtMax_master))
+    while ((test_master == 0) & (current_time-start_time-step_time < dtMax_master))
 
         %time acquisition
         current_time = toc;
@@ -1015,7 +1079,7 @@ while flag
         end
 
         %check the exit condition
-        if (i > 0) && (round(cell_master{2,i}(2)) == time_GPS)
+        if (i > 0) & (round(cell_master{2,i}(2)) == time_GPS)
             test_master = 1;
         end
 
@@ -1377,6 +1441,9 @@ while flag
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                if (flag_var_dyn_model)
+                    fwrite(fid_dyn, order, 'int8');
+                end
 
                 %WARNING: with just 4 satellites the least squares problem
                 %for double differences is not solvable and the covariance matrix
@@ -1384,7 +1451,11 @@ while flag
 
                 %Kalman filter
                 if (mode_vinc == 0)
-                    kalman_goGPS_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1);
+                    if (~flag_var_dyn_model)
+                        kalman_goGPS_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1);
+                    else
+                        kalman_goGPS_init_model (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), order, 1);
+                    end
                 else
                     kalman_goGPS_vinc_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1, ref_path);
                 end
@@ -1479,10 +1550,10 @@ while flag
                     master = tcpip(master_ip,master_port);
                     set(master,'InputBufferSize', 16384);
                     fopen(master);
-					if (flag_NTRIP) && (~isempty(nmea_sentences))
-					    ntripstring = NTRIP_string_generator(nmea_init);
+                    if ((flag_NTRIP) & (~isempty(nmea_sentences)))
+                        ntripstring = NTRIP_string_generator(nmea_init);
                         fwrite(master,ntripstring);
-					end
+                    end
 
                     %wait until the buffer writing is started before continuing
                     while get(master,'BytesAvailable') == 0, end;
@@ -1506,10 +1577,17 @@ while flag
                 %input data save
                 fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                if (flag_var_dyn_model)
+                    fwrite(fid_dyn, order, 'int8');
+                end
 
                 %Kalman filter
                 if (mode_vinc == 0)
-                    [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1); %#ok<NASGU>
+                    if (~flag_var_dyn_model)
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1); %#ok<NASGU>
+                    else
+                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), order, 1); %#ok<NASGU>
+                    end
                 else
                     [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
                 end
@@ -1566,7 +1644,7 @@ while flag
                 end
 
                 %send a new NMEA string
-                if ((flag_NTRIP) && (mod(t,nmea_update_rate) == 0))
+                if ((flag_NTRIP) & (mod(t,nmea_update_rate) == 0))
                     nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat))));
                     fwrite(master,nmea_update);
                     fprintf('NMEA sent\n');
@@ -1619,10 +1697,17 @@ while flag
                     %input data save
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                    if (flag_var_dyn_model)
+                        fwrite(fid_dyn, order, 'int8');
+                    end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1);
+                        if (~flag_var_dyn_model)
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1);
+                        else
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), order, 1);
+                        end
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
@@ -1679,7 +1764,7 @@ while flag
                     end
 
                     %send a new NMEA string
-                    if ((flag_NTRIP) && (mod(t,nmea_update_rate) == 0))
+                    if ((flag_NTRIP) & (mod(t,nmea_update_rate) == 0))
                         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat)), time_R(b), HDOP));
                         fwrite(master,nmea_update);
                         fprintf('NMEA sent\n');
@@ -1731,10 +1816,17 @@ while flag
                     %input data save
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                    if (flag_var_dyn_model)
+                        fwrite(fid_dyn, order, 'int8');
+                    end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1);
+                        if (~flag_var_dyn_model)
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1);
+                        else
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), order, 1);
+                        end
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
@@ -1791,7 +1883,7 @@ while flag
                     end
 
                     %send a new NMEA string
-                    if ((flag_NTRIP) && (mod(t,nmea_update_rate) == 0))
+                    if ((flag_NTRIP) & (mod(t,nmea_update_rate) == 0))
                         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat)), time_R(b), HDOP));
                         fwrite(master,nmea_update);
                         fprintf('NMEA sent\n');
@@ -1849,7 +1941,7 @@ while flag
                             master = tcpip(master_ip,master_port);
                             set(master,'InputBufferSize', 16384);
                             fopen(master);
-                            if ((flag_NTRIP) && (~isempty(nmea_sentences)))
+                            if ((flag_NTRIP) & (~isempty(nmea_sentences)))
                                 nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat))));
                                 ntripstring = NTRIP_string_generator(nmea_update);
                                 fwrite(master,ntripstring);
@@ -1893,10 +1985,17 @@ while flag
                         %output data save
                         fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                         fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                        if (flag_var_dyn_model)
+                            fwrite(fid_dyn, order, 'int8');
+                        end
 
                         %Kalman filter
                         if (mode_vinc == 0)
-                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1);
+                            if (~flag_var_dyn_model)
+                                [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1);
+                            else
+                                [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), order, 1);
+                            end
                         else
                             [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                         end
@@ -1953,7 +2052,7 @@ while flag
                         end
 
                         %send a new NMEA string
-                        if ((flag_NTRIP) && (mod(t,nmea_update_rate) == 0))
+                        if ((flag_NTRIP) & (mod(t,nmea_update_rate) == 0))
                             nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat)), time_R(b), HDOP));
                             fwrite(master,nmea_update);
                             fprintf('NMEA sent\n');
@@ -2005,10 +2104,17 @@ while flag
                     %input data save
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                    if (flag_var_dyn_model)
+                        fwrite(fid_dyn, order, 'int8');
+                    end
 
                     %Kalman filter
                     if (mode_vinc == 0)
-                        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1);
+                        if (~flag_var_dyn_model)
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1);
+                        else
+                            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), order, 1);
+                        end
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
                     end
@@ -2075,7 +2181,7 @@ while flag
                     end
 
                     %send a new NMEA string
-                    if ((flag_NTRIP) && (mod(t,nmea_update_rate) == 0))
+                    if ((flag_NTRIP) & (mod(t,nmea_update_rate) == 0))
                         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat)), time_R(b), HDOP));
                         fwrite(master,nmea_update);
                         fprintf('NMEA sent\n');
@@ -2132,6 +2238,16 @@ while flag
     flag = getappdata(gcf, 'run');
     drawnow
 
+    if (flag_var_dyn_model)
+        % check the changing of kalman filter model
+        if get(h1, 'SelectedObject') == u1
+            order = 1;
+        elseif get(h1, 'SelectedObject') == u2
+            order = 2;
+        else
+            order = 3;
+        end
+    end
     %-------------------------------------
 
     %computation of the delays due to data processing (by default dtime=1)
@@ -2205,6 +2321,9 @@ fclose(fid_eph);
 fclose(fid_kal);
 fclose(fid_sat);
 fclose(fid_dop);
+if (flag_var_dyn_model)
+    fclose(fid_dyn);
+end
 fclose(fid_conf);
 fclose(fid_nmea);
 
