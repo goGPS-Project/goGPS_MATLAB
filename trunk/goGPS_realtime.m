@@ -1,9 +1,13 @@
-function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R)
+function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
+         flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ...
+         flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ...
+         ph2_M, ph2_R, dop2_M, dop2_R)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, 
-%   flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, ref_path, mat_path,
-%   pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
+%   flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc,
+%   flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R,
+%   ph2_M, ph2_R, dop2_M, dop2_R);
 %
 % INPUT:
 %   filerootOUT = output file prefix
@@ -16,6 +20,8 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, flag
 %   flag_ms_pos = use/don't use RTCM master position
 %   flag_skyplot  = use/don't use CPU saving mode (no skyplot, no SNR graph)
 %   flag_plotproc = display/don't display plot figure
+%   flag_var_dyn_model = enable/disable variable dynamic model
+%   flag_stopGOstop = enable/disable direction estimation by stop-go-stop procedure
 %   ref_path    = reference path
 %   mat_path    = reference path adjacency matrix
 %   pos_M  = master station position (X,Y,Z)
@@ -62,7 +68,7 @@ global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
 global master rover
 
-if (flag_var_dyn_model)
+if (flag_var_dyn_model) & (~flag_stopGOstop)
     %disable skyplot and signal-to-noise ratio
     flag_skyplot = 0;
 end
@@ -137,7 +143,7 @@ fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
 %  KVDOP    --> double, [1,1]
 fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
 
-if (flag_var_dyn_model)
+if (flag_var_dyn_model) | (flag_stopGOstop)
     %dynamical model
     %  order      --> int8,   [1,1]
     %  sigmaq_vE  --> double, [1,1] - not used
@@ -559,17 +565,24 @@ master_waiting = 0;
 
 %loop control initialization
 if (flag_plotproc)
-
+    
     if (~flag_var_dyn_model)
         h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 40 20], 'string', 'STOP', ...
-   	        'callback', 'setappdata(gcf, ''run'', 0)');
+            'callback', 'setappdata(gcf, ''run'', 0)');
+    elseif (flag_stopGOstop)
+        h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 40 20], 'string', 'GO', ...
+            'callback', 'setappdata(gcf, ''run'', 2)');
+        h2 = uicontrol(gcf, 'style', 'text', 'position', [70 10 160 15], 'string', 'Current state: "STOP"');
+        set(gcf, 'name', 'goGPS', 'toolbar', 'figure');
+        order = 1;
+        iDIR = 1;
     else
         % Create the button group.
         h1 = uibuttongroup(gcf, 'visible','on');
         
         % Create three radio buttons in the button group.
         u0 = uicontrol(gcf, 'style', 'pushbutton', 'position', [390 10 50 30], 'string', 'STOP', ...
-            'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)');
+            'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
         u1 = uicontrol(gcf, 'Style','Radio','String','static',...
             'pos',[390 100 180 20],'parent', h1);
         u2 = uicontrol(gcf, 'Style','Radio','String','const. velocity dynamic',...
@@ -582,18 +595,25 @@ if (flag_plotproc)
 else
     f1 = figure;
     s1 = get(0,'ScreenSize');
-
+    
     if (~flag_var_dyn_model)
         set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'Navigation');
         h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
             'callback', 'setappdata(gcf, ''run'', 0)');
+    elseif (flag_stopGOstop)
+        set(f1, 'position', [s1(3)-240-20 s1(4)-100-40 240 100], 'menubar', 'none', 'name', 'Navigation');
+        h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'GO', ...
+            'callback', 'setappdata(gcf, ''run'', 2)');
+        h2 = uicontrol(gcf, 'style', 'text', 'position', [40 70 160 15], 'string', 'Current state: "STOP"');
+        order = 1;
+        iDIR = 1;
     else
         set(f1, 'position', [s1(3)-240-40 s1(4)-80-140 240 130], 'menubar', 'none', 'name', 'Navigation');
         % Create the button group.
         h1 = uibuttongroup(gcf, 'visible','on');
         % Create three radio buttons in the button group.
         u0 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 50 30], 'string', 'STOP', ...
-            'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)');
+            'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
         u1 = uicontrol(gcf, 'Style','Radio','String','static',...
             'pos',[10 100 180 20],'parent', h1);
         u2 = uicontrol(gcf, 'Style','Radio','String','const. velocity dynamic',...
@@ -606,7 +626,7 @@ end
 flag = 1;
 setappdata(gcf, 'run', flag);
 
-if (flag_var_dyn_model)
+if (flag_var_dyn_model) & (~flag_stopGOstop)
     if order == 1
         set(h1, 'SelectedObject', u1)
     elseif order == 2
@@ -658,6 +678,28 @@ while flag
     %visualization
     fprintf('epoch %d: GPStime=%d:%d\n', t, week_GPS, time_GPS);
 
+    if (flag_stopGOstop)
+        %-------------------------------------
+        % mode management
+        %-------------------------------------
+        
+        if (flag == 2) && (order == 1)                  % STOP --> GO
+            order = 2;                                  % constant velocity model
+            set(h1, 'string', 'STOP');                  % write STOP
+            set(h1, 'callback', 'setappdata(gcf, ''run'', 3)');
+            set(h2, 'string', 'Current state: "GO"');   % change current state
+        elseif (flag == 3) && (order == 2)              % GO --> STOP
+            order = 1;                                  % constant position model
+            set(h1, 'string', 'END');                   % write END
+            set(h1, 'callback', 'setappdata(gcf, ''run'', 0)');
+            set(h2, 'string', 'Current state: "STOP"'); % change current state
+            iDIR = iDIR+1;
+        end
+        
+        if (order == 2)
+            iDIR = iDIR+1;
+        end
+    end
     %-------------------------------------
     % file management
     %-------------------------------------
@@ -674,7 +716,7 @@ while flag
         fclose(fid_kal);
         fclose(fid_sat);
         fclose(fid_dop);
-        if (flag_var_dyn_model)
+        if (flag_var_dyn_model) | (flag_stopGOstop)
             fclose(fid_dyn);
         end
         fclose(fid_conf);
@@ -686,7 +728,7 @@ while flag
         fid_kal    = fopen([filerootOUT '_kal_'    hour_str '.bin'],'w+');
         fid_sat    = fopen([filerootOUT '_sat_'    hour_str '.bin'],'w+');
         fid_dop    = fopen([filerootOUT '_dop_'    hour_str '.bin'],'w+');
-        if (flag_var_dyn_model)
+        if (flag_var_dyn_model) | (flag_stopGOstop)
             fid_dyn    = fopen([filerootOUT '_dyn_'    hour_str '.bin'],'w+');
         end
         fid_conf   = fopen([filerootOUT '_conf_'   hour_str '.bin'],'w+');
@@ -963,7 +1005,7 @@ while flag
     fprintf('\n');
 
     %--------------------------------------------------------------
-    %ephemerides request
+    % ephemerides request
     %--------------------------------------------------------------
 
     if (~isempty(sat) & index > 0)
@@ -1308,17 +1350,6 @@ while flag
         end
     end
 
-%     %Resolution of 2^23 cy carrier phase ambiguity
-%     %caused by 32-bit data field restrictions (RTCM2)
-%     if(test_master & is_rtcm2)
-%         for i = 1 : length(index_ph)
-%             pos = find(ph_M(:,index_ph(i)) & pr_M(:,index_ph(i)));
-%             ambig = 2^23;
-%             n = floor( (pr_M(pos,index_ph(i))/lambda1-ph_M(pos,index_ph(i))) / ambig + 0.5 );
-%             ph_M(pos,index_ph(i)) = ph_M(pos,index_ph(i)) + n*ambig;
-%         end
-%     end
-
     %time reading (end of master decoding)
     current_time = toc;
 
@@ -1441,7 +1472,7 @@ while flag
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                if (flag_var_dyn_model)
+                if (flag_var_dyn_model) | (flag_stopGOstop)
                     fwrite(fid_dyn, order, 'int8');
                 end
 
@@ -1460,6 +1491,17 @@ while flag
                     kalman_goGPS_vinc_init (pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1, ref_path);
                 end
                 
+                if (flag_stopGOstop)
+                    [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+                    Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+                    sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
+                    sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
+                    sigma_EN0(iDIR,1) = Cee_ENU(1,2);
+                    mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
+                    sigma_angleDIR = 0;
+                    P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
+                end
+
                 %output data save
                 if (mode_vinc == 0)
                     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -1487,10 +1529,18 @@ while flag
                 %graphical representations
                 if (flag_plotproc)
                     if (flag_cov == 0)
-                        rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        if (~flag_stopGOstop)
+                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        else
+                            rtplot_matlab_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), P1, P2, flag_ms, ref_path, mat_path, flag);
+                        end
                         if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
                     else
-                        rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        if (~flag_stopGOstop)
+                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        else
+                            rtplot_matlab_cov_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag);
+                        end
                         if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                     end
                     if (flag_skyplot == 1)
@@ -1577,7 +1627,7 @@ while flag
                 %input data save
                 fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                if (flag_var_dyn_model)
+                if (flag_var_dyn_model) | (flag_stopGOstop)
                     fwrite(fid_dyn, order, 'int8');
                 end
 
@@ -1590,6 +1640,31 @@ while flag
                     end
                 else
                     [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (zeros(3,1), 0, Eph, iono, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), 1, ref_path); %#ok<NASGU>
+                end
+
+                if (flag_stopGOstop)
+                    %direction estimation
+                    [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+                    Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+                    sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
+                    sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
+                    sigma_EN0(iDIR,1) = Cee_ENU(1,2);
+                    if (iDIR == 1)
+                        mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
+                        sigma_angleDIR = 0;
+                        P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
+                    else
+                        [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
+                        m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
+                        m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
+                        X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
+                        X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
+                        P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
+                        P2 = [X2, mDIR*X2+qDIR ];
+                        angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
+                        sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
+                        %sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
+                    end
                 end
 
                 %output data save
@@ -1619,10 +1694,18 @@ while flag
                 %graphical representations
                 if (flag_plotproc)
                     if (flag_cov == 0)
-                        rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        if (~flag_stopGOstop)
+                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        else
+                            rtplot_matlab_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), P1, P2, flag_ms, ref_path, mat_path, flag);
+                        end
                         if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
                     else
-                        rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        if (~flag_stopGOstop)
+                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                        else
+                            rtplot_matlab_cov_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag);
+                        end
                         if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                     end
                     if (flag_skyplot == 1)
@@ -1697,7 +1780,7 @@ while flag
                     %input data save
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                    if (flag_var_dyn_model)
+                    if (flag_var_dyn_model) | (flag_stopGOstop)
                         fwrite(fid_dyn, order, 'int8');
                     end
 
@@ -1710,6 +1793,32 @@ while flag
                         end
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                    end
+
+                    if (flag_stopGOstop)
+                        %direction estimation
+                        [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+                        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+                        sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
+                        sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
+                        sigma_EN0(iDIR,1) = Cee_ENU(1,2);
+                        if (iDIR == 1)
+                            mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
+                            sigma_angleDIR = 0;
+                            P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
+                        else
+                            [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
+                            m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
+                            m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
+                            X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
+                            X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
+                            P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
+                            P2 = [X2, mDIR*X2+qDIR ];
+                            angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
+                            sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
+                            % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
+                            
+                        end
                     end
 
                     %output data save
@@ -1739,10 +1848,18 @@ while flag
                     %graphical representations
                     if (flag_plotproc)
                         if (flag_cov == 0)
-                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (~flag_stopGOstop)
+                                rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            else
+                                rtplot_matlab_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), P1, P2, flag_ms, ref_path, mat_path, flag);
+                            end
                             if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
                         else
-                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (~flag_stopGOstop)
+                                rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            else
+                                rtplot_matlab_cov_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag);
+                            end
                             if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                         end
                         if (flag_skyplot == 1)
@@ -1816,7 +1933,7 @@ while flag
                     %input data save
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                    if (flag_var_dyn_model)
+                    if (flag_var_dyn_model) | (flag_stopGOstop)
                         fwrite(fid_dyn, order, 'int8');
                     end
 
@@ -1829,6 +1946,31 @@ while flag
                         end
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                    end
+
+                    if (flag_stopGOstop)
+                        %direction estimation
+                        [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+                        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+                        sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
+                        sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
+                        sigma_EN0(iDIR,1) = Cee_ENU(1,2);
+                        if (iDIR == 1)
+                            mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
+                            sigma_angleDIR = 0;
+                            P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
+                        else
+                            [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
+                            m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
+                            m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
+                            X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
+                            X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
+                            P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
+                            P2 = [X2, mDIR*X2+qDIR ];
+                            angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
+                            sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
+                            % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
+                        end
                     end
 
                     %output data save
@@ -1854,14 +1996,22 @@ while flag
                         pos_t(3,1) = Yhat_t_t(3);
                         vel_t = Xhat_t_t(2);
                     end
-
+                    
                     %graphical representations
                     if (flag_plotproc)
                         if (flag_cov == 0)
-                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b),check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (~flag_stopGOstop)
+                                rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b),check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            else
+                                rtplot_matlab_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), P1, P2, flag_ms, ref_path, mat_path, flag);
+                            end
                             if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
                         else
-                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (~flag_stopGOstop)
+                                rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            else
+                                rtplot_matlab_cov_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag);
+                            end
                             if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                         end
                         if (flag_skyplot == 1)
@@ -1985,7 +2135,7 @@ while flag
                         %output data save
                         fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                         fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                        if (flag_var_dyn_model)
+                        if (flag_var_dyn_model) | (flag_stopGOstop)
                             fwrite(fid_dyn, order, 'int8');
                         end
 
@@ -1998,6 +2148,31 @@ while flag
                             end
                         else
                             [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                        end
+
+                        if (flag_stopGOstop)
+                            %direction estimation
+                            [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+                            Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+                            sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
+                            sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
+                            sigma_EN0(iDIR,1) = Cee_ENU(1,2);
+                            if (iDIR == 1)
+                                mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
+                                sigma_angleDIR = 0;
+                                P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
+                            else
+                                [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
+                                m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
+                                m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
+                                X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
+                                X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
+                                P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
+                                P2 = [X2, mDIR*X2+qDIR ];
+                                angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
+                                sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
+                                % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
+                            end
                         end
 
                         %output data save
@@ -2027,10 +2202,18 @@ while flag
                         %graphical representations
                         if (flag_plotproc)
                             if (flag_cov == 0)
-                                rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                                if (~flag_stopGOstop)
+                                    rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                                else
+                                    rtplot_matlab_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), P1, P2, flag_ms, ref_path, mat_path, flag);
+                                end
                                 if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
                             else
-                                rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                                if (~flag_stopGOstop)
+                                    rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                                else
+                                    rtplot_matlab_cov_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), P1, P2, Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), flag_ms, ref_path, mat_path, flag);
+                                end
                                 if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                             end
                             if (flag_skyplot == 1)
@@ -2104,7 +2287,7 @@ while flag
                     %input data save
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
-                    if (flag_var_dyn_model)
+                    if (flag_var_dyn_model) | (flag_stopGOstop)
                         fwrite(fid_dyn, order, 'int8');
                     end
 
@@ -2117,6 +2300,31 @@ while flag
                         end
                     else
                         [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,b), time_M(b), Eph, iono, pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), 1, ref_path);
+                    end
+
+                    if (flag_stopGOstop)
+                        %direction estimation
+                        [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+                        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+                        sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
+                        sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
+                        sigma_EN0(iDIR,1) = Cee_ENU(1,2);
+                        if (iDIR == 1)
+                            mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
+                            sigma_angleDIR = 0;
+                            P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
+                        else
+                            [mDIR, qDIR, sigmaq_mDIR, sigmaq_qDIR] = LSinterp(E0, N0, sigmaq_E0, sigmaq_N0, sigma_EN0); %#ok<NASGU>
+                            m1 = -(sigmaq_N0(1)   - mDIR*sigma_EN0(1))   / (mDIR*sigmaq_E0(1)   - sigma_EN0(1));
+                            m2 = -(sigmaq_N0(end) - mDIR*sigma_EN0(end)) / (mDIR*sigmaq_E0(end) - sigma_EN0(end));
+                            X1 = (m1*E0(1)   + qDIR - N0(1))   / (m1-mDIR);
+                            X2 = (m2*E0(end) + qDIR - N0(end)) / (m2-mDIR);
+                            P1 = [X1, mDIR*X1+qDIR ];   % projecting according to error covariance
+                            P2 = [X2, mDIR*X2+qDIR ];
+                            angleDIR = atan2(P2(1)-P1(1),P2(2)-P1(2)) * 180/pi;
+                            sigma_angleDIR = 1/(1+mDIR^2) * sqrt(sigmaq_mDIR) * 180/pi;
+                            % sigma_angleDIR = atan(sqrt(sigmaq_mDIR));
+                        end
                     end
 
                     %output data save
@@ -2146,10 +2354,18 @@ while flag
                     %graphical representations
                     if (flag_plotproc)
                         if (flag_cov == 0)
-                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (~flag_stopGOstop)
+                                rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            else
+                                rtplot_matlab_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), P1, P2, flag_ms, ref_path, mat_path, flag);
+                            end
                             if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
                         else
-                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            if (~flag_stopGOstop)
+                                rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                            else
+                                rtplot_matlab_cov_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,b), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag);
+                            end
                             if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                         end
                         if (flag_skyplot == 1)
@@ -2238,7 +2454,7 @@ while flag
     flag = getappdata(gcf, 'run');
     drawnow
 
-    if (flag_var_dyn_model)
+    if (flag_var_dyn_model) & (~flag_stopGOstop)
         % check the changing of kalman filter model
         if get(h1, 'SelectedObject') == u1
             order = 1;
@@ -2307,6 +2523,23 @@ if (protocol == 0)
     end
 end
 
+if (flag_stopGOstop)
+    try
+        %Azimuth computation
+        i = find(angleDIR < 0);
+        angleDIR(i) = angleDIR(i) + 360;
+        
+        fprintf('\n')
+        fprintf('Estimated azimuth = %8.3f degrees\n', angleDIR);
+        fprintf('Standard deviation  = %8.3f degrees\n', sigma_angleDIR);
+        fprintf('\n')
+    catch
+        fprintf('\n');
+        fprintf('Insufficient data to estimate a direction\n');
+        fprintf('\n');
+    end
+end
+
 %connection closing
 fclose(master);
 fclose(rover);
@@ -2321,7 +2554,7 @@ fclose(fid_eph);
 fclose(fid_kal);
 fclose(fid_sat);
 fclose(fid_dop);
-if (flag_var_dyn_model)
+if (flag_var_dyn_model) | (flag_stopGOstop)
     fclose(fid_dyn);
 end
 fclose(fid_conf);

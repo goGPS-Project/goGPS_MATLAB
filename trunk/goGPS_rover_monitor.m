@@ -1,11 +1,13 @@
-function goGPS_rover_monitor(filerootOUT, protocol)
+function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop)
 
 % SYNTAX:
-%   goGPS_rover_monitor(filerootOUT, protocol)
+%   goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop);
 %
 % INPUT:
 %   filerootOUT = output file prefix
 %   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq)
+%   flag_var_dyn_model = enable / disable variable dynamic model
+%   flag_stopGOstop    = enable / disable stop-go-stop procedure for direction estimation
 %
 % DESCRIPTION:
 %   Monitor of receiver operations: stream reading, data visualization 
@@ -16,6 +18,8 @@ function goGPS_rover_monitor(filerootOUT, protocol)
 %                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -34,6 +38,7 @@ function goGPS_rover_monitor(filerootOUT, protocol)
 
 global COMportR
 global rover
+global order
 
 %------------------------------------------------------
 % read protocol parameters
@@ -100,7 +105,18 @@ for r = 1 : nrec
     %   timeGPS  --> double, [1,1]  --> zeros(1,1)
     %   Eph      --> double, [29,32]
     fid_eph{r} = fopen([filerootOUT '_' recname '_eph_00.bin'],'w+');
-
+    
+    if (flag_var_dyn_model) | (flag_stopGOstop)
+        %dynamical model
+        %  order      --> int8,   [1,1]
+        %  sigmaq_vE  --> double, [1,1] - not used
+        %  sigmaq_vN  --> double, [1,1] - not used
+        %  sigmaq_vU  --> double, [1,1] - not used
+        %  sigmaq0    --> double, [1,1] - not used
+        %  sigmaq0_N  --> double, [1,1] - not used
+        fid_dyn{r} = fopen([filerootOUT '_' recname '_dyn_00.bin'],'w+');
+    end
+    
     % nmea sentences
     fid_nmea{r} = fopen([filerootOUT '_' recname '_NMEA.txt'],'wt');
 end
@@ -326,11 +342,43 @@ t = zeros(nrec,1);
 %loop control initialization
 f1 = figure;
 s1 = get(0,'ScreenSize');
-set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'ROVER monitor');
-h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
-    'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
+if (~flag_var_dyn_model)
+    set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'ROVER monitor');
+    h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
+        'callback', 'setappdata(gcf, ''run'', 0)');
+elseif (flag_stopGOstop)
+    set(f1, 'position', [s1(3)-240-20 s1(4)-100-40 240 100], 'menubar', 'none', 'name', 'ROVER monitor');
+    h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'GO', ...
+        'callback', 'setappdata(gcf, ''run'', 2)');
+    h2 = uicontrol(gcf, 'style', 'text', 'position', [40 70 160 15], 'string', 'Current state: "STOP"');
+    order = 1;
+else
+    set(f1, 'position', [s1(3)-240-40 s1(4)-80-140 240 130], 'menubar', 'none', 'name', 'ROVER monitor');
+    % Create the button group.
+    h1 = uibuttongroup(gcf, 'visible','on');
+    % Create three radio buttons in the button group.
+    u0 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 50 30], 'string', 'STOP', ...
+        'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)');
+    u1 = uicontrol(gcf, 'Style','Radio','String','static',...
+        'pos',[10 100 180 20],'parent', h1);
+    u2 = uicontrol(gcf, 'Style','Radio','String','const. velocity dynamic',...
+        'pos',[10 80 180 20],'parent', h1);
+    u3 = uicontrol(gcf, 'Style','Radio','String','const. acceleration dynamic',...
+        'pos',[10 60 180 20],'parent', h1);
+end
+
 flag = 1;
 setappdata(gcf, 'run', flag);
+
+if (flag_var_dyn_model) & (~flag_stopGOstop)
+    if order == 1
+        set(h1, 'SelectedObject', u1)
+    elseif order == 2
+        set(h1, 'SelectedObject', u2)
+    else
+        set(h1, 'SelectedObject', u3)
+    end
+end
 
 %for Fastrax
 tick_TRACK = 0;
@@ -340,6 +388,21 @@ IOD_time = -1;
 
 %infinite loop
 while flag
+
+    if (flag_stopGOstop)
+        % mode management
+        if (flag == 2) && (order ~= 2)                  % STOP --> GO
+            order = 2;                                  % constant velocity model
+            set(h1, 'string', 'STOP');                  % write STOP
+            set(h1, 'callback', 'setappdata(gcf, ''run'', 1)');
+            set(h2, 'string', 'Current state: "GO"');   % change current state
+        elseif (flag == 1) && (order ~= 1)              % GO --> STOP
+            order = 1;                                  % constant position model
+            set(h1, 'string', 'END');                   % write END
+            set(h1, 'callback', 'setappdata(gcf, ''run'', 0)');
+            set(h2, 'string', 'Current state: "STOP"'); % change current state
+        end
+    end
 
     %time reading (relative to start_time)
     current_time = toc;
@@ -449,6 +512,9 @@ while flag
                         %data save
                         fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                         fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
+                        if (flag_var_dyn_model) | (flag_stopGOstop)
+                            fwrite(fid_dyn{r}, order, 'int8');
+                        end
                     end
 
                     type = [type prot_par{r}{1,2} ' '];
@@ -642,7 +708,17 @@ while flag
     %test if the cycle execution has ended
     flag = getappdata(gcf, 'run');
     drawnow
-
+    
+    if (flag_var_dyn_model) & (~flag_stopGOstop)
+        % check the changing of kalman filter model
+        if get(h1, 'SelectedObject') == u1
+            order = 1;
+        elseif get(h1, 'SelectedObject') == u2
+            order = 2;
+        else
+            order = 3;
+        end
+    end
 end
 
 %------------------------------------------------------
@@ -703,6 +779,9 @@ for r = 1 : nrec
     fclose(fid_obs{r});
     fclose(fid_eph{r});
     fclose(fid_nmea{r});
+    if (flag_var_dyn_model) | (flag_stopGOstop)
+        fclose(fid_dyn{r});
+    end
 end
 
 %log file closing
