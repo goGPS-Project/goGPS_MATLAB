@@ -326,7 +326,7 @@ t = zeros(nrec,1);
 %loop control initialization
 f1 = figure;
 s1 = get(0,'ScreenSize');
-set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'UBLOX monitor');
+set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'ROVER monitor');
 h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
     'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
 flag = 1;
