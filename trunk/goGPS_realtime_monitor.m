@@ -1,13 +1,15 @@
-function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, pos_M)
+function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M)
 
 % SYNTAX:
-%   goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, pos_M);
+%   goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M);
 %
 % INPUT:
 %   filerootOUT = output file prefix
 %   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq)
 %   flag_NTRIP = use/don't use NTRIP flag
 %   flag_ms_pos = use/don't use RTCM master position
+%   flag_var_dyn_model = enable/disable variable dynamic model
+%   flag_stopGOstop = enable/disable direction estimation by stop-go-stop procedure
 %   pos_M = master station position (X,Y,Z)
 %
 % DESCRIPTION:
@@ -18,6 +20,8 @@ function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, 
 %                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -34,7 +38,7 @@ function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, 
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global nN
+global nN order
 global COMportR master_ip master_port server_delay
 global HDOP
 global nmea_init nmea_update_rate
@@ -69,6 +73,7 @@ fid_rover = fopen([filerootOUT '_rover_00.bin'],'w+');
 %  pr_R     --> double, [32,1]
 %  ph_M     --> double, [32,1]
 %  ph_R     --> double, [32,1]
+%  dop_R    --> double, [32,1]
 %  snr_M    --> double, [32,1]
 %  snr_R    --> double, [32,1]
 %  XM       --> double, [1,1]
@@ -81,6 +86,16 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 %  Eph      --> double, [29,32]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
+if (flag_var_dyn_model) | (flag_stopGOstop)
+    %dynamical model
+    %  order      --> int8,   [1,1]
+    %  sigmaq_vE  --> double, [1,1] - not used
+    %  sigmaq_vN  --> double, [1,1] - not used
+    %  sigmaq_vU  --> double, [1,1] - not used
+    %  sigmaq0    --> double, [1,1] - not used
+    %  sigmaq0_N  --> double, [1,1] - not used
+    fid_dyn = fopen([filerootOUT '_dyn_00.bin'],'w+');
+end
 %nmea sentences
 fid_nmea = fopen([filerootOUT '_', prot_par{1,1},'_NMEA.txt'],'wt');
 
@@ -98,7 +113,7 @@ nN = 32;
 iono = zeros(8,1);
 
 %------------------------------------------------------
-% creation of the connection to the ROVER (u-blox)
+% creation of the connection to the ROVER
 %------------------------------------------------------
 
 % find a serial port object.
@@ -112,18 +127,26 @@ end
 % serial object creation
 rover = serial (COMportR,'BaudRate',prot_par{2,1});
 set(rover,'InputBufferSize',prot_par{3,1});
-if (protocol ~= 2)
+if (protocol == 0)
     set(rover,'FlowControl','hardware');
     set(rover,'RequestToSend','on');
 end
 fopen(rover);
 
 if (protocol == 0)
-    %------------------------------------------------------
-    % u-blox rover configuration
-    %------------------------------------------------------
 
+    % u-blox configuration
     [rover, reply_save] = configure_ublox(rover, COMportR, prot_par, 1);
+
+elseif (protocol == 1)
+
+    % fastrax configuration
+    [rover] = configure_fastrax(rover, COMportR, prot_par, 1);
+
+elseif (protocol == 2)
+
+    % skytraq configuration
+    [rover] = configure_skytraq(rover, COMportR, prot_par, 1);
 end
 
 %------------------------------------------------------
@@ -187,7 +210,7 @@ nsatObs_old = [];
 %satellites with ephemerides available
 satEph = [];
 
-while(length(satObs) < 4 | ~ismember(satObs,satEph))
+while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
 
     if (protocol == 0)
         %poll available ephemerides
@@ -329,7 +352,7 @@ sync_rover = 0;
 while (~sync_rover)
     
     %starting epoch determination
-    while (rover_1 ~= rover_2) || (rover_1 == 0) || (rover_1 < prot_par{4,1})
+    while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
         
         %starting time
         current_time = toc;
@@ -478,11 +501,44 @@ master_waiting = 0;
 %loop control initialization
 f1 = figure;
 s1 = get(0,'ScreenSize');
-set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'ROVER and MASTER monitor');
-h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
-    'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
+
+if (~flag_var_dyn_model)
+    set(f1, 'position', [s1(3)-240-20 s1(4)-80-40 240 80], 'menubar', 'none', 'name', 'Navigation');
+    h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'STOP', ...
+        'callback', 'setappdata(gcf, ''run'', 0)');
+elseif (flag_stopGOstop)
+    set(f1, 'position', [s1(3)-240-20 s1(4)-100-40 240 100], 'menubar', 'none', 'name', 'Navigation');
+    h1 = uicontrol(gcf, 'style', 'pushbutton', 'position', [80 20 80 40], 'string', 'GO', ...
+        'callback', 'setappdata(gcf, ''run'', 2)');
+    h2 = uicontrol(gcf, 'style', 'text', 'position', [40 70 160 15], 'string', 'Current state: "STOP"');
+    order = 1;
+else
+    set(f1, 'position', [s1(3)-240-40 s1(4)-80-140 240 130], 'menubar', 'none', 'name', 'Navigation');
+    % Create the button group.
+    h1 = uibuttongroup(gcf, 'visible','on');
+    % Create three radio buttons in the button group.
+    u0 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 50 30], 'string', 'STOP', ...
+        'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
+    u1 = uicontrol(gcf, 'Style','Radio','String','static',...
+        'pos',[10 100 180 20],'parent', h1);
+    u2 = uicontrol(gcf, 'Style','Radio','String','const. velocity dynamic',...
+        'pos',[10 80 180 20],'parent', h1);
+    u3 = uicontrol(gcf, 'Style','Radio','String','const. acceleration dynamic',...
+        'pos',[10 60 180 20],'parent', h1);
+end
+
 flag = 1;
 setappdata(gcf, 'run', flag);
+
+if (flag_var_dyn_model) & (~flag_stopGOstop)
+    if order == 1
+        set(h1, 'SelectedObject', u1)
+    elseif order == 2
+        set(h1, 'SelectedObject', u2)
+    else
+        set(h1, 'SelectedObject', u3)
+    end
+end
 
 %store previous position
 pos_t = pos_R;
@@ -529,6 +585,23 @@ while flag
     %visualization
     fprintf('epoch %d: GPStime=%d:%d\n', t, week_GPS, time_GPS);
 
+    if (flag_stopGOstop)
+        %-------------------------------------
+        % mode management
+        %-------------------------------------
+        
+        if (flag == 2) && (order == 1)                  % STOP --> GO
+            order = 2;                                  % constant velocity model
+            set(h1, 'string', 'STOP');                  % write STOP
+            set(h1, 'callback', 'setappdata(gcf, ''run'', 3)');
+            set(h2, 'string', 'Current state: "GO"');   % change current state
+        elseif (flag == 3) && (order == 2)              % GO --> STOP
+            order = 1;                                  % constant position model
+            set(h1, 'string', 'END');                   % write END
+            set(h1, 'callback', 'setappdata(gcf, ''run'', 0)');
+            set(h2, 'string', 'Current state: "STOP"'); % change current state
+        end
+    end
     %-------------------------------------
     % file management
     %-------------------------------------
@@ -542,11 +615,17 @@ while flag
         fclose(fid_rover);
         fclose(fid_obs);
         fclose(fid_eph);
+        if (flag_var_dyn_model) | (flag_stopGOstop)
+            fclose(fid_dyn);
+        end
 
         fid_master = fopen([filerootOUT '_master_' hour_str '.bin'],'w+');
         fid_rover  = fopen([filerootOUT '_rover_'  hour_str '.bin'],'w+');
         fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
         fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+        if (flag_var_dyn_model) | (flag_stopGOstop)
+            fid_dyn    = fopen([filerootOUT '_dyn_'    hour_str '.bin'],'w+');
+        end
 
     end
 
@@ -701,12 +780,6 @@ while flag
                     %manage "nearly null" data
                     pos = abs(ph_R(:,index)) < 1e-100;
                     ph_R(pos,index) = 0;
-
-%                     %phase adjustement
-%                     pos = abs(ph_R(:,index)) > 0 & abs(ph_R(:,index)) < 1e7;
-%                     ambig = 2^23;
-%                     n = floor( (pr_R(pos,index)/lambda1-ph_R(pos,index)) / ambig + 0.5 );
-%                     ph_R(pos,index) = ph_R(pos,index) + n*ambig;
 
                     type = [type prot_par{1,2} ' '];
                 end
@@ -924,7 +997,7 @@ while flag
     dtMax_master = 0.8;
 
     %multiple condition: while (I have not received the 19/1002/1004 message for the time_GPS epoch) AND (time is not expired)
-    while (test_master == 0) & (current_time-start_time-step_time < dtMax_master)
+    while ((test_master == 0) & (current_time-start_time-step_time < dtMax_master))
 
         %time acquisition
         current_time = toc;
@@ -1108,22 +1181,26 @@ while flag
 
                     %buffer index computation
                     index = time_GPS - round(cell_master{2,i}(2)) + 1;
-
+                    
                     if (index <= B)
-
+                        while (index < 1)
+                            time_GPS = time_GPS + 1;
+                            index = time_GPS - round(cell_master{2,i}(2)) + 1;
+                        end
+                        
                         %buffer writing
                         tick_M(index)  = 1;
                         time_M(index)  = cell_master{2,i}(2);
                         pr_M(:,index)  = cell_master{3,i}(:,2);
                         ph_M(:,index)  = cell_master{3,i}(:,3);
                         snr_M(:,index) = cell_master{3,i}(:,5);
-
+                        
                         %manage "nearly null" data
                         pos = abs(ph_M(:,index)) < 1e-100;
                         ph_M(pos,index) = 0;
-
+                        
                         type = [type num2str(cell_master{1,i}) ' '];
-
+                        
                     end
 
                 %message 1005 (RTCM3)
@@ -1193,17 +1270,6 @@ while flag
             end
         end
     end
-
-%     %Resolution of 2^23 cy carrier phase ambiguity
-%     %caused by 32-bit data field restrictions (RTCM2)
-%     if(test_master & is_rtcm2)
-%         for i = 1 : length(index_ph)
-%             pos = find(ph_M(:,index_ph(i)) & pr_M(:,index_ph(i)));
-%             ambig = 2^23;
-%             n = floor( (pr_M(pos,index_ph(i))/lambda1-ph_M(pos,index_ph(i))) / ambig + 0.5 );
-%             ph_M(pos,index_ph(i)) = ph_M(pos,index_ph(i)) + n*ambig;
-%         end
-%     end
 
     %time reading (end of master decoding)
     current_time = toc;
@@ -1323,6 +1389,9 @@ while flag
             %input data save
             fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+            if (flag_var_dyn_model) | (flag_stopGOstop)
+                fwrite(fid_dyn, order, 'int8');
+            end
             
             %counter increment
             t = t + 1;
@@ -1379,6 +1448,9 @@ while flag
             %input data save
             fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+            if (flag_var_dyn_model) | (flag_stopGOstop)
+                fwrite(fid_dyn, order, 'int8');
+            end
             
             %counter increment
             t = t + 1;
@@ -1411,10 +1483,13 @@ while flag
 
                 %satellites with available observations
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
-
+                
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                if (flag_var_dyn_model) | (flag_stopGOstop)
+                    fwrite(fid_dyn, order, 'int8');
+                end
                 
                 %counter increment
                 t = t + 1;
@@ -1451,6 +1526,9 @@ while flag
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                if (flag_var_dyn_model) | (flag_stopGOstop)
+                    fwrite(fid_dyn, order, 'int8');
+                end
                 
                 %counter increment
                 t = t + 1;
@@ -1536,6 +1614,9 @@ while flag
                     %output data save
                     fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                     fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                    if (flag_var_dyn_model) | (flag_stopGOstop)
+                        fwrite(fid_dyn, order, 'int8');
+                    end
                     
                     %counter increment
                     t = t + 1;
@@ -1567,10 +1648,13 @@ while flag
 
                 %satellites with available observations
                 satObs = find( (pr_R(:,b) ~= 0) & (pr_M(:,b) ~= 0));
-
+                
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(b); time_R(b); week_R(b); pr_M(:,b); pr_R(:,b); ph_M(:,b); ph_R(:,b); dop_R(:,b); snr_M(:,b); snr_R(:,b); pos_M(:,b); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
+                if (flag_var_dyn_model) | (flag_stopGOstop)
+                    fwrite(fid_dyn, order, 'int8');
+                end
                 
                 %counter increment
                 t = t + 1;
@@ -1607,7 +1691,17 @@ while flag
     %test if the cycle execution has ended
     flag = getappdata(gcf, 'run');
     drawnow
-
+    
+    if (flag_var_dyn_model) & (~flag_stopGOstop)
+        % check the changing of kalman filter model
+        if get(h1, 'SelectedObject') == u1
+            order = 1;
+        elseif get(h1, 'SelectedObject') == u2
+            order = 2;
+        else
+            order = 3;
+        end
+    end
     %-------------------------------------
 
     %computation of the delays due to data processing (by default dtime=1)
@@ -1678,6 +1772,9 @@ fclose(fid_master);
 fclose(fid_rover);
 fclose(fid_obs);
 fclose(fid_eph);
+if (flag_var_dyn_model) | (flag_stopGOstop)
+    fclose(fid_dyn);
+end
 fclose(fid_nmea);
 
 %log file closing
