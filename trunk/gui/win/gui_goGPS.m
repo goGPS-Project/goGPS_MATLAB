@@ -974,6 +974,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.err_ellipse, 'Enable', 'on');
     set(handles.google_earth, 'Enable', 'on');
     set(handles.text_num_receivers, 'Enable', 'off');
+    set(handles.num_receivers, 'Value', 1);
     set(handles.num_receivers, 'Enable', 'off');
     set(handles.com_select_0, 'Enable', 'on');
     set(handles.com_select_1, 'Enable', 'off');
@@ -1205,6 +1206,7 @@ else
     elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
 
         set(handles.text_num_receivers, 'Enable', 'off');
+        set(handles.num_receivers, 'Value', 1);
         set(handles.num_receivers, 'Enable', 'off');
         set(handles.com_select_0, 'Enable', 'on');
         set(handles.com_select_1, 'Enable', 'off');
@@ -3281,7 +3283,8 @@ function num_receivers_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from num_receivers
 contents = cellstr(get(hObject,'String'));
 check_mode = cellstr(get(handles.mode,'String'));
-if (strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
+contents_nav_mon = cellstr(get(handles.nav_mon,'String'));
+if (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
     set(handles.text_num_receivers, 'Enable', 'on');
     set(handles.num_receivers, 'Enable', 'on');
     if (size(contents,1) >= get(hObject,'Value'))
