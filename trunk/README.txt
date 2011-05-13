@@ -9,7 +9,7 @@
 *          d8888P                                                 *
 \*****************************************************************/
 
-   v0.1.3alpha
+   v0.2.0beta
 
 1. Introduction
    ============
@@ -44,6 +44,11 @@
    - GPS permanent station(s) broadcasting raw data in RTCM 3.x
      format through NTRIP protocol (at least '1002' or '1004'
      messages)
+
+   NOTE: plotting on Google Earth requires it to be installed;
+         if plotting error ellipses on Google Earth produces odd
+         output on Windows, please switch Google Earth rendering
+         engine to DirectX.
 
 3. Directory tree:
    ============

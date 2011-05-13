@@ -824,7 +824,6 @@ while flag
         data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
         data_rover = data_rover';                      %transpose (8bit x N matrix)
         data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
-        %dep_rover = strcat(dep_rover,data_rover);
 
         %message decoding
         if (protocol == 0)
@@ -1092,7 +1091,6 @@ while flag
             data_master = dec2bin(data_master,8)';            %conversion to binary (N x 8bit matrix)
             data_master = data_master(:);                     %transpose (8bit x N matrix)
             data_master = data_master';                       %conversion to string (8N bit vector)
-            %dep_master = strcat(dep_master,data_master);
 
             pos = 1;
             sixofeight = [];
@@ -1152,7 +1150,6 @@ while flag
         % by a new RTCM message (3, 1005 or 1006)
         pos = find(sum(pos_M(:,1+dtime:end)) ~= 0);
         if (~isempty(pos))
-           % pos = pos(3) / 3;
             pos = pos(1);
             pos_M(1,1:dtime) = pos_M(1,pos+dtime);
             pos_M(2,1:dtime) = pos_M(2,pos+dtime);
