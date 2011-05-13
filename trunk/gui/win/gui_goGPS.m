@@ -2399,8 +2399,8 @@ if (strcmp(contents{get(hObject,'Value')},'Static'))
     set(handles.text_std_Y_unit, 'Enable', 'off');
     set(handles.text_std_Z_unit, 'Enable', 'off');
 else
-    contents = cellstr(get(handles.nav_mon,'String'));
-    if (strcmp(contents{get(handles.nav_mon,'Value')},'Navigation'))
+    mode = cellstr(get(handles.nav_mon,'String'));
+    if (strcmp(mode{get(handles.nav_mon,'Value')},'Navigation'))
         set(handles.std_X, 'Enable', 'on');
         set(handles.std_Y, 'Enable', 'on');
         set(handles.std_Z, 'Enable', 'on');
