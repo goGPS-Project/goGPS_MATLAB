@@ -167,7 +167,7 @@ while (pos + 15 <= length(msg))
                                     case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
                                         
                                     % SFRB (subframe buffer)
-                                    case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
+                                    %case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
                                         
                                     % EPH (*OBSOLETE* ephemeris)
                                     case '31'
