@@ -190,8 +190,7 @@ if (~isempty(data_rover_all))
             lock_R(:,i) = cell_rover{3,j}(:,7);
             
             %manage "nearly null" data
-            pos = abs(ph1_R(:,i)) < 1e-100;
-            ph1_R(pos,i) = 0;
+            ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
             
             %keep just "on top of second" measurements
             %if (time_R(i)- floor(time_R(i)) == 0)
@@ -256,11 +255,14 @@ if (~isempty(data_rover_all))
                 ph1_R(:,i) = cell_rover{3,j}(:,4);
                 snr_R(:,i) = cell_rover{3,j}(:,2);
                 dop1_R(:,i) = cell_rover{3,j}(:,5);
-                
+
                 %manage "nearly null" data
-                pos = abs(ph1_R(:,i)) < 1e-100;
-                ph1_R(pos,i) = 0;
+                pr1_R(abs(pr1_R(:,i)) < 1e-100,i) = 0;
+                ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
                 
+                %manage phase without code
+                ph1_R(abs(pr1_R(:,i)) == 0,i) = 0;
+
                 i = i + 1;
             end
             
@@ -299,9 +301,11 @@ if (~isempty(data_rover_all))
                 ph1_R(:,i) = 0;
             end
 
-%             %manage "nearly null" data
-%             pos = abs(ph1_R(:,i)) < 1e-100;
-%             ph1_R(pos,i) = 0;
+            %manage phase without code
+            ph1_R(abs(pr1_R(:,i)) == 0,i) = 0;
+            
+            %manage "nearly null" data
+            ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
 
             i = i + 1;
 
@@ -350,11 +354,12 @@ if (~isempty(data_rover_all))
         i = 1;
         while (sum(abs((pos_R))) == 0 & i <= length(time_R))
             satObs = find(pr1_R(:,i) ~= 0);
-            satEph = find(Eph_R(1,:,i) ~= 0);
+            Eph_t = rt_find_eph (Eph_R, time_R(i));
+            satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
-                [pos_R] = input_bancroft(pr1_R(satAvail,i), satAvail, time_R(i), Eph_R(:,:,i));
-                [pos_R] = code_SA(pos_R, pr1_R(satAvail,i), snr_R(satAvail,i), satAvail, time_R(i), Eph_R(:,:,i), iono(:,i));
+                [pos_R] = input_bancroft(pr1_R(satAvail,i), satAvail, time_R(i), Eph_t(:,:));
+                [pos_R] = code_SA(pos_R, pr1_R(satAvail,i), snr_R(satAvail,i), satAvail, time_R(i), Eph_t(:,:), iono(:,i));
             end
             i = i + 1;
         end
