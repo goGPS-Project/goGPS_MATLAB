@@ -44,6 +44,8 @@ else
         iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN);
 end
 
+EphAvailable = [];
+
 if (~isempty(Eph))
 
     EphAvailable = find(Eph(1,:,:)~=0, 1);
@@ -76,6 +78,10 @@ if (~isempty(Eph))
             loss_R(1)   = [];
             loss_M(1)   = [];
             
+            if (size(pr1_R,2)==0)
+                break
+            end
+
             if ~isempty(data_master_all)
                 satObs = find((pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));
             else
