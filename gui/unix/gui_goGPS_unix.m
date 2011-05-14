@@ -148,6 +148,7 @@ while (~isempty(dir([filerootOUT '_????_rover.bin'])) | ...
        ~isempty(dir([filerootOUT '_master*.bin'])) | ...
        ~isempty(dir([filerootOUT '_????_obs*.bin'])) | ...
        ~isempty(dir([filerootOUT '_????_eph*.bin'])) | ...
+       ~isempty(dir([filerootOUT '_????_dyn*.bin'])) | ...
        ~isempty(dir([filerootOUT '_sat*.bin'])) | ...
        ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
        ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
@@ -2561,8 +2562,13 @@ cutoff = str2double(get(handles.cut_off,'String'));
 snr_threshold = str2double(get(handles.snr_thres,'String'));
 cs_threshold = str2double(get(handles.cs_thresh,'String'));
 antenna_h = str2double(get(handles.antenna_h,'String'));
+contents_dyn_mod = cellstr(get(handles.dyn_mod,'String'));
+flag_stopGOstop = get(handles.stopGOstop,'Value');
 %input files
 filerootIN = get(handles.gogps_data_input,'String');
+filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
+filerootIN(filerootIN == '\') = '/';
+filerootOUT(filerootOUT == '\') = '/';
 filename_R_obs = get(handles.RINEX_rover_obs,'String');
 filename_M_obs = get(handles.RINEX_master_obs,'String');
 filename_nav = get(handles.RINEX_nav,'String');
@@ -2594,6 +2600,35 @@ if isempty(dir(get(handles.gogps_data_output,'String')))
     msgbox('Output folder does not exist. Please browse to an existing folder.'); ready = 0;
 end
 
+if ~isempty(dir(get(handles.gogps_data_output,'String')))
+    i = 1;
+    j = length(filerootOUT);
+    while (~isempty(dir([filerootOUT '_????_rover.bin'])) | ...
+            ~isempty(dir([filerootOUT '_master*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_????_obs*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_????_eph*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_????_dyn*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_sat*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_dop*.bin'])) | ...
+            ~isempty(dir([filerootOUT '_ECEF*.txt'])) | ...
+            ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
+            ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
+            ~isempty(dir([filerootOUT '_????_NMEA*.txt'])) | ...
+            ~isempty(dir([filerootOUT '.kml'])) )
+        
+        if (i == 100)
+            msgbox('Automatic numbering of output file has reached the maximum (99). Please provide a different output prefix, select a different output folder or remove some files from the current output folder.');
+            ready = 0;
+            break
+        end
+        
+        filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
+        i = i + 1;
+    end
+end
 if (mode < 10) %if post-processing
     if (get(handles.file_type, 'SelectedObject') == handles.gogps_data & (isempty(dir([filerootIN '_obs*.bin'])) | isempty(dir([filerootIN '_eph*.bin']))))
         msgbox('Input goGPS binary files not found (both *_obs_* and *_eph_* files are needed).'); ready = 0;
@@ -2653,6 +2688,12 @@ if (mode < 11) %if not rover and/or master monitor
     elseif (isnan(antenna_h) | antenna_h < 0)
         msgbox('Please provide a valid value for the antenna height.'); ready = 0;
     end
+end
+
+%check if the dataset was surveyed with a variable dynamic model
+d = dir([filerootIN '_dyn_00.bin']);
+if (mode < 10 & (flag_stopGOstop | strcmp(contents_dyn_mod{get(handles.dyn_mod,'Value')},'Variable')) & isempty(d))
+    msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
 end
 
 if (mode == 11 | mode == 12 | mode == 14) %if a COM connection to the rover is required
@@ -3316,7 +3357,7 @@ if (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(contents_
         set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
         set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
     end
-else
+elseif (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
     set(handles.text_num_receivers, 'Enable', 'off');
     set(handles.num_receivers, 'Enable', 'off');
     set(handles.com_select_0, 'Enable', 'off');
@@ -3327,6 +3368,12 @@ else
     set(handles.protocol_select_1, 'Enable', 'off');
     set(handles.protocol_select_2, 'Enable', 'off');
     set(handles.protocol_select_3, 'Enable', 'off');
+else
+    set(hObject,'Value',1);
+    set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
+    set(handles.com_select_1, 'Enable', 'off'); set(handles.protocol_select_1, 'Enable', 'off');
+    set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
+    set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
 end
     
 %------------------------------------------------------------------------------------------------------------------------------------------------------------------
