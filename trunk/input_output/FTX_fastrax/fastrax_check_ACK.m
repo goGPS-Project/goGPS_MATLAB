@@ -61,7 +61,7 @@ end1 = '3E';
 
 ACK_HEX = [header1; header2; source; destination; msg_id];
 ACK_DEC = hex2dec(ACK_HEX);
-ACK_DEC = [ACK_DEC; tran_id; pay_size; payload; bin2dec(checksum(1:8)); bin2dec(checksum(9:16)); hex2dec(end1)];
+ACK_DEC = [ACK_DEC; tran_id; pay_size; payload; fbin2dec(checksum(1:8)); fbin2dec(checksum(9:16)); hex2dec(end1)];
 
 %time acquisition
 start_time = toc;
