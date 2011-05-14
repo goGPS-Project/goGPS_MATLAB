@@ -1,28 +1,28 @@
-function varargout = gui_about_unix(varargin)
-% GUI_ABOUT_UNIX M-file for gui_about_unix.fig
-%      GUI_ABOUT_UNIX, by itself, creates a new GUI_ABOUT_UNIX or raises the existing
+function varargout = gui_about(varargin)
+% GUI_ABOUT M-file for gui_about.fig
+%      GUI_ABOUT, by itself, creates a new GUI_ABOUT or raises the existing
 %      singleton*.
 %
-%      H = GUI_ABOUT_UNIX returns the handle to a new GUI_ABOUT_UNIX or the handle to
+%      H = GUI_ABOUT returns the handle to a new GUI_ABOUT or the handle to
 %      the existing singleton*.
 %
-%      GUI_ABOUT_UNIX('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in GUI_ABOUT_UNIX.M with the given input arguments.
+%      GUI_ABOUT('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GUI_ABOUT.M with the given input arguments.
 %
-%      GUI_ABOUT_UNIX('Property','Value',...) creates a new GUI_ABOUT_UNIX or raises the
+%      GUI_ABOUT('Property','Value',...) creates a new GUI_ABOUT or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before gui_about_unix_OpeningFcn gets called.  An
+%      applied to the GUI before gui_about_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to gui_about_unix_OpeningFcn via varargin.
+%      stop.  All inputs are passed to gui_about_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help gui_about_unix
+% Edit the above text to modify the response to help gui_about
 
-% Last Modified by GUIDE v2.5 22-Oct-2010 10:43:19
+% Last Modified by GUIDE v2.5 20-Oct-2010 19:36:52
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
@@ -48,8 +48,8 @@ function varargout = gui_about_unix(varargin)
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @gui_about_unix_OpeningFcn, ...
-                   'gui_OutputFcn',  @gui_about_unix_OutputFcn, ...
+                   'gui_OpeningFcn', @gui_about_OpeningFcn, ...
+                   'gui_OutputFcn',  @gui_about_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -64,26 +64,26 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before gui_about_unix is made visible.
-function gui_about_unix_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before gui_about is made visible.
+function gui_about_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to gui_about_unix (see VARARGIN)
+% varargin   command line arguments to gui_about (see VARARGIN)
 
-% Choose default command line output for gui_about_unix
+% Choose default command line output for gui_about
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes gui_about_unix wait for user response (see UIRESUME)
+% UIWAIT makes gui_about wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = gui_about_unix_OutputFcn(hObject, eventdata, handles) 
+function varargout = gui_about_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB

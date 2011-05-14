@@ -22,12 +22,14 @@ function varargout = gui_goGPS_unix(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS_unix
 
-% Last Modified by GUIDE v2.5 14-Mar-2011 17:41:25
+% Last Modified by GUIDE v2.5 14-May-2011 12:06:31
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -46,7 +48,7 @@ function varargout = gui_goGPS_unix(varargin)
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
+gui_State = struct('gui_Name', mfilename, ...
     'gui_Singleton',  gui_Singleton, ...
     'gui_OpeningFcn', @gui_goGPS_unix_OpeningFcn, ...
     'gui_OutputFcn',  @gui_goGPS_unix_OutputFcn, ...
@@ -110,42 +112,10 @@ function varargout = gui_goGPS_unix_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(21,1);
+    varargout = cell(22,1);
     return
 end
-contents_mode = cellstr(get(handles.mode,'String'));
-contents_nav_mon = cellstr(get(handles.nav_mon,'String'));
-contents_kalman_ls = cellstr(get(handles.kalman_ls,'String'));
-contents_code_dd_sa = cellstr(get(handles.code_dd_sa,'String'));
-if (strcmp(contents_mode{get(handles.mode,'Value')},'Post-processing'))
-    if (strcmp(contents_kalman_ls{get(handles.kalman_ls,'Value')},'Kalman filter'))
-        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
-            mode = 1;
-        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone'))
-            mode = 2;
-        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
-            mode = 5;
-        else
-            mode = 6;
-        end
-    else %Least squares
-        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
-            mode = 3;
-        else
-            mode = 4;
-        end
-    end
-else %Real-time
-    if (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Navigation'))
-        mode = 11;
-    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
-        mode = 12;
-    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
-        mode = 13;
-    else %Rover and Master monitor
-        mode = 14;
-    end
-end
+mode = select_mode(handles);
 mode_vinc = get(handles.constraint,'Value');
 if (get(handles.file_type, 'SelectedObject') == handles.rinex_files)
     mode_data = 0;
@@ -174,10 +144,10 @@ filerootIN(filerootIN == '\') = '/';
 filerootOUT(filerootOUT == '\') = '/';
 i = 1;
 j = length(filerootOUT);
-while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
+while (~isempty(dir([filerootOUT '_????_rover.bin'])) | ...
        ~isempty(dir([filerootOUT '_master*.bin'])) | ...
-       ~isempty(dir([filerootOUT '_obs*.bin'])) | ...
-       ~isempty(dir([filerootOUT '_eph*.bin'])) | ...
+       ~isempty(dir([filerootOUT '_????_obs*.bin'])) | ...
+       ~isempty(dir([filerootOUT '_????_eph*.bin'])) | ...
        ~isempty(dir([filerootOUT '_sat*.bin'])) | ...
        ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
        ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
@@ -186,8 +156,7 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
        ~isempty(dir([filerootOUT '_ECEF*.txt'])) | ...
        ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
        ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
-       ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
-       ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
+       ~isempty(dir([filerootOUT '_????_NMEA*.txt'])) | ...
        ~isempty(dir([filerootOUT '.kml'])) )
 
    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
@@ -211,6 +180,53 @@ else
 end
 pos_M_man = [XM; YM; ZM];
 
+contents = cellstr(get(handles.num_receivers,'String'));
+num_rec = str2double(contents{get(handles.num_receivers,'Value')});
+
+if num_rec >= 1
+    contentsProt = cellstr(get(handles.protocol_select_0,'String'));
+    if (strcmp(contentsProt{get(handles.protocol_select_0,'Value')},'UBX (u-blox)'))
+        protocol_idx(1) = 0;
+    elseif (strcmp(contentsProt{get(handles.protocol_select_0,'Value')},'iTalk (Fastrax)'))
+        protocol_idx(1) = 1;
+    elseif (strcmp(contentsProt{get(handles.protocol_select_0,'Value')},'SkyTraq'))
+        protocol_idx(1) = 2;
+    end
+
+    if num_rec >= 2
+        contentsProt = cellstr(get(handles.protocol_select_1,'String'));
+        if (strcmp(contentsProt{get(handles.protocol_select_1,'Value')},'UBX (u-blox)'))
+            protocol_idx(2) = 0;
+        elseif (strcmp(contentsProt{get(handles.protocol_select_1,'Value')},'iTalk (Fastrax)'))
+            protocol_idx(2) = 1;
+        elseif (strcmp(contentsProt{get(handles.protocol_select_1,'Value')},'SkyTraq'))
+            protocol_idx(2) = 2;
+        end
+
+        if num_rec >= 3
+            contentsProt = cellstr(get(handles.protocol_select_2,'String'));
+            if (strcmp(contentsProt{get(handles.protocol_select_2,'Value')},'UBX (u-blox)'))
+                protocol_idx(3) = 0;
+            elseif (strcmp(contentsProt{get(handles.protocol_select_2,'Value')},'iTalk (Fastrax)'))
+                protocol_idx(3) = 1;
+            elseif (strcmp(contentsProt{get(handles.protocol_select_2,'Value')},'SkyTraq'))
+                protocol_idx(3) = 2;
+            end
+            
+            if num_rec >= 4
+                contentsProt = cellstr(get(handles.protocol_select_3,'String'));
+                if (strcmp(contentsProt{get(handles.protocol_select_3,'Value')},'UBX (u-blox)'))
+                    protocol_idx(4) = 0;
+                elseif (strcmp(contentsProt{get(handles.protocol_select_3,'Value')},'iTalk (Fastrax)'))
+                    protocol_idx(4) = 1;
+                elseif (strcmp(contentsProt{get(handles.protocol_select_3,'Value')},'SkyTraq'))
+                    protocol_idx(4) = 2;
+                end
+            end
+        end
+    end
+end
+
 varargout{1} = mode;
 varargout{2} = mode_vinc;
 varargout{3} = mode_data;
@@ -232,6 +248,7 @@ varargout{18} = filename_M_obs;
 varargout{19} = filename_nav;
 varargout{20} = filename_ref;
 varargout{21} = pos_M_man;
+varargout{22} = protocol_idx;
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -240,7 +257,32 @@ global h_antenna
 global tile_header tile_georef dtm_dir
 global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
 global nmea_init
+global flag_doppler_cs
+global COMportR
 
+contents = cellstr(get(handles.com_select_0,'String'));
+COMportR0 = contents{get(handles.com_select_0,'Value')};
+contents = cellstr(get(handles.com_select_1,'String'));
+COMportR1 = contents{get(handles.com_select_1,'Value')};
+contents = cellstr(get(handles.com_select_2,'String'));
+COMportR2 = contents{get(handles.com_select_2,'Value')};
+contents = cellstr(get(handles.com_select_3,'String'));
+COMportR3 = contents{get(handles.com_select_3,'Value')};
+
+if num_rec >= 1
+    COMportR{1,1} = COMportR0;
+    if num_rec >= 2
+        COMportR{2,1} = COMportR1;
+        if num_rec >= 3
+            COMportR{3,1} = COMportR2;
+            if num_rec >= 4
+                COMportR{4,1} = COMportR3;
+            end
+        end
+    end
+end
+
+flag_doppler_cs = get(handles.flag_doppler,'Value');
 sigmaq0 = str2double(get(handles.std_init,'String'))^2;
 sigmaq_vE = str2double(get(handles.std_X,'String'))^2;
 sigmaq_vN = str2double(get(handles.std_Y,'String'))^2;
@@ -280,6 +322,7 @@ snr_a = 30;
 snr_0 = 10;
 snr_1 = 50;
 snr_A = 30;
+amb_select_Callback(handles.amb_select, eventdata, handles);
 dyn_mod_Callback(handles.dyn_mod, eventdata, handles);
 o1 = order;
 o2 = order*2;
@@ -296,7 +339,6 @@ catch
     tile_header.nodata = 0;
     tile_georef = zeros(1,1,4);
 end
-com_select_Callback(handles.com_select, eventdata, handles);
 master_ip = get(handles.IP_address,'String');
 master_port = str2double(get(handles.port,'String'));
 ntrip_user = get(handles.username,'String');
@@ -306,8 +348,12 @@ phiApp = str2double(get(handles.approx_lat,'String'));
 lamApp = str2double(get(handles.approx_lon,'String'));
 hApp = str2double(get(handles.approx_h,'String'));
 [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, 6378137, 1/298.257222101);
-nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
-
+if ~isnan(XApp) & ~isnan(YApp) & ~isnan(ZApp)
+    nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
+else
+    nmea_init = '';
+end
+    
 %close main panel
 delete(gcf)
 
@@ -368,6 +414,8 @@ state.toggle_std_dtm = get(handles.toggle_std_dtm,'Value');
 state.std_init = get(handles.std_init,'String');
 state.std_vel = get(handles.std_vel,'String');
 state.cs_thresh = get(handles.cs_thresh,'String');
+state.flag_doppler = get(handles.flag_doppler,'Value');
+state.amb_select = get(handles.amb_select,'Value');
 state.cut_off = get(handles.cut_off,'String');
 state.snr_thres = get(handles.snr_thres,'String');
 state.antenna_h = get(handles.antenna_h,'String');
@@ -377,8 +425,19 @@ state.weight_0 = get(handles.weight_0,'Value');
 state.weight_1 = get(handles.weight_1,'Value');
 state.weight_2 = get(handles.weight_2,'Value');
 state.weight_3 = get(handles.weight_3,'Value');
-contents = cellstr(get(handles.com_select,'String'));
-state.com_select = contents{get(handles.com_select,'Value')};
+contents = cellstr(get(handles.com_select_0,'String'));
+state.com_select_0 = contents{get(handles.com_select_0,'Value')};
+contents = cellstr(get(handles.com_select_1,'String'));
+state.com_select_1 = contents{get(handles.com_select_1,'Value')};
+contents = cellstr(get(handles.com_select_2,'String'));
+state.com_select_2 = contents{get(handles.com_select_2,'Value')};
+contents = cellstr(get(handles.com_select_3,'String'));
+state.com_select_3 = contents{get(handles.com_select_3,'Value')};
+state.protocol_select_0 = get(handles.protocol_select_0,'Value');
+state.protocol_select_1 = get(handles.protocol_select_1,'Value');
+state.protocol_select_2 = get(handles.protocol_select_2,'Value');
+state.protocol_select_3 = get(handles.protocol_select_3,'Value');
+state.num_receivers = get(handles.num_receivers,'Value');
 state.IP_address = get(handles.IP_address,'String');
 state.port = get(handles.port,'String');
 state.mountpoint = get(handles.mountpoint,'String');
@@ -438,6 +497,8 @@ set(handles.toggle_std_dtm,'Value', state.toggle_std_dtm);
 set(handles.std_init,'String', state.std_init);
 set(handles.std_vel,'String', state.std_vel);
 set(handles.cs_thresh,'String', state.cs_thresh);
+set(handles.flag_doppler,'Value', state.flag_doppler);
+set(handles.amb_select,'Value', state.amb_select);
 set(handles.cut_off,'String', state.cut_off);
 set(handles.snr_thres,'String', state.snr_thres);
 set(handles.antenna_h,'String', state.antenna_h);
@@ -447,15 +508,28 @@ set(handles.weight_0,'Value', state.weight_0);
 set(handles.weight_1,'Value', state.weight_1);
 set(handles.weight_2,'Value', state.weight_2);
 set(handles.weight_3,'Value', state.weight_3);
-contents = get(handles.com_select,'String');
-select = 1;
+contents = get(handles.com_select_0,'String');
+select_0 = 1; select_1 = 1; select_2 = 1; select_3 = 1;
 for i = 1 : numel(contents)
-    if (strcmp(contents{i},state.com_select))
-        select = i;
-        break
+    if (strcmp(contents{i},state.com_select_0))
+        select_0 = i;
+    elseif (strcmp(contents{i},state.com_select_1))
+        select_1 = i;
+    elseif (strcmp(contents{i},state.com_select_2))
+        select_2 = i;
+    elseif (strcmp(contents{i},state.com_select_3))
+        select_3 = i;
     end
 end
-set(handles.com_select,'Value', select);
+set(handles.com_select_0,'Value', select_0);
+set(handles.com_select_1,'Value', select_1);
+set(handles.com_select_2,'Value', select_2);
+set(handles.com_select_3,'Value', select_3);
+set(handles.protocol_select_0,'Value', state.protocol_select_0);
+set(handles.protocol_select_1,'Value', state.protocol_select_1);
+set(handles.protocol_select_2,'Value', state.protocol_select_2);
+set(handles.protocol_select_3,'Value', state.protocol_select_3);
+set(handles.num_receivers,'Value', state.num_receivers);
 set(handles.IP_address,'String', state.IP_address);
 set(handles.port,'String', state.port);
 set(handles.mountpoint,'String', state.mountpoint);
@@ -474,12 +548,14 @@ master_pos_Callback(handles.master_pos, [], handles);
 kalman_ls_Callback(handles.kalman_ls, [], handles);
 dyn_mod_Callback(handles.dyn_mod, [], handles);
 mode_Callback(handles.mode, [], handles);
+num_receivers_Callback(handles.num_receivers, [], handles);
 stopGOstop_Callback(handles.stopGOstop, [], handles);
 if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
     file_type_SelectionChangeFcn(handles.rinex_files, [], handles);
 else
     file_type_SelectionChangeFcn(handles.gogps_data, [], handles);
 end
+
 
 % --- Executes on selection change in mode.
 function mode_Callback(hObject, eventdata, handles)
@@ -510,6 +586,7 @@ if (strcmp(contents{get(hObject,'Value')},'Real-time'))
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
     set(handles.plotproc, 'Enable', 'on');
+    set(handles.flag_doppler, 'Enable', 'off');
     plotproc_Callback(handles.plotproc, eventdata, handles);
 
     nav_mon_Callback(handles.nav_mon, eventdata, handles);
@@ -538,10 +615,20 @@ else
     set(handles.code_dd_sa, 'Enable', 'on');
     set(handles.rinex_files, 'Enable', 'on');
     set(handles.gogps_data, 'Enable', 'on');
-    set(handles.com_select, 'Enable', 'off');
-    set(handles.text_com_select, 'Enable', 'off');
+    set(handles.text_num_receivers, 'Enable', 'off');
+    set(handles.num_receivers, 'Enable', 'off');
+    set(handles.com_select_0, 'Enable', 'off');
+    set(handles.com_select_1, 'Enable', 'off');
+    set(handles.com_select_2, 'Enable', 'off');
+    set(handles.com_select_3, 'Enable', 'off');
+    set(handles.protocol_select_0, 'Enable', 'off');
+    set(handles.protocol_select_1, 'Enable', 'off');
+    set(handles.protocol_select_2, 'Enable', 'off');
+    set(handles.protocol_select_3, 'Enable', 'off');    
     set(handles.use_ntrip, 'Enable', 'off');
-    if (get(handles.plotproc,'Value'))
+    contents = cellstr(get(handles.code_dd_sa,'String'));
+    if (get(handles.plotproc,'Value') & (strcmp(contents{get(handles.code_dd_sa,'Value')}, ...
+        'Code and phase double difference') | strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone')))
         set(handles.plot_amb, 'Enable', 'on');
         plot_amb_Callback(handles.plot_amb, [], handles);
     end
@@ -638,7 +725,7 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     set(handles.min_sat, 'Enable', 'on');
     set(handles.text_min_sat, 'Enable', 'on');
     set(handles.dyn_mod, 'Enable', 'on');
-    set(handles.text_dyn_mod, 'Enable', 'on');
+    %set(handles.text_dyn_mod, 'Enable', 'on');
     
     dyn_mod_Callback(handles.dyn_mod, eventdata, handles);
     
@@ -696,7 +783,9 @@ else
     set(handles.stopGOstop, 'Enable', 'off');
     set(handles.text_stopGOstop, 'Enable', 'off');
     set(handles.dyn_mod, 'Enable', 'off');
-    set(handles.text_dyn_mod, 'Enable', 'off');
+    %set(handles.text_dyn_mod, 'Enable', 'off');
+    set(handles.flag_doppler, 'Enable', 'off');
+    set(handles.amb_select, 'Enable', 'off');
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -748,6 +837,10 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
     cell_contents{3} = 'Static';
     cell_contents{4} = 'Variable';
     set(handles.dyn_mod, 'String', cell_contents);
+    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
+        set(handles.flag_doppler, 'Enable', 'on');
+    end
+    set(handles.amb_select, 'Enable', 'on');
 elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
@@ -776,6 +869,8 @@ elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     old_value = get(handles.dyn_mod, 'Value');
     if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
     set(handles.dyn_mod, 'String', cell_contents);
+    set(handles.flag_doppler, 'Enable', 'on');
+    set(handles.amb_select, 'Enable', 'off');
 else
     set(handles.plot_amb, 'Enable', 'off');
     set(handles.no_skyplot_snr, 'Enable', 'on');
@@ -793,7 +888,7 @@ else
     set(handles.stopGOstop, 'Enable', 'off');
     set(handles.text_stopGOstop, 'Enable', 'off');
     check_KF = cellstr(get(handles.kalman_ls,'String'));
-    if (strcmp(check_KF{get(handles.mode,'Value')},'Kalman filter'))
+    if (strcmp(check_KF{get(handles.kalman_ls,'Value')},'Kalman filter'))
         set(handles.dyn_mod, 'Enable', 'on');
     end
     cell_contents = cell(3,1);
@@ -803,6 +898,8 @@ else
     old_value = get(handles.dyn_mod, 'Value');
     if (old_value == 4), set(handles.dyn_mod, 'Value', 1); end
     set(handles.dyn_mod, 'String', cell_contents);
+    set(handles.flag_doppler, 'Enable', 'off');
+    set(handles.amb_select, 'Enable', 'off');
 end
 
 if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
@@ -833,7 +930,8 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
     set(handles.text_master_lon_unit, 'Enable', 'off');
     set(handles.text_master_h_unit, 'Enable', 'off');
 else
-    if(get(handles.file_type, 'SelectedObject') == handles.rinex_files);
+    contents = cellstr(get(handles.mode,'String'));
+    if(get(handles.file_type, 'SelectedObject') == handles.rinex_files & ~strcmp(contents{get(handles.mode,'Value')},'Real-time'));
         set(handles.RINEX_master_obs, 'Enable', 'on');
         set(handles.text_RINEX_master_obs, 'Enable', 'on');
         set(handles.browse_master_obs, 'Enable', 'on');
@@ -875,8 +973,17 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.plot_master, 'Enable', 'on');
     set(handles.err_ellipse, 'Enable', 'on');
     set(handles.google_earth, 'Enable', 'on');
-    set(handles.com_select, 'Enable', 'on');
-    set(handles.text_com_select, 'Enable', 'on');
+    set(handles.text_num_receivers, 'Enable', 'off');
+    set(handles.num_receivers, 'Value', 1);
+    set(handles.num_receivers, 'Enable', 'off');
+    set(handles.com_select_0, 'Enable', 'on');
+    set(handles.com_select_1, 'Enable', 'off');
+    set(handles.com_select_2, 'Enable', 'off');
+    set(handles.com_select_3, 'Enable', 'off');
+    set(handles.protocol_select_0, 'Enable', 'on');
+    set(handles.protocol_select_1, 'Enable', 'off');
+    set(handles.protocol_select_2, 'Enable', 'off');
+    set(handles.protocol_select_3, 'Enable', 'off');
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
     
@@ -894,6 +1001,13 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.stopGOstop, 'Enable', 'on');
     set(handles.text_stopGOstop, 'Enable', 'on');
     stopGOstop_Callback(handles.stopGOstop, [], handles);
+    
+    cell_contents = cell(4,1);
+    cell_contents{1} = 'Const. velocity';
+    cell_contents{2} = 'Const. acceleration';
+    cell_contents{3} = 'Static';
+    cell_contents{4} = 'Variable';
+    set(handles.dyn_mod, 'String', cell_contents);
     
     %enable weights
     set(handles.weight_0, 'Enable', 'on');
@@ -982,8 +1096,6 @@ else
     set(handles.dtm_path, 'Enable', 'off');
     set(handles.text_dtm_path, 'Enable', 'off');
     set(handles.browse_dtm_path, 'Enable', 'off');
-    set(handles.dyn_mod, 'Enable', 'off');
-    set(handles.text_dyn_mod, 'Enable', 'off');
     set(handles.weight_0, 'Enable', 'off');
     set(handles.weight_1, 'Enable', 'off');
     set(handles.weight_2, 'Enable', 'off');
@@ -1008,11 +1120,20 @@ else
     set(handles.text_master_lat_unit, 'Enable', 'off');
     set(handles.text_master_lon_unit, 'Enable', 'off');
     set(handles.text_master_h_unit, 'Enable', 'off');
+    set(handles.flag_doppler, 'Enable', 'off');
+    set(handles.amb_select, 'Enable', 'off');
+    
+    cell_contents = cell(2,1);
+    cell_contents{1} = 'Constant';
+    cell_contents{2} = 'Variable';
+    old_value = get(handles.dyn_mod, 'Value');
+    if (old_value == 3), set(handles.dyn_mod, 'Value', 1); end
+    if (old_value == 4), set(handles.dyn_mod, 'Value', 2); end
+    set(handles.dyn_mod, 'String', cell_contents);
 
     if (strcmp(contents{get(hObject,'Value')},'Rover monitor'))
 
-        set(handles.com_select, 'Enable', 'on');
-        set(handles.text_com_select, 'Enable', 'on');
+        num_receivers_Callback(handles.num_receivers, [], handles);
         set(handles.use_ntrip, 'Enable', 'off');
 
         %disable approximate position
@@ -1042,12 +1163,23 @@ else
         
         set(handles.stopGOstop, 'Enable', 'on');
         set(handles.text_stopGOstop, 'Enable', 'on');
+        stopGOstop_Callback(handles.stopGOstop, [], handles);
 
     elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
 
-        set(handles.com_select, 'Enable', 'off');
-        set(handles.text_com_select, 'Enable', 'off');
+        set(handles.text_num_receivers, 'Enable', 'off');
+        set(handles.num_receivers, 'Enable', 'off');        
+        set(handles.com_select_0, 'Enable', 'off');
+        set(handles.com_select_1, 'Enable', 'off');
+        set(handles.com_select_2, 'Enable', 'off');
+        set(handles.com_select_3, 'Enable', 'off');
+        set(handles.protocol_select_0, 'Enable', 'off');
+        set(handles.protocol_select_1, 'Enable', 'off');
+        set(handles.protocol_select_2, 'Enable', 'off');
+        set(handles.protocol_select_3, 'Enable', 'off');        
         set(handles.use_ntrip, 'Enable', 'on');
+        set(handles.dyn_mod, 'Enable', 'off');
+        %set(handles.text_dyn_mod, 'Enable', 'off');
 
         %enable master connection
         set(handles.IP_address, 'Enable', 'on');
@@ -1073,8 +1205,17 @@ else
 
     elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
 
-        set(handles.com_select, 'Enable', 'on');
-        set(handles.text_com_select, 'Enable', 'on');
+        set(handles.text_num_receivers, 'Enable', 'off');
+        set(handles.num_receivers, 'Value', 1);
+        set(handles.num_receivers, 'Enable', 'off');
+        set(handles.com_select_0, 'Enable', 'on');
+        set(handles.com_select_1, 'Enable', 'off');
+        set(handles.com_select_2, 'Enable', 'off');
+        set(handles.com_select_3, 'Enable', 'off');
+        set(handles.protocol_select_0, 'Enable', 'on');
+        set(handles.protocol_select_1, 'Enable', 'off');
+        set(handles.protocol_select_2, 'Enable', 'off');
+        set(handles.protocol_select_3, 'Enable', 'off');
         set(handles.use_ntrip, 'Enable', 'on');
         
         %enable master connection
@@ -1098,6 +1239,7 @@ else
         
         set(handles.stopGOstop, 'Enable', 'on');
         set(handles.text_stopGOstop, 'Enable', 'on');
+        stopGOstop_Callback(handles.stopGOstop, [], handles);
     end
 end
 
@@ -2257,19 +2399,24 @@ if (strcmp(contents{get(hObject,'Value')},'Static'))
     set(handles.text_std_Y_unit, 'Enable', 'off');
     set(handles.text_std_Z_unit, 'Enable', 'off');
 else
-    set(handles.std_X, 'Enable', 'on');
-    set(handles.std_Y, 'Enable', 'on');
-    set(handles.std_Z, 'Enable', 'on');
-    set(handles.text_std_X, 'Enable', 'on');
-    set(handles.text_std_Y, 'Enable', 'on');
-    set(handles.text_std_Z, 'Enable', 'on');
-    set(handles.text_std_X_unit, 'Enable', 'on');
-    set(handles.text_std_Y_unit, 'Enable', 'on');
-    set(handles.text_std_Z_unit, 'Enable', 'on');
+    mode = cellstr(get(handles.nav_mon,'String'));
+    if (strcmp(mode{get(handles.nav_mon,'Value')},'Navigation'))
+        set(handles.std_X, 'Enable', 'on');
+        set(handles.std_Y, 'Enable', 'on');
+        set(handles.std_Z, 'Enable', 'on');
+        set(handles.text_std_X, 'Enable', 'on');
+        set(handles.text_std_Y, 'Enable', 'on');
+        set(handles.text_std_Z, 'Enable', 'on');
+        set(handles.text_std_X_unit, 'Enable', 'on');
+        set(handles.text_std_Y_unit, 'Enable', 'on');
+        set(handles.text_std_Z_unit, 'Enable', 'on');
+    end
     if (strcmp(contents{get(hObject,'Value')},'Const. acceleration'))
         order = 3;
-    else
+    elseif (strcmp(contents{get(hObject,'Value')},'Const. velocity'))
         order = 2;
+    else
+        order = 1;
     end
 end
 
@@ -2384,11 +2531,150 @@ function go_button_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-%check if the output folder exists
-d = dir(get(handles.gogps_data_output,'String'));
-if isempty(d)
-    msgbox('Output folder does not exist. Please browse to an existing folder.');
+%master station coordinates
+crs_contents = cellstr(get(handles.crs,'String'));
+master_X = str2double(get(handles.master_X,'String'));
+master_Y = str2double(get(handles.master_Y,'String'));
+master_Z = str2double(get(handles.master_Z,'String'));
+master_lat = str2double(get(handles.master_lat,'String'));
+master_lon = str2double(get(handles.master_lon,'String'));
+master_h = str2double(get(handles.master_h,'String'));
+%KF parameters
+std_init = str2double(get(handles.std_init,'String'));
+std_X = str2double(get(handles.std_X,'String'));
+std_Y = str2double(get(handles.std_Y,'String'));
+std_Z = str2double(get(handles.std_Z,'String'));
+std_vel = str2double(get(handles.std_vel,'String'));
+std_code = str2double(get(handles.std_code,'String'));
+if (get(handles.toggle_std_phase,'Value'))
+    std_phase = str2double(get(handles.std_phase,'String'));
 else
+    std_phase = 1e30;
+end
+if (get(handles.toggle_std_dtm,'Value'))
+    std_dtm = str2double(get(handles.std_dtm,'String'));
+else
+    std_dtm = 1e30;
+end
+min_nsat = str2double(get(handles.min_sat,'String'));
+cutoff = str2double(get(handles.cut_off,'String'));
+snr_threshold = str2double(get(handles.snr_thres,'String'));
+cs_threshold = str2double(get(handles.cs_thresh,'String'));
+antenna_h = str2double(get(handles.antenna_h,'String'));
+%input files
+filerootIN = get(handles.gogps_data_input,'String');
+filename_R_obs = get(handles.RINEX_rover_obs,'String');
+filename_M_obs = get(handles.RINEX_master_obs,'String');
+filename_nav = get(handles.RINEX_nav,'String');
+ref_path = get(handles.ref_path, 'Value');
+filename_ref = get(handles.ref_path_input,'String');
+dtm_dir = get(handles.dtm_path,'String');
+%serial communication
+% global COMportR
+contents = cellstr(get(handles.com_select_0,'String'));
+COMportR0 = contents{get(handles.com_select_0,'Value')};
+% contents = cellstr(get(handles.com_select_1,'String'));
+% COMportR1 = contents{get(handles.com_select_1,'Value')};
+% contents = cellstr(get(handles.com_select_2,'String'));
+% COMportR2 = contents{get(handles.com_select_2,'Value')};
+% contents = cellstr(get(handles.com_select_3,'String'));
+% COMportR3 = contents{get(handles.com_select_3,'Value')};
+%TCPIP / NTRIP
+flag_NTRIP = get(handles.use_ntrip,'Value');
+master_ip = get(handles.IP_address,'String');
+master_port = str2double(get(handles.port,'String'));
+ntrip_mountpoint = get(handles.mountpoint,'String');
+%functioning mode
+mode = select_mode(handles);
+
+ready = 1;
+
+%check if everything is OK before starting
+if isempty(dir(get(handles.gogps_data_output,'String')))
+    msgbox('Output folder does not exist. Please browse to an existing folder.'); ready = 0;
+end
+
+if (mode < 10) %if post-processing
+    if (get(handles.file_type, 'SelectedObject') == handles.gogps_data & (isempty(dir([filerootIN '_obs*.bin'])) | isempty(dir([filerootIN '_eph*.bin']))))
+        msgbox('Input goGPS binary files not found (both *_obs_* and *_eph_* files are needed).'); ready = 0;
+    elseif (get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_R_obs)))
+        msgbox('Input rover observation RINEX file not found.'); ready = 0;
+    elseif (mod(mode,2) & get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_M_obs)))
+        msgbox('Input master observation RINEX file not found.'); ready = 0;
+    elseif (get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_nav)))
+        msgbox('Input navigation RINEX file not found.'); ready = 0;
+    end
+end
+
+if (mode < 11) %if not rover and/or master monitor
+    if (ref_path & isempty(dir(filename_ref)))
+        msgbox('Input reference path file not found.'); ready = 0;
+    elseif ((mode == 1 | mode == 2) & get(handles.toggle_std_dtm,'Value'))
+        try
+            load([dtm_dir '/tiles/tile_header'], 'tile_header');
+            load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
+        catch
+            msgbox('DTM directory does not contain valid data.'); ready = 0;
+        end
+    elseif (mod(mode,2) & strcmp(get(handles.crs,'Enable'),'on') & ...
+            strcmp(crs_contents{get(handles.crs,'Value')},'ECEF (X,Y,Z)') & ...
+            ((isnan(master_X) | isnan(master_Y) | isnan(master_Z)) | ...
+            (master_X == 0 & master_Y == 0 & master_Z == 0)))
+        msgbox('Please provide valid values for the master station ECEF coordinates.'); ready = 0;
+    elseif (mod(mode,2) & strcmp(get(handles.crs,'Enable'),'on') & ...
+            strcmp(crs_contents{get(handles.crs,'Value')},'Geodetic coord. (lat,lon,h)') & ...
+            ((isnan(master_lat) | isnan(master_lon) | isnan(master_h)) | ...
+            (abs(master_lat) > 90 | abs(master_lon) > 180)))
+        msgbox('Please provide valid values for the master station geodetic coordinates.'); ready = 0;
+    elseif (isnan(std_init) | std_init < 0)
+        msgbox('Please provide a valid value for the initial state error standard deviation.'); ready = 0;
+    elseif (isnan(std_X) | std_X < 0)
+        msgbox('Please provide a valid value for the East coordinate error standard deviation.'); ready = 0;
+    elseif (isnan(std_Y) | std_Y < 0)
+        msgbox('Please provide a valid value for the North coordinate error standard deviation.'); ready = 0;
+    elseif (isnan(std_Z) | std_Z < 0)
+        msgbox('Please provide a valid value for the Up coordinate error standard deviation.'); ready = 0;
+    elseif (isnan(std_vel) | std_vel < 0)
+        msgbox('Please provide a valid value for the velocity coordinate error standard deviation.'); ready = 0;
+    elseif (isnan(std_code) | std_code < 0)
+        msgbox('Please provide a valid value for the code error standard deviation.'); ready = 0;
+    elseif (isnan(std_phase) | std_phase < 0)
+        msgbox('Please provide a valid value for the phase error standard deviation.'); ready = 0;
+    elseif (isnan(std_dtm) | std_dtm < 0)
+        msgbox('Please provide a valid value for the DTM error standard deviation.'); ready = 0;
+    elseif (isnan(min_nsat) | min_nsat < 0)
+        msgbox('Please provide a valid value for the minimum number of satellites.'); ready = 0;
+    elseif (isnan(cutoff) | cutoff < 0 | cutoff > 90)
+        msgbox('Please provide a valid value for the cutoff (between 0 and 90 degrees).'); ready = 0;
+    elseif (isnan(snr_threshold) | snr_threshold < 0 | snr_threshold > 60)
+        msgbox('Please provide a valid value for the SNR threshold (between 0 and 60 dB).'); ready = 0;
+    elseif (isnan(cs_threshold) | cs_threshold < 0)
+        msgbox('Please provide a valid value for the cycle slip threshold.'); ready = 0;
+    elseif (isnan(antenna_h) | antenna_h < 0)
+        msgbox('Please provide a valid value for the antenna height.'); ready = 0;
+    end
+end
+
+if (mode == 11 | mode == 12 | mode == 14) %if a COM connection to the rover is required
+    if(strcmp(COMportR0, 'NA'))
+        msgbox('Please select an existing COM port.'); ready = 0;
+    end
+end
+
+if (mode == 11 | mode == 13 | mode == 14) %if a TCP/IP connection to the master is required
+    if (isempty(master_ip))
+        msgbox('Please provide an IP address for the connection to the master.'); ready = 0;
+    elseif (isnan(master_port) | master_port < 0 | master_port > 65535)
+        msgbox('Please provide a valid port number for the connection to the master (between 0 and 65535).'); ready = 0;
+    end
+    if (flag_NTRIP) %if a NTRIP connection is required
+        if (isempty(ntrip_mountpoint))
+            msgbox('Please provide a mountpoint for the NTRIP connection.'); ready = 0;
+        end
+    end
+end
+
+if (ready)
     saveState(handles,'../data/settings/last_settings.mat');
     uiresume(handles.main_panel);
 end
@@ -2438,21 +2724,31 @@ function weight_select_SelectionChangeFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 
-% --- Executes on selection change in com_select.
-function com_select_Callback(hObject, eventdata, handles)
-% hObject    handle to com_select (see GCBO)
+% --- Executes on selection change in com_select_0.
+function com_select_0_Callback(hObject, eventdata, handles)
+% hObject    handle to com_select_0 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns com_select contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from com_select
-global COMportR
-contents = cellstr(get(hObject,'String'));
-COMportR = contents{get(hObject,'Value')};
+% Hints: contents = cellstr(get(hObject,'String')) returns com_select_0 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from com_select_0
+% contents1 = cellstr(get(handles.com_select_1,'String'));
+% contents2 = cellstr(get(handles.com_select_2,'String'));
+% contents3 = cellstr(get(handles.com_select_3,'String'));
+% serialInfo = instrhwinfo('serial');
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents1{get(handles.com_select_1,'Value')})) = [];
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents2{get(handles.com_select_2,'Value')})) = [];
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents3{get(handles.com_select_3,'Value')})) = [];
+% set(hObject, 'String', serialInfo.AvailableSerialPorts);
+
+% contents  = cellstr(get(hObject,'String'));
+% COMportR0 = contents{get(hObject,'Value')};
+
+
 
 % --- Executes during object creation, after setting all properties.
-function com_select_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to com_select (see GCBO)
+function com_select_0_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to com_select_0 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -2472,7 +2768,6 @@ else
     notAvailable{1} = 'NA';
     set(hObject, 'String', notAvailable);
 end
-
 
 % --- Executes on button press in exit.
 function exit_Callback(hObject, eventdata, handles)
@@ -2573,24 +2868,24 @@ function menu_about_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function decode_streams_Callback(hObject, eventdata, handles)
-% hObject    handle to decode_streams (see GCBO)
+function decode_streams_unix_Callback(hObject, eventdata, handles)
+% hObject    handle to decode_streams_unix (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_decode_stream_unix;
 
 
 % --------------------------------------------------------------------
-function merge_goGPS_bin_Callback(hObject, eventdata, handles)
-% hObject    handle to merge_goGPS_bin (see GCBO)
+function merge_goGPS_bin_unix_Callback(hObject, eventdata, handles)
+% hObject    handle to merge_goGPS_bin_unix (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_merge_goGPSbin_unix;
 
 
 % --------------------------------------------------------------------
-function RINEX2goGPSbin_Callback(hObject, eventdata, handles)
-% hObject    handle to RINEX2goGPSbin (see GCBO)
+function RINEX2goGPSbin_unix_Callback(hObject, eventdata, handles)
+% hObject    handle to RINEX2goGPSbin_unix (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_RINEX2goGPSbin_unix;
@@ -2609,7 +2904,9 @@ if (get(hObject,'Value'))
     set(handles.err_ellipse, 'Enable', 'on');
     set(handles.plot_master, 'Enable', 'on');
     check_mode = cellstr(get(handles.mode,'String'));
-    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
+    check_phase = cellstr(get(handles.code_dd_sa,'String'));
+    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & (strcmp(check_phase{get(handles.code_dd_sa,'Value')}, ...
+        'Code and phase double difference') | strcmp(check_phase{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone')))
         set(handles.plot_amb, 'Enable', 'on');
         plot_amb_Callback(handles.plot_amb, [], handles);
     end
@@ -2630,7 +2927,8 @@ function stopGOstop_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of stopGOstop
 check_nav = cellstr(get(handles.nav_mon,'String'));
-if (get(hObject,'Value') | (~strcmp(check_nav{get(handles.nav_mon,'Value')},'Navigation')))
+check_KF = cellstr(get(handles.kalman_ls,'String'));
+if (get(hObject,'Value') | strcmp(check_nav{get(handles.nav_mon,'Value')},'Master monitor') | ~strcmp(check_KF{get(handles.kalman_ls,'Value')},'Kalman filter'))
     set(handles.dyn_mod, 'Enable', 'off');
 else
     set(handles.dyn_mod, 'Enable', 'on');
@@ -2638,8 +2936,8 @@ end
 
 
 % --------------------------------------------------------------------
-function polyline_Callback(hObject, eventdata, handles)
-% hObject    handle to polyline (see GCBO)
+function polyline_unix_Callback(hObject, eventdata, handles)
+% hObject    handle to polyline_unix (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_polyline_simplification_unix;
@@ -2653,26 +2951,26 @@ function help_Callback(hObject, eventdata, handles)
 
 
 % --------------------------------------------------------------------
-function about_Callback(hObject, eventdata, handles)
-% hObject    handle to about (see GCBO)
+function about_unix_Callback(hObject, eventdata, handles)
+% hObject    handle to about_unix (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_about_unix;
 
 
-% --- Executes on selection change in protocol_select.
-function protocol_select_Callback(hObject, eventdata, handles)
-% hObject    handle to protocol_select (see GCBO)
+% --- Executes on selection change in protocol_select_0.
+function protocol_select_0_Callback(hObject, eventdata, handles)
+% hObject    handle to protocol_select_0 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: contents = cellstr(get(hObject,'String')) returns protocol_select contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from protocol_select
+% Hints: contents = cellstr(get(hObject,'String')) returns protocol_select_0 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from protocol_select_0
 
 
 % --- Executes during object creation, after setting all properties.
-function protocol_select_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to protocol_select (see GCBO)
+function protocol_select_0_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to protocol_select_0 (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -2680,4 +2978,379 @@ function protocol_select_CreateFcn(hObject, eventdata, handles)
 %       See ISPC and COMPUTER.
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
+end
+
+
+function mode = select_mode(handles)
+contents_mode = cellstr(get(handles.mode,'String'));
+contents_nav_mon = cellstr(get(handles.nav_mon,'String'));
+contents_kalman_ls = cellstr(get(handles.kalman_ls,'String'));
+contents_code_dd_sa = cellstr(get(handles.code_dd_sa,'String'));
+if (strcmp(contents_mode{get(handles.mode,'Value')},'Post-processing'))
+    if (strcmp(contents_kalman_ls{get(handles.kalman_ls,'Value')},'Kalman filter'))
+        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
+            mode = 1;
+        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone'))
+            mode = 2;
+        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
+            mode = 5;
+        else %Code stand-alone
+            mode = 6;
+        end
+    else %Least squares
+        if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
+            mode = 3;
+        else %Code stand-alone
+            mode = 4;
+        end
+    end
+else %Real-time
+    if (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Navigation'))
+        mode = 11;
+    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
+        mode = 12;
+    elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
+        mode = 13;
+    else %Rover and Master monitor
+        mode = 14;
+    end
+end
+
+
+% --- Executes on button press in flag_doppler.
+function flag_doppler_Callback(hObject, eventdata, handles)
+% hObject    handle to flag_doppler (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of flag_doppler
+
+
+% --- Executes on selection change in amb_select.
+function amb_select_Callback(hObject, eventdata, handles)
+% hObject    handle to amb_select (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns amb_select contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from amb_select
+global amb_restart_method
+contents = cellstr(get(hObject,'String'));
+selection = contents{get(hObject,'Value')};
+if (strcmp(selection, 'Observed code - phase difference'))
+    amb_restart_method = 0;
+elseif (strcmp(selection, 'Kalman-predicted code - phase difference'))
+    amb_restart_method = 1;
+else
+    amb_restart_method = 2;
+end
+
+% --- Executes during object creation, after setting all properties.
+function amb_select_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to amb_select (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in com_select_1.
+function com_select_1_Callback(hObject, eventdata, handles)
+% hObject    handle to com_select_1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns com_select_1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from com_select_1
+
+% contents0 = cellstr(get(handles.com_select_0,'String'));
+% contents2 = cellstr(get(handles.com_select_2,'String'));
+% contents3 = cellstr(get(handles.com_select_3,'String'));
+% serialInfo = instrhwinfo('serial');
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents0{get(handles.com_select_0,'Value')})) = [];
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents2{get(handles.com_select_2,'Value')})) = [];
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents3{get(handles.com_select_3,'Value')})) = [];
+% set(hObject, 'String', serialInfo.AvailableSerialPorts);
+
+% contents1  = cellstr(get(hObject,'String'));
+% COMportR1 = contents1{get(hObject,'Value')};
+
+% --- Executes during object creation, after setting all properties.
+function com_select_1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to com_select_1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+try
+    serialInfo = instrhwinfo('serial');
+catch
+end
+if (~isempty(serialInfo.AvailableSerialPorts))
+%     serialInfo.AvailableSerialPorts(1) = [];
+%     serialInfo.AvailableSerialPorts(3) = [];
+%     serialInfo.AvailableSerialPorts(4) = [];
+    set(hObject, 'String', serialInfo.AvailableSerialPorts);
+end
+if (isempty(serialInfo.AvailableSerialPorts))
+    notAvailable = cell(1);
+    notAvailable{1} = 'NA';
+    set(hObject, 'String', notAvailable);
+end
+
+
+% --- Executes on selection change in protocol_select_1.
+function protocol_select_1_Callback(hObject, eventdata, handles)
+% hObject    handle to protocol_select_1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns protocol_select_1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from protocol_select_1
+
+
+% --- Executes during object creation, after setting all properties.
+function protocol_select_1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to protocol_select_1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in com_select_2.
+function com_select_2_Callback(hObject, eventdata, handles)
+% hObject    handle to com_select_2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns com_select_2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from com_select_2
+% contents0 = cellstr(get(handles.com_select_0,'String'));
+% contents1 = cellstr(get(handles.com_select_1,'String'));
+% contents3 = cellstr(get(handles.com_select_3,'String'));
+% serialInfo = instrhwinfo('serial');
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents0{get(handles.com_select_0,'Value')})) = [];
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents1{get(handles.com_select_1,'Value')})) = [];
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents3{get(handles.com_select_3,'Value')})) = [];
+% set(hObject, 'String', serialInfo.AvailableSerialPorts);
+
+% contents  = cellstr(get(hObject,'String'));
+% COMportR2 = contents{get(hObject,'Value')};
+
+% --- Executes during object creation, after setting all properties.
+function com_select_2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to com_select_2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+try
+    serialInfo = instrhwinfo('serial');
+catch
+end
+if (~isempty(serialInfo.AvailableSerialPorts))
+%     serialInfo.AvailableSerialPorts(1) = [];
+%     serialInfo.AvailableSerialPorts(2) = [];
+%     serialInfo.AvailableSerialPorts(4) = [];
+    set(hObject, 'String', serialInfo.AvailableSerialPorts);
+end
+if (isempty(serialInfo.AvailableSerialPorts))
+    notAvailable = cell(1);
+    notAvailable{1} = 'NA';
+    set(hObject, 'String', notAvailable);
+end
+
+
+% --- Executes on selection change in protocol_select_2.
+function protocol_select_2_Callback(hObject, eventdata, handles)
+% hObject    handle to protocol_select_2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns protocol_select_2 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from protocol_select_2
+
+
+% --- Executes during object creation, after setting all properties.
+function protocol_select_2_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to protocol_select_2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in com_select_3.
+function com_select_3_Callback(hObject, eventdata, handles)
+% hObject    handle to com_select_3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns com_select_3 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from com_select_3
+% contents0 = cellstr(get(handles.com_select_0,'String'));
+% contents1 = cellstr(get(handles.com_select_1,'String'));
+% contents2 = cellstr(get(handles.com_select_2,'String'));
+% serialInfo = instrhwinfo('serial');
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents0{get(handles.com_select_0,'Value')})) = [];
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents1{get(handles.com_select_1,'Value')})) = [];
+% serialInfo.AvailableSerialPorts(strcmp(serialInfo.AvailableSerialPorts,contents2{get(handles.com_select_2,'Value')})) = [];
+% set(hObject, 'String', serialInfo.AvailableSerialPorts);
+
+% contents  = cellstr(get(hObject,'String'));
+% COMportR3 = contents{get(hObject,'Value')};
+
+
+% --- Executes during object creation, after setting all properties.
+function com_select_3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to com_select_3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+try
+    serialInfo = instrhwinfo('serial');
+catch
+end
+if (~isempty(serialInfo.AvailableSerialPorts))
+%     serialInfo.AvailableSerialPorts(1) = [];
+%     serialInfo.AvailableSerialPorts(2) = [];
+%     serialInfo.AvailableSerialPorts(3) = [];
+    set(hObject, 'String', serialInfo.AvailableSerialPorts);
+end
+if (isempty(serialInfo.AvailableSerialPorts))
+    notAvailable = cell(1);
+    notAvailable{1} = 'NA';
+    set(hObject, 'String', notAvailable);
+end
+
+
+% --- Executes on selection change in protocol_select_3.
+function protocol_select_3_Callback(hObject, eventdata, handles)
+% hObject    handle to protocol_select_3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns protocol_select_3 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from protocol_select_3
+
+
+% --- Executes during object creation, after setting all properties.
+function protocol_select_3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to protocol_select_3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in num_receivers.
+function num_receivers_Callback(hObject, eventdata, handles)
+% hObject    handle to num_receivers (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns num_receivers contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from num_receivers
+contents = cellstr(get(hObject,'String'));
+check_mode = cellstr(get(handles.mode,'String'));
+contents_nav_mon = cellstr(get(handles.nav_mon,'String'));
+if (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
+    set(handles.text_num_receivers, 'Enable', 'on');
+    set(handles.num_receivers, 'Enable', 'on');
+    if (size(contents,1) >= get(hObject,'Value'))
+        if (strcmp(contents{get(hObject,'Value')},'1'))
+            set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
+            set(handles.com_select_1, 'Enable', 'off'); set(handles.protocol_select_1, 'Enable', 'off');
+            set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
+            set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
+        elseif (strcmp(contents{get(hObject,'Value')},'2'))
+            set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
+            set(handles.com_select_1, 'Enable', 'on');  set(handles.protocol_select_1, 'Enable', 'on');
+            set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
+            set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
+        elseif (strcmp(contents{get(hObject,'Value')},'3'))
+            set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
+            set(handles.com_select_1, 'Enable', 'on');  set(handles.protocol_select_1, 'Enable', 'on');
+            set(handles.com_select_2, 'Enable', 'on');  set(handles.protocol_select_2, 'Enable', 'on');
+            set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
+        elseif (strcmp(contents{get(hObject,'Value')},'4'))
+            set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
+            set(handles.com_select_1, 'Enable', 'on');  set(handles.protocol_select_1, 'Enable', 'on');
+            set(handles.com_select_2, 'Enable', 'on');  set(handles.protocol_select_2, 'Enable', 'on');
+            set(handles.com_select_3, 'Enable', 'on');  set(handles.protocol_select_3, 'Enable', 'on');
+        end
+    else
+        set(hObject,'Value',1);
+        set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
+        set(handles.com_select_1, 'Enable', 'off'); set(handles.protocol_select_1, 'Enable', 'off');
+        set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
+        set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
+    end
+else
+    set(handles.text_num_receivers, 'Enable', 'off');
+    set(handles.num_receivers, 'Enable', 'off');
+    set(handles.com_select_0, 'Enable', 'off');
+    set(handles.com_select_1, 'Enable', 'off');
+    set(handles.com_select_2, 'Enable', 'off');
+    set(handles.com_select_3, 'Enable', 'off');
+    set(handles.protocol_select_0, 'Enable', 'off');
+    set(handles.protocol_select_1, 'Enable', 'off');
+    set(handles.protocol_select_2, 'Enable', 'off');
+    set(handles.protocol_select_3, 'Enable', 'off');
+end
+    
+%------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+% --- Executes during object creation, after setting all properties.
+function num_receivers_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to num_receivers (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+contents = {'1';'2';'3';'4'};
+serialInfo = instrhwinfo('serial');
+num_ports = size(serialInfo.AvailableSerialPorts,1);
+if num_ports == 0
+    set(hObject,'String','1');
+elseif num_ports <= size(contents,1);
+    set(hObject,'String',contents(1:num_ports));
+else
+    set(hObject,'String',contents);
 end
