@@ -1650,7 +1650,7 @@ if (mode < 12)
         vsat = find(elR(:,i) > 0);
 
         %NMEA string generation
-        GGAstring = NMEA_GGA_gen(pos_KAL(:,i), nsat, time_GPS(i), HDOP(i));
+        GGAstring = NMEA_GGA_gen(pos_KAL(:,i), nsat, time_GPS(i), HDOP(i), mode);
         if (pivot(i) ~= 0)
             RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date(i,:));
             GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i));
