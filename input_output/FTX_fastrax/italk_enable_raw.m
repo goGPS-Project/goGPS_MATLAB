@@ -61,7 +61,7 @@ end1 = '3E';
 
 codeHEX = [header1; header2; source; destination; msg_id];
 codeDEC = hex2dec(codeHEX);
-codeDEC = [codeDEC; tran_id; pay_size; payload_dec; bin2dec(checksum(1:8)); bin2dec(checksum(9:16)); hex2dec(end1) ];
+codeDEC = [codeDEC; tran_id; pay_size; payload_dec; fbin2dec(checksum(1:8)); fbin2dec(checksum(9:16)); hex2dec(end1) ];
 
 %serial port checking
 reply_1 = get(serialObj,'BytesAvailable');
