@@ -1,13 +1,14 @@
-function nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP)
+function nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP, mode)
 
 % SYNTAX:
-%   nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP);
+%   nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP, mode);
 %
 % INPUT:
 %   pos_R = estimated ROVER position (X,Y,Z)
 %   nsat = number of visible satellites
 %   time = GPS time of measurements
 %   HDOP = horizontal dilution of precision
+%   mode = positioning mode
 %
 % OUTPUT:
 %   nmeastring = $GPGGA sentence (NMEA)
@@ -137,7 +138,26 @@ end
 % OTHER NMEA PARAMETERS
 %-----------------------------------------------------------------------------------------------
 
-surv_type = '1'; %0 = not valid, 1 = GPS, 2 = DGPS
+% survey type
+% 0 = not valid
+% 1 = code stand-alone
+% 2 = code double differences
+% 4 = code and phase double diff. (integer ambiguities fixed)
+% 5 = code and phase double diff. (float ambiguities)
+if (nargin > 4)
+    if (mode == 4 | mode == 6)
+        surv_type = '1';
+    elseif (mode == 3 | mode ==5)
+        surv_type = '2';
+    elseif (mode == 1 | mode == 2)
+        surv_type = '5';
+    else
+        surv_type = '1';
+    end
+else
+    surv_type = '1';
+end
+
 if (nargin < 4)
     HDOP = 1;      %fake HDOP value
 end
