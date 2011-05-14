@@ -22,12 +22,14 @@ function varargout = gui_decode_stream_unix(varargin)
 
 % Edit the above text to modify the response to help gui_decode_stream_unix
 
-% Last Modified by GUIDE v2.5 15-Jun-2010 15:52:54
+% Last Modified by GUIDE v2.5 28-Jun-2010 15:18:49
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -46,12 +48,12 @@ function varargout = gui_decode_stream_unix(varargin)
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
-gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @gui_decode_stream_unix_OpeningFcn, ...
-                   'gui_OutputFcn',  @gui_decode_stream_unix_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+gui_State = struct('gui_Name', mfilename, ...
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @gui_decode_stream_unix_OpeningFcn, ...
+    'gui_OutputFcn',  @gui_decode_stream_unix_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -91,6 +93,13 @@ position(2) = (screenSize(4)-position(4))/2;
 
 %center the window
 set(hObject, 'Position', position);
+if (~isempty(varargin))
+    set(handles.data_stream,'String',varargin{1});
+    temp = varargin{1};
+    temp = temp( max(strfind(temp, '/'))+1:end );
+    set(handles.data_out_name,'String',temp);
+    clear temp
+end
 
 % --- Outputs from this function are returned to the command line.
 function varargout = gui_decode_stream_unix_OutputFcn(hObject, eventdata, handles)  %#ok<*STOUT,*INUSD>
