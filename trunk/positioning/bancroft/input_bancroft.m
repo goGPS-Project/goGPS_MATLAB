@@ -35,6 +35,9 @@ m = size(pr,1);
 %Bancroft matrix initialization
 B = [];
 
+%set receiver clock error to zero
+rec_clock_error = 0; %#ok<NASGU>
+
 %loop on satellites
 for jsat = 1:m
 

@@ -404,9 +404,17 @@ if (mode < 10) %post-processing
                 case 5, mode = 6;
             end
             if (mode_user == 1)
-                uiwait(msgbox('Warning: master data not available, forcing STAND-ALONE mode.','','modal'));
+                if (flag_var_dyn_model)
+                    uiwait(msgbox('Warning: master data not available, forcing STAND-ALONE mode. Variable dynamic model is not supported in stand-alone mode.','','modal'));
+                else
+                    uiwait(msgbox('Warning: master data not available, forcing STAND-ALONE mode.','','modal'));
+                end
             else
-                fprintf('Warning: master data not available, forcing stand-alone mode.\n');
+                if (flag_var_dyn_model)
+                    fprintf('Warning: master data not available, forcing stand-alone mode. Variable dynamic model is not supported in stand-alone mode.\n');
+                else
+                    fprintf('Warning: master data not available, forcing stand-alone mode.\n');
+                end
             end
         end
     end

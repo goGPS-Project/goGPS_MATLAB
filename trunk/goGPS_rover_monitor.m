@@ -358,7 +358,7 @@ else
     h1 = uibuttongroup(gcf, 'visible','on');
     % Create three radio buttons in the button group.
     u0 = uicontrol(gcf, 'style', 'pushbutton', 'position', [10 10 50 30], 'string', 'STOP', ...
-        'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)');
+        'parent', h1,'callback', 'setappdata(gcf, ''run'', 0)'); %#ok<NASGU>
     u1 = uicontrol(gcf, 'Style','Radio','String','static',...
         'pos',[10 100 180 20],'parent', h1);
     u2 = uicontrol(gcf, 'Style','Radio','String','const. velocity dynamic',...
@@ -541,12 +541,12 @@ while flag
                         snr_R = cell_rover{3,i}(:,2);
                         dop_R = cell_rover{3,i}(:,5);
 
-                        %manage phase without code
-                        ph_R(abs(pr_R) < 1e-100) = 0;
-                        
                         %manage "nearly null" data
                         pr_R(abs(pr_R) < 1e-100) = 0;
                         ph_R(abs(ph_R) < 1e-100) = 0;
+                        
+                        %manage phase without code
+                        ph_R(abs(pr_R) == 0) = 0;
 
                         type = [type prot_par{r}{5,2} ' '];
                         nRAW = nRAW + 1;
@@ -567,6 +567,9 @@ while flag
                             %data save
                             fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                             fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
+                            if (flag_var_dyn_model) | (flag_stopGOstop)
+                                fwrite(fid_dyn{r}, order, 'int8');
+                            end
                         end
                     end
 
@@ -661,7 +664,7 @@ while flag
                 end
             end
 
-            %visualization (AID-EPH information)
+            %visualization (AID-EPH | FTX-EPH | GPS_EPH information)
             if (nEPH > 0)
                 sat = find(sum(abs(Eph{r}))>0);
                 fprintf('Eph: ');
