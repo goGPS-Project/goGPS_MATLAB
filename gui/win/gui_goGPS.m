@@ -3369,9 +3369,15 @@ elseif (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(conte
     set(handles.protocol_select_1, 'Enable', 'off');
     set(handles.protocol_select_2, 'Enable', 'off');
     set(handles.protocol_select_3, 'Enable', 'off');
-else
+elseif (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Navigation') | strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover and Master monitor')))
     set(hObject,'Value',1);
     set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
+    set(handles.com_select_1, 'Enable', 'off'); set(handles.protocol_select_1, 'Enable', 'off');
+    set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
+    set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
+else
+    set(hObject,'Value',1);
+    set(handles.com_select_0, 'Enable', 'off');  set(handles.protocol_select_0, 'Enable', 'off');
     set(handles.com_select_1, 'Enable', 'off'); set(handles.protocol_select_1, 'Enable', 'off');
     set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
     set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
