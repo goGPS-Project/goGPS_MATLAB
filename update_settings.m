@@ -1,13 +1,16 @@
-function update_settings(settings_dir_path, field, value)
+function [out] = update_settings(settings_dir_path, field, value)
 
 % SYNTAX:
-%   update_settings(settings_dir_path, field, value);
+%   [out] = update_settings(settings_dir_path, field, value);
 %
 % INPUT:
 %   settings_dir_path = path to settings folder
 %   field = name of the field to be added
 %   value = default value for the field (-1 to remove the field; new field 
 %           name to rename the field)
+%
+% OUTPUT:
+%   out = update outcome
 %
 % DESCRIPTION:
 %   Utility to update goGPS settings file.
@@ -31,6 +34,8 @@ function update_settings(settings_dir_path, field, value)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+out = 0;
 
 %directory containing settings files
 settings_dir = dir(settings_dir_path);
@@ -72,11 +77,11 @@ for i = 1 : nmax
                         state = rmfield(state,field);
                     end
                 end
+                %save the new state in settings file
+                save([settings_dir_path '/' got], 'state');
             end
         catch
         end
-        %save the new state in settings file
-        save([settings_dir_path '/' got], 'state');
     end
 end
 
@@ -85,3 +90,7 @@ end
 % else
 %     fprintf('%d settings files processed.\n', j);
 % end
+
+if (j ~= 0)
+    out = 1;
+end
