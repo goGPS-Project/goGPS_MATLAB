@@ -1,11 +1,12 @@
-function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
+function [kalman_initialized] = kalman_goGPS_cod_init (pos_R, pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
          pr2_Rsat, pr2_Msat, snr_R, snr_M, phase)
 
 % SYNTAX:
-%   kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
+%   [kalman_initialized] = kalman_goGPS_cod_init (pos_R, pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   pr2_Rsat, pr2_Msat, snr_R, snr_M, phase);
 %
 % INPUT:
+%   pos_R = rover approximate position (X,Y,Z)
 %   pos_M = MASTER position (X,Y,Z)
 %   time = GPS time
 %   Eph = satellite ephemerides
@@ -17,6 +18,9 @@ function kalman_goGPS_cod_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   phase = L1 carrier (phase=1) L2 carrier (phase=2)
+%
+% OUTPUT:
+%   kalman_initialized = flag to point out whether Kalman has been successfully initialized
 %
 % DESCRIPTION:
 %   Code-only Kalman filter initialization.
@@ -47,6 +51,8 @@ global cutoff o1 o2 o3
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
+
+kalman_initialized = 0;
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL
@@ -94,10 +100,12 @@ end
 % ESTIMATION OF INITIAL POSITION BY BANCROFT ALGORITHM
 %--------------------------------------------------------------------------------------------
 
-if (length(sat) >= 4)
-    [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat), sat, time(1), Eph);
-else
-    error('%d satellites are not enough to apply Bancroft algorithm\n', length(sat));
+if (sum(pos_R) == 0)
+    if (length(sat) >= 4)
+        [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat), sat, time(1), Eph);
+    else
+        return
+    end
 end
 
 %------------------------------------------------------------------------------------
@@ -144,25 +152,31 @@ conf_cs = zeros(32,1);
 %zero vector useful in matrix definitions
 Z_om_1 = zeros(o1-1,1);
 
-%ROVER positioning by code double differences
-if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono); %#ok<NASGU>
+if (length(sat) >= 4)
+    
+    %ROVER positioning by code double differences
+    if (phase(1) == 1)
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono); %#ok<NASGU>
+    else
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono); %#ok<NASGU>
+    end
+    
+    %second iteration to improve the accuracy
+    %obtained in the previous step (from some meters to some centimeters)
+    if (phase(1) == 1)
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+    else
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
+    end
+    
+    if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
+        cov_pos_R = sigmaq0 * eye(3);
+    end
+    sigmaq_pos_R = diag(cov_pos_R);
+    
 else
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono); %#ok<NASGU>
+    return
 end
-
-%second iteration to improve the accuracy
-%obtained in the previous step (from some meters to some centimeters)
-if (phase(1) == 1)
-    [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
-else
-    [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, iono);
-end
-
-if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
-    cov_pos_R = sigmaq0 * eye(3);
-end
-sigmaq_pos_R = diag(cov_pos_R);
 
 %initial state (position and velocity)
 Xhat_t_t = [pos_R(1); Z_om_1; pos_R(2); Z_om_1; pos_R(3); Z_om_1];
@@ -194,3 +208,5 @@ Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
 KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
 KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
 KVDOP = sqrt(Cee_ENU(3,3));
+
+kalman_initialized = 1;

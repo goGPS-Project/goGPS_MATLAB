@@ -127,7 +127,11 @@ v_stim = y0 - y_stim;
 sigma0q_stim = (v_stim'* v_stim) / (n-m);
 
 %covariance matrix of the estimation error
-Cxx = sigma0q_stim * ((A'*Q^-1*A)^-1);
+if (n > m)
+    Cxx = sigma0q_stim * ((A'*Q^-1*A)^-1);
+else
+    Cxx = [];
+end
 
 %DOP computation
 if (nargout > 2)

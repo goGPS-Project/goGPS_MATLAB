@@ -121,7 +121,7 @@ if (size(sat,1) >= 4)
            pos_LS = Xhat_t_t([1,o1+1,o2+1]);
            pivot = 0;
        else
-           pos_LS = NaN(3,1);
+           return
        end
    end
 else
@@ -129,7 +129,7 @@ else
         pos_LS = Xhat_t_t([1,o1+1,o2+1]);
         pivot = 0;
     else
-        pos_LS = NaN(3,1);
+        return
     end
 end
 

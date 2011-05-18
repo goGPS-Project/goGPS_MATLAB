@@ -51,7 +51,7 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop ..
 %----------------------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU
-global min_nsat cutoff snr_threshold o1 o2 o3
+global cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
@@ -165,7 +165,7 @@ nsat = size(sat,1);
 %------------------------------------------------------------------------------------
 
 %if the number of visible satellites is equal or greater than min_nsat
-if (nsat >= min_nsat)
+if (nsat >= 4)
 
     %ROVER positioning by means of code double differences
     if (phase(1) == 1)
@@ -228,7 +228,7 @@ end
 %----------------------------------------------------------------------------------------
 
 %Kalman filter equations
-if (nsat >= min_nsat)
+if (nsat >= 4)
 
     K = T*Cee*T' + Cvv;
 
