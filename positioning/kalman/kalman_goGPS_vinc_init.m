@@ -1,14 +1,15 @@
-function kalman_goGPS_vinc_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
+function [kalman_initialized] = kalman_goGPS_vinc_init (pos_R, pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
               ph1_Rsat, ph1_Msat, dop1_Rsat, dop1_Msat, pr2_Rsat, pr2_Msat, ...
               ph2_Rsat, ph2_Msat, dop2_Rsat, dop2_Msat, snr_R, snr_M, phase, ref, dtMdot)
 
 % SYNTAX:
-%   kalman_goGPS_vinc_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
+%   [kalman_initialized] = kalman_goGPS_vinc_init (pos_R, pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %        ph1_Rsat, ph1_Msat, dop1_Rsat, dop1_Msat, pr2_Rsat, pr2_Msat, ...
 %        ph2_Rsat, ph2_Msat, dop2_Rsat, dop2_Msat, snr_R, snr_M, phase, ref, dtMdot);
 %
 % INPUT:
-%   pos_M = Master given coordinates (X,Y,Z)
+%   pos_R = rover approximate coordinates (X,Y,Z)
+%   pos_M = master known coordinates (X,Y,Z)
 %   time = GPS time
 %   Eph = satellites ephemerides
 %   iono = ionosphere parameters (vector of zeros if not available)
@@ -27,6 +28,9 @@ function kalman_goGPS_vinc_init (pos_M, time, Eph, iono, pr1_Rsat, pr1_Msat, ...
 %   phase = carrier L1 (phase=1), carrier L2 (phase=2)
 %   ref = reference line
 %   dtMdot = master receiver clock drift
+%
+% OUTPUT:
+%   kalman_initialized = flag to point out whether Kalman has been successfully initialized
 %
 % DESCRIPTION:
 %   Kalman filter initialization, POVER initial position estimate included
@@ -65,6 +69,8 @@ global azR elR distR azM elM distM
 global PDOP HDOP VDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
+
+kalman_initialized = 0;
 
 %--------------------------------------------------------------------------------------------
 % SINGLE / DOUBLE FREQUENCY SELECTION
@@ -159,21 +165,27 @@ end
 % INITIAL POSITION ESTIMATE WITH BANCROFT ALGORITHM
 %--------------------------------------------------------------------------------------------
 
-if (length(sat_pr) >= 4)
-    [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
-else
-    error('%d satellites are not enough to apply Bancroft algorithm\n', length(sat_pr));
+if (sum(pos_R) == 0)
+    if (length(sat_pr) >= 4)
+        [pos_R] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
+    else
+        return
+    end
 end
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE POSITION CORRECTION (AND MASTER DOPPLER SHIFT COMPUTATION)
 %--------------------------------------------------------------------------------------------
+pos_S = zeros(3,size(sat_pr));
+pos_S_ttime = zeros(3,32);
+vel_S = zeros(3,32);
+ttime = zeros(32,1);
 for i = 1:size(sat_pr)
     
     i_sat = sat_pr(i);
     
     %satellite position (with clock error and Earth rotation corrections)
-    [posS(:,i_sat), dt_S, pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1)] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat)); %#ok<ASGLU>
+    [pos_S(:,i), dt_S, pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1)] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat)); %#ok<ASGLU>
 
     if (nargin > 20 & ~isempty(dtMdot) & dop1_Msat(i_sat) == 0)
         [dop1_Msat(i_sat), dop2_Msat(i_sat)] = doppler_shift_approx(pos_M, zeros(3,1), pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1), dtMdot, i_sat, Eph);
@@ -193,10 +205,10 @@ elM = zeros(32,1);
 distM = zeros(32,1);
 
 %azimuth, elevation, ROVER-SATELLITE distance estimate
-[azR(sat_pr), elR(sat_pr), distR(sat_pr)] = topocent(pos_R, pos_S);
+[azR(sat_pr), elR(sat_pr), distR(sat_pr)] = topocent(pos_R, pos_S');
 
 %azimuth, elevation, MASTER-SATELLITE distance estimate
-[azM(sat_pr), elM(sat_pr), distM(sat_pr)] = topocent(pos_M, pos_S);
+[azM(sat_pr), elM(sat_pr), distM(sat_pr)] = topocent(pos_M, pos_S');
 
 %elevation cut-off
 sat_cutoff = find(elR > cutoff);
@@ -235,133 +247,138 @@ conf_cs = zeros(32,1);
 Z_om_1 = zeros(o1-1,1);
 sigmaq_comb_N = zeros(32,1);
 
-%ROVER positioning by means of code double differences
-if (phase(1) == 1)
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
-else
-    [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
-end
-
-%re-estimate to obtain better accuracy
-if (phase(1) == 1)
-    [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
-else
-    [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
-end
-
-if isempty(cov_pos_R) %if a covariance matrix estimate was not possible (iso-determined problem)
-    cov_pos_R = sigmaq0 * eye(3);
-end
-sigmaq_pos_R = diag(cov_pos_R);
-
-%projection over the constrain
-bx = pos_R(1) - ref(1:end-1,1) + ax.*s0(1:end-1);
-by = pos_R(2) - ref(1:end-1,2) + ay.*s0(1:end-1);
-bz = pos_R(3) - ref(1:end-1,3) + az.*s0(1:end-1);
-
-s_R = (ax.*bx + ay.*by + az.*bz) ./ (ax.^2 + ay.^2 + az.^2);
-
-pos_R_proj(:,1) = ref(1:end-1,1) + ax .* (s_R - s0(1:end-1));
-pos_R_proj(:,2) = ref(1:end-1,2) + ay .* (s_R - s0(1:end-1));
-pos_R_proj(:,3) = ref(1:end-1,3) + az .* (s_R - s0(1:end-1));
-
-%minimum distance estimate
-d = sqrt((pos_R(1) - pos_R_proj(:,1)).^2 + ...
-         (pos_R(2) - pos_R_proj(:,2)).^2 + ...
-         (pos_R(3) - pos_R_proj(:,3)).^2);
-
-[dmin i] = min(d); %#ok<ASGLU>
-
-%cartesian coordinates positioning
-if ((pos_R_proj(i,1) >= min(ref(i,1),ref(i+1,1))) & (pos_R_proj(i,1) <= max(ref(i,1),ref(i+1,1))) & ...
-    (pos_R_proj(i,2) >= min(ref(i,2),ref(i+1,2))) & (pos_R_proj(i,2) <= max(ref(i,2),ref(i+1,2))) & ...
-    (pos_R_proj(i,3) >= min(ref(i,3),ref(i+1,3))) & (pos_R_proj(i,3) <= max(ref(i,3),ref(i+1,3))))
-
-    s_R = s_R(i);
-    pos_R = pos_R_proj(i,:);
-
-else
-
-    d = sqrt((pos_R(1) - ref(:,1)).^2 + ...
-             (pos_R(2) - ref(:,2)).^2 + ...
-             (pos_R(3) - ref(:,3)).^2);
-
+if (length(sat_pr) >= 4)
+    
+    %ROVER positioning by means of code double differences
+    if (phase(1) == 1)
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
+    else
+        [pos_R, cov_pos_R] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono); %#ok<NASGU>
+    end
+    
+    %re-estimate to obtain better accuracy
+    if (phase(1) == 1)
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr1_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr1_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
+    else
+        [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_double_diff(pos_R, pr2_Rsat(sat_pr), snr_R(sat_pr), pos_M, pr2_Msat(sat_pr), snr_M(sat_pr), time, sat_pr, pivot, Eph, iono);
+    end
+    
+    if isempty(cov_pos_R) %if a covariance matrix estimate was not possible (iso-determined problem)
+        cov_pos_R = sigmaq0 * eye(3);
+    end
+    sigmaq_pos_R = diag(cov_pos_R);
+    
+    %projection over the constrain
+    bx = pos_R(1) - ref(1:end-1,1) + ax.*s0(1:end-1);
+    by = pos_R(2) - ref(1:end-1,2) + ay.*s0(1:end-1);
+    bz = pos_R(3) - ref(1:end-1,3) + az.*s0(1:end-1);
+    
+    s_R = (ax.*bx + ay.*by + az.*bz) ./ (ax.^2 + ay.^2 + az.^2);
+    
+    pos_R_proj(:,1) = ref(1:end-1,1) + ax .* (s_R - s0(1:end-1));
+    pos_R_proj(:,2) = ref(1:end-1,2) + ay .* (s_R - s0(1:end-1));
+    pos_R_proj(:,3) = ref(1:end-1,3) + az .* (s_R - s0(1:end-1));
+    
+    %minimum distance estimate
+    d = sqrt((pos_R(1) - pos_R_proj(:,1)).^2 + ...
+        (pos_R(2) - pos_R_proj(:,2)).^2 + ...
+        (pos_R(3) - pos_R_proj(:,3)).^2);
+    
     [dmin i] = min(d); %#ok<ASGLU>
-
-    s_R = s0(i);
-    pos_R = ref(i,:);
-
-end
-
-%propagated error
-sigmaq_s_R = (ax(i)^2*sigmaq_pos_R(1) + ay(i)^2*sigmaq_pos_R(2) + az(i)^2*sigmaq_pos_R(3)) ./ (ax(i)^2 + ay(i)^2 + az(i)^2)^2;
-
-%do not use least squares ambiguity estimation
-% NOTE: LS amb. estimation is automatically switched off if the number of
-% satellites with phase available is not sufficient
-if (size(sat) <= 5)
     
-    %satellite combinations initialization: initialized value
-    %if the satellite is visible, 0 if the satellite is not visible
-    comb_N1_stim = zeros(32,1);
-    comb_N2_stim = zeros(32,1);
-    sigmaq_comb_N1 = zeros(32,1);
-    sigmaq_comb_N2 = zeros(32,1);
-    
-    %computation of the phase double differences in order to estimate N
-    if ~isempty(sat)
-        [comb_N1_stim(sat), sigmaq_comb_N1(sat)] = amb_estimate_observ(pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), pivot, sat, 1);
-        [comb_N2_stim(sat), sigmaq_comb_N2(sat)] = amb_estimate_observ(pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), pivot, sat, 2);
+    %cartesian coordinates positioning
+    if ((pos_R_proj(i,1) >= min(ref(i,1),ref(i+1,1))) & (pos_R_proj(i,1) <= max(ref(i,1),ref(i+1,1))) & ...
+            (pos_R_proj(i,2) >= min(ref(i,2),ref(i+1,2))) & (pos_R_proj(i,2) <= max(ref(i,2),ref(i+1,2))) & ...
+            (pos_R_proj(i,3) >= min(ref(i,3),ref(i+1,3))) & (pos_R_proj(i,3) <= max(ref(i,3),ref(i+1,3))))
+        
+        s_R = s_R(i);
+        pos_R = pos_R_proj(i,:);
+        
+    else
+        
+        d = sqrt((pos_R(1) - ref(:,1)).^2 + ...
+            (pos_R(2) - ref(:,2)).^2 + ...
+            (pos_R(3) - ref(:,3)).^2);
+        
+        [dmin i] = min(d); %#ok<ASGLU>
+        
+        s_R = s0(i);
+        pos_R = ref(i,:);
+        
     end
     
-    if (length(phase) == 2)
-        comb_N_stim = [comb_N1_stim; comb_N2_stim];
-        sigmaq_comb_N = [sigmaq_comb_N1; sigmaq_comb_N2];
-    else
-        if (phase == 1)
-            comb_N_stim = comb_N1_stim;
-            sigmaq_comb_N = sigmaq_comb_N1;
-        else
-            comb_N_stim = comb_N2_stim;
-            sigmaq_comb_N = sigmaq_comb_N2;
+    %propagated error
+    sigmaq_s_R = (ax(i)^2*sigmaq_pos_R(1) + ay(i)^2*sigmaq_pos_R(2) + az(i)^2*sigmaq_pos_R(3)) ./ (ax(i)^2 + ay(i)^2 + az(i)^2)^2;
+    
+    %do not use least squares ambiguity estimation
+    % NOTE: LS amb. estimation is automatically switched off if the number of
+    % satellites with phase available is not sufficient
+    if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1)
+        
+        %satellite combinations initialization: initialized value
+        %if the satellite is visible, 0 if the satellite is not visible
+        comb_N1_stim = zeros(32,1);
+        comb_N2_stim = zeros(32,1);
+        sigmaq_comb_N1 = zeros(32,1);
+        sigmaq_comb_N2 = zeros(32,1);
+        
+        %computation of the phase double differences in order to estimate N
+        if ~isempty(sat)
+            [comb_N1_stim(sat), sigmaq_comb_N1(sat)] = amb_estimate_observ(pr1_Rsat(sat), pr1_Msat(sat), ph1_Rsat(sat), ph1_Msat(sat), pivot, sat, 1);
+            [comb_N2_stim(sat), sigmaq_comb_N2(sat)] = amb_estimate_observ(pr2_Rsat(sat), pr2_Msat(sat), ph2_Rsat(sat), ph2_Msat(sat), pivot, sat, 2);
         end
-    end
-
-%use least squares ambiguity estimation
-else
-    
-    %satellite combinations initialization: initialized value
-    %if the satellite is visible, 0 if the satellite is not visible
-    comb_N1_stim = zeros(32,1);
-    comb_N2_stim = zeros(32,1);
-
-    %ROVER positioning improvement with code and phase double differences
-    if ~isempty(sat)
-        [null_pos_R, null_cov_pos_R, comb_N1_stim(sat), cov_comb_N1_stim] = code_phase_double_diff(pos_R', pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 1, iono); %#ok<ASGLU>
-        [null_pos_R, null_cov_pos_R, comb_N2_stim(sat), cov_comb_N2_stim] = code_phase_double_diff(pos_R', pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 2, iono); %#ok<ASGLU>
-    end
-    
-    if isempty(cov_comb_N1_stim) %if it was not possible to compute the covariance matrix
-        cov_comb_N1_stim = sigmaq0_N * eye(length(sat));
-    end
-    
-    if isempty(cov_comb_N2_stim) %if it was not possible to compute the covariance matrix
-        cov_comb_N2_stim = sigmaq0_N * eye(length(sat));
-    end
-    
-    if (length(phase) == 2)
-        comb_N_stim = [comb_N1_stim; comb_N2_stim];
-        sigmaq_comb_N(sat) = diag(cov_comb_N1_stim);
-        sigmaq_comb_N(sat+32) = diag(cov_comb_N2_stim);
+        
+        if (length(phase) == 2)
+            comb_N_stim = [comb_N1_stim; comb_N2_stim];
+            sigmaq_comb_N = [sigmaq_comb_N1; sigmaq_comb_N2];
+        else
+            if (phase == 1)
+                comb_N_stim = comb_N1_stim;
+                sigmaq_comb_N = sigmaq_comb_N1;
+            else
+                comb_N_stim = comb_N2_stim;
+                sigmaq_comb_N = sigmaq_comb_N2;
+            end
+        end
+        
+        %use least squares ambiguity estimation
     else
-        if (phase == 1)
-            comb_N_stim = comb_N1_stim;
+        
+        %satellite combinations initialization: initialized value
+        %if the satellite is visible, 0 if the satellite is not visible
+        comb_N1_stim = zeros(32,1);
+        comb_N2_stim = zeros(32,1);
+        
+        %ROVER positioning improvement with code and phase double differences
+        if ~isempty(sat)
+            [null_pos_R, null_cov_pos_R, comb_N1_stim(sat), cov_comb_N1_stim] = code_phase_double_diff(pos_R', pr1_Rsat(sat), ph1_Rsat(sat), snr_R(sat), pos_M, pr1_Msat(sat), ph1_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 1, iono); %#ok<ASGLU>
+            [null_pos_R, null_cov_pos_R, comb_N2_stim(sat), cov_comb_N2_stim] = code_phase_double_diff(pos_R', pr2_Rsat(sat), ph2_Rsat(sat), snr_R(sat), pos_M, pr2_Msat(sat), ph2_Msat(sat), snr_M(sat), time, sat, pivot, Eph, 2, iono); %#ok<ASGLU>
+        end
+        
+        if isempty(cov_comb_N1_stim) %if it was not possible to compute the covariance matrix
+            cov_comb_N1_stim = sigmaq0_N * eye(length(sat));
+        end
+        
+        if isempty(cov_comb_N2_stim) %if it was not possible to compute the covariance matrix
+            cov_comb_N2_stim = sigmaq0_N * eye(length(sat));
+        end
+        
+        if (length(phase) == 2)
+            comb_N_stim = [comb_N1_stim; comb_N2_stim];
             sigmaq_comb_N(sat) = diag(cov_comb_N1_stim);
+            sigmaq_comb_N(sat+32) = diag(cov_comb_N2_stim);
         else
-            comb_N_stim = comb_N2_stim;
-            sigmaq_comb_N(sat) = diag(cov_comb_N2_stim);
+            if (phase == 1)
+                comb_N_stim = comb_N1_stim;
+                sigmaq_comb_N(sat) = diag(cov_comb_N1_stim);
+            else
+                comb_N_stim = comb_N2_stim;
+                sigmaq_comb_N(sat) = diag(cov_comb_N2_stim);
+            end
         end
     end
+else
+    return
 end
 
 %initial point initialization, composed by 6(positions and velocities) +
@@ -417,3 +434,5 @@ end
 if (dop2_Msat(sat))
     doppler_pred_range2_M(sat,1) = ph2_Msat(sat) - dop2_Msat(sat);
 end
+
+kalman_initialized = 1;

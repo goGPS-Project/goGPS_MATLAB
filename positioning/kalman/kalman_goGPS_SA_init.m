@@ -1,9 +1,10 @@
-function kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, pr2_Rsat, ph2_Rsat, dop2_Rsat, snr_R, phase)
+function [kalman_initialized] = kalman_goGPS_SA_init (pos_R, time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, pr2_Rsat, ph2_Rsat, dop2_Rsat, snr_R, phase)
 
 % SYNTAX:
-%   kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, pr2_Rsat, ph2_Rsat, dop2_Rsat, snr_R, phase);
+%   [kalman_initialized] = kalman_goGPS_SA_init (pos_R, time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, pr2_Rsat, ph2_Rsat, dop2_Rsat, snr_R, phase);
 %
 % INPUT:
+%   pos_R = rover approximate coordinates (X, Y, Z)
 %   time = GPS time
 %   Eph = satellite ephemerides
 %   iono = ionosphere parameters
@@ -15,6 +16,9 @@ function kalman_goGPS_SA_init (time, Eph, iono, pr1_Rsat, ph1_Rsat, dop1_Rsat, p
 %   dop2_Rsat = ROVER_SATELLITE Doppler observation (carrier L2)
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   phase = L1 carrier (phase=1) L2 carrier (phase=2)
+%
+% OUTPUT:
+%   kalman_initialized = flag to point out whether Kalman has been successfully initialized
 %
 % DESCRIPTION:
 %   Standalone phase and code Kalman filter initialization.
@@ -46,6 +50,8 @@ global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
+
+kalman_initialized = 0;
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -121,10 +127,12 @@ end
 % ESTIMATION OF INITIAL POSITION BY BANCROFT ALGORITHM
 %--------------------------------------------------------------------------------------------
 
-if (length(sat_pr) >= 4)
-    [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
-else
-    error('%d satellites are not enough to apply Bancroft algorithm\n', length(sat_pr));
+if (sum(pos_R) == 0)
+    if (length(sat_pr) >= 4)
+        [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
+    else
+        return
+    end
 end
 
 %------------------------------------------------------------------------------------
@@ -196,7 +204,7 @@ if (length(sat_pr) >= 4)
     sigmaq_pos_R = diag(cov_pos_R); %#ok<NASGU>
     
 else
-    error('%d satellites are not enough to make ROVER positioning in stand-alone\n', length(sat_pr));
+    return
 end
 
 %do not use least squares ambiguity estimation
@@ -331,3 +339,6 @@ Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
 KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
 KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
 KVDOP = sqrt(Cee_ENU(3,3));
+
+kalman_initialized = 1;
+

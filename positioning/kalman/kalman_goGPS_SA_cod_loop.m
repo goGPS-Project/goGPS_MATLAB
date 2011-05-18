@@ -42,8 +42,8 @@ function [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_cod_loop
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global sigmaq_vE sigmaq_vN sigmaq_vU
-global min_nsat cutoff snr_threshold o1 o2 o3
+global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU
+global cutoff snr_threshold o1 o2 o3
 
 global Xhat_t_t X_t1_t T I Cee nsat conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
@@ -155,14 +155,18 @@ nsat = size(sat_pr,1);
 % OBSERVATION EQUATIONS
 %------------------------------------------------------------------------------------
 
-%if the number of visible satellites is equal or greater than min_nsat
-if (nsat(end) >= min_nsat)
+%if the number of visible satellites is sufficient
+if (nsat >= 4)
 
     %standalone code ROVER positioning
     if (phase(1) == 1)
         [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(X_t1_t([1,o1+1,o2+1]), pr1_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
     else
         [pos_R, cov_pos_R, PDOP, HDOP, VDOP] = code_SA(X_t1_t([1,o1+1,o2+1]), pr2_Rsat(sat_pr), snr_R(sat_pr), sat_pr, time, Eph, iono);
+    end
+    
+    if isempty(cov_pos_R) %if it was not possible to compute the covariance matrix
+        cov_pos_R = sigmaq0 * eye(3);
     end
 
     %zeroes vector useful in matrix definitions
@@ -215,7 +219,7 @@ end
 %----------------------------------------------------------------------------------------
 
 %Kalman filter equations
-if (nsat >= min_nsat)
+if (nsat >= 4)
 
     K = T*Cee*T' + Cvv;
 

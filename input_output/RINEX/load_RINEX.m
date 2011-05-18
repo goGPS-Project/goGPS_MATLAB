@@ -2,7 +2,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
           dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
           snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
           dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
-          time_GPS, time_GPS_R, time_GPS_M, date, pos, Eph, iono, Eph_R] = ...
+          time_GPS, time_GPS_R, time_GPS_M, date, pos_R, pos_M, Eph, iono, Eph_R] = ...
           load_RINEX(filename_R_obs, filename_nav, filename_M_obs, wait_dlg)
 
 % SYNTAX:
@@ -10,7 +10,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %    dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
 %    snr1_R, snr1_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
 %    Eph_R, Eph_MR, snr_RR, snr_MR, ...
-%    time_GPS, date, pos, Eph, iono, Eph_R] = ...
+%    time_GPS, date, pos_R, pos_M, Eph, iono, Eph_R] = ...
 %   load_RINEX(filename_R_obs, filename_nav, filename_M_obs, wait_dlg);
 %
 % INPUT:
@@ -54,7 +54,8 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   time_GPS_R = rover GPS time
 %   time_GPS_M = master GPS time
 %   date = date (year,month,day,hour,minute,second)
-%   pos = master station position (rover if stand-alone)
+%   pos_R = rover approximate position
+%   pos_M = master station position
 %   Eph = matrix containing 29 ephemerides for each satellite
 %   iono = vector containing ionosphere parameters
 %   Eph_R = matrix containing 29 ephemerides for each satellite (GLONASS)
@@ -116,7 +117,7 @@ if (nargin == 5)
 end
 
 %parse RINEX header
-[obs_typ_R,  pos, info_base_R] = RINEX_parse_hdr(FR_oss);
+[obs_typ_R,  pos_R, info_base_R] = RINEX_parse_hdr(FR_oss);
 
 %check the availability of basic data to parse the RINEX file (ROVER)
 if (info_base_R == 0)
@@ -130,8 +131,8 @@ if (nargin > 2)
     if (info_base_M == 0)
         error('Basic data is missing in the ROVER RINEX header')
     end
-    
-    pos = pos_M;
+else
+    pos_M = zeros(3,1);
 end
 
 if (nargin == 5)
