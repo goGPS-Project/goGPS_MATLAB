@@ -168,7 +168,7 @@ for i = 1:size(sat_pr)
     %satellite position (with clock error and Earth rotation corrections)
     [pos_S(:,i), dt_S, pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1)] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat)); %#ok<ASGLU>
 
-    if (nargin > 19 & ~isempty(dtMdot) & dop1_Msat(i_sat) == 0)
+    if (nargin > 20 & ~isempty(dtMdot) & dop1_Msat(i_sat) == 0)
         [dop1_Msat(i_sat), dop2_Msat(i_sat)] = doppler_shift_approx(pos_M, zeros(3,1), pos_S_ttime(:,i_sat), vel_S(:,i_sat), ttime(i_sat,1), dtMdot, i_sat, Eph);
     end
 end
