@@ -382,6 +382,13 @@ end
 
 %for Fastrax
 tick_TRACK = 0;
+%                   L1 freq    RF_conv*MCLK      MixerOffeset
+correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
+correction_value = correction_value * (1575420000/(1+1574399750));
+doppler_count = 1;
+delta = zeros(32,1);
+ph_R_old  = zeros(32,1);
+dop_R_old = zeros(32,1);
 
 %for SkyTraq
 IOD_time = -1;
@@ -482,8 +489,12 @@ while flag
                         EpochCount  = cell_rover{3,i}(:,11);
                         % Synchronize PSEUDO and TRACK
                         if (tick_PSEUDO == tick_TRACK)
-                            %manage phase without code
-                            ph_R(abs(pr_R) > 0) = phase_TRACK(abs(pr_R) > 0);
+                            %manage phase without code and phase correction
+                            ph_R(abs(pr_R) > 0) = phase_TRACK(abs(pr_R) > 0) - correction_value*doppler_count;
+                            doppler_count = doppler_count + 1;
+                            delta = (ph_R_old - dop_R_old) - ph_R;
+                            ph_R_old  = ph_R;
+                            dop_R_old = dop_R;
                         else
                             ph_R = zeros(32,1);
                         end
@@ -636,9 +647,9 @@ while flag
                         % fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
                         %     sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)),
                         %     qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
-                        fprintf('   SAT %02d:  P1=%11.2f  L1=%13.4f  D1=%7.1f  SNR=%2d  FLAG=%5d  CORR=%5d  LDO=%5d  ECnt=%6d \n', ...
+                        fprintf('   SAT %02d:  P1=%11.2f  L1=%13.4f  D1=%7.1f  SNR=%2d  FLAG=%5d  CORR=%5d  LDO=%5d  ECnt=%6d Delta=%8.4f\n', ...
                             sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)), ObsFlags_R(sat(j)), Corr_R(sat(j)), LDO_R(sat(j)), ...
-                            EpochCount(sat(j)));
+                            EpochCount(sat(j)), delta(sat(j)));
                     elseif (protocol(r) == 2)
                         fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
                             sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
