@@ -3134,6 +3134,7 @@ end
 try
     serialInfo = instrhwinfo('serial');
 catch
+    serialInfo.AvailableSerialPorts = [];
 end
 if (~isempty(serialInfo.AvailableSerialPorts))
 %     serialInfo.AvailableSerialPorts(1) = [];
@@ -3277,6 +3278,7 @@ end
 try
     serialInfo = instrhwinfo('serial');
 catch
+    serialInfo.AvailableSerialPorts = [];
 end
 if (~isempty(serialInfo.AvailableSerialPorts))
 %     serialInfo.AvailableSerialPorts(1) = [];
@@ -3398,8 +3400,12 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 contents = {'1';'2';'3';'4'};
+try
 serialInfo = instrhwinfo('serial');
 num_ports = size(serialInfo.AvailableSerialPorts,1);
+catch
+    num_ports = 0;
+end
 if num_ports == 0
     set(hObject,'String','1');
 elseif num_ports <= size(contents,1);
