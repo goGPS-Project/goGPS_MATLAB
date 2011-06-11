@@ -736,6 +736,10 @@ while flag
         
         %for Fastrax
         tick_TRACK = 0;
+        %                   L1 freq    RF_conv*MCLK      MixerOffeset
+        correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
+        correction_value = correction_value * (1575420000/(1+1574399750));
+        doppler_count = 1;
         
         %for SkyTraq
         IOD_time = -1;
@@ -774,7 +778,9 @@ while flag
                     %phase computation (only for Fastrax)
                     tick_PSEUDO = cell_rover{2,i}(4);
                     if (protocol == 1 & tick_TRACK == tick_PSEUDO)
-                        ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0);
+                        %manage phase without code and phase correction
+                        ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0) - correction_value*doppler_count;
+                        doppler_count = doppler_count + 1;
                     end
 
                     %manage "nearly null" data

@@ -169,6 +169,12 @@ if (~isempty(data_rover_all))
         waitbar(0,wait_dlg,'Reading rover data...')
     end
     
+    %for Fastrax
+    %                   L1 freq    RF_conv*MCLK      MixerOffeset
+    correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
+    correction_value = correction_value * (1575420000/(1+1574399750));
+    doppler_count = 1;
+    
     %for SkyTraq
     IOD_time = -1;
     
@@ -294,9 +300,11 @@ if (~isempty(data_rover_all))
             snr_R(:,i)  = cell_rover{3,j}(:,6);
             
             tick_PSEUDO(i) = cell_rover{2,j}(4);
-
+            
             if (tick_PSEUDO(i) == tick_TRACK(i))
-            	ph1_R(:,i) = phase_TRACK(:,i);
+                %phase correction
+                ph1_R(:,i) = phase_TRACK(:,i) - correction_value*doppler_count;
+                doppler_count = doppler_count + 1;
             else
                 ph1_R(:,i) = 0;
             end

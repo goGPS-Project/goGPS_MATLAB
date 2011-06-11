@@ -842,6 +842,10 @@ while flag
         
         %for Fastrax
         tick_TRACK = 0;
+        %                   L1 freq    RF_conv*MCLK      MixerOffeset
+        correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
+        correction_value = correction_value * (1575420000/(1+1574399750));
+        doppler_count = 1;
         
         %for SkyTraq
         IOD_time = -1;
@@ -880,7 +884,9 @@ while flag
                     %phase computation (only for Fastrax)
                     tick_PSEUDO = cell_rover{2,i}(4);
                     if (protocol == 1 & tick_TRACK == tick_PSEUDO)
-                        ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0);
+                        %manage phase without code and phase correction
+                        ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0) - correction_value*doppler_count;
+                        doppler_count = doppler_count + 1;
                     end
 
                     %manage "nearly null" data
@@ -1441,10 +1447,10 @@ while flag
 
             %current date reading for Google Earth visualization
             date = clock;
-
+            
             %satellites with ephemerides available
             satEph = find(sum(abs(Eph))~=0);
-
+            
             %delete data if ephemerides are not available
             %the buffer is activated only after the Kalman filter initialization
             delsat = setdiff(1:32,satEph);
@@ -1455,120 +1461,125 @@ while flag
             dop_R(delsat,1) = 0;
             snr_R(delsat,1) = 0;
             snr_M(delsat,1) = 0;
-
+            
             %satellites with observations available
             %satObs = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) & (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0));
             satObs = find( (pr_R(:,1) ~= 0) & (pr_M(:,1) ~= 0));
-
+            
             %if all the visible satellites ephemerides have been transmitted
             %and the total number of satellites is >= 4 and the master
             %station position is available
             if (ismember(satObs,satEph)) & (length(satObs) >= 4) & (sum(abs(pos_M(:,1))) ~= 0)
-            %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
-
+                %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
+                
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 if (flag_var_dyn_model) | (flag_stopGOstop)
                     fwrite(fid_dyn, order, 'int8');
                 end
-
+                
                 %WARNING: with just 4 satellites the least squares problem
                 %for double differences is not solvable and the covariance matrix
                 %of the estimation error cannot be computed
-
+                
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
-                        kalman_goGPS_init (zeros(3,1), pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1);
+                        kalman_initialized = kalman_goGPS_init (zeros(3,1), pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1);
                     else
-                        kalman_goGPS_init_model (zeros(3,1), pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), order, 1);
+                        kalman_initialized = kalman_goGPS_init_model (zeros(3,1), pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), order, 1);
                     end
                 else
-                    kalman_goGPS_vinc_init (zeros(3,1), pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1, ref_path);
+                    kalman_initialized = kalman_goGPS_vinc_init (zeros(3,1), pos_M(:,1), time_M(1), Eph, iono, pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), 1, ref_path);
                 end
                 
-                if (flag_stopGOstop)
-                    [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
-                    Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
-                    sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
-                    sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
-                    sigma_EN0(iDIR,1) = Cee_ENU(1,2);
-                    mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
-                    sigma_angleDIR = 0;
-                    P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
-                end
-
-                %output data save
-                if (mode_vinc == 0)
-                    fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
-                    fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
-                else
-                    fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
-                    fwrite(fid_dop, [PDOP, HDOP, VDOP, 0, 0, 0], 'double');
-                end
-                fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-
-                %estimated position and velocity
-                if (mode_vinc == 0)
-                    pos_t(1,1) = Xhat_t_t(1);
-                    pos_t(2,1) = Xhat_t_t(o1+1);
-                    pos_t(3,1) = Xhat_t_t(o2+1);
-                    vel_t = sqrt(Xhat_t_t(2)^2+Xhat_t_t(o1+2)^2+Xhat_t_t(o2+2)^2);
-                else
-                    pos_t(1,1) = Yhat_t_t(1);
-                    pos_t(2,1) = Yhat_t_t(2);
-                    pos_t(3,1) = Yhat_t_t(3);
-                    vel_t = Xhat_t_t(2);
-                end
-
-                %graphical representations
-                if (flag_plotproc)
-                    if (flag_cov == 0)
-                        if (~flag_stopGOstop)
-                            rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
-                        else
-                            rtplot_matlab_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), P1, P2, flag_ms, ref_path, mat_path, flag);
-                        end
-                        if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
-                    else
-                        if (~flag_stopGOstop)
-                            rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
-                        else
-                            rtplot_matlab_cov_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag);
-                        end
-                        if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
+                if (kalman_initialized)
+                    if (flag_stopGOstop)
+                        [E0(iDIR,1), N0(iDIR,1)] = cart2plan(Xhat_t_t(1), Xhat_t_t(o1+1), Xhat_t_t(o2+1));
+                        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1]));
+                        sigmaq_E0(iDIR,1) = Cee_ENU(1,1);
+                        sigmaq_N0(iDIR,1) = Cee_ENU(2,2);
+                        sigma_EN0(iDIR,1) = Cee_ENU(1,2);
+                        mDIR = 0; qDIR = 0; angleDIR = 0; %#ok<NASGU>
+                        sigma_angleDIR = 0;
+                        P1 = [E0(iDIR), N0(iDIR)]; P2 = P1;
                     end
-                    if (flag_skyplot == 1)
-                        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                        rtplot_snr (snr_R(:,1));
+                    
+                    %output data save
+                    if (mode_vinc == 0)
+                        fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_dop, [PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP], 'double');
                     else
-                        rttext_sat (t, azR, elR, snr_R(:,1), conf_sat, pivot);
+                        fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_dop, [PDOP, HDOP, VDOP, 0, 0, 0], 'double');
                     end
+                    fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+                    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+                    
+                    %estimated position and velocity
+                    if (mode_vinc == 0)
+                        pos_t(1,1) = Xhat_t_t(1);
+                        pos_t(2,1) = Xhat_t_t(o1+1);
+                        pos_t(3,1) = Xhat_t_t(o2+1);
+                        vel_t = sqrt(Xhat_t_t(2)^2+Xhat_t_t(o1+2)^2+Xhat_t_t(o2+2)^2);
+                    else
+                        pos_t(1,1) = Yhat_t_t(1);
+                        pos_t(2,1) = Yhat_t_t(2);
+                        pos_t(3,1) = Yhat_t_t(3);
+                        vel_t = Xhat_t_t(2);
+                    end
+                    
+                    %graphical representations
+                    if (flag_plotproc)
+                        if (flag_cov == 0)
+                            if (~flag_stopGOstop)
+                                rtplot_matlab (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                            else
+                                rtplot_matlab_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), P1, P2, flag_ms, ref_path, mat_path, flag);
+                            end
+                            if (flag_ge == 1), rtplot_googleearth (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), date), end
+                        else
+                            if (~flag_stopGOstop)
+                                rtplot_matlab_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
+                            else
+                                rtplot_matlab_cov_stopGOstop (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), P1, P2, flag_ms, ref_path, mat_path, flag);
+                            end
+                            if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
+                        end
+                        if (flag_skyplot == 1)
+                            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
+                            rtplot_snr (snr_R(:,1));
+                        else
+                            rttext_sat (t, azR, elR, snr_R(:,1), conf_sat, pivot);
+                        end
+                    end
+                    
+                    %time reading
+                    current_time = toc;
+                    
+                    %visualization
+                    fprintf('kalman(%d): %7.4f sec (initialization)\n', t, current_time-start_time);
+                    fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
+                    if (o1 ~= 1)
+                        fprintf('vel = %.4f km/h\n', vel_t*3.6);
+                    end
+                    
+                    %send a new NMEA string
+                    if (flag_NTRIP)
+                        nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat)), time_M(1), HDOP));
+                        fwrite(master,nmea_update);
+                        fprintf('NMEA sent\n');
+                        master_update = 1;
+                    end
+                    
+                    %counter increment
+                    t = t + 1;
+                else
+                    %visualization
+                    fprintf('no position/velocity are computed\n');
                 end
-
-                %time reading
-                current_time = toc;
-
-                %visualization
-                fprintf('kalman(%d): %7.4f sec (initialization)\n', t, current_time-start_time);
-                fprintf('pos = (X=%.4f, Y=%.4f, Z=%.4f) km\n', pos_t(1)/1000, pos_t(2)/1000, pos_t(3)/1000);
-                if (o1 ~= 1)
-                    fprintf('vel = %.4f km/h\n', vel_t*3.6);
-                end
-
-                %send a new NMEA string
-                if (flag_NTRIP)
-                    nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], sum(abs(conf_sat)), time_M(1), HDOP));
-                    fwrite(master,nmea_update);
-                    fprintf('NMEA sent\n');
-                    master_update = 1;
-                end
-
-                %counter increment
-                t = t + 1;
-
+                
             else
 
                 %visualization
