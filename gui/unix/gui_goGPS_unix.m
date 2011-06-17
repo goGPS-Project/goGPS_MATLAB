@@ -2801,6 +2801,7 @@ end
 try
     serialInfo = instrhwinfo('serial');
 catch
+    serialInfo.AvailableSerialPorts = [];
 end
 if (~isempty(serialInfo.AvailableSerialPorts))
     set(hObject, 'String', serialInfo.AvailableSerialPorts);
@@ -3206,6 +3207,7 @@ end
 try
     serialInfo = instrhwinfo('serial');
 catch
+    serialInfo.AvailableSerialPorts = [];
 end
 if (~isempty(serialInfo.AvailableSerialPorts))
 %     serialInfo.AvailableSerialPorts(1) = [];
@@ -3401,8 +3403,8 @@ end
 
 contents = {'1';'2';'3';'4'};
 try
-serialInfo = instrhwinfo('serial');
-num_ports = size(serialInfo.AvailableSerialPorts,1);
+    serialInfo = instrhwinfo('serial');
+    num_ports = size(serialInfo.AvailableSerialPorts,1);
 catch
     num_ports = 0;
 end
