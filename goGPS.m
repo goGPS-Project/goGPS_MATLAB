@@ -1629,11 +1629,9 @@ if (mode < 12)
     fprintf('Writing NMEA file...\n');
     %file saving
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
-    %date formatting (if not using RINEX)
-    if (mode_data ~= 0) | (mode == 11)
-        date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
-        date(:,1) = date(:,1) - 2000;
-    end
+    %date formatting
+    date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+    date(:,1) = date(:,1) - 2000;
 
     for i = 1 : nObs
 
