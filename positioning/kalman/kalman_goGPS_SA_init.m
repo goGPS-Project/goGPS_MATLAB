@@ -44,7 +44,7 @@ function [kalman_initialized] = kalman_goGPS_SA_init (pos_R, time, Eph, iono, pr
 %----------------------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq0_N
-global cutoff o1 o2 o3 nN
+global cutoff snr_threshold o1 o2 o3 nN
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
@@ -129,29 +129,41 @@ end
 
 if (sum(pos_R) == 0)
     if (length(sat_pr) >= 4)
-        [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
+        [pos_R] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
     else
         return
     end
 end
 
+%--------------------------------------------------------------------------------------------
+% SATELLITE POSITION CORRECTION (AND MASTER DOPPLER SHIFT COMPUTATION)
+%--------------------------------------------------------------------------------------------
+pos_S = zeros(3,size(sat_pr));
+for i = 1:size(sat_pr)
+    
+    i_sat = sat_pr(i);
+
+    %satellite position (with clock error and Earth rotation corrections)
+    [pos_S(:,i)] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat)); 
+end
+
 %------------------------------------------------------------------------------------
-% CHECK SATELLITE ELEVATION, PIVOT AND CUT-OFF
+% SATELLITE ELEVATION CONTROL, PIVOT AND CUT-OFF
 %-----------------------------------------------------------------------------------
 
 %initialization
 azR = zeros(32,1);
-elR = zeros(32,1);
-distR = zeros(32,1);
 azM = zeros(32,1);
+elR = zeros(32,1);
 elM = zeros(32,1);
+distR = zeros(32,1);
 distM = zeros(32,1);
 
-%satellite azimuth, elevation, ROVER-SATELLITE distance
-[azR(sat_pr), elR(sat_pr), distR(sat_pr)] = topocent(pos_R, pos_S);
+%azimuth, elevation, ROVER-SATELLITE distance computation
+[azR(sat_pr), elR(sat_pr), distR(sat_pr)] = topocent(pos_R, pos_S');
 
-%elevation cut-off 
-sat_cutoff = find(elR > cutoff);
+%elevation cut-off and signal-to-noise ratio threshold
+sat_cutoff = find(elR > cutoff | (snr_R ~= 0 & snr_R < snr_threshold));
 sat_pr = intersect(sat_pr,sat_cutoff);
 sat = intersect(sat,sat_cutoff);
 
