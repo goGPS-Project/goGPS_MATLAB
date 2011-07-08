@@ -482,10 +482,12 @@ if (mode == 1) & (mode_vinc == 0)
             
             kalman_initialized = kalman_goGPS_init (pos_R, pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), 1, dtMdot(1));
             
-            pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
-            pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-            pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-            snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+            if (~kalman_initialized)
+                pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+                pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
+                pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
+                snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+            end
         end
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -584,10 +586,12 @@ if (mode == 1) & (mode_vinc == 0)
             
             kalman_initialized = kalman_goGPS_init_model (pos_R, pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), order, 1, dtMdot(1));
             
-            pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
-            pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-            pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-            snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+            if (~kalman_initialized)
+                pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+                pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
+                pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
+                snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+            end
         end
 
         if (flag_stopGOstop == 1)
@@ -799,10 +803,12 @@ elseif (mode == 1) & (mode_vinc == 1)
         
         kalman_initialized = kalman_goGPS_vinc_init (pos_R, pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), 1, ref_loop, dtMdot(1));
         
-        pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
-        pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-        pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-        snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+        if (~kalman_initialized)
+            pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+            pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
+            pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
+            snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+        end
     end
 
     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
@@ -891,10 +897,12 @@ elseif (mode == 2)
         
         kalman_initialized = kalman_goGPS_SA_init (pos_R, time_GPS(1), Eph_t, iono, pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), 1);
         
-        time_GPS(1) = []; week_R(1) = [];
-        pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-        pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-        snr_R(:,1) = []; snr_M(:,1) = [];
+        if (~kalman_initialized)
+            time_GPS(1) = []; week_R(1) = [];
+            pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
+            pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
+            snr_R(:,1) = []; snr_M(:,1) = [];
+        end
     end
 
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -1122,11 +1130,13 @@ elseif (mode == 5)
         end
         
         kalman_initialized = kalman_goGPS_cod_init(pos_R, pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
-         
-        pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
-        pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-        pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-        snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+        
+        if (~kalman_initialized)
+            pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+            pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
+            pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
+            snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+        end
     end
 
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
@@ -1225,11 +1235,13 @@ elseif (mode == 6)
         end
         
         kalman_initialized = kalman_goGPS_SA_cod_init(pos_R, time_GPS(1), Eph_t, iono, pr1_R(:,1), pr2_R(:,1), snr_R(:,1), 1);
-         
-        time_GPS(1) = []; week_R(1) = [];
-        pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-        pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-        snr_R(:,1) = []; snr_M(:,1) = [];
+        
+        if (~kalman_initialized)
+            time_GPS(1) = []; week_R(1) = [];
+            pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
+            pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
+            snr_R(:,1) = []; snr_M(:,1) = [];
+        end
     end
 
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
