@@ -167,7 +167,7 @@ Q1 = cofactor_matrix_SA(el_R, snr_R, sat);
 Q2 = Q1(p,p);
 
 Q(1:nsat,1:nsat) = sigmaq_cod1 * Q1;
-if (nargin == 11)
+if (nargin >= 16)
     %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
     %with respect to input code and phase variances)
     Q(nsat+1:end,nsat+1:end) = (sigmaq_ph * eye(n - nsat) + lambda^2*Cee_N_kalman(p,p)) .* Q2;
