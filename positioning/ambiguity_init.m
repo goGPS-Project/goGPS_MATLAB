@@ -307,7 +307,7 @@ else
     Q2 = Q1(r,r);
     
     Q(1:nsat_pr-1,1:nsat_pr-1) = sigmaq_cod1 * Q1;
-    if (nargin == 24)
+    if (nargin >= 24)
         %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
         %with respect to input code and phase variances)
         Q(nsat_pr:end,nsat_pr:end) = (sigmaq_ph * eye(n - (nsat_pr - 1)) + lambda^2*Cee_N_kalman(p,p)) .* Q2;
