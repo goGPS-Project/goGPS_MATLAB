@@ -397,8 +397,8 @@ if (mode < 10) %post-processing
             fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
             [dtM, dtMdot] = clock_error(pr1_M, Eph, iono, snr_M, time_M, pos_M);
         else
-            dtM = zeros(size(dop1_M,2));
-            dtMdot = zeros(size(dop1_M,2));
+            dtM = zeros(size(dop1_M,2),1);
+            dtMdot = zeros(size(dop1_M,2),1);
         end
 
         %check the availability of master data
