@@ -136,7 +136,7 @@ if (sum(pos_R) == 0)
 end
 
 %--------------------------------------------------------------------------------------------
-% SATELLITE POSITION CORRECTION (AND MASTER DOPPLER SHIFT COMPUTATION)
+% SATELLITE POSITION COMPUTATION
 %--------------------------------------------------------------------------------------------
 pos_S = zeros(3,size(sat_pr));
 for i = 1:size(sat_pr)
