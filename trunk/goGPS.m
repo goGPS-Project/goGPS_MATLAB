@@ -69,12 +69,12 @@ if (mode_user == 1)
 
     if (~isunix)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
     end
@@ -201,7 +201,7 @@ if (mode < 10) %post-processing
                 snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, date, pos_R, pos_M, Eph, iono, Eph_RR] = ...
-                load_RINEX(filename_R_obs, filename_nav);
+                load_RINEX(flag_SP3, filename_R_obs, filename_nav);
         else
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
@@ -209,7 +209,14 @@ if (mode < 10) %post-processing
                 snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, date, pos_R, pos_M, Eph, iono, Eph_RR] = ...
-                load_RINEX(filename_R_obs, filename_nav, filename_M_obs);
+                load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs);
+        end
+
+        if (flag_SP3)
+            %display message
+            fprintf('Reading SP3 file...\n');
+            
+            [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_nav);
         end
 
 %         %read surveying mode
@@ -227,39 +234,41 @@ if (mode < 10) %post-processing
         date(:,1) = date(:,1) + 2000;
         week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
 
-        %remove satellites without ephemerides (GPS)
-        delsat = setdiff(1:32,unique(Eph(1,:)));
-        pr1_R(delsat,:) = 0;
-        pr1_M(delsat,:) = 0;
-        pr2_R(delsat,:) = 0;
-        pr2_M(delsat,:) = 0;
-        ph1_R(delsat,:) = 0;
-        ph1_M(delsat,:) = 0;
-        ph2_R(delsat,:) = 0;
-        ph2_M(delsat,:) = 0;
-        dop1_R(delsat,:) = 0;
-        dop1_M(delsat,:) = 0;
-        dop2_R(delsat,:) = 0;
-        dop2_M(delsat,:) = 0;
-        snr_R(delsat,:) = 0;
-        snr_M(delsat,:) = 0;
-
-        %%remove satellites without ephemerides (GLONASS)
-        %delsat = setdiff(1:32,unique(Eph_GLO(1,:)));
-        %pr1_RR(delsat,:) = 0;
-        %pr1_MR(delsat,:) = 0;
-        %pr2_RR(delsat,:) = 0;
-        %pr2_MR(delsat,:) = 0;
-        %ph1_RR(delsat,:) = 0;
-        %ph1_MR(delsat,:) = 0;
-        %ph2_RR(delsat,:) = 0;
-        %ph2_MR(delsat,:) = 0;
-        %dop1_RR(delsat,:) = 0;
-        %dop1_MR(delsat,:) = 0;
-        %dop2_RR(delsat,:) = 0;
-        %dop2_MR(delsat,:) = 0;
-        %snr_RR(delsat,:) = 0;
-        %snr_MR(delsat,:) = 0;
+        if (~flag_SP3)
+            %remove satellites without ephemerides (GPS)
+            delsat = setdiff(1:32,unique(Eph(1,:)));
+            pr1_R(delsat,:) = 0;
+            pr1_M(delsat,:) = 0;
+            pr2_R(delsat,:) = 0;
+            pr2_M(delsat,:) = 0;
+            ph1_R(delsat,:) = 0;
+            ph1_M(delsat,:) = 0;
+            ph2_R(delsat,:) = 0;
+            ph2_M(delsat,:) = 0;
+            dop1_R(delsat,:) = 0;
+            dop1_M(delsat,:) = 0;
+            dop2_R(delsat,:) = 0;
+            dop2_M(delsat,:) = 0;
+            snr_R(delsat,:) = 0;
+            snr_M(delsat,:) = 0;
+            
+            %%remove satellites without ephemerides (GLONASS)
+            %delsat = setdiff(1:32,unique(Eph_GLO(1,:)));
+            %pr1_RR(delsat,:) = 0;
+            %pr1_MR(delsat,:) = 0;
+            %pr2_RR(delsat,:) = 0;
+            %pr2_MR(delsat,:) = 0;
+            %ph1_RR(delsat,:) = 0;
+            %ph1_MR(delsat,:) = 0;
+            %ph2_RR(delsat,:) = 0;
+            %ph2_MR(delsat,:) = 0;
+            %dop1_RR(delsat,:) = 0;
+            %dop1_MR(delsat,:) = 0;
+            %dop2_RR(delsat,:) = 0;
+            %dop2_MR(delsat,:) = 0;
+            %snr_RR(delsat,:) = 0;
+            %snr_MR(delsat,:) = 0;
+        end
 
         %%reverse the path (GPS)
         %pr1_R = pr1_R(:,end:-1:1);

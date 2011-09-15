@@ -30,6 +30,7 @@ function [Xcorr, tcorr, X, V, tx_GPS] = sat_corr(Eph, sat, time, pseudorange)
 
 global v_light
 global rec_clock_error
+global SP3_time SP3_coor SP3_clck
 
 %--------------------------------------------------------------------------------------------
 % CLOCK ERROR CORRECTION
@@ -40,49 +41,66 @@ tcorr = [];
 X = [];
 V = [];
 
-k = find_eph(Eph, sat, time);
+if (isempty(SP3_time))
+    
+    k = find_eph(Eph, sat, time);
+    
+    if (isempty(k))
+        return
+    end
+    
+    af2   = Eph(2,k);
+    roota = Eph(4,k);
+    ecc   = Eph(6,k);
+    af0   = Eph(19,k);
+    af1   = Eph(20,k);
+    tom   = Eph(21,k);
+    tgd   = Eph(28,k); %This correction term is only for the benefit of "single-frequency" (L1 P(Y) or L2 P(Y)) users
+    
+    tx_RAW = time - pseudorange / v_light;
+    
+    %relativistic correction term computation
+    Ek = ecc_anomaly(tx_RAW, Eph(:,k));
+    dtr = -4.442807633e-10 * ecc * roota * sin(Ek);
 
-if (isempty(k))
-    return
-end
-
-af2   = Eph(2,k);
-roota = Eph(4,k);
-ecc   = Eph(6,k);
-af0   = Eph(19,k);
-af1   = Eph(20,k);
-tom   = Eph(21,k);
-tgd   = Eph(28,k); %This correction term is only for the benefit of "single-frequency" (L1 P(Y) or L2 P(Y)) users
-
-tx_RAW = time - pseudorange / v_light;
-
-%relativistic correction term computation
-Ek = ecc_anomaly(tx_RAW, Eph(:,k));
-dtr = -4.442807633e-10 * ecc * roota * sin(Ek);
-
-dt = check_t(tx_RAW - tom);
-tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
-tx_GPS = tx_RAW - tcorr;
-dt = check_t(tx_GPS - tom);
-tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
-tx_GPS = tx_RAW - tcorr;
-
-% N = 10;
-% for i = 1 : N
-%   dt = check_t(tx_GPS - tom);
-%   tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
-%   tx_GPS = tx_GPS - tcorr;
-% end
-
-%computation of clock-corrected satellite position (and velocity)
-if (nargout > 2)
-    [X, V] = sat_pos(tx_GPS, Eph(:,k));
-    %position and velocity with original GPS time
-    %[X, V] = sat_pos(time, Eph(:,k));
+    dt = check_t(tx_RAW - tom);
+    tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
+    tx_GPS = tx_RAW - tcorr;
+    dt = check_t(tx_GPS - tom);
+    tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
+    tx_GPS = tx_RAW - tcorr;
+    
+    % N = 10;
+    % for i = 1 : N
+    %   dt = check_t(tx_GPS - tom);
+    %   tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
+    %   tx_GPS = tx_GPS - tcorr;
+    % end
+    
+    %computation of clock-corrected satellite position (and velocity)
+    if (nargout > 2)
+        [X, V] = sat_pos(tx_GPS, Eph(:,k));
+        %position and velocity with original GPS time
+        %[X, V] = sat_pos(time, Eph(:,k));
+    else
+        X = sat_pos(tx_GPS, Eph(:,k));
+        %position with original GPS time
+        %X = sat_pos(time, Eph(:,k));
+    end
 else
-    X = sat_pos(tx_GPS, Eph(:,k));
-    %position with original GPS time
-    %X = sat_pos(time, Eph(:,k));
+    tx_RAW = time - pseudorange / v_light;
+    
+    %interpolate SP3 satellite clock correction term 
+    [tcorr] = interpolate_SP3_clck(tx_RAW, SP3_time, SP3_clck(sat,:));
+    
+    %apply the clock correction to the satellite transmission time
+    tx_GPS = tx_RAW - tcorr;
+    
+    %interpolate the SP3 coordinates in correspondence to the corrected transmission time
+    [X, V, dtr] = interpolate_SP3_coor(tx_GPS, SP3_time, SP3_coor(:,sat,:));
+    
+    %apply the relativistic correction term to the satellite transmission time
+    tx_GPS = tx_GPS - dtr;
 end
 
 %if the receiver position is not known, return
@@ -99,4 +117,3 @@ traveltime = time + rec_clock_error - tx_GPS;
 
 %computation of rotation-corrected satellite position
 Xcorr = e_r_corr(traveltime, X);
-
