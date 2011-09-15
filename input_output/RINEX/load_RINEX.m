@@ -3,7 +3,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
           snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
           dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
           time_GPS, time_GPS_R, time_GPS_M, date, pos_R, pos_M, Eph, iono, Eph_R] = ...
-          load_RINEX(filename_R_obs, filename_nav, filename_M_obs, wait_dlg)
+          load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs, wait_dlg)
 
 % SYNTAX:
 %   [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
@@ -11,9 +11,10 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %    snr1_R, snr1_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
 %    Eph_R, Eph_MR, snr_RR, snr_MR, ...
 %    time_GPS, date, pos_R, pos_M, Eph, iono, Eph_R] = ...
-%   load_RINEX(filename_R_obs, filename_nav, filename_M_obs, wait_dlg);
+%   load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs, wait_dlg);
 %
 % INPUT:
+%   flag_SP3 = flag to indicate SP3 availability
 %   filename_R_obs = RINEX observation file (ROVER)
 %   filename_M_obs = RINEX observation file (MASTER)
 %   filename_nav = RINEX navigation file
@@ -86,18 +87,23 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 
 Eph_R = zeros(17,32);
 
-if (nargin == 5)
-    waitbar(0.5,wait_dlg,'Reading navigation files...')
-end
-
-%parse RINEX navigation file (ROVER)
-[Eph, iono] = RINEX_get_nav(filename_nav);
-
-%parse RINEX navigation file (ROVER)
-% [Eph_R] = RINEX_get_nav_GLO(filename_nav_GLO);
-
-if (nargin == 5)
-    waitbar(1,wait_dlg)
+if (~flag_SP3)
+    if (nargin == 5)
+        waitbar(0.5,wait_dlg,'Reading navigation files...')
+    end
+    
+    %parse RINEX navigation file (ROVER)
+    [Eph, iono] = RINEX_get_nav(filename_nav);
+    
+    %parse RINEX navigation file (ROVER)
+    % [Eph_R] = RINEX_get_nav_GLO(filename_nav_GLO);
+    
+    if (nargin == 5)
+        waitbar(1,wait_dlg)
+    end
+else
+    Eph = zeros(17,32);
+    iono = zeros(8,1);
 end
 
 %-------------------------------------------------------------------------------
@@ -105,7 +111,7 @@ end
 %open RINEX observation file (ROVER)
 FR_oss = fopen(filename_R_obs,'r');
 
-if (nargin > 2)
+if (nargin > 3)
     %open RINEX observation file (MASTER)
     FM_oss = fopen(filename_M_obs,'r');
 end
@@ -124,7 +130,7 @@ if (info_base_R == 0)
     error('Basic data is missing in the ROVER RINEX header')
 end
 
-if (nargin > 2)
+if (nargin > 3)
     [obs_typ_M, pos_M, info_base_M] = RINEX_parse_hdr(FM_oss);
     
     %check the availability of basic data to parse the RINEX file (MASTER)
@@ -213,7 +219,7 @@ snr2_R(:,1) = obs_GPS_R.S2;
 
 %-------------------------------------------------------------------------------
 
-if (nargin > 2)
+if (nargin > 3)
     %read data for the first epoch (MASTER)
     [time_GPS_M(1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
     
@@ -249,7 +255,7 @@ if (nargin == 5)
     waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
 end
 
-if (nargin > 2)
+if (nargin > 3)
     while (round(time_GPS_M(1)) < round(time_GPS_R(1)))
         
         %read data for the current epoch (MASTER)
@@ -342,7 +348,7 @@ while (~feof(FR_oss))
         time_GPS_R(k-1) = 0;
     end
 
-    if (nargin > 2)
+    if (nargin > 3)
         if (round(time_GPS_M(k-1)) == time_GPS(k-1))
             %read data for the current epoch (MASTER)
             [time_GPS_M(k), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
@@ -433,7 +439,7 @@ while (~feof(FR_oss))
         % snr_RR(:,k) = obs_GLO_R.S1;
     end
 
-    if (nargin > 2)
+    if (nargin > 3)
 
         if (round(time_GPS_M(k)) == time_GPS(k))
             
@@ -504,7 +510,7 @@ date(k:nEpochs,:) = [];
 % snr_MR(:,k:nEpochs) = [];
 
 %remove rover tail
-if (nargin > 2)
+if (nargin > 3)
     flag_tail = 1;
     while (flag_tail)
         if (time_GPS_M(end) == 0)
@@ -542,6 +548,6 @@ end
 
 %close RINEX files
 fclose(FR_oss);
-if (nargin > 2)
+if (nargin > 3)
     fclose(FM_oss);
 end
