@@ -78,10 +78,14 @@ while (eof==0)
 
         %number of visible satellites
         [num_sat] = sscanf(lin(30:32),'%d');
-
-        %keep just the satellite data
-        lin = lin(33:end);
         
+        %keep just the satellite data
+        if (length(lin) >= 68)
+            lin = lin(33:68);
+        else
+            lin = lin(33:end);
+        end
+
         %remove 'blank spaces' and unwanted characters at the end of the string
         while (lin(end) == ' ') | (lin(end) == double(10)) | (lin(end) == double(13))
             lin = lin(1:end-1);
@@ -90,7 +94,11 @@ while (eof==0)
         %add the second line in case there are more than 12 satellites
         if (num_sat > 12)
             lin_add = fgetl(fid);
-            lin_add = lin_add(33:end);
+            if (length(lin) >= 68)
+                lin_add = lin_add(33:68);
+            else
+                lin_add = lin_add(33:end);
+            end
             lin = [lin lin_add];
         end
 

@@ -104,6 +104,18 @@ for s = 1 : num_sat
         end
         lin = [lin lin_add];
     end
+    %more than 10 observation types --> 3 lines to be read
+    if num_obs_types > 10
+        lin_add = fgetl(file_RINEX);
+        %add padding if necessary
+        if (length(lin) < 80)
+            for i = 1 : 80 - length(lin)
+                lin = [lin ' '];
+            end
+        end
+        lin = [lin lin_add];
+    end
+
     for k = 1 : num_obs_types
 
         %data save
