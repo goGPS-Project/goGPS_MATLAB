@@ -34,11 +34,22 @@ line = fgetl(file);
 while isempty(findstr(line,'END OF HEADER')) & (line ~= -1)
     answer = findstr(line,'# / TYPES OF OBSERV');
     if ~isempty(answer)
-        NoObs = sscanf(line(1:6),'%d');
+        NoObs  = sscanf(line(1:6),'%d');
+        NoObs2 = 0;
+        if (NoObs > 9)
+            NoObs2 = NoObs - 9;
+            NoObs  = 9;
+            line2  = fgetl(file);
+        end
         for k = 1 : NoObs
            ot = sscanf(line(k*6+1:k*6+6),'%s');
            Obs_types = [Obs_types ot];
         end
+        for k = 1 : NoObs2
+           ot = sscanf(line2(k*6+1:k*6+6),'%s');
+           Obs_types = [Obs_types ot];
+        end
+        
         ifound_types = 1;
     end
     answer = findstr(line,'APPROX POSITION XYZ');
