@@ -240,7 +240,7 @@ if (length(sat_pr) >= 4)
     %do not use least squares ambiguity estimation
     % NOTE: LS amb. estimation is automatically switched off if the number of
     % satellites with phase available is not sufficient
-    if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1)
+    if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 | size(sat,1) <= 4)
         
         %ROVER positioning with code double differences
         if (phase(1) == 1)
@@ -279,7 +279,7 @@ if (length(sat_pr) >= 4)
             end
         end
         
-        %use least squares ambiguity estimation
+    %use least squares ambiguity estimation
     else
         
         %satellite combinations initialization: initialized value
