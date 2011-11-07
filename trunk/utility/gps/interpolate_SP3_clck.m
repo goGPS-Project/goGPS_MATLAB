@@ -44,17 +44,22 @@ quarter_sec = 900;
 
 b = SP3_time(p) - time;
 
-dt_S_SP3  = 0;
-
 %extract the SP3 clocks
-SP3_c = [];
-for i = -4 : +4
-    SP3_c = [SP3_c SP3_clck(p+i)];
+if (b>0)
+    SP3_c = [SP3_clck(p-1) SP3_clck(p)];
+    u = 1 - b/quarter_sec;
+else
+    SP3_c = [SP3_clck(p) SP3_clck(p+1)];
+    u = -b/quarter_sec;
 end
+
+dt_S_SP3  = 0;
 
 if (isempty(find(SP3_c >= 999999, 1)))
 
-    %spline interpolation (clock)
-    x = 1 : 9; u = 5 - b/quarter_sec;
-    dt_S_SP3 = interp1(x, SP3_c, u, 'spline');
+    %linear interpolation (clock)
+    dt_S_SP3 = (1-u)*SP3_c(1) + u*SP3_c(2);
+
+%     plot([0 1],SP3_c,'o',u,dt_S_SP3,'.')
+%     pause
 end
