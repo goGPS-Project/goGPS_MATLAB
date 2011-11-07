@@ -48,7 +48,16 @@ if (h < 5000)
     
     H = Hr*exp(-0.0006396*h);
     
-    B = interp1(h_a, B_a, h);
+    %linear interpolation
+    d = h_a - h;
+    [~, i] = min(abs(d));
+    if (d(i) > 0)
+        idx = [i-1; i];
+    else
+        idx = [i; i+1];
+    end
+    t = (h - h_a(idx(1)))/(h_a(idx(2)) - h_a(idx(1)));
+    B = (1-t)*B_a(idx(1)) + t*B_a(idx(2));
     
     e = 0.01*H*exp(-37.2465+0.213166*T-0.000256908*T^2);
     
