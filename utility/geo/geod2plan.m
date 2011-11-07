@@ -95,11 +95,8 @@ if (n > 0)
     
     %UTM zone finding
     for i = 1 : n
-        if (lonsessadec(i,1) >= 0 & lonsessadec (i,1) <= 180)
-            M(i,1) = fix((180 + lonsessadec(i,1)) / 6) + 1;
-        else
-            M(i,1) = fix((180 - lonsessadec(i,1)) / 6) + 1;
-        end
+
+        M(i,1) = fix((180 + lonsessadec(i,1)) / 6) + 1;
         
         if latsessadec(i,1) >= 0
             north_south(i,1) = 1; %1 north, 0 south
@@ -133,7 +130,7 @@ if (n > 0)
     end
     
     for i = 1 : n
-        %Longitude with respect to the central meridian
+        %Longitude of the central meridian
         LonMeridianoCentrale = -177+6 * (M(i,1) - 1);
         
         %Distance of the point from the central meridian
