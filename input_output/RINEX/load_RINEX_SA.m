@@ -109,7 +109,7 @@ end
 
 %-------------------------------------------------------------------------------
 
-nEpochs = 30000;
+nEpochs = 86400;
 
 %variable initialization (GPS)
 time_GPS = zeros(nEpochs,1);

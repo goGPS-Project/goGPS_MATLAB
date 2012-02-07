@@ -25,7 +25,7 @@ function [Xcorr, tcorr, X, V, tx_GPS] = sat_corr(Eph, sat, time, pseudorange)
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %
-% Partially based on scripts found in EASY suite by Kai Borre
+% Partially based on scripts taken from EASY suite by Kai Borre
 %----------------------------------------------------------------------------------------------
 
 global v_light
@@ -58,24 +58,13 @@ if (isempty(SP3_time))
     tgd   = Eph(28,k); %This correction term is only for the benefit of "single-frequency" (L1 P(Y) or L2 P(Y)) users
     
     tx_RAW = time - pseudorange / v_light;
-    
-    %relativistic correction term computation
-    Ek = ecc_anomaly(tx_RAW, Eph(:,k));
-    dtr = -4.442807633e-10 * ecc * roota * sin(Ek);
 
     dt = check_t(tx_RAW - tom);
-    tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
+    tcorr = (af2 * dt + af1) * dt + af0;% + dtr - tgd;
     tx_GPS = tx_RAW - tcorr;
     dt = check_t(tx_GPS - tom);
-    tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
+    tcorr = (af2 * dt + af1) * dt + af0;% + dtr - tgd;
     tx_GPS = tx_RAW - tcorr;
-    
-    % N = 10;
-    % for i = 1 : N
-    %   dt = check_t(tx_GPS - tom);
-    %   tcorr = (af2 * dt + af1) * dt + af0 + dtr - tgd;
-    %   tx_GPS = tx_GPS - tcorr;
-    % end
     
     %computation of clock-corrected satellite position (and velocity)
     if (nargout > 2)
@@ -87,7 +76,15 @@ if (isempty(SP3_time))
         %position with original GPS time
         %X = sat_pos(time, Eph(:,k));
     end
+    
+    %relativistic correction term computation
+    Ek = ecc_anomaly(tx_RAW, Eph(:,k));
+    dtr = -4.442807633e-10 * ecc * roota * sin(Ek);
+    
+    %apply the relativistic correction term to the satellite transmission time
+    tx_GPS = tx_GPS + dtr - tgd;
 else
+
     tx_RAW = time - pseudorange / v_light;
     
     %interpolate SP3 satellite clock correction term 
@@ -100,7 +97,7 @@ else
     [X, V, dtr] = interpolate_SP3_coor(tx_GPS, SP3_time, SP3_coor(:,sat,:));
     
     %apply the relativistic correction term to the satellite transmission time
-    tx_GPS = tx_GPS - dtr;
+    tx_GPS = tx_GPS + dtr;
 end
 
 %if the receiver position is not known, return

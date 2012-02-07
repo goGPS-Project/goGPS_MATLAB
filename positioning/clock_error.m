@@ -49,15 +49,15 @@ dtR = zeros(nEpochs,1);
 %receiver clock drift
 dtRdot = zeros(nEpochs-1,1);
 
-if (posR == 0)
+if (~any(any(pos_R)))
     %find available satellites
     sat = find(pr1(:,1) ~= 0);
-
+    
     %find corresponding ephemeris
     Eph_t = rt_find_eph (Eph, time(1));
     
     posR = input_bancroft(pr1(sat,1), sat, time(1), Eph_t);
-
+    
     posR(1,1:nEpochs) = posR(1);
     posR(2,1:nEpochs) = posR(2);
     posR(3,1:nEpochs) = posR(3);
@@ -68,7 +68,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 for i = 1 : nEpochs
-
+    
     %find available satellites
     sat = find(pr1(:,i) ~= 0);
     
@@ -82,26 +82,26 @@ for i = 1 : nEpochs
         [posS(j,:)] = sat_corr(Eph_t, sat(j), time(i), pr1(sat(j),i));
     end
     
+    %initialization
+    azR = zeros(32,1);
+    elR = zeros(32,1);
+    distR = zeros(32,1);
+    
+    %satellite azimuth, elevation, ROVER-SATELLITE distance
+    [azR(sat), elR(sat), distR(sat)] = topocent(posR(:,i), posS); %#ok<NASGU,ASGLU>
+    
+    %elevation cut-off
+    sat_cutoff = find(elR > cutoff);
+    sat = intersect(sat,sat_cutoff);
+    
     if (size(sat,1) >= 5)
-
-        %initialization
-        azR = zeros(32,1);
-        elR = zeros(32,1);
-        distR = zeros(32,1);
-
-        %satellite azimuth, elevation, ROVER-SATELLITE distance
-        [azR(sat), elR(sat), distR(sat)] = topocent(posR(:,i), posS); %#ok<NASGU,ASGLU>
-
-        %elevation cut-off
-        sat_cutoff = find(elR > cutoff);
-        sat = intersect(sat,sat_cutoff);
-
+        
         %estimate receiver clock error
         code_SA(posR(:,i), pr1(sat,i), snr1(sat,i), sat, time(i), Eph_t, iono);
-
+        
         %store receiver clock error in an array
         dtR(i) = rec_clock_error;
-
+        
         if (i > 1)
             %receiver clock drift
             if (dtR(i) ~= 0 && dtR(i-1) ~= 0)
