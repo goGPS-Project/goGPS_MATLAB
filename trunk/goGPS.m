@@ -1037,6 +1037,10 @@ elseif (mode == 3)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
+            else
+                if (t == 1)
+                    fprintf('Processing...\n');
+                end
             end
         end
     end
@@ -1099,6 +1103,10 @@ elseif (mode == 4)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
+            else
+                if (t == 1)
+                    fprintf('Processing...\n');
+                end
             end
         end
     end
@@ -1371,6 +1379,10 @@ elseif (mode == 7)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
+            else
+                if (t == 1)
+                    fprintf('Processing...\n');
+                end
             end
         end
     end
