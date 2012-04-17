@@ -94,10 +94,23 @@ end
 
 if (sum(pos_R) == 0)
     if (length(sat_pr) >= 4)
-        [pos_R, pos_S] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
+        [pos_R] = input_bancroft(pr1_Rsat(sat_pr), sat_pr, time(1), Eph);
     else
         return
     end
+end
+
+%--------------------------------------------------------------------------------------------
+% SATELLITE POSITION COMPUTATION
+%--------------------------------------------------------------------------------------------
+
+pos_S = zeros(3,size(sat_pr));
+for i = 1:size(sat_pr)
+    
+    i_sat = sat_pr(i);
+
+    %satellite position (with clock error and Earth rotation corrections)
+    [pos_S(:,i)] = sat_corr(Eph, i_sat, time, pr1_Rsat(i_sat)); 
 end
 
 %------------------------------------------------------------------------------------
@@ -113,7 +126,7 @@ elM = zeros(32,1);
 distM = zeros(32,1);
 
 %satellite azimuth, elevation, ROVER-SATELLITE distance
-[azR(sat_pr), elR(sat_pr), distR(sat_pr)] = topocent(pos_R, pos_S);
+[azR(sat_pr), elR(sat_pr), distR(sat_pr)] = topocent(pos_R, pos_S');
 
 %elevation cut-off
 sat_cutoff = find(elR > cutoff);
