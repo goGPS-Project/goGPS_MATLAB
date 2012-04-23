@@ -116,6 +116,7 @@ while (~feof(fid))
     end
     while isempty(lin8)
         lin8 = fgetl(fid);
+        while lin8(end) == ' ', lin8 = lin8(1:end-1); end
     end
     
     if (lin1 == -1)
