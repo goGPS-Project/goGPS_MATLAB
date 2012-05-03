@@ -211,12 +211,16 @@ if (mode < 10) %post-processing
                 time_GPS, time_R, time_M, date, pos_R, pos_M, Eph, iono, Eph_RR] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs);
         end
+        
+        %GPS week number
+        date(:,1) = date(:,1) + 2000;
+        week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
 
         if (flag_SP3)
             %display message
             fprintf('Reading SP3 file...\n');
             
-            [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_nav);
+            [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_nav, time_GPS, week_R);
         end
 
 %         %read surveying mode
@@ -229,10 +233,6 @@ if (mode < 10) %post-processing
         %TEMP
         snr_R = snr1_R;
         snr_M = snr1_M;
-
-        %GPS week number
-        date(:,1) = date(:,1) + 2000;
-        week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
 
         if (~flag_SP3)
             %remove satellites without ephemerides (GPS)
@@ -1584,7 +1584,7 @@ if (mode < 12) & (~isempty(EAST_KAL))
 %        %covariance propagation
 %        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],end), Xhat_t_t([1 o1+1 o2+1],end));
         
-        legend('Position evolution','Final position','Location','SouthOutside');
+        legend('Positioning (KF)','Final position','Location','SouthOutside');
     else
         legend('Positioning','Location','SouthOutside');
     end
