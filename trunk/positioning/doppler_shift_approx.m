@@ -49,8 +49,8 @@ radial_vel = dot(vrel,LOSu);      %receiver-satellite radial velocity [= vrel(1)
 k = find_eph(Eph, sat, time);
 af2   = Eph(2,k);
 af1   = Eph(20,k);
-tom   = Eph(21,k);
-dt = check_t(time - tom);
+toc   = Eph(21,k);
+dt = check_t(time - toc);
 sat_clock_drift = af1 + 2*af2*dt; %satellite clock drift
 doppler_app1 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda1;
 doppler_app2 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda2;

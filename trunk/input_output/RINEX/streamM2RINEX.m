@@ -189,15 +189,15 @@ if (~isempty(data_master_all))
                 
                 %satellite number
                 sat = cell_master{2,j}(1);                    %satellite number
-                tom = cell_master{2,j}(21);                   %time of measurement
+                toe = cell_master{2,j}(18);                   %time of ephemeris
                 
                 %if the ephemerides are not already available
-                if (isempty(find(Eph_M(21,sat,:) ==  tom, 1)))
+                if (isempty(find(Eph_M(18,sat,:) ==  toe, 1)))
                     Eph_M(:,sat,i) = cell_master{2,j}(:);     %single satellite ephemerides logging
                 end
             end
         end
-        clear Ncell pos sat tom
+        clear Ncell pos sat toe
         
         %residual data erase (after initialization)
         time_M(i:end)   = [];
@@ -374,7 +374,7 @@ if (~isempty(data_master_all))
                     toe      = Eph_M(18,satEph(j),i);
                     af0      = Eph_M(19,satEph(j),i);
                     af1      = Eph_M(20,satEph(j),i);
-                    tom      = Eph_M(21,satEph(j),i);
+                    toc      = Eph_M(21,satEph(j),i);
                     IODE     = Eph_M(22,satEph(j),i);
                     codes    = Eph_M(23,satEph(j),i);
                     weekno   = Eph_M(24,satEph(j),i); %#ok<NASGU>
@@ -385,7 +385,7 @@ if (~isempty(data_master_all))
                     fit_int  = Eph_M(29,satEph(j),i);
                     
                     %time of measurement decoding
-                    date = datevec(tom/(3600*24) + 7*week + datenum([1980,1,6,0,0,0]));
+                    date = datevec(toc/(3600*24) + 7*week + datenum([1980,1,6,0,0,0]));
                     
                     lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
                         satEph(j),date(1)-2000, date(2), date(3), date(4), date(5), date(6), ...
@@ -396,7 +396,7 @@ if (~isempty(data_master_all))
                     linesE(4,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', i0, crc, omega, Omegadot);
                     linesE(5,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week, L2flag);
                     linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
-                    linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', tom, fit_int, 0, 0);
+                    linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0); %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
                     
                     %if running on Windows, convert three-digits exponential notation
                     %to two-digits; in any case, replace 'E' with 'D' and print the string

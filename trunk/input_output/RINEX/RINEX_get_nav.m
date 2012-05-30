@@ -123,10 +123,10 @@ while (~feof(fid))
         break
     end
 
-    svprn  = str2num(lin1(1:2)); %#ok<*ST2NM>
-    year   = str2num(lin1(3:6)); %#ok<NASGU>
-    month  = str2num(lin1(7:9)); %#ok<NASGU>
-    day    = str2num(lin1(10:12)); %#ok<NASGU>
+    svprn  = str2num(lin1(1:2));
+    year   = str2num(lin1(3:6));
+    month  = str2num(lin1(7:9));
+    day    = str2num(lin1(10:12));
     hour   = str2num(lin1(13:15)); 
     minute = str2num(lin1(16:18)); 
     second = str2num(lin1(19:22)); 
@@ -164,12 +164,14 @@ while (~feof(fid))
     tgd      = str2num(lin7(42:60));
     iodc     = str2num(lin7(61:79));
 
-    tom     = str2num(lin8(4:22));
+    tom     = str2num(lin8(4:22)); %#ok<NASGU>
     if (length(lin8) > 22)
         fit_int = str2num(lin8(23:41));
     else
         fit_int = 0;
     end
+    
+    toc = (datenum([year+2000 month day hour minute second]) - 7*weekno - datenum([1980,1,6,0,0,0]))*(3600*24);
 
     %save ephemerides
     Eph(1,i)  = svprn;
@@ -192,7 +194,7 @@ while (~feof(fid))
     Eph(18,i) = toe;
     Eph(19,i) = af0;
     Eph(20,i) = af1;
-    Eph(21,i) = tom;
+    Eph(21,i) = toc;
     Eph(22,i) = IODE;
     Eph(23,i) = code_on_L2;
     Eph(24,i) = weekno;
