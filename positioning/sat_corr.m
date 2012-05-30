@@ -54,15 +54,15 @@ if (isempty(SP3_time))
     ecc   = Eph(6,k);
     af0   = Eph(19,k);
     af1   = Eph(20,k);
-    tom   = Eph(21,k);
+    toc   = Eph(21,k);
     tgd   = Eph(28,k); %This correction term is only for the benefit of "single-frequency" (L1 P(Y) or L2 P(Y)) users
     
     tx_RAW = time - pseudorange / v_light;
 
-    dt = check_t(tx_RAW - tom);
+    dt = check_t(tx_RAW - toc);
     tcorr = (af2 * dt + af1) * dt + af0;% + dtr - tgd;
     tx_GPS = tx_RAW - tcorr;
-    dt = check_t(tx_GPS - tom);
+    dt = check_t(tx_GPS - toc);
     tcorr = (af2 * dt + af1) * dt + af0;% + dtr - tgd;
     tx_GPS = tx_RAW - tcorr;
     
