@@ -49,7 +49,7 @@ dtR = zeros(nEpochs,1);
 %receiver clock drift
 dtRdot = zeros(nEpochs-1,1);
 
-if (~any(any(pos_R)))
+if (~any(any(posR)))
     %find available satellites
     sat = find(pr1(:,1) ~= 0);
     
