@@ -108,8 +108,8 @@ for s = 1 : num_sat
     if num_obs_types > 10
         lin_add = fgetl(file_RINEX);
         %add padding if necessary
-        if (length(lin) < 80)
-            for i = 1 : 80 - length(lin)
+        if (length(lin) < 160)
+            for i = 1 : 160 - length(lin)
                 lin = [lin ' '];
             end
         end
@@ -119,7 +119,7 @@ for s = 1 : num_sat
     for k = 1 : num_obs_types
 
         %data save
-        if (length(lin) < 2+16*(k-1)) | (isempty(sscanf(lin(2+16*(k-1):16*k-2),'%f')))
+        if (length(lin) < 2+16*k-2) | (isempty(sscanf(lin(2+16*(k-1):16*k-2),'%f')))
             obs = 0;
         else
             obs = sscanf(lin(2+16*(k-1):16*k-2),'%f');
