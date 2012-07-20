@@ -150,8 +150,8 @@ for i = 1 : tile_row_num
                 %if the cell is contained within the bounding box of a portion of the DTM...
                 found = find ( (W_border <= cell_E) & (N_border > cell_N) & (S_border <= cell_N) & (E_border > cell_E) );
                 if (~isempty(found))
-                    dtm_row = (N_border(found) - cell_N)/cellsize + 1;
-                    dtm_col = (cell_E - W_border(found))/cellsize + 1;
+                    dtm_row = round((N_border(found) - cell_N)/cellsize + 1);
+                    dtm_col = round((cell_E - W_border(found))/cellsize + 1);
                     % ...save the value...
                     tile(tile_row,tile_col) = dtm_cell{found}(dtm_row, dtm_col);
                 else
