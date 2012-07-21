@@ -1493,10 +1493,14 @@ if (mode < 12)
     end
     N = [];
     h_ortho(1:nObs) = -9999;
+    
+    %date formatting
+    date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+    date(:,1) = date(:,1) - 2000;
 
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
-    fprintf(fid_out, 'GPS time\tLatitude\tLongitude\th (ellips.)\tUTM North\tUTM East\th (AMSL)\tUTM zone\tECEF X\tECEF Y\tECEF Z\tHDOP\tKHDOP\n');
+    fprintf(fid_out, '    Date        GPS time         GPS TOW        Latitude       Longitude     h (ellips.)       UTM North        UTM East        h (AMSL)        UTM zone          ECEF X          ECEF Y          ECEF Z            HDOP           KHDOP\n');
     for i = 1 : nObs
         if (geoid.ncols ~= 0)
             %geoid ondulation interpolation
@@ -1506,7 +1510,7 @@ if (mode < 12)
         end
 
         %file writing
-        fprintf(fid_out, '%d\t%.8f\t%.8f\t%.3f\t%.3f\t%.3f\t%.3f\t%s\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n', time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        fprintf(fid_out, '%02d/%02d/%02d        %02d:%02d:%02d% 16d% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), EAST_KAL(i), NORTH_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
     fclose(fid_out);
 end
@@ -1974,9 +1978,9 @@ if (mode < 12) & (mode_vinc == 0) & (~isempty(EAST_KAL))
 
     %file saving
     fid_cov = fopen([filerootOUT '_cov.txt'], 'wt');
-    fprintf(fid_cov, 'EastEast\tEastNorth\tEastUp\tNorthNorth\tNorthUp\tUpUp\n');
+    fprintf(fid_cov, '   EastEast       EastNorth          EastUp      NorthNorth         NorthUp            UpUp\n');
     for i = 1 : length(phi_KAL)
-        fprintf(fid_cov, '%.8f\t%.8f\t%.8f\t%.8f\t%.8f\t%.8f\n', Cee_ENU(1,1,i), Cee_ENU(1,2,i), ...
+        fprintf(fid_cov, '%.8f% 16.8f% 16.8f% 16.8f% 16.8f% 16.8f\n', Cee_ENU(1,1,i), Cee_ENU(1,2,i), ...
             Cee_ENU(1,3,i), Cee_ENU(2,2,i), Cee_ENU(2,3,i), Cee_ENU(3,3,i));
     end
     fclose(fid_cov);
