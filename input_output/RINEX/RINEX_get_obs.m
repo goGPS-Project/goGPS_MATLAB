@@ -20,7 +20,8 @@ function [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types,
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini, Damiano
+% Triglione
 %
 % Partially based on GRABDATA.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -97,32 +98,40 @@ for s = 1 : num_sat
     if num_obs_types > 5
         lin_add = fgetl(file_RINEX);
         %add padding if necessary
-        if (length(lin) < 80)
-            for i = 1 : 80 - length(lin)
-                lin = [lin ' '];
-            end
-        end
-        lin = [lin lin_add];
+%        lin = PadStringWithSpaces(lin,80);
+%         if (length(lin) < 80)
+%             for i = 1 : 80 - length(lin)
+%                 lin = [lin ' '];
+%             end
+%         end
+%        lin = [lin lin_add];
+        lin = [PadStringWithSpaces(lin,80) lin_add];
     end
     %more than 10 observation types --> 3 lines to be read
     if num_obs_types > 10
         lin_add = fgetl(file_RINEX);
         %add padding if necessary
-        if (length(lin) < 160)
-            for i = 1 : 160 - length(lin)
-                lin = [lin ' '];
-            end
-        end
-        lin = [lin lin_add];
+%        lin = PadStringWithSpaces(lin,160);
+%         if (length(lin) < 160)
+%             for i = 1 : 160 - length(lin)
+%                 lin = [lin ' '];
+%             end
+%         end
+%        lin = [lin lin_add];
+        lin = [PadStringWithSpaces(lin,160) lin_add];
     end
 
     for k = 1 : num_obs_types
-
+        %Since 16*k is commonly used, I store the evaluation a priori
+        Hexadec_k = 16*k;
+        
         %data save
-        if (length(lin) < 2+16*k-2) | (isempty(sscanf(lin(2+16*(k-1):16*k-2),'%f')))
+        %if (length(lin) < 2+16*k-2) || (isempty(sscanf(lin(2+16*(k-1):16*k-2),'%f')))
+        if (length(lin) < Hexadec_k) || (isempty(sscanf(lin(Hexadec_k-14:Hexadec_k-2),'%f')))
             obs = 0;
         else
-            obs = sscanf(lin(2+16*(k-1):16*k-2),'%f');
+            %obs = sscanf(lin(2+16*(k-1):16*k-2),'%f');
+            obs = sscanf(lin(Hexadec_k-14:Hexadec_k-2),'%f');
         end
         
         %check and assign the observation type
@@ -136,8 +145,10 @@ for s = 1 : num_sat
                     case 'S'
                         obs_SBS.L1(sat(s)) = obs;
                 end
-                if (numel(lin)>=16*k)
-                    snr = sscanf(lin(16*k),'%f');
+                %if (numel(lin)>=16*k)
+                if (numel(lin)>=Hexadec_k)
+                    %snr = sscanf(lin(16*k),'%f');
+                    snr = sscanf(lin(Hexadec_k),'%f');
                     %convert signal-to-noise ratio
                     snr = snr * 6;
                     
@@ -161,8 +172,10 @@ for s = 1 : num_sat
                     case 'S'
                         obs_SBS.L2(sat(s)) = obs;
                 end
-                if (numel(lin)>=16*k)
-                    snr = sscanf(lin(16*k),'%f');
+                %if (numel(lin)>=16*k)
+                if (numel(lin)>=Hexadec_k)
+                    %snr = sscanf(lin(16*k),'%f');
+                    snr = sscanf(lin(Hexadec_k),'%f');
                     %convert signal-to-noise ratio
                     snr = snr * 6;
                     
