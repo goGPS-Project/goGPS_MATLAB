@@ -68,7 +68,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini,Damiano Triglione
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -85,10 +85,22 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+% Check the passed parameters
+if nargin<5
+    wait_dlg_PresenceFlag = false;
+    if nargin<4
+        filename_M_obs_PresenceFlag = false;
+    else
+        filename_M_obs_PresenceFlag = true;
+    end %if
+else
+    wait_dlg_PresenceFlag = true;
+end %if
+
 Eph_R = zeros(17,32);
 
 if (~flag_SP3)
-    if (nargin == 5)
+    if (wait_dlg_PresenceFlag)
         waitbar(0.5,wait_dlg,'Reading navigation files...')
     end
     
@@ -98,7 +110,7 @@ if (~flag_SP3)
     %parse RINEX navigation file (ROVER)
     % [Eph_R] = RINEX_get_nav_GLO(filename_nav_GLO);
     
-    if (nargin == 5)
+    if (wait_dlg_PresenceFlag)
         waitbar(1,wait_dlg)
     end
 else
@@ -111,14 +123,14 @@ end
 %open RINEX observation file (ROVER)
 FR_oss = fopen(filename_R_obs,'r');
 
-if (nargin > 3)
+if (filename_M_obs_PresenceFlag)
     %open RINEX observation file (MASTER)
     FM_oss = fopen(filename_M_obs,'r');
 end
 
 %-------------------------------------------------------------------------------
 
-if (nargin == 5)
+if (wait_dlg_PresenceFlag)
     waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
 end
 
@@ -130,7 +142,7 @@ if (info_base_R == 0)
     error('Basic data is missing in the ROVER RINEX header')
 end
 
-if (nargin > 3)
+if (filename_M_obs_PresenceFlag)
     [obs_typ_M, pos_M, info_base_M] = RINEX_parse_hdr(FM_oss);
     
     %check the availability of basic data to parse the RINEX file (MASTER)
@@ -141,7 +153,7 @@ else
     pos_M = zeros(3,1);
 end
 
-if (nargin == 5)
+if (wait_dlg_PresenceFlag)
     waitbar(1,wait_dlg)
 end
 
@@ -219,7 +231,7 @@ snr2_R(:,1) = obs_GPS_R.S2;
 
 %-------------------------------------------------------------------------------
 
-if (nargin > 3)
+if (filename_M_obs_PresenceFlag)
     %read data for the first epoch (MASTER)
     [time_GPS_M(1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
     
@@ -251,11 +263,11 @@ if (nargin > 3)
 end
 %-------------------------------------------------------------------------------
 
-if (nargin == 5)
+if (wait_dlg_PresenceFlag)
     waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
 end
 
-if (nargin > 3)
+if (filename_M_obs_PresenceFlag)
     while (round(time_GPS_M(1)) < round(time_GPS_R(1)))
         
         %read data for the current epoch (MASTER)
@@ -321,20 +333,21 @@ if (nargin > 3)
     end
 end
 
-if (nargin == 5)
+if (wait_dlg_PresenceFlag)
     waitbar(1,wait_dlg)
 end
 
 %-------------------------------------------------------------------------------
 
-k = 2;
+
 time_GPS(1,1) = round(time_GPS_R(1));
 date(1,:) = date_R(1,:);
 
-if (nargin == 5)
+if (wait_dlg_PresenceFlag)
     waitbar(0.5,wait_dlg,'Reading RINEX observations...')
 end
 
+k = 2;
 while (~feof(FR_oss))
 
     if (round(time_GPS_R(k-1)) == time_GPS(k-1))
@@ -348,7 +361,7 @@ while (~feof(FR_oss))
         time_GPS_R(k-1) = 0;
     end
 
-    if (nargin > 3)
+    if (filename_M_obs_PresenceFlag)
         if (round(time_GPS_M(k-1)) == time_GPS(k-1))
             %read data for the current epoch (MASTER)
             [time_GPS_M(k), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
@@ -439,7 +452,7 @@ while (~feof(FR_oss))
         % snr_RR(:,k) = obs_GLO_R.S1;
     end
 
-    if (nargin > 3)
+    if (filename_M_obs_PresenceFlag)
 
         if (round(time_GPS_M(k)) == time_GPS(k))
             
@@ -510,7 +523,7 @@ date(k:nEpochs,:) = [];
 % snr_MR(:,k:nEpochs) = [];
 
 %remove rover tail
-if (nargin > 3)
+if (filename_M_obs_PresenceFlag)
     flag_tail = 1;
     while (flag_tail)
         if (time_GPS_M(end) == 0)
@@ -540,7 +553,7 @@ if (nargin > 3)
     end
 end
 
-if (nargin == 5)
+if (wait_dlg_PresenceFlag)
     waitbar(1,wait_dlg)
 end
 
@@ -548,6 +561,6 @@ end
 
 %close RINEX files
 fclose(FR_oss);
-if (nargin > 3)
+if (filename_M_obs_PresenceFlag)
     fclose(FM_oss);
 end
