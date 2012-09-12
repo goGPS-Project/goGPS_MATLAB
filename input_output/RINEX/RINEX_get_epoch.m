@@ -19,7 +19,7 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini,Damiano Triglione
 %
 % Partially based on FEPOCH_0.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -49,7 +49,8 @@ eof = 0;
 while (eof==0)
     %read the string
     lin = fgets(fid);
-    answer = findstr(lin,'COMMENT');
+    %answer = findstr(lin,'COMMENT'); Note   findstr will be removed in a future release. Use strfind instead.
+    answer = strfind(lin,'COMMENT');
     %if it is a comment line read the following one
     if ~isempty(answer)
         lin = fgetl(fid);
@@ -59,7 +60,7 @@ while (eof==0)
         return
     end
     %check if it is a string that should be analyzed
-    if (strcmp(lin(29),'0') == 1) | (strcmp(lin(29),'1') == 1)
+    if (strcmp(lin(29),'0') == 1) || (strcmp(lin(29),'1') == 1)
     % if lin(2) ~= ' '
 
         %save line information
@@ -80,25 +81,29 @@ while (eof==0)
         [num_sat] = sscanf(lin(30:32),'%d');
         
         %keep just the satellite data
-        if (length(lin) >= 68)
-            lin = lin(33:68);
-        else
-            lin = lin(33:end);
-        end
+%         if (length(lin) >= 68)
+%             lin = lin(33:68);
+%         else
+%             lin = lin(33:end);
+%         end
+        lin = ExtractSubstring(lin, 33, 68);
 
         %remove 'blank spaces' and unwanted characters at the end of the string
-        while (lin(end) == ' ') | (lin(end) == double(10)) | (lin(end) == double(13))
-            lin = lin(1:end-1);
-        end
+
+%         while (lin(end) == ' ') || (lin(end) == double(10)) || (lin(end) == double(13))
+%             lin = lin(1:end-1);
+%         end
+        lin = RemoveUnwantedTrailingSpaces(lin);
         
         %add the second line in case there are more than 12 satellites
         if (num_sat > 12)
             lin_add = fgetl(fid);
-            if (length(lin) >= 68)
-                lin_add = lin_add(33:68);
-            else
-                lin_add = lin_add(33:end);
-            end
+%             if (length(lin) >= 68)
+%                 lin_add = lin_add(33:68);
+%             else
+%                 lin_add = lin_add(33:end);
+%             end
+            lin_add = ExtractSubstring(lin_add, 33, 68);
             lin = [lin lin_add];
         end
 
