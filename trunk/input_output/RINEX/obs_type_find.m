@@ -25,7 +25,7 @@ function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini,Damiano Triglione
 %
 % Partially based on FOBS_TYP.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -45,37 +45,37 @@ function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2
 %----------------------------------------------------------------------------------------------
 
 %search L1 column
-s = findstr(Obs_types, 'L1');
+s = strfind(Obs_types, 'L1'); %findstr is obsolete, so strfind is used
 col_L1 = (s+1)/2;
 
 %search L2 column
-s = findstr(Obs_types, 'L2');
+s = strfind(Obs_types, 'L2');
 col_L2 = (s+1)/2;
 
 %search C1 column
-s = findstr(Obs_types, 'C1');
+s = strfind(Obs_types, 'C1');
 col_C1 = (s+1)/2;
 
 %search P1 column
-s = findstr(Obs_types, 'P1');
+s = strfind(Obs_types, 'P1');
 col_P1 = (s+1)/2;
 
 %search P2 column
-s = findstr(Obs_types, 'P2');
+s = strfind(Obs_types, 'P2');
 col_P2 = (s+1)/2;
 
 %search S1 column
-s = findstr(Obs_types, 'S1');
+s = strfind(Obs_types, 'S1');
 col_S1 = (s+1)/2;
 
 %search S2 column
-s = findstr(Obs_types, 'S2');
+s = strfind(Obs_types, 'S2');
 col_S2 = (s+1)/2;
 
 %search D1 column
-s = findstr(Obs_types, 'D1');
+s = strfind(Obs_types, 'D1');
 col_D1 = (s+1)/2;
 
 %search D2 column
-s = findstr(Obs_types, 'D2');
+s = strfind(Obs_types, 'D2');
 col_D2 = (s+1)/2;
