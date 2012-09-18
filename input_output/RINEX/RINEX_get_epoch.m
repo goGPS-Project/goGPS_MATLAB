@@ -19,7 +19,8 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini,Damiano Triglione
+% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini.
+% (2012) Portions of code contributed by Damiano Triglione.
 %
 % Partially based on FEPOCH_0.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -42,8 +43,16 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 time = 0;
 sat = [];
 sat_types = [];
-datee=[0 0 0 0 0 0];
+%datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
 eof = 0;
+if nargout>3
+    datee_RequestedInOutputFlag = true;
+else
+    datee_RequestedInOutputFlag = false;
+end% if
+
+
+
 
 %search data
 while (eof==0)
@@ -81,30 +90,16 @@ while (eof==0)
         [num_sat] = sscanf(lin(30:32),'%d');
         
         %keep just the satellite data
-%         if (length(lin) >= 68)
-%             lin = lin(33:68);
-%         else
-%             lin = lin(33:end);
-%         end
         lin = ExtractSubstring(lin, 33, 68);
 
         %remove 'blank spaces' and unwanted characters at the end of the string
-
-%         while (lin(end) == ' ') || (lin(end) == double(10)) || (lin(end) == double(13))
-%             lin = lin(1:end-1);
-%         end
         lin = RemoveUnwantedTrailingSpaces(lin);
         
         %add the second line in case there are more than 12 satellites
         if (num_sat > 12)
-            lin_add = fgetl(fid);
-%             if (length(lin) >= 68)
-%                 lin_add = lin_add(33:68);
-%             else
-%                 lin_add = lin_add(33:end);
-%             end
-            lin_add = ExtractSubstring(lin_add, 33, 68);
-            lin = [lin lin_add];
+            %lin_add = fgetl(fid);
+            %lin_add = ExtractSubstring(lin_add, 33, 68);
+            lin = [lin ExtractSubstring(fgetl(fid), 33, 68)];
         end
 
         pos = 1;
@@ -124,4 +119,6 @@ while (eof==0)
     end
 end
 
-datee = [year month day hour minute second];
+if datee_RequestedInOutputFlag
+    datee = [year month day hour minute second];
+end %if

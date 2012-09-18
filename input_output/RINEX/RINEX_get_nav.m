@@ -17,6 +17,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav)
 %                           goGPS v0.2.0 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Portions of code contributed by Damiano Triglione (2012)
 %
 % Partially based on RINEXE.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -35,6 +36,8 @@ function [Eph, iono] = RINEX_get_nav(file_nav)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+persistent Datenum_Offset  NumberOfSecondsInADay
+
 ioparam = 0;
 Eph = [];
 iono = zeros(8,1);
@@ -47,7 +50,8 @@ header_end = [];
 while (isempty(header_end))
     %read the line and search the 'ION ALPHA' label
     lin = fgetl(fid);
-    iono_found = findstr(lin,'ION ALPHA');
+    %iono_found = findstr(lin,'ION ALPHA'); %To be removed. At its place:
+    iono_found = strfind(lin,'ION ALPHA'); %findstr is obsolete. strfind is encouraged.
 
     %if the label was found
     if ~isempty(iono_found)
@@ -70,7 +74,8 @@ while (isempty(header_end))
         iono(8) = data{4};
     end
 
-    header_end = findstr(lin,'END OF HEADER');
+    %header_end = findstr(lin,'END OF HEADER');%To be removed. At its place:
+    header_end = strfind(lin,'END OF HEADER');%findstr is obsolete. strfind is encouraged.
 end
 
 %if ionosphere parameters were not found
@@ -116,14 +121,15 @@ while (~feof(fid))
     end
     while isempty(lin8)
         lin8 = fgetl(fid);
-        while lin8(end) == ' ', lin8 = lin8(1:end-1); end
+        %while lin8(end) == ' ', lin8 = lin8(1:end-1); end
+        lin8 = RemoveUnwantedTrailingSpaces(lin8);
     end
     
     if (lin1 == -1)
         break
     end
 
-    svprn  = str2num(lin1(1:2));
+    svprn  = str2num(lin1(1:2)); %When input is a scalar, str2double is better than str2num. But str2double does not support 'D'
     year   = str2num(lin1(3:6));
     month  = str2num(lin1(7:9));
     day    = str2num(lin1(10:12));
@@ -171,7 +177,12 @@ while (~feof(fid))
         fit_int = 0;
     end
     
-    toc = (datenum([year+2000 month day hour minute second]) - 7*weekno - datenum([1980,1,6,0,0,0]))*(3600*24);
+    
+    Datenum_Offset = 723186; %This is datenum([1980,1,6,0,0,0])
+    NumberOfSecondsInADay = 86400; %This is 3600*24
+    %toc = (datenum([year+2000 month day hour minute second]) - 7*weekno - datenum([1980,1,6,0,0,0]))*(3600*24);
+    toc = (datenum([year+2000 month day hour minute second]) - 7*weekno - Datenum_Offset)*NumberOfSecondsInADay;
+
 
     %save ephemerides
     Eph(1,i)  = svprn;

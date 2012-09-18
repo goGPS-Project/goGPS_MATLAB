@@ -68,7 +68,8 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini,Damiano Triglione
+% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini
+% Portions of code contributed by Damiano Triglione (2012)
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -106,6 +107,7 @@ if (~flag_SP3)
     
     %parse RINEX navigation file (ROVER)
     [Eph, iono] = RINEX_get_nav(filename_nav);
+    %[Eph, iono] = RINEX_get_nav_ORIGINALE(filename_nav);
     
     %parse RINEX navigation file (ROVER)
     % [Eph_R] = RINEX_get_nav_GLO(filename_nav_GLO);
