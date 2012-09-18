@@ -20,7 +20,8 @@ function [Obs_types, pos_M, ifound_types] = RINEX_parse_hdr(file)
 % Copyright (C) Kai Borre
 % Kai Borre 09-23-97
 %
-% Adapted by Mirko Reguzzoni, Eugenio Realini, Damiano Triglione, 2009
+% Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
+% Portions of code contributed by Damiano Triglione, 2012
 %----------------------------------------------------------------------------------------------
 
 ifound_types = 0;
@@ -31,7 +32,9 @@ pos_M = [];
 line = fgetl(file);
 
 %check if the end of the header or the end of the file has been reached
-while isempty(strfind(line,'END OF HEADER')) && (line ~= -1)  %findstr is obsolete, so strfind is used
+while isempty(strfind(line,'END OF HEADER')) && ischar(line)
+    %NOTE1: findstr is obsolete, so strfind is used
+    %NOTE2: ischar is better than checking if line is the number -1.
     answer = strfind(line,'# / TYPES OF OBSERV');
     if ~isempty(answer)
         NoObs  = sscanf(line(1:6),'%d');

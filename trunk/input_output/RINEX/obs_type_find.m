@@ -25,7 +25,8 @@ function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.2.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini,Damiano Triglione
+% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini
+% Portions of code contributed by Damiano Triglione (2012)
 %
 % Partially based on FOBS_TYP.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
