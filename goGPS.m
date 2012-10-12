@@ -1510,7 +1510,8 @@ if (mode < 12)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d        %02d:%02d:%02d% 16d% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), EAST_KAL(i), NORTH_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        fprintf(fid_out, '%02d/%02d/%02d        %02d:%02d:%02d% 16d% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+
     end
     fclose(fid_out);
 end
