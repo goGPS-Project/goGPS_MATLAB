@@ -55,12 +55,12 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 
 fid = fopen(dat_filename,'rt');      % open file
 fgets(fid);                          % jump the header
-data = fscanf(fid,'%d %f %f %f %f %f %f %4c %f %f %f %f %f',[16 inf])';
+data = fscanf(fid,'%d/%d/%d %d:%d:%d %d %f %f %f %f %f %f %4c %f %f %f %f %f',[22 inf])';
 fclose(fid);
 clear dat_filename
 
-x0 = data(:,6);    % x coordinates
-y0 = data(:,5);    % y coordinates
+x0 = data(:,12);    % x coordinates
+y0 = data(:,11);    % y coordinates
 clear data
 
 x0_start = x0(1);    % initial point
