@@ -1,15 +1,15 @@
-function [N_stim_slip, N_stim_born] = ambiguity_init(posR_app, posS, pr_R, pr_M, ...
-    ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat, sat_slip, sat_born, prRS_app, prMS_app, ...
-    err_tropo_RS, err_tropo_MS, err_iono_RS, err_iono_MS, pivot, phase, N_kalman, Cee_N_kalman)
+function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, ...
+    ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, distM, ...
+    err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, N_kalman, Cee_N_kalman)
 
 % SYNTAX:
-%   [N_stim_slip, N_stim_born] = ambiguity_init(posR_app, posS, pr_R, pr_M, ...
-%   ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat, sat_slip, sat_born, prRS_app, prMS_app, ...
-%   err_tropo_RS, err_tropo_MS, err_iono_RS, err_iono_MS, pivot, phase, N_kalman, Cee_N_kalman);
+%   [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, ...
+%    ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, distM, ...
+%    err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, N_kalman, Cee_N_kalman);
 %
 % INPUT:
-%   posR_app = receiver position (X,Y,Z)
-%   posS = satellite positions (X,Y,Z)
+%   XR_approx = receiver approximate position (X,Y,Z)
+%   XS = satellite positions (X,Y,Z)
 %   pr_R = ROVER-SATELLITE code pseudorange
 %   pr_M = MASTER-SATELLITE code pseudorange
 %   ph_R = ROVER-SATELLITE phase measurement
@@ -19,16 +19,16 @@ function [N_stim_slip, N_stim_born] = ambiguity_init(posR_app, posS, pr_R, pr_M,
 %   el_R = ROVER satellite elevation
 %   el_M = MASTER satellite elevation
 %   sat_pr = available satellites
-%   sat = available satellites with phase
+%   sat_ph = available satellites with phase
 %   sat_slip = slipped satellites
 %   sat_born = new satellites
-%   prRS_app = ROVER-SATELLITE approximate pseudorange
-%   prMS_app = MASTER-SATELLITE approximate pseudorange
-%   err_tropoRS = ROVER-SATELLITE tropospheric error
-%   err_tropoMS = MASTER-SATELLITE tropospheric error
-%   err_ionoRS = ROVER-SATELLITE ionospheric error
-%   err_ionoMS = MASTER-SATELLITE ionospheric error
-%   pivot = ID of pivot satellite
+%   distR_approx = ROVER-SATELLITE approximate range
+%   distM = MASTER-SATELLITE approximate range
+%   err_tropo_R = ROVER-SATELLITE tropospheric error
+%   err_tropo_M = MASTER-SATELLITE tropospheric error
+%   err_iono_R = ROVER-SATELLITE ionospheric error
+%   err_iono_M = MASTER-SATELLITE ionospheric error
+%   pivot = pivot satellite
 %   phase = GPS frequency selector
 %   N_kalman = phase ambiguities estimated by Kalman filter
 %   Cee_N_kalman = phase ambiguities estimated error
@@ -42,9 +42,9 @@ function [N_stim_slip, N_stim_born] = ambiguity_init(posR_app, posS, pr_R, pr_M,
 %   adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -74,38 +74,6 @@ end
 N_stim_slip = [];
 N_stim_born = [];
 
-%number of visible satellites
-nsat_pr = size(sat_pr,1);
-
-%number of visible satellites with phase
-nsat = size(sat,1);
-
-%PIVOT satellite index
-j = find(pivot == sat_pr);
-
-%PIVOT satellite position
-posP = posS(:,j);
-
-%ROVER-PIVOT and MASTER-PIVOT observed code measurements
-prRP_obs = pr_R(j);
-prMP_obs = pr_M(j);
-
-%ROVER-PIVOT and MASTER-PIVOT observed phase measurements
-phRP_obs = ph_R(j);
-phMP_obs = ph_M(j);
-
-%ROVER-PIVOT and MASTER-PIVOT approximate code measurements
-prRP_app = prRS_app(j);
-prMP_app = prMS_app(j);
-
-%ROVER-PIVOT and MASTER-PIVOT tropospheric errors
-err_tropo_RP = err_tropo_RS(j);
-err_tropo_MP = err_tropo_MS(j);
-
-%ROVER-PIVOT and MASTER-PIVOT ionospheric errors
-err_iono_RP = err_iono_RS(j);
-err_iono_MP = err_iono_MS(j);
-
 %number of slipped satellites
 nsat_slip = size(sat_slip,1);
 
@@ -116,236 +84,157 @@ nsat_born = size(sat_born,1);
 sat_amb = [sat_slip; sat_born];
 nsat_amb = nsat_slip + nsat_born;
 
-s = 1;
-b = 1;
+%data indexes
+[~, index] = intersect(sat_pr,sat_ph);        %sat_ph is a subset of sat_pr
+[~, index_slip] = intersect(sat_ph,sat_slip); %sat_slip is a subset of sat_ph
+[~, index_born] = intersect(sat_ph,sat_born); %sat_born is a subset of sat_ph
+[~, index_noamb] = setdiff(sat_ph,sat_amb);   %satellites for which the ambiguity is already available
+index_amb = [index_slip; index_born];         %satellites for which the ambiguity needs to be estimated
+                                              % NOTE: 'intersect' would sort the values, so it can't be used here
+
+%keep only available phase observations
+ph_R = ph_R(index);
+ph_M = ph_M(index);
+
+%remove zeros
+index_zero_pr = or(pr_R==0,pr_M==0);
+index_zero_ph = or(ph_R==0,ph_M==0);
+pr_R(index_zero_pr) = [];
+pr_M(index_zero_pr) = [];
+ph_R(index_zero_ph) = [];
+ph_M(index_zero_ph) = [];
+
+%number of observations (assuming that sat_ph is a subset of sat_pr)
+nsat_pr = length(pr_R);
+nsat_ph = length(ph_R);
+
+%pivot indexes
+pivot_index_pr = find(pivot == sat_pr);
+pivot_index_ph = find(pivot == sat_ph);
 
 %if the selected method is observed code - phase comparison
 if (amb_restart_method == 0)
     
-    for i = 1 : nsat_pr
-        
-        if (sat_pr(i) ~= pivot)
-            
-            if (ismember(sat_pr(i),sat_slip))
-                %observed code double differences
-                comb_pr = (pr_R(i) - pr_M(i)) - (prRP_obs - prMP_obs);
-                
-                %observed phase double differences
-                comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
-                
-                %linear combination of ambiguities
-                N_stim_slip(s) = comb_pr / lambda - comb_ph;
-                %sigmaq_N_stim_slip = 4*sigmaq_cod1 / lambda^2;
-                
-                s = s + 1;
-            end
-            
-            if (ismember(sat_pr(i),sat_born))
-                %observed code double differences
-                comb_pr = (pr_R(i) - pr_M(i)) - (prRP_obs - prMP_obs);
-                
-                %observed phase double differences
-                comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
-                
-                %linear combination of ambiguities
-                N_stim_born(b) = comb_pr / lambda - comb_ph;
-                %sigmaq_N_stim_born = 4*sigmaq_cod1 / lambda^2;
-                
-                b = b + 1;
-            end
-        end
-    end
+    %observed code double differences
+    comb_pr = (pr_R - pr_M) - (pr_R(pivot_index_pr) - pr_M(pivot_index_pr));
+    
+    %observed phase double differences
+    comb_ph = (ph_R - ph_M) - (ph_R(pivot_index_ph) - ph_M(pivot_index_ph));
+    
+    %linear combination of initial ambiguity estimate
+    N_stim = comb_pr(index) / lambda - comb_ph;
+    %sigmaq_N_stim = 4*sigmaq_cod1 / lambda^2;
+    
+    %new ambiguity for slipped satellites
+    N_stim_slip = N_stim(index_slip);
+    
+    %new ambiguity for new satellite
+    N_stim_born = N_stim(index_born);
+    
 %if the number of observations is not sufficient to apply least squares adjustment
 %or if the selected method is Kalman-estimated code - phase comparison
-elseif (nsat_pr + nsat - 2 <= 3 + nsat - 1) | (amb_restart_method == 1)
+elseif (nsat_pr + nsat_ph - 2 <= 3 + nsat_amb) | (amb_restart_method == 1)
     
     %KEPT AS A REFERENCE: it should be used in the calling functions and
     %passed as an argument
     %sigmaq_pos_R = diag(T*Cee*T');
     %sigmaq_pos_R = sigmaq_pos_R([1,o1+1,o2+1]);
     
-    for i = 1 : nsat_pr
-        
-        if (sat_pr(i) ~= pivot)
-            
-            if (ismember(sat_pr(i),sat_slip))
-                %Kalman-estimated code double differences
-                comb_pr = (prRS_app(i) - prMS_app(i)) - (prRP_app - prMP_app);
-                
-                %observed phase double differences
-                comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
-                
-                %linear combination of ambiguities
-                N_stim_slip(s) = comb_pr / lambda - comb_ph;
-                %sigmaq_N_stim = sum(sigmaq_pos_R) / lambda1^2;
-                
-                s = s + 1;
-            end
-            
-            if (ismember(sat_pr(i),sat_born))
-                %observed code double differences
-                comb_pr = (prRS_app(i) - prMS_app(i)) - (prRP_app - prMP_app);
-                
-                %observed phase double differences
-                comb_ph = (ph_R(i) - ph_M(i)) - (phRP_obs - phMP_obs);
-                
-                %linear combination of ambiguities
-                N_stim_born(b) = comb_pr / lambda - comb_ph;
-                %sigmaq_N_stim = sum(sigmaq_pos_R) / lambda1^2;
-                
-                b = b + 1;
-            end
-        end
-    end
+    %observed code double differences
+    comb_pr = (distR_approx - distM) - (distR_approx(pivot_index_pr) - distM(pivot_index_pr));
+    
+    %observed phase double differences
+    comb_ph = (ph_R - ph_M) - (ph_R(pivot_index_ph) - ph_M(pivot_index_ph));
+    
+    %linear combination of initial ambiguity estimate
+    N_stim = comb_pr(index) / lambda - comb_ph;
+    %sigmaq_N_stim = sum(sigmaq_pos_R) / lambda^2;
+    
+    %new ambiguity for slipped satellites
+    N_stim_slip = N_stim(index_slip);
+    
+    %new ambiguity for new satellite
+    N_stim_born = N_stim(index_born);
+
 %if the selected method is Least squares adjustment
 else
-    A = [];
-    tr = [];
-    io = [];
-    comb_pr_app = [];
-    comb_pr_obs = [];
     
-    %CODE
-    for i = 1 : nsat_pr
-        if (sat_pr(i) ~= pivot)
-            
-            %observed code measurement
-            prRS_obs = pr_R(i);
-            prMS_obs = pr_M(i);
-            
-            %design matrix computation
-            A = [A; (((posR_app(1) - posS(1,i)) / prRS_app(i)) - ((posR_app(1) - posP(1)) / prRP_app)) ...
-                (((posR_app(2) - posS(2,i)) / prRS_app(i)) - ((posR_app(2) - posP(2)) / prRP_app)) ...
-                (((posR_app(3) - posS(3,i)) / prRS_app(i)) - ((posR_app(3) - posP(3)) / prRP_app)) ...
-                zeros(1, nsat_amb)];
-            
-            %computation of crossed approximate pseudoranges
-            comb_pr_app = [comb_pr_app; (prRS_app(i) - prMS_app(i)) - (prRP_app - prMP_app)];
-            
-            %computation of crossed observed code pseudoranges
-            comb_pr_obs = [comb_pr_obs; (prRS_obs - prMS_obs) - (prRP_obs - prMP_obs)];
-            
-            %computation of crossed tropospheric errors
-            tr = [tr; (err_tropo_RS(i) - err_tropo_MS(i)) - (err_tropo_RP - err_tropo_MP)];
-            
-            %computation of crossed ionospheric errors
-            io = [io; (err_iono_RS(i) - err_iono_MS(i)) - (err_iono_RP - err_iono_MP)];
-        end
+    %ambiguity columns in design matrix (lambda positions)
+    A_amb = zeros(nsat_ph,nsat_amb);
+    for i = 1:nsat_amb
+        A_amb(index_amb(i),i) = -lambda;
     end
     
-    % index vector of satellites with phase observations (over nsat_pr)
-    p = [];
-    % index vector of satellites with phase observations (over nsat_amb)
-    r = [];
+    %design matrix (code)
+    A = [((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index_pr,1)) / distR_approx(pivot_index_pr)), ... %column for X coordinate
+         ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index_pr,2)) / distR_approx(pivot_index_pr)), ... %column for Y coordinate
+         ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index_pr,3)) / distR_approx(pivot_index_pr)), ... %column for Z coordinate
+           zeros(nsat_pr, nsat_amb)]; %column for phase ambiguities   (here zero)
     
-    %PHASE
-    for i = 1 : nsat_pr
-        if (ph_R(i) ~= 0) & (ph_M(i) ~= 0) & (sat_pr(i) ~= pivot)
-            
-            %index vectors
-            p = [p; i];
-            if (i < j)
-                r = [r; i];
-            else
-                r = [r; i-1];
-            end
-            
-            %observed phase measurement
-            phRS_obs = ph_R(i);
-            phMS_obs = ph_M(i);
-            
-            pos = find(sat_pr(i) == sat_amb);
-            
-            %ambiguity vector in design matrix (lambda position)
-            N_row = zeros(1, nsat_amb);
-            if (~isempty(pos))
-                N_row(pos) = -lambda;
-            end
-            
-            %design matrix computation
-            A = [A; (((posR_app(1) - posS(1,i)) / prRS_app(i)) - ((posR_app(1) - posP(1)) / prRP_app)) ...
-                (((posR_app(2) - posS(2,i)) / prRS_app(i)) - ((posR_app(2) - posP(2)) / prRP_app)) ...
-                (((posR_app(3) - posS(3,i)) / prRS_app(i)) - ((posR_app(3) - posP(3)) / prRP_app)) ...
-                N_row];
-            
-            %computation of crossed approximated pseudoranges
-            comb_pr_app = [comb_pr_app; (prRS_app(i) - prMS_app(i)) - (prRP_app - prMP_app)];
-            
-            %computation of crossed observed phase ranges
-            if (~isempty(pos))
-                comb_pr_obs = [comb_pr_obs; lambda * ((phRS_obs - phMS_obs) - (phRP_obs - phMP_obs))];
-            else
-                comb_pr_obs = [comb_pr_obs; lambda * ((phRS_obs - phMS_obs) - (phRP_obs - phMP_obs) + N_kalman(i))];
-            end
-            
-            %computation of crossed tropospheric errors
-            tr = [tr; (err_tropo_RS(i) - err_tropo_MS(i)) - (err_tropo_RP - err_tropo_MP)];
-            
-            %computation of crossed ionospheric errors
-            io = [io; -((err_iono_RS(i) - err_iono_MS(i)) - (err_iono_RP - err_iono_MP))];
-        end
-    end
+    %design matrix (phase)
+    A = [A; ((XR_approx(1) - XS(index,1)) ./ distR_approx(index)) - ((XR_approx(1) - XS(pivot_index_pr,1)) / distR_approx(pivot_index_pr)), ... %column for X coordinate
+            ((XR_approx(2) - XS(index,2)) ./ distR_approx(index)) - ((XR_approx(2) - XS(pivot_index_pr,2)) / distR_approx(pivot_index_pr)), ... %column for Y coordinate
+            ((XR_approx(3) - XS(index,3)) ./ distR_approx(index)) - ((XR_approx(3) - XS(pivot_index_pr,3)) / distR_approx(pivot_index_pr)), ... %column for Z coordinate
+              A_amb]; %column for phase ambiguities
+
+    %observed pseudoranges
+    probs_pr  = (pr_R - pr_M) - (pr_R(pivot_index_pr) - pr_M(pivot_index_pr));                                     %observed pseudorange DD
+    probs_ph  = (lambda * ph_R - lambda * ph_M) - (lambda * ph_R(pivot_index_ph) - lambda * ph_M(pivot_index_ph)); %observed pseudorange DD
     
-    %vector of the b known term
-    b = comb_pr_app;
+    %approximate pseudoranges
+    prapp_pr =            (distR_approx - distM)      - (distR_approx(pivot_index_pr) - distM(pivot_index_pr));       %approximate pseudorange DD
+    prapp_pr = prapp_pr + (err_tropo_R - err_tropo_M) - (err_tropo_R(pivot_index_pr)  - err_tropo_M(pivot_index_pr)); %tropospheric error DD
+    prapp_pr = prapp_pr + (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index_pr)   - err_iono_M(pivot_index_pr));  %ionoshperic error DD
+    prapp_ph = prapp_pr - (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index_pr)   - err_iono_M(pivot_index_pr));  %ionoshperic error DD
     
-    %correction of the b known term
-    b = b + tr + io;
+    %remove pivot-pivot lines
+    A(pivot_index_pr, :) = [];
+    A(nsat_pr - 1 + pivot_index_ph, :) = [];
+    probs_pr(pivot_index_pr) = [];
+    probs_ph(pivot_index_ph) = [];
+    prapp_pr(pivot_index_pr) = [];
+    prapp_ph(pivot_index_pr) = [];
+    N_kalman(pivot_index_pr) = [];
+
+    %update indexes
+    pos = find(index == pivot_index_pr);
+    index(pos) = [];
+    index(pos:end) = index(pos:end) - 1;
+    pos = find(index_noamb == pivot_index_ph);
+    index_noamb(pos) = [];
+    index_noamb(pos:end) = index_noamb(pos:end) - 1;
+    
+    %known term vector
+    b = [prapp_pr; prapp_ph(index)];
     
     %observation vector
-    y0 = comb_pr_obs;
-    
+    N_kalman = N_kalman(index);
+    probs_ph(index_noamb) = probs_ph(index_noamb) + lambda*N_kalman(index_noamb);
+    y0 = [probs_pr; probs_ph];
+
     %number of observations
     n = length(y0);
     
-    %number of unknown parameters
-    % m = 3 + nsat_pr-1;
-    
     %observation noise covariance matrix
     Q = zeros(n);
-    Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, sat_pr, pivot);
-    Q2 = Q1(r,r);
+    Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index_pr);
+    Q2 = Q1(index,index);
     
     Q(1:nsat_pr-1,1:nsat_pr-1) = sigmaq_cod1 * Q1;
     if (nargin >= 24)
-        %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
-        %with respect to input code and phase variances)
-        Q(nsat_pr:end,nsat_pr:end) = (sigmaq_ph * eye(n - (nsat_pr - 1)) + lambda^2*Cee_N_kalman(p,p)) .* Q2;
+        Cee_N_kalman(pivot_index_pr,:) = [];
+        Cee_N_kalman(:,pivot_index_pr) = [];
+        %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled with respect to input code and phase variances)
+        Q(nsat_pr:end,nsat_pr:end) = (sigmaq_ph * eye(nsat_ph - 1) + lambda^2*Cee_N_kalman(index,index)) .* Q2;
     else
         Q(nsat_pr:end,nsat_pr:end) = sigmaq_ph * Q2;
     end
-    % sat_slip
-    % Q
-    % pause
-    % A_cod = A(1:nsat_pr-1,:);
-    % Q_cod = Q(1:nsat_pr-1,1:nsat_pr-1);
-    % y0_cod = y0(1:nsat_pr-1);
-    % b_cod = b(1:nsat_pr-1);
-    
-    %least squares solution using only code
-    % x_cod = ((A_cod'*Q_cod^-1*A_cod)^-1)*A_cod'*Q_cod^-1*(y0_cod-b_cod);
+
+    %normal matrix
+    N = (A'*(Q^-1)*A);
     
     %least squares solution
-    x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
-    
-    %test on differences between code and code+phase receiver clock delay estimation
-    % while (abs(x_cod(4) - x(4)) > clock_delay_thresh)
-    %
-    %     %delete phase observation with maximum error variance
-    %     [null_m, i] = max(diag(Q2));
-    %     Q2(i,:) = [];
-    %     Q2(:,i) = [];
-    %
-    %     Q(nsat_pr + i, :) = [];
-    %     Q(:, nsat_pr + i) = [];
-    %
-    %     A(nsat_pr + i, :) = [];
-    %     y0(nsat_pr + i) = [];
-    %     b(nsat_pr + i) = [];
-    %
-    %     %least squares solution
-    %     x = ((A'*Q^-1*A)^-1)*A'*Q^-1*(y0-b);
-    % end
+    x  = (N^-1)*A'*(Q^-1)*(y0-b);
     
     if (nsat_slip ~= 0)
         N_stim_slip = x(4 : 4 + nsat_slip - 1);

@@ -66,7 +66,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   and the MASTER. Selects epochs they have in common.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
@@ -91,11 +91,18 @@ if nargin<5
     wait_dlg_PresenceFlag = false;
     if nargin<4
         filename_M_obs_PresenceFlag = false;
+    elseif (isempty(filename_M_obs))
+        filename_M_obs_PresenceFlag = false;
     else
         filename_M_obs_PresenceFlag = true;
     end %if
 else
     wait_dlg_PresenceFlag = true;
+    if (isempty(filename_M_obs))
+        filename_M_obs_PresenceFlag = false;
+    else
+        filename_M_obs_PresenceFlag = true;
+    end %if
 end %if
 
 Eph_R = zeros(17,32);

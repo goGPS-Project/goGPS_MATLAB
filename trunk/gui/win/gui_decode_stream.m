@@ -25,9 +25,9 @@ function varargout = gui_decode_stream(varargin)
 % Last Modified by GUIDE v2.5 28-Jun-2010 15:18:49
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -139,9 +139,9 @@ function browse_data_stream_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
-    {'*.ubx;*_rover_??.bin;*_master_??.bin','UBX stream data (*.ubx,*_rover_??.bin,*_master_??.bin)'; ...
-     '*.stq;*_rover_??.bin;*_master_??.bin','SkyTraq stream data (*.stq,*_rover_??.bin,*_master_??.bin)'; ...
-     '*.rtcm','RTCM stream data (*.rtcm)'}, ...
+    {'*.ubx;*.UBX;*_rover_??.bin;*_master_??.bin','UBX stream data (*.ubx,*_rover_??.bin,*_master_??.bin)'; ...
+     '*.stq;*.STQ;*_rover_??.bin;*_master_??.bin','SkyTraq stream data (*.stq,*_rover_??.bin,*_master_??.bin)'; ...
+     '*.rtcm;*.RTCM','RTCM stream data (*.rtcm)'}, ...
     'Choose stream data','../data');
 
 if (filename ~= 0)

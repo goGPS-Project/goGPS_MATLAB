@@ -21,9 +21,9 @@ function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S
 %   Computation of an approximate value of the doppler shift observation.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

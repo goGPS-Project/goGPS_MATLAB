@@ -1,15 +1,15 @@
 function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
-         pr_Rsat, ph_Rsat, err_iono_RS, doppler_pred_range, sat, sat_born, alpha, phase)
+         pr, ph, err_iono, doppler_pred_range, sat, sat_born, alpha, phase)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
-%    pr_Rsat, ph_Rsat, err_iono_RS, doppler_pred_range, sat, sat_born, alpha, phase);
+%    pr, ph, err_iono, doppler_pred_range, sat, sat_born, alpha, phase);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
-%   pr_Rsat = ROVER-SATELLITE code observation
-%   ph_Rsat = ROVER-SATELLITE phase observation
-%   err_iono_RS = ionospheric error
+%   pr = ROVER-SATELLITE code observation
+%   ph = ROVER-SATELLITE phase observation
+%   err_iono = ionospheric error
 %   doppler_pred_range = predicted range based on phase and Doppler observations from previous epoch
 %   sat = visible satellites configuration
 %   sat_born = new satellites (added in this epoch)
@@ -27,9 +27,9 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
 %   range on the basis of the Kalman filter.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -55,9 +55,9 @@ nsat = size(sat,1);
 
 %phase ambiguities estimation
 if (phase == 1)
-    N_stim = (pr_Rsat - lambda1 * ph_Rsat - 2 * err_iono_RS) / lambda1;
+    N_stim = (pr - lambda1 * ph - 2 * err_iono) / lambda1;
 else
-    N_stim = (pr_Rsat - lambda2 * ph_Rsat - 2 * err_iono_RS) / lambda2;
+    N_stim = (pr - lambda2 * ph - 2 * err_iono) / lambda2;
 end
 
 %initialization
@@ -85,7 +85,7 @@ for i = 1 : nsat
         end
 
         %Doppler-predicted phase range compared to observed phase range
-        if (flag_doppler_cs & (abs(doppler_pred_range(i) - ph_Rsat(i)) > alpha))
+        if (flag_doppler_cs & (abs(doppler_pred_range(i) - ph(i)) > alpha))
            cs = 1;
         end
 

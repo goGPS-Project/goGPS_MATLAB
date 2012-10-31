@@ -1,10 +1,10 @@
-function [Ek, n] = ecc_anomaly(t, Eph)
+function [Ek, n] = ecc_anomaly(time, Eph)
 
 % SYNTAX:
-%   [Ek, n] = ecc_anomaly(t, Eph);
+%   [Ek, n] = ecc_anomaly(time, Eph);
 %
 % INPUT:
-%   t = GPS time
+%   time = GPS time
 %   Eph = ephemerides matrix
 %
 % OUTPUT:
@@ -15,9 +15,9 @@ function [Ek, n] = ecc_anomaly(t, Eph)
 %   Computation of the eccentric anomaly.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
 % Partially based on SATPOS.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ ecc      =   Eph(6);
 toe      =   Eph(18);
 
 A = roota*roota;            %semi-major axis
-tk = check_t(t-toe);        %time from the ephemerides reference epoch
+tk = check_t(time-toe);     %time from the ephemerides reference epoch
 n0 = sqrt(GM/A^3);          %computed mean motion [rad/sec]
 n = n0+deltan;              %corrected mean motion [rad/sec]
 Mk = M0+n*tk;               %mean anomaly

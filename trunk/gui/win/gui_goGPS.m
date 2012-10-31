@@ -25,9 +25,9 @@ function varargout = gui_goGPS(varargin)
 % Last Modified by GUIDE v2.5 25-Apr-2011 20:05:52
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -1700,9 +1700,9 @@ function browse_rover_obs_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
-    {'*.obs;*.??o','RINEX observation files (*.obs,*.??o)';
+    {'*.obs;*.??o;*.??O','RINEX observation files (*.obs,*.??o,*.??O)';
     '*.obs','Observation files (*.obs)'; ...
-    '*.??o','Observation files (*.??o)'; ...
+    '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
     '*.*',  'All Files (*.*)'}, ...
     'Choose a RINEX observation file for the rover','../data/data_RINEX');
 
@@ -1778,11 +1778,11 @@ function browse_nav_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
-    {'*.nav;*.??n','RINEX navigation files (*.nav,*.??n)';
-    '*.nav','Navigation files (*.obs)'; ...
-    '*.??n','Navigation files (*.??o)'; ...
+    {'*.nav;*.??n;*.??N','RINEX navigation files (*.nav,*.??n,*.??N)';
+    '*.nav','Navigation files (*.nav)'; ...
+    '*.??n;*.??N','Navigation files (*.??n,*.??N)'; ...
     '*.*',  'All Files (*.*)'}, ...
-    'Choose a RINEX navigation file for the master','../data/data_RINEX');
+    'Choose a RINEX navigation file','../data/data_RINEX');
 
 if (filename ~= 0)
     set(handles.RINEX_nav,'String',fullfile(pathname, filename));

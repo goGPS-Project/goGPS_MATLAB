@@ -1,38 +1,39 @@
-function [A, prstim_pr, prstim_ph, ddc, ddp, A0] = input_kalman_vinc(posR_app, posS, ...
-          prRS_app, prMS_app, pr_Rsat, ph_Rsat, pr_Msat, ph_Msat, ...
-          err_tropo_RS, err_iono_RS, err_tropo_MS, err_iono_MS, ...
-          sat, pivot, phase)
+function [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, A0] = input_kalman_vinc(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, distR_approx, distM, sat, pivot)
 
 % SYNTAX:
-%   [A, prstim_pr, prstim_ph, ddc, ddp, A0] = input_kalman_vinc(posR_app, posS, ...
-%         prRS_app, prMS_app, pr_Rsat, ph_Rsat, pr_Msat, ph_Msat, ...
-%         err_tropo_RS, err_iono_RS, err_tropo_MS, err_iono_MS, ...
-%         sat, pivot, phase);
+%   [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, A0] = input_kalman_vinc(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, distR_approx, distM, sat, pivot);
 %
 % INPUT:
-%   posR_app = receiver position (X,Y,Z)
-%   posS = satellite posizion (X,Y,Z)
-%   prRS_app = ROVER-SATELLITE approximate pseudorange
-%   prMS_app = MASTER-SATELLITE approximate pseudorange
-%   pr_Rsat = ROVER-SATELLITE code pseudorange
-%   ph_Rsat = ROVER-SATELLITE phase observations
-%   pr_Msat = MASTER-SATELLITE code pseudorange
-%   ph_Msat = MASTER-SATELLITE phase observations
-%   err_tropoRS = ROVER-SATELLITE tropospheric error
-%   err_ionoRS = ROVER-SATELLITE ionospheric error
-%   err_tropoMS = MASTER-SATELLITE tropospheric error
-%   err_ionoMS = MASTER-SATELLITE ionospheric error
+%   XR_approx = receiver approximate position (X,Y,Z)
+%   XS = satellite position (X,Y,Z)
+%   pr1_R = ROVER-SATELLITE code pseudorange (carrier L1)
+%   ph1_R = ROVER-SATELLITE phase observations (carrier L1)
+%   pr1_M = MASTER-SATELLITE code pseudorange (carrier L1)
+%   ph1_M = MASTER-SATELLITE phase observations (carrier L1)
+%   pr2_R = ROVER-SATELLITE code pseudorange (carrier L2)
+%   ph2_R = ROVER-SATELLITE phase observations (carrier L2)
+%   pr2_M = MASTER-SATELLITE code pseudorange (carrier L2)
+%   ph2_M = MASTER-SATELLITE phase observations (carrier L2)
+%   err_tropo_R = ROVER-SATELLITE tropospheric error
+%   err_iono_R  = ROVER-SATELLITE ionospheric error
+%   err_tropo_M = MASTER-SATELLITE tropospheric error
+%   err_iono_M  = MASTER-SATELLITE ionospheric error
+%   distR_approx = ROVER-SATELLITE approximate range
+%   distM = MASTER-SATELLITE range
 %   sat = configuration of visible satellites
 %   pivot = pivot satellite
-%   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % OUTPUT:
 %   A = parameters obtained from the linearization of the observation equation,
 %       projected on the constraint
-%   prstim_pr = approximated code double differences
-%   prstim_ph = approximated phase double differences
-%   ddc = observed code double differences
-%   ddp = observed phase double differences
+%   probs_pr1 = observed code double differences (carrier L1)
+%   probs_ph1 = observed phase double differences (carrier L1)
+%   prapp_pr1 = approximate code double differences (carrier L1)
+%   prapp_ph1 = approximate phase double differences (carrier L1)
+%   probs_pr2 = observed code double differences (carrier L2)
+%   probs_ph2 = observed phase double differences (carrier L2)
+%   prapp_pr2 = approximate code double differences (carrier L2)
+%   prapp_ph2 = approximate phase double differences (carrier L2)
 %   A0 = parameters obtained from the linearization of the observation
 %        equation (useful for DOP computation)
 %
@@ -42,9 +43,9 @@ function [A, prstim_pr, prstim_ph, ddc, ddp, A0] = input_kalman_vinc(posR_app, p
 %   Constrained path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -67,88 +68,42 @@ global lambda2;
 global X_t1_t
 global ax ay az s0
 
-%number of visible satellites
-nsat = length(prRS_app);
-
-%PIVOT search
-i = find(pivot == sat);
-
-%PIVOT satellite position
-posP = posS(:,i);
-
-%ROVER-PIVOT and MASTER-PIVOT approximate pseudoranges
-prRP_app = prRS_app(i);
-prMP_app = prMS_app(i);
-
-%ROVER-PIVOT and MASTER-PIVOT code observations
-prRP = pr_Rsat(i);
-prMP = pr_Msat(i);
-
-%ROVER-PIVOT and MASTER-PIVOT phase observations
-if (phase == 1)
-    phRP = lambda1 * ph_Rsat(i);
-    phMP = lambda1 * ph_Msat(i);
-else
-    phRP = lambda2 * ph_Rsat(i);
-    phMP = lambda2 * ph_Msat(i);
-end
-
-%ROVER-PIVOT and MASTER-PIVOT tropospheric errors
-err_tropo_RP = err_tropo_RS(i);
-err_tropo_MP = err_tropo_MS(i);
-
-%ROVER-PIVOT and MASTER-PIVOT ionospheric errors
-err_iono_RP = err_iono_RS(i);
-err_iono_MP = err_iono_MS(i);
-
-A = [];
-A0 = [];
-ddc_app = [];
-ddc = [];
-ddp = [];
-tr = [];
-io = [];
+%pivot search
+pivot_index = find(pivot == sat);
 
 %curvilinear coordinate localization
 j = find((X_t1_t(1) >= s0(1:end-1)) & (X_t1_t(1) < s0(2:end)));
 
-%computation of all the PIVOT-SATELLITE linear combinations
-for i = 1 : nsat
-    if (sat(i) ~= pivot)
+%design matrix (full geometry, for DOP computation) 
+A0 = [((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
+      ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
+      ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index))];    %column for Z coordinate
 
-        %construction of the transition matrix (only satellite-receiver geometry)
-        A0 = [A0; (((posR_app(1) - posS(1,i)) / prRS_app(i)) - ((posR_app(1) - posP(1)) / prRP_app)) ...
-                  (((posR_app(2) - posS(2,i)) / prRS_app(i)) - ((posR_app(2) - posP(2)) / prRP_app)) ...
-                  (((posR_app(3) - posS(3,i)) / prRS_app(i)) - ((posR_app(3) - posP(3)) / prRP_app))];
+%design matrix (projected on the constraint) 
+A = [ax(j)*A0(:,1) + ay(j)*A0(:,2) + az(j)*A0(:,3)];
 
-        %construction of the transition matrix (projected on the constraint)
-        A = [A; ax(j)*A0(end,1) + ay(j)*A0(end,2) + az(j)*A0(end,3)];
+%observed pseudoranges
+probs_pr1  = (pr1_R - pr1_M) - (pr1_R(pivot_index) - pr1_M(pivot_index));  %observed pseudorange DD (L1 code)
+probs_pr2  = (pr2_R - pr2_M) - (pr2_R(pivot_index) - pr2_M(pivot_index));  %observed pseudorange DD (L2 code)
+probs_ph1  = (lambda1 * ph1_R - lambda1 * ph1_M) - (lambda1 * ph1_R(pivot_index) - lambda1 * ph1_M(pivot_index)); %observed pseudorange DD (L1 phase)
+probs_ph2  = (lambda2 * ph2_R - lambda2 * ph2_M) - (lambda2 * ph2_R(pivot_index) - lambda2 * ph2_M(pivot_index)); %observed pseudorange DD (L2 phase)
 
-        %computation of the estimated code double differences
-        ddc_app = [ddc_app; (prRS_app(i) - prMS_app(i)) - (prRP_app - prMP_app)];
+%approximate pseudoranges
+prapp_pr  =            (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
+prapp_pr  = prapp_pr + (err_tropo_R - err_tropo_M) - (err_tropo_R(pivot_index)  - err_tropo_M(pivot_index)); %tropospheric error DD
+prapp_pr1 = prapp_pr + (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (L1 code)
+prapp_ph1 = prapp_pr - (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (L1 phase)
+prapp_pr2 = prapp_pr + (lambda2/lambda1)^2 * ((err_iono_R - err_iono_M) - (err_iono_R(pivot_index) - err_iono_M(pivot_index)));  %ionoshperic error DD (L2 code)
+prapp_ph2 = prapp_pr - (lambda2/lambda1)^2 * ((err_iono_R - err_iono_M) - (err_iono_R(pivot_index) - err_iono_M(pivot_index)));  %ionoshperic error DD (L2 phase)
 
-        %computation of the observed code double differences
-        ddc = [ddc; (pr_Rsat(i) - pr_Msat(i)) - (prRP - prMP)];
-
-        %computation of the observed phase double differences
-        if (phase == 1)
-            ddp = [ddp; (lambda1 * ph_Rsat(i) - lambda1 * ph_Msat(i)) - (phRP - phMP)];
-        else
-            ddp = [ddp; (lambda2 * ph_Rsat(i) - lambda2 * ph_Msat(i)) - (phRP - phMP)];
-        end
-        
-        %computation of tropospheric residuals
-        tr = [tr; (err_tropo_RS(i) - err_tropo_MS(i)) - (err_tropo_RP - err_tropo_MP)];
-        
-        %computation of ionospheric residuals
-        io = [io; (err_iono_RS(i) - err_iono_MS(i)) - (err_iono_RP - err_iono_MP)];
-    end
-end
-
-if (phase == 1)
-    prstim_pr = ddc_app + tr + io;
-    prstim_ph = ddc_app + tr - io;
-else
-    prstim_pr = ddc_app + tr + io*(lambda2/lambda1)^2;
-    prstim_ph = ddc_app + tr - io*(lambda2/lambda1)^2;
-end
+%remove pivot-pivot lines
+A0(pivot_index, :)     = [];
+A(pivot_index, :)      = [];
+probs_pr1(pivot_index) = [];
+probs_ph1(pivot_index) = [];
+probs_pr2(pivot_index) = [];
+probs_ph2(pivot_index) = [];
+prapp_pr1(pivot_index) = [];
+prapp_ph1(pivot_index) = [];
+prapp_pr2(pivot_index) = [];
+prapp_ph2(pivot_index) = [];

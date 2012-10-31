@@ -5,7 +5,7 @@ function icol = find_eph(Eph, sv, time)
 %
 % INPUT:
 %   Eph = ephemerides matrix
-%   sv = satellites in view
+%   sv = satellite PRN
 %   time = GPS time
 %
 % OUTPUT:
@@ -16,7 +16,7 @@ function icol = find_eph(Eph, sv, time)
 %   (with respect to the specified GPS time) in the ephemerides matrix.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre and C.C. Goad 11-26-96
@@ -35,10 +35,15 @@ time = check_t(time);
 dtmin = Eph(18,icol)-time;
 for t = isat
    dt = Eph(18,t)-time;
-   if dt < 0
+%    if dt < 0
       if abs(dt) < abs(dtmin)
          icol = t;
          dtmin = dt;
       end
-   end
+%    end
+end
+
+%check satellite health
+if (Eph(27,icol) ~= 0)
+    icol = [];
 end

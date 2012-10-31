@@ -1,12 +1,11 @@
-function [Q] = cofactor_matrix_SA(elR, snr_R, sat)
+function [Q] = cofactor_matrix_SA(elR, snr_R)
 
 % SYNTAX:
-%   [Q] = cofactor_matrix_SA(elR, snr_R, sat)
+%   [Q] = cofactor_matrix_SA(elR, snr_R)
 %
 % INPUT:
-%   elR = satellite elevations (ROVER)
-%   snr_R = signal-to-noise ratio (ROVER)
-%   sat = visible satellite configuration
+%   elR = satellite elevations
+%   snr_R = signal-to-noise ratio
 %
 % OUTPUT:
 %   Q = code-code or phase-phase co-factor matrix
@@ -16,9 +15,9 @@ function [Q] = cofactor_matrix_SA(elR, snr_R, sat)
 %   strategy (determined by "weights" global variable).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -38,7 +37,7 @@ function [Q] = cofactor_matrix_SA(elR, snr_R, sat)
 global weights snr_a snr_0 snr_1 snr_A
 
 %total number of visible satellites
-n = size(sat,1);
+n = length(elR);
 
 if (weights == 0)
     
