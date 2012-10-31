@@ -15,9 +15,9 @@ function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
 %   File conversion from rover binary stream to RINEX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -358,6 +358,8 @@ if (~isempty(data_rover_all))
     
     %if ephemerides are available
     if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
+        cutoff = 15;
+        snr_threshold = 0;
         weights = 0;
         i = 1;
         while (sum(abs((pos_R))) == 0 & i <= length(time_R))
@@ -366,8 +368,7 @@ if (~isempty(data_rover_all))
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
-                [pos_R] = input_bancroft(pr1_R(satAvail,i), satAvail, time_R(i), Eph_t(:,:));
-                [pos_R] = code_SA(pos_R, pr1_R(satAvail,i), snr_R(satAvail,i), satAvail, time_R(i), Eph_t(:,:), iono(:,i));
+                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], [], [], iono(:,i), [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
             end
             i = i + 1;
         end

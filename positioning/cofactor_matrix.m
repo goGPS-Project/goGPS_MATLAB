@@ -1,15 +1,14 @@
-function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
+function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index)
 
 % SYNTAX:
-%   [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot);
+%   [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
 %
 % INPUT:
 %   elR = satellite elevations (ROVER)
 %   elM = satellite elevations (MASTER)
 %   snr_R = signal-to-noise ratio (ROVER)
 %   snr_M = signal-to-noise ratio (MASTER)
-%   sat = visible satellite configuration
-%   pivot = pivot satellite
+%   pivot = pivot satellite index
 %
 % OUTPUT:
 %   Q = code-code or phase-phase co-factor matrix
@@ -19,9 +18,9 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
 %   strategy (determined by "weights" global variable).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -41,11 +40,7 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, sat, pivot)
 global weights snr_a snr_0 snr_1 snr_A
 
 %total number of visible satellites
-nsat = size(sat,1);
-n = nsat - 1;
-
-%PIVOT satellite index
-i = find(pivot == sat);
+n = length(elR) - 1;
 
 if (weights == 0)
 
@@ -76,12 +71,12 @@ else
 
     end
 
-    q_RP = q_R(i,1);             % ROVER-PIVOT
-    q_MP = q_M(i,1);             % MASTER-PIVOT
-    q_RS = q_R(sat~=pivot);      % ROVER-generic satellite (without pivot)
-    q_MS = q_M(sat~=pivot);      % MASTER-generic satellite (without pivot)
-    %q_RS(sat==pivot) = [];       % ROVER-generic satellite (without pivot)
-    %q_MS(sat==pivot) = [];       % MASTER-generic satellite (without pivot)
+    q_RP = q_R(pivot_index,1); % ROVER-PIVOT
+    q_MP = q_M(pivot_index,1); % MASTER-PIVOT
+    q_R(pivot_index) = [];
+    q_M(pivot_index) = [];
+    q_RS = q_R;                % ROVER-generic satellite (without pivot)
+    q_MS = q_M;                % MASTER-generic satellite (without pivot)
 
     %code-code or phase-phase co-factor matrix Q construction
     Q = (q_RP + q_MP) * ones(n) + diag(q_RS + q_MS);

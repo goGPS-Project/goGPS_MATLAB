@@ -201,6 +201,8 @@ if (~isempty(dir(filename_M_obs)))
                 dop1_R = [dop1_R(:,1:pos) zeros(32,1)    dop1_R(:,pos+1:end)];
                 snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
                 iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
+                
+                roundtime_R = round(time_R);
             end
         else
             time_R = time_GPS;
@@ -224,6 +226,8 @@ if (~isempty(dir(filename_M_obs)))
                 ph1_M  = [ph1_M(:,1:pos)  zeros(32,1)    ph1_M(:,pos+1:end)];
                 snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
                 pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
+                
+                roundtime_M = round(time_M);
             end
         else
             time_M = time_GPS;
@@ -251,8 +255,15 @@ else
 end
 
 %reconstruct ephemerides complete set
+if (nargin >= 6)
+    waitbar(0,wait_dlg,'Reconstruct complete ephemerides set...')
+end
+Eph = zeros(29,32,epochs);
 for i = 1 : epochs
     Eph(:,:,i) = rt_find_eph(Eph_tmp, time_GPS(i));
+    if (nargin >= 6)
+        waitbar(i/epochs,wait_dlg)
+    end
 end
 
 %select ionosphere parameters source
@@ -318,6 +329,9 @@ end
 epochs = length(time_GPS);
 
 %remove observations without ephemerides
+if (nargin >= 6)
+    waitbar(0,wait_dlg,'Remove observations without ephemerides...')
+end
 for i = 1 : epochs
     satEph = find(sum(abs(Eph(:,:,i)))~=0);
     delsat = setdiff(1:32,satEph);
@@ -329,6 +343,10 @@ for i = 1 : epochs
     dop1_M(delsat,i) = 0;
     snr_R(delsat,i)  = 0;
     snr_M(delsat,i)  = 0;
+    
+    if (nargin >= 6)
+        waitbar(i/epochs,wait_dlg)
+    end
 end
 
 %complete/partial path

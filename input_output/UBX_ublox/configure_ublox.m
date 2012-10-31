@@ -17,9 +17,9 @@ function [serialObj, reply_SAVE] = configure_ublox(serialObj, COMportR, prot_par
 %   Configure u-blox receivers to be used with goGPS.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
 %----------------------------------------------------------------------------------------------
 %

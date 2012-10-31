@@ -5,9 +5,9 @@
 %   Global variables initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -275,8 +275,11 @@ kml_filename = '../data/google_earth/goGPS.kml';
 % THRESHOLDS
 %-------------------------------------------------------------------------------
 global clock_delay_thresh
+global cond_num_threshold
 
 clock_delay_thresh = 100;
+cond_num_threshold = 1e6; %threshold on the condition number on the
+                          % eigenvalues of the N matrix (least squares)
 
 %-------------------------------------------------------------------------------
 % PHASE-SMOOTHED CODE

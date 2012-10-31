@@ -8,9 +8,9 @@
 %
 %
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -45,9 +45,6 @@ warning off;
 % include all subdirectories
 addpath(genpath(pwd));
 
-% start evaluating computation time
-tic
-
 %----------------------------------------------------------------------------------------------
 % INTERFACE TYPE DEFINITION
 %----------------------------------------------------------------------------------------------
@@ -68,10 +65,10 @@ global order o1 o2 o3 h_antenna cutoff weights
 if (mode_user == 1)
 
     if (~isunix)
-        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
-            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
+       [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+           flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
+           filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+           filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
@@ -85,13 +82,13 @@ if (mode_user == 1)
 else
 
     %-------------------------------------------------------------------------------------------
-    % DEFINITION OF THE FUNCTIONING MODE (TEXTUAL INTERFACE)
+    % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
     %-------------------------------------------------------------------------------------------
 
     mode = 1;         % functioning mode
     % POST-PROCESSING
     % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-    % mode=2  --> KALMAN FILTER ON PHASE AND CODE, WITHOUT INTERNET CONNECTION AND WITHOUT A CONSTRAINT (to be implemented)
+    % mode=2  --> POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE, STAND-ALONE, NO CONSTRAINT
     % mode=3  --> LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
     % mode=4  --> LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
     % mode=5  --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
@@ -101,7 +98,7 @@ else
     % mode=9  --> ....
     % REAL-TIME
     % mode=11 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-    % mode=12 --> U-BLOX MONITORING
+    % mode=12 --> ROVER MONITORING
     % mode=13 --> MASTER MONITORING
     % mode=14 --> ROVER AND MASTER MONITORING
 
@@ -155,6 +152,9 @@ else
 
 end
 
+% start evaluating computation time
+tic
+
 %-------------------------------------------------------------------------------------------
 % REFERENCE PATH LOAD
 %-------------------------------------------------------------------------------------------
@@ -202,6 +202,7 @@ if (mode < 10) %post-processing
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, date, pos_R, pos_M, Eph, iono, Eph_RR] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav);
+
         else
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
@@ -211,7 +212,7 @@ if (mode < 10) %post-processing
                 time_GPS, time_R, time_M, date, pos_R, pos_M, Eph, iono, Eph_RR] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs);
         end
-        
+
         %GPS week number
         date(:,1) = date(:,1) + 2000;
         week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
@@ -404,7 +405,7 @@ if (mode < 10) %post-processing
         if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
             %compute master station clock error and drift
             fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
-            [dtM, dtMdot] = clock_error(pr1_M, Eph, iono, snr_M, time_M, pos_M);
+            [dtM, dtMdot] = clock_error(pos_M, time_M, pr1_M, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
         else
             dtM = zeros(size(dop1_M,2),1);
             dtMdot = zeros(size(dop1_M,2),1);
@@ -488,8 +489,8 @@ if (mode == 1) & (mode_vinc == 0)
             else
                 Eph_t = Eph(:,:,1);
             end
-            
-            kalman_initialized = kalman_goGPS_init (pos_R, pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), 1, dtMdot(1));
+
+            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(1));
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -534,7 +535,7 @@ if (mode == 1) & (mode_vinc == 0)
                 Eph_t = Eph(:,:,t);
             end
 
-            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), 1, dtMdot(t));
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(t));
 
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -593,7 +594,7 @@ if (mode == 1) & (mode_vinc == 0)
             flag_dyn = 1;
             order = fread(fid_dyn,1,'uint8');
             
-            kalman_initialized = kalman_goGPS_init_model (pos_R, pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), order, 1, dtMdot(1));
+            kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, order, 1, dtMdot(1));
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -670,7 +671,7 @@ if (mode == 1) & (mode_vinc == 0)
             order0 = order;
             order = fread(fid_dyn,1,'uint8');
             
-            [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_loop_model (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), order, 1, dtMdot(t));
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, order, 1, dtMdot(t));
             
             if (flag_stopGOstop == 1)
                 if (order > order0)
@@ -810,7 +811,7 @@ elseif (mode == 1) & (mode_vinc == 1)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = kalman_goGPS_vinc_init (pos_R, pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), 1, ref_loop, dtMdot(1));
+        kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, ref_loop, dtMdot(1));
         
         if (~kalman_initialized)
             pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -850,7 +851,7 @@ elseif (mode == 1) & (mode_vinc == 1)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_vinc_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), 1, ref_loop, dtMdot(t));
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, ref_loop, dtMdot(t));
 
         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -904,7 +905,7 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = kalman_goGPS_SA_init (pos_R, time_GPS(1), Eph_t, iono, pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), 1);
+        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -949,7 +950,7 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_SA_loop (time_GPS(t), Eph_t, iono, pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), 1);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -1011,7 +1012,7 @@ elseif (mode == 3)
             Eph_t = Eph(:,:,t);
         end
 
-        LS_goGPS_cod_loop (time_GPS(t), Eph_t, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), iono, 1);
+        goGPS_LS_DD_code(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
 
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
@@ -1037,11 +1038,11 @@ elseif (mode == 3)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
-            else
-                if (t == 1)
-                    fprintf('Processing...\n');
-                end
             end
+        end
+      
+        if ((t == 1) & (~flag_plotproc))
+            fprintf('Processing...\n');
         end
     end
 
@@ -1077,7 +1078,7 @@ elseif (mode == 4)
             Eph_t = Eph(:,:,t);
         end
 
-        LS_goGPS_SA_cod_loop(time_GPS(t), Eph_t, pr1_R(:,t), pr2_R(:,t), snr_R(:,t), iono, 1);
+        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
 
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
@@ -1103,11 +1104,11 @@ elseif (mode == 4)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
-            else
-                if (t == 1)
-                    fprintf('Processing...\n');
-                end
             end
+        end
+        
+        if ((t == 1) & (~flag_plotproc))
+            fprintf('Processing...\n');
         end
     end
 
@@ -1146,7 +1147,7 @@ elseif (mode == 5)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = kalman_goGPS_cod_init(pos_R, pos_M(:,1), time_GPS(1), Eph_t, iono, pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), 1);
+        kalman_initialized = goGPS_KF_DD_code_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
         
         if (~kalman_initialized)
             pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1189,7 +1190,7 @@ elseif (mode == 5)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = kalman_goGPS_cod_loop (pos_M(:,t), time_GPS(t), Eph_t, iono, pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), 1);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -1251,7 +1252,7 @@ elseif (mode == 6)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = kalman_goGPS_SA_cod_init(pos_R, time_GPS(1), Eph_t, iono, pr1_R(:,1), pr2_R(:,1), snr_R(:,1), 1);
+        kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -1294,7 +1295,7 @@ elseif (mode == 6)
             Eph_t = Eph(:,:,t);
         end
 
-        kalman_goGPS_SA_cod_loop(time_GPS(t), Eph_t, iono, pr1_R(:,t), pr2_R(:,t), snr_R(:,t), 1);
+        goGPS_KF_SA_code_loop(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -1353,12 +1354,10 @@ elseif (mode == 7)
             Eph_t = Eph(:,:,t);
         end
 
-        LS_goGPS_SA_loop(time_GPS(t), Eph_t, pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), iono, 1);
+        goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
 
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
-            Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
-            Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
-            fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+            fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
@@ -1511,7 +1510,6 @@ if (mode < 12)
 
         %file writing
         fprintf(fid_out, '%02d/%02d/%02d        %02d:%02d:%02d% 16d% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
-
     end
     fclose(fid_out);
 end
@@ -1593,6 +1591,20 @@ if (mode < 12) & (~isempty(EAST_KAL))
     else
         legend('Positioning','Location','SouthOutside');
     end
+    
+    if (mode == 3 | mode == 4)
+        EAST_R = mean(EAST_KAL);
+        NORTH_R = mean(NORTH_KAL);
+        h_R = mean(h_KAL);
+        plot(EAST_R-EAST_O, NORTH_R-NORTH_O, '*b');
+    end
+    
+    if (mode == 1 | mode == 3 | mode == 5 | mode == 11)
+        %coordinate transformation (UTM)
+        [EAST_M, NORTH_M, h_M, utm_zone] = cart2plan(pos_M(1,1), pos_M(2,1), pos_M(3,1));
+        
+        plot(EAST_M-EAST_O, NORTH_M-NORTH_O, 'xc', 'LineWidth', 2);
+    end
 
     %statistics
     f2 = subplot(7,3,[4 7 10]);
@@ -1608,6 +1620,14 @@ if (mode < 12) & (~isempty(EAST_KAL))
 %         text(0,0.50,sprintf('E: %.4f m', Cee_ENU(1,1)));
 %         text(0,0.45,sprintf('N: %.4f m', Cee_ENU(2,2)));
 %         text(0,0.40,sprintf('U: %.4f m', Cee_ENU(3,3)));
+    end
+    
+    if (mode == 3)
+        text(0,0.95,'----------------');
+        text(0,0.90,'Planar difference');
+        text(0,0.83,sprintf('E: %.3f m', EAST_R-EAST_M));
+        text(0,0.78,sprintf('N: %.3f m', NORTH_R-NORTH_M));
+        text(0,0.73,sprintf('h(ell.): %.3f m', h_R-h_M));
     end
     
     text(0,0.62,'----------------');
@@ -1759,7 +1779,7 @@ if (mode < 12)
         KHDOP_thres = 2;
     end
 
-    if (mode ~= 2) & (mode ~= 4) & (mode ~= 6)
+    if (mode ~= 2) & (mode ~= 4) & (mode ~= 6) & (mode ~= 7)
         %master station coordinates
         for i = 1 : nObs
             if (sum(abs(pos_M(:,i))) ~= 0)

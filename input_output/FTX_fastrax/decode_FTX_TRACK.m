@@ -30,9 +30,9 @@ function [data] = decode_FTX_TRACK(msg)
 % DESCRIPTION:
 %   TRACK binary message decoding.
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.3
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2010 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------

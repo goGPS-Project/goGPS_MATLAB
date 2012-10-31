@@ -1,9 +1,7 @@
-function [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr_Rsat, ...
-         ph_Rsat, phase)
+function [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr_Rsat, ph_Rsat, phase)
 
 % SYNTAX:
-%   [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr_Rsat, ...
-%   ph_Rsat, phase);
+%   [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr_Rsat, ph_Rsat, phase);
 %
 % INPUT:
 %   pr_Rsat = ROVER-SATELLITE code-pseudorange
@@ -20,9 +18,9 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr_Rsat, ...
 %   stand-alone mode.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

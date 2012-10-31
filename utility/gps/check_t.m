@@ -4,16 +4,17 @@ function [corrTime] = check_t(time)
 %   [corrTime] = check_t(time);
 %
 % INPUT:
-%   t = GPS time
+%   time = GPS time
 %
 % OUTPUT:
-%   tt = corrected GPS time
+%   corrTime = corrected GPS time
 %
 % DESCRIPTION:
-%   Function accounting for beginning or end of week crossover.
+%   Function accounting for beginning or end of week crossover. From the
+%   Interface Specification document revision E (IS-GPS-200E), page 93.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 04-01-96

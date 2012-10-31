@@ -1,12 +1,16 @@
-function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(posR_app, posS, prRS_app, dtR, dtS, err_tropo_RS, err_iono_RS)
+function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(XR_approx, XS, distR_approx, dtR, dtS, err_tropo, err_iono)
 
 % SYNTAX:
-%   [A, prstim1, prstim2] = input_kalman_SA(posR_app, posS, prRS_app, dtR, dtS, err_tropo_RS, err_iono_RS);
+%   [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(XR_approx, XS, distR_approx, dtR, dtS, err_tropo, err_iono);
 %
 % INPUT:
-%   posR_app = receiver position (X,Y,Z)
-%   posS = satellite position (X,Y,Z)
-%   prRS_app = approximated pseudorange
+%   XR_approx = receiver approximate position (X,Y,Z)
+%   XS = satellite position (X,Y,Z)
+%   distR_approx = receiver-satellite approximate range
+%   dtR = receiver clock error
+%   dtS = satellite clock error
+%   err_tropo = tropospheric error
+%   err_iono = ionospheric error
 %
 % OUTPUT:
 %   A = parameters obtained from the linearization of the observation equation,
@@ -21,9 +25,9 @@ function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(p
 %   transition matrix, that links state variables to GPS observations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -44,20 +48,12 @@ function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(p
 global v_light
 global lambda1 lambda2
 
-%number of visible satellites
-nsat = length(prRS_app);
+%design matrix
+A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
+     (XR_approx(2) - XS(:,2)) ./ distR_approx, ... %column for Y coordinate
+     (XR_approx(3) - XS(:,3)) ./ distR_approx];    %column for Z coordinate
 
-A = [];
-
-for i = 1 : nsat
-
-    %design matrix computation
-    A = [A; ((posR_app(1) - posS(1,i)) / prRS_app(i)) ...
-            ((posR_app(2) - posS(2,i)) / prRS_app(i)) ...
-            ((posR_app(3) - posS(3,i)) / prRS_app(i))];
-end
-
-prstim_pr1 = prRS_app + v_light*(dtR - dtS) + err_tropo_RS + err_iono_RS;
-prstim_ph1 = prRS_app + v_light*(dtR - dtS) + err_tropo_RS - err_iono_RS;
-prstim_pr2 = prRS_app + v_light*(dtR - dtS) + err_tropo_RS + (lambda2/lambda1)^2 * err_iono_RS;
-prstim_ph2 = prRS_app + v_light*(dtR - dtS) + err_tropo_RS - (lambda2/lambda1)^2 * err_iono_RS;
+prstim_pr1 = distR_approx + v_light*(dtR - dtS) + err_tropo + err_iono;
+prstim_ph1 = distR_approx + v_light*(dtR - dtS) + err_tropo - err_iono;
+prstim_pr2 = distR_approx + v_light*(dtR - dtS) + err_tropo + (lambda2/lambda1)^2 * err_iono;
+prstim_ph2 = distR_approx + v_light*(dtR - dtS) + err_tropo - (lambda2/lambda1)^2 * err_iono;

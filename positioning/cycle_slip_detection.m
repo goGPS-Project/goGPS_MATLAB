@@ -1,11 +1,9 @@
 function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-         ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, pr_RSapp, pr_MSapp,  ...
-         doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase)
+         ph_Rsat, ph_Msat, pr_RSapp, pr_MSapp, doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-%   ph_Rsat, ph_Msat, pr_Rsat, pr_Msat, prRS_app, prMS_app, ...
-%   doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase);
+%   ph_Rsat, ph_Msat, prRS_app, prMS_app, doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
@@ -33,9 +31,9 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
 %   the new phase ambiguities.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -103,10 +101,10 @@ for i = 1 : nsat
     
     cs = 0;
 
-    if (~ismember(sat(i),sat_born) & (sat(i) ~= pivot))
+    if (~ismember(sat(i),sat_born))
 
         %Kalman-estimated phase ambiguities compared with ambiguities estimated by using approximate pseudorange (double differences)
-        if (~flag_doppler_cs & (abs(N_kalman(sat(i)) - N_stim(i)) > alpha))
+        if (~flag_doppler_cs & (abs(N_kalman(sat(i)) - N_stim(i)) > alpha) & (sat(i) ~= pivot))
             cs = 1;
         end
 
@@ -114,13 +112,23 @@ for i = 1 : nsat
         if (flag_doppler_cs & (abs(doppler_pred_range_R(i) - ph_Rsat(i)) > alpha | ...
                                abs(doppler_pred_range_M(i) - ph_Msat(i)) > alpha))
            cs = 1;
+
+           %if the pivot slips, all ambiguity combinations must be re-estimated
+           if (sat(i) == pivot)
+               N_slip = N_stim;
+               sat_slip = sat;
+               sat_slip(sat_slip == pivot) = [];
+               sat_slip = setdiff(sat_slip,sat_born);
+               slip = 1;
+               return
+           end
         end
 
         if (cs)
-            %save of the new phase ambiguity estimation
+            %new phase ambiguity
             N_slip = [N_slip; N_stim(i)];
 
-            %save of the slipped satellite
+            %slipped satellite
             sat_slip = [sat_slip; sat(i)];
 
             %flag identifying one or more cycle-slips

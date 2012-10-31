@@ -17,9 +17,9 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 %   the information it contains.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini.
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini.
 % (2012) Portions of code contributed by Damiano Triglione.
 %
 % Partially based on FEPOCH_0.M (EASY suite) by Kai Borre
@@ -43,16 +43,13 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 time = 0;
 sat = [];
 sat_types = [];
-%datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
+datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
 eof = 0;
 if nargout>3
     datee_RequestedInOutputFlag = true;
 else
     datee_RequestedInOutputFlag = false;
 end% if
-
-
-
 
 %search data
 while (eof==0)
