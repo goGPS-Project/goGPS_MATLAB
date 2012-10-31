@@ -22,9 +22,9 @@ function [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_SP3, time, week, wai
 %         http://www.ngs.noaa.gov/orbits/sp3c.txt
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -40,6 +40,9 @@ function [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_SP3, time, week, wai
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+%degree of interpolation polynomial (Lagrange)
+n = 10;
 
 %number of seconds in a quarter of an hour
 quarter_sec = 900;
@@ -67,8 +70,8 @@ week_end   = week(end);
 dow_start = floor(time_start / 86400);
 dow_end   = floor(time_end / 86400);
 
-%add a buffer of 45 minutes before and after
-if ((time_start-dow_start*86400) < 3*quarter_sec)
+%add a buffer before and after
+if ((time_start-dow_start*86400) < n/2*quarter_sec)
     if (dow_start == 0)
         week_start = week_start - 1;
         dow_start = 6;
@@ -78,7 +81,7 @@ if ((time_start-dow_start*86400) < 3*quarter_sec)
 else
 end
 
-if (time_end-dow_end*86400 > 86400-3*quarter_sec)
+if (time_end-dow_end*86400 > 86400-n/2*quarter_sec)
     if (dow_end == 6)
         week_end = week_end + 1;
         dow_end = 0;
