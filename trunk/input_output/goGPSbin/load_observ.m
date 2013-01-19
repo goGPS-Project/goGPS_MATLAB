@@ -30,7 +30,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   by goGPS.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -82,8 +82,11 @@ if (nargin == 3)
 end
 
 %round time values for synchronizing rover and master epochs
-roundtime_R = round(time_R);
-roundtime_M = round(time_M);
+interval_R = median(time_R(2:end) - time_R(1:end-1));
+roundtime_R = roundmod(time_R,interval_R);
+
+interval_M = median(time_M(2:end) - time_M(1:end-1));
+roundtime_M = roundmod(time_M,interval_M);
 
 if ~isempty(time_R) & ~isempty(time_M)
 
@@ -149,8 +152,10 @@ end
 time_GPS = union(roundtime_R,roundtime_M);           %overall reference time
 
 if ~isempty(time_GPS)
+    
+    interval = median(time_GPS(2:end) - time_GPS(1:end-1));
 
-    time_GPS = (time_GPS(1) : 1 : time_GPS(end))';   %GPS time without interruptions
+    time_GPS = (time_GPS(1) : interval : time_GPS(end))';   %GPS time without interruptions
 
     loss_R = 1 - ismember(time_GPS,roundtime_R);     %losses of signal (ROVER)
     loss_M = 1 - ismember(time_GPS,roundtime_M);     %losses of signal (MASTER)
@@ -160,10 +165,10 @@ if ~isempty(time_GPS)
         newtime_R = setdiff(time_GPS, roundtime_R);  %ROVER missing epochs
         for i = 1 : length(newtime_R)
 
-            pos = find(roundtime_R == newtime_R(i) - 1);  %position before the "holes"
+            pos = find(roundtime_R == newtime_R(i) - interval);  %position before the "holes"
 
             time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
-            week_R = [week_R(1:pos);  0;             week_R(pos+1:end)];
+            week_R = [week_R(1:pos);  week_R(pos);   week_R(pos+1:end)]; %does not take into account week change (TBD)
             pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
             ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
             dop1_R = [dop1_R(:,1:pos) zeros(32,1)    dop1_R(:,pos+1:end)];
@@ -171,6 +176,8 @@ if ~isempty(time_GPS)
             iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
 
             Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(29,32,1), Eph_R(:,:,pos+1:end));
+            
+            roundtime_R = roundmod(time_R,interval_R);
         end
     else
         time_R = time_GPS;
@@ -188,7 +195,7 @@ if ~isempty(time_GPS)
         newtime_M = setdiff(time_GPS, roundtime_M);  %MASTER missing epochs
         for i = 1 : length(newtime_M)
 
-            pos = find(roundtime_M == newtime_M(i) - 1);  %position before the "holes"
+            pos = find(roundtime_M == newtime_M(i) - interval);  %position before the "holes"
 
             time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
             pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
@@ -197,6 +204,8 @@ if ~isempty(time_GPS)
             pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
 
             Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(29,32,1), Eph_M(:,:,pos+1:end));
+            
+            roundtime_M = roundmod(time_M,interval_M);
         end
     else
         time_M = time_GPS;

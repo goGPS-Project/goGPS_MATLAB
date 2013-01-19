@@ -43,7 +43,7 @@ function [data] = decode_skytraq_GPS_EPH(msg)
 %   GPS Ephemeris data binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

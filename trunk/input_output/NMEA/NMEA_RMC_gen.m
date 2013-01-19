@@ -14,7 +14,7 @@ function nmeastring = NMEA_RMC_gen(pos_R, date)
 %   Returns a $GPRMC sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -99,51 +99,51 @@ speed = ''; %speed over ground (knots), to be changed
 % FORMAT DATA
 %-----------------------------------------------------------------------------------------------
 
-hour = sprintf('%d', date(1,4));
-minute = sprintf('%d', date(1,5));
-second = sprintf('%d', floor(date(1,6)));
+hour = sprintf('%02d', date(1,4));
+minute = sprintf('%02d', date(1,5));
+second = sprintf('%05.2f', date(1,6));
 
-[null, nchar] = size(hour); %#ok<ASGLU>
-if (nchar == 1)
-    [hour] = sprintf('0%s',hour);
-end
+% [null, nchar] = size(hour); %#ok<ASGLU>
+% if (nchar == 1)
+%     [hour] = sprintf('0%s',hour);
+% end
+% 
+% [null, nchar] = size(minute); %#ok<ASGLU>
+% if (nchar == 1)
+%     [minute] = sprintf('0%s',minute);
+% end
+% 
+% [null, nchar] = size(second); %#ok<ASGLU>
+% if (nchar == 1)
+%     [second] = sprintf('0%s',second);
+% end
+% 
+% decsec = '.00';
 
-[null, nchar] = size(minute); %#ok<ASGLU>
-if (nchar == 1)
-    [minute] = sprintf('0%s',minute);
-end
+day = sprintf('%02d', date(1,3));
+month = sprintf('%02d', date(1,2));
+year = sprintf('%02d', date(1,1));
 
-[null, nchar] = size(second); %#ok<ASGLU>
-if (nchar == 1)
-    [second] = sprintf('0%s',second);
-end
-
-decsec = '.00';
-
-day = sprintf('%d', date(1,3));
-month = sprintf('%d', date(1,2));
-year = sprintf('%d', date(1,1));
-
-[null, nchar] = size(day); %#ok<ASGLU>
-if (nchar == 1)
-    [day] = sprintf('0%s',day);
-end
-
-[null, nchar] = size(month); %#ok<ASGLU>
-if (nchar == 1)
-    [month] = sprintf('0%s',month);
-end
-
-[null, nchar] = size(year); %#ok<ASGLU>
-if (nchar == 1)
-    [year] = sprintf('0%s',year);
-end
+% [null, nchar] = size(day); %#ok<ASGLU>
+% if (nchar == 1)
+%     [day] = sprintf('0%s',day);
+% end
+% 
+% [null, nchar] = size(month); %#ok<ASGLU>
+% if (nchar == 1)
+%     [month] = sprintf('0%s',month);
+% end
+% 
+% [null, nchar] = size(year); %#ok<ASGLU>
+% if (nchar == 1)
+%     [year] = sprintf('0%s',year);
+% end
 
 %-----------------------------------------------------------------------------------------------
 % COMPOSITION OF THE NMEA SENTENCE
 %-----------------------------------------------------------------------------------------------
 
-nmeastring = sprintf('$GPRMC,%s%s%s%s,%c,%s,%c,%s,%c,%s,,%s%s%s,,,,',hour,minute,second,decsec,status,phi_nmea,emi_NS,lam_nmea,emi_EW,speed,day,month,year);
+nmeastring = sprintf('$GPRMC,%s%s%s,%c,%s,%c,%s,%c,%s,,%s%s%s,,,,',hour,minute,second,status,phi_nmea,emi_NS,lam_nmea,emi_EW,speed,day,month,year);
 
 %-----------------------------------------------------------------------------------------------
 % CHECKSUM COMPUTATION

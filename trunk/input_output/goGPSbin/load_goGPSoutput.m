@@ -36,7 +36,7 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   Kalman filter output data reading.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ Yhat_t_t = [];                     %receiver positions estimate
 Cee = [];                          %estimation error covariance matrix
 
 %observations reading
-if (mode == 1 & mode_vinc == 1)
+if (mode == 14 & mode_vinc == 1)
     i = 0;                                                              %epoch counter
     hour = 0;                                                           %hour index (integer)
     hour_str = num2str(hour,'%02d');                                    %hour index (string)

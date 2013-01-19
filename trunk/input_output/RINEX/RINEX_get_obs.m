@@ -18,7 +18,7 @@ function [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types,
 %   Acquisition of RINEX observation data (code, phase and signal-to-noise ratio).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)

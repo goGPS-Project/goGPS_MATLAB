@@ -31,7 +31,7 @@ function [data] = decode_FTX_PSEUDO(msg)
 % DESCRIPTION:
 %   PSEUDO binary message decoding.
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
