@@ -20,7 +20,7 @@ function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_c
 %   Standalone code positioning by least squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

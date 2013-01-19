@@ -15,7 +15,7 @@ function [corr] = tropo_error_correction(el, h)
 %   Saastamoinen algorithm.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %

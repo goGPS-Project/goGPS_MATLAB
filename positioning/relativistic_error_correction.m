@@ -17,7 +17,7 @@ function [corr] = relativistic_error_correction(time, Eph, XS, VS)
 %   Interface Specification document revision E (IS-GPS-200E), page 86.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %

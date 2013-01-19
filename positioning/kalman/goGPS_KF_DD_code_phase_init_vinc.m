@@ -42,7 +42,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init_vinc(XR0, XM, time_r
 %   initial position (X,Y,Z). Constrained path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -69,7 +69,7 @@ global sigmaq0 sigmaq_vel sigmaq0_N
 global cutoff snr_threshold cond_num_threshold o1 nN
 global s0 ax ay az
 
-global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old
+global Xhat_t_t X_t1_t Yhat_t_t Y_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
 global doppler_pred_range1_R doppler_pred_range2_R
@@ -124,7 +124,7 @@ Z_o1_nN = zeros(o1,nN);
 
 %T matrix construction - system dynamics
 %position and velocity equations
-T0 = eye(o1) + diag(ones(o1-1,1),1);
+T0 = eye(o1) + diag(ones(o1-1,1),1)*interval;
 
 %second degree polynomial
 % T0 = [1 1; 0 1];

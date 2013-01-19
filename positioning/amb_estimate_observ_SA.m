@@ -18,7 +18,7 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ_SA(pr_Rsat, ph_Rsat, phas
 %   stand-alone mode.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
