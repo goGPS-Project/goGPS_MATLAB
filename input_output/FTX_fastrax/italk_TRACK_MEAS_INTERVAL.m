@@ -15,7 +15,7 @@ function [out] = italk_TRACK_MEAS_INTERVAL(serialObj, tran_id, interval)
 %   ITALK configuration message.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %

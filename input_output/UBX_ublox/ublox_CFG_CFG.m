@@ -16,7 +16,7 @@ function [out] = ublox_CFG_CFG(serialObj, action)
 %   Clear, save or load u-blox receiver configurations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

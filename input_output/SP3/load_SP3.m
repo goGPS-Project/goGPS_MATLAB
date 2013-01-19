@@ -22,7 +22,7 @@ function [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_SP3, time, week, wai
 %         http://www.ngs.noaa.gov/orbits/sp3c.txt
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

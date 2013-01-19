@@ -13,7 +13,7 @@ function [Eph] = RINEX_get_nav_GLO(file_nav_GLO)
 %   Parse a RINEX GLONASS navigation file.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %

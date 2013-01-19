@@ -42,7 +42,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
 %   Parse RINEX files (both observation and navigation).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
