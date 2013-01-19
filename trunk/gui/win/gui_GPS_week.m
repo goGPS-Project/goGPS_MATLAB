@@ -25,7 +25,7 @@ function varargout = gui_GPS_week(varargin)
 % Last Modified by GUIDE v2.5 28-Jun-2010 16:09:09
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
