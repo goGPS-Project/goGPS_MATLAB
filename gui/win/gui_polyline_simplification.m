@@ -25,7 +25,7 @@ function varargout = gui_polyline_simplification(varargin)
 % Last Modified by GUIDE v2.5 08-Oct-2010 13:09:29
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -174,11 +174,14 @@ function browse_data_stream_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
-    {'*_position.txt;*_cov.txt','Input dataset (*_position.txt and *_cov.txt)'}, ...
+    {'*_position.txt;*_cov_ENU.txt','Input dataset (*_position.txt and *_cov_ENU.txt)'}, ...
     'Choose input dataset','../data');
 
 if (filename ~= 0)
     pos = find(filename == '_');
+    if (strcmp(filename(end-4),'U'))
+        pos(end) = [];
+    end
     filename = filename(1:pos(end)-1);
     set(handles.data_stream,'String',fullfile(pathname, filename));
 end
@@ -207,7 +210,7 @@ min_nodes = str2double(get(handles.min_nodes,'String'));
 
 %check if input data are available
 d1 = dir([filerootIN '_position.txt']);
-d2 = dir([filerootIN '_cov.txt']);
+d2 = dir([filerootIN '_cov_ENU.txt']);
 if (flag_iter0 == 0 & flag_iter1 == 0)
     if ~isempty(d1)
         polyline(filerootIN, angle_threshold, dist_threshold_AGNES, dN1, dN2, ...
@@ -222,7 +225,7 @@ else
             delta_iter0, delta_iter1, dist_threshold_update_iter0, dist_threshold_update_iter1, ...
             flag_iter0, flag_iter1, min_nodes);
     else
-        msgbox('Both *_position.txt and *_cov.txt files are needed to run the weighted polyline simplification algorithm.');
+        msgbox('Both *_position.txt and *_cov_ENU.txt files are needed to run the weighted polyline simplification algorithm.');
     end
 end
 

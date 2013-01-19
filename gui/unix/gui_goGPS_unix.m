@@ -25,7 +25,7 @@ function varargout = gui_goGPS_unix(varargin)
 % Last Modified by GUIDE v2.5 14-May-2011 12:06:31
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
@@ -2635,34 +2635,35 @@ if ~isempty(dir(get(handles.gogps_data_output,'String')))
         i = i + 1;
     end
 end
-if (mode < 10) %if post-processing
+
+if (mode <= 20) %if post-processing
     if (get(handles.file_type, 'SelectedObject') == handles.gogps_data & (isempty(dir([filerootIN '_obs*.bin'])) | isempty(dir([filerootIN '_eph*.bin']))))
         msgbox('Input goGPS binary files not found (both *_obs_* and *_eph_* files are needed).'); ready = 0;
     elseif (get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_R_obs)))
         msgbox('Input rover observation RINEX file not found.'); ready = 0;
-    elseif (mod(mode,2) & get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_M_obs)))
+    elseif (mode > 10 & get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_M_obs)))
         msgbox('Input master observation RINEX file not found.'); ready = 0;
     elseif (get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_nav)))
         msgbox('Input navigation RINEX file not found.'); ready = 0;
     end
 end
 
-if (mode < 11) %if not rover and/or master monitor
+if (mode <= 20 | mode == 24) %if not rover and/or master monitor
     if (ref_path & isempty(dir(filename_ref)))
         msgbox('Input reference path file not found.'); ready = 0;
-    elseif ((mode == 1 | mode == 2) & get(handles.toggle_std_dtm,'Value'))
+    elseif ((mode == 14 | mode == 4) & get(handles.toggle_std_dtm,'Value'))
         try
             load([dtm_dir '/tiles/tile_header'], 'tile_header');
             load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
         catch
             msgbox('DTM directory does not contain valid data.'); ready = 0;
         end
-    elseif (mod(mode,2) & strcmp(get(handles.crs,'Enable'),'on') & ...
+    elseif (mode > 10 & strcmp(get(handles.crs,'Enable'),'on') & ...
             strcmp(crs_contents{get(handles.crs,'Value')},'ECEF (X,Y,Z)') & ...
             ((isnan(master_X) | isnan(master_Y) | isnan(master_Z)) | ...
             (master_X == 0 & master_Y == 0 & master_Z == 0)))
         msgbox('Please provide valid values for the master station ECEF coordinates.'); ready = 0;
-    elseif (mod(mode,2) & strcmp(get(handles.crs,'Enable'),'on') & ...
+    elseif (mode > 10 & strcmp(get(handles.crs,'Enable'),'on') & ...
             strcmp(crs_contents{get(handles.crs,'Value')},'Geodetic coord. (lat,lon,h)') & ...
             ((isnan(master_lat) | isnan(master_lon) | isnan(master_h)) | ...
             (abs(master_lat) > 90 | abs(master_lon) > 180)))
@@ -2698,17 +2699,17 @@ end
 
 %check if the dataset was surveyed with a variable dynamic model
 d = dir([filerootIN '_dyn_00.bin']);
-if (mode < 10 & (flag_stopGOstop | strcmp(contents_dyn_mod{get(handles.dyn_mod,'Value')},'Variable')) & isempty(d))
+if (mode <= 20 & (flag_stopGOstop | strcmp(contents_dyn_mod{get(handles.dyn_mod,'Value')},'Variable')) & isempty(d))
     msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
 end
 
-if (mode == 11 | mode == 12 | mode == 14) %if a COM connection to the rover is required
+if (mode == 21 | mode == 23 | mode == 24) %if a COM connection to the rover is required
     if(strcmp(COMportR0, 'NA'))
         msgbox('Please select an existing COM port.'); ready = 0;
     end
 end
 
-if (mode == 11 | mode == 13 | mode == 14) %if a TCP/IP connection to the master is required
+if (mode == 22 | mode == 23 | mode == 24) %if a TCP/IP connection to the master is required
     if (isempty(master_ip))
         msgbox('Please provide an IP address for the connection to the master.'); ready = 0;
     elseif (isnan(master_port) | master_port < 0 | master_port > 65535)
@@ -3037,30 +3038,30 @@ contents_code_dd_sa = cellstr(get(handles.code_dd_sa,'String'));
 if (strcmp(contents_mode{get(handles.mode,'Value')},'Post-processing'))
     if (strcmp(contents_kalman_ls{get(handles.kalman_ls,'Value')},'Kalman filter'))
         if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
-            mode = 1;
+            mode = 14;
         elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone'))
-            mode = 2;
+            mode = 4;
         elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
-            mode = 5;
+            mode = 12;
         else %Code stand-alone
-            mode = 6;
+            mode = 2;
         end
     else %Least squares
         if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
-            mode = 3;
+            mode = 11;
         else %Code stand-alone
-            mode = 4;
+            mode = 1;
         end
     end
 else %Real-time
     if (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Navigation'))
-        mode = 11;
+        mode = 24;
     elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
-        mode = 12;
+        mode = 21;
     elseif (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
-        mode = 13;
+        mode = 22;
     else %Rover and Master monitor
-        mode = 14;
+        mode = 23;
     end
 end
 
