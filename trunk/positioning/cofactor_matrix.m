@@ -18,7 +18,7 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index)
 %   strategy (determined by "weights" global variable).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

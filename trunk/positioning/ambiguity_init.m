@@ -42,7 +42,7 @@ function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, 
 %   adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

@@ -10,7 +10,7 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx,
 % DESCRIPTION:
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -49,20 +49,10 @@ for i = 1 : nsat
         continue
     end
     
+    %compute signal transmission time
     [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3_time, SP3_clck, err_tropo(i), err_iono(i), dtR);
     
     if (isempty(SP3_time))
-        
-        %relativistic correction term
-        dtrel = relativistic_error_correction(time_tx(i,1), Eph(:,k));
-        
-        %group delay correction term
-        %--- this correction term is only for the benefit of "single-frequency"
-        %    (L1 P(Y) or L2 P(Y)) users
-        tgd = Eph(28,k);
-        
-        %apply the relativistic correction term to the satellite transmission time
-        time_tx(i,1) = time_tx(i,1) + dtrel - tgd;
         
         %compute satellite position and velocity at transmission time
         [XS_tx(i,:), VS_tx(i,:)] = satellite_orbits(time_tx(i,1), Eph(:,k));
@@ -72,10 +62,10 @@ for i = 1 : nsat
 
         %relativistic correction term
         dtrel = relativistic_error_correction(time_tx(i,1), Eph, XS_tx(i,:), VS_tx(i,:));
-        time_tx(i,1) = time_tx(i,1) + dtrel;
+        time_tx(i,1) = time_tx(i,1) - dtrel;
         
-        %%second iteration for taking into account the relativistic effect
-        %[XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3_time, SP3_coor(:,sat,:));
+        %second iteration for taking into account the relativistic effect
+        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3_time, SP3_coor(:,sat(i),:));
     end
     
     %computation of ECEF satellite position at time_rx

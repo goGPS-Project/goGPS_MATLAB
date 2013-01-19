@@ -19,7 +19,7 @@ function [nodes, utm_zone] = polyline_nodesDetection (filename, dN1, dN2, angle_
 %   Determine the nodes using an agglomerative method.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
@@ -40,25 +40,13 @@ function [nodes, utm_zone] = polyline_nodesDetection (filename, dN1, dN2, angle_
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% filename = 'Lura_Befkadu_plan.txt';
-% filename = 'Lura_ublox_cv_strong_position.txt';
-
-% dN1 = 350;
-% dN2 = 100;
-
-% threshold on the angle between arcs (change it to get more or less nodes)
-% angle_threshold = 170 * pi/180;
-
-% threshold on the distance between nodes
-% dist_threshold = 5;
-
 %-----------------------------------------------------------
 % loading the data
 %-----------------------------------------------------------
 
 fid = fopen(filename,'rt');      % open file
 fgets(fid);                      % jump the header
-data = fscanf(fid,'%d/%d/%d %d:%d:%d %d %f %f %f %f %f %f %4c %f %f %f %f %f',[22 inf])';
+data = fscanf(fid,'%d/%d/%d %d:%d:%f %f %f %f %f %f %f %f %4c %f %f %f %f %f',[22 inf])';
 fclose(fid);
 clear filename
 

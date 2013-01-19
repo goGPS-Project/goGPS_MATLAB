@@ -15,7 +15,7 @@ function [week, sec_of_week] = gps_time(julday)
 %	Seconds of Week reckoned from Saturday midnight
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.0 beta
+%                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
