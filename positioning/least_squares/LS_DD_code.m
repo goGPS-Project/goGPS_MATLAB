@@ -29,7 +29,7 @@ function [xR, cov_XR] = LS_DD_code(XR_approx, XS, pr_R, pr_M, snr_R, snr_M, elR,
 %   Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

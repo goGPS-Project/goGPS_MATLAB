@@ -17,7 +17,7 @@ function [Az, El, D] = topocent(Xr, Xs)
 %   the receiver.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 09-26-97

@@ -35,7 +35,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   by the permanent station (MASTER) in RTCM format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -82,21 +82,19 @@ while ~isempty(d)
     d = dir([fileroot '_rover_' hour_str '.bin']);                   %file to be read
 end
 
-if (strcmpi(fileroot(end-2:end),'ubx') | strcmpi(fileroot(end-2:end),'stq'))
-    %ROVER stream reading (non-goGPS binary format)
-    d = dir(fileroot);                                                   %file to be read
-    if ~isempty(d)
-        if (nargin == 1)
-            fprintf(['Reading: ' fileroot '\n']);
-        end
-        num_bytes = d.bytes;                                             %file size (number of bytes)
-        fid_rover = fopen(fileroot);                                     %file opening
-        data_rover_all = fread(fid_rover,num_bytes,'uint8');             %file reading
-        data_rover_all = dec2bin(data_rover_all,8);                      %conversion in binary number (N x 8bits matrix)
-        data_rover_all = data_rover_all';                                %transposed (8bits x N matrix)
-        data_rover_all = data_rover_all(:)';                             %conversion into a string (8N bits vector)
-        fclose(fid_rover);                                               %file closing
+%ROVER stream reading (non-goGPS binary format)
+d = dir(fileroot);                                                   %file to be read
+if ~isempty(d)
+    if (nargin == 1)
+        fprintf(['Reading: ' fileroot '\n']);
     end
+    num_bytes = d.bytes;                                             %file size (number of bytes)
+    fid_rover = fopen(fileroot);                                     %file opening
+    data_rover_all = fread(fid_rover,num_bytes,'uint8');             %file reading
+    data_rover_all = dec2bin(data_rover_all,8);                      %conversion in binary number (N x 8bits matrix)
+    data_rover_all = data_rover_all';                                %transposed (8bits x N matrix)
+    data_rover_all = data_rover_all(:)';                             %conversion into a string (8N bits vector)
+    fclose(fid_rover);                                               %file closing
 end
 
 if (nargin == 2)
@@ -392,21 +390,19 @@ while ~isempty(d)
     d = dir([fileroot '_master_' hour_str '.bin']);                  %file to be read
 end
 
-if (strcmpi(fileroot(end-3:end),'rtcm'))
-    %MASTER stream reading (non-goGPS binary format)
-    d = dir(fileroot);                                                   %file to be read
-    if ~isempty(d)
-        if (nargin == 1)
-            fprintf(['Reading: ' fileroot '\n']);
-        end
-        num_bytes = d.bytes;                                             %file size (number of bytes)
-        fid_master = fopen(fileroot);                                    %file opening
-        data_master_all = fread(fid_master,num_bytes,'uint8');           %file reading
-        data_master_all = dec2bin(data_master_all,8);                    %conversion in binary number (N x 8bits matrix)
-        data_master_all = data_master_all';                              %transposed (8bits x N matrix)
-        data_master_all = data_master_all(:)';                           %conversion into a string (8N bits vector)
-        fclose(fid_master);                                              %file closing
+%MASTER stream reading (non-goGPS binary format)
+d = dir(fileroot);                                                   %file to be read
+if ~isempty(d)
+    if (nargin == 1)
+        fprintf(['Reading: ' fileroot '\n']);
     end
+    num_bytes = d.bytes;                                             %file size (number of bytes)
+    fid_master = fopen(fileroot);                                    %file opening
+    data_master_all = fread(fid_master,num_bytes,'uint8');           %file reading
+    data_master_all = dec2bin(data_master_all,8);                    %conversion in binary number (N x 8bits matrix)
+    data_master_all = data_master_all';                              %transposed (8bits x N matrix)
+    data_master_all = data_master_all(:)';                           %conversion into a string (8N bits vector)
+    fclose(fid_master);                                              %file closing
 end
 
 if (nargin == 2)
@@ -543,11 +539,8 @@ if (nargin == 2)
 end
 
 %round time values for synchronizing rover and master epochs
-interval_R = median(time_R(2:end) - time_R(1:end-1));
-roundtime_R = roundmod(time_R,interval_R);
-
-interval_M = median(time_M(2:end) - time_M(1:end-1));
-roundtime_M = roundmod(time_M,interval_M);
+roundtime_R = round(time_R);
+roundtime_M = round(time_M);
 
 if ~isempty(time_R) & ~isempty(time_M)
 
@@ -613,10 +606,8 @@ end
 time_GPS = union(roundtime_R,roundtime_M);           %overall reference time
 
 if ~isempty(time_GPS)
-    
-    interval = median(time_GPS(2:end) - time_GPS(1:end-1));
 
-    time_GPS = (time_GPS(1) : interval : time_GPS(end))';   %GPS time without interruptions
+    time_GPS = (time_GPS(1) : 1 : time_GPS(end))';   %GPS time without interruptions
 
     loss_R = 1 - ismember(time_GPS,roundtime_R);     %losses of signal (ROVER)
     loss_M = 1 - ismember(time_GPS,roundtime_M);     %losses of signal (MASTER)
@@ -626,10 +617,10 @@ if ~isempty(time_GPS)
         newtime_R = setdiff(time_GPS, roundtime_R);  %ROVER missing epochs
         for i = 1 : length(newtime_R)
 
-            pos = find(roundtime_R == newtime_R(i) - interval);  %position before the "holes"
+            pos = find(roundtime_R == newtime_R(i) - 1);  %position before the "holes"
 
             time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
-            week_R = [week_R(1:pos);  week_R(pos);   week_R(pos+1:end)]; %does not take into account week change (TBD)
+            week_R = [week_R(1:pos);  0;             week_R(pos+1:end)];
             pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
             ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
             dop1_R = [dop1_R(:,1:pos) zeros(32,1)    dop1_R(:,pos+1:end)];
@@ -638,7 +629,7 @@ if ~isempty(time_GPS)
 
             Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(29,32,1), Eph_R(:,:,pos+1:end));
             
-            roundtime_R = roundmod(time_R,interval_R);
+            roundtime_R = round(time_R);
         end
     else
         time_R = time_GPS;
@@ -657,7 +648,7 @@ if ~isempty(time_GPS)
         
         for i = 1 : length(newtime_M)
 
-            pos = find(roundtime_M == newtime_M(i) - interval);  %position before the "holes"
+            pos = find(roundtime_M == newtime_M(i) - 1);  %position before the "holes"
 
             time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
             pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
@@ -667,7 +658,7 @@ if ~isempty(time_GPS)
 
             Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(29,32,1), Eph_M(:,:,pos+1:end));
             
-            roundtime_M = roundmod(time_M,interval_M);
+            roundtime_M = round(time_M);
         end
     else
         time_M = time_GPS;

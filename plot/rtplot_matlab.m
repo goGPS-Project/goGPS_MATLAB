@@ -21,7 +21,7 @@ function rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check
 %   a reference path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

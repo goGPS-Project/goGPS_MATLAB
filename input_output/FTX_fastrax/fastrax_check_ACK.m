@@ -16,7 +16,7 @@ function [out] = fastrax_check_ACK(serialObj, tran_id, msg_id, payload)
 %   Check acknowledge reply after sending Fastrax messages.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

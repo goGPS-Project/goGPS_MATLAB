@@ -11,7 +11,7 @@ function checksum = checksumFTX(bit_msg, len)
 %   Fastrax checksum computation.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %

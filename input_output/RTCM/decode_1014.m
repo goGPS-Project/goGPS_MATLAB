@@ -22,7 +22,7 @@ function [data] = decode_1014(msg)
 %   RTCM format 1014 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %

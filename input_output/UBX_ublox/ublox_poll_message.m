@@ -14,7 +14,7 @@ function ublox_poll_message(serialObj, ClassLab, MsgIDLab, payload_length, param
 %   Poll an u-blox message.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

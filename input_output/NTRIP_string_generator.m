@@ -10,7 +10,7 @@ function [ntripstring] = NTRIP_string_generator(nmeastring)
 %   Builds the string used to connect to a positioning service by means of NTRIP.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

@@ -19,7 +19,7 @@ function [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3_time, SP3_c
 %   Compute receiver clock error and drift for each epoch.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

@@ -17,7 +17,7 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 %   the information it contains.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini.
 % (2012) Portions of code contributed by Damiano Triglione.
@@ -56,30 +56,17 @@ while (eof==0)
     %read the string
     lin = fgets(fid);
     %answer = findstr(lin,'COMMENT'); Note   findstr will be removed in a future release. Use strfind instead.
-    keywords = {'COMMENT', 'MARKER NAME', 'MARKER NUMBER', 'APPROX POSITION XYZ', 'ANTENNA: DELTA H/E/N'};
-    answer = [];
-    s = 1;
-    while (s <= length(keywords) && isempty(answer))
-        answer = strfind(lin,keywords{s});
-        s = s + 1;
-    end
-    %if it is a line that should be skipped read the following one
-    while (~isempty(answer) && ~feof(fid))
+    answer = strfind(lin,'COMMENT');
+    %if it is a comment line read the following one
+    if ~isempty(answer)
         lin = fgetl(fid);
-        %check again
-        answer = [];
-        s = 1;
-        while (s <= length(keywords) && isempty(answer))
-            answer = strfind(lin,keywords{s});
-            s = s + 1;
-        end
     end
     %check if the end of file is reached
     if (feof(fid) == 1);
         return
     end
     %check if it is a string that should be analyzed
-    if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
+    if (strcmp(lin(29),'0') == 1) || (strcmp(lin(29),'1') == 1)
     % if lin(2) ~= ' '
 
         %save line information

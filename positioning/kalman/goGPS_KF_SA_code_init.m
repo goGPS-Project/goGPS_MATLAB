@@ -23,7 +23,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_init(XR0, time_rx, pr1, pr2, sn
 %   Standalone code-only Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_init(XR0, time_rx, pr1, pr2, sn
 global sigmaq0
 global cutoff snr_threshold cond_num_threshold o1 o2 o3
 
-global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
+global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 
@@ -67,7 +67,7 @@ distM = zeros(32,1);
 Z_o1_o1 = zeros(o1);
 
 %T matrix construction - system dynamics
-T0 = eye(o1) + diag(ones(o1-1,1),1)*interval;
+T0 = eye(o1) + diag(ones(o1-1,1),1);
 
 %second degree polynomial
 % T0 = [1 1; 0 1];

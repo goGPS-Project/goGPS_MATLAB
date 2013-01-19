@@ -11,7 +11,7 @@ function goGPS_master_monitor(filerootOUT, flag_NTRIP)
 %   Master station monitor: stream reading, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

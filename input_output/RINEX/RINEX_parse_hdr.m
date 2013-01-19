@@ -1,7 +1,7 @@
-function [Obs_types, pos_M, ifound_types, interval] = RINEX_parse_hdr(file)
+function [Obs_types, pos_M, ifound_types] = RINEX_parse_hdr(file)
 
 % SYNTAX:
-%   [Obs_types, pos_M, ifound_types, interval] = RINEX_parse_hdr(file);
+%   [Obs_types, pos_M, ifound_types] = RINEX_parse_hdr(file);
 %
 % INPUT:
 %   file = pointer to RINEX observation file
@@ -10,13 +10,12 @@ function [Obs_types, pos_M, ifound_types, interval] = RINEX_parse_hdr(file)
 %   Obs_types = string containing observation types (e.g. L1C1P1...)
 %   pos_M = master station approximate position
 %   ifound_types = boolean variable to check the correct acquisition of basic information
-%   interval = Observation interval in seconds
 %
 % DESCRIPTION:
 %   RINEX observation file header analysis.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 09-23-97
@@ -28,7 +27,6 @@ function [Obs_types, pos_M, ifound_types, interval] = RINEX_parse_hdr(file)
 ifound_types = 0;
 Obs_types = [];
 pos_M = [];
-interval = 1; %default to 1 second (1 Hz observations)
 
 %parse first line
 line = fgetl(file);
@@ -63,10 +61,6 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
         Y = sscanf(line(15:28),'%f');
         Z = sscanf(line(29:42),'%f');
         pos_M = [X; Y; Z];
-    end
-    answer = strfind(line,'INTERVAL');
-    if ~isempty(answer)
-        interval = sscanf(line(1:10),'%f');
     end
     
     %parse next line

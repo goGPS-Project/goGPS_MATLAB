@@ -25,7 +25,7 @@ function polyline(filerootIN, angle_threshold, dist_threshold_AGNES, dN1, dN2, .
 %   Polyline simplification algorithm.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ function polyline(filerootIN, angle_threshold, dist_threshold_AGNES, dN1, dN2, .
 
 % input data file names
 dat_filename = [filerootIN '_position.txt'];
-cov_filename = [filerootIN '_cov_ENU.txt'];
+cov_filename = [filerootIN '_cov.txt'];
 
 % intermediate processing file names
 tab_filename = [filerootIN '_table.txt'];

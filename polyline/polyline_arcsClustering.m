@@ -21,7 +21,7 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 %   Classify data belonging to each arc.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
@@ -42,13 +42,20 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+% dat_filename = 'Lura_Befkadu_plan.txt';
+% dat_filename = 'Lura_ublox_cv_low_position.txt';
+% cov_filename = 'Lura_ublox_cv_low_cov.txt';
+
+% bounding box dimension
+% delta = 5;                 % previousely it was 0.5, 1
+
 %-----------------------------------------------------------
 % loading the data
 %-----------------------------------------------------------
 
 fid = fopen(dat_filename,'rt');      % open file
 fgets(fid);                          % jump the header
-data = fscanf(fid,'%d/%d/%d %d:%d:%f %f %f %f %f %f %f %f %4c %f %f %f %f %f',[22 inf])';
+data = fscanf(fid,'%d/%d/%d %d:%d:%d %d %f %f %f %f %f %f %4c %f %f %f %f %f',[22 inf])';
 fclose(fid);
 clear dat_filename
 

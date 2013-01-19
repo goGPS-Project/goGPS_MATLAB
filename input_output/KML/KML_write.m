@@ -17,7 +17,7 @@ function KML_write (lamR,phiR,hR,lamM,phiM,hM,nsat,date)
 %   Write a KML file (Goole Earth) displaying rover and master position.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

@@ -17,7 +17,7 @@ function [dec_out, pos_out, part] = FTX_TypeConv(type_in, bin_msg, pos_in)
 %   Fastrax ITALK data types conversion tool.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %

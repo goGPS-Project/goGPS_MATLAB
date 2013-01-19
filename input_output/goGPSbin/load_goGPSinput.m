@@ -31,7 +31,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %   Kalman filter input data reading.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -149,16 +149,14 @@ end
 
 %-------------------------------------------------------------------------------
 
-interval = median(time_GPS(2:end) - time_GPS(1:end-1));
+delay = time_GPS - round(time_R);         %processing delays
 
-delay = time_GPS - roundmod(time_R,interval); %processing delays
+loss_R = zeros(length(time_R),1);         %ROVER losses initialization
+loss_M = zeros(length(time_M),1);         %MASTER losses initialization
 
-loss_R = zeros(length(time_R),1);             %ROVER losses initialization
-loss_M = zeros(length(time_M),1);             %MASTER losses initialization
+pos = find(time_R == 0);                  %ROVER epochs with losses
+loss_R(pos) = 1;                          %flag for ROVER losses
+delay(pos) = -1;                          %delay corrections in case of losses
 
-pos = find(time_R == 0);                      %ROVER epochs with losses
-loss_R(pos) = 1;                              %flag for ROVER losses
-delay(pos) = -1;                              %delay corrections in case of losses
-
-pos = find(time_M == 0);                      %MASTER epochs with losses
-loss_M(pos) = 1;              %#ok<FNDSB>     %flag for MASTER losses
+pos = find(time_M == 0);                  %MASTER epochs with losses
+loss_M(pos) = 1;              %#ok<FNDSB> %flag for MASTER losses

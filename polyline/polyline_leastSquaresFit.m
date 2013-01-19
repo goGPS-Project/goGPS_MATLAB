@@ -17,7 +17,7 @@ function [nodes] = polyline_leastSquaresFit (tab_filename, nod_filename, nodes, 
 %   Least-squares adjustment for each arc.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %

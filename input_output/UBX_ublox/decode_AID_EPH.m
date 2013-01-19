@@ -42,7 +42,7 @@ function [data] = decode_AID_EPH(msg)
 %   AID-EPH binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

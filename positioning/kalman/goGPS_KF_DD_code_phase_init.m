@@ -41,7 +41,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 %   initial position (X,Y,Z).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 global sigmaq0 sigmaq0_N
 global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN
 
-global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
+global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
@@ -105,7 +105,7 @@ Z_o1_o1 = zeros(o1);
 
 %T matrix construction - system dynamics
 %position and velocity equations
-T0 = eye(o1) + diag(ones(o1-1,1),1)*interval;
+T0 = eye(o1) + diag(ones(o1-1,1),1);
 
 %second degree polynomial
 % T0 = [1 1; 0 1];

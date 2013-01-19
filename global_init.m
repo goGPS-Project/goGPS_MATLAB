@@ -5,7 +5,7 @@
 %   Global variables initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -133,9 +133,6 @@ global nN
 %          - amb_estim_method=2: Least squares adjustment
 global amb_estim_method
 
-%interval between epochs
-global interval
-
 %initialization
 T = [];
 I = [];
@@ -149,7 +146,6 @@ pivot = [];
 pivot_old = [];
 nN = [];
 amb_estim_method = 0;
-interval = 1; %default 1 Hz (to avoid problems with real-time modes)
 
 %-------------------------------------------------------------------------------
 % KALMAN FILTER (CONSTRAINED VERSION)

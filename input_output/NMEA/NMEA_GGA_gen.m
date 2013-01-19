@@ -17,7 +17,7 @@ function nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP, mode)
 %   Returns a $GPGGA sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -145,13 +145,11 @@ end
 % 4 = code and phase double diff. (integer ambiguities fixed)
 % 5 = code and phase double diff. (float ambiguities)
 if (nargin > 4)
-    if (mode == 1 | mode == 2)
+    if (mode == 4 | mode == 6)
         surv_type = '1';
-    elseif (mode == 11 | mode == 12)
+    elseif (mode == 3 | mode ==5)
         surv_type = '2';
-    elseif (mode == 13)
-        surv_type = '2';
-    elseif (mode == 14)
+    elseif (mode == 1 | mode == 2)
         surv_type = '5';
     else
         surv_type = '1';
@@ -178,32 +176,32 @@ end
 % FORMAT DATA
 %-----------------------------------------------------------------------------------------------
 
-hour = sprintf('%02d', date(1,4));
-minute = sprintf('%02d', date(1,5));
-second = sprintf('%05.2f', date(1,6));
+hour = sprintf('%d', date(1,4));
+minute = sprintf('%d', date(1,5));
+second = sprintf('%d', floor(date(1,6)));
 
-% [null, nchar] = size(hour); %#ok<ASGLU>
-% if (nchar == 1)
-%     [hour] = sprintf('0%s',hour);
-% end
-% 
-% [null, nchar] = size(minute); %#ok<ASGLU>
-% if (nchar == 1)
-%     [minute] = sprintf('0%s',minute);
-% end
-% 
-% [null, nchar] = size(second); %#ok<ASGLU>
-% if (nchar == 1)
-%     [second] = sprintf('0%s',second);
-% end
+[null, nchar] = size(hour); %#ok<ASGLU>
+if (nchar == 1)
+    [hour] = sprintf('0%s',hour);
+end
 
-% decsec = '.00';
+[null, nchar] = size(minute); %#ok<ASGLU>
+if (nchar == 1)
+    [minute] = sprintf('0%s',minute);
+end
+
+[null, nchar] = size(second); %#ok<ASGLU>
+if (nchar == 1)
+    [second] = sprintf('0%s',second);
+end
+
+decsec = '.00';
 
 %-----------------------------------------------------------------------------------------------
 % COMPOSITION OF THE NMEA SENTENCE
 %-----------------------------------------------------------------------------------------------
 
-nmeastring = sprintf('$GPGGA,%s%s%s,%s,%c,%s,%c,%s,%s,%.2f,%.1f,%c,%.1f,%c,,',hour,minute,second,phi_nmea,emi_NS,lam_nmea,emi_EW,surv_type,nsat,HDOP,h,h_unit,N,N_unit);
+nmeastring = sprintf('$GPGGA,%s%s%s%s,%s,%c,%s,%c,%s,%s,%.2f,%.1f,%c,%.1f,%c,,',hour,minute,second,decsec,phi_nmea,emi_NS,lam_nmea,emi_EW,surv_type,nsat,HDOP,h,h_unit,N,N_unit);
 
 %-----------------------------------------------------------------------------------------------
 % CHECKSUM COMPUTATION

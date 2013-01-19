@@ -14,7 +14,7 @@ function [Eph_t] = rt_find_eph (Eph_in, time)
 %   Extract the ephemerides referred to the current epoch.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
