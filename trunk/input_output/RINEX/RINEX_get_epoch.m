@@ -20,7 +20,9 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 %                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini.
-% (2012) Portions of code contributed by Damiano Triglione.
+%
+% Portions of code contributed by Damiano Triglione (2012).
+% Portions of code contributed by Andrea Gatti (2013).
 %
 % Partially based on FEPOCH_0.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
@@ -113,6 +115,8 @@ while (eof==0)
         end
 
         pos = 1;
+        sat = zeros(num_sat,1);
+        sat_types = char(32*uint8(ones(num_sat,1))');
         for i = 1 : num_sat
             %check if GPS satellites are labeled 'G' or not labeled
             if (strcmp(lin(pos),' '))
@@ -120,8 +124,10 @@ while (eof==0)
             else
                 type = lin(pos);
             end
-            sat_types = [sat_types; type];
-            sat = [sat; sscanf(lin(pos+1:pos+2),'%d')];
+            % sat_types = [sat_types; type];
+            sat_types(i) = type;
+            % sat(i) = sscanf(lin(pos+1:pos+2),'%d');
+            sat(i) = mod((lin(pos+1)-48)*10+(lin(pos+2)-48),160);
             pos = pos + 3;
         end
 
