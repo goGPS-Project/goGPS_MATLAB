@@ -53,6 +53,8 @@ dtRdot = zeros(nEpochs-1,1);
 % APPROXIMATE POSITION
 %-----------------------------------------------------------------------------------
 
+% Manage the eventuality of the matrix XR0 containing a single epoch 
+% (es. fixed Master station)
 if ((sum(abs(XR0)) == 0) | isempty(XR0))
     %approximate position not available
     flag_XR = 0;
@@ -61,6 +63,11 @@ else
     flag_XR = 1;
 end
 
+if (size(XR0,2) == 1)
+    posIds = ones(nEpochs,1);
+else
+    posIds = 1:nEpochs;
+end
 for i = 1 : nEpochs
     
     %--------------------------------------------------------------------------------------------
@@ -76,7 +83,7 @@ for i = 1 : nEpochs
     %----------------------------------------------------------------------------------------------
 
     if (length(sat_pr) >= 4)
-        [XR, dtR(i)] = init_positioning(time_rx(i), pr(sat_pr,i), snr(sat_pr,i), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, XR0(:,i), [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR(i)] = init_positioning(time_rx(i), pr(sat_pr,i), snr(sat_pr,i), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, XR0(:,posIds(i)), [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
         
         if (i > 1)
             %receiver clock drift
