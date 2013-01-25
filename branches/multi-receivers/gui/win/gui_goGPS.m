@@ -634,8 +634,9 @@ else
     set(handles.protocol_select_3, 'Enable', 'off');    
     set(handles.use_ntrip, 'Enable', 'off');
     contents = cellstr(get(handles.code_dd_sa,'String'));
-    if (get(handles.plotproc,'Value') & (strcmp(contents{get(handles.code_dd_sa,'Value')}, ...
-        'Code and phase double difference') | strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone')))
+    if (get(handles.plotproc,'Value') && (strcmp(contents{get(handles.code_dd_sa,'Value')}, ...
+        'Code and phase double difference') || strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone') || ...
+        strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase double difference for several receivers')))
         set(handles.plot_amb, 'Enable', 'on');
         plot_amb_Callback(handles.plot_amb, [], handles);
     end
@@ -706,6 +707,7 @@ if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
     cell_contents{2} = 'Code double difference';
     cell_contents{3} = 'Code and phase stand-alone';
     cell_contents{4} = 'Code and phase double difference';
+    cell_contents{5} = 'Code and phase double difference for several receivers';
     set(handles.code_dd_sa, 'String', cell_contents);
 
     set(handles.std_code, 'Enable', 'on');
@@ -817,7 +819,11 @@ function code_dd_sa_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns code_dd_sa contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from code_dd_sa
 contents = cellstr(get(hObject,'String'));
-if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
+% set default values
+set(handles.text_RINEX_rover_obs, 'String', 'RINEX rover observation');
+set(handles.gogps_data, 'Enable', 'on');
+
+if strcmp(contents{get(hObject,'Value')},'Code and phase double difference') || strcmp(contents{get(hObject,'Value')},'Code and phase double difference for several receivers')
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
             (get(handles.plotproc,'Value'))
@@ -848,6 +854,32 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
         set(handles.flag_doppler, 'Enable', 'on');
     end
     set(handles.amb_select, 'Enable', 'on');
+    if strcmp(contents{get(hObject,'Value')},'Code and phase double difference for several receivers')
+        %in case of several receivers set RINEX mode (only)
+%         mode_data = 0;
+        set(handles.rinex_files, 'Value', 1);
+        if(get(handles.file_type, 'SelectedObject') == handles.rinex_files & ~strcmp(contents{get(handles.mode,'Value')},'Real-time'));
+            % enable rover ini file
+            set(handles.RINEX_rover_obs, 'Enable', 'on');
+            set(handles.text_RINEX_rover_obs, 'Enable', 'on');
+            set(handles.text_RINEX_rover_obs, 'String', 'RINEX rover .ini file');
+            set(handles.browse_rover_obs, 'Enable', 'on');
+            % enable master obs file
+            set(handles.RINEX_master_obs, 'Enable', 'on');
+            set(handles.text_RINEX_master_obs, 'Enable', 'on');
+            set(handles.browse_master_obs, 'Enable', 'on');
+            % enable master nav file
+            set(handles.RINEX_nav, 'Enable', 'on');
+            set(handles.text_RINEX_nav, 'Enable', 'on');
+            set(handles.browse_nav, 'Enable', 'on');
+            % disable goGPS binary file
+            set(handles.gogps_data_input, 'Enable', 'off');
+            set(handles.text_gogps_input, 'Enable', 'off');
+            set(handles.browse_gogps_input, 'Enable', 'off');
+        end
+        set(handles.gogps_data, 'Value', 0);
+        set(handles.gogps_data, 'Enable', 'off');
+    end
 elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
     check_mode = cellstr(get(handles.mode,'String'));
     if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
@@ -1292,7 +1324,7 @@ function ref_path_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of ref_path
 contents = cellstr(get(handles.code_dd_sa,'String'));
-if (get(hObject,'Value')) & (strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
+if (get(hObject,'Value')) & (strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase double difference') || (strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase double difference for several receivers')) ) 
     set(handles.ref_path_input, 'Enable', 'on');
     set(handles.text_ref_path_input, 'Enable', 'on');
     set(handles.browse_ref_path_input, 'Enable', 'on');
@@ -3039,6 +3071,8 @@ if (strcmp(contents_mode{get(handles.mode,'Value')},'Post-processing'))
     if (strcmp(contents_kalman_ls{get(handles.kalman_ls,'Value')},'Kalman filter'))
         if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
             mode = 14;
+        elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference for several receivers'))
+            mode = 8;
         elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone'))
             mode = 4;
         elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
