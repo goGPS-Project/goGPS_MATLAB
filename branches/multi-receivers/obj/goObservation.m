@@ -1,6 +1,96 @@
+% =========================================================================
+%   OBJECT goObservation
+% =========================================================================
+%
+% DESCRIPTION:
+%   Object to read and collect observation of multiple recevers
+%   (including master station)
+%
+% EXAMPLE:
+%   goObs = goObservation();
+%
+% REQUIRES:
+%   load_RINEX:    goGPS function to read RINEX files
+%   iniReader:     class to pass the parameters of the receivers
+%    - cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
+%
+% LIST of CONSTANT
+%
+%   idGPS          identifier of the GPS constellation inside this object
+%   idGLONASS      identifier of the GLONASS constellation inside this object
+%
+% LIST of METHODS
+%
+%  GENERIC ------------------------------------------------------------
+%
+%   nRec = getNumRec(obj)
+%   iono = getIono(obj)
+%
+%  CONSTELLATION SPECIFIC ---------------------------------------------
+%
+%   nFreq = getGNSSnFreq(obj, idGNSS)
+%
+%   isAvailable = getGNSSstatus(obj, idGNSS)
+%   ids = getGNSSlist(obj)
+%
+%  RECEIVER SPECIFIC --------------------------------------------------
+%
+%   time = getTime_Ref(obj)
+%   time = getTime_R(obj, idRec)
+%   time = getTime_M(obj)
+%
+%   [X0R flagPos] = getX0_R(obj, idRec)
+%   [X0M flagPos] = getX0_M(obj)
+%   [XM flagPos] = getPos_M(obj, <idObs>)
+%
+%   setPos_M(obj, XM);
+%
+%   sr = getSamplingRate_R(obj, idRec)
+%   sr = getSamplingRate_M(obj)
+%
+%  CLOCK SPECIFIC -----------------------------------------------------
+%
+%   initClockError_R(obj, idRec)
+%   initClockError_M(obj, idRec)
+%
+%   dtMdot = getClockDrift_M(obj)
+%   dtM    = getClockError_M(obj)
+%
+%  RECEIVERS GNSS SPECIFIC --------------------------------------------
+%
+%   eph = getGNSSeph(obj, idGNSS)
+%
+%   pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%   pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+%
+%   ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%   ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+%
+%   dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%   dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+%
+%   snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%   snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
+%
+%   flag = getGNSSflag_R(obj, idGNSS, idRec, <idObs>)
+%   flag = getGNSSflag_M(obj, idGNSS, <idObs>)
+%
+%  SATELLITE SPECIFIC -------------------------------------------------
+%
+%   isSP3 = isSP3(obj);
+%   ephSP3 = X0_SP3(obj); % <deprecate> full struct containing (.time .coord .clock)
+%   time  = getGNSS_SP3time(obj, <idObs>);
+%   coord = getGNSS_SP3coordinates(obj <idObs>);
+%   clock = getGNSS_SP3clock(obj, <idObs>);
+%
+%   satObs = getSatObservation(obj, idGNSS, idSat, <idObs>) % return a structure containing (.time .X .V)
+%
+%
 %----------------------------------------------------------------------------------------------
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini, Andrea Gatti, Lisa Pertusini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
+%
+%    Code contributed by Andrea Gatti
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -18,93 +108,6 @@
 
 classdef goObservation < handle
     
-    % =========================================================================
-    %   OBJECT goObservation
-    % =========================================================================
-    %
-    % DESCRIPTION:
-    %   Object to read and collect observation of multiple recevers
-    %   (including master station)
-    %
-    % EXAMPLE:
-    %   goObs = goObservation();
-    %   
-    % REQUIRES:
-    %   load_RINEX:    goGPS function to read RINEX files
-    %   iniReader:     class to pass the parameters of the receivers
-    %    - cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
-    %
-    % LIST of CONSTANT
-    %
-    %   idGPS          identifier of the GPS constellation inside this object
-    %   idGLONASS      identifier of the GLONASS constellation inside this object
-    %
-    % LIST of METHODS
-    %
-    %  GENERIC ------------------------------------------------------------
-    %
-    %   nRec = getNumRec(obj)
-    %   iono = getIono(obj)
-    %    
-    %  CONSTELLATION SPECIFIC ---------------------------------------------
-    %
-    %   nFreq = getGNSSnFreq(obj, idGNSS)
-    %
-    %   isAvailable = getGNSSstatus(obj, idGNSS)
-    %   ids = getGNSSlist(obj)
-    %
-    %  RECEIVER SPECIFIC --------------------------------------------------
-    %
-    %   time = getTime_Ref(obj)
-    %   time = getTime_R(obj, idRec)
-    %   time = getTime_M(obj)
-    %
-    %   [X0R flagPos] = getX0_R(obj, idRec)
-    %   [X0M flagPos] = getX0_M(obj)
-    %   [XM flagPos] = getPos_M(obj, <idObs>)
-    %
-    %   setPos_M(obj, XM);
-    %
-    %   sr = getSamplingRate_R(obj, idRec)
-    %   sr = getSamplingRate_M(obj)
-    %
-    %  CLOCK SPECIFIC -----------------------------------------------------
-    %
-    %   initClockError_R(obj, idRec)
-    %   initClockError_M(obj, idRec)
-    %
-    %   dtMdot = getClockDrift_M(obj)
-    %   dtM    = getClockError_M(obj)
-    %
-    %  RECEIVERS GNSS SPECIFIC --------------------------------------------
-    %
-    %   eph = getGNSSeph(obj, idGNSS)
-    %
-    %   pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-    %   pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
-    %
-    %   ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-    %   ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
-    %
-    %   dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-    %   dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
-    %
-    %   snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-    %   snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
-    %
-    %   flag = getGNSSflag_R(obj, idGNSS, idRec, <idObs>)
-    %   flag = getGNSSflag_M(obj, idGNSS, <idObs>)
-    %
-    %  SATELLITE SPECIFIC -------------------------------------------------
-    %
-    %   isSP3 = isSP3(obj);
-    %   ephSP3 = X0_SP3(obj); % <deprecate> full struct containing (.time .coord .clock)
-    %   time  = getGNSS_SP3time(obj, <idObs>);
-    %   coord = getGNSS_SP3coordinates(obj <idObs>);
-    %   clock = getGNSS_SP3clock(obj, <idObs>);
-    %
-    %   satObs = getSatObservation(obj, idGNSS, idSat, <idObs>) % return a structure containing (.time .X .V)
-    %
     properties (GetAccess = 'public', SetAccess = 'private')
         % Constellations id => naming inside the goObservation object
         idGPS = 1;
