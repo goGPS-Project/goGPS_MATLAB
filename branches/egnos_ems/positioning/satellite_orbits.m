@@ -1,11 +1,13 @@
-function [satp, satv] = satellite_orbits(t, Eph)
+function [satp, satv] = satellite_orbits(t, Eph, sat, sbas)
 
 % SYNTAX:
-%   [satp, satv] = satellite_orbits(t, Eph);
+%   [satp, satv] = satellite_orbits(t, Eph, sat, sbas);
 %
 % INPUT:
-%   t = Clock-corrected GPS time
-%   Eph = ephemerides matrix
+%   t = clock-corrected GPS time
+%   Eph  = ephemeris matrix
+%   sat  = satellite PRN
+%   sbas = SBAS corrections
 %
 % OUTPUT:
 %   satp = satellite position (X,Y,Z)
@@ -69,9 +71,9 @@ xk = x1k*cos(Omegak)-y1k*cos(ik)*sin(Omegak);
 yk = x1k*sin(Omegak)+y1k*cos(ik)*cos(Omegak);
 zk = y1k*sin(ik);
 
-satp(1,1) = xk;
-satp(2,1) = yk;
-satp(3,1) = zk;
+satp(1,1) = xk + sbas.dx(sat);
+satp(2,1) = yk + sbas.dy(sat);
+satp(3,1) = zk + sbas.dz(sat);
 
 %-------------------------------------------------------------------------------
 % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE VELOCITY (as in Remondi,

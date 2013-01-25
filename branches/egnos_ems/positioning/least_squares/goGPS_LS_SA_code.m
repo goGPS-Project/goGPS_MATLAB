@@ -1,7 +1,7 @@
-function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase)
+function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase)
 
 % SYNTAX:
-%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase);
+%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase);
 %
 % INPUT:
 %   time_rx  = GPS reception time
@@ -13,6 +13,7 @@ function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_c
 %   SP3_coor = precise ephemeris coordinates
 %   SP3_clck = precise ephemeris clocks
 %   iono     = ionosphere parameters
+%   sbas     = SBAS corrections
 %   phase    = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -64,9 +65,9 @@ end
 if (size(sat,1) >= 4)
     
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     end
 
     %--------------------------------------------------------------------------------------------

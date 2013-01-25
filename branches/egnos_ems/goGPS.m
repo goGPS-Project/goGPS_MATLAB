@@ -64,17 +64,19 @@ global order o1 o2 o3 h_antenna cutoff weights
 
 if (mode_user == 1)
 
-    if (~isunix)
+%     if (~isunix)
        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
-    else
-        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
-            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
-    end
+%     else
+%         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+%             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
+%             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+%             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
+%     end
+
+flag_sbas = 1;
 
     if (isempty(mode))
         return
@@ -135,6 +137,8 @@ else
     flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
     
     flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
+    
+    flag_sbas = 0;          % apply SBAS corrections --> no=0, yes=1
 
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -217,7 +221,7 @@ if (mode <= 20) %post-processing
 
         %GPS week number
         date(:,1) = date(:,1) + 2000;
-        week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
+        week_R = date2gps(date);
 
         if (flag_SP3)
             %display message
@@ -354,7 +358,7 @@ if (mode <= 20) %post-processing
         end
 
         %date
-        date = datevec(time_GPS/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+        date = gps2date(week_R, time_GPS);
 
         %other variables
         pos_R = zeros(3,1);
@@ -476,6 +480,47 @@ if (mode <= 20 & (flag_stopGOstop | flag_var_dyn_model) & isempty(d))
 end
 
 %----------------------------------------------------------------------------------------------
+% LOAD SBAS DATA (EGNOS EMS FILES)
+%----------------------------------------------------------------------------------------------
+
+%NOTE: if SBAS corrections are not requested by the user or not available, the
+%      'sbas' structure will be initialized to zero/empty arrays and it will not
+%      have any effect on the positioning
+
+if (flag_sbas)
+
+    %try first to read .ems files already available
+    [sbas] = load_ems('../data/EMS', week_R, time_R);
+    
+    %if .ems files are not available or not sufficient, try to download them
+    if (isempty(sbas.igp))
+
+        %EGNOS PRNs
+        prn = [120, 124, 126];
+        
+        %download
+        for p = 1 : length(prn)
+            [file_ems] = download_ems(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+            if (~isempty(file_ems))
+                break
+            end
+        end
+        
+        %try again to read .ems files
+        [sbas] = load_ems('../data/EMS', week_R, time_R);
+    end
+end
+
+if (~flag_sbas || isempty(sbas.igp))
+    %initialization to zero/empty array
+    ts = length(time_R);
+    sbas = struct('prc', zeros(ts,32), 'dx', zeros(ts,32), 'dy', zeros(ts,32), 'dz', zeros(ts,32), ...
+        'doffset', zeros(ts,32), 'iode', zeros(ts,32), 'ivd', [], 'igp', [], 'lat_igp', [], 'lon_igp', []);
+    
+    fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+end
+
+%----------------------------------------------------------------------------------------------
 % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE
 %----------------------------------------------------------------------------------------------
 
@@ -497,12 +542,14 @@ if (mode == 1)
     for t = 1 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph(Eph, time_GPS(t));
         else
             Eph_t = Eph(:,:,t);
         end
+        
+        sbas_t = find_sbas(sbas, t);
 
-        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
@@ -1508,7 +1555,7 @@ if (mode <= 20) || (mode == 24)
     h_ortho(1:nObs) = -9999;
     
     %date formatting
-    date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+    date = gps2date(week_R, time_GPS);
     date(:,1) = date(:,1) - 2000;
 
     %file saving
@@ -1523,7 +1570,7 @@ if (mode <= 20) || (mode == 24)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%6.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
     fclose(fid_out);
 end
@@ -1711,7 +1758,7 @@ if (mode <= 20) || (mode == 24)
     %file saving
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
     %date formatting
-    date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+    date = gps2date(week_R, time_GPS);
     date(:,1) = date(:,1) - 2000;
 
     for i = 1 : nObs

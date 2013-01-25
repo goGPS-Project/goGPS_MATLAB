@@ -1,10 +1,23 @@
-function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3_time, SP3_clck, err_tropo, err_iono, dtR)
+function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3_time, SP3_clck, sbas, err_tropo, err_iono, dtR)
+
 % SYNTAX:
-%   [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3_time, SP3_clck, err_tropo, err_iono, dtR);
+%   [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3_time, SP3_clck, sbas, err_tropo, err_iono, dtR);
 %
 % INPUT:
+%   time_rx   = reception time
+%   range     = observed range
+%   sat       = satellite PRN
+%   Eph       = ephemeris
+%   SP3_time  = precise ephemeris time
+%   SP3_clck  = precise ephemeris clocks
+%   sbas      = SBAS corrections
+%   err_tropo = tropospheric delays
+%   err_iono  = ionospheric delays
+%   dtR       = receiver clock offset
 %
 % OUTPUT:
+%   time_tx = transmission time
+%   dtS     = satellite clock error
 %
 % DESCRIPTION:
 %   Compute the signal transmission time.
@@ -38,9 +51,9 @@ if (isempty(SP3_time))
     tgd = Eph(28);
     
     dtS = sat_clock_error_correction(time_tx_RAW, Eph);
-    dtS = dtS + dtrel - tgd;
+    dtS = dtS + dtrel - tgd + sbas.doffset(sat);
     dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);
-    dtS = dtS + dtrel - tgd;
+    dtS = dtS + dtrel - tgd + sbas.doffset(sat);
 else
     %interpolate SP3 satellite clock correction term
     dtS = interpolate_SP3_clock(time_tx_RAW, SP3_time, SP3_clck(sat,:));
