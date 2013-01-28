@@ -22,7 +22,7 @@ function varargout = gui_goGPS_unix(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS_unix
 
-% Last Modified by GUIDE v2.5 14-May-2011 12:06:31
+% Last Modified by GUIDE v2.5 28-Jan-2013 18:06:43
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -138,6 +138,7 @@ flag_amb = get(handles.plot_amb,'Value');
 flag_skyplot = get(handles.no_skyplot_snr,'Value');
 flag_plotproc = get(handles.plotproc,'Value');
 flag_stopGOstop = get(handles.stopGOstop,'Value');
+flag_SBAS = get(handles.use_sbas,'Value');
 filerootIN = get(handles.gogps_data_input,'String');
 filerootOUT = [get(handles.gogps_data_output,'String') '\' get(handles.gogps_data_output_prefix,'String')];
 filerootIN(filerootIN == '\') = '/';
@@ -454,6 +455,7 @@ state.approx_lat = get(handles.approx_lat,'String');
 state.approx_lon = get(handles.approx_lon,'String');
 state.approx_h = get(handles.approx_h,'String');
 state.stopGOstop = get(handles.stopGOstop,'Value');
+state.use_sbas = get(handles.use_sbas, 'Value');
 
 save(filename, 'state');
 
@@ -547,6 +549,11 @@ set(handles.approx_lat,'String', state.approx_lat);
 set(handles.approx_lon,'String', state.approx_lon);
 set(handles.approx_h,'String', state.approx_h);
 set(handles.stopGOstop,'Value', state.stopGOstop);
+if (isfield(state,'use_sbas')) %since v0.3.2beta -> backward compatibility
+    set(handles.use_sbas, 'Value', state.use_sbas);
+else
+    set(handles.use_sbas, 'Value', 0);
+end
 
 plot_amb_Callback(handles.plot_amb, [], handles);
 constraint_Callback(handles.constraint, [], handles);
@@ -936,6 +943,7 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
     set(handles.text_master_lat_unit, 'Enable', 'off');
     set(handles.text_master_lon_unit, 'Enable', 'off');
     set(handles.text_master_h_unit, 'Enable', 'off');
+    set(handles.use_sbas, 'Enable', 'on');
 else
     contents = cellstr(get(handles.mode,'String'));
     if(get(handles.file_type, 'SelectedObject') == handles.rinex_files & ~strcmp(contents{get(handles.mode,'Value')},'Real-time'));
@@ -946,6 +954,8 @@ else
     set(handles.plot_master, 'Enable', 'on');
     set(handles.master_pos, 'Enable', 'on');
     master_pos_Callback(handles.master_pos, [], handles);
+    set(handles.use_sbas, 'Enable', 'off');
+    set(handles.use_sbas, 'Value', 0);
 end
 
 % --- Executes during object creation, after setting all properties.
@@ -993,6 +1003,7 @@ if (strcmp(contents{get(hObject,'Value')},'Navigation'))
     set(handles.protocol_select_3, 'Enable', 'off');
     set(handles.use_ntrip, 'Enable', 'on');
     set(handles.no_skyplot_snr, 'Enable', 'on');
+    set(handles.use_sbas, 'Enable', 'off');
     
     set(handles.gogps_data_output, 'Enable', 'on');
     set(handles.text_gogps_data_output, 'Enable', 'on');
@@ -1052,6 +1063,7 @@ else
     set(handles.no_skyplot_snr, 'Enable', 'off');
     set(handles.plotproc, 'Enable', 'off');
     set(handles.plot_amb, 'Enable', 'off');
+    set(handles.use_sbas, 'Enable', 'on');
     %set(handles.gogps_data_output, 'Enable', 'off');
     %set(handles.text_gogps_data_output, 'Enable', 'off');
     %set(handles.browse_gogps_data_output, 'Enable', 'off');
@@ -3073,6 +3085,16 @@ function flag_doppler_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of flag_doppler
+
+
+% --- Executes on button press in use_sbas.
+function use_sbas_Callback(hObject, eventdata, handles)
+% hObject    handle to use_sbas (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of use_sbas
+
 
 
 % --- Executes on selection change in amb_select.
