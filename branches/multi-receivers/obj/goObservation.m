@@ -23,6 +23,9 @@
 %
 %  GENERIC ------------------------------------------------------------
 %
+%   init(obj, nFreqG, nFreqR)
+%   loadData(obj)
+%
 %   nRec = getNumRec(obj)
 %   iono = getIono(obj)
 %
@@ -34,6 +37,9 @@
 %   ids = getGNSSlist(obj)
 %
 %  RECEIVER SPECIFIC --------------------------------------------------
+%
+%   setReceiverStatus(idRec, status)
+%   status = getReceiverStatus(obj, idRec)
 %
 %   time = getTime_Ref(obj)
 %   time = getTime_R(obj, idRec)
@@ -133,7 +139,11 @@ classdef goObservation < handle
     % =========================================================================
     %   Configuration of the antennas
     % =========================================================================
+        
         nRec = 1;       % number of receivers
+
+        receiverOk = [] % for each receiver it contains the actual (enable/disable) status
+        
         
         antennasRF;     % antennas Reference Frame it is a structure
                         %  .refRec => number of the remote that define the center of the RF
@@ -257,11 +267,20 @@ classdef goObservation < handle
         %     |- "isSP3" = 0
         %     |- "data_path" = "../data/permanent station/"
         %     |- "file_name" = "COMO1370.11N"
-        function obj = goObservation(ini, nFreqG, nFreqR)
-            if (nargin < 2)    % nFreq hasn't been set up
+        function obj = goObservation()            
+            
+        end
+        
+    % =========================================================================
+    %  GENERIC
+    % =========================================================================
+        
+        % Initialize the object
+        function err = init(obj, ini, nFreqG, nFreqR)
+            if (nargin < 3)      % nFreq hasn't been set up
                 nFreqG = 2;      % Let's suppose we work in double frequencies (L1, L2, ...)
             end
-            if (nargin < 3)    % nFreq hasn't been set up
+            if (nargin < 4)      % nFreq hasn't been set up
                 nFreqR = 2;      % Let's suppose we work in double frequencies (L1, L2, ...)
             end
             
@@ -277,13 +296,23 @@ classdef goObservation < handle
             end
             if (obj.getGNSSstatus(obj.idGLONASS) == 1)
                 obj.setGNSSnFreq(obj.idGLONASS, nFreqR);
-            end
+            end    
             
             % Extract useful info from the ini file
-            % it's done here to be independent from the structure of the
             % ini file - easily modifiable
-            obj.importIniPar(ini);
-            
+            % Notice that all the check of the ini parameters should be
+            % done in the interface to prepare it. 
+            % Up to now, no intarface is available, every error will show a
+            % msgbox window and will close goGPS
+            err = obj.importIniPar(ini);
+            if (err.val > 0)
+                msgbox(err.msg);
+            end
+            err = err.val;
+        end
+        
+        % Reading files and importing observations
+        function loadData(obj)
             % Loading RINEX data (Master + Receiver)            
             obj.readRINEXs(obj.obsFile, obj.navFile);
             
@@ -294,11 +323,12 @@ classdef goObservation < handle
             
             % Remove the observations of the satellites that are without ephemerides
             obj.cleanNoEphSat();
-        end        
+        end
         
-    % =========================================================================
-    %  GENERIC
-    % =========================================================================
+        % Check file existence and parameters
+        function inputOk = testInput(obj)
+            
+        end
                 
         % Getter of the num of Receivers available
         function nRec = getNumRec(obj)
@@ -338,6 +368,20 @@ classdef goObservation < handle
     %  RECEIVER SPECIFIC
     % =========================================================================
     
+        % Set the status of the receiver
+        function setReceiverStatus(obj, idRec, status)
+            obj.receiverOk(idRec+1) = logical(status);
+        end
+        
+        % Get the status of the receiver
+        function status = getReceiverStatus(obj, idRec)
+            if (nargin == 1)              
+                idRec = 0:obj.getNumRec();
+            end
+            idRec = idRec + 1;
+            status = obj.receiverOk(idRec);
+        end
+        
         % Get reference time
         function time = getTime_Ref(obj)
             time = obj.timeChart(:,1);
@@ -742,34 +786,124 @@ classdef goObservation < handle
         
         % Extract useful info from the ini file
         % and save them in the object
-        function importIniPar(obj,ini)
+        function err = importIniPar(obj,ini)
+            err.val = 0;    % Everything is ok 
+            err.msg = '';
+            
             % Save the number of receivers
             nR = ini.getData('Receivers','nRec');
-            obj.setNumRec(nR);
-            
-            % Receivers file
-            data_path = ini.getData('Receivers','data_path');
-            file_names = ini.getData('Receivers','file_names');
-            for r = nR:-1:1                
-                obj.obsFile(r+1).name = [data_path file_names{r}];
+            if (isempty(nR))
+                err.val = 2;
+                err.msg = 'The receiver number has not been specified. ';                
             end
             
+            obj.receiverOk = false(nR+1,1);
+
+            % Receivers file
+            data_path = ini.getData('Receivers','data_path');             
+            if (isempty(data_path)) 
+                err.val = 1;
+                err.msg = 'The receiver data path is missing.';
+                return
+            end
+            file_names = ini.getData('Receivers','file_name');
+            if (isempty(file_names)) 
+                err.val = 1;
+                err.msg = 'The receivers file names is missing.';
+                return
+            else
+                % If missing, get the number of receiver from the file name list
+                if isempty(nR)
+                    err.val = 0;
+                    err.msg ='';
+                    nR = length(file_names);
+                end
+                
+                % Assign the filenames
+                for r = nR:-1:1                
+                    obj.obsFile(r+1).name = [data_path file_names{r}];
+                    if isempty(dir(obj.obsFile(r+1).name))  % Check if the receiver file is available
+                        obj.setReceiverStatus(r, 0);
+                        err.val = 1;
+                        err.msg = 'The receivers file names is missing.';
+                        nR = nR - 1;
+                    end
+                end
+            end
+            if (nR > 0)
+                obj.setNumRec(nR);
+            else
+                err.val = 1;
+                err.msg = 'No rover observations are available, processing interrupted';
+                return
+            end
+
             % Master file
             data_path = ini.getData('Master','data_path');
-            obj.obsFile(obj.idM).name = [data_path ini.getData('Master','file_name')];
+            if (isempty(data_path)) 
+                err.val = 1;
+                err.msg = 'The master data path is missing.';
+                return
+            end            
+            tmp = ini.getData('Master','file_name');
+            obj.obsFile(obj.idM).name = [data_path tmp];            
+            if (isempty(tmp) || isempty(dir(obj.obsFile(obj.idM).name))) 
+                err.val = 1;
+                err.msg = 'The master file name is missing.';
+                return
+            end
+            obj.setReceiverStatus(0,isempty(dir(obj.obsFile(obj.idM).name)));
             
             % Navigation file
             data_path = ini.getData('Navigational','data_path');
-            obj.navFile.name = [data_path ini.getData('Navigational','file_name')];
+            if isempty(data_path) 
+                err.val = 1;
+                err.msg = 'The navigational data path is missing.';
+                return
+            end            
+            tmp = ini.getData('Navigational','file_name');
+            obj.navFile.name = [data_path tmp];
+            if (isempty(tmp) || isempty(dir(obj.navFile.name)))
+                err.val = 1;
+                err.msg = 'The navigational file is missing.';
+                return
+            end            
             obj.navFile.isSP3 = ini.getData('Navigational','isSP3');
+            if isempty(obj.navFile.isSP3)
+                obj.navFile.isSP3 = 0;
+                err.val = 2;
+                err.msg = [err.msg 'The SP3 flag has not been set. '];
+            end
             
             % Store receiver positions
             obj.antennasRF.ref = ini.getData('Antennas RF','ref');
+            if (isempty(obj.antennasRF.ref))
+                err.val = 2;
+                err.msg = [err.msg 'The reference antenna has not been set. '];
+                obj.antennasRF.ref = 1; % the first receiver is the reference
+            end 
+            
             obj.antennasRF.pos = zeros(3,nR+1);
             for r = 1:nR
-                obj.antennasRF.pos(:,r+1) = ini.getData('Antennas RF',['XYZ_ant' num2str(r)]);
+                tmp = ini.getData('Antennas RF',['XYZ_ant' num2str(r)]);
+                if (isempty(tmp)) 
+                    err.val = 2;
+                    err.msg = [err.msg 'The antenna ' num2str(r) ' position has not been set. '];
+                    obj.antennasRF.pos(:,r+1) = zeros(3,1);
+                else
+                    obj.antennasRF.pos(:,r+1) = tmp;
+                end
+            end        
+            
+            % Computation point
+            tmp = ini.getData('Antennas RF','XYZ_ev_point');            
+            if (isempty(tmp))
+                err.val = 2;
+                err.msg = [err.msg 'The computation point position has not been set. '];
+                obj.antennasRF.pos(:,obj.idM) = zeros(3,1);
+            else
+                obj.antennasRF.pos(:,obj.idM) = tmp;
             end
-            obj.antennasRF.pos(:,obj.idM) = ini.getData('Antennas RF','XYZ_ev_point');            
         end
         
         % Read RINEX files and fill the object
@@ -787,7 +921,7 @@ classdef goObservation < handle
                 dopGcell = cell(nR,nFreqG);
                 snrGcell = cell(nR,nFreqG);
             else
-                nFreqG = 0
+                nFreqG = 0;
             end
             
             % GLONASS
@@ -814,7 +948,7 @@ classdef goObservation < handle
             t0 = tic();
             % It should be better to change load rinex in such a way to
             % already read just the needed observations...
-            % I read both GLONASS and GPS
+            % I read both GLONASS and GPS            
             if (obj.getGNSSstatus(obj.idGPS) == 1) && (obj.getGNSSstatus(obj.idGLONASS) == 1)
                 [prGcell{obj.idM,1}, ~, phGcell{obj.idM,1}, ~, prGcell{obj.idM,2}, ~, phGcell{obj.idM,2}, ~, ...
                     dopGcell{obj.idM,1}, ~, dopGcell{obj.idM,2}, ~, snrGcell{obj.idM,1}, ~, snrGcell{obj.idM,2}, ~, ...
@@ -851,6 +985,7 @@ classdef goObservation < handle
             for r=2:nR
                 fprintf('Reading RINEX of the receiver %d/%d...\n', r-1, nR-1);
                 t0 = tic();
+
                 % I read both GLONASS and GPS
                 if (obj.getGNSSstatus(obj.idGPS) == 1) && (obj.getGNSSstatus(obj.idGLONASS) == 1)
                     [prGcell{r,1}, ~, phGcell{r,1}, ~, prGcell{r,2}, ~, phGcell{r,2}, ~, ...
@@ -972,8 +1107,7 @@ classdef goObservation < handle
             fprintf('The data is ready!\n')
         end        
         
-        % Remove the observations of the satellites that are without ephemerides
-        
+        % Remove the observations of the satellites that are without ephemerides        
         function cleanNoEphSat(obj)
             nR = obj.getNumRec();
             % When SP3 are available, all the ephemerides for the

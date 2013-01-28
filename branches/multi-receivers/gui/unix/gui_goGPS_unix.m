@@ -2569,6 +2569,7 @@ function go_button_Callback(hObject, eventdata, handles)
 % hObject    handle to go_button (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+global goObj;
 
 %master station coordinates
 crs_contents = cellstr(get(handles.crs,'String'));
@@ -2631,6 +2632,14 @@ ntrip_mountpoint = get(handles.mountpoint,'String');
 %functioning mode
 mode = select_mode(handles);
 
+% If I'm in a mode that uses objects instead of regular code, set goObj flag to 1
+if (mode == 15)
+	goObj = true;    
+    % init the objects:    
+else
+    goObj = false;	% set to 1 when goGPS objects are used instead of the regular code
+end
+
 ready = 1;
 
 %check if everything is OK before starting
@@ -2668,7 +2677,11 @@ if ~isempty(dir(get(handles.gogps_data_output,'String')))
     end
 end
 
-if (mode <= 20) %if post-processing
+if (goObj) && (get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_R_obs)))
+        msgbox('Ini file not found.'); ready = 0;
+end
+    
+if (mode <= 20) && (~goObj) %if post-processing
     if (get(handles.file_type, 'SelectedObject') == handles.gogps_data & (isempty(dir([filerootIN '_obs*.bin'])) | isempty(dir([filerootIN '_eph*.bin']))))
         msgbox('Input goGPS binary files not found (both *_obs_* and *_eph_* files are needed).'); ready = 0;
     elseif (get(handles.file_type, 'SelectedObject') == handles.rinex_files & isempty(dir(filename_R_obs)))
@@ -2680,7 +2693,7 @@ if (mode <= 20) %if post-processing
     end
 end
 
-if (mode <= 20 | mode == 24) %if not rover and/or master monitor
+if (mode <= 20 | mode == 24) && (~goObj) %if not rover and/or master monitor
     if (ref_path & isempty(dir(filename_ref)))
         msgbox('Input reference path file not found.'); ready = 0;
     elseif ((mode == 14 | mode == 4) & get(handles.toggle_std_dtm,'Value'))
@@ -3072,7 +3085,7 @@ if (strcmp(contents_mode{get(handles.mode,'Value')},'Post-processing'))
         if (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
             mode = 14;
         elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase double difference for several receivers'))
-            mode = 8;
+            mode = 15;
         elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone'))
             mode = 4;
         elseif (strcmp(contents_code_dd_sa{get(handles.code_dd_sa,'Value')},'Code double difference'))
