@@ -85,18 +85,16 @@ while (eof==0)
     % if lin(2) ~= ' '
 
         %save line information
-        data = textscan(lin(1:26),'%f%f%f%f%f%f');
-        year = data{1};
-        month = data{2};
-        day = data{3};
-        hour = data{4};
+        data   = textscan(lin(1:26),'%f%f%f%f%f%f');
+        year   = data{1};
+        month  = data{2};
+        day    = data{3};
+        hour   = data{4};
         minute = data{5};
         second = data{6};
-        %computation of the corresponding julian day
-        jd = julday(year+2000, month, day, 0);
+
         %computation of the GPS time in weeks and seconds of week
-        [week, sec_of_week] = gps_time(jd); %#ok<ASGLU>
-        time = sec_of_week + hour*3600+minute*60+second;
+        [week, time] = date2gps([year + 2000, month, day, hour, minute, second]); %#ok<ASGLU>
 
         %number of visible satellites
         [num_sat] = sscanf(lin(30:32),'%d');

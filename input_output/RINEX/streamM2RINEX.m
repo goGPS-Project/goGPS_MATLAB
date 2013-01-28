@@ -214,7 +214,7 @@ if (~isempty(data_master_all))
         ph2_M(ph2_M < 1e-100) = 0;
         
         %date decoding
-        date = datevec(time_M/(3600*24) + 7*week + datenum([1980,1,6,0,0,0]));
+        date = gps2date(week, time_M);
 
         %----------------------------------------------------------------------------------------------
         % RINEX OBSERVATION FILE
@@ -385,7 +385,7 @@ if (~isempty(data_master_all))
                     fit_int  = Eph_M(29,satEph(j),i);
                     
                     %time of measurement decoding
-                    date = datevec(toc/(3600*24) + 7*week + datenum([1980,1,6,0,0,0]));
+                    date = gps2date(week, toc);
                     
                     lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
                         satEph(j),date(1)-2000, date(2), date(3), date(4), date(5), date(6), ...

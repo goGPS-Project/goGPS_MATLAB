@@ -177,13 +177,8 @@ while (~feof(fid))
         fit_int = 0;
     end
     
+    [~, toc] = date2gps([year+2000 month day hour minute second]);
     
-    Datenum_Offset = 723186; %This is datenum([1980,1,6,0,0,0])
-    NumberOfSecondsInADay = 86400; %This is 3600*24
-    %toc = (datenum([year+2000 month day hour minute second]) - 7*weekno - datenum([1980,1,6,0,0,0]))*(3600*24);
-    toc = (datenum([year+2000 month day hour minute second]) - 7*weekno - Datenum_Offset)*NumberOfSecondsInADay;
-
-
     %save ephemerides
     Eph(1,i)  = svprn;
     Eph(2,i)  = af2;

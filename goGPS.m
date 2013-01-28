@@ -217,7 +217,7 @@ if (mode <= 20) %post-processing
 
         %GPS week number
         date(:,1) = date(:,1) + 2000;
-        week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
+        week_R = date2gps(date);
 
         if (flag_SP3)
             %display message
@@ -354,7 +354,7 @@ if (mode <= 20) %post-processing
         end
 
         %date
-        date = datevec(time_GPS/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+        date = gps2date(week_R, time_GPS);
 
         %other variables
         pos_R = zeros(3,1);
@@ -497,7 +497,7 @@ if (mode == 1)
     for t = 1 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph(Eph, time_GPS(t));
         else
             Eph_t = Eph(:,:,t);
         end
@@ -1508,7 +1508,7 @@ if (mode <= 20) || (mode == 24)
     h_ortho(1:nObs) = -9999;
     
     %date formatting
-    date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+    date = gps2date(week_R, time_GPS);
     date(:,1) = date(:,1) - 2000;
 
     %file saving
@@ -1523,7 +1523,7 @@ if (mode <= 20) || (mode == 24)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%6.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
     end
     fclose(fid_out);
 end
@@ -1711,7 +1711,7 @@ if (mode <= 20) || (mode == 24)
     %file saving
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
     %date formatting
-    date = datevec(check_t(time_GPS)/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+    date = gps2date(week_R, time_GPS);
     date(:,1) = date(:,1) - 2000;
 
     for i = 1 : nObs
