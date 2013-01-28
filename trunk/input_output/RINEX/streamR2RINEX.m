@@ -348,7 +348,7 @@ if (~isempty(data_rover_all))
     iono(:,i:end)    = [];
 
     %date decoding
-    date = datevec(time_R/(3600*24) + 7*week_R + datenum([1980,1,6,0,0,0]));
+    date = gps2date(week_R, time_R);
     
     %----------------------------------------------------------------------------------------------
     % APPROXIMATE POSITION
@@ -554,7 +554,7 @@ if (~isempty(data_rover_all))
                 fit_int  = Eph_R(29,satEph(j),i);
                 
                 %time of measurement decoding
-                date = datevec(toc/(3600*24) + 7*week_R(1) + datenum([1980,1,6,0,0,0]));
+                date = gps2date(week_R, toc);
                 
                 lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
                     satEph(j),date(1)-2000, date(2), date(3), date(4), date(5), date(6), ...

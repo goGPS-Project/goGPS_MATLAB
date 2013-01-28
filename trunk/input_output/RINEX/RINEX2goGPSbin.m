@@ -68,7 +68,7 @@ if (~isempty(dir(filename_R_obs)))
 
     %GPS week number
     date(:,1) = date(:,1) + 2000;
-    week_R = floor((datenum(date) - datenum([1980,1,6,0,0,0]))/7);
+    week_R = date2gps(date);
 else
     if (nargin >= 6)
         msgbox('Rover data are required to create goGPS binary data.');
