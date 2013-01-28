@@ -133,18 +133,17 @@ for p = 1 : size(week_dow,1)
                 
                 %read the epoch header
                 %example 1: "*  1994 12 17  0  0  0.00000000"
-                data = textscan(lin(2:31),'%f%f%f%f%f%f');
-                year = data{1};
-                month = data{2};
-                day = data{3};
-                hour = data{4};
+                data   = textscan(lin(2:31),'%f%f%f%f%f%f');
+                year   = data{1};
+                month  = data{2};
+                day    = data{3};
+                hour   = data{4};
                 minute = data{5};
                 second = data{6};
-                %computation of the corresponding julian day
-                jd = julday(year, month, day, 0);
+
                 %computation of the GPS time in weeks and seconds of week
-                [week, sec_of_week] = gps_time(jd); %#ok<ASGLU>
-                SP3_time(k,1) = sec_of_week + hour*3600+minute*60+second;
+                [week, time] = date2gps([year + 2000, month, day, hour, minute, second]); %#ok<ASGLU>
+                SP3_time(k,1) = time;
                 
             elseif (strcmp(lin(1),'P'))
                 %read position and clock
