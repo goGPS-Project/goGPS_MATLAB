@@ -1915,7 +1915,7 @@ if (mode <= 20) || (mode == 24)
                     fprintf(fid_kml, '\t\t\t<styleUrl>#master</styleUrl>\n');
                     fprintf(fid_kml, '\t\t\t<Point>\n');
                     fprintf(fid_kml, '\t\t\t\t<altitudeMode>%s</altitudeMode>\n',z_pos);
-                    fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),hM(i));
+                    fprintf(fid_kml, '\t\t\t\t<coordinates>%.8f,%.8f,%.3f</coordinates>\n',lamM(i),phiM(i),h_ortho(i));
                     fprintf(fid_kml, '\t\t\t</Point>\n');
                     fprintf(fid_kml, '\t\t</Placemark>\n');
                 end
