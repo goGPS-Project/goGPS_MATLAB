@@ -112,7 +112,7 @@ function varargout = gui_goGPS_unix_OutputFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if(~isstruct(handles))
-    varargout = cell(23,1);
+    varargout = cell(24,1);
     return
 end
 mode = select_mode(handles);
@@ -249,14 +249,15 @@ varargout{12} = flag_plotproc;
 varargout{13} = flag_var_dyn_model;
 varargout{14} = flag_stopGOstop;
 varargout{15} = flag_SP3;
-varargout{16} = filerootIN;
-varargout{17} = filerootOUT;
-varargout{18} = filename_R_obs;
-varargout{19} = filename_M_obs;
-varargout{20} = filename_nav;
-varargout{21} = filename_ref;
-varargout{22} = pos_M_man;
-varargout{23} = protocol_idx;
+varargout{16} = flag_SBAS;
+varargout{17} = filerootIN;
+varargout{18} = filerootOUT;
+varargout{19} = filename_R_obs;
+varargout{20} = filename_M_obs;
+varargout{21} = filename_nav;
+varargout{22} = filename_ref;
+varargout{23} = pos_M_man;
+varargout{24} = protocol_idx;
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
