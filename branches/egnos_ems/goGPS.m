@@ -66,7 +66,7 @@ if (mode_user == 1)
 
 %     if (~isunix)
        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-           flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
+           flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
 %     else
@@ -75,8 +75,6 @@ if (mode_user == 1)
 %             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
 %             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
 %     end
-
-flag_sbas = 1;
 
     if (isempty(mode))
         return
@@ -138,7 +136,7 @@ else
     
     flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
     
-    flag_sbas = 0;          % apply SBAS corrections --> no=0, yes=1
+    flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
 
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -487,7 +485,7 @@ end
 %      'sbas' structure will be initialized to zero/empty arrays and it will not
 %      have any effect on the positioning
 
-if (flag_sbas)
+if (flag_SBAS)
 
     %try first to read .ems files already available
     [sbas] = load_ems('../data/EMS', week_R, time_R);
@@ -511,13 +509,15 @@ if (flag_sbas)
     end
 end
 
-if (~flag_sbas || isempty(sbas.igp))
+if (~flag_SBAS || isempty(sbas.igp))
     %initialization to zero/empty array
     ts = length(time_R);
     sbas = struct('prc', zeros(ts,32), 'dx', zeros(ts,32), 'dy', zeros(ts,32), 'dz', zeros(ts,32), ...
         'doffset', zeros(ts,32), 'iode', zeros(ts,32), 'ivd', [], 'igp', [], 'lat_igp', [], 'lon_igp', []);
     
-    fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+    if (flag_SBAS && isempty(sbas.igp))
+        fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+    end
 end
 
 %----------------------------------------------------------------------------------------------
@@ -618,7 +618,9 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        sbas_t = find_sbas(sbas, 1);
+        
+        kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -661,7 +663,7 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_KF_SA_code_loop(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        goGPS_KF_SA_code_loop(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -719,8 +721,10 @@ elseif (mode == 3)
         else
             Eph_t = Eph(:,:,t);
         end
+        
+        sbas_t = find_sbas(sbas, t);
 
-        goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -781,7 +785,9 @@ elseif (mode == 4)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        sbas_t = find_sbas(sbas, 1);
+        
+        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -825,8 +831,10 @@ elseif (mode == 4)
         else
             Eph_t = Eph(:,:,t);
         end
+        
+        sbas_t = find_sbas(sbas, t);
 
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');

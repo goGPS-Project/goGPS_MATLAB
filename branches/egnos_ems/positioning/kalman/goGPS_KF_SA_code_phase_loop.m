@@ -1,7 +1,7 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase)
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase)
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase);
+%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase);
 %
 % INPUT:
 %   time_rx = GPS time
@@ -17,6 +17,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_l
 %   SP3_coor = precise ephemeris coordinates
 %   SP3_clck = precise ephemeris clocks
 %   iono =  ionospheric parameters (vector of zeroes if not available)
+%   sbas = SBAS corrections
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % OUTPUT:
@@ -124,6 +125,13 @@ sat_old = find(conf_sat == 1);
 %number of visible satellites
 nsat = size(sat_pr,1);
 
+%--------------------------------------------------------------------------------------------
+% SBAS FAST CORRECTIONS
+%--------------------------------------------------------------------------------------------
+
+%apply SBAS fast (pseudorange) corrections
+pr1(sat_pr) = pr1(sat_pr) + sbas.prc(sat_pr)';
+
 %------------------------------------------------------------------------------------
 % LINEARIZATION POINT (APPROXIMATE COORDINATES)
 %------------------------------------------------------------------------------------
@@ -209,9 +217,9 @@ if (nsat >= min_nsat)
     sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
+        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
     else
-        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
+        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
     end
     
     %apply cutoffs also to phase satellites
