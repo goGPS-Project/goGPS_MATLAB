@@ -48,6 +48,17 @@ Omega0    = Eph(16);
 Omega_dot = Eph(17);
 toe       = Eph(18);
 
+%SBAS satellite coordinate corrections
+if (~isempty(sbas))
+    dx_sbas = sbas.dx(sat);
+    dy_sbas = sbas.dy(sat);
+    dz_sbas = sbas.dz(sat);
+else
+    dx_sbas = 0;
+    dy_sbas = 0;
+    dz_sbas = 0;
+end
+
 %-------------------------------------------------------------------------------
 % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE COORDINATES
 %-------------------------------------------------------------------------------
@@ -71,9 +82,9 @@ xk = x1k*cos(Omegak)-y1k*cos(ik)*sin(Omegak);
 yk = x1k*sin(Omegak)+y1k*cos(ik)*cos(Omegak);
 zk = y1k*sin(ik);
 
-satp(1,1) = xk + sbas.dx(sat);
-satp(2,1) = yk + sbas.dy(sat);
-satp(3,1) = zk + sbas.dz(sat);
+satp(1,1) = xk + dx_sbas;
+satp(2,1) = yk + dy_sbas;
+satp(3,1) = zk + dz_sbas;
 
 %-------------------------------------------------------------------------------
 % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE VELOCITY (as in Remondi,

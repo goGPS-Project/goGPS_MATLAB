@@ -50,7 +50,7 @@ corr = zeros(size(el),1);
 
 %if ionosphere parameters are available and SBAS corrections are disabled/not available
 if ((nargin == 6) & (sum(abs(ionoparams)) > 0)) | ...
-   ((nargin >  6) & (sum(abs(ionoparams)) > 0)  & (isempty(sbas.igp)))
+   ((nargin >  6) & (sum(abs(ionoparams)) > 0)  & (isempty(sbas)))
     
     %-------------------------------------------------------------------------------
     % KLOBUCHAR MODEL
@@ -130,7 +130,7 @@ if ((nargin == 6) & (sum(abs(ionoparams)) > 0)) | ...
 
 
 %if SBAS corrections are available (and requested by the user)
-elseif ((nargin > 6) & (~isempty(sbas.igp)))
+elseif ((nargin > 6) & (~isempty(sbas)))
     
     %-------------------------------------------------------------------------------
     % SBAS IONOSPHERE INTERPOLATION

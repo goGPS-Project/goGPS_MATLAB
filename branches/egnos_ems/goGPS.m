@@ -397,8 +397,64 @@ if (mode <= 20) %post-processing
         loss_M = loss_M(tMin:tMax);
         date = date(tMin:tMax,:);
     end
+    
+    %if absolute post-processing positioning
+    if (mode <= 10)
 
-    %if relative post-processing (i.e. with master station)
+        %if SBAS corrections are requested
+        if (flag_SBAS)
+            
+            %----------------------------------------------------------------------------------------------
+            % LOAD SBAS DATA (EGNOS EMS FILES)
+            %----------------------------------------------------------------------------------------------
+            
+            %NOTE: if SBAS corrections are not requested by the user or not available, the
+            %      'sbas' structure will be initialized to zero/empty arrays and it will not
+            %      have any effect on the positioning
+            
+            %try first to read .ems files already available
+            [sbas] = load_ems('../data/EMS', week_R, time_R);
+            
+            %if .ems files are not available or not sufficient, try to download them
+            if (isempty(sbas))
+                
+                %EGNOS PRNs
+                prn = [120, 124, 126];
+                
+                %download
+                for p = 1 : length(prn)
+                    [file_ems] = download_ems(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                    if (~isempty(file_ems))
+                        break
+                    end
+                end
+                
+                %try again to read .ems files
+                [sbas] = load_ems('../data/EMS', week_R, time_R);
+            end
+            
+            %check if the survey is within the EMS grids
+            if (~isempty(sbas))
+                [ems_data_available] = check_ems_extents(time_R, pr1_R, snr_R, Eph, iono, sbas);
+            end
+        end
+        
+        %if SBAS corrections are not requested or not available
+        if (~flag_SBAS || isempty(sbas))
+
+            %initialization
+            sbas = [];
+            
+            %if SBAS corrections are requested but not available
+            if (flag_SBAS && isempty(sbas))
+                fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+            end
+        end
+    else
+        sbas = [];
+    end
+
+    %if relative post-processing positioning (i.e. with master station)
     if (mode > 10) && (mode <= 20)
         %master station position management
         if (flag_ms_pos) & (sum(abs(pos_M)) ~= 0)
@@ -418,7 +474,7 @@ if (mode <= 20) %post-processing
         if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
             %compute master station clock error and drift
             fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
-            [dtM, dtMdot] = clock_error(pos_M, time_M, pr1_M, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            [dtM, dtMdot] = clock_error(pos_M, time_M, pr1_M, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas);
         else
             dtM = zeros(size(dop1_M,2),1);
             dtMdot = zeros(size(dop1_M,2),1);
@@ -475,49 +531,6 @@ if (mode <= 20 & (flag_stopGOstop | flag_var_dyn_model) & isempty(d))
     disp('Warning: dataset was not surveyed with a variable dynamic model:');
     disp(' Switching off variable dynamic model mode...');
     flag_var_dyn_model = 0;
-end
-
-%----------------------------------------------------------------------------------------------
-% LOAD SBAS DATA (EGNOS EMS FILES)
-%----------------------------------------------------------------------------------------------
-
-%NOTE: if SBAS corrections are not requested by the user or not available, the
-%      'sbas' structure will be initialized to zero/empty arrays and it will not
-%      have any effect on the positioning
-
-if (flag_SBAS)
-
-    %try first to read .ems files already available
-    [sbas] = load_ems('../data/EMS', week_R, time_R);
-    
-    %if .ems files are not available or not sufficient, try to download them
-    if (isempty(sbas.igp))
-
-        %EGNOS PRNs
-        prn = [120, 124, 126];
-        
-        %download
-        for p = 1 : length(prn)
-            [file_ems] = download_ems(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
-            if (~isempty(file_ems))
-                break
-            end
-        end
-        
-        %try again to read .ems files
-        [sbas] = load_ems('../data/EMS', week_R, time_R);
-    end
-end
-
-if (~flag_SBAS || isempty(sbas.igp))
-    %initialization to zero/empty array
-    ts = length(time_R);
-    sbas = struct('prc', zeros(ts,32), 'dx', zeros(ts,32), 'dy', zeros(ts,32), 'dz', zeros(ts,32), ...
-        'doffset', zeros(ts,32), 'iode', zeros(ts,32), 'ivd', [], 'igp', [], 'lat_igp', [], 'lon_igp', []);
-    
-    if (flag_SBAS && isempty(sbas.igp))
-        fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
-    end
 end
 
 %----------------------------------------------------------------------------------------------

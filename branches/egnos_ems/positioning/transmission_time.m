@@ -31,6 +31,13 @@ function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3_time, 
 
 global v_light
 
+%SBAS clock offsets
+if (~isempty(sbas))
+    dtsbas = sbas.doffset(sat);
+else
+    dtsbas = zeros(1,length(sat));
+end
+
 time_tx_RAW = time_rx - (range - err_tropo - err_iono) / v_light + dtR;
 
 % tcorr0 = 0;
@@ -51,9 +58,9 @@ if (isempty(SP3_time))
     tgd = Eph(28);
     
     dtS = sat_clock_error_correction(time_tx_RAW, Eph);
-    dtS = dtS + dtrel - tgd + sbas.doffset(sat);
+    dtS = dtS + dtrel - tgd + dtsbas;
     dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);
-    dtS = dtS + dtrel - tgd + sbas.doffset(sat);
+    dtS = dtS + dtrel - tgd + dtsbas;
 else
     %interpolate SP3 satellite clock correction term
     dtS = interpolate_SP3_clock(time_tx_RAW, SP3_time, SP3_clck(sat,:));

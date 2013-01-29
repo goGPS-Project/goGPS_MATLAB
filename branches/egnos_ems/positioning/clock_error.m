@@ -1,15 +1,19 @@
-function [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono)
+function [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas)
 
 % SYNTAX:
-%   [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+%   [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas);
 %
 % INPUT:
-%   pr1  = code observation (L1 carrier)
-%   Eph  = matrix containing 29 ephemerides for each satellite
-%   iono = matrix containing ionosphere parameters
-%   snr  = signal-to-noise ratio
-%   time_rx = GPS time
-%   XR0 = receiver (approximate) position
+%   XR0      = receiver (approximate) position
+%   time_rx  = GPS time
+%   pr       = code observation (L1 carrier)
+%   snr      = signal-to-noise ratio
+%   Eph      = matrix containing 29 ephemerides for each satellite
+%   SP3_time = precise ephemeris time
+%   SP3_coor = precise ephemeris coordinates
+%   SP3_clck = precise ephemeris clocks
+%   iono     = ionosphere parameters (Klobuchar)
+%   sbas     = SBAS corrections
 %
 % OUTPUT:
 %   dtR = receiver clock error
@@ -70,13 +74,14 @@ for i = 1 : nEpochs
     sat_pr = find(pr(:,i) ~= 0);
 
     Eph_t = rt_find_eph (Eph, time_rx(i));
+    sbas_t = find_sbas(sbas, i);
     
     %----------------------------------------------------------------------------------------------
     % RECEIVER POSITION AND CLOCK ERROR
     %----------------------------------------------------------------------------------------------
 
     if (length(sat_pr) >= 4)
-        [XR, dtR(i)] = init_positioning(time_rx(i), pr(sat_pr,i), snr(sat_pr,i), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, XR0(:,i), [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR(i)] = init_positioning(time_rx(i), pr(sat_pr,i), snr(sat_pr,i), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, XR0(:,i), [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
         
         if (i > 1)
             %receiver clock drift

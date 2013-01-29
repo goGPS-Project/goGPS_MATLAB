@@ -66,8 +66,10 @@ end
 % SBAS FAST CORRECTIONS
 %--------------------------------------------------------------------------------------------
 
-%apply SBAS fast (pseudorange) corrections
-pr1(sat) = pr1(sat) + sbas.prc(sat)';
+if (~isempty(sbas))
+    %apply SBAS fast (pseudorange) corrections
+    pr1(sat) = pr1(sat) + sbas.prc(sat)';
+end
 
 %--------------------------------------------------------------------------------------------
 % POSITIONING

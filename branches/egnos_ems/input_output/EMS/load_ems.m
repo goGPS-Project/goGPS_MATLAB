@@ -50,9 +50,7 @@ MT     = [];
 msg    = [];
 
 %output initialization
-ts = length(time_R);
-sbas = struct('prc', zeros(ts,32), 'dx', zeros(ts,32), 'dy', zeros(ts,32), 'dz', zeros(ts,32), ...
-              'doffset', zeros(ts,32), 'iode', zeros(ts,32), 'ivd', [], 'igp', [], 'lat_igp', [], 'lon_igp', []);
+sbas = [];
 
 %directory containing EMS files
 data_dir = dir(data_dir_ems);
@@ -88,9 +86,12 @@ for j = 1 : nmax
         
         %warnings
         if (fid_fd ~= -1)
-            fprintf(['Reading EMS file ', ems_file_name, '\n']);
+            %fprintf(['Reading EMS file ', ems_file_name, '\n']);
+            if (n == 1)
+                fprintf(['Reading EMS files...\n']);
+            end
         else
-            fprintf(['Impossible to open EMS file ', ems_file_name, '\n']);
+            fprintf(['WARNING: impossible to open EMS file ', ems_file_name, '\n']);
             break
         end
 
@@ -185,8 +186,6 @@ clear check_mt crc parity mt_ok t_abs yy ii
 %if EMS data are not sufficient, return for standard (i.e. not SBAS-corrected) positioning
 if (~ems_data_available)
     return
-else
-    fprintf('EMS files successfully read. Applying SBAS corrections.\n')
 end
 
 %matrix synchronization

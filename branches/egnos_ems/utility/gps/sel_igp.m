@@ -27,6 +27,7 @@ function [igp4, tv] = sel_igp(latpp, lonpp, igp, lat_igp, lon_igp)
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
+% Adapted by Eugenio Realini, 2013
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -54,17 +55,24 @@ lonpp = lonpp * 180/pi;
 
 %find the lower latitude of the closest nodes
 r_lati = find(v_lat <= latpp,1,'last');
-lati = v_lat(r_lati);
 %find the higher latitude of the closest nodes
 r_lats = find(v_lat > latpp,1,'first');
-lats = v_lat(r_lats);
 
 %find the lower longitude of the closest nodes 
 r_loni = find(v_lon <= lonpp,1,'last');
-loni = v_lon(r_loni);
 %find the higher longitude of the closest nodes
 r_lons = find(v_lon > lonpp,1,'first');
-lons = v_lon(r_lons);
+
+%verify that we are within the validity area
+if(sum([~isempty(r_lati) ~isempty(r_lats) ~isempty(r_loni) ~isempty(r_lons)]) >= 3)
+    lati = v_lat(r_lati);
+    lats = v_lat(r_lats);
+    loni = v_lon(r_loni);
+    lons = v_lon(r_lons);
+else %we are outside of the validity area
+    igp4 = [];
+    return
+end
 
 %coordinates of the 4 points (Appendix A, pag. 41)
 tv_1 = [lats lons];
@@ -80,14 +88,22 @@ m_ll = [lat_igp' lon_igp'];
 %initialization
 igp4 = NaN(1,4);
 
+%node counter
+n = 0;
+
 for i = 1 : 4
 
     [val, cc, r] = intersect(tv(i,:), m_ll, 'rows'); %#ok<ASGLU>
     %NOTE: it may be needed to use a triangular cell instead of a square
     %cell (see procedure on pag. 37, app. A, RTCA 229C)
     if (~isempty(r))
-
         igp4(i) = igp(r);
+        n = n + 1;
     end
     %igp4(i) = igp(r);
+end
+
+%verify that at least a triangular cell is available; if not, disable SBAS processing
+if (n < 3)
+    igp4 = [];
 end

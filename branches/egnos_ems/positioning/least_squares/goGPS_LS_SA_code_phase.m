@@ -94,8 +94,10 @@ sigma2_N = zeros(nN,1);
 % SBAS FAST CORRECTIONS
 %--------------------------------------------------------------------------------------------
 
-%apply SBAS fast (pseudorange) corrections
-pr1(sat_pr) = pr1(sat_pr) + sbas.prc(sat_pr)';
+if (~isempty(sbas))
+    %apply SBAS fast (pseudorange) corrections
+    pr1(sat_pr) = pr1(sat_pr) + sbas.prc(sat_pr)';
+end
 
 %--------------------------------------------------------------------------------------------
 % POSITIONING
