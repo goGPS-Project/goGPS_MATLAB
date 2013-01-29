@@ -26,6 +26,7 @@ function [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, s
 %
 % Portions of code contributed by Laboratorio di Geomatica, Polo Regionale di Como,
 %    Politecnico di Milano, Italy
+% Portions of code contributed by Giuliano Sironi, 2011
 % Portions of code contributed by Antonio Herrera Olmo, 2012
 %----------------------------------------------------------------------------------------------
 %
@@ -149,22 +150,20 @@ elseif ((nargin > 6) & (~isempty(sbas)))
         %find the nodes of the cell that contains the ionosphere pierce point
         [igp4, tv] = sel_igp(latpp, lonpp, sbas.igp, sbas.lat_igp, sbas.lon_igp);
 
-        %NOTE: the ionospheric vertical delay can be interpolated only if the
+        %the ionospheric vertical delay can be interpolated only if the
         %ionosphere pierce point falls within a valid SBAS ionosphere grid
-        %cell. A minimum elevation cutoff (e.g. 10 degrees) could be set in
-        %order to avoid interpolation attempts outside the grid boundaries
-        %(that would produce an error with the current code)
-        
-        %min_elev = 10; %cutoff
-        
-        %if (el >= min_elev)
+        %cell (rectangular or triangular).
+        if (sum(isfinite(igp4)) >= 3)
             
             %interpolate the ionospheric vertical delay at the piercing point
             [ivd_pp] = interp_ivd(igp4, sbas.igp, sbas.ivd, latpp, lonpp, tv); %m
             
             %ionospheric delay
             corr(i,1) = fpp * ivd_pp; % m
-        %end
+        else
+            %ionospheric delay
+            corr(i,1) = 0; % m
+        end
     end
 else
     %a simplified model could be used
