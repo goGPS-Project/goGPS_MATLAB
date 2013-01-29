@@ -550,9 +550,9 @@ set(handles.stopGOstop,'Value', state.stopGOstop);
 
 plot_amb_Callback(handles.plot_amb, [], handles);
 constraint_Callback(handles.constraint, [], handles);
-plotproc_Callback(handles.constraint, [], handles);
 master_pos_Callback(handles.master_pos, [], handles);
 kalman_ls_Callback(handles.kalman_ls, [], handles);
+plotproc_Callback(handles.constraint, [], handles);
 dyn_mod_Callback(handles.dyn_mod, [], handles);
 mode_Callback(handles.mode, [], handles);
 num_receivers_Callback(handles.num_receivers, [], handles);
