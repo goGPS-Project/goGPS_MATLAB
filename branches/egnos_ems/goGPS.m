@@ -440,7 +440,7 @@ if (mode <= 20) %post-processing
         end
         
         %if SBAS corrections are not requested or not available
-        if (~flag_SBAS || isempty(sbas))
+        if (~flag_SBAS || isempty(sbas) || ~ems_data_available)
 
             %initialization
             sbas = [];
