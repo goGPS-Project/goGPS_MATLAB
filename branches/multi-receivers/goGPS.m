@@ -28,7 +28,7 @@
 %---------------------------------------------------------------------------------------------
 
 % clear all the variables in the workspace
-clear variables
+clearvars all
 
 % close all windows
 close all
@@ -63,7 +63,7 @@ global_init;
 global order o1 o2 o3 h_antenna cutoff weights
 
 % Set global variable for goGPS obj mode
-clear global goObj iniObs;
+clearvars -global goObj iniObs;
 global goObj iniObs;
 % For future development the flag goObs will guide a possible migration to the
 % use of generic objects (such as goObservations) able to automatically manage
