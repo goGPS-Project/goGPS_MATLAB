@@ -1,7 +1,7 @@
-function igsdownload(gpsweek, dow, items, path_download)
+function download_igs(gpsweek, dow, items, path_download)
 
 % SYNTAX:
-%   igsdownload(gpsweek, dow, items, path_download);
+%   download_igs(gpsweek, dow, items, path_download);
 %
 % INPUT:
 %   gpsweek = 4digit gpsweek
@@ -38,12 +38,12 @@ fprintf('--> IGSDownload <--\n');
 fprintf('    -----------\n\n');
     
 
-%% checking if the download is needed
+% checking if the download is needed
 if sum(items)==0
     % nothing do download
     fprintf('    --> Warning: no file requested.\n\n');
 else
-    %% ftp address and credential
+    % ftp address and credential
     username='anonymous';
     password='stefano@geomatica.como.polimi.it';
     
@@ -59,7 +59,7 @@ else
     items_status=items-1;   % -1: not to be donwloaded, 0: not found, 1: downloaded
     
     
-    %%             ================================
+    %              ================================
     %  SERVER # 1  International GNSS Service (IGS)
     %              ================================
     
@@ -101,9 +101,8 @@ else
         fprintf('%s\n',connection_status.message);        
     end
 
-    
     if sum(items)>0
-        %%             ===================================
+        %              ===================================
         %  SERVER # 2  Goddard Space Flight Center (CCDIS)
         %              ===================================
         fprintf('\n    --> Donwload from Goddard Space Flight Center (CCDIS)\n');
@@ -139,14 +138,14 @@ else
                 end
             end
             close(f);
+
         catch connection_status
             fprintf('%s\n',connection_status.message);
         end
     end
-    
-    
+
     if sum(items)>0
-        %%             ================================================
+        %              ================================================
         %  SERVER # 2  Scripps Orbit and Permanent Array Center (SOPAC)
         %              ================================================
         fprintf('\n    --> Donwload from Scripps Orbit and Permanent Array Center (SOPAC)\n');
@@ -186,40 +185,24 @@ else
         end
         close(f);
     end
-    
-    
-     %% decompression
-     fprintf('\n    --> Decompression\n');
-     
-     if(isunix)
-         % decompression using unix
-         
-         
-     else
-         % decompression in windows
-         for i=1:length(items)
-             if items_status(i)==1
-                 name_char=char(items_filename{i});
-                 fprintf('        - %17s --> %17s ... ', name_char, name_char(1:end-2));
-                 command=sprintf('gzip -d %s/%s',path_download, name_char);
-                 dos(command);
-                 fprintf('OK\n');
-             end
-         end
-         
-         
-         
-     end
+
+%      % decompression
+%      fprintf('\n    --> Decompression\n');
+%      
+%      if(isunix)
+%          % decompression using unix
+%          
+%          
+%      else
+%          % decompression in windows
+%          for i=1:length(items)
+%              if items_status(i)==1
+%                  name_char=char(items_filename{i});
+%                  fprintf('        - %17s --> %17s ... ', name_char, name_char(1:end-2));
+%                  command=sprintf('gzip -d %s/%s',path_download, name_char);
+%                  dos(command);
+%                  fprintf('OK\n');
+%              end
+%          end
+%      end
 end
-
-
-
-
-
-
-
-
-
-
-
-

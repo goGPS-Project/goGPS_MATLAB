@@ -229,11 +229,11 @@ if (nsat >= min_nsat)
     sat_pr_nocutoff = sat_pr;
     
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3_time, SP3_coor, SP3_clck, iono, XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
-        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), cov_XR, var_dtR] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [],  XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), cov_XR, var_dtR] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [],  XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<NASGU,ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3_time, SP3_coor, SP3_clck, iono, XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
-        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), cov_XR, var_dtR] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [],  XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), cov_XR, var_dtR] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [],  XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<NASGU,ASGLU>
     end
     
     %keep only satellites that rover and master have in common

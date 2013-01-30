@@ -1,7 +1,7 @@
-function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase)
+function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase)
 
 % SYNTAX:
-%   goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase);
+%   goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase);
 %
 % INPUT:
 %   time_rx  = GPS reception time
@@ -15,6 +15,7 @@ function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3_time,
 %   SP3_coor = precise ephemeris coordinates
 %   SP3_clck = precise ephemeris clocks
 %   iono     = ionosphere parameters
+%   sbas     = SBAS corrections
 %   phase    = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -89,14 +90,27 @@ end
 Z_om_1 = zeros(o1-1,1);
 sigma2_N = zeros(nN,1);
 
+%--------------------------------------------------------------------------------------------
+% SBAS FAST CORRECTIONS
+%--------------------------------------------------------------------------------------------
+
+if (~isempty(sbas))
+    %apply SBAS fast (pseudorange) corrections
+    pr1(sat_pr) = pr1(sat_pr) + sbas.prc(sat_pr)';
+end
+
+%--------------------------------------------------------------------------------------------
+% POSITIONING
+%--------------------------------------------------------------------------------------------
+
 if (size(sat,1) >= 4)
     
     sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     end
     
     %apply cutoffs also to phase satellites

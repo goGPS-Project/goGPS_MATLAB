@@ -1,22 +1,23 @@
-function [corr] = iono_error_correction(lat, lon, az, el, T, ionoparams)
+function [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, sbas)
 
 % SYNTAX:
-%   [corr] = iono_error_correction(lat, lon, az, el, T, ionoparams);
+%   [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, sbas);
 %
 % INPUT:
 %   lat = receiver latitude    [degrees]
 %   lon = receiver longitude   [degrees]
 %   az  = satellite azimuth    [degrees]
 %   el  = satellite elevation  [degrees]
-%   T   = time
+%   time_rx    = receiver reception time
 %   ionoparams = ionospheric correction parameters
+%   sbas = SBAS corrections
 %
 % OUTPUT:
 %   corr = ionospheric error correction
 %
 % DESCRIPTION:
-%   Computation of the pseudorange correction due to ionospheric refraction.
-%   Klobuchar algorithm.
+%   Computation of the pseudorange correction due to ionospheric delay.
+%   Klobuchar model or SBAS ionosphere interpolation.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -25,10 +26,8 @@ function [corr] = iono_error_correction(lat, lon, az, el, T, ionoparams)
 %
 % Portions of code contributed by Laboratorio di Geomatica, Polo Regionale di Como,
 %    Politecnico di Milano, Italy
-%
-% Algorithm taken from Leick, A. (2004) "GPS Satellite Surveying - 2nd Edition"
-% John Wiley & Sons, Inc., New York, pp. 301-303
-%
+% Portions of code contributed by Giuliano Sironi, 2011
+% Portions of code contributed by Antonio Herrera Olmo, 2012
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -45,13 +44,22 @@ function [corr] = iono_error_correction(lat, lon, az, el, T, ionoparams)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%global variable
 global v_light
 
-%----------------------------------------------------------------------------------------------
+%initialization
+corr = zeros(size(el),1);
 
-if ((nargin > 5) & (sum(abs(ionoparams)) > 0))
-
+%if ionosphere parameters are available and SBAS corrections are disabled/not available
+if ((nargin == 6) & (sum(abs(ionoparams)) > 0)) | ...
+   ((nargin >  6) & (sum(abs(ionoparams)) > 0)  & (isempty(sbas)))
+    
+    %-------------------------------------------------------------------------------
+    % KLOBUCHAR MODEL
+    %
+    % Algorithm taken from Leick, A. (2004) "GPS Satellite Surveying - 2nd Edition"
+    % John Wiley & Sons, Inc., New York, pp. 301-303)
+    %-------------------------------------------------------------------------------
+    
     %ionospheric parameters
     a0 = ionoparams(1);
     a1 = ionoparams(2);
@@ -83,9 +91,9 @@ if ((nargin > 5) & (sum(abs(ionoparams)) > 0))
 
     ro = phi + 0.064*cos((lambda-1.617)*pi);
 
-    t = lambda*43200 + T;
+    t = lambda*43200 + time_rx;
 
-    for i = 1 : length(T)
+    for i = 1 : length(time_rx)
         while (t(i) >= 86400)
             t(i) = t(i)-86400;
         end
@@ -114,14 +122,49 @@ if ((nargin > 5) & (sum(abs(ionoparams)) > 0))
 
     x = (2*pi*(t-50400)) ./ p;
 
-    %ionospheric error
+    %ionospheric delay
     index = find(abs(x) < 1.57);
     corr(index,1) = v_light * f(index) .* (5e-9 + a(index) .* (1 - (x(index).^2)/2 + (x(index).^4)/24));
 
     index = find(abs(x) >= 1.57);
     corr(index,1) = v_light * f(index) .* 5e-9;
 
+
+%if SBAS corrections are available (and requested by the user)
+elseif ((nargin > 6) & (~isempty(sbas)))
+    
+    %-------------------------------------------------------------------------------
+    % SBAS IONOSPHERE INTERPOLATION
+    %-------------------------------------------------------------------------------
+    
+    lat = lat * pi/180; %rad
+    lon = lon * pi/180; %rad
+    az  = az  * pi/180; %rad
+    el  = el  * pi/180; %rad
+
+    for i = 1 : length(az)
+
+        %ionosphere pierce point coordinates and slant factor
+        [latpp, lonpp, fpp] = iono_pierce_point(lat, lon, az(i), el(i));
+        
+        %find the nodes of the cell that contains the ionosphere pierce point
+        [igp4, tv] = sel_igp(latpp, lonpp, sbas.igp, sbas.lat_igp, sbas.lon_igp);
+
+        %the ionospheric vertical delay can be interpolated only if the
+        %ionosphere pierce point falls within a valid SBAS ionosphere grid
+        %cell (rectangular or triangular).
+        if (sum(isfinite(igp4)) >= 3)
+            
+            %interpolate the ionospheric vertical delay at the piercing point
+            [ivd_pp] = interp_ivd(igp4, sbas.igp, sbas.ivd, latpp, lonpp, tv); %m
+            
+            %ionospheric delay
+            corr(i,1) = fpp * ivd_pp; % m
+        else
+            %ionospheric delay
+            corr(i,1) = 0; % m
+        end
+    end
 else
     %a simplified model could be used
-    corr = zeros(size(el));
 end
