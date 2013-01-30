@@ -1,24 +1,22 @@
-function [parity] = crc24q(msg)
+function [Eph_t] = rt_find_eph (Eph_in, time)
 
 % SYNTAX:
-%   [parity] = crc24q(msg);
+%   [Eph_t] = rt_find_eph (Eph_in, time);
 %
 % INPUT:
-%   msg = binary message
+%   Eph_in = ephemerides in input
+%   time = GPS time
 %
 % OUTPUT:
-%   parity = crc parity (24 bits)
+%   Eph_t = selected ephemerides
 %
 % DESCRIPTION:
-%   Applies CRC-24Q QualComm algorithm.
+%   Extract the ephemerides referred to the current epoch.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
-%
-% ('rtcm3torinex.c', by Dirk Stoecker, BKG Ntrip Client (BNC) Version 1.6.1
-%  was used as a reference)
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -35,36 +33,13 @@ function [parity] = crc24q(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-parity = uint32(0);
+empty_col = zeros(29,1);
 
-%check the length of the input string, in case make it splittable byte-wise
-remainder = rem(length(msg),8);
-if (remainder ~= 0)
-    fill = zeros(1,8-remainder);
-    msg = [num2str(fill,'%d') msg];
-end
-
-Nbits = length(msg);
-
-%pre-allocate to increase speed
-Nbytes = Nbits / 8;
-bytes = cell(1,Nbytes);
-k = 1;
-for j = 1 : 8 : Nbits
-    bytes{k} = msg(j:j+7);
-    k = k + 1;
-end
-%call 'fbin2dec' and 'bitshift' only once (to optimize speed)
-bytes = bitshift(fbin2dec(bytes), 16);
-bytes = uint32(bytes);
-for i = 1 : Nbytes
-    parity = bitxor(parity, bytes(i));
-    for j = 1 : 8
-        parity = bitshift(parity, 1);
-        if bitand(parity, 16777216)
-            parity = bitxor(parity, 25578747);
-        end
+for sv = 1 : 32
+    icol = find_eph(Eph_in, sv, time);
+    if (~isempty(icol))
+        Eph_t(:,sv) = Eph_in(:,icol);
+    else
+        Eph_t(:,sv) = empty_col;
     end
 end
-
-parity = dec2bin(parity, 24);

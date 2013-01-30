@@ -66,12 +66,12 @@ if (mode_user == 1)
 
     if (~isunix)
        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-           flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
+           flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
     end
@@ -135,6 +135,8 @@ else
     flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
     
     flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
+    
+    flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
 
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -395,8 +397,64 @@ if (mode <= 20) %post-processing
         loss_M = loss_M(tMin:tMax);
         date = date(tMin:tMax,:);
     end
+    
+    %if absolute post-processing positioning
+    if (mode <= 10)
 
-    %if relative post-processing (i.e. with master station)
+        %if SBAS corrections are requested
+        if (flag_SBAS)
+            
+            %----------------------------------------------------------------------------------------------
+            % LOAD SBAS DATA (EGNOS EMS FILES)
+            %----------------------------------------------------------------------------------------------
+            
+            %NOTE: if SBAS corrections are not requested by the user or not available, the
+            %      'sbas' structure will be initialized to zero/empty arrays and it will not
+            %      have any effect on the positioning
+            
+            %try first to read .ems files already available
+            [sbas] = load_ems('../data/EMS', week_R, time_R);
+            
+            %if .ems files are not available or not sufficient, try to download them
+            if (isempty(sbas))
+                
+                %EGNOS PRNs
+                prn = [120, 124, 126];
+                
+                %download
+                for p = 1 : length(prn)
+                    [file_ems] = download_ems(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                    if (~isempty(file_ems))
+                        break
+                    end
+                end
+                
+                %try again to read .ems files
+                [sbas] = load_ems('../data/EMS', week_R, time_R);
+            end
+            
+            %check if the survey is within the EMS grids
+            if (~isempty(sbas))
+                [ems_data_available] = check_ems_extents(time_R, pr1_R, snr_R, Eph, iono, sbas);
+            end
+        end
+        
+        %if SBAS corrections are not requested or not available
+        if (~flag_SBAS || isempty(sbas) || ~ems_data_available)
+
+            %initialization
+            sbas = [];
+            
+            %if SBAS corrections are requested but not available
+            if (flag_SBAS && isempty(sbas))
+                fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+            end
+        end
+    else
+        sbas = [];
+    end
+
+    %if relative post-processing positioning (i.e. with master station)
     if (mode > 10) && (mode <= 20)
         %master station position management
         if (flag_ms_pos) & (sum(abs(pos_M)) ~= 0)
@@ -416,7 +474,7 @@ if (mode <= 20) %post-processing
         if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
             %compute master station clock error and drift
             fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
-            [dtM, dtMdot] = clock_error(pos_M, time_M, pr1_M, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            [dtM, dtMdot] = clock_error(pos_M, time_M, pr1_M, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas);
         else
             dtM = zeros(size(dop1_M,2),1);
             dtMdot = zeros(size(dop1_M,2),1);
@@ -501,8 +559,10 @@ if (mode == 1)
         else
             Eph_t = Eph(:,:,t);
         end
+        
+        sbas_t = find_sbas(sbas, t);
 
-        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
@@ -571,7 +631,9 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        sbas_t = find_sbas(sbas, 1);
+        
+        kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -614,7 +676,7 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_KF_SA_code_loop(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        goGPS_KF_SA_code_loop(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -672,8 +734,10 @@ elseif (mode == 3)
         else
             Eph_t = Eph(:,:,t);
         end
+        
+        sbas_t = find_sbas(sbas, t);
 
-        goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -734,7 +798,9 @@ elseif (mode == 4)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        sbas_t = find_sbas(sbas, 1);
+        
+        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -778,8 +844,10 @@ elseif (mode == 4)
         else
             Eph_t = Eph(:,:,t);
         end
+        
+        sbas_t = find_sbas(sbas, t);
 
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
