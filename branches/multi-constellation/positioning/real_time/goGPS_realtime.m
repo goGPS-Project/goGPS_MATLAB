@@ -73,6 +73,9 @@ if (flag_var_dyn_model) & (~flag_stopGOstop)
     flag_skyplot = 0;
 end
 
+%number of satellites (only GPS for real-time processing)
+nGPSsat = 32;
+
 %------------------------------------------------------
 % read protocol parameters
 %------------------------------------------------------
@@ -133,6 +136,7 @@ fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
 %  distM --> double, [32,1]
 %  distR --> double, [32,1]
 fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
+fwrite(fid_sat, nGPSsat, 'int8');
 
 %dilution of precision
 %  PDOP     --> double, [1,1]
@@ -159,6 +163,7 @@ end
 %  conf_cs  --> int8, [32,1]
 %  pivot    --> int8, [1,1]
 fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+fwrite(fid_conf, nGPSsat, 'int8');
 
 %nmea sentences 
 fid_nmea = fopen([filerootOUT '_', prot_par{1,1},'_NMEA.txt'],'wt');
@@ -733,6 +738,8 @@ while flag
         end
         fid_conf   = fopen([filerootOUT '_conf_'   hour_str '.bin'],'w+');
         
+        fwrite(fid_sat,  nGPSsat, 'int8');
+        fwrite(fid_conf, nGPSsat, 'int8');
     end
 
     %-------------------------------------

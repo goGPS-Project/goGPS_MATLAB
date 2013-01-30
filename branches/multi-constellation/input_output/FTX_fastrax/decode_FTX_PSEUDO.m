@@ -52,6 +52,8 @@ function [data] = decode_FTX_PSEUDO(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global lambda1
+
 % first message initial index
 pos = 1;
 
@@ -130,7 +132,6 @@ for j = 1 : NumObs
     
     % PSEUDO.Obs[n].dDoppler 	DOUBLE 	Doppler [m/s].
     [Doppler, pos]      = FTX_TypeConv('DOUBLE', msg, pos);
-    global lambda1
     Doppler = Doppler / lambda1;
 
     % PSEUDO.Obs[n].iLoopDopplerOffset 	INT16 	Difference between Doppler measurement and the frequency from the software carrier tracking loop [cm/s].   
@@ -194,7 +195,7 @@ for j = 1 : NumObs
     
     
     
-    % exclude EGNOS satellites (SV = 121, 122, etc.)
+    % exclude SBAS satellites (SV = 121, 122, etc.)
     % exclude satelites with wrong data
     if ((PRN <= 32) && (SNR > 0))
         

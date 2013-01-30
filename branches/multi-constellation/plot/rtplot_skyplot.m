@@ -39,6 +39,8 @@ function rtplot_skyplot (t, az, el, obs, pivot)
 global cutoff
 global satid labid pivid
 
+num_sat = length(el);
+
 %----------------------------------------------------------------------------------------------
 % SKY-PLOT BACKGROUND
 %----------------------------------------------------------------------------------------------
@@ -140,7 +142,7 @@ y = rho .* sin(theta);
 % visible satellites
 sat = [];
 
-for i = 1 : 32
+for i = 1 : num_sat
 
     if (el(i) > 0)
 
@@ -193,7 +195,7 @@ y = y(sat);
 
 % delete previous labels and re-initialize them
 delete(labid(labid > 0));
-labid = zeros(32,1);
+labid = zeros(num_sat,1);
 
 try
     % if Statistics Toolbox is installed

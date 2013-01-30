@@ -68,7 +68,8 @@ for i = 1 : n02
     n_SV(i)    = n_sv;
 end
 
-prc_E = zeros(n02, 32);
+nGPSsat = 32;
+prc_E = zeros(n02, nGPSsat);
 
 %initialize the PRC matrix
 for k = 1 : n_SV(1)

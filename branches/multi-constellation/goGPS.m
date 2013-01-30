@@ -57,6 +57,9 @@ mode_user = 1;  % user interface type
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
+%load multi-constellation settings and initialize 'constellation' struct
+multi_constellation_settings;
+
 %initialization of global variables/constants
 global_init;
 
@@ -64,17 +67,17 @@ global order o1 o2 o3 h_antenna cutoff weights
 
 if (mode_user == 1)
 
-    if (~isunix)
+%     if (~isunix)
        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
-    else
-        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
-            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
-    end
+%     else
+%         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+%             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
+%             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+%             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
+%     end
 
     if (isempty(mode))
         return
@@ -153,7 +156,6 @@ else
             error('Instrument Control Toolbox is needed to run goGPS in real-time mode.');
         end
     end
-
 end
 
 % start evaluating computation time
@@ -202,19 +204,17 @@ if (mode <= 20) %post-processing
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
                 dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
-                snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-                dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
-                time_GPS, time_R, time_M, date, pos_R, pos_M, Eph, iono, Eph_RR, interval] = ...
-                load_RINEX(flag_SP3, filename_R_obs, filename_nav);
+                snr2_R, snr2_M, time_GPS, time_R, time_M, ...
+                date, pos_R, pos_M, Eph, iono, interval] = ...
+                load_RINEX(filename_nav, filename_R_obs, [], constellations, flag_SP3);
 
         else %relative positioning
 
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
                 dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
-                snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-                dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
-                time_GPS, time_R, time_M, date, pos_R, pos_M, Eph, iono, Eph_RR, interval] = ...
-                load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs);
+                snr2_R, snr2_M, time_GPS, time_R, time_M, ...
+                date, pos_R, pos_M, Eph, iono, interval] = ...
+                load_RINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3);
         end
 
         %GPS week number
@@ -241,7 +241,7 @@ if (mode <= 20) %post-processing
 
         if (~flag_SP3)
             %remove satellites without ephemerides (GPS)
-            delsat = setdiff(1:32,unique(Eph(1,:)));
+            delsat = setdiff(1:nSatTot,unique(Eph(1,:)));
             pr1_R(delsat,:) = 0;
             pr1_M(delsat,:) = 0;
             pr2_R(delsat,:) = 0;
@@ -256,23 +256,6 @@ if (mode <= 20) %post-processing
             dop2_M(delsat,:) = 0;
             snr_R(delsat,:) = 0;
             snr_M(delsat,:) = 0;
-            
-            %%remove satellites without ephemerides (GLONASS)
-            %delsat = setdiff(1:32,unique(Eph_GLO(1,:)));
-            %pr1_RR(delsat,:) = 0;
-            %pr1_MR(delsat,:) = 0;
-            %pr2_RR(delsat,:) = 0;
-            %pr2_MR(delsat,:) = 0;
-            %ph1_RR(delsat,:) = 0;
-            %ph1_MR(delsat,:) = 0;
-            %ph2_RR(delsat,:) = 0;
-            %ph2_MR(delsat,:) = 0;
-            %dop1_RR(delsat,:) = 0;
-            %dop1_MR(delsat,:) = 0;
-            %dop2_RR(delsat,:) = 0;
-            %dop2_MR(delsat,:) = 0;
-            %snr_RR(delsat,:) = 0;
-            %snr_MR(delsat,:) = 0;
         end
 
         %%reverse the path (GPS)
@@ -290,22 +273,6 @@ if (mode <= 20) %post-processing
         %dop2_M = dop2_M(:,end:-1:1);
         %snr_R = snr_R(:,end:-1:1);
         %snr_M = snr_M(:,end:-1:1);
-
-        %%reverse the path (GLONASS)
-        %pr1_RR = pr1_RR(:,end:-1:1);
-        %pr1_MR = pr1_MR(:,end:-1:1);
-        %ph1_RR = ph1_RR(:,end:-1:1);
-        %ph1_MR = ph1_MR(:,end:-1:1);
-        %pr2_RR = pr2_RR(:,end:-1:1);
-        %pr2_MR = pr2_MR(:,end:-1:1);
-        %ph2_RR = ph2_RR(:,end:-1:1);
-        %ph2_MR = ph2_MR(:,end:-1:1);
-        %dop1_RR = dop1_RR(:,end:-1:1);
-        %dop1_MR = dop1_MR(:,end:-1:1);
-        %dop2_RR = dop2_RR(:,end:-1:1);
-        %dop2_MR = dop2_MR(:,end:-1:1);
-        %snr_RR = snr_RR(:,end:-1:1);
-        %snr_MR = snr_MR(:,end:-1:1);
 
         %time_GPS = time_GPS(end:-1:1);
         %date = date(end:-1:1,:);
@@ -516,13 +483,13 @@ else %real-time
     end
 
     %for the Kalman filter execution in real-time
-    dop1_M = zeros(32,1);
-    pr2_M  = zeros(32,1);
-    pr2_R  = zeros(32,1);
-    ph2_M  = zeros(32,1);
-    ph2_R  = zeros(32,1);
-    dop2_M = zeros(32,1);
-    dop2_R = zeros(32,1);
+    dop1_M = zeros(nSatTot,1);
+    pr2_M  = zeros(nSatTot,1);
+    pr2_R  = zeros(nSatTot,1);
+    ph2_M  = zeros(nSatTot,1);
+    ph2_R  = zeros(nSatTot,1);
+    dop2_M = zeros(nSatTot,1);
+    dop2_R = zeros(nSatTot,1);
 end
 
 %check if the dataset was surveyed with a variable dynamic model
@@ -544,7 +511,7 @@ if (mode == 1)
     fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 
-    nN = 32;
+    nN = nSatTot;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -564,11 +531,16 @@ if (mode == 1)
 
         goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
+        if (t == 1)
+            fwrite(fid_sat, nSatTot, 'int8');
+            fwrite(fid_conf, nSatTot, 'int8');
+        end
+        
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
             Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
             fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
-            fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
+            fwrite(fid_sat, [zeros(nSatTot,1); azR; zeros(nSatTot,1); elR; zeros(nSatTot,1); distR], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
@@ -612,7 +584,7 @@ elseif (mode == 2)
     fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 
-    nN = 32;
+    nN = nSatTot;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -646,9 +618,10 @@ elseif (mode == 2)
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+    fwrite(fid_sat, nSatTot, 'int8');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+    fwrite(fid_conf, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_plotproc)
         if (flag_cov == 0)
@@ -719,7 +692,7 @@ elseif (mode == 3)
     fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 
-    nN = 32;
+    nN = nSatTot;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -739,9 +712,14 @@ elseif (mode == 3)
 
         goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
 
+        if (t == 1)
+            fwrite(fid_sat, nSatTot, 'int8');
+            fwrite(fid_conf, nSatTot, 'int8');
+        end
+        
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
-            fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
+            fwrite(fid_sat, [zeros(nSatTot,1); azR; zeros(nSatTot,1); elR; zeros(nSatTot,1); distR], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
@@ -811,9 +789,10 @@ elseif (mode == 4)
     end
 
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+    fwrite(fid_sat, nSatTot, 'int8');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+    fwrite(fid_conf, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_plotproc)
         if (flag_cov == 0)
@@ -824,7 +803,7 @@ elseif (mode == 4)
             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
         end
         if (flag_amb == 1)
-            rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
+            rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
         else
             if (flag_skyplot == 1)
                 rtplot_skyplot (1, azR, elR, conf_sat, pivot);
@@ -863,7 +842,7 @@ elseif (mode == 4)
                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
             end
             if (flag_amb == 1)
-                rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
+                rtplot_amb (t, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs);
                 pause(0.1);
             else
                 if (flag_skyplot == 1)
@@ -893,7 +872,7 @@ elseif (mode == 11)
     fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 
-    nN = 32;
+    nN = nSatTot;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -911,6 +890,11 @@ elseif (mode == 11)
 
         goGPS_LS_DD_code(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
 
+        if (t == 1)
+            fwrite(fid_sat, nSatTot, 'int8');
+            fwrite(fid_conf, nSatTot, 'int8');
+        end
+        
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
             Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -959,7 +943,7 @@ elseif (mode == 12)
     fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 
-    nN = 32;
+    nN = nSatTot;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -991,9 +975,10 @@ elseif (mode == 12)
     Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
     Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
     fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+    fwrite(fid_sat, nSatTot, 'int8');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+    fwrite(fid_conf, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_plotproc)
         if (flag_cov == 0)
@@ -1090,9 +1075,10 @@ elseif (mode == 14) & (mode_vinc == 0)
         end
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+        fwrite(fid_sat, nSatTot, 'int8');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-        fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+        fwrite(fid_conf, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
             if (flag_cov == 0)
@@ -1103,7 +1089,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                 rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
             end
             if (flag_amb == 1)
-                rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
+                rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
             else
                 if (flag_skyplot == 1)
                     rtplot_skyplot (1, azR, elR, conf_sat, pivot);
@@ -1140,7 +1126,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                     rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
                 end
                 if (flag_amb == 1)
-                    rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
+                    rtplot_amb (t, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs);
                     pause(0.1);
                 else
                     if (flag_skyplot == 1)
@@ -1215,9 +1201,10 @@ elseif (mode == 14) & (mode_vinc == 0)
         end
         
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+        fwrite(fid_sat, nSatTot, 'int8');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-        fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+        fwrite(fid_conf, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
         
         if (flag_plotproc)
             if (flag_cov == 0)
@@ -1236,7 +1223,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                 end
             end
             if (flag_amb == 1)
-                rtplot_amb (1, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs)
+                rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
             else
                 if (flag_skyplot == 1)
                     rtplot_skyplot (1, azR, elR, conf_sat, pivot);
@@ -1328,7 +1315,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                     end
                 end
                 if (flag_amb == 1)
-                    rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
+                    rtplot_amb (t, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs);
                     pause(0.1);
                 else
                     if (flag_skyplot == 1)
@@ -1411,15 +1398,16 @@ elseif (mode == 14) & (mode_vinc == 1)
     end
 
     fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
+    fwrite(fid_sat, nSatTot, 'int8');
     fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
     fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
-    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+    fwrite(fid_conf, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_plotproc)
         if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), date(1,:)), end;
         rtplot_matlab (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
         if (flag_amb == 1)
-            rtplot_amb (1, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
+            rtplot_amb (1, window, Xhat_t_t(o1+1:o1+nSatTot), sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot))), conf_cs);
         else
             if (flag_skyplot == 1)
                 rtplot_skyplot (1, azR, elR, conf_sat, pivot);
@@ -1451,7 +1439,7 @@ elseif (mode == 14) & (mode_vinc == 1)
             if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date(t,:)), end;
             rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
             if (flag_amb == 1)
-                rtplot_amb (t, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
+                rtplot_amb (t, window, Xhat_t_t(o1+1:o1+nSatTot), sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot))), conf_cs);
                 pause(0.1);
             else
                 if (flag_skyplot == 1)
@@ -1531,17 +1519,17 @@ if (mode <= 20) || (mode == 24)
     %variable saving for final graphical representations
     nObs = size(Xhat_t_t,2);
     pos_KAL = zeros(3,nObs);
-    estim_amb = zeros(32,nObs);
-    sigma_amb = zeros(32,nObs);
+    estim_amb = zeros(nSatTot,nObs);
+    sigma_amb = zeros(nSatTot,nObs);
     for i = 1 : nObs
         if (mode == 14 & mode_vinc == 1)
             pos_KAL(:,i) = [Yhat_t_t(1,i); Yhat_t_t(2,i); Yhat_t_t(3,i)];
-            estim_amb(:,i) = Xhat_t_t(o1+1:o1+32,i);
-            sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32,i)));
+            estim_amb(:,i) = Xhat_t_t(o1+1:o1+nSatTot,i);
+            sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot,i)));
         else
             pos_KAL(:,i) = [Xhat_t_t(1,i); Xhat_t_t(o1+1,i); Xhat_t_t(o2+1,i)];
-            estim_amb(:,i) = Xhat_t_t(o3+1:o3+32,i);
-            sigma_amb(:,i) = sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32,i)));
+            estim_amb(:,i) = Xhat_t_t(o3+1:o3+nSatTot,i);
+            sigma_amb(:,i) = sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot,i)));
         end
     end
 end
@@ -2170,7 +2158,7 @@ end
 %    subplot('position',[0.1 0.35 0.8 0.55]);
 %    hold on; grid on;
 %    title('Satellite configuration')
-%    for i = 1 : 32
+%    for i = 1 : nSatTot
 %       index = find(abs(conf_sat(i,:)) == 1);
 %       index_cs = intersect(index, find(conf_cs(i,:) == 1));
 %       index_pivot = intersect(index, find(pivot == i));
@@ -2210,7 +2198,7 @@ end
 %    f2 = figure; hold on; grid on; title('Elevation')
 %    f3 = figure; hold on; grid on; title('Distance')
 %    k = 1;
-%    for i = 1 : 32
+%    for i = 1 : nSatTot
 %       index = find(abs(conf_sat(i,:)) == 1)';
 %       if ~isempty(index)
 %          %azimuth
@@ -2269,7 +2257,7 @@ end
 
 % if (mode == 14) | (mode == 4)
 % 
-%    for i = 1 : 32
+%    for i = 1 : nSatTot
 %       index = find(conf_sat(i,:) == 1)';
 %       index_cs = find(conf_cs(i,:) == 1)';
 %       if ~isempty(index)
@@ -2297,7 +2285,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 % %rover
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(conf_sat(i,:) == 1)';
 %     if ~isempty(index)
 %         figure
@@ -2307,7 +2295,7 @@ end
 % end
 % 
 % %master
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(conf_sat(i,:) == 1)';
 %     if ~isempty(index)
 %         figure
@@ -2321,7 +2309,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 % %code
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(conf_sat(i,:) == 1)';
 %     index_pivot = intersect(index, find(pivot == i));
 %     if ~isempty(index) & (length(index) ~= length(index_pivot))
@@ -2338,7 +2326,7 @@ end
 % end
 % 
 % %phase
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(conf_sat(i,:) == 1)';
 %     index_pivot = intersect(index, find(pivot == i));
 %     if ~isempty(index) & (length(index) ~= length(index_pivot))
@@ -2359,7 +2347,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 % %rover pseudorange
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(pr1_R(i,:) ~= 0)';
 %     if ~isempty(index)
 %         figure
@@ -2368,7 +2356,7 @@ end
 %     end
 % end
 % %rover phase measurement
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(ph1_R(i,:) ~= 0)';
 %     if ~isempty(index)
 %         figure
@@ -2378,7 +2366,7 @@ end
 % end
 % 
 % %master pseudorange
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(pr1_M(i,:) ~= 0)';
 %     if ~isempty(index)
 %         figure
@@ -2387,7 +2375,7 @@ end
 %     end
 % end
 % %master phase measurement
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(ph1_M(i,:) ~= 0)';
 %     if ~isempty(index)
 %         figure
@@ -2401,7 +2389,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 % %rover
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(pr1_R(i,:) ~= 0)';
 %     if ~isempty(index)
 %         pr = pr1_R(i,index);
@@ -2446,7 +2434,7 @@ end
 % end
 % 
 % %master
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(pr1_M(i,:) ~= 0)';
 %     if ~isempty(index)
 %         pr = pr1_M(i,index);
@@ -2495,7 +2483,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 % %rover
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(ph1_R(i,:) ~= 0)';
 %     if ~isempty(index)
 %         ph = ph1_R(i,index);
@@ -2540,7 +2528,7 @@ end
 % end
 % 
 % %master
-% for i = 1 : 32
+% for i = 1 : nSatTot
 %     index = find(ph1_M(i,:) ~= 0)';
 %     if ~isempty(index)
 %         ph = ph1_M(i,index);

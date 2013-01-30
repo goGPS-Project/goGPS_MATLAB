@@ -50,10 +50,13 @@ global PDOP HDOP VDOP
 %covariance matrix initialization
 cov_XR = [];
 
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1,1);
+
 %topocentric coordinate initialization
-azR   = zeros(32,1);
-elR   = zeros(32,1);
-distR = zeros(32,1);
+azR   = zeros(nSatTot,1);
+elR   = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
 
 %visible satellites (ROVER)
 if (phase == 1)
@@ -88,11 +91,11 @@ if (size(sat,1) >= 4)
     %--------------------------------------------------------------------------------------------
     
     %satellite configuration
-    conf_sat = zeros(32,1);
+    conf_sat = zeros(nSatTot,1);
     conf_sat(sat,1) = +1;
     
     %no cycle-slips when working with code only
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     %previous pivot
     pivot_old = 0;

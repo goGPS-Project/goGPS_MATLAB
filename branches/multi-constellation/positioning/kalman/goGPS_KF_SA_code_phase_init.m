@@ -57,13 +57,16 @@ global doppler_pred_range1_R doppler_pred_range2_R
 
 kalman_initialized = 0;
 
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1,1);
+
 %topocentric coordinates initialization
-azR = zeros(32,1);
-elR = zeros(32,1);
-distR = zeros(32,1);
-azM = zeros(32,1);
-elM = zeros(32,1);
-distM = zeros(32,1);
+azR = zeros(nSatTot,1);
+elR = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
+azM = zeros(nSatTot,1);
+elM = zeros(nSatTot,1);
+distM = zeros(nSatTot,1);
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -71,9 +74,9 @@ distM = zeros(32,1);
 
 %number of unknown phase ambiguities
 if (length(phase) == 1)
-    nN = 32;
+    nN = nSatTot;
 else
-    nN = 64;
+    nN = nSatTot*2;
 end
 
 %--------------------------------------------------------------------------------------------
@@ -108,8 +111,7 @@ T = [T0      Z_o1_o1 Z_o1_o1 Z_o1_nN;
      Z_o1_o1 Z_o1_o1 T0      Z_o1_nN;
      Z_nN_o1 Z_nN_o1 Z_nN_o1 N0];
 
-%construction of an identity matrix of 38 variables (6 for position and
-%velocity + 32 or 64 for the satellites number) for the further computations
+%construction of an identity matrix
 I = eye(o3+nN);
 
 %--------------------------------------------------------------------------------------------
@@ -180,12 +182,12 @@ if (length(sat_pr) >= 4)
     %--------------------------------------------------------------------------------------------
     
     %satellites configuration: code only (-1), both code and phase (+1);
-    conf_sat = zeros(32,1);
+    conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr) = -1;
     conf_sat(sat) = +1;
     
     %cycle-slip configuration
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     pivot_old = 0;
     
@@ -215,10 +217,10 @@ if (length(sat) < 4)
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
-    sigma2_N1 = zeros(32,1);
-    sigma2_N2 = zeros(32,1);
+    N1 = zeros(nSatTot,1);
+    N2 = zeros(nSatTot,1);
+    sigma2_N1 = zeros(nSatTot,1);
+    sigma2_N2 = zeros(nSatTot,1);
     
     %computation of the phase double differences in order to estimate N
     if ~isempty(sat)
@@ -244,8 +246,8 @@ else
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
+    N1 = zeros(nSatTot,1);
+    N2 = zeros(nSatTot,1);
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
@@ -285,11 +287,10 @@ else
     end
 end
 
-%initialization of the initial point with 6(positions and velocities) +
-%32 or 64 (N combinations) variables
+%initialization of the state vector
 Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N];
 
-%point estimation at step t+1 X Vx Y Vy Z Vz comb_N
+%state update at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
 X_t1_t = T*Xhat_t_t;
 

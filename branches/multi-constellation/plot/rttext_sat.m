@@ -39,6 +39,8 @@ function rttext_sat (t, az, el, snr, obs, pivot)
 
 global satid
 
+num_sat = length(el);
+
 % location on the screen
 subplot(2,3,[3 6])
 
@@ -60,7 +62,7 @@ end
 
 vert_pos = 0.95;
 
-for i = 1 : 32
+for i = 1 : num_sat
 
     if (el(i) > 0)
 
@@ -85,7 +87,7 @@ for i = 1 : 32
         delete(satid(i))
         satid(i) = 0;
 
-        for j = i+1 : 32
+        for j = i+1 : num_sat
             if (satid(j) > 0)
                 pos = get(satid(j),'Position');
                 set(satid(j),'Position',[0 pos(2)+0.05 0]);

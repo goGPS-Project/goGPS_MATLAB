@@ -52,13 +52,16 @@ global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 
 kalman_initialized = 0;
 
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1,1);
+
 %topocentric coordinates initialization
-azR = zeros(32,1);
-elR = zeros(32,1);
-distR = zeros(32,1);
-azM = zeros(32,1);
-elM = zeros(32,1);
-distM = zeros(32,1);
+azR = zeros(nSatTot,1);
+elR = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
+azM = zeros(nSatTot,1);
+elM = zeros(nSatTot,1);
+distM = zeros(nSatTot,1);
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL
@@ -140,11 +143,11 @@ if (length(sat) >= 4)
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
     
-    conf_sat(:,1) = zeros(32,1);
+    conf_sat(:,1) = zeros(nSatTot,1);
     conf_sat(sat,1) = +1;
     
     %no cycle-slips when working with code only
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     pivot_old = 0;
     

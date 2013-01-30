@@ -52,10 +52,13 @@ global PDOP HDOP VDOP
 %covariance matrix initialization
 cov_XR = [];
 
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1,1);
+
 %topocentric coordinate initialization
-azR   = zeros(32,1);
-elR   = zeros(32,1);
-distR = zeros(32,1);
+azR   = zeros(nSatTot,1);
+elR   = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -63,9 +66,9 @@ distR = zeros(32,1);
 
 %number of unknown phase ambiguities
 if (length(phase) == 1)
-    nN = 32;
+    nN = nSatTot;
 else
-    nN = 64;
+    nN = nSatTot*2;
 end
 
 %--------------------------------------------------------------------------------------------
@@ -122,12 +125,12 @@ if (size(sat,1) >= 4)
     %--------------------------------------------------------------------------------------------
     
     %satellite configuration
-    conf_sat = zeros(32,1);
+    conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr,1) = -1;
     conf_sat(sat,1) = +1;
     
     %no cycle-slips when working with code only
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     %previous pivot
     pivot_old = 0;
@@ -168,10 +171,10 @@ if (length(sat) < 4)
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
-    sigma2_N1 = zeros(32,1);
-    sigma2_N2 = zeros(32,1);
+    N1 = zeros(nSatTot,1);
+    N2 = zeros(nSatTot,1);
+    sigma2_N1 = zeros(nSatTot,1);
+    sigma2_N2 = zeros(nSatTot,1);
     
     %computation of the phase double differences in order to estimate N
     if ~isempty(sat)
@@ -197,8 +200,8 @@ else
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
+    N1 = zeros(nSatTot,1);
+    N2 = zeros(nSatTot,1);
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
@@ -238,8 +241,7 @@ else
     end
 end
 
-%initialization of the initial point with 6(positions and velocities) +
-%32 or 64 (N combinations) variables
+%initialization of the state vector
 Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N];
 
 %--------------------------------------------------------------------------------------------

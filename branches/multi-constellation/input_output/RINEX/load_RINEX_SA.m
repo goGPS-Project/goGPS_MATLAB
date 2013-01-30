@@ -1,13 +1,9 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
-          pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, dop1_GLO, dop2_GLO, ...
-          Eph_GLO, snr_GLO, time_GPS, date, pos] = ...
-          load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time)
+          time_GPS, date, pos] = load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
-%         pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, dop1_GLO, dop2_GLO, ...
-%         Eph_GLO, snr_GLO, time_GPS, date, pos] = ...
-%         load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time);
+%         time_GPS, date, pos] = load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time);
 %
 % INPUT:
 %   name_F_oss = RINEX observation file
@@ -61,7 +57,11 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-Eph_GLO = zeros(17,32);
+global nSatTot
+
+nGLOsat = 30;
+
+Eph_GLO = zeros(17,nGLOsat);
 
 if (nargin >= 3)
     waitbar(0.33,wait_dlg,'Reading navigation files...')
@@ -113,24 +113,24 @@ nEpochs = 86400;
 
 %variable initialization (GPS)
 time_GPS = zeros(nEpochs,1);
-pr1 = zeros(32,nEpochs);
-pr2 = zeros(32,nEpochs);
-ph1 = zeros(32,nEpochs);
-ph2 = zeros(32,nEpochs);
-dop1 = zeros(32,nEpochs);
-dop2 = zeros(32,nEpochs);
-snr1 = zeros(32,nEpochs);
-snr2 = zeros(32,nEpochs);
+pr1 = zeros(nSatTot,nEpochs);
+pr2 = zeros(nSatTot,nEpochs);
+ph1 = zeros(nSatTot,nEpochs);
+ph2 = zeros(nSatTot,nEpochs);
+dop1 = zeros(nSatTot,nEpochs);
+dop2 = zeros(nSatTot,nEpochs);
+snr1 = zeros(nSatTot,nEpochs);
+snr2 = zeros(nSatTot,nEpochs);
 date = zeros(nEpochs,6);
 
 %variable initialization (GLONASS)
-pr1_GLO = zeros(32,1);
-pr2_GLO = zeros(32,1);
-ph1_GLO = zeros(32,1);
-ph2_GLO = zeros(32,1);
-dop1_GLO = zeros(32,1);
-dop2_GLO = zeros(32,1);
-snr_GLO = zeros(32,1);
+pr1_GLO = zeros(nGLOsat,1);
+pr2_GLO = zeros(nGLOsat,1);
+ph1_GLO = zeros(nGLOsat,1);
+ph2_GLO = zeros(nGLOsat,1);
+dop1_GLO = zeros(nGLOsat,1);
+dop2_GLO = zeros(nGLOsat,1);
+snr_GLO = zeros(nGLOsat,1);
 
 k = 1;
 
@@ -143,21 +143,21 @@ while (~feof(F_oss))
     if (k > nEpochs)
         
         %variable initialization (GPS)
-        pr1(:,k)  = zeros(32,1);
-        pr2(:,k)  = zeros(32,1);
-        ph1(:,k)  = zeros(32,1);
-        ph2(:,k)  = zeros(32,1);
-        dop1(:,k) = zeros(32,1);
-        dop2(:,k) = zeros(32,1);
-        snr1(:,k) = zeros(32,1);
-        snr2(:,k) = zeros(32,1);
+        pr1(:,k)  = zeros(nSatTot,1);
+        pr2(:,k)  = zeros(nSatTot,1);
+        ph1(:,k)  = zeros(nSatTot,1);
+        ph2(:,k)  = zeros(nSatTot,1);
+        dop1(:,k) = zeros(nSatTot,1);
+        dop2(:,k) = zeros(nSatTot,1);
+        snr1(:,k) = zeros(nSatTot,1);
+        snr2(:,k) = zeros(nSatTot,1);
         
         %variable initialization (GLONASS)
-        % pr1_GLO(:,k) = zeros(32,1);
-        % pr2_GLO(:,k) = zeros(32,1);
-        % ph1_GLO(:,k) = zeros(32,1);
-        % ph2_GLO(:,k) = zeros(32,1);
-        % snr_GLO(:,k) = zeros(32,1);
+        % pr1_GLO(:,k) = zeros(nGLOsat,1);
+        % pr2_GLO(:,k) = zeros(nGLOsat,1);
+        % ph1_GLO(:,k) = zeros(nGLOsat,1);
+        % ph2_GLO(:,k) = zeros(nGLOsat,1);
+        % snr_GLO(:,k) = zeros(nGLOsat,1);
 
         nEpochs = nEpochs  + 1;
     end

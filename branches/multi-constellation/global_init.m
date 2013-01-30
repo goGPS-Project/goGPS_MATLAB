@@ -183,12 +183,12 @@ rec_clock_error = 0;
 flag_doppler_cs = 0;
 
 %Doppler-predicted range (ROVER)
-doppler_pred_range1_R = zeros(32,1);
-doppler_pred_range2_R = zeros(32,1);
+doppler_pred_range1_R = zeros(nSatTot,1);
+doppler_pred_range2_R = zeros(nSatTot,1);
 
 %Doppler-predicted range (MASTER)
-doppler_pred_range1_M = zeros(32,1);
-doppler_pred_range2_M = zeros(32,1);
+doppler_pred_range1_M = zeros(nSatTot,1);
+doppler_pred_range2_M = zeros(nSatTot,1);
 
 %-------------------------------------------------------------------------------
 % MASTER STATION
@@ -234,8 +234,8 @@ p_max = 200;
 pid = zeros(p_max,1);
 
 %sky-plot id
-satid = zeros(32,1);
-labid = zeros(32,1);
+satid = zeros(nSatTot,1);
+labid = zeros(nSatTot,1);
 pivid = 0;
 
 %master station point id
