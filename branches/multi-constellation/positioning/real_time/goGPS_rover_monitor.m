@@ -67,7 +67,7 @@ iono = cell(nrec,1);
 for r = 1 : nrec
 
     % ephemerides
-    Eph{r} = zeros(29,32);
+    Eph{r} = zeros(30,32);
 
     % ionosphere parameters
     iono{r} = zeros(8,1);
@@ -103,7 +103,7 @@ for r = 1 : nrec
 
     % input ephemerides
     %   timeGPS  --> double, [1,1]  --> zeros(1,1)
-    %   Eph      --> double, [29,32]
+    %   Eph      --> double, [30,32]
     fid_eph{r} = fopen([filerootOUT '_' recname '_eph_00.bin'],'w+');
     
     if (flag_var_dyn_model) | (flag_stopGOstop)

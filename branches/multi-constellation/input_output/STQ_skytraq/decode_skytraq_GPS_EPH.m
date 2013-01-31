@@ -38,6 +38,7 @@ function [data] = decode_skytraq_GPS_EPH(msg)
 %          2.27)GPS svhealth;
 %          2.28)GPS tgd;
 %          2.29)GPS fit_int;
+%          2.30)multi-constellation satellite index (here only GPS is assumed)
 %
 % DESCRIPTION:
 %   GPS Ephemeris data binary message decoding.
@@ -68,13 +69,13 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(29,1);
+data{2} = zeros(30,1);
 
 %output data save
 data{1} = 'GPS_EPH';
 
 %satellite ID decoding (2 byte)
-SVN = fbin2dec(msg(pos:pos+15));  pos = pos + 16;
+PRN = fbin2dec(msg(pos:pos+15));  pos = pos + 16;
 
 %reserved (1 byte)
 pos = pos + 8;
@@ -138,7 +139,7 @@ IDOT     = subframe_3_data(9);
 
 %output and reorder ephemerides data (if IODC == IODE)
 if (IODC == IODE2) & (IODC == IODE3)
-    data{2}(1) = SVN;
+    data{2}(1) = PRN;
     data{2}(2) = af2;
     data{2}(3) = M0;
     data{2}(4) = root_A;
@@ -167,6 +168,7 @@ if (IODC == IODE2) & (IODC == IODE3)
     data{2}(27) = svhealth;
     data{2}(28) = tgd;
     data{2}(29) = fit_int;
+    data{2}(30) = PRN; %assume only GPS (not multi-constellation)
 end
 
 % Check, no data --> delete header to improve performance

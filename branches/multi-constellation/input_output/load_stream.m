@@ -22,7 +22,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   snr_R    = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M    = MASTER-SATELLITE signal-to-noise ratio
 %   pos_M    = MASTER station position
-%   Eph      = matrix of 29 ephemerides for each satellite
+%   Eph      = matrix of 30 ephemerides for each satellite
 %   iono     = ionosphere parameters
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
@@ -168,7 +168,7 @@ if ~isempty(data_rover_all)
     dop1_R = zeros(32,Ncell);                             %doppler measurements
     ph1_R  = zeros(32,Ncell);                             %phase observations
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
-    Eph_R  = zeros(29,32,Ncell);                          %ephemerides
+    Eph_R  = zeros(30,32,Ncell);                          %ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
@@ -453,7 +453,7 @@ if ~isempty(data_master_all)
     ph1_M  = zeros(32,Ncell);                             %phase observations
     snr_M  = zeros(32,Ncell);                             %signal-to-noise ratio
     pos_M  = zeros(3,Ncell);                              %master station position
-    Eph_M  = zeros(29,32,Ncell);                          %ephemerides
+    Eph_M  = zeros(30,32,Ncell);                          %ephemerides
 
     if (nargin == 2)
         waitbar(0,wait_dlg,'Reading master data...')
@@ -636,7 +636,7 @@ if ~isempty(time_GPS)
             snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
             iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
 
-            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(29,32,1), Eph_R(:,:,pos+1:end));
+            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(30,32,1), Eph_R(:,:,pos+1:end));
             
             roundtime_R = roundmod(time_R,interval_R);
         end
@@ -647,7 +647,7 @@ if ~isempty(time_GPS)
         ph1_R  = zeros(32,length(time_GPS));
         dop1_R = zeros(32,length(time_GPS));
         snr_R  = zeros(32,length(time_GPS));
-        Eph_R  = zeros(29,32,length(time_GPS));
+        Eph_R  = zeros(30,32,length(time_GPS));
         iono   = zeros(8,length(time_GPS));
     end
 
@@ -665,7 +665,7 @@ if ~isempty(time_GPS)
             snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
             pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
 
-            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(29,32,1), Eph_M(:,:,pos+1:end));
+            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(30,32,1), Eph_M(:,:,pos+1:end));
             
             roundtime_M = roundmod(time_M,interval_M);
         end
@@ -675,7 +675,7 @@ if ~isempty(time_GPS)
         ph1_M  = zeros(32,length(time_GPS));
         snr_M  = zeros(32,length(time_GPS));
         pos_M  = zeros(3,length(time_GPS));
-        Eph_M  = zeros(29,32,length(time_GPS));
+        Eph_M  = zeros(30,32,length(time_GPS));
     end
 
 else

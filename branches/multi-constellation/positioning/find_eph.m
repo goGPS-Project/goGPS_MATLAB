@@ -1,11 +1,11 @@
-function icol = find_eph(Eph, sv, time)
+function icol = find_eph(Eph, sat, time)
 
 % SYNTAX:
-%   icol = find_eph(Eph, sv, time);
+%   icol = find_eph(Eph, sat, time);
 %
 % INPUT:
 %   Eph = ephemerides matrix
-%   sv = satellite PRN
+%   sat = satellite index
 %   time = GPS time
 %
 % OUTPUT:
@@ -24,7 +24,7 @@ function icol = find_eph(Eph, sv, time)
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
 %----------------------------------------------------------------------------------------------
 
-isat = find(Eph(1,:) == sv);
+isat = find(Eph(30,:) == sat);
 n = size(isat,2);
 if n == 0
     icol = [];

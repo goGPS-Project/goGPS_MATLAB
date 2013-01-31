@@ -49,7 +49,7 @@ if ~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootM '_obs_*'])) ...
     
     num_sat = size(pr1_R,1);
 
-    EphAvailable = find(Eph(1,:,:)~=0, 1);
+    EphAvailable = find(Eph(30,:,:)~=0, 1);
     %if the dataset has ephemerides available at least for one epoch
     if (~isempty(EphAvailable))
         satEph = find(sum(abs(Eph(:,:,1)))~=0);

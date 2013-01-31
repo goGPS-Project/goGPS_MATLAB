@@ -39,6 +39,7 @@ function [data] = decode_1019(msg)
 %          2.27)DF102 = SV health
 %          2.25)DF103 = L2 P data flag
 %          2.29)DF137 = Fit interval
+%          2.30)multi-constellation satellite index (here only GPS is assumed)
 %
 % DESCRIPTION:
 %   RTCM format 1019 message decoding.
@@ -71,7 +72,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(29,1);
+data{2} = zeros(30,1);
 
 %message number
 DF002 = fbin2dec(msg(pos:pos+11)); pos = pos + 12;
@@ -166,6 +167,9 @@ DF103 = fbin2dec(msg(pos)); pos = pos + 1;
 %GPS fit interval
 DF137 = fbin2dec (msg(pos));
 
+%force GPS system
+System = int8('G');
+
 %------------------------------------------------
 %output data save (if IODC == IODE)
 if (DF085 == DF071)
@@ -199,4 +203,5 @@ if (DF085 == DF071)
     data{2}(27) = DF102;
     data{2}(28) = DF101;
     data{2}(29) = DF137;
+    data{2}(30) = DF009; %assume only GPS (not multi-constellation)
 end

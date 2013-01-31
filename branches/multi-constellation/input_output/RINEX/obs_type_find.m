@@ -7,15 +7,15 @@ function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2
 %   Obs_types = string containing observation types
 %
 % OUTPUT:
-%   col_L1 = L1 column
-%   col_L2 = L2 column
-%   col_C1 = C1 column
+%   col_L1 = L1 column (or LA for RINEX v2.12 QZSS modification)
+%   col_L2 = L2 column (or LC for RINEX v2.12 QZSS modification)
+%   col_C1 = C1 column (or CA for RINEX v2.12 QZSS modification)
 %   col_P1 = P1 column
-%   col_P2 = P2 column
-%   col_S1 = S1 column
-%   col_S2 = S2 column
-%   col_D1 = D1 column
-%   col_D2 = D2 column
+%   col_P2 = P2 column (or CC for RINEX v2.12 QZSS modification)
+%   col_S1 = S1 column (or SA for RINEX v2.12 QZSS modification)
+%   col_S2 = S2 column (or SC for RINEX v2.12 QZSS modification)
+%   col_D1 = D1 column (or DA for RINEX v2.12 QZSS modification)
+%   col_D2 = D2 column (or DC for RINEX v2.12 QZSS modification)
 %
 % DESCRIPTION:
 %   Selection of the column index for phase observations (L1, L2), for
@@ -46,15 +46,21 @@ function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2
 %----------------------------------------------------------------------------------------------
 
 %search L1 column
-s = strfind(Obs_types, 'L1'); %findstr is obsolete, so strfind is used
+s1 = strfind(Obs_types, 'L1'); %findstr is obsolete, so strfind is used
+s2 = strfind(Obs_types, 'LA');
+s = [s1 s2];
 col_L1 = (s+1)/2;
 
 %search L2 column
-s = strfind(Obs_types, 'L2');
+s1 = strfind(Obs_types, 'L2');
+s2 = strfind(Obs_types, 'LC');
+s = [s1 s2];
 col_L2 = (s+1)/2;
 
 %search C1 column
-s = strfind(Obs_types, 'C1');
+s1 = strfind(Obs_types, 'C1');
+s2 = strfind(Obs_types, 'CA');
+s = [s1 s2];
 col_C1 = (s+1)/2;
 
 %search P1 column
@@ -62,21 +68,31 @@ s = strfind(Obs_types, 'P1');
 col_P1 = (s+1)/2;
 
 %search P2 column
-s = strfind(Obs_types, 'P2');
+s1 = strfind(Obs_types, 'P2');
+s2 = strfind(Obs_types, 'CC');
+s = [s1 s2];
 col_P2 = (s+1)/2;
 
 %search S1 column
-s = strfind(Obs_types, 'S1');
+s1 = strfind(Obs_types, 'S1');
+s2 = strfind(Obs_types, 'SA');
+s = [s1 s2];
 col_S1 = (s+1)/2;
 
 %search S2 column
-s = strfind(Obs_types, 'S2');
+s1 = strfind(Obs_types, 'S2');
+s2 = strfind(Obs_types, 'SC');
+s = [s1 s2];
 col_S2 = (s+1)/2;
 
 %search D1 column
-s = strfind(Obs_types, 'D1');
+s1 = strfind(Obs_types, 'D1');
+s2 = strfind(Obs_types, 'DA');
+s = [s1 s2];
 col_D1 = (s+1)/2;
 
 %search D2 column
-s = strfind(Obs_types, 'D2');
+s1 = strfind(Obs_types, 'D2');
+s2 = strfind(Obs_types, 'DC');
+s = [s1 s2];
 col_D2 = (s+1)/2;

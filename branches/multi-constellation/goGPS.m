@@ -241,7 +241,7 @@ if (mode <= 20) %post-processing
 
         if (~flag_SP3)
             %remove satellites without ephemerides (GPS)
-            delsat = setdiff(1:nSatTot,unique(Eph(1,:)));
+            delsat = setdiff(1:nSatTot,unique(Eph(30,:)));
             pr1_R(delsat,:) = 0;
             pr1_M(delsat,:) = 0;
             pr2_R(delsat,:) = 0;

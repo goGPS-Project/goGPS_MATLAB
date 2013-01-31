@@ -158,7 +158,7 @@ if (~isempty(data_rover_all))
     dop1_R = zeros(32,Ncell);                             %doppler measurements
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     lock_R = zeros(32,Ncell);                             %loss of lock indicator
-    Eph_R  = zeros(29,32,Ncell);                          %broadcast ephemerides
+    Eph_R  = zeros(30,32,Ncell);                          %broadcast ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
@@ -552,6 +552,7 @@ if (~isempty(data_rover_all))
                 svhealth = Eph_R(27,satEph(j),i);
                 tgd      = Eph_R(28,satEph(j),i);
                 fit_int  = Eph_R(29,satEph(j),i);
+                system   = Eph_R(30,satEph(j),i); %#ok<NASGU>
                 
                 %time of measurement decoding
                 date = gps2date(week_R, toc);

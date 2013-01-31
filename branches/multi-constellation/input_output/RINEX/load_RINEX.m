@@ -15,7 +15,8 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   filename_nav = RINEX navigation file
 %   filename_R_obs = RINEX observation file (ROVER)
 %   filename_M_obs = RINEX observation file (MASTER) (empty if not available)
-%   constellations = struct with multi-constellation settings (empty if not available)
+%   constellations = struct with multi-constellation settings
+%                   (see 'multi_constellation_settings.m' - empty if not available)
 %   flag_SP3 = boolean flag to indicate SP3 availability
 %   wait_dlg = optional handler to waitbar figure (optional)
 %
@@ -42,7 +43,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   date = date (year,month,day,hour,minute,second)
 %   pos_R = rover approximate position
 %   pos_M = master station position
-%   Eph = matrix containing 29 ephemerides for each satellite
+%   Eph = matrix containing 30 navigation parameters for each satellite
 %   iono = vector containing ionosphere parameters
 %
 % DESCRIPTION:
@@ -94,23 +95,52 @@ nSatTot = constellations.nEnabledSat;
 %during synchronization
 max_desync_frac = 0.1;
 
+%read navigation files
 if (~flag_SP3)
     if (wait_dlg_PresenceFlag)
         waitbar(0.5,wait_dlg,'Reading navigation files...')
     end
     
-    %parse RINEX navigation file (ROVER)
-    [Eph, iono] = RINEX_get_nav(filename_nav);
-    %[Eph, iono] = RINEX_get_nav_ORIGINALE(filename_nav);
+    %parse RINEX navigation file (GPS)
+    [Eph_G, iono_G] = RINEX_get_nav(filename_nav, constellations);
     
-    %parse RINEX navigation file (ROVER)
-    % [Eph_R] = RINEX_get_nav_GLO(filename_nav_GLO);
+    %parse RINEX navigation file (GLONASS)
+    % [Eph_R] = RINEX_get_nav_GLO(filename_nav_GLO, constellations);
+    
+    %parse RINEX navigation file (Galileo)
+    try
+        [Eph_E, iono_E] = RINEX_get_nav([filename_nav(1:end-1) 'l'], constellations);
+    catch
+        Eph_E = []; iono_E = zeros(8,1);
+    end
+    
+    %parse RINEX navigation file (BeiDou)
+    % [Eph_C] = RINEX_get_nav_BDS(filename_nav_BDS, constellations);
+    
+    %parse RINEX navigation file (QZSS)
+    try
+        [Eph_J, iono_J] = RINEX_get_nav([filename_nav(1:end-1) 'q'], constellations);
+    catch
+        Eph_J = []; iono_J = zeros(8,1);
+    end
+
+    Eph = [Eph_G Eph_E Eph_J];
+    
+    if (any(iono_G))
+        iono = iono_G;
+    elseif (any(iono_E))
+        iono = iono_E;
+    elseif (any(iono_J))
+        iono = iono_J;
+    else
+        iono = zeros(8,1);
+    end
     
     if (wait_dlg_PresenceFlag)
         waitbar(1,wait_dlg)
     end
 else
-    Eph = zeros(29,nSatTot);
+    Eph = zeros(30,nSatTot);
     iono = zeros(8,1);
 end
 
@@ -185,7 +215,7 @@ date = zeros(nEpochs,6);
 [time_GPS_R(1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
 
 %read ROVER observations
-obs_GPS_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R);
+obs_GPS_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
 
 %read ROVER observations
 if (obs_GPS_R.P1 == 0)
@@ -208,7 +238,7 @@ if (filename_M_obs_PresenceFlag)
     [time_GPS_M(1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
     
     %read MASTER observations
-    obs_GPS_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M);
+    obs_GPS_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
     
     %read MASTER observations
     if (obs_GPS_M.P1 == 0)
@@ -238,7 +268,7 @@ if (filename_M_obs_PresenceFlag)
         [time_GPS_M(1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
         
         %read MASTER observations
-        obs_GPS_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M);
+        obs_GPS_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
         
         %read MASTER observations
         if (obs_GPS_M.P1 == 0)
@@ -261,7 +291,7 @@ if (filename_M_obs_PresenceFlag)
         [time_GPS_R(1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
         
         %read ROVER observations
-        obs_GPS_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R);
+        obs_GPS_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
         
         %read ROVER observations
         if (obs_GPS_R.P1 == 0)
@@ -349,7 +379,7 @@ while (~feof(FR_oss))
     if (abs(time_GPS_R(k)-time_GPS(k)) < max_desync_frac*interval)
 
         %read ROVER observations
-        obs_GPS_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R);
+        obs_GPS_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
 
         %read ROVER observations
         if (obs_GPS_R.P1 == 0)
@@ -371,7 +401,7 @@ while (~feof(FR_oss))
         if (abs(time_GPS_M(k) - time_GPS(k)) < max_desync_frac*interval)
             
             %read MASTER observations
-            obs_GPS_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M);
+            obs_GPS_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
             
             %read MASTER observations
             if (obs_GPS_M.P1 == 0)

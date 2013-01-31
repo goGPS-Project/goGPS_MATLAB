@@ -1,13 +1,14 @@
-function [Eph, iono] = RINEX_get_nav(file_nav)
+function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 
 % SYNTAX:
-%   [Eph, iono] = RINEX_get_nav(file_nav);
+%   [Eph, iono] = RINEX_get_nav(file_nav, constellations);
 %
 % INPUT:
 %   file_nav = RINEX navigation file
+%   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
 %
 % OUTPUT:
-%   Eph = matrix containing 29 ephemerides for each satellite
+%   Eph = matrix containing 30 navigation parameters for each satellite
 %   iono = matrix containing ionosphere parameters
 %
 % DESCRIPTION:
@@ -36,8 +37,6 @@ function [Eph, iono] = RINEX_get_nav(file_nav)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-persistent Datenum_Offset  NumberOfSecondsInADay
-
 ioparam = 0;
 Eph = [];
 iono = zeros(8,1);
@@ -50,11 +49,11 @@ header_end = [];
 while (isempty(header_end))
     %read the line and search the 'ION ALPHA' label
     lin = fgetl(fid);
-    %iono_found = findstr(lin,'ION ALPHA'); %To be removed. At its place:
-    iono_found = strfind(lin,'ION ALPHA'); %findstr is obsolete. strfind is encouraged.
+    
+    iono_found = (~isempty(strfind(lin,'ION ALPHA')) || ~isempty(strfind(lin,'IONOSPHERIC CORR')));
 
     %if the label was found
-    if ~isempty(iono_found)
+    if (iono_found)
         %change flag
         ioparam = 1;
         %save the 8 ionosphere parameters
@@ -74,8 +73,7 @@ while (isempty(header_end))
         iono(8) = data{4};
     end
 
-    %header_end = findstr(lin,'END OF HEADER');%To be removed. At its place:
-    header_end = strfind(lin,'END OF HEADER');%findstr is obsolete. strfind is encouraged.
+    header_end = strfind(lin,'END OF HEADER');
 end
 
 %if ionosphere parameters were not found
@@ -128,51 +126,64 @@ while (~feof(fid))
     if (lin1 == -1)
         break
     end
+    
+    %character offset
+    if (strcmp(lin1(1),'E') || strcmp(lin1(1),'J'))
+        o = 1;                 %RINEX v2.12, not GPS
+        if (strcmp(lin1(1),'E'))
+            sys_index = constellations.Galileo.indexes(1);
+        elseif (strcmp(lin1(1),'J'))
+            sys_index = constellations.QZSS.indexes(1);
+        end
+    else
+        o = 0;                 %older RINEX versions (or RINEX v2.12, GPS)
+        sys_index = constellations.GPS.indexes(1);
+    end
 
-    svprn  = str2num(lin1(1:2)); %When input is a scalar, str2double is better than str2num. But str2double does not support 'D'
-    year   = str2num(lin1(3:6));
-    month  = str2num(lin1(7:9));
-    day    = str2num(lin1(10:12));
-    hour   = str2num(lin1(13:15)); 
-    minute = str2num(lin1(16:18)); 
-    second = str2num(lin1(19:22)); 
-    af0    = str2num(lin1(23:41));
-    af1    = str2num(lin1(42:60));
-    af2    = str2num(lin1(61:79));
+    svprn  = str2num(lin1(o+[1:2])); %When input is a scalar, str2double is better than str2num. But str2double does not support 'D'
+    year   = str2num(lin1(o+[3:6]));
+    month  = str2num(lin1(o+[7:9]));
+    day    = str2num(lin1(o+[10:12]));
+    hour   = str2num(lin1(o+[13:15])); 
+    minute = str2num(lin1(o+[16:18])); 
+    second = str2num(lin1(o+[19:22])); 
+    af0    = str2num(lin1(o+[23:41]));
+    af1    = str2num(lin1(o+[42:60]));
+    af2    = str2num(lin1(o+[61:79]));
 
-    IODE   = str2num(lin2(4:22));
-    crs    = str2num(lin2(23:41));
-    deltan = str2num(lin2(42:60));
-    M0     = str2num(lin2(61:79));
+    IODE   = str2num(lin2(o+[4:22]));
+    crs    = str2num(lin2(o+[23:41]));
+    deltan = str2num(lin2(o+[42:60]));
+    M0     = str2num(lin2(o+[61:79]));
 
-    cuc    = str2num(lin3(4:22));
-    ecc    = str2num(lin3(23:41));
-    cus    = str2num(lin3(42:60));
-    roota  = str2num(lin3(61:79));
+    cuc    = str2num(lin3(o+[4:22]));
+    ecc    = str2num(lin3(o+[23:41]));
+    cus    = str2num(lin3(o+[42:60]));
+    roota  = str2num(lin3(o+[61:79]));
 
-    toe    = str2num(lin4(4:22));
-    cic    = str2num(lin4(23:41));
-    Omega0 = str2num(lin4(42:60));
-    cis    = str2num(lin4(61:79));
+    toe    = str2num(lin4(o+[4:22]));
+    cic    = str2num(lin4(o+[23:41]));
+    Omega0 = str2num(lin4(o+[42:60]));
+    cis    = str2num(lin4(o+[61:79]));
 
-    i0       = str2num(lin5(4:22));
-    crc      = str2num(lin5(23:41));
-    omega    = str2num(lin5(42:60));
-    Omegadot = str2num(lin5(61:79));
+    i0       = str2num(lin5(o+[4:22]));
+    crc      = str2num(lin5(o+[23:41]));
+    omega    = str2num(lin5(o+[42:60]));
+    Omegadot = str2num(lin5(o+[61:79]));
 
-    idot       = str2num(lin6(4:22));
-    code_on_L2 = str2num(lin6(23:41));
-    weekno     = str2num(lin6(42:60));
-    L2flag     = str2num(lin6(61:79));
+    idot       = str2num(lin6(o+[4:22]));
+    code_on_L2 = str2num(lin6(o+[23:41]));
+    weekno     = str2num(lin6(o+[42:60]));
+    L2flag     = str2num(lin6(o+[61:79]));
 
-    svaccur  = str2num(lin7(4:22));
-    svhealth = str2num(lin7(23:41));
-    tgd      = str2num(lin7(42:60));
-    iodc     = str2num(lin7(61:79));
+    svaccur  = str2num(lin7(o+[4:22]));
+    svhealth = str2num(lin7(o+[23:41]));
+    tgd      = str2num(lin7(o+[42:60]));
+    iodc     = str2num(lin7(o+[61:79]));
 
-    tom     = str2num(lin8(4:22)); %#ok<NASGU>
+    tom      = str2num(lin8(o+[4:22])); %#ok<NASGU>
     if (length(lin8) > 22)
-        fit_int = str2num(lin8(23:41));
+        fit_int = str2num(lin8(o+[23:41]));
     else
         fit_int = 0;
     end
@@ -209,7 +220,8 @@ while (~feof(fid))
     Eph(27,i) = svhealth;
     Eph(28,i) = tgd;
     Eph(29,i) = fit_int;
-    
+    Eph(30,i) = (sys_index-1) + svprn;
+
     %if IODC and IODE do not match, issue a warning
     if (iodc ~= IODE)
         fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %02d, time %dh %dm %.1fs)\n',svprn,hour,minute,second);

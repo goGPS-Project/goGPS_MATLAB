@@ -38,6 +38,8 @@ function [data] = decode_FTX_EPH(msg)
 %          2.27)GPS svhealth;
 %          2.28)GPS tgd;
 %          2.29)GPS fit_int;
+%          2.30)multi-constellation satellite index (here only GPS is assumed)
+%
 % DESCRIPTION:
 %   FTX_EPH binary message decoding.
 
@@ -69,7 +71,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(29,1);
+data{2} = zeros(30,1);
 
 %output data save
 data{1} = 'FTX-EPH';
@@ -225,13 +227,14 @@ if (IODC == IODE) && (IODC == IODE)
     data{2}(20) = Af1;
     data{2}(21) = TowMs;
     data{2}(22) = IODE;                       
-    data{2}(23) = 1;    % code_on_L2;   % Incoerent with ublox - Default setting
-    data{2}(24) = TocWeek;              % Incoerent with ublox
-    data{2}(25) = Flags;                % Incoerent with ublox
-    data{2}(26) = 0;                    % Incoerent with ublox - Default setting
+    data{2}(23) = 1;    % code_on_L2;   % Inconsistent with ublox - Default setting
+    data{2}(24) = TocWeek;              % Inconsistent with ublox
+    data{2}(25) = Flags;                % Inconsistent with ublox
+    data{2}(26) = 0;                    % Inconsistent with ublox - Default setting
     data{2}(27) = Health;
     data{2}(28) = GroupDelay;
     data{2}(29) = FitPeriod;
+    data{2}(30) = PRN; %assume only GPS (not multi-constellation)
 end
 
 % Check, no PRN --> delete header to improve performance

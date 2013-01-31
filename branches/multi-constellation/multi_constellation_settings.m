@@ -24,11 +24,12 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-constellations.GPS     = struct('numSat', 32, 'enabled', 1, 'indexes', []);
-constellations.GLONASS = struct('numSat', 30, 'enabled', 0, 'indexes', []);
-constellations.Galileo = struct('numSat', 30, 'enabled', 0, 'indexes', []);
-constellations.BeiDou  = struct('numSat', 30, 'enabled', 0, 'indexes', []);
-constellations.QZSS    = struct('numSat',  4, 'enabled', 0, 'indexes', []);
+constellations.GPS     = struct('numSat', 32, 'enabled', 1, 'indexes', 0);
+constellations.GLONASS = struct('numSat', 30, 'enabled', 0, 'indexes', 0); %GLONASS orbits not supported yet
+constellations.Galileo = struct('numSat', 30, 'enabled', 0, 'indexes', 0);
+constellations.BeiDou  = struct('numSat', 30, 'enabled', 0, 'indexes', 0); %BeiDou orbits not supported yet
+constellations.QZSS    = struct('numSat',  4, 'enabled', 1, 'indexes', 0);
+constellations.SBAS    = struct('numSat',  4, 'enabled', 0, 'indexes', 0); %SBAS orbits not supported yet
 
 nSatTot = 0; %total number of satellites used given the enabled constellations
 q = 0;                          %counter for enabled constellations

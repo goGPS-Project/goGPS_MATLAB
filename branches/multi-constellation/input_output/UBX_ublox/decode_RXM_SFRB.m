@@ -47,6 +47,7 @@ function [data] = decode_RXM_SFRB(msg)
 %          3.27)GPS svhealth;
 %          3.28)GPS tgd;
 %          3.29)GPS fit_int;
+%          3.30)multi-constellation satellite index (here only GPS is assumed)
 %
 % DESCRIPTION:
 %   RXM-SFRB binary message decoding (OBSOLETE).
@@ -78,7 +79,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(9,1);
-data{3} = zeros(29,1);
+data{3} = zeros(30,1);
 
 %output data save
 data{1} = 'RXM-SFRB';
@@ -87,10 +88,10 @@ data{1} = 'RXM-SFRB';
 CHN = fbin2dec(msg(pos:pos+7));  pos = pos + 8; %#ok<NASGU>
 
 %satellite ID (1 byte)
-SVN = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+PRN = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
 %if GPS satellite
-if (SVN <= 32)
+if (PRN <= 32)
 
     %check HOW to see which subframe is it
     pos = pos + 32;
@@ -168,7 +169,7 @@ if (SVN <= 32)
 
     %output and reorder ephemerides data (if IODC == IODE)
     if (IODC == IODE2) & (IODC == IODE3)
-        data{3}(1) = SVN;
+        data{3}(1) = PRN;
         data{3}(2) = af2;
         data{3}(3) = M0;
         data{3}(4) = root_A;
@@ -197,5 +198,6 @@ if (SVN <= 32)
         data{3}(27) = svhealth;
         data{3}(28) = tgd;
         data{3}(29) = fit_int;
+        data{3}(30) = PRN; %assume only GPS (not multi-constellation)
     end
 end

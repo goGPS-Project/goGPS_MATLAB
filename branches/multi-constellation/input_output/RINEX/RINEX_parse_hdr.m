@@ -39,20 +39,18 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
     %NOTE2: ischar is better than checking if line is the number -1.
     answer = strfind(line,'# / TYPES OF OBSERV');
     if ~isempty(answer)
-        NoObs  = sscanf(line(1:6),'%d');
-        NoObs2 = 0;
-        if (NoObs > 9)
-            NoObs2 = NoObs - 9;
-            NoObs  = 9;
-            line2  = fgetl(file);
-        end
-        for k = 1 : NoObs
-           ot = sscanf(line(k*6+1:k*6+6),'%s');
-           Obs_types = [Obs_types ot];
-        end
-        for k = 1 : NoObs2
-           ot = sscanf(line2(k*6+1:k*6+6),'%s');
-           Obs_types = [Obs_types ot];
+        nObs = sscanf(line(1:6),'%d');
+        nLinObs = ceil(nObs/9);
+        for i = 1 : nLinObs
+            if (i > 1)
+                line = fgetl(file);
+            end
+            n = min(nObs,9);
+            for k = 1 : n
+                ot = sscanf(line(k*6+1:k*6+6),'%s');
+                Obs_types = [Obs_types ot];
+            end
+            nObs = nObs - 9;
         end
         
         ifound_types = 1;

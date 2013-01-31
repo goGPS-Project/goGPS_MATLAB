@@ -44,7 +44,7 @@ fprintf('Checking that the receiver approximate position falls within the availa
 
 pos_R = zeros(3,1);
 
-if (~isempty(find(Eph(1,:,:) ~= 0, 1)))
+if (~isempty(find(Eph(30,:,:) ~= 0, 1)))
     
     cutoff = 15;
     snr_threshold = 0;
