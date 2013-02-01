@@ -40,8 +40,8 @@ parity = uint32(0);
 %check the length of the input string, in case make it splittable byte-wise
 remainder = rem(length(msg),8);
 if (remainder ~= 0)
-    fill = zeros(1,8-remainder);
-    msg = [num2str(fill,'%d') msg];
+    fill = char(ones(1,8-remainder)*48); %fill string of zeroes
+    msg = [fill msg];
 end
 
 Nbits = length(msg);

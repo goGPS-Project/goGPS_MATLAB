@@ -64,7 +64,7 @@ d2b = dec2bin(h2d, 4);       %4-bit binary number
 s   = reshape(d2b', 1, 256); %binary string representing all the 256 bits of the message
 
 %start the conversion from binary to decimal
-MT = bin2dec(s(9:14));
+MT = fbin2dec(s(9:14));
 
 %distinguish MT 25 and 24
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -73,7 +73,7 @@ if (MT == 25)
 
    % 1st half
 
-   vel_code1 = bin2dec(s(15));
+   vel_code1 = fbin2dec(s(15));
    
    %half message, 105 bits long. NOT 106 since we are not considering the velocity bit
    half_mess1 = s(16:120);
@@ -106,7 +106,7 @@ if (MT == 25)
 
    % 2nd half
 
-   vel_code2 = bin2dec(s(121));
+   vel_code2 = fbin2dec(s(121));
    
    %half message, 105 bits long. NOT 106 since we are not considering the velocity bit
    half_mess2 = s(122:226);
@@ -141,7 +141,7 @@ elseif (MT == 24)
 
    % ONLY 2nd half
 
-   vel_code1 = bin2dec(s(121));
+   vel_code1 = fbin2dec(s(121));
    
    %half message, 105 bits long. NOT 106 since we are not considering the velocity bit
    half_mess1 = s(122:226);

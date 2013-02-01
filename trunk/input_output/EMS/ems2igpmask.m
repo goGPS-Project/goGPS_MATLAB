@@ -50,19 +50,19 @@ d2b = dec2bin(h2d, 4);       %4-bit binary number
 s   = reshape(d2b', 1, 256); %binary string representing all the 256 bits of the message
 
 %start the conversion from binary to decimal
-% MT = bin2dec(s(9:14)); %must be = 18
+% MT = fbin2dec(s(9:14)); %must be = 18
 
 %number of bands
-n_bands = bin2dec(s(15:18)); %range: 0 - 11
+n_bands = fbin2dec(s(15:18)); %range: 0 - 11
 
 %band number
-band = bin2dec(s(19:22)); %range: 0 - 10
+band = fbin2dec(s(19:22)); %range: 0 - 10
 
 %issue of data ionospheric
-iodi = bin2dec(s(23:24)); %range: 0 - 3
+iodi = fbin2dec(s(23:24)); %range: 0 - 3
 
 %bit mask for the IGP of the corresponding band
-mask = bin2dec(s(25 : 25 + 200)')'; %vector with the mask bits
+mask = fbin2dec(s(25 : 25 + 200)')'; %vector with the mask bits
 
 %IGP vector
 igp = [1 : 201];       
