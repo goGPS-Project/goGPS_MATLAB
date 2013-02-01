@@ -69,10 +69,10 @@ d2b = dec2bin(h2d, 4);       %4-bit binary number
 s   = reshape(d2b', 1, 256); %binary string representing all the 256 bits of the message
 
 %start the conversion from binary to decimal
-% MT = bin2dec(s(9:14)); %must be = 1
+% MT = fbin2dec(s(9:14)); %must be = 1
 
 %bits that compose the GPS satellites mask (PRN from 1 to 32)
-mask = bin2dec(s(15 : 15 + 31)')'; %vector with the mask bits
+mask = fbin2dec(s(15 : 15 + 31)')'; %vector with the mask bits
 
 %vector with the PRNs of the GPS SVs
 %sv_gps = [1 : 32];       
@@ -85,4 +85,4 @@ prn_mask = find (mask);
 prn_mask = [prn_mask, zeros(1, 32-length(prn_mask))];
 
 %IODP
-iodp_mask = bin2dec(s(225:226));
+iodp_mask = fbin2dec(s(225:226));

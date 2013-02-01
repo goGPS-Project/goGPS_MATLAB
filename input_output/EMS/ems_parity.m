@@ -40,11 +40,11 @@ d2b = dec2bin(h2d, 4);       %4-bit binary number
 s   = reshape(d2b', 1, 256); %binary string that represents all the 256 bits of the message
 
 %CRC data
-crc = bin2dec(s(227:250));
+crc = fbin2dec(s(227:250));
 
 %portion of message used for parity checking
 data = s(1:226);
 
 %compute CRC-24Q QualComm algorithm
 [parity] = crc24q(data);
-parity = bin2dec(parity);
+parity = fbin2dec(parity);

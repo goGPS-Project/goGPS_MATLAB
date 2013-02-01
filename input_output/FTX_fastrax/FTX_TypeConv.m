@@ -59,13 +59,13 @@ switch type_in
 case 'BOOL'
         % No definition
         error('Type not valid.');
-case 'INT16'    % 16 bits   (range: –32768 through 32767 decimal)
+case 'INT16'    % 16 bits   (range: ?2768 through 32767 decimal)
         temp1 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;
         temp2 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;
         dec_out = [temp2,temp1];
         dec_out = twos_complement_inside(dec_out);
-        part(1) = bin2dec(temp1); part(2) = fbin2dec(temp2);
-case 'INT32'    % 32 bits   (range: –2147483648 through 2147483647 decimal)
+        part(1) = fbin2dec(temp1); part(2) = fbin2dec(temp2);
+case 'INT32'    % 32 bits   (range: ?147483648 through 2147483647 decimal)
         temp1 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;
         temp2 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;
         temp3 = bin_msg(pos_in:pos_in+7);  pos_in = pos_in + 8;

@@ -63,17 +63,17 @@ d2b = dec2bin(h2d, 4);       %4-bit binary number
 s   = reshape(d2b', 1, 256); %binary string representing all the 256 bits of the message
 
 %start the conversion from binary to decimal
-MT = bin2dec(s(9:14));
+MT = fbin2dec(s(9:14));
 
 %distinguish MT 0, 2, 3 and 4 from MT 24
 if (MT == 2 | MT == 3 | MT == 4 | MT == 0)
 
-    IODF = bin2dec(s(15:16));
+    IODF = fbin2dec(s(15:16));
     %NOTE:
     % IODF = 0,1,2: OK
     %      = 3:     problem with one or more SVs
 
-    IODP = bin2dec(s(17:18));
+    IODP = fbin2dec(s(17:18));
     
     %find the right PRN mask
     i_iodp = find(iodp_mask == IODP);
@@ -90,7 +90,7 @@ if (MT == 2 | MT == 3 | MT == 4 | MT == 0)
     end
 
     %convert to integers
-    num_int = bin2dec(num_bin);
+    num_int = fbin2dec(num_bin);
     
     %convert in twos complement
     p11 = num_int > param_11;
@@ -110,7 +110,7 @@ if (MT == 2 | MT == 3 | MT == 4 | MT == 0)
     end
 
     %convert to integers
-    UDREI = bin2dec(num_bin_u);
+    UDREI = fbin2dec(num_bin_u);
     % NOTE:
     % UDREI = 0 - 13: OK
     %       = 14:     SV non monitored
@@ -140,7 +140,7 @@ elseif (MT == 24)
     end
 
     %convert to integers
-    num_int = bin2dec(num_bin);
+    num_int = fbin2dec(num_bin);
     
     %twos complement
     p11 = num_int > param_11;
@@ -160,19 +160,19 @@ elseif (MT == 24)
     end
 
     %convert to integers
-    UDREI = bin2dec(num_bin_u);
+    UDREI = fbin2dec(num_bin_u);
     % NOTE:
     % UDREI = 0 - 13: OK
     %       = 14:     SV non monitored
     %       = 15:     SV must not be used
     
-    IODP = bin2dec(s(111:112));
+    IODP = fbin2dec(s(111:112));
     
     %find the right PRN mask
     i_iodp = find(iodp_mask == IODP);
     i_prn_mask = prn_mask(i_iodp,:); %#ok<FNDSB>
     
-    block_ID = bin2dec(s(113:114));
+    block_ID = fbin2dec(s(113:114));
       
     SV_block = [1 : 6; ...
                 14 : 19; ...
@@ -180,7 +180,7 @@ elseif (MT == 24)
    
     SV = SV_block(block_ID + 1, :);         
     
-    IODF = bin2dec(s(115:116));
+    IODF = fbin2dec(s(115:116));
     %NOTE:
     % IODF = 0,1,2: OK
     %      = 3:     problem with one or more SVs
