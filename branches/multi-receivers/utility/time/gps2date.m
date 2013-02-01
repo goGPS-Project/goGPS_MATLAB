@@ -39,9 +39,9 @@ gps_start_datenum = 723186; %This is datenum([1980,1,6,0,0,0])
 gps_dow = fix(gps_sow/86400);                             %day of week
 date = datevec(gps_start_datenum + 7*gps_week + gps_dow); %calendar date up to days
 gps_sod = gps_sow - gps_dow*86400;                        %seconds of day
-date(:,4) = floor(gps_sod/3600);                            %hours
-date(:,5) = floor(gps_sod/60 - date(4)*60);                 %minutes
-date(:,6) = gps_sod - date(4)*3600 - date(5)*60;            %seconds
+date(:,4) = floor(gps_sod/3600);                          %hours
+date(:,5) = floor(gps_sod/60 - date(:,4)*60);             %minutes
+date(:,6) = gps_sod - date(:,4)*3600 - date(:,5)*60;      %seconds
 
 %day of year (DOY)
 if (nargout > 1)
