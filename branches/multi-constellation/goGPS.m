@@ -522,7 +522,7 @@ if (mode == 1)
     for t = 1 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph(Eph, time_GPS(t));
+            Eph_t = rt_find_eph(Eph, time_GPS(t), nSatTot);
         else
             Eph_t = Eph(:,:,t);
         end
@@ -598,7 +598,7 @@ elseif (mode == 2)
         end
         
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(1));
+            Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
         else
             Eph_t = Eph(:,:,1);
         end
@@ -644,7 +644,7 @@ elseif (mode == 2)
     for t = 2 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
         else
             Eph_t = Eph(:,:,t);
         end
@@ -703,7 +703,7 @@ elseif (mode == 3)
     for t = 1 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
         else
             Eph_t = Eph(:,:,t);
         end
@@ -771,7 +771,7 @@ elseif (mode == 4)
         end
         
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(1));
+            Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
         else
             Eph_t = Eph(:,:,1);
         end
@@ -819,7 +819,7 @@ elseif (mode == 4)
     for t = 2 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
         else
             Eph_t = Eph(:,:,t);
         end
@@ -883,7 +883,7 @@ elseif (mode == 11)
     for t = 1 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
         else
             Eph_t = Eph(:,:,t);
         end
@@ -957,7 +957,7 @@ elseif (mode == 12)
         end
         
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(1));
+            Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
         else
             Eph_t = Eph(:,:,1);
         end
@@ -1001,7 +1001,7 @@ elseif (mode == 12)
     for t = 2 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
         else
             Eph_t = Eph(:,:,t);
         end
@@ -1059,7 +1059,7 @@ elseif (mode == 14) & (mode_vinc == 0)
             end
 
             if (mode_data == 0)
-                Eph_t = rt_find_eph (Eph, time_GPS(1));
+                Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
             else
                 Eph_t = Eph(:,:,1);
             end
@@ -1105,7 +1105,7 @@ elseif (mode == 14) & (mode_vinc == 0)
         for t = 2 : length(time_GPS)
 
             if (mode_data == 0)
-                Eph_t = rt_find_eph (Eph, time_GPS(t));
+                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
             else
                 Eph_t = Eph(:,:,t);
             end
@@ -1161,7 +1161,7 @@ elseif (mode == 14) & (mode_vinc == 0)
             end
 
             if (mode_data == 0)
-                Eph_t = rt_find_eph (Eph, time_GPS(1));
+                Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
             else
                 Eph_t = Eph(:,:,1);
             end
@@ -1239,7 +1239,7 @@ elseif (mode == 14) & (mode_vinc == 0)
         for t = 2 : length(time_GPS)
             
             if (mode_data == 0)
-                Eph_t = rt_find_eph (Eph, time_GPS(t));
+                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
             else
                 Eph_t = Eph(:,:,t);
             end
@@ -1382,7 +1382,7 @@ elseif (mode == 14) & (mode_vinc == 1)
         end
         
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(1));
+            Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
         else
             Eph_t = Eph(:,:,1);
         end
@@ -1423,7 +1423,7 @@ elseif (mode == 14) & (mode_vinc == 1)
     for t = 2 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
         else
             Eph_t = Eph(:,:,t);
         end
@@ -1783,7 +1783,7 @@ if (mode <= 20) || (mode == 24)
         GGAstring = NMEA_GGA_gen(pos_KAL(:,i), nsat, time_GPS(i), HDOP(i), mode);
         if (pivot(i) ~= 0)
             RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date(i,:));
-            GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i));
+            GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i), constellations);
             GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '3');
             if (mode_vinc == 0) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
                 PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(i), KHDOP(i), KVDOP(i), 'S');
@@ -2191,9 +2191,9 @@ end
 %----------------------------------------------------------------------------------------------
 
 % if (mode == 14)
-%
-%    coltab = jet;
-%
+% 
+%    coltab = jet(2*nSatTot);
+% 
 %    f1 = figure; hold on; grid on; title('Azimuth')
 %    f2 = figure; hold on; grid on; title('Elevation')
 %    f3 = figure; hold on; grid on; title('Distance')

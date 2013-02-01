@@ -1,11 +1,12 @@
-function [Eph_t] = rt_find_eph (Eph_in, time)
+function [Eph_t] = rt_find_eph(Eph_in, time, nsat)
 
 % SYNTAX:
-%   [Eph_t] = rt_find_eph (Eph_in, time);
+%   [Eph_t] = rt_find_eph(Eph_in, time, nsat);
 %
 % INPUT:
 %   Eph_in = ephemerides in input
 %   time = GPS time
+%   nsat = total number of satellites (depending on enabled constellations)
 %
 % OUTPUT:
 %   Eph_t = selected ephemerides
@@ -35,7 +36,7 @@ function [Eph_t] = rt_find_eph (Eph_in, time)
 
 empty_col = zeros(30,1);
 
-for sv = 1 : 32
+for sv = 1 : nsat
     icol = find_eph(Eph_in, sv, time);
     if (~isempty(icol))
         Eph_t(:,sv) = Eph_in(:,icol);

@@ -6,7 +6,7 @@ function [satp, satv] = satellite_orbits(t, Eph, sat, sbas)
 % INPUT:
 %   t = clock-corrected GPS time
 %   Eph  = ephemeris matrix
-%   sat  = satellite PRN
+%   sat  = satellite index
 %   sbas = SBAS corrections
 %
 % OUTPUT:

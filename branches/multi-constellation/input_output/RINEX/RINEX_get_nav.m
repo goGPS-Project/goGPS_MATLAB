@@ -76,10 +76,10 @@ while (isempty(header_end))
     header_end = strfind(lin,'END OF HEADER');
 end
 
-%if ionosphere parameters were not found
-if (ioparam == 0)
-    fprintf('Warning: ionosphere parameters not found in navigation file\n');
-end
+% %if ionosphere parameters were not found
+% if (ioparam == 0)
+%     fprintf('Warning: ionosphere parameters not found in navigation file\n');
+% end
 
 i = 0;
 

@@ -1,13 +1,15 @@
-function GSVlines = NMEA_GSV_gen(sat, el, az, snr)
+function GSVlines = NMEA_GSV_gen(sat, el, az, snr, constellations)
 
 % SYNTAX:
-%   GSVlines = NMEA_GSV_gen(sat, el, az, snr);
+%   GSVlines = NMEA_GSV_gen(sat, el, az, snr, constellations);
 %
 % INPUT:
 %   sat = list of visible satellites
 %   el = elevation [deg]
 %   az = azimuth [deg]
 %   snr = signal-to-noise ratio [dB]
+%   constellations = struct with multi-constellation settings
+%                   (see 'multi_constellation_settings.m' - empty if not available)
 %
 % OUTPUT:
 %   GSVlines = $GPGSV sentence(s) (NMEA)
@@ -35,6 +37,13 @@ function GSVlines = NMEA_GSV_gen(sat, el, az, snr)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+if (isempty(constellations)) %then use only GPS as default
+    constellations.GPS = struct('numSat', 32, 'enabled', 1, 'indexes', [1:32], 'PRN', [1:32]);
+    constellations.nEnabledSat = 32;
+    constellations.indexes = constellations.GPS.indexes;
+    constellations.PRN     = constellations.GPS.PRN;
+end
+
 %number of satellites
 nsat = size(sat,1);
 
@@ -48,12 +57,15 @@ n = ceil(nsat/4);
 %variable to store the n GSV sentences
 GSVlines = [];
 
+%satellite PRN
+sat_prn = constellations.PRN(sat);
+
 for i = 1 : n
     nmeastring = sprintf('$GPGSV,%d,%d,%d', n, i, nsat);
     for j = 1 : 4
         index = 4*(i-1) + j;
         if (index <= nsat)
-            nmeastring = [nmeastring sprintf(',%d,%d,%d,%d', sat(index), round(el(index)), round(az(index)), round(snr(index)))];
+            nmeastring = [nmeastring sprintf(',%d,%d,%d,%d', sat_prn(index), round(el(index)), round(az(index)), round(snr(index)))];
         else
             nmeastring = [nmeastring ',,,,'];
         end

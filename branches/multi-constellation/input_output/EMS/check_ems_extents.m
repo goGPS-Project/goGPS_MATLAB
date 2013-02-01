@@ -54,8 +54,9 @@ if (~isempty(find(Eph(30,:,:) ~= 0, 1)))
     while (sum(abs((pos_R))) == 0 & i <= length(time_R))
         
         satObs = find(pr(:,i) ~= 0);
+        nsat = length(satObs);
         
-        Eph_t  = rt_find_eph (Eph, time_R(i));
+        Eph_t  = rt_find_eph (Eph, time_R(i), nsat);
         
         satEph = find(Eph_t(1,:) ~= 0);
         satAvail = intersect(satObs,satEph)';

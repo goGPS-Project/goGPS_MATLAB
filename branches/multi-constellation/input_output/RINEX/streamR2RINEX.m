@@ -364,7 +364,8 @@ if (~isempty(data_rover_all))
         i = 1;
         while (sum(abs((pos_R))) == 0 & i <= length(time_R))
             satObs = find(pr1_R(:,i) ~= 0);
-            Eph_t = rt_find_eph (Eph_R, time_R(i));
+            nsat = length(satObs);
+            Eph_t = rt_find_eph (Eph_R, time_R(i), nsat);
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)

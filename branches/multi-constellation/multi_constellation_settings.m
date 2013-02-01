@@ -24,17 +24,19 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-constellations.GPS     = struct('numSat', 32, 'enabled', 1, 'indexes', 0);
-constellations.GLONASS = struct('numSat', 30, 'enabled', 0, 'indexes', 0); %GLONASS orbits not supported yet
-constellations.Galileo = struct('numSat', 30, 'enabled', 0, 'indexes', 0);
-constellations.BeiDou  = struct('numSat', 30, 'enabled', 0, 'indexes', 0); %BeiDou orbits not supported yet
-constellations.QZSS    = struct('numSat',  4, 'enabled', 1, 'indexes', 0);
-constellations.SBAS    = struct('numSat',  4, 'enabled', 0, 'indexes', 0); %SBAS orbits not supported yet
+constellations.GPS     = struct('numSat', 32, 'enabled', 1, 'indexes', 0, 'PRN', [1:32]);
+constellations.GLONASS = struct('numSat', 30, 'enabled', 0, 'indexes', 0, 'PRN', 0);         %GLONASS not supported yet
+constellations.Galileo = struct('numSat', 30, 'enabled', 0, 'indexes', 0, 'PRN', [1:30]);
+constellations.BeiDou  = struct('numSat', 30, 'enabled', 0, 'indexes', 0, 'PRN', 0);         %BeiDou not supported yet
+constellations.QZSS    = struct('numSat',  4, 'enabled', 1, 'indexes', 0, 'PRN', [193:196]);
+constellations.SBAS    = struct('numSat',  4, 'enabled', 0, 'indexes', 0, 'PRN', 0);         %SBAS ranging not supported yet
 
 nSatTot = 0; %total number of satellites used given the enabled constellations
-q = 0;                          %counter for enabled constellations
+q = 0;       %counter for enabled constellations
 
-systems = fieldnames(constellations); 
+systems = fieldnames(constellations);
+constellations.indexes = [];
+constellations.PRN = [];
 for i = 1:numel(systems)
     if(constellations.(systems{i}).enabled)
         nSatTot = nSatTot + constellations.(systems{i}).numSat;
@@ -45,6 +47,8 @@ for i = 1:numel(systems)
             indexes_tmp = [indexes_tmp(end) + 1 : indexes_tmp(end) + constellations.(systems{i}).numSat];
         end
         constellations.(systems{i}).indexes = indexes_tmp;
+        constellations.indexes = [constellations.indexes, indexes_tmp];
+        constellations.PRN = [constellations.PRN, constellations.(systems{i}).PRN];
     end
 end
 

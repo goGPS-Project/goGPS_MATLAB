@@ -39,7 +39,10 @@ Mk = M0+n*tk;               %mean anomaly
 Mk = rem(Mk+2*pi,2*pi);
 Ek = Mk;
 
-for i = 1:10
+max_iter = 12; %it was 10 when using only GPS (convergence was achieved at 4-6 iterations);
+               % now it set to 12 because QZSS PRN 193 can take 11 iterations to converge
+
+for i = 1 : max_iter
    Ek_old = Ek;
    Ek = Mk+ecc*sin(Ek);
    dEk = rem(Ek-Ek_old,2*pi);
@@ -48,8 +51,8 @@ for i = 1:10
    end
 end
 
-if (i == 10)
-    fprintf('Eccentric anomaly does not converge!!\n')
+if (i == max_iter)
+    fprintf('WARNING: Eccentric anomaly does not converge.\n')
 end
 
 Ek = rem(Ek+2*pi,2*pi);
