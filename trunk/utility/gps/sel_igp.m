@@ -64,13 +64,14 @@ r_loni = find(v_lon <= lonpp,1,'last');
 r_lons = find(v_lon > lonpp,1,'first');
 
 %verify that we are within the validity area
-if(sum([~isempty(r_lati) ~isempty(r_lats) ~isempty(r_loni) ~isempty(r_lons)]) >= 3)
+if(sum([~isempty(r_lati) ~isempty(r_lats) ~isempty(r_loni) ~isempty(r_lons)]) == 4)
     lati = v_lat(r_lati);
     lats = v_lat(r_lats);
     loni = v_lon(r_loni);
     lons = v_lon(r_lons);
 else %we are outside of the validity area
     igp4 = [];
+    tv = [];
     return
 end
 
@@ -106,4 +107,5 @@ end
 %verify that at least a triangular cell is available; if not, disable SBAS processing
 if (n < 3)
     igp4 = [];
+    tv = [];
 end
