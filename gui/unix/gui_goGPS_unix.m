@@ -579,9 +579,9 @@ function mode_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns mode contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from mode
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from mode
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'Real-time'))
+if (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Real-time'))
     try
         instrhwinfo;
     catch
@@ -642,8 +642,8 @@ else
     set(handles.protocol_select_3, 'Enable', 'off');    
     set(handles.use_ntrip, 'Enable', 'off');
     contents = cellstr(get(handles.code_dd_sa,'String'));
-    if (get(handles.plotproc,'Value') & (strcmp(contents{get(handles.code_dd_sa,'Value')}, ...
-        'Code and phase double difference') | strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone')))
+    if (get(handles.plotproc,'Value') & (strcmp(contents{min(get(handles.code_dd_sa,'Value'), length(contents))}, ...
+        'Code and phase double difference') | strcmp(contents{min(get(handles.code_dd_sa,'Value'), length(contents))},'Code and phase stand-alone')))
         set(handles.plot_amb, 'Enable', 'on');
         plot_amb_Callback(handles.plot_amb, [], handles);
     end
@@ -705,10 +705,10 @@ function kalman_ls_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns kalman_ls contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from kalman_ls
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from kalman_ls
 %enable Kalman filters settings
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'Kalman filter'))
+if (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Kalman filter'))
     cell_contents = cell(4,1);
     cell_contents{1} = 'Code stand-alone';
     cell_contents{2} = 'Code double difference';
@@ -823,11 +823,11 @@ function code_dd_sa_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns code_dd_sa contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from code_dd_sa
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from code_dd_sa
 contents = cellstr(get(hObject,'String'));
-if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
+if strcmp(contents{min(get(hObject,'Value'), length(contents))},'Code and phase double difference')
     check_mode = cellstr(get(handles.mode,'String'));
-    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
+    if (~strcmp(check_mode{min(get(handles.mode,'Value'), length(check_mode))},'Real-time')) & ...
             (get(handles.plotproc,'Value'))
         set(handles.plot_amb, 'Enable', 'on');
         plot_amb_Callback(handles.plot_amb, [], handles);
@@ -852,13 +852,13 @@ if strcmp(contents{get(hObject,'Value')},'Code and phase double difference')
     cell_contents{3} = 'Static';
     cell_contents{4} = 'Variable';
     set(handles.dyn_mod, 'String', cell_contents);
-    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time'))
+    if (~strcmp(check_mode{min(get(handles.mode,'Value'), length(check_mode))},'Real-time'))
         set(handles.flag_doppler, 'Enable', 'on');
     end
     set(handles.amb_select, 'Enable', 'on');
-elseif strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone')
+elseif strcmp(contents{min(get(hObject,'Value'), length(contents))},'Code and phase stand-alone')
     check_mode = cellstr(get(handles.mode,'String'));
-    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time')) & ...
+    if (~strcmp(check_mode{min(get(handles.mode,'Value'), length(check_mode))},'Real-time')) & ...
             (get(handles.plotproc,'Value'))
         set(handles.plot_amb, 'Enable', 'on');
         plot_amb_Callback(handles.plot_amb, [], handles);
@@ -903,7 +903,7 @@ else
     set(handles.stopGOstop, 'Enable', 'off');
     set(handles.text_stopGOstop, 'Enable', 'off');
     check_KF = cellstr(get(handles.kalman_ls,'String'));
-    if (strcmp(check_KF{get(handles.kalman_ls,'Value')},'Kalman filter'))
+    if (strcmp(check_KF{min(get(handles.kalman_ls,'Value'), length(check_KF))},'Kalman filter'))
         set(handles.dyn_mod, 'Enable', 'on');
     end
     cell_contents = cell(3,1);
@@ -917,8 +917,8 @@ else
     set(handles.amb_select, 'Enable', 'off');
 end
 
-if strcmp(contents{get(hObject,'Value')},'Code and phase stand-alone') | ...
-        strcmp(contents{get(hObject,'Value')},'Code stand-alone')
+if strcmp(contents{min(get(hObject,'Value'), length(contents))},'Code and phase stand-alone') | ...
+        strcmp(contents{min(get(hObject,'Value'), length(contents))},'Code stand-alone')
     
     set(handles.RINEX_master_obs, 'Enable', 'off');
     set(handles.text_RINEX_master_obs, 'Enable', 'off');
@@ -979,10 +979,10 @@ function nav_mon_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns nav_mon contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from nav_mon
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from nav_mon
 
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'Navigation'))
+if (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Navigation'))
 
     %enable options
     set(handles.constraint, 'Enable', 'on');
@@ -1151,7 +1151,7 @@ else
     if (old_value == 4), set(handles.dyn_mod, 'Value', 2); end
     set(handles.dyn_mod, 'String', cell_contents);
 
-    if (strcmp(contents{get(hObject,'Value')},'Rover monitor'))
+    if (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Rover monitor'))
 
         num_receivers_Callback(handles.num_receivers, [], handles);
         set(handles.use_ntrip, 'Enable', 'off');
@@ -1185,7 +1185,7 @@ else
         set(handles.text_stopGOstop, 'Enable', 'on');
         stopGOstop_Callback(handles.stopGOstop, [], handles);
 
-    elseif (strcmp(contents{get(hObject,'Value')},'Master monitor'))
+    elseif (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Master monitor'))
 
         set(handles.text_num_receivers, 'Enable', 'off');
         set(handles.num_receivers, 'Enable', 'off');        
@@ -1223,7 +1223,7 @@ else
         set(handles.stopGOstop, 'Enable', 'off');
         set(handles.text_stopGOstop, 'Enable', 'off');
 
-    elseif (strcmp(contents{get(hObject,'Value')},'Rover and Master monitor'))
+    elseif (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Rover and Master monitor'))
 
         set(handles.text_num_receivers, 'Enable', 'off');
         set(handles.num_receivers, 'Value', 1);
@@ -1305,7 +1305,7 @@ function ref_path_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of ref_path
 contents = cellstr(get(handles.code_dd_sa,'String'));
-if (get(hObject,'Value')) & (strcmp(contents{get(handles.code_dd_sa,'Value')},'Code and phase double difference'))
+if (get(hObject,'Value')) & (strcmp(contents{min(get(handles.code_dd_sa,'Value'), length(contents))},'Code and phase double difference'))
     set(handles.ref_path_input, 'Enable', 'on');
     set(handles.text_ref_path_input, 'Enable', 'on');
     set(handles.browse_ref_path_input, 'Enable', 'on');
@@ -1561,9 +1561,9 @@ function crs_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns crs contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from crs
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from crs
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'ECEF (X,Y,Z)'))
+if (strcmp(contents{min(get(hObject,'Value'), length(contents))},'ECEF (X,Y,Z)'))
     set(handles.master_X, 'Enable', 'on');
     set(handles.master_Y, 'Enable', 'on');
     set(handles.master_Z, 'Enable', 'on');
@@ -2403,11 +2403,11 @@ function dyn_mod_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns dyn_mod contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from dyn_mod
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from dyn_mod
 global order
 
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'Static'))
+if (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Static'))
     order = 1;
     set(handles.std_X, 'Enable', 'off');
     set(handles.std_Y, 'Enable', 'off');
@@ -2431,9 +2431,9 @@ else
         set(handles.text_std_Y_unit, 'Enable', 'on');
         set(handles.text_std_Z_unit, 'Enable', 'on');
     end
-    if (strcmp(contents{get(hObject,'Value')},'Const. acceleration'))
+    if (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Const. acceleration'))
         order = 3;
-    elseif (strcmp(contents{get(hObject,'Value')},'Const. velocity'))
+    elseif (strcmp(contents{min(get(hObject,'Value'), length(contents))},'Const. velocity'))
         order = 2;
     else
         order = 1;
@@ -2792,7 +2792,7 @@ function com_select_0_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns com_select_0 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from com_select_0
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from com_select_0
 % contents1 = cellstr(get(handles.com_select_1,'String'));
 % contents2 = cellstr(get(handles.com_select_2,'String'));
 % contents3 = cellstr(get(handles.com_select_3,'String'));
@@ -2803,7 +2803,7 @@ function com_select_0_Callback(hObject, eventdata, handles)
 % set(hObject, 'String', serialInfo.AvailableSerialPorts);
 
 % contents  = cellstr(get(hObject,'String'));
-% COMportR0 = contents{get(hObject,'Value')};
+% COMportR0 = contents{min(get(hObject,'Value'), length(contents))};
 
 
 
@@ -2967,8 +2967,8 @@ if (get(hObject,'Value'))
     set(handles.plot_master, 'Enable', 'on');
     check_mode = cellstr(get(handles.mode,'String'));
     check_phase = cellstr(get(handles.code_dd_sa,'String'));
-    if (~strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & (strcmp(check_phase{get(handles.code_dd_sa,'Value')}, ...
-        'Code and phase double difference') | strcmp(check_phase{get(handles.code_dd_sa,'Value')},'Code and phase stand-alone')))
+    if (~strcmp(check_mode{min(get(handles.mode,'Value'), length(check_mode))},'Real-time') & (strcmp(check_phase{min(get(handles.code_dd_sa,'Value'), length(check_phase))}, ...
+        'Code and phase double difference') | strcmp(check_phase{min(get(handles.code_dd_sa,'Value'), length(check_phase))},'Code and phase stand-alone')))
         set(handles.plot_amb, 'Enable', 'on');
         plot_amb_Callback(handles.plot_amb, [], handles);
     end
@@ -2990,7 +2990,7 @@ function stopGOstop_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of stopGOstop
 check_nav = cellstr(get(handles.nav_mon,'String'));
 check_KF = cellstr(get(handles.kalman_ls,'String'));
-if (get(hObject,'Value') | strcmp(check_nav{get(handles.nav_mon,'Value')},'Master monitor') | ~strcmp(check_KF{get(handles.kalman_ls,'Value')},'Kalman filter'))
+if (get(hObject,'Value') | strcmp(check_nav{min(get(handles.nav_mon,'Value'), length(check_nav))},'Master monitor') | ~strcmp(check_KF{min(get(handles.kalman_ls,'Value'), length(check_KF))},'Kalman filter'))
     set(handles.dyn_mod, 'Enable', 'off');
 else
     set(handles.dyn_mod, 'Enable', 'on');
@@ -3027,7 +3027,7 @@ function protocol_select_0_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns protocol_select_0 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from protocol_select_0
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from protocol_select_0
 
 
 % --- Executes during object creation, after setting all properties.
@@ -3105,10 +3105,10 @@ function amb_select_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns amb_select contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from amb_select
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from amb_select
 global amb_restart_method
 contents = cellstr(get(hObject,'String'));
-selection = contents{get(hObject,'Value')};
+selection = contents{min(get(hObject,'Value'), length(contents))};
 if (strcmp(selection, 'Observed code - phase difference'))
     amb_restart_method = 0;
 elseif (strcmp(selection, 'Kalman-predicted code - phase difference'))
@@ -3137,7 +3137,7 @@ function com_select_1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns com_select_1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from com_select_1
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from com_select_1
 
 % contents0 = cellstr(get(handles.com_select_0,'String'));
 % contents2 = cellstr(get(handles.com_select_2,'String'));
@@ -3187,7 +3187,7 @@ function protocol_select_1_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns protocol_select_1 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from protocol_select_1
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from protocol_select_1
 
 
 % --- Executes during object creation, after setting all properties.
@@ -3210,7 +3210,7 @@ function com_select_2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns com_select_2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from com_select_2
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from com_select_2
 % contents0 = cellstr(get(handles.com_select_0,'String'));
 % contents1 = cellstr(get(handles.com_select_1,'String'));
 % contents3 = cellstr(get(handles.com_select_3,'String'));
@@ -3221,7 +3221,7 @@ function com_select_2_Callback(hObject, eventdata, handles)
 % set(hObject, 'String', serialInfo.AvailableSerialPorts);
 
 % contents  = cellstr(get(hObject,'String'));
-% COMportR2 = contents{get(hObject,'Value')};
+% COMportR2 = contents{min(get(hObject,'Value'), length(contents))};
 
 % --- Executes during object creation, after setting all properties.
 function com_select_2_CreateFcn(hObject, eventdata, handles)
@@ -3259,7 +3259,7 @@ function protocol_select_2_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns protocol_select_2 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from protocol_select_2
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from protocol_select_2
 
 
 % --- Executes during object creation, after setting all properties.
@@ -3282,7 +3282,7 @@ function com_select_3_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns com_select_3 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from com_select_3
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from com_select_3
 % contents0 = cellstr(get(handles.com_select_0,'String'));
 % contents1 = cellstr(get(handles.com_select_1,'String'));
 % contents2 = cellstr(get(handles.com_select_2,'String'));
@@ -3293,7 +3293,7 @@ function com_select_3_Callback(hObject, eventdata, handles)
 % set(hObject, 'String', serialInfo.AvailableSerialPorts);
 
 % contents  = cellstr(get(hObject,'String'));
-% COMportR3 = contents{get(hObject,'Value')};
+% COMportR3 = contents{min(get(hObject,'Value'), length(contents))};
 
 
 % --- Executes during object creation, after setting all properties.
@@ -3332,7 +3332,7 @@ function protocol_select_3_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns protocol_select_3 contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from protocol_select_3
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from protocol_select_3
 
 
 % --- Executes during object creation, after setting all properties.
@@ -3355,30 +3355,30 @@ function num_receivers_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns num_receivers contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from num_receivers
+%        contents{min(get(hObject,'Value'), length(contents))} returns selected item from num_receivers
 contents = cellstr(get(hObject,'String'));
 check_mode = cellstr(get(handles.mode,'String'));
 contents_nav_mon = cellstr(get(handles.nav_mon,'String'));
-if (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
+if (strcmp(check_mode{min(get(handles.mode,'Value'), length(check_mode))},'Real-time') & strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover monitor'))
     set(handles.text_num_receivers, 'Enable', 'on');
     set(handles.num_receivers, 'Enable', 'on');
     if (size(contents,1) >= get(hObject,'Value'))
-        if (strcmp(contents{get(hObject,'Value')},'1'))
+        if (strcmp(contents{min(get(hObject,'Value'), length(contents))},'1'))
             set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
             set(handles.com_select_1, 'Enable', 'off'); set(handles.protocol_select_1, 'Enable', 'off');
             set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
             set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
-        elseif (strcmp(contents{get(hObject,'Value')},'2'))
+        elseif (strcmp(contents{min(get(hObject,'Value'), length(contents))},'2'))
             set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
             set(handles.com_select_1, 'Enable', 'on');  set(handles.protocol_select_1, 'Enable', 'on');
             set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
             set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
-        elseif (strcmp(contents{get(hObject,'Value')},'3'))
+        elseif (strcmp(contents{min(get(hObject,'Value'), length(contents))},'3'))
             set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
             set(handles.com_select_1, 'Enable', 'on');  set(handles.protocol_select_1, 'Enable', 'on');
             set(handles.com_select_2, 'Enable', 'on');  set(handles.protocol_select_2, 'Enable', 'on');
             set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
-        elseif (strcmp(contents{get(hObject,'Value')},'4'))
+        elseif (strcmp(contents{min(get(hObject,'Value'), length(contents))},'4'))
             set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
             set(handles.com_select_1, 'Enable', 'on');  set(handles.protocol_select_1, 'Enable', 'on');
             set(handles.com_select_2, 'Enable', 'on');  set(handles.protocol_select_2, 'Enable', 'on');
@@ -3391,7 +3391,7 @@ if (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(contents_
         set(handles.com_select_2, 'Enable', 'off'); set(handles.protocol_select_2, 'Enable', 'off');
         set(handles.com_select_3, 'Enable', 'off'); set(handles.protocol_select_3, 'Enable', 'off');
     end
-elseif (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
+elseif (strcmp(check_mode{min(get(handles.mode,'Value'), length(check_mode))},'Real-time') & strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Master monitor'))
     set(handles.text_num_receivers, 'Enable', 'off');
     set(handles.num_receivers, 'Enable', 'off');
     set(handles.com_select_0, 'Enable', 'off');
@@ -3402,7 +3402,7 @@ elseif (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & strcmp(conte
     set(handles.protocol_select_1, 'Enable', 'off');
     set(handles.protocol_select_2, 'Enable', 'off');
     set(handles.protocol_select_3, 'Enable', 'off');
-elseif (strcmp(check_mode{get(handles.mode,'Value')},'Real-time') & (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Navigation') | strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover and Master monitor')))
+elseif (strcmp(check_mode{min(get(handles.mode,'Value'), length(check_mode))},'Real-time') & (strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Navigation') | strcmp(contents_nav_mon{get(handles.nav_mon,'Value')},'Rover and Master monitor')))
     set(hObject,'Value',1);
     set(handles.com_select_0, 'Enable', 'on');  set(handles.protocol_select_0, 'Enable', 'on');
     set(handles.com_select_1, 'Enable', 'off'); set(handles.protocol_select_1, 'Enable', 'off');
