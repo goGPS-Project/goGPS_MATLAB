@@ -103,13 +103,16 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (flag_XR == 0)
+    
+    index = find(no_eph == 0);
+    
     %NOTE: satellite selection may enhance the solution
-    B = [XS, pseudorange + v_light * dtS]; %assembled Bancroft matrix
-    x = bancroft(B);                       %estimated parameters
-    XR = x(1:3);                           %receiver coordinates [m]
-    %dtR = x(4) / v_light;                 %receiver clock error [s]
+    B = [XS(index,:), pseudorange(index) + v_light * dtS(index)]; %Bancroft matrix
+    x = bancroft(B);                                         %estimated parameters
+    XR = x(1:3);                                         %receiver coordinates [m]
+    %dtR = x(4) / v_light;                               %receiver clock error [s]
 else
-    XR = XR0;                              %known receiver coordinates
+    XR = XR0;                                          %known receiver coordinates
 end
 
 %----------------------------------------------------------------------------------------------
