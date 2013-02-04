@@ -44,6 +44,6 @@ for t = isat
 end
 
 %check satellite health
-if (Eph(27,icol) ~= 0 && Eph(30,icol) <= 32) %the second condition is temporary (QZSS health flag is kept on for tests)
+if (Eph(27,icol) ~= 0 && ~strcmp(char(Eph(31,icol)),'J')) %the second condition is temporary (QZSS health flag is kept on for tests)
     icol = [];
 end

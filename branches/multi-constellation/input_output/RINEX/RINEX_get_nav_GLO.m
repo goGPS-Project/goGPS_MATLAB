@@ -1,13 +1,15 @@
-function [Eph] = RINEX_get_nav_GLO(file_nav_GLO)
+function [Eph, leap_sec] = RINEX_get_nav_GLO(file_nav_GLO)
 
 % SYNTAX:
-%   [Eph] = RINEX_get_nav_GLO(file_nav_GLO);
+%   [Eph, leap_sec] = RINEX_get_nav_GLO(file_nav_GLO);
 %
 % INPUT:
 %   file_nav_GLO = RINEX navigation file (GLONASS)
 %
 % OUTPUT:
-%   Eph = matrix containing 17 ephemerides for each satellite
+%   Eph = matrix containing 17 navigation parameters for each satellite
+%         (31 slots for compatibility with other systems)
+%   leap_sec = number of leap seconds since 6 January 1980
 %
 % DESCRIPTION:
 %   Parse a RINEX GLONASS navigation file.
@@ -37,17 +39,26 @@ function [Eph] = RINEX_get_nav_GLO(file_nav_GLO)
 %----------------------------------------------------------------------------------------------
 
 Eph = [];
+leap_sec = [];
 
 %open navigation file
 fid = fopen(file_nav_GLO,'rt');
 
-answer = [];
+header_end = [];
 
 %search for the end of the header
-while (isempty(answer))
-    %lettura della riga e cerco la scritta
+while (isempty(header_end))
     lin = fgetl(fid);
-    answer = findstr(lin,'END OF HEADER');
+    
+    leap_found = (~isempty(strfind(lin,'LEAP SECONDS')));
+    if (leap_found)
+        
+        %save the leap seconds
+        data = textscan(lin,'%d%*[^\n]');
+        leap_sec = data{1};
+    end
+    
+    header_end = findstr(lin,'END OF HEADER');
 end
 
 i=0;
@@ -73,40 +84,57 @@ while (~feof(fid))
     tk     = str2num(lin1(61:79));
 
     X      = str2num(lin2(4:22));
-    vX     = str2num(lin2(23:41));
-    aX     = str2num(lin2(42:60));
-    Bn     = str2num(lin2(61:79));
+    Xv     = str2num(lin2(23:41));
+    Xa     = str2num(lin2(42:60));
+    Bn     = str2num(lin2(61:79)); %health flag
 
     Y      = str2num(lin2(4:22));
-    vY     = str2num(lin2(23:41));
-    aY     = str2num(lin2(42:60));
-    freq_num = str2num(lin2(61:79));
+    Yv     = str2num(lin2(23:41));
+    Ya     = str2num(lin2(42:60));
+    freq_num = str2num(lin2(61:79)); %frequency number
 
+    Z      = str2num(lin2(4:22));
+    Zv     = str2num(lin2(23:41));
+    Za     = str2num(lin2(42:60));
+    E      = str2num(lin2(61:79)); %age of oper. information  (days)
+    
     %frequencies on L1 and L2
     freq_L1 = freq_num * 0.5625 + 1602.0;
     freq_L2 = freq_num * 0.4375 + 1246.0;
-
-    Z      = str2num(lin2(4:22));
-    vZ     = str2num(lin2(23:41));
-    aZ     = str2num(lin2(42:60));
-    E      = str2num(lin2(61:79));
-
+    
+    sys_id = 'R';
+    sys_index = constellations.GLONASS.indexes(1);
+    
     %save ephemerides
     Eph(1,i)  = svprn;
     Eph(2,i)  = TauN;
     Eph(3,i)  = GammaN;
     Eph(4,i)  = tk;
     Eph(5,i)  = X;
-    Eph(6,i)  = vX;
-    Eph(7,i)  = aX;
-    Eph(8,i)  = Bn;
-    Eph(9,i)  = Y;
-    Eph(10,i) = vY;
-    Eph(11,i) = aY;
-    Eph(12,i) = freq_L1;
-    Eph(13,i) = freq_L2;
-    Eph(14,i) = Z;
-    Eph(15,i) = vZ;
-    Eph(16,i) = aZ;
-    Eph(17,i) = E;
+    Eph(6,i)  = Xv;
+    Eph(7,i)  = Xa;
+    Eph(8,i)  = Y;
+    Eph(9,i)  = Yv;
+    Eph(10,i) = Ya;
+    Eph(11,i) = Z;
+    Eph(12,i) = Zv;
+    Eph(13,i) = Za;
+    Eph(14,i) = E;
+    Eph(15,i) = freq_L1;
+    Eph(16,i) = freq_L2;
+    Eph(17,i) = 0;
+    Eph(18,i) = 0;
+    Eph(19,i) = 0;
+    Eph(20,i) = 0;
+    Eph(21,i) = 0;
+    Eph(22,i) = 0;
+    Eph(23,i) = 0;
+    Eph(24,i) = 0;
+    Eph(25,i) = 0;
+    Eph(26,i) = 0;
+    Eph(27,i) = Bn; %health flag
+    Eph(28,i) = 0;
+    Eph(29,i) = 0;
+    Eph(30,i) = (sys_index-1) + svprn;
+    Eph(31,i) = int8(sys_id);
 end

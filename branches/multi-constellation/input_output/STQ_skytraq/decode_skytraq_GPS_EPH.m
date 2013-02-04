@@ -69,7 +69,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(30,1);
+data{2} = zeros(31,1);
 
 %output data save
 data{1} = 'GPS_EPH';

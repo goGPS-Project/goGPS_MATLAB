@@ -79,7 +79,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(9,1);
-data{3} = zeros(30,1);
+data{3} = zeros(31,1);
 
 %output data save
 data{1} = 'RXM-SFRB';

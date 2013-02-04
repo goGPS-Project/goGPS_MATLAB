@@ -1,15 +1,16 @@
-function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
+function [Eph, iono, leap_sec] = RINEX_get_nav(file_nav, constellations)
 
 % SYNTAX:
-%   [Eph, iono] = RINEX_get_nav(file_nav, constellations);
+%   [Eph, iono, leap_sec] = RINEX_get_nav(file_nav, constellations);
 %
 % INPUT:
 %   file_nav = RINEX navigation file
 %   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
 %
 % OUTPUT:
-%   Eph = matrix containing 30 navigation parameters for each satellite
+%   Eph = matrix containing 31 navigation parameters for each satellite
 %   iono = matrix containing ionosphere parameters
+%   leap_sec = number of leap seconds since 6 January 1980
 %
 % DESCRIPTION:
 %   Parse a RINEX navigation file.
@@ -37,7 +38,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-ioparam = 0;
+% ioparam = 0;
 Eph = [];
 iono = zeros(8,1);
 
@@ -55,7 +56,7 @@ while (isempty(header_end))
     %if the label was found
     if (iono_found)
         %change flag
-        ioparam = 1;
+%         ioparam = 1;
         %save the 8 ionosphere parameters
         data = textscan(lin,'%f%f%f%f%*[^\n]');
         iono(1) = data{1};
@@ -71,6 +72,14 @@ while (isempty(header_end))
         iono(6) = data{2};
         iono(7) = data{3};
         iono(8) = data{4};
+    end
+    
+    leap_found = (~isempty(strfind(lin,'LEAP SECONDS')));
+    if (leap_found)
+        
+        %save the leap seconds
+        data = textscan(lin,'%d%*[^\n]');
+        leap_sec = data{1};
     end
 
     header_end = strfind(lin,'END OF HEADER');
@@ -128,14 +137,16 @@ while (~feof(fid))
     end
     
     %character offset
-    if (strcmp(lin1(1),'E') || strcmp(lin1(1),'J'))
+    sys_id = lin1(1);
+    if (strcmp(sys_id,'E') || strcmp(sys_id,'J'))
         o = 1;                 %RINEX v2.12, not GPS
-        if (strcmp(lin1(1),'E'))
+        if (strcmp(sys_id,'E'))
             sys_index = constellations.Galileo.indexes(1);
-        elseif (strcmp(lin1(1),'J'))
+        elseif (strcmp(sys_id,'J'))
             sys_index = constellations.QZSS.indexes(1);
         end
     else
+        sys_id = 'G';
         o = 0;                 %older RINEX versions (or RINEX v2.12, GPS)
         sys_index = constellations.GPS.indexes(1);
     end
@@ -220,7 +231,8 @@ while (~feof(fid))
     Eph(27,i) = svhealth;
     Eph(28,i) = tgd;
     Eph(29,i) = fit_int;
-    Eph(30,i) = (sys_index-1) + svprn;
+    Eph(30,i) = (sys_index-1) + svprn; %satellite index (consistent with other observation arrays)
+    Eph(31,i) = int8(sys_id);
 
     %if IODC and IODE do not match, issue a warning
     if (iodc ~= IODE)

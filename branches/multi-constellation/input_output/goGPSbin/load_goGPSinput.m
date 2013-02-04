@@ -21,7 +21,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %   snr_R    = ROVER signal-to-noise ratio
 %   snr_M    = MASTER signal-to-fnoise ratio
 %   pos_M    = MASTER station coordinates
-%   Eph      = matrix of 30 parameters each satellite (MASTER)
+%   Eph      = matrix of 31 parameters each satellite (MASTER)
 %   iono     = ionosphere parameters
 %   delay    = delay in observations processing
 %   loss_R   = flag for the ROVER loss of signal
@@ -127,7 +127,7 @@ hour = 0;                                                           %hour index 
 hour_str = num2str(hour,'%02d');                                    %hour index (string)
 d = dir([fileroot '_eph_' hour_str '.bin']);                        %file to be read
 if isempty(d)
-    Eph = zeros(30,num_sat,length(time_GPS(:,1)));
+    Eph = zeros(31,num_sat,length(time_GPS(:,1)));
 end
 while ~isempty(d)
     fprintf(['Reading: ' fileroot '_eph_' hour_str '.bin\n']);
@@ -135,15 +135,15 @@ while ~isempty(d)
     num_sat = fread(fid_eph,1,'int8');                              %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / (1+30*num_sat);                         %file size (number of packets)
+    num_packs = num_words / (1+31*num_sat);                         %file size (number of packets)
     buf_eph = fread(fid_eph,num_words,'double');                    %file reading
     fclose(fid_eph);                                                %file closing
-    Eph = cat(3,Eph,zeros(30,num_sat,num_packs));                   %ephemerides concatenation
-    for j = 0 : (1+30*num_sat) : num_words-1
+    Eph = cat(3,Eph,zeros(31,num_sat,num_packs));                   %ephemerides concatenation
+    for j = 0 : (1+31*num_sat) : num_words-1
         i = i+1;                                                    %epoch counter increase
         %time_GPS(i,1) = buf_eph(j + 1);                            %GPS time logging
-        Eph(:,:,i) = reshape(buf_eph(j + [2:1+30*num_sat]), ...
-                             [30,num_sat]);                         %ephemerides concatenation
+        Eph(:,:,i) = reshape(buf_eph(j + [2:1+31*num_sat]), ...
+                             [31,num_sat]);                         %ephemerides concatenation
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string

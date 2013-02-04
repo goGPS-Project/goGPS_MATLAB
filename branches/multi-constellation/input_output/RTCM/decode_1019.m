@@ -72,7 +72,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(30,1);
+data{2} = zeros(31,1);
 
 %message number
 DF002 = fbin2dec(msg(pos:pos+11)); pos = pos + 12;

@@ -83,7 +83,7 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  time_GPS --> double, [1,1]
-%  Eph      --> double, [30,32]
+%  Eph      --> double, [31,32]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 if (flag_var_dyn_model) | (flag_stopGOstop)
@@ -203,7 +203,7 @@ fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 %pseudoranges
 pr_R = zeros(32,1);
 %ephemerides
-Eph = zeros(30,32);
+Eph = zeros(31,32);
 %satellites with observations available
 satObs = [];
 nsatObs_old = [];
