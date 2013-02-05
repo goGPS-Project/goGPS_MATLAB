@@ -153,7 +153,6 @@ else
             error('Instrument Control Toolbox is needed to run goGPS in real-time mode.');
         end
     end
-
 end
 
 % start evaluating computation time
@@ -218,7 +217,7 @@ if (mode <= 20) %post-processing
         end
 
         %GPS week number
-        date(:,1) = date(:,1) + 2000;
+        date(:,1) = four_digit_year(date(:,1));
         week_R = date2gps(date);
 
         if (flag_SP3)
