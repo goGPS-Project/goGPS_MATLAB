@@ -177,7 +177,8 @@ while (~feof(fid))
         fit_int = 0;
     end
     
-    [~, toc] = date2gps([year+2000 month day hour minute second]);
+    year = four_digit_year(year);
+    [~, toc] = date2gps([year month day hour minute second]);
     
     %save ephemerides
     Eph(1,i)  = svprn;

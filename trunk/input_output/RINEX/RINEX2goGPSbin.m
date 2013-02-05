@@ -67,7 +67,7 @@ if (~isempty(dir(filename_R_obs)))
     snr_R = snr1_R;
 
     %GPS week number
-    date(:,1) = date(:,1) + 2000;
+    date(:,1) = four_digit_year(date(:,1));
     week_R = date2gps(date);
 else
     if (nargin >= 6)

@@ -142,7 +142,8 @@ for p = 1 : size(week_dow,1)
                 second = data{6};
 
                 %computation of the GPS time in weeks and seconds of week
-                [week, time] = date2gps([year + 2000, month, day, hour, minute, second]); %#ok<ASGLU>
+                year = four_digit_year(year);
+                [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
                 SP3_time(k,1) = time;
                 
             elseif (strcmp(lin(1),'P'))
