@@ -6,7 +6,7 @@ function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3_time, 
 % INPUT:
 %   time_rx   = reception time
 %   range     = observed range
-%   sat       = satellite PRN
+%   sat       = satellite index
 %   Eph       = ephemeris
 %   SP3_time  = precise ephemeris time
 %   SP3_clck  = precise ephemeris clocks
@@ -49,18 +49,25 @@ time_tx_RAW = time_rx - (range - err_tropo - err_iono) / v_light + dtR;
 
 if (isempty(SP3_time))
     
-    %relativistic correction term
-    dtrel = relativistic_error_correction(time_tx_RAW, Eph);
-    
-    %group delay correction term
-    %--- this correction term is only for the benefit of "single-frequency"
-    %    (L1 P(Y) or L2 P(Y)) users
-    tgd = Eph(28);
-    
-    dtS = sat_clock_error_correction(time_tx_RAW, Eph);
-    dtS = dtS + dtrel - tgd + dtsbas;
-    dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);
-    dtS = dtS + dtrel - tgd + dtsbas;
+    %if GLONASS
+    if (strcmp(char(Eph(31,icol)),'R'))
+        
+        dtS = sat_clock_error_correction(time_tx_RAW, Eph);
+        dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);
+    else
+        %relativistic correction term
+        dtrel = relativistic_error_correction(time_tx_RAW, Eph);
+        
+        %group delay correction term
+        %--- this correction term is only for the benefit of "single-frequency"
+        %    (L1 P(Y) or L2 P(Y)) users
+        tgd = Eph(28);
+        
+        dtS = sat_clock_error_correction(time_tx_RAW, Eph);
+        dtS = dtS + dtrel - tgd + dtsbas;
+        dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);
+        dtS = dtS + dtrel - tgd + dtsbas;
+    end
 else
     %interpolate SP3 satellite clock correction term
     dtS = interpolate_SP3_clock(time_tx_RAW, SP3_time, SP3_clck(sat,:));

@@ -1,7 +1,7 @@
-function [Eph, iono, leap_sec] = RINEX_get_nav(file_nav, constellations)
+function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 
 % SYNTAX:
-%   [Eph, iono, leap_sec] = RINEX_get_nav(file_nav, constellations);
+%   [Eph, iono] = RINEX_get_nav(file_nav, constellations);
 %
 % INPUT:
 %   file_nav = RINEX navigation file
@@ -10,7 +10,6 @@ function [Eph, iono, leap_sec] = RINEX_get_nav(file_nav, constellations)
 % OUTPUT:
 %   Eph = matrix containing 31 navigation parameters for each satellite
 %   iono = matrix containing ionosphere parameters
-%   leap_sec = number of leap seconds since 6 January 1980
 %
 % DESCRIPTION:
 %   Parse a RINEX navigation file.
@@ -72,14 +71,6 @@ while (isempty(header_end))
         iono(6) = data{2};
         iono(7) = data{3};
         iono(8) = data{4};
-    end
-    
-    leap_found = (~isempty(strfind(lin,'LEAP SECONDS')));
-    if (leap_found)
-        
-        %save the leap seconds
-        data = textscan(lin,'%d%*[^\n]');
-        leap_sec = data{1};
     end
 
     header_end = strfind(lin,'END OF HEADER');
@@ -199,7 +190,8 @@ while (~feof(fid))
         fit_int = 0;
     end
     
-    [~, toc] = date2gps([year+2000 month day hour minute second]);
+    year = four_digit_year(year);
+    [~, toc] = date2gps([year month day hour minute second]);
     
     %save ephemerides
     Eph(1,i)  = svprn;

@@ -21,10 +21,23 @@ function [corr] = sat_clock_error_correction(time, Eph)
 %
 %----------------------------------------------------------------------------------------------
 
-af2   = Eph(2);
-af0   = Eph(19);
-af1   = Eph(20);
-tom   = Eph(21);
+%if GLONASS
+if (strcmp(char(Eph(31,icol)),'R'))
 
-dt = check_t(time - tom);
-corr = (af2 * dt + af1) * dt + af0;
+    TauN   = Eph(2);
+    GammaN = Eph(3);
+    toe    = Eph(18);
+    
+    dt = check_t(time - toe);
+    corr = -TauN + GammaN*dt;
+    
+else %if GPS/Galileo/QZSS/...
+
+    af2 = Eph(2);
+    af0 = Eph(19);
+    af1 = Eph(20);
+    toc = Eph(21);
+    
+    dt = check_t(time - toc);
+    corr = (af2 * dt + af1) * dt + af0;
+end

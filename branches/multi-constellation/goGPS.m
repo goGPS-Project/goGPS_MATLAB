@@ -218,7 +218,7 @@ if (mode <= 20) %post-processing
         end
 
         %GPS week number
-        date(:,1) = date(:,1) + 2000;
+        date(:,1) = four_digit_year(date(:,1));
         week_R = date2gps(date);
 
         if (flag_SP3)
@@ -1565,7 +1565,7 @@ if (mode <= 20) || (mode == 24)
     
     %date formatting
     date = gps2date(week_R, time_GPS);
-    date(:,1) = date(:,1) - 2000;
+    date(:,1) = two_digit_year(date(:,1));
 
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
@@ -1768,7 +1768,7 @@ if (mode <= 20) || (mode == 24)
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
     %date formatting
     date = gps2date(week_R, time_GPS);
-    date(:,1) = date(:,1) - 2000;
+    date(:,1) = two_digit_year(date(:,1));
 
     for i = 1 : nObs
 

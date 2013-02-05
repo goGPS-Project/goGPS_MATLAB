@@ -123,7 +123,8 @@ if (isempty(sv_e))
 end
 
 %computation of the GPS time in weeks and seconds of week
-[GPS_wk_e, GPS_sec_wk_e] = date2gps([year + 2000, month, day, hour, minute, second]);
+year = four_digit_year(year);
+[GPS_wk_e, GPS_sec_wk_e] = date2gps([year, month, day, hour, minute, second]);
 
 time_E(:,1) = GPS_wk_e;     % GPS week
 time_E(:,2) = GPS_sec_wk_e; % GPS seconds

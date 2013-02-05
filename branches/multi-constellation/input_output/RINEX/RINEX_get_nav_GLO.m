@@ -1,7 +1,7 @@
-function [Eph, leap_sec] = RINEX_get_nav_GLO(file_nav_GLO)
+function [Eph] = RINEX_get_nav_GLO(file_nav_GLO)
 
 % SYNTAX:
-%   [Eph, leap_sec] = RINEX_get_nav_GLO(file_nav_GLO);
+%   [Eph] = RINEX_get_nav_GLO(file_nav_GLO);
 %
 % INPUT:
 %   file_nav_GLO = RINEX navigation file (GLONASS)
@@ -9,7 +9,6 @@ function [Eph, leap_sec] = RINEX_get_nav_GLO(file_nav_GLO)
 % OUTPUT:
 %   Eph = matrix containing 17 navigation parameters for each satellite
 %         (31 slots for compatibility with other systems)
-%   leap_sec = number of leap seconds since 6 January 1980
 %
 % DESCRIPTION:
 %   Parse a RINEX GLONASS navigation file.
@@ -39,7 +38,6 @@ function [Eph, leap_sec] = RINEX_get_nav_GLO(file_nav_GLO)
 %----------------------------------------------------------------------------------------------
 
 Eph = [];
-leap_sec = [];
 
 %open navigation file
 fid = fopen(file_nav_GLO,'rt');
@@ -49,14 +47,6 @@ header_end = [];
 %search for the end of the header
 while (isempty(header_end))
     lin = fgetl(fid);
-    
-    leap_found = (~isempty(strfind(lin,'LEAP SECONDS')));
-    if (leap_found)
-        
-        %save the leap seconds
-        data = textscan(lin,'%d%*[^\n]');
-        leap_sec = data{1};
-    end
     
     header_end = findstr(lin,'END OF HEADER');
 end
@@ -73,12 +63,12 @@ while (~feof(fid))
     lin4 = fgetl(fid); %#ok<NASGU>
 
     svprn  = str2num(lin1(1:2));
-    year   = str2num(lin1(3:6)); %#ok<NASGU>
-    month  = str2num(lin1(7:9)); %#ok<NASGU>
-    day    = str2num(lin1(10:12)); %#ok<NASGU>
-    hour   = str2num(lin1(13:15)); %#ok<NASGU>
-    minute = str2num(lin1(16:18)); %#ok<NASGU>
-    second = str2num(lin1(19:22)); %#ok<NASGU>
+    year   = str2num(lin1(3:6));
+    month  = str2num(lin1(7:9));
+    day    = str2num(lin1(10:12));
+    hour   = str2num(lin1(13:15));
+    minute = str2num(lin1(16:18));
+    second = str2num(lin1(19:22));
     TauN   = -str2num(lin1(23:41));
     GammaN = str2num(lin1(42:60));
     tk     = str2num(lin1(61:79));
@@ -102,6 +92,14 @@ while (~feof(fid))
     freq_L1 = freq_num * 0.5625 + 1602.0;
     freq_L2 = freq_num * 0.4375 + 1246.0;
     
+    %convert GLONASS (UTC) date to GPS date
+    year = four_digit_year(year);
+    date_GLO = datenum([year month day hour minute second]);
+    date_GPS = utc2gps(date_GLO);
+    
+    %convert GPS date to seconds of week (used as GLONASS time-of-ephemeris)
+    [~, toe] = date2gps(datevec(date_GPS));
+    
     sys_id = 'R';
     sys_index = constellations.GLONASS.indexes(1);
     
@@ -123,7 +121,7 @@ while (~feof(fid))
     Eph(15,i) = freq_L1;
     Eph(16,i) = freq_L2;
     Eph(17,i) = 0;
-    Eph(18,i) = 0;
+    Eph(18,i) = toe;
     Eph(19,i) = 0;
     Eph(20,i) = 0;
     Eph(21,i) = 0;
