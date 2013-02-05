@@ -164,15 +164,16 @@ classdef goKalmanFilter < handle
                 mode = 1;
             end
             switch mode
-                case 1, obj.nPar = 3;
-                case 2, obj.nPar = 6;
-                case {3,4}, obj.nPar = 9;
-                case 5, obj.nPar = 12;
+                case 1, obj.nPar = 3;   % static filter (3 positions)
+                case 2, obj.nPar = 6;   % const.velocity filter (3 positions+3 velocities)
+                case 3, obj.nPar = 9;   % const.acceleration filter (3 positions+3 velocities+3 accelerations)
+                case 4, obj.nPar = 12;  % const.velocity filter + attitude angles and variations
+                case 5, obj.nPar = 15;  % const.acceleration filter + attitude angles and variations
             end
             obj.mode = mode;
             obj.interval = 1/sampling_rate;	% Init estimation sampling rate
-            obj.setDefaultVariances();  % Init variances
-            obj.setCurrentParameters(); % Init current parameters
+            obj.setDefaultVariances();      % Init variances
+            obj.setCurrentParameters();     % Init current parameters
             obj.allocateMemory(goObs.getNumRec(), goObs.getGNSSNumFreq(goObs.idGPS)); % only GPS observations
         end
         
@@ -275,22 +276,22 @@ classdef goKalmanFilter < handle
             % Transition matrix filling
             switch(mode)
                 case 1,
-                    obj.T(1:nPar,1:nPar) = eye(nPar);
+                    % obj.T(1:nPar,1:nPar) = eye(nPar);
+                    % redundant, becuse T is already an identity matrix
                 case 2,
-                    obj.T(1:nPar,1:nPar) = eye(nPar);
-                    obj.T(1:2:nPar,2:2:nPar) = diag(ones(nPar-3,1)*obj.interval);
+                    % obj.T(1:nPar,1:nPar) = eye(nPar);
+                    obj.T(1:2:nPar,2:2:nPar) = diag(ones(3,1)*obj.interval);
                 case 3,
-                    obj.T(1:nPar,1:nPar) = eye(nPar);
-                    obj.T(1:3:nPar,2:3:nPar) = diag(ones(nPar-6,1)*obj.interval);
-                    obj.T(2:3:nPar,3:3:nPar) = diag(ones(nPar-6,1)*obj.interval);
+                    % obj.T(1:nPar,1:nPar) = eye(nPar);
+                    obj.T(1:3:nPar,2:3:nPar) = diag(ones(3,1)*obj.interval);
+                    obj.T(2:3:nPar,3:3:nPar) = diag(ones(3,1)*obj.interval);
                 case 4,
-                    obj.T(1:nPar,1:nPar) = eye(nPar);
-                    obj.T(1:2:nPar-3,2:2:nPar-3) = diag(ones(nPar-6,1)*obj.interval);
-                    obj.T(nPar-2:nPar,nPar-2:nPar) = diag(ones(nPar-6,1)*obj.interval);
+                    % obj.T(1:nPar,1:nPar) = eye(nPar);
+                    obj.T(1:2:(nPar-6),2:2:(nPar-6)) = diag(ones(3,1)*obj.interval);
                 case 5,
-                    obj.T(1:nPar,1:nPar) = eye(nPar);
-                    obj.T(1:2:nPar-3,2:2:nPar-3) = diag(ones(nPar-9,1)*obj.interval);
-                    obj.T(nPar-2:nPar,nPar-2:nPar) = diag(ones(nPar-9,1)*obj.interval);
+                    % obj.T(1:nPar,1:nPar) = eye(nPar);
+                    obj.T(1:3:(nPar-6),2:3:(nPar-6)) = diag(ones(3,1)*obj.interval);
+                    obj.T(2:3:(nPar-6),3:3:(nPar-6)) = diag(ones(3,1)*obj.interval);
             end
             % note that: the remaining part of the T matrix has already
             % been created as an identity matrix sized nN.
@@ -553,10 +554,27 @@ classdef goKalmanFilter < handle
                         end
                     end
                 end
-                %initialization of the initial point with 6(positions and velocities) +
+                %initialization of the initial point with 3/6/9(positions/velocities/accelerations) +
+                % 3 attitude angles + 3 attitude variations +
                 %32 or 64 (N combinations) variables
-                Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N];
+                switch(mode)
+                    case 1,
+                        Xhat_t_t_R{r} = [XR(1,r); XR(2,r); XR(3,r); N(:,r)];
+                    case {2,4},
+                        Xhat_t_t_R{r} = [XR(1,r); 0; XR(2,r); 0; XR(3,r); 0; N(:,r)];
+                    case {3,5},
+                        Xhat_t_t_R{r} = [XR(1,r); 0; 0; XR(2,r); 0; 0; XR(3,r); 0; 0; N(:,r)];
+                end
+            end
+            switch(mode)
+                case {1,2,3},
+                    for r=1:nRec
+                        Xhat_t_t(:,r) = ;
+                    end
+                case {4,5},
+                    for r=1:nRec
+                        Xhat_t_t(:,r) = ;
+                    end
             end
         end
     end
-end
