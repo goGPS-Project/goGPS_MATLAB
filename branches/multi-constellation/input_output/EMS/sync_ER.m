@@ -4,13 +4,13 @@ function [sync_data] = sync_ER(data_E, time_E, week_R, time_R)
 %   [sync_data] = sync_ER(data_E, time_E, week_R, time_R);
 %
 % INPUT:
-%   data_E: matrice coi dati egnos da sincronizzare
-%   time_E: tempi associati alla matrice data_E
-%   week_R: settimana GPS associata ai dati del rover
-%   time_R: secondi GPS associati ai dati del rover
+%   data_E = EGNOS data to be synchronized with GPS data
+%   time_E = time tags related to matrix data_E
+%   week_R = GPS week for rover data
+%   time_R = GPS seconds-of-week for rover data
 %
 % OUTPUT:
-%   sync_data: matrice coi dati egnos sincronizzati ai tempi del rover
+%   sync_data = matrix woth EGNOS data synchronized with GPS rover data
 %
 % DESCRIPTION:
 %   Tool for synchronizing EGNOS data with the rover observations.

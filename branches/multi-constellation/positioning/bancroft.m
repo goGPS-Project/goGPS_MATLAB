@@ -22,7 +22,9 @@ function [pos] = bancroft(B_pass)
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
 %----------------------------------------------------------------------------------------------
 
-global v_light Omegae_dot
+global v_light Omegae_dot_GPS
+
+Omegae_dot = Omegae_dot_GPS;
 
 pos = zeros(4,1);
 

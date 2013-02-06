@@ -50,7 +50,7 @@ time_tx_RAW = time_rx - (range - err_tropo - err_iono) / v_light + dtR;
 if (isempty(SP3_time))
     
     %if GLONASS
-    if (strcmp(char(Eph(31,icol)),'R'))
+    if (strcmp(char(Eph(31)),'R'))
         
         dtS = sat_clock_error_correction(time_tx_RAW, Eph);
         dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);

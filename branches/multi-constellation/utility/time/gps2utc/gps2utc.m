@@ -1,4 +1,4 @@
-function date1 = gps2utc(date0)
+function [date1, leapsec] = gps2utc(date0)
 %GPS2UTC Convert GPS time tags to UTC(GMT) time accounting for leap seconds
 %   GPS2UTC(date) corrects an array of GPS dates(in any matlab format) for
 %   leap seconds and returns an array of UTC datenums where:
@@ -11,27 +11,28 @@ function date1 = gps2utc(date0)
 
 %   Copyright 2008 Ian M. Howat, ihowat@gmail.com
 %   $Version: 1.0 $  $Date: 23-Aug-2008 13:56:44 $
-%   Adapted by Eugenio Realini, 2013 (added 'Jul 1 2012' leap date)
+%   Adapted by Eugenio Realini, 2013 (added 'Jul 1 2012' leap date and leap
+%   seconds output; bug-fixed 'stepdates' array)
 
 %% ADD NEW LEAP DATES HERE:
 stepdates = [...
-    'Jan 6 1980'
-    'Jul 1 1981'
-    'Jul 1 1982'
-    'Jul 1 1983'
-    'Jul 1 1985'
-    'Jan 1 1988'
-    'Jan 1 1990'
-    'Jan 1 1991'
-    'Jul 1 1992'
-    'Jul 1 1993'
-    'Jul 1 1994'
-    'Jan 1 1996'
-    'Jul 1 1997'
-    'Jan 1 1999'
-    'Jan 1 2006'
-    'Jan 1 2009'
-    'Jul 1 2012'];
+    'Jan 6 1980 0:00:00'
+    'Jul 1 1981 0:00:01'
+    'Jul 1 1982 0:00:02'
+    'Jul 1 1983 0:00:03'
+    'Jul 1 1985 0:00:04'
+    'Jan 1 1988 0:00:05'
+    'Jan 1 1990 0:00:06'
+    'Jan 1 1991 0:00:07'
+    'Jul 1 1992 0:00:08'
+    'Jul 1 1993 0:00:09'
+    'Jul 1 1994 0:00:10'
+    'Jan 1 1996 0:00:11'
+    'Jul 1 1997 0:00:12'
+    'Jan 1 1999 0:00:13'
+    'Jan 1 2006 0:00:14'
+    'Jan 1 2009 0:00:15'
+    'Jul 1 2012 0:00:16'];
 
 %% Convert Steps to datenums and make step offsets
 stepdates = datenum(stepdates)'; %step date coversion
@@ -54,10 +55,13 @@ date0 = repmat(date0,[1 size(stepdates,2)]);
 stepdates = repmat(stepdates,[size(date0,1) 1]);
 
 %% Conversion
-date1 = date0(:,1)   - steptime(sum((date0 - stepdates) >= 0,2));
+delta = steptime(sum((date0 - stepdates) >= 0,2));
+date1 = date0(:,1) - delta;
 
 %% Reshape Output Array
 date1 = reshape(date1,sz);
 
-
+%% Leap seconds
+leapsec = datevec(delta);
+leapsec = leapsec(:,end);
 

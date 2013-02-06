@@ -103,6 +103,12 @@ if (~flag_SP3)
         waitbar(0.5,wait_dlg,'Reading navigation files...')
     end
     
+    Eph_G = []; iono_G = zeros(8,1);
+    Eph_R = [];
+    Eph_E = []; iono_E = zeros(8,1);
+    Eph_B = []; iono_B = zeros(8,1);
+    Eph_J = []; iono_J = zeros(8,1);
+    
     if (constellations.GPS.enabled)
         if (exist(filename_nav,'file'))
             %parse RINEX navigation file (GPS)
@@ -111,36 +117,30 @@ if (~flag_SP3)
             fprintf('Warning: GPS navigation file not found. Disabling GPS positioning. \n');
             constellations.GPS.enabled = 0;
         end
-    else
-        Eph_G = []; iono_G = zeros(8,1);
     end
     
     if (constellations.GLONASS.enabled)
-        if (exist(filename_nav,'file'))
+        if (exist([filename_nav(1:end-1) 'g'],'file'))
             %parse RINEX navigation file (GLONASS)
             [Eph_R] = RINEX_get_nav_GLO([filename_nav(1:end-1) 'g'], constellations);
         else
             fprintf('Warning: GLONASS navigation file not found. Disabling GLONASS positioning. \n');
             constellations.GLONASS.enabled = 0;
         end
-    else
-        Eph_R = [];
     end
     
     if (constellations.Galileo.enabled)
-        if (exist(filename_nav,'file'))
+        if (exist([filename_nav(1:end-1) 'l'],'file'))
             %parse RINEX navigation file (Galileo)
             [Eph_E, iono_E] = RINEX_get_nav([filename_nav(1:end-1) 'l'], constellations);
         else
             fprintf('Warning: Galileo navigation file not found. Disabling Galileo positioning. \n');
             constellations.Galileo.enabled = 0;
         end
-    else
-        Eph_E = []; iono_E = zeros(8,1);
     end
     
     if (constellations.BeiDou.enabled)
-        %if (exist(filename_nav,'file'))
+        %if (exist([filename_nav(1:end-1) 'b'],'file'))
         %    parse RINEX navigation file (BeiDou)
         %     [Eph_B] = RINEX_get_nav_BDS([filename_nav(1:end-1) 'b'], constellations);
         %else
@@ -148,20 +148,16 @@ if (~flag_SP3)
             fprintf('Warning: BeiDou not supported yet. Disabling BeiDou positioning. \n');
             constellations.BeiDou.enabled = 0;
         %end
-    else
-        Eph_B = []; iono_B = zeros(8,1);
     end
     
     if (constellations.QZSS.enabled)
-        if (exist(filename_nav,'file'))
+        if (exist([filename_nav(1:end-1) 'q'],'file'))
             %parse RINEX navigation file (QZSS)
             [Eph_J, iono_J] = RINEX_get_nav([filename_nav(1:end-1) 'q'], constellations);
         else
             fprintf('Warning: QZSS navigation file not found. Disabling QZSS positioning. \n');
             constellations.QZSS.enabled = 0;
         end
-    else
-        Eph_J = []; iono_J = zeros(8,1);
     end
 
     Eph = [Eph_G Eph_R Eph_E Eph_B Eph_J];

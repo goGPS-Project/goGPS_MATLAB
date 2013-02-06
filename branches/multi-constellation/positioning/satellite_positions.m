@@ -46,6 +46,8 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global Omegae_dot_GPS Omegae_dot_GLO Omegae_dot_GAL Omegae_dot_BDS Omegae_dot_QZS
+
 nsat = length(sat);
 
 time_tx = zeros(nsat,1);
@@ -65,7 +67,7 @@ for i = 1 : nsat
         no_eph(i) = 1;
         continue
     end
-    
+
     %compute signal transmission time
     [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3_time, SP3_clck, sbas, err_tropo(i), err_iono(i), dtR);
     
@@ -87,5 +89,17 @@ for i = 1 : nsat
     
     %computation of ECEF satellite position at time_rx
     traveltime = time_rx - time_tx(i,1);
-    XS(i,:) = earth_rotation_correction(traveltime, XS_tx(i,:));
+    switch char(Eph(31,k))
+        case 'G'
+            Omegae_dot = Omegae_dot_GPS;
+        case 'R'
+            Omegae_dot = Omegae_dot_GLO;
+        case 'E'
+            Omegae_dot = Omegae_dot_GAL;
+        case 'B'
+            Omegae_dot = Omegae_dot_BDS;
+        case 'J'
+            Omegae_dot = Omegae_dot_QZS;
+    end
+    XS(i,:) = earth_rotation_correction(traveltime, XS_tx(i,:), Omegae_dot);
 end

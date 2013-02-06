@@ -253,7 +253,7 @@ phiApp = 34.5922;
 lamApp = 135.5059;
 hApp = 20;
 
-[XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a, f);
+[XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a_GPS, f);
 
 %Initial NMEA sentence required by some NTRIP casters
 nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);

@@ -22,7 +22,7 @@ function [corr] = sat_clock_error_correction(time, Eph)
 %----------------------------------------------------------------------------------------------
 
 %if GLONASS
-if (strcmp(char(Eph(31,icol)),'R'))
+if (strcmp(char(Eph(31)),'R'))
 
     TauN   = Eph(2);
     GammaN = Eph(3);

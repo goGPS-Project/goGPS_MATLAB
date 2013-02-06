@@ -36,7 +36,9 @@ function [phi, lam, h] = cart2geod(X, Y, Z)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a e
+global a_GPS e
+
+a = a_GPS;
 
 %radius computation
 r = sqrt(X.^2 + Y.^2 + Z.^2);
@@ -57,5 +59,3 @@ N = a ./ sqrt(1 - e^2 * sin(phi).^2);
 
 %height
 h = r .* cos(phiC)./cos(phi) - N;
-
-%----------------------------------------------------------------------------------------------

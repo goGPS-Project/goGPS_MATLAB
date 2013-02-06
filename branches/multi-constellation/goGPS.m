@@ -175,7 +175,7 @@ if (mode_ref == 1)
         %adjust the reference path according to antenna height
         [ref_phi, ref_lam, ref_h] = cart2geod(ref_path(:,1),ref_path(:,2),ref_path(:,3));
         ref_h = ref_h + h_antenna;
-        [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, a, f);
+        [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, a_GPS, f);
         ref_path = [ref_X , ref_Y , ref_Z];
 
     else
@@ -238,6 +238,13 @@ if (mode <= 20) %post-processing
         %TEMP
         snr_R = snr1_R;
         snr_M = snr1_M;
+        
+        %correct GLONASS pseudoranges for leap seconds
+        if (constellations.GLONASS.enabled)
+            [~, leap_sec] = utc2gps(datenum(date));
+            idx = constellations.GLONASS.indexes;
+            pr1_R(idx,:) = pr1_R(idx,:) - repmat(v_light*leap_sec',length(idx),1);
+        end
 
         if (~flag_SP3)
             %remove satellites without ephemerides (GPS)

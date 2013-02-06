@@ -1,10 +1,11 @@
-function [Eph] = RINEX_get_nav_GLO(file_nav_GLO)
+function [Eph] = RINEX_get_nav_GLO(file_nav_GLO, constellations)
 
 % SYNTAX:
-%   [Eph] = RINEX_get_nav_GLO(file_nav_GLO);
+%   [Eph] = RINEX_get_nav_GLO(file_nav_GLO, constellations);
 %
 % INPUT:
 %   file_nav_GLO = RINEX navigation file (GLONASS)
+%   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
 %
 % OUTPUT:
 %   Eph = matrix containing 17 navigation parameters for each satellite
@@ -103,20 +104,20 @@ while (~feof(fid))
     sys_id = 'R';
     sys_index = constellations.GLONASS.indexes(1);
     
-    %save ephemerides
+    %save ephemerides (position, velocity and acceleration vectors in ECEF system PZ-90.02)
     Eph(1,i)  = svprn;
     Eph(2,i)  = TauN;
     Eph(3,i)  = GammaN;
     Eph(4,i)  = tk;
-    Eph(5,i)  = X;
-    Eph(6,i)  = Xv;
-    Eph(7,i)  = Xa;
-    Eph(8,i)  = Y;
-    Eph(9,i)  = Yv;
-    Eph(10,i) = Ya;
-    Eph(11,i) = Z;
-    Eph(12,i) = Zv;
-    Eph(13,i) = Za;
+    Eph(5,i)  = X*1000;  %satellite X coordinate at ephemeris reference time [m]
+    Eph(6,i)  = Y*1000;  %satellite Y coordinate at ephemeris reference time [m]
+    Eph(7,i)  = Z*1000;  %satellite Z coordinate at ephemeris reference time [m]
+    Eph(8,i)  = Xv*1000; %satellite velocity along X at ephemeris reference time [m/s]
+    Eph(9,i)  = Yv*1000; %satellite velocity along Y at ephemeris reference time [m/s]
+    Eph(10,i) = Zv*1000; %satellite velocity along Z at ephemeris reference time [m/s]
+    Eph(11,i) = Xa*1000; %acceleration due to lunar-solar gravitational perturbation along X at ephemeris reference time [m/s^2]
+    Eph(12,i) = Ya*1000; %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time [m/s^2]
+    Eph(13,i) = Za*1000; %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time [m/s^2]
     Eph(14,i) = E;
     Eph(15,i) = freq_L1;
     Eph(16,i) = freq_L2;

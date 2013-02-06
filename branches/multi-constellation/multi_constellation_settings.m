@@ -25,9 +25,9 @@
 %----------------------------------------------------------------------------------------------
 
 constellations.GPS     = struct('numSat', 32, 'enabled', 1, 'indexes', 0, 'PRN', [1:32]);
-constellations.GLONASS = struct('numSat', 24, 'enabled', 0, 'indexes', 0, 'PRN', [1:24]);    %GLONASS not supported yet
+constellations.GLONASS = struct('numSat', 24, 'enabled', 0, 'indexes', 0, 'PRN', [1:24]);
 constellations.Galileo = struct('numSat', 30, 'enabled', 0, 'indexes', 0, 'PRN', [1:30]);
-constellations.BeiDou  = struct('numSat', 30, 'enabled', 0, 'indexes', 0, 'PRN', 0);         %BeiDou not supported yet
+constellations.BeiDou  = struct('numSat', 30, 'enabled', 0, 'indexes', 0, 'PRN', [1:30]);
 constellations.QZSS    = struct('numSat',  4, 'enabled', 1, 'indexes', 0, 'PRN', [193:196]);
 constellations.SBAS    = struct('numSat',  4, 'enabled', 0, 'indexes', 0, 'PRN', 0);         %SBAS ranging not supported yet
 

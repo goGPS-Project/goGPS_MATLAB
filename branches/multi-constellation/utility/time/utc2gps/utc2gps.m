@@ -1,4 +1,4 @@
-function date1 = utc2gps(date0)
+function [date1, leapsec] = utc2gps(date0)
 %UTC2GPS Convert UTC(GMT) time tags to GPS time accounting for leap seconds
 %   UTC2GPS(date) corrects an array of UTC dates(in any matlab format) for
 %   leap seconds and returns an array of GPS datenums where:
@@ -11,7 +11,8 @@ function date1 = utc2gps(date0)
 
 %   Copyright 2008 Ian M. Howat, ihowat@gmail.com
 %   $Version: 1.0 $  $Date: 23-Aug-2008 13:56:44 $
-%   Adapted by Eugenio Realini, 2013 (added 'Jul 1 2012' leap date)
+%   Adapted by Eugenio Realini, 2013 (added 'Jul 1 2012' leap date and leap
+%   seconds output)
 
 %% ADD NEW LEAP DATES HERE:
 stepdates = [...
@@ -35,7 +36,7 @@ stepdates = [...
 
 %% Convert Steps to datenums and make step offsets
 stepdates = datenum(stepdates)'; %step date coversion
-steptime = (0:length(stepdates)-1)'./86400; %corresponding step time (sec)
+steptime = (0:length(stepdates)-1)'./86400;  %corresponding step time (sec)
 
 %% Arg Checking
 if ~isnumeric(date0) %make sure date0 are datenums, if not try converting
@@ -54,10 +55,14 @@ date0 = repmat(date0,[1 size(stepdates,2)]);
 stepdates = repmat(stepdates,[size(date0,1) 1]);
 
 %% Conversion
-date1 = date0(:,1)   + steptime(sum((date0 - stepdates) >= 0,2));
+delta = steptime(sum((date0 - stepdates) >= 0,2));
+date1 = date0(:,1) + delta;
 
 %% Reshape Output Array
 date1 = reshape(date1,sz);
 
+%% Leap seconds
+leapsec = datevec(delta);
+leapsec = leapsec(:,end);
 
 
