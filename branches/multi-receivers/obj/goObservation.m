@@ -29,6 +29,10 @@
 %   nRec = getNumRec(obj)
 %   iono = getIono(obj)
 %
+%  REFERENCE FRAME ----------------------------------------------------
+%   
+%   att = getInitialAttitude(obj)
+%
 %  CONSTELLATION SPECIFIC ---------------------------------------------
 %
 %   nFreq = getGNSSnFreq(obj, idGNSS)
@@ -148,10 +152,13 @@ classdef goObservation < handle
         antennasRF;     % antennas Reference Frame it is a structure
                         %  .refRec => number of the remote that define the center of the RF
                         %  .pos    => [3, nRec] position of a remote antenna in the RF
+                        
+        attitude;       % structure containing roll, pitch, yawn                        
         
     % =========================================================================
     %   Used files
     % =========================================================================
+    
         obsFile;        % array of nRec elements with field .name
         navFile;        % structure elements with field 
                         %  .name and 
@@ -340,6 +347,15 @@ classdef goObservation < handle
             iono = obj.iono;
         end
 
+    % =========================================================================
+    %  REFERENCE FRAME 
+    % =========================================================================
+    
+        %   Return the attitude of the structure at time t0
+        function att = getInitialAttitude(obj)
+            att = obj.attitude;
+        end        
+    
     % =========================================================================
     %  CONSTELLATION SPECIFIC
     % =========================================================================
@@ -895,6 +911,12 @@ classdef goObservation < handle
                 end
             end        
             
+            % Store structure attitude at time T0
+            % must be read from INI (ToDo)
+            obj.attitude.roll = 0;
+            obj.attitude.pitch = 0;
+            obj.attitude.yaw = 0;
+
             % Computation point
             tmp = ini.getData('Antennas RF','XYZ_ev_point');            
             if (isempty(tmp))
