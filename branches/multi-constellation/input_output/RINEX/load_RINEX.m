@@ -257,10 +257,10 @@ date = zeros(nEpochs,6);
 obs_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
 
 %read ROVER observations
-if (obs_R.P1 == 0)
-    pr1_R(:,1) = obs_R.C1;
-else
+if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
     pr1_R(:,1) = obs_R.P1;
+else
+    pr1_R(:,1) = obs_R.C1;
 end
 pr2_R(:,1) = obs_R.P2;
 ph1_R(:,1) = obs_R.L1;
@@ -280,10 +280,10 @@ if (filename_M_obs_PresenceFlag)
     obs_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
     
     %read MASTER observations
-    if (obs_M.P1 == 0)
-        pr1_M(:,1) = obs_M.C1;
-    else
+    if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
         pr1_M(:,1) = obs_M.P1;
+    else
+        pr1_M(:,1) = obs_M.C1;
     end
     pr2_M(:,1) = obs_M.P2;
     ph1_M(:,1) = obs_M.L1;
@@ -310,10 +310,10 @@ if (filename_M_obs_PresenceFlag)
         obs_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
         
         %read MASTER observations
-        if (obs_M.P1 == 0)
-            pr1_M(:,1) = obs_M.C1;
-        else
+        if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
             pr1_M(:,1) = obs_M.P1;
+        else
+            pr1_M(:,1) = obs_M.C1;
         end
         pr2_M(:,1) = obs_M.P2;
         ph1_M(:,1) = obs_M.L1;
@@ -333,10 +333,10 @@ if (filename_M_obs_PresenceFlag)
         obs_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
         
         %read ROVER observations
-        if (obs_R.P1 == 0)
-            pr1_R(:,1) = obs_R.C1;
-        else
+        if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
             pr1_R(:,1) = obs_R.P1;
+        else
+            pr1_R(:,1) = obs_R.C1;
         end
         pr2_R(:,1) = obs_R.P2;
         ph1_R(:,1) = obs_R.L1;
@@ -421,10 +421,10 @@ while (~feof(FR_oss))
         obs_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
 
         %read ROVER observations
-        if (obs_R.P1 == 0)
-            pr1_R(:,k) = obs_R.C1;
-        else
+        if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
             pr1_R(:,k) = obs_R.P1;
+        else
+            pr1_R(:,k) = obs_R.C1;
         end
         pr2_R(:,k) = obs_R.P2;
         ph1_R(:,k) = obs_R.L1;
@@ -443,10 +443,10 @@ while (~feof(FR_oss))
             obs_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
             
             %read MASTER observations
-            if (obs_M.P1 == 0)
-                pr1_M(:,k) = obs_M.C1;
-            else
+            if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
                 pr1_M(:,k) = obs_M.P1;
+            else
+                pr1_M(:,k) = obs_M.C1;
             end
             pr2_M(:,k) = obs_M.P2;
             ph1_M(:,k) = obs_M.L1;

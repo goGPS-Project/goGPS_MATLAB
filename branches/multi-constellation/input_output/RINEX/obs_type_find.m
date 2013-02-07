@@ -7,15 +7,15 @@ function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2
 %   Obs_types = string containing observation types
 %
 % OUTPUT:
-%   col_L1 = L1 column (or LA for RINEX v2.12 QZSS modification)
-%   col_L2 = L2 column (or LC for RINEX v2.12 QZSS modification)
-%   col_C1 = C1 column (or CA for RINEX v2.12 QZSS modification)
-%   col_P1 = P1 column (or CA for RINEX v2.12 QZSS modification)
-%   col_P2 = P2 column (or CC for RINEX v2.12 QZSS modification)
-%   col_S1 = S1 column (or SA for RINEX v2.12 QZSS modification)
-%   col_S2 = S2 column (or SC for RINEX v2.12 QZSS modification)
-%   col_D1 = D1 column (or DA for RINEX v2.12 QZSS modification)
-%   col_D2 = D2 column (or DC for RINEX v2.12 QZSS modification)
+%   col_L1 = L1 column (or LA for RINEX v2.12)
+%   col_L2 = L2 column (or LC for RINEX v2.12)
+%   col_C1 = C1 column (or CA for RINEX v2.12)
+%   col_P1 = P1 column (or CA for RINEX v2.12)
+%   col_P2 = P2 column (or CC for RINEX v2.12)
+%   col_S1 = S1 column (or SA for RINEX v2.12)
+%   col_S2 = S2 column (or SC for RINEX v2.12)
+%   col_D1 = D1 column (or DA for RINEX v2.12)
+%   col_D2 = D2 column (or DC for RINEX v2.12)
 %
 % DESCRIPTION:
 %   Selection of the column index for phase observations (L1, L2), for
@@ -69,10 +69,8 @@ s2 = strfind(Obs_types, 'CA'); %QZSS does not use P1
 s = [s1 s2];
 col_P1 = (s+1)/2;
 
-if (length(col_P1) == 2) %if both QZSS CA and GPS P1 are available
-    %keep QZSS CA observations as P1
-    col_C1(end) = [];
-elseif (~isempty(s2)) %if GPS P1 observations are not available
+%if RINEX v2.12 and GPS/GLONASS P1 observations are not available
+if (length(col_P1) ~= 2 && ~isempty(s2))
     %keep QZSS CA observations as C1
     col_P1 = [];
 end
