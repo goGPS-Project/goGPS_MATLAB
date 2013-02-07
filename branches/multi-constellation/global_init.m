@@ -53,7 +53,7 @@ a_GPS = 6378137; %WGS-84  (IS-GPS200E)
 a_GLO = 6378136; %PZ-90   (GLONASS-ICD 5.1)
 
 %ellipsoid flattening (WGS-84)
-f = 1/298.257222101;
+f = 1/298.257223563;
 
 %eccentricity (WGS-84)
 e = sqrt(1-(1-f)^2);
@@ -61,14 +61,14 @@ e = sqrt(1-(1-f)^2);
 %gravitational constant (mass of Earth) [m^3/s^2]
 GM_GPS = 3.986005e14;    %WGS-84  (IS-GPS200E)
 GM_GLO = 3.9860044e14;   %PZ-90   (GLONASS-ICD 5.1)
-GM_GAL = 3.986004418e14; %WGS-84  (Galileo-ICD 1.1)
+GM_GAL = 3.986004418e14; %GTRF    (Galileo-ICD 1.1)
 GM_BDS = 3.986004418e14; %CSG2000 (BeiDou-ICD 1.0)
 GM_QZS = 3.986005e14;    %WGS-84  (IS-QZSS 1.5D)
 
 %angular velocity of the Earth rotation [rad/s]
 Omegae_dot_GPS = 7.2921151467e-5; %WGS-84  (IS-GPS200E)
 Omegae_dot_GLO = 7.292115e-5;     %PZ-90   (GLONASS-ICD 5.1)
-Omegae_dot_GAL = 7.2921151467e-5; %WGS-84  (Galileo-ICD 1.1)
+Omegae_dot_GAL = 7.2921151467e-5; %GTRF    (Galileo-ICD 1.1)
 Omegae_dot_BDS = 7.292115e-5;     %CSG2000 (BeiDou-ICD 1.0)
 Omegae_dot_QZS = 7.2921151467e-5; %WGS-84  (IS-QZSS 1.5D)
 

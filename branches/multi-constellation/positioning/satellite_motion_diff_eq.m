@@ -34,7 +34,7 @@ end
 %differential position
 pos_dot = vel;
 
-%renaming variables for better readibility
+%renaming variables for better readability
 %
 %position
 x = pos(1);
@@ -51,11 +51,11 @@ az = acc(3);
 %parameters
 r = sqrt(x^2 + y^2 + z^2);
 g = -GM/r^3;
-h = -J2*1.5*(a/r)^2;
+h = J2*1.5*(a/r)^2;
 k = 5*z^2/r^2;
 
 %differential velocity
 vel_dot = zeros(size(vel));
 vel_dot(1) = g*x*(1 - h*(k - 1)) + ax + Omegae_dot^2*x + 2*Omegae_dot*vy;
-vel_dot(2) = g*y*(1 - h*(k - 1)) + ay + Omegae_dot^2*y + 2*Omegae_dot*vx;
+vel_dot(2) = g*y*(1 - h*(k - 1)) + ay + Omegae_dot^2*y - 2*Omegae_dot*vx;
 vel_dot(3) = g*z*(1 - h*(k - 3)) + az;

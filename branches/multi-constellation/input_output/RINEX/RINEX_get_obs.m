@@ -45,14 +45,17 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_types, con
     
     %total number of satellites (according to enabled constellations)
     nSatTot = constellations.nEnabledSat;
+    
+    %array to contain the starting index for each constellation in the total array (with length = nSatTot)
+    sat_types_id = zeros(size(sat_types));
 
-    % Convert constellations letter to starting index in the total array (with length = nSatTot)
-    idGPS = constellations.GPS.indexes(1);         sat_types_id = uint8(sat_types == 'G');
-    idGLONASS = constellations.GLONASS.indexes(1); sat_types_id(sat_types == 'R') = idGLONASS;
-    idGalileo = constellations.Galileo.indexes(1); sat_types_id(sat_types == 'E') = idGalileo;
-    idBeiDou = constellations.BeiDou.indexes(1);   sat_types_id(sat_types == 'C') = idBeiDou;
-    idQZSS = constellations.QZSS.indexes(1);       sat_types_id(sat_types == 'J') = idQZSS;
-    idSBAS = constellations.SBAS.indexes(1);       sat_types_id(sat_types == 'S') = idSBAS;
+    % Convert constellations letter to starting index in the total array 
+    idGPS = constellations.GPS.indexes(1);         sat_types_id(sat_types == 'G') = idGPS*constellations.GPS.enabled;
+    idGLONASS = constellations.GLONASS.indexes(1); sat_types_id(sat_types == 'R') = idGLONASS*constellations.GLONASS.enabled;
+    idGalileo = constellations.Galileo.indexes(1); sat_types_id(sat_types == 'E') = idGalileo*constellations.Galileo.enabled;
+    idBeiDou = constellations.BeiDou.indexes(1);   sat_types_id(sat_types == 'B') = idBeiDou*constellations.BeiDou.enabled;
+    idQZSS = constellations.QZSS.indexes(1);       sat_types_id(sat_types == 'J') = idQZSS*constellations.QZSS.enabled;
+    idSBAS = constellations.SBAS.indexes(1);       sat_types_id(sat_types == 'S') = idSBAS*constellations.SBAS.enabled;
     
     %observation types
     [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2] = obs_type_find(obs_types);

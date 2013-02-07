@@ -157,13 +157,13 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
     
     %number of iterations on "full" steps
     n = floor(abs(tk/int_step));
-    
-    %array containing integration steps
-    ii = ones(n,1)*int_step;
+
+    %array containing integration steps (same sign as tk)
+    ii = ones(n,1)*int_step*(tk/abs(tk));
     
     %check residual iteration step (i.e. remaining fraction of int_step)
     int_step_res = rem(tk,int_step);
-    
+
     %adjust the total number of iterations and the array of iteration steps
     if (int_step_res ~= 0)
         n = n + 1;
@@ -174,10 +174,10 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
     pos = [X Y Z];
     vel = [Xv Yv Zv];
     acc = [Xa Ya Za];
-    
+
     for s = 1 : n
 
-        %Runge-Kutta integration algorithm
+        %Runge-Kutta numerical integration algorithm
         %
         %step 1
         pos1 = pos;

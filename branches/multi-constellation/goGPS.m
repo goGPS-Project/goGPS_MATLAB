@@ -238,13 +238,6 @@ if (mode <= 20) %post-processing
         %TEMP
         snr_R = snr1_R;
         snr_M = snr1_M;
-        
-        %correct GLONASS pseudoranges for leap seconds
-        if (constellations.GLONASS.enabled)
-            [~, leap_sec] = utc2gps(datenum(date));
-            idx = constellations.GLONASS.indexes;
-            pr1_R(idx,:) = pr1_R(idx,:) - repmat(v_light*leap_sec',length(idx),1);
-        end
 
         if (~flag_SP3)
             %remove satellites without ephemerides (GPS)

@@ -60,8 +60,8 @@ while (~feof(fid))
     i = i+1;
     lin1 = fgetl(fid);
     lin2 = fgetl(fid);
-    lin3 = fgetl(fid); %#ok<NASGU>
-    lin4 = fgetl(fid); %#ok<NASGU>
+    lin3 = fgetl(fid);
+    lin4 = fgetl(fid);
 
     svprn  = str2num(lin1(1:2));
     year   = str2num(lin1(3:6));
@@ -79,15 +79,15 @@ while (~feof(fid))
     Xa     = str2num(lin2(42:60));
     Bn     = str2num(lin2(61:79)); %health flag
 
-    Y      = str2num(lin2(4:22));
-    Yv     = str2num(lin2(23:41));
-    Ya     = str2num(lin2(42:60));
-    freq_num = str2num(lin2(61:79)); %frequency number
+    Y      = str2num(lin3(4:22));
+    Yv     = str2num(lin3(23:41));
+    Ya     = str2num(lin3(42:60));
+    freq_num = str2num(lin3(61:79)); %frequency number
 
-    Z      = str2num(lin2(4:22));
-    Zv     = str2num(lin2(23:41));
-    Za     = str2num(lin2(42:60));
-    E      = str2num(lin2(61:79)); %age of oper. information  (days)
+    Z      = str2num(lin4(4:22));
+    Zv     = str2num(lin4(23:41));
+    Za     = str2num(lin4(42:60));
+    E      = str2num(lin4(61:79)); %age of oper. information  (days)
     
     %frequencies on L1 and L2
     freq_L1 = freq_num * 0.5625 + 1602.0;
@@ -109,15 +109,15 @@ while (~feof(fid))
     Eph(2,i)  = TauN;
     Eph(3,i)  = GammaN;
     Eph(4,i)  = tk;
-    Eph(5,i)  = X*1000;  %satellite X coordinate at ephemeris reference time [m]
-    Eph(6,i)  = Y*1000;  %satellite Y coordinate at ephemeris reference time [m]
-    Eph(7,i)  = Z*1000;  %satellite Z coordinate at ephemeris reference time [m]
-    Eph(8,i)  = Xv*1000; %satellite velocity along X at ephemeris reference time [m/s]
-    Eph(9,i)  = Yv*1000; %satellite velocity along Y at ephemeris reference time [m/s]
-    Eph(10,i) = Zv*1000; %satellite velocity along Z at ephemeris reference time [m/s]
-    Eph(11,i) = Xa*1000; %acceleration due to lunar-solar gravitational perturbation along X at ephemeris reference time [m/s^2]
-    Eph(12,i) = Ya*1000; %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time [m/s^2]
-    Eph(13,i) = Za*1000; %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time [m/s^2]
+    Eph(5,i)  = X*1e3;  %satellite X coordinate at ephemeris reference time [m]
+    Eph(6,i)  = Y*1e3;  %satellite Y coordinate at ephemeris reference time [m]
+    Eph(7,i)  = Z*1e3;  %satellite Z coordinate at ephemeris reference time [m]
+    Eph(8,i)  = Xv*1e3; %satellite velocity along X at ephemeris reference time [m/s]
+    Eph(9,i)  = Yv*1e3; %satellite velocity along Y at ephemeris reference time [m/s]
+    Eph(10,i) = Zv*1e3; %satellite velocity along Z at ephemeris reference time [m/s]
+    Eph(11,i) = Xa*1e3; %acceleration due to lunar-solar gravitational perturbation along X at ephemeris reference time [m/s^2]
+    Eph(12,i) = Ya*1e3; %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time [m/s^2]
+    Eph(13,i) = Za*1e3; %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time [m/s^2]
     Eph(14,i) = E;
     Eph(15,i) = freq_L1;
     Eph(16,i) = freq_L2;
