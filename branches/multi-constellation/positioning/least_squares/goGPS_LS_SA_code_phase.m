@@ -88,6 +88,8 @@ else
         sat = find( (pr2 ~= 0) & (ph2 ~= 0) );
     end
 end
+sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
+sat = sat(ismember(sat, Eph(30,:)));
 
 %zero vector useful in matrix definitions
 Z_om_1 = zeros(o1-1,1);

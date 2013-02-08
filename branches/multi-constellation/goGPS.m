@@ -175,7 +175,7 @@ if (mode_ref == 1)
         %adjust the reference path according to antenna height
         [ref_phi, ref_lam, ref_h] = cart2geod(ref_path(:,1),ref_path(:,2),ref_path(:,3));
         ref_h = ref_h + h_antenna;
-        [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, a_GPS, f);
+        [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, a_GPS, f_GPS);
         ref_path = [ref_X , ref_Y , ref_Z];
 
     else
@@ -2203,15 +2203,15 @@ end
 %       if ~isempty(index)
 %          %azimuth
 %          figure(f1)
-%          h = plot(index,azR(i,index),'b.-'); grid on;
+%          h = plot(index,azR(i,index),'b.'); grid on;
 %          set(h,'Color',coltab(2*i-1,:));
 %          %elevation
 %          figure(f2)
-%          h = plot(index,elR(i,index),'r.-');
+%          h = plot(index,elR(i,index),'r.');
 %          set(h,'Color',coltab(2*i-1,:));
 %          %distance
 %          figure(f3)
-%          h = plot(index,distR(i,index)*1e-6,'g.-');
+%          h = plot(index,distR(i,index)*1e-6,'g.');
 %          set(h,'Color',coltab(2*i-1,:));
 %          %legend
 %          list{k} = num2str(i);
@@ -2224,7 +2224,7 @@ end
 %    clear f1 f2 f3
 %    clear i k h
 %    clear coltab
-%
+% 
 % end
 
 %----------------------------------------------------------------------------------------------

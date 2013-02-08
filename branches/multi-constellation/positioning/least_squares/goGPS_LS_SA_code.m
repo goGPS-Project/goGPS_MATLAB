@@ -58,12 +58,13 @@ azR   = zeros(nSatTot,1);
 elR   = zeros(nSatTot,1);
 distR = zeros(nSatTot,1);
 
-%visible satellites (ROVER)
+%available satellites (ROVER)
 if (phase == 1)
     sat = find(pr1 ~= 0);
 else
     sat = find(pr2 ~= 0);
 end
+sat = sat(ismember(sat, Eph(30,:)));
 
 %--------------------------------------------------------------------------------------------
 % SBAS FAST CORRECTIONS

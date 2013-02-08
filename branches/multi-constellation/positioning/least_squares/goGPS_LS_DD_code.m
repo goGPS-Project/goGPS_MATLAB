@@ -79,6 +79,7 @@ else
         sat = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
     end
 end
+sat = sat(ismember(sat, Eph(30,:)));
 
 if (size(sat,1) >= 4)
     

@@ -116,7 +116,7 @@ for s = 1 : nSat
                         %convert signal-to-noise ratio
                         % faster conversion of a single ASCII character into an int
                         snr = mod((lin(16*k)-48),16);
-                        obs_tmp.TMP1(sat(s),sat_types_id(s)) = 6 * snr;
+                        obs_tmp.TMP1(sat_types_id(s)+sat(s)-1) = 6 * snr;
                     end
                 elseif (ismember(k,col_L2))
                     obs_struct.L2(sat_types_id(s)+sat(s)-1) = obs;
@@ -124,7 +124,7 @@ for s = 1 : nSat
                         %convert signal-to-noise ratio
                         % faster conversion of a single ASCII character into an int
                         snr = mod((lin(16*k)-48),16);
-                        obs_tmp.TMP2(sat(s),sat_types_id(s)) = 6 * snr;
+                        obs_tmp.TMP2(sat_types_id(s)+sat(s)-1) = 6 * snr;
                     end
                 elseif (ismember(k,col_C1))
                     obs_struct.C1(sat_types_id(s)+sat(s)-1) = obs;
@@ -143,10 +143,10 @@ for s = 1 : nSat
                 end
             end
         end
-        if (~obs_struct.S1(sat(s)))
+        if (~obs_struct.S1(sat_types_id(s)+sat(s)-1))
             obs_struct.S1(sat_types_id(s)+sat(s)-1) = obs_tmp.TMP1(sat_types_id(s)+sat(s)-1);
         end
-        if (~obs_struct.S2(sat(s)))
+        if (~obs_struct.S2(sat_types_id(s)+sat(s)-1))
             obs_struct.S2(sat_types_id(s)+sat(s)-1) = obs_tmp.TMP2(sat_types_id(s)+sat(s)-1);
         end
     else

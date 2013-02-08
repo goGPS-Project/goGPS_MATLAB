@@ -183,7 +183,9 @@ else
     latM = str2double(get(handles.master_lat,'String'));
     lonM = str2double(get(handles.master_lon,'String'));
     hM = str2double(get(handles.master_h,'String'));
-    [XM, YM, ZM] = geod2cart (latM*pi/180, lonM*pi/180, hM, 6378137, 1/298.257222101);
+    a_GPS = 6378137;         %could be global variables
+    f_GPS = 1/298.257223563; %
+    [XM, YM, ZM] = geod2cart (latM*pi/180, lonM*pi/180, hM, a_GPS, f_GPS);
 end
 pos_M_man = [XM; YM; ZM];
 
@@ -356,7 +358,9 @@ ntrip_mountpoint = get(handles.mountpoint,'String');
 phiApp = str2double(get(handles.approx_lat,'String'));
 lamApp = str2double(get(handles.approx_lon,'String'));
 hApp = str2double(get(handles.approx_h,'String'));
-[XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, 6378137, 1/298.257222101);
+a_GPS = 6378137;         %could be global variables
+f_GPS = 1/298.257223563; %
+[XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a_GPS, f_GPS);
 if ~isnan(XApp) & ~isnan(YApp) & ~isnan(ZApp)
     nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
 else

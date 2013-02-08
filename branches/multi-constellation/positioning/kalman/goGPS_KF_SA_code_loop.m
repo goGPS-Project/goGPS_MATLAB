@@ -104,6 +104,7 @@ else
         sat = find( pr2 ~= 0 );
     end
 end
+sat = sat(ismember(sat, Eph(30,:)));
 
 %previous satellite configuration
 sat_old = find(conf_sat == 1);

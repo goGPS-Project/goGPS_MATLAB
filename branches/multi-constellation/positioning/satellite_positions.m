@@ -6,7 +6,7 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx,
 % INPUT:
 %   time_rx     = reception time
 %   pseudorange = observed code pseudoranges
-%   sat         = available satellite PRNs
+%   sat         = available satellite indexes
 %   Eph         = ephemeris
 %   SP3_time    = precise ephemeris time
 %   SP3_coor    = precise ephemeris coordinates

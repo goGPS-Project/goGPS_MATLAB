@@ -129,6 +129,8 @@ else
                     (ph2_R ~= 0) & (ph2_M ~= 0) );
     end
 end
+sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
+sat = sat(ismember(sat, Eph(30,:)));
 
 %only satellites with code and phase
 %sat_pr = sat;

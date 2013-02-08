@@ -102,6 +102,7 @@ else
         sat = find( pr2 ~= 0 );
     end
 end
+sat = sat(ismember(sat, Eph(30,:)));
 
 %--------------------------------------------------------------------------------------------
 % SBAS FAST CORRECTIONS
