@@ -399,8 +399,14 @@ classdef goObservation < handle
         end
         
         % Get reference time
-        function time = getTime_Ref(obj)
-            time = obj.timeChart(:,1);
+        function time = getTime_Ref(obj, idObs)
+            if (nargin < 1) % if not specified set the entire position array to the value of XM 
+                idObs = 0; % it should be 1 or nObs
+            end
+            if (idObs == 0)
+                idObs = 1:obj.nObs;
+            end
+            time = obj.timeChart(idObs,1);
         end
         
         % Get remote time
