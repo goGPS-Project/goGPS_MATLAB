@@ -437,7 +437,7 @@ while (~feof(FR_oss))
     
     date_R(k,:) = epoch_R(1,:);
     if (filename_M_obs_PresenceFlag)
-        date_M(1,:) = epoch_M(1,:);
+        date_M(k,:) = epoch_M(1,:);
     end
 
 %     if((epoch_R(1,5) == 0 & round(epoch_R(1,6)) == 0) | (epoch_R(1,5) == 59 & round(epoch_R(1,6)) == 60))
