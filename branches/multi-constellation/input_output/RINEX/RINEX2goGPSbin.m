@@ -60,20 +60,16 @@ if (~isempty(dir(filename_R_obs)))
     %ROVER RINEX files reading
     if (nargin >= 6)
         [pr1_R, ~, ph1_R, ~, ~, ~, ~, ~, dop1_R, ~, ~, ~, snr1_R, ~, ~, ~,  ...
-         ~, time_R, ~, date, ~, ~, Eph_R, iono_R, interval_R] = ...
+         ~, time_R, ~, week_R, ~, ~, ~, ~, ~, Eph_R, iono_R, interval_R] = ...
          load_RINEX(filename_nav, filename_R_obs, [], constellations, 0, wait_dlg);
     else
         [pr1_R, ~, ph1_R, ~, ~, ~, ~, ~, dop1_R, ~, ~, ~, snr1_R, ~, ~, ~,  ...
-         ~, time_R, ~, date, ~, ~, Eph_R, iono_R, interval_R] = ...
+         ~, time_R, ~, week_R, ~, ~, ~, ~, ~, Eph_R, iono_R, interval_R] = ...
          load_RINEX(filename_nav, filename_R_obs, [], constellations, 0);
     end
     
     %TEMP
     snr_R = snr1_R;
-
-    %GPS week number
-    date(:,1) = four_digit_year(date(:,1));
-    week_R = date2gps(date);
 else
     if (nargin >= 6)
         msgbox('Rover data are required to create goGPS binary data.');
