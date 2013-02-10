@@ -2,15 +2,15 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
           dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
           snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
           dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
-          time_GPS, time_GPS_R, time_GPS_M, date, pos_R, pos_M, Eph, iono, Eph_R, interval] = ...
-          load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs, wait_dlg)
+          time_GPS, time_GPS_R, time_GPS_M, week_R, week_M, date_R, date_M, pos_R, pos_M, Eph, iono, Eph_R, interval] = ...
+         load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs, wait_dlg)
 
 % SYNTAX:
 %   [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %    dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
-%    snr1_R, snr1_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
-%    Eph_R, Eph_MR, snr_RR, snr_MR, ...
-%    time_GPS, date, pos_R, pos_M, Eph, iono, Eph_R] = ...
+%    snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
+%    dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
+%    time_GPS, time_GPS_R, time_GPS_M, week_R, week_M, date_R, date_M, pos_R, pos_M, Eph, iono, Eph_R, interval] = ...
 %   load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs, wait_dlg);
 %
 % INPUT:
@@ -52,9 +52,12 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   snr_RR = signal-to-noise ratio (GLONASS, ROVER)
 %   snr_MR = signal-to-noise ratio (GLONASS, MASTER)
 %   time_GPS = reference GPS time
-%   time_GPS_R = rover GPS time
-%   time_GPS_M = master GPS time
-%   date = date (year,month,day,hour,minute,second)
+%   time_GPS_R = rover GPS seconds-of-week
+%   time_GPS_M = master GPS seconds-of-week
+%   week_R = rover GPS week number
+%   week_M = master GPS week number
+%   date_R = rover date (year,month,day,hour,minute,second)
+%   date_M = master date  (year,month,day,hour,minute,second)
 %   pos_R = rover approximate position
 %   pos_M = master station position
 %   Eph = matrix containing 29 ephemerides for each satellite
@@ -198,7 +201,8 @@ snr1_M = zeros(32,nEpochs);
 snr2_M = zeros(32,nEpochs);
 dop1_M = zeros(32,nEpochs);
 dop2_M = zeros(32,nEpochs);
-date = zeros(nEpochs,6);
+date_R = zeros(nEpochs,6);
+date_M = zeros(nEpochs,6);
 
 %variable initialization (GLONASS)
 pr1_RR = zeros(32,1);
@@ -217,7 +221,7 @@ dop2_MR = zeros(32,1);
 snr_MR = zeros(32,1);
 
 %read data for the first epoch (ROVER)
-[time_GPS_R(1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+[time_GPS_R(1), sat_R, sat_types_R, epoch_R] = RINEX_get_epoch(FR_oss);
 
 %read ROVER observations
 [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<ASGLU,NASGU>
@@ -249,7 +253,7 @@ snr2_R(:,1) = obs_GPS_R.S2;
 
 if (filename_M_obs_PresenceFlag)
     %read data for the first epoch (MASTER)
-    [time_GPS_M(1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+    [time_GPS_M(1), sat_M, sat_types_M, epoch_M] = RINEX_get_epoch(FM_oss);
     
     %read MASTER observations
     [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<ASGLU,NASGU>
@@ -287,7 +291,7 @@ if (filename_M_obs_PresenceFlag)
     while ((time_GPS_M(1) - time_GPS_R(1)) < 0 && abs(time_GPS_M(1) - time_GPS_R(1)) >= max_desync_frac*interval)
         
         %read data for the current epoch (MASTER)
-        [time_GPS_M(1), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+        [time_GPS_M(1), sat_M, sat_types_M, epoch_M] = RINEX_get_epoch(FM_oss);
         
         %read MASTER observations
         [obs_GPS_M, obs_GLO_M, obs_SBS_M] = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M); %#ok<ASGLU,NASGU>
@@ -319,7 +323,7 @@ if (filename_M_obs_PresenceFlag)
     while ((time_GPS_R(1) - time_GPS_M(1)) < 0 && abs(time_GPS_R(1) - time_GPS_M(1)) >= max_desync_frac*interval)
         
         %read data for the current epoch (ROVER)
-        [time_GPS_R(1), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+        [time_GPS_R(1), sat_R, sat_types_R, epoch_R] = RINEX_get_epoch(FR_oss);
         
         %read ROVER observations
         [obs_GPS_R, obs_GLO_R, obs_SBS_R] = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R); %#ok<ASGLU,NASGU>
@@ -357,7 +361,10 @@ end
 
 
 time_GPS(1,1) = roundmod(time_GPS_R(1),interval);
-date(1,:) = date_R(1,:);
+date_R(1,:) = epoch_R(1,:);
+if (filename_M_obs_PresenceFlag)
+    date_M(1,:) = epoch_M(1,:);
+end
 
 if (wait_dlg_PresenceFlag)
     waitbar(0.5,wait_dlg,'Reading RINEX observations...')
@@ -368,7 +375,7 @@ while (~feof(FR_oss))
 
     if (abs((time_GPS_R(k-1) - time_GPS(k-1))) < max_desync_frac*interval)
         %read data for the current epoch (ROVER)
-        [time_GPS_R(k), sat_R, sat_types_R, date_R] = RINEX_get_epoch(FR_oss);
+        [time_GPS_R(k), sat_R, sat_types_R, epoch_R] = RINEX_get_epoch(FR_oss);
     else
         time_GPS_R(k) = time_GPS_R(k-1);
         if (time_GPS_R(k-1) ~= 0)
@@ -380,7 +387,7 @@ while (~feof(FR_oss))
     if (filename_M_obs_PresenceFlag)
         if (abs((time_GPS_M(k-1) - time_GPS(k-1))) < max_desync_frac*interval)
             %read data for the current epoch (MASTER)
-            [time_GPS_M(k), sat_M, sat_types_M, date_M] = RINEX_get_epoch(FM_oss); %#ok<NASGU>
+            [time_GPS_M(k), sat_M, sat_types_M, epoch_M] = RINEX_get_epoch(FM_oss);
         else
             time_GPS_M(k) = time_GPS_M(k-1);
             if (time_GPS_M(k-1) ~= 0)
@@ -428,12 +435,15 @@ while (~feof(FR_oss))
         nEpochs = nEpochs  + 1;
     end
     
-    date(k,:) = date_R(1,:);
+    date_R(k,:) = epoch_R(1,:);
+    if (filename_M_obs_PresenceFlag)
+        date_M(1,:) = epoch_M(1,:);
+    end
 
-%     if((date_R(1,5) == 0 & round(date_R(1,6)) == 0) | (date_R(1,5) == 59 & round(date_R(1,6)) == 60))
-%         fprintf('\n%dy %dm %dd %dh:%dm:%fs', date_R(1,1), date_R(1,2), date_R(1,3), date_R(1,4), date_R(1,5), date_R(1,6));
+%     if((epoch_R(1,5) == 0 & round(epoch_R(1,6)) == 0) | (epoch_R(1,5) == 59 & round(epoch_R(1,6)) == 60))
+%         fprintf('\n%dy %dm %dd %dh:%dm:%fs', epoch_R(1,1), epoch_R(1,2), epoch_R(1,3), epoch_R(1,4), epoch_R(1,5), epoch_R(1,6));
 %     end
-%     if(mod(round(date_R(1,5)),10) == 0 & (round(date_R(1,6)) == 0 | round(date_R(1,6)) == 60))
+%     if(mod(round(epoch_R(1,5)),10) == 0 & (round(epoch_R(1,6)) == 0 | round(epoch_R(1,6)) == 60))
 %         fprintf('.');
 %     end
 
@@ -522,7 +532,8 @@ snr1_M(:,k:nEpochs) = [];
 snr2_M(:,k:nEpochs) = [];
 dop1_M(:,k:nEpochs) = [];
 dop2_M(:,k:nEpochs) = [];
-date(k:nEpochs,:) = [];
+date_R(k:nEpochs,:) = [];
+date_M(k:nEpochs,:) = [];
 % pr1_RR(:,k:nEpochs) = [];
 % pr2_RR(:,k:nEpochs) = [];
 % ph1_RR(:,k:nEpochs) = [];
@@ -543,7 +554,8 @@ if (filename_M_obs_PresenceFlag)
     flag_tail = 1;
     while (flag_tail)
         if (time_GPS_M(end) == 0)
-            date(end,:) = [];
+            date_R(end,:) = [];
+            date_M(end,:) = [];
             time_GPS(end) = [];
             time_GPS_R(end) = [];
             time_GPS_M(end) = [];
@@ -573,10 +585,12 @@ if (wait_dlg_PresenceFlag)
     waitbar(1,wait_dlg)
 end
 
-%-------------------------------------------------------------------------------
-
 %close RINEX files
 fclose(FR_oss);
 if (filename_M_obs_PresenceFlag)
     fclose(FM_oss);
 end
+
+%GPS week number
+week_R = date2gps(date_R);
+week_M = date2gps(date_M);

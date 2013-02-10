@@ -1,12 +1,12 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
           pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, dop1_GLO, dop2_GLO, ...
-          Eph_GLO, snr_GLO, time_GPS, date, pos] = ...
+          Eph_GLO, snr_GLO, time_GPS, week, date, pos] = ...
           load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
 %         pr1_GLO, ph1_GLO, pr2_GLO, ph2_GLO, dop1_GLO, dop2_GLO, ...
-%         Eph_GLO, snr_GLO, time_GPS, date, pos] = ...
+%         Eph_GLO, snr_GLO, time_GPS, week, date, pos] = ...
 %         load_RINEX_SA(name_F_oss, name_F_nav, wait_dlg, max_time);
 %
 % INPUT:
@@ -34,7 +34,8 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, Eph, iono, snr1, snr2,...
 %   dop2 = Doppler observation (L2 carrier) (GLONASS)
 %   Eph_GLO = matrix containing 29 ephemerides for each satellite (GLONASS)
 %   snr_GLO = signal-to-noise ratio (GLONASS)
-%   time_GPS = GPS time of ROVER observations
+%   time_GPS = GPS seconds-of-week
+%   week = GPS week number
 %   date = date (year,month,day,hour,minute,second)
 %   pos = master station approximate position
 %
@@ -218,3 +219,6 @@ end
 
 %close RINEX file
 fclose(F_oss);
+
+%GPS week number
+week = date2gps(date);
