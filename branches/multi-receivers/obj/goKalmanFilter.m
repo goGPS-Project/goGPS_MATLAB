@@ -418,6 +418,13 @@ classdef goKalmanFilter < handle
             
             %having at least 4 satellites in common in view
             %if (sum(commonSat_pr) >= 4)
+            % initialization of variables outside the loop
+            sat_pr_R_init = zeros(obj.nSat, obj.nRec);
+            err_tropo_R = zeros(obj.nSat, obj.nRec);
+            err_iono_R = zeros(obj.nSat, obj.nRec);
+            var_dtR = zeros(nRec,1);
+            dtR = zeros(nRec,1);
+            cond_num = zeros(nRec,1);
             for r=1:nRec
                 %having at least 4 satellites in view from the master
                 %station after applying the cutoff
@@ -522,7 +529,7 @@ classdef goKalmanFilter < handle
             sigma2_N2 = zeros(nSat,nRec);
             cov_N1 = zeros(3,3,nRec);
             cov_N2 = zeros(3,3,nRec);
-            
+            N = zeros(nSat, nRec);
             for r=1:nRec
                 if (sum(obj.goodSat_pr(:,r)) + sum(obj.goodSat_pr_ph(:,r)) - 2 <= 3 + sum(obj.goodSat_pr_ph(:,r)) - 1 || sum(obj.goodSat_pr_ph(:,r)) <= 4)
                     
