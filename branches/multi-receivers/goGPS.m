@@ -1520,12 +1520,12 @@ if (inputOk)
                 end
                 
                 %                 if (mode_data == 0)
-                Eph_t = rt_find_eph (Eph, goObs.getTime_Ref(1));
+                Eph_t = rt_find_eph (goObs.getGNSSeph(goObs.idGPS), goObs.getTime_Ref(1));
                 %                 else
                 %                     Eph_t = Eph(:,:,1);
                 %                 end
                 KFmode = 5;
-                goKF = goKalmanFilter(goObs, KFmode, goObs.getSamplingRate(1));
+                goKF = goKalmanFilter(goObs, KFmode, goObs.getSamplingRate_R(1));
                 %kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(1));
                 
                 if (~kalman_initialized)

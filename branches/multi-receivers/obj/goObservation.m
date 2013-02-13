@@ -88,7 +88,7 @@
 %  SATELLITE SPECIFIC -------------------------------------------------
 %
 %   isSP3 = isSP3(obj);
-%   ephSP3 = X0_SP3(obj); % <deprecate> full struct containing (.time .coord .clock)
+%   ephSP3 = getSP3(obj); % <deprecate> full struct containing (.time .coord .clock)
 %   time  = getGNSS_SP3time(obj, <idObs>);
 %   coord = getGNSS_SP3coordinates(obj <idObs>);
 %   clock = getGNSS_SP3clock(obj, <idObs>);
@@ -400,7 +400,7 @@ classdef goObservation < handle
         
         % Get reference time
         function time = getTime_Ref(obj, idObs)
-            if (nargin < 1) % if not specified set the entire position array to the value of XM 
+            if (nargin < 2) % if not specified set the entire position array to the value of XM 
                 idObs = 0; % it should be 1 or nObs
             end
             if (idObs == 0)
@@ -445,7 +445,9 @@ classdef goObservation < handle
             [X0M flagPos] = getPos_M(obj, 1);
         end
         
-        % Get master position
+        % Get master position at the epoch idObs
+        % if idObs is undeclared, the function returns positions for all
+        % epochs
         function [XM flagPos] = getPos_M(obj, idObs)
             if (nargin < 1) % if not specified set the entire position array to the value of XM 
                 idObs = 1; % it should be 1 or nObs
@@ -563,7 +565,7 @@ classdef goObservation < handle
     %  RECEIVERS GNSS SPECIFIC 
     % =========================================================================
     
-        % Get epemerides for GPS satellites
+        % Get ephemerides for GNSS satellites
         function eph = getGNSSeph(obj, idGNSS)
             switch idGNSS
                 case obj.idGPS
@@ -724,7 +726,7 @@ classdef goObservation < handle
         end
         
         % get the full structure of the SP3 ephemerides => .time, .pos, .clock, .nObs
-        function ephSP3 = X0_SP3(obj)
+        function ephSP3 = getSP3(obj)
            ephSP3 = obj.navSP3 ;
         end
         
