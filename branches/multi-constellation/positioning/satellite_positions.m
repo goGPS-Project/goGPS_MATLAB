@@ -1,7 +1,7 @@
-function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3_time, SP3_coor, SP3_clck, sbas, err_tropo, err_iono, dtR)
+function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, is_GLO] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3_time, SP3_coor, SP3_clck, sbas, err_tropo, err_iono, dtR)
 
 % SYNTAX:
-%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3_time, SP3_coor, SP3_clck, sbas, err_tropo, err_iono, dtR);
+%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, is_GLO] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3_time, SP3_coor, SP3_clck, sbas, err_tropo, err_iono, dtR);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -23,6 +23,7 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx,
 %   VS_tx   = satellite velocity at transmission time in ECEF(time_tx) (X,Y,Z)
 %   time_tx = transmission time (vector)
 %   no_eph  = satellites with no ephemeris available (vector) (0: available, 1: not available)
+%   is_GLO  = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
 %
 % DESCRIPTION:
 
@@ -59,6 +60,9 @@ VS_tx   = zeros(nsat,3);
 %satellites with no ephemeris available
 no_eph  = zeros(nsat,1);
 
+%GLONASS satellites
+is_GLO  = zeros(nsat,1);
+
 for i = 1 : nsat
     
     k = find_eph(Eph, sat(i), time_rx);
@@ -93,6 +97,7 @@ for i = 1 : nsat
         case 'G'
             Omegae_dot = Omegae_dot_GPS;
         case 'R'
+            is_GLO(i) = 1;
             Omegae_dot = Omegae_dot_GLO;
         case 'E'
             Omegae_dot = Omegae_dot_GAL;

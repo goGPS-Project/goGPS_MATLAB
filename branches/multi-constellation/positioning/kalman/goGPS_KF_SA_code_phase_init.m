@@ -170,14 +170,22 @@ if (length(sat_pr) >= 4)
     sat_pr_old = sat_pr;
 
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
     end
 
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
+    
+    %if mixed observations GLONASS/other, then an additional parameter will be
+    %added to the least squares adjustment (i.e. at least 5 satellites required)
+    if (any(is_GLO) && any(~is_GLO))
+        min_nsat = 5;
+    else
+        min_nsat = 4;
+    end
 
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
@@ -197,9 +205,9 @@ if (length(sat_pr) >= 4)
     [null_max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
     pivot = sat_pr(i);
     
-    %if at least 4 satellites are available after the cutoffs, and if the
-    % condition number in the least squares does not exceed the threshold
-    if (size(sat_pr,1) >= 4 & cond_num < cond_num_threshold)
+    %if the number of satellites is not sufficient after the cutoffs, and
+    %if the condition number in the least squares exceeds the threshold
+    if (size(sat_pr,1) >= min_nsat & cond_num < cond_num_threshold)
         
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
@@ -215,7 +223,7 @@ end
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-if (length(sat) < 4)
+if (length(sat) < min_nsat)
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
@@ -253,8 +261,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, 1); %#ok<ASGLU>
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, 2);
+        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, 1); %#ok<ASGLU>
+        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, 2);
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix

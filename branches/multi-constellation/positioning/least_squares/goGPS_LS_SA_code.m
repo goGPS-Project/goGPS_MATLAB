@@ -79,12 +79,14 @@ end
 % POSITIONING
 %--------------------------------------------------------------------------------------------
 
-if (size(sat,1) >= 4)
+min_nsat = 4;
+
+if (size(sat,1) >= min_nsat)
     
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     end
 
     %--------------------------------------------------------------------------------------------
@@ -107,7 +109,7 @@ if (size(sat,1) >= 4)
 
     %if less than 4 satellites are available after the cutoffs, or if the 
     % condition number in the least squares exceeds the threshold
-    if (size(sat,1) < 4 | cond_num > cond_num_threshold)
+    if (size(sat,1) < min_nsat | cond_num > cond_num_threshold)
         
         if (~isempty(Xhat_t_t))
             XR = Xhat_t_t([1,o1+1,o2+1]);

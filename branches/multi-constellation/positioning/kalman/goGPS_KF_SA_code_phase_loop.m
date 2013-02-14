@@ -224,9 +224,9 @@ if (nsat >= min_nsat)
     sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
+        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
     else
-        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
+        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
     end
     
     %apply cutoffs also to phase satellites
@@ -359,8 +359,8 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         
         if (length(phase) == 2)
-            [N1_slip, N1_born, dtR1] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono, phase, X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
-            [N2_slip, N2_born, dtR2] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, distR(sat_pr), err_tropo, (lambda2/lambda1)^2 * err_iono, phase, X_t1_t(o3+sat), Cee(o3+sat, o3+sat)); %#ok<NASGU>
+            [N1_slip, N1_born, dtR1] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono, is_GLO, phase, X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
+            [N2_slip, N2_born, dtR2] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, distR(sat_pr), err_tropo, (lambda2/lambda1)^2 * err_iono, is_GLO, phase, X_t1_t(o3+sat), Cee(o3+sat, o3+sat)); %#ok<NASGU>
             
             %choose one of the two estimates
             dtR = dtR1;
@@ -387,9 +387,9 @@ if (nsat >= min_nsat)
             end
         else
             if (phase == 1)
-                [N_slip, N_born, dtR] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono, phase, X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
+                [N_slip, N_born, dtR] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono, is_GLO, phase, X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
             else
-                [N_slip, N_born, dtR] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, distR(sat_pr), err_tropo, (lambda2/lambda1)^2 * err_iono, phase, X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
+                [N_slip, N_born, dtR] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, distR(sat_pr), err_tropo, (lambda2/lambda1)^2 * err_iono, is_GLO, phase, X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
             end
             
             if (check_on)

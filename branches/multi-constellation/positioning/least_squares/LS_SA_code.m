@@ -1,7 +1,7 @@
-function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS)
+function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, is_GLO)
 
 % SYNTAX:
-%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS);
+%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, is_GLO);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -13,6 +13,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_
 %   dtS          = satellite clock error (vector)
 %   err_tropo_RS = tropospheric error
 %   err_iono_RS  = ionospheric error
+%   is_GLO = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
 %
 % OUTPUT:
 %   XR   = estimated position (X,Y,Z)
@@ -65,6 +66,14 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
      (XR_approx(2) - XS(:,2)) ./ distR_approx, ... %column for Y coordinate
      (XR_approx(3) - XS(:,3)) ./ distR_approx, ... %column for Z coordinate
       ones(n,1)];        %column for receiver clock delay (multiplied by c)
+  
+%if mixed observations GLONASS/other, then add a parameter to account for
+% sub-second difference between GLONASS system time and GPS(or other) system time.
+% NOTE: only for GLONASS satellites
+if (any(is_GLO) && any(~is_GLO))
+    m = m + 1;
+    A = [A, is_GLO];
+end
 
 %known term vector
 b = distR_approx - v_light*dtS + err_tropo_RS + err_iono_RS;
