@@ -68,7 +68,7 @@ param_9 = 2^(9) - 1; %2^(n_bit-1) - 1
 %1st part
 
 %PRN mask number
-prn_n = bin2dec(half_msg(1:6));
+prn_n = fbin2dec(half_msg(1:6));
 
 if (prn_n == 0)
     
@@ -84,7 +84,7 @@ else
     
     flag(1) = 0; %valid message
     
-	iodp = bin2dec(half_msg(103:104));
+	iodp = fbin2dec(half_msg(103:104));
 
     %find the right mask
     i_iodp = find(iodp_mask == iodp);
@@ -93,12 +93,12 @@ else
     %PRN SV
     prn(1) = i_prn_mask(prn_n);
 
-    IODe(1) = bin2dec(half_msg(7:14));
+    IODe(1) = fbin2dec(half_msg(7:14));
     
     %delta position
-    d_x = bin2dec(half_msg(15:23));
-    d_y = bin2dec(half_msg(24:32));
-    d_z = bin2dec(half_msg(33:41));
+    d_x = fbin2dec(half_msg(15:23));
+    d_y = fbin2dec(half_msg(24:32));
+    d_z = fbin2dec(half_msg(33:41));
     
     vect_d = [d_x d_y d_z];
     
@@ -113,7 +113,7 @@ else
     delta_z(1) = vect_delta(3);
 
     %clock offset
-    d_offset = bin2dec(half_msg(42:51));
+    d_offset = fbin2dec(half_msg(42:51));
     
     %twos complement
     p9 = d_offset > param_9;
@@ -127,7 +127,7 @@ end
 %2nd part
 
 %PRN mask number
-prn_n = bin2dec(half_msg(52:57));
+prn_n = fbin2dec(half_msg(52:57));
 
 if (prn_n == 0)
     
@@ -143,7 +143,7 @@ else
     
     flag(2) = 0; %valid message
     
-% 	iodp = bin2dec(half_msg(103:104));
+% 	iodp = fbin2dec(half_msg(103:104));
 % 
 %     %trovo la mask corretta
 %     i_iodp = find(iodp_mask == iodp);
@@ -152,12 +152,12 @@ else
     %PRN SV
     prn(2) = i_prn_mask(prn_n);
 
-    IODe(2) = bin2dec(half_msg(58:65));
+    IODe(2) = fbin2dec(half_msg(58:65));
     
     %delta position
-    d_x = bin2dec(half_msg(66:74));
-    d_y = bin2dec(half_msg(75:83));
-    d_z = bin2dec(half_msg(84:92));
+    d_x = fbin2dec(half_msg(66:74));
+    d_y = fbin2dec(half_msg(75:83));
+    d_z = fbin2dec(half_msg(84:92));
     
     vect_d = [d_x d_y d_z];
     
@@ -172,7 +172,7 @@ else
     delta_z(2) = vect_delta(3);
 
     %clock offset
-    d_offset = bin2dec(half_msg(93:102));
+    d_offset = fbin2dec(half_msg(93:102));
     
     %twos complement
     p9 = d_offset > param_9;

@@ -53,11 +53,11 @@ d2b = dec2bin(h2d, 4);       %4-bit binary number
 s   = reshape(d2b', 1, 256); %binary string representing all the 256 bits of the message
 
 %start the conversion from binary to decimal
-%MT = bin2dec(s(9:14));
+%MT = fbin2dec(s(9:14));
 
-band = bin2dec(s(15:18));
+band = fbin2dec(s(15:18));
 
-block = bin2dec(s(19:22));
+block = fbin2dec(s(19:22));
 
 %Ionospheric vertical delays
 %start bit and end bit of the 15 ivd
@@ -70,7 +70,7 @@ for j = 1 : 15
 end
 
 %convert to decimal
-num_int = bin2dec(num_bin);
+num_int = fbin2dec(num_bin);
 
 %multiply by the LSB value
 ivd = num_int' * risoluzione; % m
@@ -86,9 +86,9 @@ for j = 1 : 15
 end
 
 %convert to decimal
-givei = bin2dec(num_bin_g)';
+givei = fbin2dec(num_bin_g)';
 
-IODI = bin2dec(s(218:219));
+IODI = fbin2dec(s(218:219));
 
 %find the right IGP mask
 i_band = find(band_mask == band);
