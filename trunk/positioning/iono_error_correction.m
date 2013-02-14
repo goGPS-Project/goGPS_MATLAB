@@ -47,7 +47,7 @@ function [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, s
 global v_light
 
 %initialization
-corr = zeros(size(el),1);
+corr = zeros(size(el));
 
 %if ionosphere parameters are available and SBAS corrections are disabled/not available
 if ((nargin == 6) & (sum(abs(ionoparams)) > 0)) | ...
