@@ -211,7 +211,7 @@ classdef goObservation < handle
         %
         % G =>  G is the RINEX id for GPS
         % R =>  R is the RINEX id for GLONASS   
-        nFreqG = 2;        
+        nFreqG = 1;        
         prxG  = []; % pseudo-range                          [nSat*(nRec+1), nObs, nFreqG]
         phxG  = []; % phase                                 [nSat*(nRec+1), nObs, nFreqG]
         dopxG = []; % doppler                               [nSat*(nRec+1), nObs, nFreqG]
@@ -285,10 +285,10 @@ classdef goObservation < handle
         % Initialize the object
         function err = init(obj, ini, nFreqG, nFreqR)
             if (nargin < 3)      % nFreq hasn't been set up
-                nFreqG = 2;      % Let's suppose we work in double frequencies (L1, L2, ...)
+                nFreqG = 1;      % Let's suppose we work in single frequency (L1)
             end
             if (nargin < 4)      % nFreq hasn't been set up
-                nFreqR = 2;      % Let's suppose we work in double frequencies (L1, L2, ...)
+                nFreqR = 1;      % Let's suppose we work in single frequencies
             end
             
             % Somewhere I need to read which GNSS constellation is
@@ -361,12 +361,12 @@ classdef goObservation < handle
     % =========================================================================
 
         % Getter of the num of Frequencies available
-        function nFreqR = getGNSSnFreq(obj, idGNSS)
+        function nFreq = getGNSSnFreq(obj, idGNSS)
             switch idGNSS
                 case obj.idGPS
-                    nFreqR = obj.nFreqR;
+                    nFreq = obj.nFreqG;
                 case obj.idGLONASS
-                    nFreqR = obj.nFreqG;
+                    nFreq = obj.nFreqR;
             end
         end
         
