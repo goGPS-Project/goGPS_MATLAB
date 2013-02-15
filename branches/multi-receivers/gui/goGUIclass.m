@@ -243,7 +243,7 @@ classdef goGUIclass < handle
             obj.strType{obj.idC_DD} = 'Code double difference';
             obj.strType{obj.idCP_SA} = 'Code and phase stand-alone';
             obj.strType{obj.idCP_DD} = 'Code and phase double difference';
-            obj.strType{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
+            %obj.strType{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
             %obj.initProcessingType(obj.strType)
             
             obj.strDynModel{obj.idCVel} = 'Const. velocity';
@@ -2603,8 +2603,29 @@ classdef goGUIclass < handle
             snr_0 = 10;
             snr_1 = 50;
             snr_A = 30;
-            %obj.selectAmbiguityRestartMethod();
-            %obj.selectDynMode();
+            global amb_restart_method
+            contents = cellstr(get(obj.id2handle(obj.idUI.lARAA),'String'));
+            selection = contents{min(get(obj.id2handle(obj.idUI.lARAA),'Value'), length(contents))};
+            if (strcmp(selection, 'Observed code - phase difference'))
+                amb_restart_method = 0;
+            elseif (strcmp(selection, 'Kalman-predicted code - phase difference'))
+                amb_restart_method = 1;
+            else
+                amb_restart_method = 2;
+            end
+            contents = cellstr(get(obj.id2handle(obj.idUI.lDynModel),'String'));
+            if (strcmp(contents{min(get(obj.id2handle(obj.idUI.lDynModel),'Value'), length(contents))},'Static'))
+                order = 1;
+            else
+                if (strcmp(contents{min(get(obj.id2handle(obj.idUI.lDynModel),'Value'), length(contents))},'Const. acceleration'))
+                    order = 3;
+                elseif (strcmp(contents{min(get(obj.id2handle(obj.idUI.lDynModel),'Value'), length(contents))},'Const. velocity'))
+                    order = 2;
+                else
+                    order = 1;
+                end
+            end
+            
             o1 = order;
             o2 = order*2;
             o3 = order*3;
