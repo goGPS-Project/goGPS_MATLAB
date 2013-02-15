@@ -334,7 +334,7 @@ classdef goObservation < handle
         
         % Check file existence and parameters
         function inputOk = testInput(obj)
-            
+            inputOk = true;
         end
                 
         % Getter of the num of Receivers available
