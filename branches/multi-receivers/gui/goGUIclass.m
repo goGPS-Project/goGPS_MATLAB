@@ -1731,12 +1731,12 @@ classdef goGUIclass < handle
             
             % on Load Settings
             if sum(intersect(idEl, obj.idUI.bLoad)) > 0
-                goGUI.loadState();
+                obj.loadState();
             end
             
             % on Save Settings
             if sum(intersect(idEl, obj.idUI.bSave)) > 0
-                goGUI.saveState();
+                obj.saveState();
             end
             
             % on GO
