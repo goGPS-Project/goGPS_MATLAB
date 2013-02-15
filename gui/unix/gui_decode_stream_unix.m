@@ -272,10 +272,10 @@ elseif (get(handles.output_type, 'SelectedObject') == handles.out_rinex)
     if (get(handles.flag_rover_stream,'Value'))
         week = streamR2RINEX(filerootIN, [filerootOUT '_rover'], wait_dlg);
     end
-    if (~week)
-        week = gui_GPS_week_unix;
-    end
-    if (week) & (get(handles.flag_master_stream,'Value')) & (~flag_no_master)
+    if (get(handles.flag_master_stream,'Value')) & (~flag_no_master)
+        if (~week)
+            week = gui_GPS_week_unix;
+        end
         streamM2RINEX(filerootIN, [filerootOUT '_master'], week, wait_dlg);
     end
 end
