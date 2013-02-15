@@ -213,8 +213,19 @@ if (~isempty(data_master_all))
         ph1_M(ph1_M < 1e-100) = 0;
         ph2_M(ph2_M < 1e-100) = 0;
         
-        %date decoding
-        date = gps2date(week, time_M);
+        if (~isempty(time_M))
+            %date decoding
+            date = gps2date(week, time_M);
+        else
+            %displaying
+            if (nargin == 4)
+                msgbox('No raw data acquired.');
+            else
+                fprintf('No raw data acquired.\n');
+            end
+            
+            return
+        end
 
         %----------------------------------------------------------------------------------------------
         % RINEX OBSERVATION FILE
@@ -443,6 +454,6 @@ else
     if (nargin == 4)
         msgbox('No master data acquired.');
     else
-        fprintf('No master data acquired! \n');
+        fprintf('No master data acquired.\n');
     end
 end

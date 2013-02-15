@@ -347,8 +347,19 @@ if (~isempty(data_rover_all))
     Eph_R(:,:,i:end) = [];
     iono(:,i:end)    = [];
 
-    %date decoding
-    date = gps2date(week_R, time_R);
+    if (~isempty(time_R))
+        %date decoding
+        date = gps2date(week_R, time_R);
+    else
+        %displaying
+        if (nargin == 3)
+            msgbox('No raw data acquired.');
+        else
+            fprintf('No raw data acquired.\n');
+        end
+        
+        return
+    end
     
     %----------------------------------------------------------------------------------------------
     % APPROXIMATE POSITION
@@ -610,6 +621,6 @@ else
     if (nargin == 3)
         msgbox('No rover data acquired.');
     else
-        fprintf('No rover data acquired! \n');
+        fprintf('No rover data acquired.\n');
     end
 end
