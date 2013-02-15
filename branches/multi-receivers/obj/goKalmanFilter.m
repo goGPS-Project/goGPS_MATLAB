@@ -413,6 +413,8 @@ classdef goKalmanFilter < handle
                 end
             end
             
+            % load the ephemerides for the first epoch
+            Eph_1 = rt_find_eph (goObs.getGNSSeph(goObs.idGPS), goObs.getTime_Ref(1));
             % Compute initial receiver and satellite position and clocks
             % using the cutoff value for the master
             [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, ...
@@ -420,7 +422,7 @@ classdef goKalmanFilter < handle
                 elM, azM, distM, ...
                 cov_XM, var_dtM] ...
                 = init_positioning(goObs.getTime_Ref(1), pr_M(sat_pr_M_init,1,1), goObs.getGNSSsnr_M(goObs.idGPS, sat_pr_M_init,1,1), ...
-                goObs.getGNSSeph(goObs.idGPS), SP3_time, SP3_coor, SP3_clck, ...
+                Eph_1, SP3_time, SP3_coor, SP3_clck, ...
                 goObs.getIono(), XM0, [], [], sat_pr_M_init, obj.cutoff, obj.snr_threshold, flag_M, 0);
             obj.satCoordM.el(sat_pr_M) = elM;
             obj.satCoordM.az(sat_pr_M) = azM;
@@ -431,7 +433,7 @@ classdef goKalmanFilter < handle
             %having at least 4 satellites in common in view
             %if (sum(commonSat_pr) >= 4)
             % initialization of variables outside the loop
-            sat_pr_R_init = false(obj.nSat, nRec); %logical vector, used as index
+            sat_pr_R_init = false(obj.nSat, 1); %logical vector, used as index
             err_tropo_R = zeros(obj.nSat, nRec);
             err_iono_R = zeros(obj.nSat, nRec);
             var_dtR = zeros(nRec,1);
@@ -445,15 +447,15 @@ classdef goKalmanFilter < handle
                 % after the Master cutoff
                 % _init because it is before applying the rover cutoff
                 % (it is a logical vector)
-                sat_pr_R_init(:,r) = (goodSat_pr_M ~= 0) & (commonSat_pr(:,r) ~= 0);
-                
+                sat_pr_R_init = (goodSat_pr_M ~= 0) & (commonSat_pr(:,r) ~= 0);
+
                 [obj.XR(:,r), dtR(r), ~, ~, ~, ~, ~, ...
                     err_tropo_R(:,r), err_iono_R(:,r), sat_pr_R, ...
                     elR, azR, distR, ...
                     cov_XR(:,:,r), var_dtR(r), obj.xDOP(r).P, obj.xDOP(r).H, obj.xDOP(r).V, cond_num(r)] ...
-                    = init_positioning(goObs.getTime_Ref(1), pr_R(sat_pr_R_init(:,r),r,1), goObs.getGNSSsnr_R(goObs.idGPS, sat_pr_R_init(:,r),r,1), ...
-                    goObs.getGNSSeph(goObs.idGPS), SP3_time, SP3_coor, SP3_clck, ...
-                    goObs.getIono(), XR0(:,r), XS, dtS, sat_pr_R_init(:,r), obj.cutoff, obj.snr_threshold, flag_XR(r), 1);
+                    = init_positioning(goObs.getTime_Ref(1), pr_R(sat_pr_R_init,r,1), goObs.getGNSSsnr_R(goObs.idGPS, find(sat_pr_R_init(:,r))', r, 1, 1), ...
+                    Eph_1, SP3_time, SP3_coor, SP3_clck, ...
+                    goObs.getIono(), XR0(:,r), XS, dtS, sat_pr_R_init, obj.cutoff, obj.snr_threshold, flag_XR(r), 1);
                 obj.satCoordR.el(sat_pr_R,r) = elR;
                 obj.satCoordR.az(sat_pr_R,r) = azR;
                 obj.satCoordR.dist(sat_pr_R,r) = distR;
@@ -476,12 +478,12 @@ classdef goKalmanFilter < handle
             
             % fill doppler variables
             %for i = 1:sum(obj.goodSat_pr,r)
-            if (~isempty(goObs.getClockDrift_M()) && goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 1) == 0 && any(goObs.getGNSSeph(goObs.idGPS)))
+            if (~isempty(goObs.getClockDrift_M()) && goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 1) == 0 && any(Eph_1))
                 %satObs = goObs.getSatObservation(goObs.idGPS, goodSat_pr_M);
                 [goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 2), goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 1)] ...
                     = doppler_shift_approx(goObs.getPos_M(), zeros(3,1), ...
                     XS_tx', VS_tx', time_tx, ... %satObs.X(goodSat_pr_M,:)', satObs.V(goodSat_pr_M,:)', satObs.time(goodSat_pr_M,1), ...
-                    goObs.getClockDrift_M(), goodSat_pr_M, goObs.getGNSSeph(goObs.idGPS));
+                    goObs.getClockDrift_M(), goodSat_pr_M, Eph_1);
             end
             
             %--------------------------------------------------------------------------------------------
