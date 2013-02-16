@@ -56,7 +56,7 @@ classdef goGUIclass < handle
     %  HANDLERS
     % =========================================================================
     
-        mainFig = [];             % main Figure handle
+        goWB = [];                % waitbar handle
         goh = [];                 % goGPS gui handler
         
         interfaceOS = 0;          % 0 = Windows
@@ -193,19 +193,24 @@ classdef goGUIclass < handle
     methods(Access = 'private')
         
         function init(obj, handles)
+            tic;
+            obj.goWB = goWaitBar(5, 'Initializing goGPS GUI...');
+            obj.goWB.titleUpdate('Init GUI');
             obj.goh = handles;  % Save the handle of the figure
-            
+
             % Init pup-up strings
             obj.initPopUps();
-
+            
             % Choose default command line output for gui_goGPS_unix
             obj.goh.output = obj.goh.main_panel;
             
             set(obj.goh.main_panel,'CloseRequestFcn',@obj.closeGUI);            
-                        
+              
             % Update handles structure
             guidata(obj.goh.main_panel, obj.goh);
-                        
+                
+            obj.goWB.goMsg('Centering interface...');
+            
             %pixels
             set(obj.goh.main_panel, 'Units', 'pixels' );
             
@@ -219,9 +224,11 @@ classdef goGUIclass < handle
             
             %center the window
             set(obj.goh.main_panel, 'Position', position);
-            
             % Init elements ids
             obj.initInterface();
+            obj.goWB.close();
+            t0 = toc;
+            fprintf('goGPS GUI initialization completed in %.2f seconds\n', t0);
         end
 
         % Fill all the Pop-up menus
@@ -553,6 +560,7 @@ classdef goGUIclass < handle
             idG.gBinLED =      [id.fBinGoIn];
             idG.gDirStrings =  [id.sDirGoOut];
             idG.gDirLED =      [id.fDirGoOut];
+            idG.gLED = [idG.gFileLED idG.gBinLED idG.gDirLED];
             
           %   SETTINGS - KALMAN FILTER - STD
           % --------------------------------------------------------------- 
@@ -1013,9 +1021,9 @@ classdef goGUIclass < handle
                 textEl = false(length(obj.id2handle),1);     % init logical text elements group
                 textEl(obj.idGroup.strEl) = true;              % set logical indexes of the text elements
                 % modified text elements
-                mTextEl = idEl(textEl & obj.getFlag);
+                mTextEl = setdiff(idEl(textEl & obj.getFlag), obj.idGroup.gLED);
                 
-                mIdEl = idEl(~panels & ~textEl & obj.getFlag); % id of elements that are not panels nor text elements that have been modified
+                mIdEl = setdiff(idEl(~panels & ~textEl & obj.getFlag), obj.idGroup.gLED); % id of elements that are not panels nor text elements that have been modified
                 
                 % For each modified panel
                 for i=1:length(mPanel)
@@ -1026,7 +1034,12 @@ classdef goGUIclass < handle
                 for i=1:length(mTextEl)
                     obj.curVal{mTextEl(i)} = obj.getGuiElStr(obj.id2handle(mTextEl(i)));
                 end
-                
+
+                % For all the LEDs
+                for i=1:length(obj.idGroup.gLED)
+                    obj.curVal{obj.idGroup.gLED(i)} = obj.getGuiElColor(obj.id2handle(obj.idGroup.gLED(i)));
+                end
+
                 % For all the other modified elements
                 for i=1:length(mIdEl)
                     obj.curVal{mIdEl(i)} = obj.getGuiElVal(obj.id2handle(mIdEl(i)));
@@ -1099,6 +1112,8 @@ classdef goGUIclass < handle
         % Get the status of the interface and prepare the Obj for the
         % management of the GUI
         function initInterface(obj)
+            obj.goWB.goMsg('Loading GUI manager object...');
+
             % Set value for elements ids
             obj.initUIids();            
 
@@ -1117,9 +1132,13 @@ classdef goGUIclass < handle
                 end
             end
             
+            obj.goWB.goMsg('Loading GUI manager object...');
+            obj.goWB.titleUpdate('Import Settings');
+
             % Fill pop up menus
             obj.initPopUp(); % Popup are also modified / reloaded in importStateMatlab
             
+            obj.goWB.goMsg('Importing the last used settings...');
             if exist([obj.settingsDir obj.lastSettingsFile],'file')
                 obj.importStateMatlab([obj.settingsDir obj.lastSettingsFile]);
             elseif exist([obj.settingsDir obj.defaultSettingsFile],'file')
@@ -1127,6 +1146,8 @@ classdef goGUIclass < handle
             else
                 waitfor(msgbox('No settings file has been found, goGPS may not work properly!'));
             end
+            obj.goWB.goMsg('Completing syncing phase...');
+            obj.goWB.titleUpdate('Finishing');
             
             % Read interface status as get from file
             obj.initialState = obj.curState;            
@@ -1209,6 +1230,12 @@ classdef goGUIclass < handle
         % Return the status of abilitation of the element with id = idEl
         function isOn = isEnabled(obj, idEl)
             isOn = obj.newState(idEl);
+        end
+        
+        % Return 1 if the color of the element with id = idEl is the same
+        % of color (This works only for LEDs)
+        function isCol = isColor(obj, idEl, color)
+            isCol = sum(obj.getElVal(idEl) == obj.newState(idEl)) == 3;
         end
         
         % Return the status of activation of the element with id = idEl
@@ -1897,13 +1924,18 @@ classdef goGUIclass < handle
             if nargin == 3
                 autoapply = true;
             end
+            
             if (status == obj.ledOk)    % Led Ok
-                set(obj.id2handle(idEl), 'ForegroundColor', [0 0.8 0]);
+                if ~obj.isColor(idEl, [0 0.8 0])
+                    set(obj.id2handle(idEl), 'ForegroundColor', [0 0.8 0]);
+                end
             elseif (status == obj.ledKo) % Led Ko
-                set(obj.id2handle(idEl), 'ForegroundColor', [1 0 0]);
+                if ~obj.isColor(idEl, [1 0 0])
+                    set(obj.id2handle(idEl), 'ForegroundColor', [1 0 0]);
+                end
             end
             obj.setElStatus(idEl, status > 1, autoapply)
-            drawnow();
+            % drawnow();
         end
         
     end
@@ -2078,7 +2110,7 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.nVLat, state.approx_lat, 0);
             obj.setElVal(obj.idUI.nVLon, state.approx_lon, 0);
             obj.setElVal(obj.idUI.nVH, state.approx_h, 1);
-            
+
             % Check all the dependencies
             obj.syncFromGUI(obj.idUI.lProcMode);
         end
@@ -2697,7 +2729,12 @@ classdef goGUIclass < handle
         function val = getGuiElVal(hObject)
             val = get(hObject, 'Value');
         end
-
+        
+        % Get a value from an element of the interface
+        function val = getGuiElColor(hObject)
+            val = get(hObject, 'ForegroundColor');
+        end
+        
         % Get a string from an element of the interface
         function str = getGuiElStr(hObject)
             str = get(hObject, 'String');
