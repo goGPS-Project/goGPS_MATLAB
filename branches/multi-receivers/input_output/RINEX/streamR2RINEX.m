@@ -347,8 +347,19 @@ if (~isempty(data_rover_all))
     Eph_R(:,:,i:end) = [];
     iono(:,i:end)    = [];
 
-    %date decoding
-    date = gps2date(week_R, time_R);
+    if (~isempty(time_R))
+        %date decoding
+        date = gps2date(week_R, time_R);
+    else
+        %displaying
+        if (nargin == 3)
+            msgbox('No raw data acquired.');
+        else
+            fprintf('No raw data acquired.\n');
+        end
+        
+        return
+    end
     
     %----------------------------------------------------------------------------------------------
     % APPROXIMATE POSITION
@@ -368,7 +379,7 @@ if (~isempty(data_rover_all))
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
-                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], [], [], iono(:,i), [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
+                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], [], [], iono(:,i), [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
             end
             i = i + 1;
         end
@@ -416,6 +427,8 @@ if (~isempty(data_rover_all))
         waitbar(0,wait_dlg,'Writing rover observation file...')
     end
     
+    date(:,1) = two_digit_year(date(:,1));
+    
     %write data
     for i = 1 : N
         if (nargin == 3)
@@ -428,7 +441,7 @@ if (~isempty(data_rover_all))
         %if no observations are available, do not write anything
         if (n > 0)
             fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
-                date(i,1)-2000, date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
+                date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
             if (n>12)
                 for j = 1 : 12
                     fprintf(fid_obs,'G%02d',sat(j));
@@ -555,9 +568,10 @@ if (~isempty(data_rover_all))
                 
                 %time of measurement decoding
                 date = gps2date(week_R, toc);
+                date(1) = two_digit_year(date(1));
                 
                 lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
-                    satEph(j),date(1)-2000, date(2), date(3), date(4), date(5), date(6), ...
+                    satEph(j),date(1), date(2), date(3), date(4), date(5), date(6), ...
                     af0, af1, af2);
                 linesE(1,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', IODE , crs, deltan, M0);
                 linesE(2,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
@@ -605,6 +619,6 @@ else
     if (nargin == 3)
         msgbox('No rover data acquired.');
     else
-        fprintf('No rover data acquired! \n');
+        fprintf('No rover data acquired.\n');
     end
 end

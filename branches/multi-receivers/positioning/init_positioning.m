@@ -1,7 +1,7 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, XR0, XS0, dtS0, sat0, cutoff_el, cutoff_snr, flag_XR, flag_XS)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, XS0, dtS0, sat0, cutoff_el, cutoff_snr, flag_XR, flag_XS)
 
 % SYNTAX:
-%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, XR0, XS0, dtS0, sat0, cutoff_el, cutoff_snr, flag_XR, flag_XS);
+%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, XS0, dtS0, sat0, cutoff_el, cutoff_snr, flag_XR, flag_XS);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -13,6 +13,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   SP3_coor    = precise ephemeris coordinates
 %   SP3_clck    = precise ephemeris clocks
 %   iono        = ionosphere parameters (Klobuchar)
+%   sbas        = SBAS corrections
 %   XR0         = receiver position (=[] if not available)
 %   XS0         = satellite positions (=[] if not available)
 %   dtS0        = satellite clocks (=[] if not available)
@@ -87,7 +88,7 @@ err_iono  = zeros(nsat,1);
 
 if (flag_XS == 0)
     %satellite position and clock error
-    [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3_time, SP3_coor, SP3_clck, err_tropo, err_iono, dtR);
+    [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3_time, SP3_coor, SP3_clck, sbas, err_tropo, err_iono, dtR);
 else
     XS  = XS0;
     dtS = dtS0;
@@ -102,13 +103,16 @@ end
 %----------------------------------------------------------------------------------------------
 
 if (flag_XR == 0)
+    
+    index = find(no_eph == 0);
+    
     %NOTE: satellite selection may enhance the solution
-    B = [XS, pseudorange + v_light * dtS]; %assembled Bancroft matrix
-    x = bancroft(B);                       %estimated parameters
-    XR = x(1:3);                           %receiver coordinates [m]
-    %dtR = x(4) / v_light;                 %receiver clock error [s]
+    B = [XS(index,:), pseudorange(index) + v_light * dtS(index)]; %Bancroft matrix
+    x = bancroft(B);                                         %estimated parameters
+    XR = x(1:3);                                         %receiver coordinates [m]
+    %dtR = x(4) / v_light;                               %receiver clock error [s]
 else
-    XR = XR0;                              %known receiver coordinates
+    XR = XR0;                                          %known receiver coordinates
 end
 
 %----------------------------------------------------------------------------------------------
@@ -183,7 +187,7 @@ if (nsat >= nsat_required)
         err_tropo = tropo_error_correction(el, hR);
 
         %computation of ionospheric errors
-        err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono);
+        err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);
 
         if (flag_XR < 2) %if unknown or approximate receiver position
             [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono);
@@ -198,7 +202,7 @@ if (nsat >= nsat_required)
 
         if (flag_XS == 0)
             %satellite position and clock error
-            [XS, dtS, XS_tx, VS_tx, time_tx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3_time, SP3_coor, SP3_clck, err_tropo, err_iono, dtR);
+            [XS, dtS, XS_tx, VS_tx, time_tx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3_time, SP3_coor, SP3_clck, sbas, err_tropo, err_iono, dtR);
         else
             XS  = XS0;
             dtS = dtS0;
