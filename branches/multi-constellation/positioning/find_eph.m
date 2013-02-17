@@ -49,7 +49,7 @@ switch (char(Eph(31,icol)))
     case 'J' %QZSS
         dtmax = 900;
 end
-if (dtmin > dtmax)
+if (abs(dtmin) > dtmax)
     icol = [];
     return
 end
