@@ -210,6 +210,12 @@ if (info_base_R == 0)
     error('Basic data is missing in the ROVER RINEX header')
 end
 
+%find observation type columns
+[obs_col_R, nObsTypes_R] = obs_type_find(obs_typ_R);
+
+%number of lines to be read for each epoch
+nLinesToRead_R = ceil(nObsTypes_R/5);  %maximum of 5 obs per line
+
 if (filename_M_obs_PresenceFlag)
     [obs_typ_M, pos_M, info_base_M, interval_M] = RINEX_parse_hdr(FM_oss);
     
@@ -217,6 +223,12 @@ if (filename_M_obs_PresenceFlag)
     if (info_base_M == 0)
         error('Basic data is missing in the ROVER RINEX header')
     end
+    
+    %find observation type columns
+    [obs_col_M, nObsTypes_M] = obs_type_find(obs_typ_M);
+    
+    %number of lines to be read for each epoch
+    nLinesToRead_M = ceil(nObsTypes_M/5);  %maximum of 5 obs per line
 else
     pos_M = zeros(3,1);
     interval_M = [];
@@ -257,8 +269,45 @@ date_M = zeros(nEpochs,6);
 %read data for the first epoch (ROVER)
 [time_R(1), sat_R, sat_types_R, epoch_R] = RINEX_get_epoch(FR_oss);
 
-%read ROVER observations
-obs_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
+%-------------------------------------------------------------------------------
+
+if (filename_M_obs_PresenceFlag)
+    %read data for the first epoch (MASTER)
+    [time_M(1), sat_M, sat_types_M, epoch_M] = RINEX_get_epoch(FM_oss);
+end
+%-------------------------------------------------------------------------------
+
+if (wait_dlg_PresenceFlag)
+    waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
+end
+
+if (filename_M_obs_PresenceFlag)
+    while ((time_M(1) - time_R(1)) < 0 && abs(time_M(1) - time_R(1)) >= max_desync_frac*interval)
+        
+        %skip observations
+        for s = 1 : length(sat_M)*nLinesToRead_M
+            fgetl(FM_oss);
+        end
+        
+        %read data for the current epoch (MASTER)
+        [time_M(1), sat_M, sat_types_M, epoch_M] = RINEX_get_epoch(FM_oss);
+    end
+    
+    while ((time_R(1) - time_M(1)) < 0 && abs(time_R(1) - time_M(1)) >= max_desync_frac*interval)
+
+        %skip observations
+        for s = 1 : length(sat_R)*nLinesToRead_R
+            fgetl(FR_oss);
+        end
+        
+        %read data for the current epoch (ROVER)
+        [time_R(1), sat_R, sat_types_R, epoch_R] = RINEX_get_epoch(FR_oss);
+    end
+end
+
+%read first batch of observations
+%ROVER
+obs_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_col_R, nObsTypes_R, constellations);
 
 %read ROVER observations
 if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
@@ -274,14 +323,9 @@ dop2_R(:,1) = obs_R.D2;
 snr1_R(:,1) = obs_R.S1;
 snr2_R(:,1) = obs_R.S2;
 
-%-------------------------------------------------------------------------------
-
 if (filename_M_obs_PresenceFlag)
-    %read data for the first epoch (MASTER)
-    [time_M(1), sat_M, sat_types_M, epoch_M] = RINEX_get_epoch(FM_oss);
-    
-    %read MASTER observations
-    obs_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
+    %MASTER
+    obs_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_col_M, nObsTypes_M, constellations);
     
     %read MASTER observations
     if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
@@ -296,60 +340,6 @@ if (filename_M_obs_PresenceFlag)
     dop2_M(:,1) = obs_M.D2;
     snr1_M(:,1) = obs_M.S1;
     snr2_M(:,1) = obs_M.S2;
-
-end
-%-------------------------------------------------------------------------------
-
-if (wait_dlg_PresenceFlag)
-    waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
-end
-
-if (filename_M_obs_PresenceFlag)
-    while ((time_M(1) - time_R(1)) < 0 && abs(time_M(1) - time_R(1)) >= max_desync_frac*interval)
-        
-        %read data for the current epoch (MASTER)
-        [time_M(1), sat_M, sat_types_M, epoch_M] = RINEX_get_epoch(FM_oss);
-        
-        %read MASTER observations
-        obs_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
-        
-        %read MASTER observations
-        if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
-            pr1_M(:,1) = obs_M.P1;
-        else
-            pr1_M(:,1) = obs_M.C1;
-        end
-        pr2_M(:,1) = obs_M.P2;
-        ph1_M(:,1) = obs_M.L1;
-        ph2_M(:,1) = obs_M.L2;
-        dop1_M(:,1) = obs_M.D1;
-        dop2_M(:,1) = obs_M.D2;
-        snr1_M(:,1) = obs_M.S1;
-        snr2_M(:,1) = obs_M.S2;
-    end
-    
-    while ((time_R(1) - time_M(1)) < 0 && abs(time_R(1) - time_M(1)) >= max_desync_frac*interval)
-        
-        %read data for the current epoch (ROVER)
-        [time_R(1), sat_R, sat_types_R, epoch_R] = RINEX_get_epoch(FR_oss);
-        
-        %read ROVER observations
-        obs_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
-        
-        %read ROVER observations
-        if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
-            pr1_R(:,1) = obs_R.P1;
-        else
-            pr1_R(:,1) = obs_R.C1;
-        end
-        pr2_R(:,1) = obs_R.P2;
-        ph1_R(:,1) = obs_R.L1;
-        ph2_R(:,1) = obs_R.L2;
-        dop1_R(:,1) = obs_R.D1;
-        dop2_R(:,1) = obs_R.D2;
-        snr1_R(:,1) = obs_R.S1;
-        snr2_R(:,1) = obs_R.S2;
-    end
 end
 
 if (wait_dlg_PresenceFlag)
@@ -358,7 +348,7 @@ end
 
 %-------------------------------------------------------------------------------
 
-
+%define the reference time
 time(1,1) = roundmod(time_R(1),interval);
 date_R(1,:) = epoch_R(1,:);
 if (filename_M_obs_PresenceFlag)
@@ -428,7 +418,7 @@ while (~feof(FR_oss))
     if (abs(time_R(k)-time(k)) < max_desync_frac*interval)
 
         %read ROVER observations
-        obs_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_typ_R, constellations);
+        obs_R = RINEX_get_obs(FR_oss, sat_R, sat_types_R, obs_col_R, nObsTypes_R, constellations);
 
         %read ROVER observations
         if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
@@ -443,6 +433,11 @@ while (~feof(FR_oss))
         dop2_R(:,k) = obs_R.D2;
         snr1_R(:,k) = obs_R.S1;
         snr2_R(:,k) = obs_R.S2;
+    else
+        %skip observations
+        for s = 1 : length(sat_R)*nLinesToRead_R
+            fgetl(FR_oss);
+        end
     end
 
     if (filename_M_obs_PresenceFlag)
@@ -450,7 +445,7 @@ while (~feof(FR_oss))
         if (abs(time_M(k) - time(k)) < max_desync_frac*interval)
             
             %read MASTER observations
-            obs_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_typ_M, constellations);
+            obs_M = RINEX_get_obs(FM_oss, sat_M, sat_types_M, obs_col_M, nObsTypes_M, constellations);
             
             %read MASTER observations
             if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
@@ -465,6 +460,11 @@ while (~feof(FR_oss))
             dop2_M(:,k) = obs_M.D2;
             snr1_M(:,k) = obs_M.S1;
             snr2_M(:,k) = obs_M.S2;
+        else
+            %skip observations
+            for s = 1 : length(sat_M)*nLinesToRead_M
+                fgetl(FM_oss);
+            end
         end
     end
     

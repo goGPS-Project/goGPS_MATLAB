@@ -1,24 +1,27 @@
-function [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2] = obs_type_find(Obs_types)
+function [Obs_columns, nObs_types] = obs_type_find(Obs_types)
 
 % SYNTAX:
-%   [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2] = obs_type_find(Obs_types);
+%   [Obs_columns, nObs_types] = obs_type_find(Obs_types);
 %
 % INPUT:
 %   Obs_types = string containing observation types
 %
 % OUTPUT:
-%   col_L1 = L1 column (or LA for RINEX v2.12)
-%   col_L2 = L2 column (or LC for RINEX v2.12)
-%   col_C1 = C1 column (or CA for RINEX v2.12)
-%   col_P1 = P1 column (or CA for RINEX v2.12)
-%   col_P2 = P2 column (or CC for RINEX v2.12)
-%   col_S1 = S1 column (or SA for RINEX v2.12)
-%   col_S2 = S2 column (or SC for RINEX v2.12)
-%   col_D1 = D1 column (or DA for RINEX v2.12)
-%   col_D2 = D2 column (or DC for RINEX v2.12)
+%   Obs_columns = structure containing the column number of each observation type
+%                 in the following fields:
+%                   L1 = L1 column (or LA for RINEX v2.12)
+%                   L2 = L2 column (or LC for RINEX v2.12)
+%                   C1 = C1 column (or CA for RINEX v2.12)
+%                   P1 = P1 column (or CA for RINEX v2.12)
+%                   P2 = P2 column (or CC for RINEX v2.12)
+%                   S1 = S1 column (or SA for RINEX v2.12)
+%                   S2 = S2 column (or SC for RINEX v2.12)
+%                   D1 = D1 column (or DA for RINEX v2.12)
+%                   D2 = D2 column (or DC for RINEX v2.12)
+%   nObs_types = number of available observation types
 %
 % DESCRIPTION:
-%   Selection of the column index for phase observations (L1, L2), for
+%   Detection of the column index for phase observations (L1, L2), for
 %   code observations (C1, P1, P2), SNR ratios (S1, S2) and Doppler
 %   measurements (D1, D2).
 
@@ -104,3 +107,21 @@ s1 = strfind(Obs_types, 'D2');
 s2 = strfind(Obs_types, 'DC');
 s = [s1 s2];
 col_D2 = (s+1)/2;
+
+Obs_columns.L1 = col_L1;
+Obs_columns.L2 = col_L2;
+Obs_columns.C1 = col_C1;
+Obs_columns.P1 = col_P1;
+Obs_columns.P2 = col_P2;
+Obs_columns.S1 = col_S1;
+Obs_columns.S2 = col_S2;
+Obs_columns.D1 = col_D1;
+Obs_columns.D2 = col_D2;
+
+nObs_types = 0;
+types = fieldnames(Obs_columns);
+for i = 1 : numel(types)
+    if (~isempty(Obs_columns.(types{i})))
+        nObs_types = nObs_types + 1;
+    end
+end

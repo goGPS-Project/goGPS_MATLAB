@@ -1,13 +1,14 @@
-function [obs_struct] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_types, constellations)
+function [obs_struct] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_col, nObsTypes, constellations)
 
 % SYNTAX:
-%   [obs_struct] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_types, constellations);
+%   [obs_struct] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_col, nObsTypes, constellations);
 %
 % INPUT:
 %   file_RINEX = observation RINEX file
 %   sat = list of all visible satellites
 %   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
-%   obs_types = observations types (e.g. C1L1P1...)
+%   obs_col = structure defining in which columns each observation type is to be found
+%   nObsTypes = number of available observations
 %   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
 %
 % OUTPUT:
@@ -58,8 +59,6 @@ idQZSS = constellations.QZSS.indexes(1);       sat_types_id(sat_types == 'J') = 
 idSBAS = constellations.SBAS.indexes(1);       sat_types_id(sat_types == 'S') = idSBAS*constellations.SBAS.enabled;
 
 %observation types
-[col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2] = obs_type_find(obs_types);
-nObsTypes = size(obs_types,2)/2;
 nLinesToRead = ceil(nObsTypes/5);  % I read a maximum of 5 obs per line => this is the number of lines to read
 nObsToRead = nLinesToRead * 5;     % Each line contains 5 observations
 
@@ -110,7 +109,7 @@ for s = 1 : nSat
                 obs = fltObs(obsId);
                 
                 %check and assign the observation type
-                if (ismember(k,col_L1))
+                if (any(~(k-obs_col.L1)))
                     obs_struct.L1(sat_types_id(s)+sat(s)-1) = obs;
                     if (linLength>=16*k)
                         %convert signal-to-noise ratio
@@ -118,7 +117,7 @@ for s = 1 : nSat
                         snr = mod((lin(16*k)-48),16);
                         obs_tmp.TMP1(sat_types_id(s)+sat(s)-1) = 6 * snr;
                     end
-                elseif (ismember(k,col_L2))
+                elseif (any(~(k-obs_col.L2)))
                     obs_struct.L2(sat_types_id(s)+sat(s)-1) = obs;
                     if (linLength>=16*k)
                         %convert signal-to-noise ratio
@@ -126,19 +125,19 @@ for s = 1 : nSat
                         snr = mod((lin(16*k)-48),16);
                         obs_tmp.TMP2(sat_types_id(s)+sat(s)-1) = 6 * snr;
                     end
-                elseif (ismember(k,col_C1))
+                elseif (any(~(k-obs_col.C1)))
                     obs_struct.C1(sat_types_id(s)+sat(s)-1) = obs;
-                elseif (ismember(k,col_P1))
+                elseif (any(~(k-obs_col.P1)))
                     obs_struct.P1(sat_types_id(s)+sat(s)-1) = obs;
-                elseif (ismember(k,col_P2))
+                elseif (any(~(k-obs_col.P2)))
                     obs_struct.P2(sat_types_id(s)+sat(s)-1) = obs;
-                elseif (ismember(k,col_D1))
+                elseif (any(~(k-obs_col.D1)))
                     obs_struct.D1(sat_types_id(s)+sat(s)-1) = obs;
-                elseif (ismember(k,col_D2))
+                elseif (any(~(k-obs_col.D2)))
                     obs_struct.D2(sat_types_id(s)+sat(s)-1) = obs;
-                elseif (ismember(k,col_S1))
+                elseif (any(~(k-obs_col.S1)))
                     obs_struct.S1(sat_types_id(s)+sat(s)-1) = obs;
-                elseif (ismember(k,col_S2))
+                elseif (any(~(k-obs_col.S2)))
                     obs_struct.S2(sat_types_id(s)+sat(s)-1) = obs;
                 end
             end

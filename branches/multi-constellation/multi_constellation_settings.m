@@ -37,7 +37,7 @@ q = 0;       %counter for enabled constellations
 systems = fieldnames(constellations);
 constellations.indexes = [];
 constellations.PRN = [];
-for i = 1:numel(systems)
+for i = 1 : numel(systems)
     if(constellations.(systems{i}).enabled)
         nSatTot = nSatTot + constellations.(systems{i}).numSat;
         q = q + 1;
