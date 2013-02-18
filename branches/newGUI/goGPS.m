@@ -583,7 +583,7 @@ if (mode == 1)
                     rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
                 end
                 plot_t = plot_t + 1;
-                pause(0.01);
+                drawnow;
             end
         end
         
@@ -695,7 +695,7 @@ elseif (mode == 2)
             else
                 rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
             end
-            pause(0.01);
+            drawnow;
         end
     end
 
@@ -756,7 +756,7 @@ elseif (mode == 3)
                     rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
                 end
                 plot_t = plot_t + 1;
-                pause(0.01);
+                drawnow;
             else
                 if (t == 1)
                     fprintf('Processing...\n');
@@ -868,7 +868,7 @@ elseif (mode == 4)
                 else
                     rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
                 end
-                pause(0.01);
+                drawnow;
             end
         end
     end
@@ -930,7 +930,7 @@ elseif (mode == 11)
                     rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
                 end
                 plot_t = plot_t + 1;
-                pause(0.01);
+                drawnow;
             end
         end
       
@@ -1040,7 +1040,7 @@ elseif (mode == 12)
             else
                 rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
             end
-            pause(0.01);
+            drawnow;
         end
     end
 
@@ -1145,7 +1145,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                     else
                         rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
                     end
-                    pause(0.01);
+                    drawnow;
                 end
             end
         end
@@ -1333,7 +1333,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                     else
                         rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
                     end
-                    pause(0.01);
+                    drawnow;
                 end
             end
         end
@@ -1456,7 +1456,7 @@ elseif (mode == 14) & (mode_vinc == 1)
                 else
                     rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
                 end
-                pause(0.01);
+                drawnow;
             end
         end
     end

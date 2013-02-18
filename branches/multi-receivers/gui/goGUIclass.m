@@ -250,7 +250,7 @@ classdef goGUIclass < handle
             obj.strType{obj.idC_DD} = 'Code double difference';
             obj.strType{obj.idCP_SA} = 'Code and phase stand-alone';
             obj.strType{obj.idCP_DD} = 'Code and phase double difference';
-            %obj.strType{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
+            obj.strType{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
             %obj.initProcessingType(obj.strType)
             
             obj.strDynModel{obj.idCVel} = 'Const. velocity';
