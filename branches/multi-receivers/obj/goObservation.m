@@ -643,10 +643,10 @@ classdef goObservation < handle
             end
         end
         
-        % Get GPS signal to noise ratio observationa
+        % Get GPS signal to noise ratio observations
         % idSat => id of the satellite      (if 0 get all the satellites)
-        % idRec => id of the receiver       (if 0 get all receiver)
-        % idObs => id of the observation    (if 0 get all the available epocs)
+        % idRec => id of the receiver       (if 0 get all receivers)
+        % idObs => id of the observation    (if 0 get all the available epochs)
         % nFreq => id of the frequency used (e.g. 1 = L1, 2 = L2, ...future frequencies...)
         %                                   (if 0 get all the frequencies)
         function snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
@@ -1248,6 +1248,9 @@ classdef goObservation < handle
            nS = (size(table,1)/(nRec+1));
            if (idSat == 0)
                idSat = 1:nS;
+           end
+           if (size(idSat,1)>size(idSat,2))
+               idSat = idSat';
            end
            
            if (idRec == 0)

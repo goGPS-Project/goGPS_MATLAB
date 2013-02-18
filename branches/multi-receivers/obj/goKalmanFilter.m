@@ -154,8 +154,10 @@ classdef goKalmanFilter < handle
         %ROVER and MASTER
         satCoordR = struct('az',zeros(32,1),'el',zeros(32,1),'dist',zeros(32,1)); % for each receiver: azimuth (az), elevation (el), distance (dist)
         satCoordM = struct('az',zeros(32,1),'el',zeros(32,1),'dist',zeros(32,1)); % azimuth (az), elevation (el), distance (dist)
-%         satCoordR; % for each receiver: azimuth (az), elevation (el), distance (dist)
-%         satCoordM; % azimuth (az), elevation (el), distance (dist)
+
+        %satellites in common between master and rover, over the cutoff
+        goodSat_pr;     %only code
+        goodSat_pr_ph;  %phase and code
         
         % DILUTION OF PRECISION
         xDOP;  % P, H, V, KP, KH, KV
@@ -283,11 +285,12 @@ classdef goKalmanFilter < handle
             
             % pre-allocate the structure for the vectors obj.satCoordR(1|2|3).az,
             % obj.satCoordR(1|2|3).el obj.satCoordR(1|2|3).dist
-            obj.satCoordR(nRec) = struct('az',zeros(nSat,1),'el',zeros(nSat,1),'dist',zeros(nSat,1));
-            for r=1:(nRec-1),
-                obj.satCoordR(r) = struct('az',zeros(nSat,1),'el',zeros(nSat,1),'dist',zeros(nSat,1));
-            end
+            obj.satCoordR = struct('az',zeros(nSat,nRec),'el',zeros(nSat,nRec),'dist',zeros(nSat,nRec));
             obj.satCoordM = struct('az',zeros(nSat,1),'el',zeros(nSat,1),'dist',zeros(nSat,1));
+            
+            % satellites in common between master and rover, over the cutoff
+            obj.goodSat_pr = zeros(nSat,nRec);
+            obj.goodSat_pr_ph = zeros(nSat,nRec);
             
             % DILUTION OF PRECISION
             obj.xDOP = struct('P', zeros(nRec,1), 'H', zeros(nRec,1), 'V', zeros(nRec,1), 'KP', zeros(nRec,1), 'KH', zeros(nRec,1), 'KV', zeros(nRec,1));
@@ -417,13 +420,18 @@ classdef goKalmanFilter < handle
             Eph_1 = rt_find_eph (goObs.getGNSSeph(goObs.idGPS), goObs.getTime_Ref(1));
             % Compute initial receiver and satellite position and clocks
             % using the cutoff value for the master
+            %initialization of atmospheric errors vectors for the master: (nSatxnRec) to be
+            %consistent with atmospheric errors vectors for the rovers
+            err_tropo_M = zeros(nSat,nRec);
+            err_iono_M = zeros(nSat,nRec);
+            
             [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, ...
-                err_tropo_M, err_iono_M, sat_pr_M, ...
+                err_tropo, err_iono, sat_pr_M, ...
                 elM, azM, distM, ...
                 cov_XM, var_dtM] ...
                 = init_positioning(goObs.getTime_Ref(1), pr_M(sat_pr_M_init,1,1), goObs.getGNSSsnr_M(goObs.idGPS, sat_pr_M_init,1,1), ...
                 Eph_1, SP3_time, SP3_coor, SP3_clck, ...
-                goObs.getIono(), XM0, [], [], sat_pr_M_init, obj.cutoff, obj.snr_threshold, flag_M, 0);
+                goObs.getIono(), [], XM0, [], [], sat_pr_M_init, obj.cutoff, obj.snr_threshold, flag_M, 0);
             obj.satCoordM.el(sat_pr_M) = elM;
             obj.satCoordM.az(sat_pr_M) = azM;
             obj.satCoordM.dist(sat_pr_M) = distM;
@@ -433,9 +441,8 @@ classdef goKalmanFilter < handle
             %having at least 4 satellites in common in view
             %if (sum(commonSat_pr) >= 4)
             % initialization of variables outside the loop
-            sat_pr_R_init = false(obj.nSat, 1); %logical vector, used as index
-            err_tropo_R = zeros(obj.nSat, nRec);
-            err_iono_R = zeros(obj.nSat, nRec);
+            err_tropo_R = zeros(nSat, nRec);
+            err_iono_R = zeros(nSat, nRec);
             var_dtR = zeros(nRec,1);
             dtR = zeros(nRec,1);
             cond_num = zeros(nRec,1);
@@ -447,44 +454,46 @@ classdef goKalmanFilter < handle
                 % after the Master cutoff
                 % _init because it is before applying the rover cutoff
                 % (it is a logical vector)
-                sat_pr_R_init = (goodSat_pr_M ~= 0) & (commonSat_pr(:,r) ~= 0);
+                sat_pr_R_init = find((goodSat_pr_M ~= 0) & (commonSat_pr(:,r) ~= 0));
 
                 [obj.XR(:,r), dtR(r), ~, ~, ~, ~, ~, ...
-                    err_tropo_R(:,r), err_iono_R(:,r), sat_pr_R, ...
+                    err_tropo, err_iono, sat_pr_R, ...
                     elR, azR, distR, ...
-                    cov_XR(:,:,r), var_dtR(r), obj.xDOP(r).P, obj.xDOP(r).H, obj.xDOP(r).V, cond_num(r)] ...
-                    = init_positioning(goObs.getTime_Ref(1), pr_R(sat_pr_R_init,r,1), goObs.getGNSSsnr_R(goObs.idGPS, find(sat_pr_R_init(:,r))', r, 1, 1), ...
+                    cov_XR(:,:,r), var_dtR(r), obj.xDOP.P(r), obj.xDOP.H(r), obj.xDOP.V(r), cond_num(r)] ...
+                    = init_positioning(goObs.getTime_Ref(1), pr_R(sat_pr_R_init,r,1), goObs.getGNSSsnr_R(goObs.idGPS, sat_pr_R_init, r, 1, 1), ...
                     Eph_1, SP3_time, SP3_coor, SP3_clck, ...
-                    goObs.getIono(), XR0(:,r), XS, dtS, sat_pr_R_init, obj.cutoff, obj.snr_threshold, flag_XR(r), 1);
+                    goObs.getIono(), [], XR0(:,r), XS, dtS, sat_pr_R_init, obj.cutoff, obj.snr_threshold, flag_XR(r), 1);
                 obj.satCoordR.el(sat_pr_R,r) = elR;
                 obj.satCoordR.az(sat_pr_R,r) = azR;
                 obj.satCoordR.dist(sat_pr_R,r) = distR;
                 clear elR azR distR
-                goodSat_pr_R(sat_pr_R,r) = 1;
+                %keep only satellites that rover and master have in common
+                %over the cutoff threshold
+                obj.goodSat_pr(sat_pr_R,r) = 1;
+                
+                % atmospheric errors of the receivers for the satellites in
+                % common between the master (outside the for loop) and each rover (nRec columns)
+                err_tropo_R(sat_pr_R,r) = err_tropo;
+                err_iono_R(sat_pr_R,r) = err_iono;
             end
-            %keep only satellites that rover and master have in common
-            %over the cutoff threshold
-            obj.goodSat_pr = goodSat_pr_R;
-            
-            % atmospheric errors of the receivers for the satellites in
-            % common between the master and each rover (nRec columns)
-            err_tropo_R = err_tropo_R*obj.goodSat_pr;
-            err_iono_R  = err_iono_R*obj.goodSat_pr;
-            err_tropo_M = repmat(err_tropo_M,1,nRec)*obj.goodSat_pr;
-            err_iono_M  = repmat(err_iono_M,1,nRec)*obj.goodSat_pr;
+            err_tropo_M(sat_pr_R,[1:nRec]) = repmat(err_tropo,1,nRec);
+            err_iono_M (sat_pr_R,[1:nRec]) = repmat(err_iono,1,nRec);
             
             %apply cutoffs also to phase satellites
             obj.goodSat_pr_ph = commonSat_pr_ph & obj.goodSat_pr;
             
             % fill doppler variables
-            %for i = 1:sum(obj.goodSat_pr,r)
-            if (~isempty(goObs.getClockDrift_M()) && goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 1) == 0 && any(Eph_1))
+            %             for r=1:nRec
+            %             for i = 1:sum(obj.goodSat_pr,r)
+            if (~isempty(goObs.getClockDrift_M()) && goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1) == 0 && any(Eph_1))
                 %satObs = goObs.getSatObservation(goObs.idGPS, goodSat_pr_M);
-                [goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 2), goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 1)] ...
+                [goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 2), goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1)] ...
                     = doppler_shift_approx(goObs.getPos_M(), zeros(3,1), ...
                     XS_tx', VS_tx', time_tx, ... %satObs.X(goodSat_pr_M,:)', satObs.V(goodSat_pr_M,:)', satObs.time(goodSat_pr_M,1), ...
                     goObs.getClockDrift_M(), goodSat_pr_M, Eph_1);
             end
+            %             end
+            %             end
             
             %--------------------------------------------------------------------------------------------
             % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
