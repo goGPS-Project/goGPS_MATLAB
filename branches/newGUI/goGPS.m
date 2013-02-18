@@ -860,7 +860,7 @@ elseif (mode == 4)
             end
             if (flag_amb == 1)
                 rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
-                pause(0.1);
+                drawnow;
             else
                 if (flag_skyplot == 1)
                     rtplot_skyplot (t, azR, elR, conf_sat, pivot);
@@ -1137,7 +1137,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                 end
                 if (flag_amb == 1)
                     rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
-                    pause(0.1);
+                    drawnow;
                 else
                     if (flag_skyplot == 1)
                         rtplot_skyplot (t, azR, elR, conf_sat, pivot);
@@ -1325,7 +1325,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                 end
                 if (flag_amb == 1)
                     rtplot_amb (t, window, Xhat_t_t(o3+1:o3+32), sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32))), conf_cs);
-                    pause(0.1);
+                    drawnow;
                 else
                     if (flag_skyplot == 1)
                         rtplot_skyplot (t, azR, elR, conf_sat, pivot);
@@ -1448,7 +1448,7 @@ elseif (mode == 14) & (mode_vinc == 1)
             rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
             if (flag_amb == 1)
                 rtplot_amb (t, window, Xhat_t_t(o1+1:o1+32), sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32))), conf_cs);
-                pause(0.1);
+                drawnow;
             else
                 if (flag_skyplot == 1)
                     rtplot_skyplot (t, azR, elR, conf_sat, pivot);
