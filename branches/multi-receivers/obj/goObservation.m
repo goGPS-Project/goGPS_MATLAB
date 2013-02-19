@@ -30,7 +30,7 @@
 %   iono = getIono(obj)
 %
 %  REFERENCE FRAME ----------------------------------------------------
-%   
+%
 %   att = getInitialAttitude(obj)
 %
 %  CONSTELLATION SPECIFIC ---------------------------------------------
@@ -126,49 +126,49 @@ classdef goObservation < handle
         % ...
         
         nSat = 32;      % max number of active satellites in a constellation
-
+        
         idM = 1;            % id of the Master inside the various structures
     end
     
     properties (GetAccess = 'private', SetAccess = 'private')
         
-    % =========================================================================
-    %   General parameters
-    % =========================================================================
-
+        % =========================================================================
+        %   General parameters
+        % =========================================================================
+        
         nObs = 0;       % number of observations avaiable
         
         iono = [];      % Ionosphere model observations
-
-    % =========================================================================
-    %   Configuration of the antennas
-    % =========================================================================
+        
+        % =========================================================================
+        %   Configuration of the antennas
+        % =========================================================================
         
         nRec = 1;       % number of receivers
-
+        
         receiverOk = [] % for each receiver it contains the actual (enable/disable) status
         
         
         antennasRF;     % antennas Reference Frame it is a structure
-                        %  .refRec => number of the remote that define the center of the RF
-                        %  .pos    => [3, nRec] position of a remote antenna in the RF
-                        
-        attitude;       % structure containing roll, pitch, yawn                        
+        %  .refRec => number of the remote that define the center of the RF
+        %  .pos    => [3, nRec] position of a remote antenna in the RF
         
-    % =========================================================================
-    %   Used files
-    % =========================================================================
-    
+        attitude;       % structure containing roll, pitch, yawn
+        
+        % =========================================================================
+        %   Used files
+        % =========================================================================
+        
         obsFile;        % array of nRec elements with field .name
-        navFile;        % structure elements with field 
-                        %  .name and 
-                        %  .isSP3
+        navFile;        % structure elements with field
+        %  .name and
+        %  .isSP3
         
         
-    % =========================================================================
-    %   Observations types
-    % =========================================================================
-
+        % =========================================================================
+        %   Observations types
+        % =========================================================================
+        
         % Select constellation is logical an array that specify the available
         % GNSS constellation
         %   selectConstellation(1)  => GPS
@@ -176,33 +176,33 @@ classdef goObservation < handle
         %   ecc...
         selectConstellation = logical([1 0]');
         
-        % Sampling rate of the time table 
+        % Sampling rate of the time table
         % (e.g. the Master station is at 1Hz, Remotes at 10Hz => objFreq = 10)
         objSamplingRate = 1;
         samplingRate = [];      % sampling rate of each GNSS receiver  [nRec+1]
         
         navSP3;                 % structure containing precise navigation ephemerides
         
-    % =========================================================================
-    %   Receivers Observation (Master + Remotes)
-    % =========================================================================
-
-        % Time Chart 
+        % =========================================================================
+        %   Receivers Observation (Master + Remotes)
+        % =========================================================================
+        
+        % Time Chart
         %   1st column    => time ref
         %   2nd column    => time GPS of the Master
-        %   other columns => time GPS of the Remotes        
-        timeChart = [];  % time table                        [nObs, (nRec+2)]        
-        dateChart = [];  % date table                        [nObs, 6, (nRec+2)]        
+        %   other columns => time GPS of the Remotes
+        timeChart = [];  % time table                        [nObs, (nRec+2)]
+        dateChart = [];  % date table                        [nObs, 6, (nRec+2)]
         week = [];        % gps week of the reference time /date
         
         X0  = [];        % approximate initial position      [3, nRec+1]
-
+        
         dt
         dtDot = [];      % clock drift of the receivers      [nRec+1]
         
         %   GPS SPECIFIC
         % =================================================================
-
+        
         % Pseudo range and phase observations are stored in a new structure
         % they are 3D matrixes wheer each index is:
         % ? 1. index of the satellite (e.g. 1..32)
@@ -210,16 +210,16 @@ classdef goObservation < handle
         % ? 3. index of the frequencies (e.g. 1, 2)
         %
         % G =>  G is the RINEX id for GPS
-        % R =>  R is the RINEX id for GLONASS   
-        nFreqG = 1;        
+        % R =>  R is the RINEX id for GLONASS
+        nFreqG = 1;
         prxG  = []; % pseudo-range                          [nSat*(nRec+1), nObs, nFreqG]
         phxG  = []; % phase                                 [nSat*(nRec+1), nObs, nFreqG]
         dopxG = []; % doppler                               [nSat*(nRec+1), nObs, nFreqG]
         snrxG = []; % signal to noise ratio                 [nSat*(nRec+1), nObs, nFreqG]
         flagG = []; % it contains 0 => everything is ok     [nRec+1, nObs]
-                    %             1 => missing observation
-                    %             2 => interpolated observation
-                
+        %             1 => missing observation
+        %             2 => interpolated observation
+        
         %   GLONASS SPECIFIC
         % =================================================================
         nFreqR = 2;
@@ -228,13 +228,13 @@ classdef goObservation < handle
         dopxR = []; % doppler                               [nSat*(nRec+1), nObs, nFreqR]
         snrxR = []; % signal to noise ratio                 [nSat*(nRec+1), nObs, nFreqR]
         flagR = []; % it contains 0 => everything is ok     [nRec+1, nObs]
-                    %             1 => missing observation  
-                    %             2 => interpolated observation
+        %             1 => missing observation
+        %             2 => interpolated observation
         
-    % =========================================================================
-    %   Satellite Observations
-    % =========================================================================
-                            
+        % =========================================================================
+        %   Satellite Observations
+        % =========================================================================
+        
         %   GPS SPECIFIC
         % =================================================================
         
@@ -243,19 +243,19 @@ classdef goObservation < handle
         timeG_tx = [];  % Time of first transmission              [nSat, 1]
         XSG_tx = [];    % Position at first trasmission           [nSat, 1]
         VSG_tx = [];    % Velocity at first trasmission           [nSat, 1]
-                
+        
         %   GLONASS SPECIFIC
         % =================================================================
         ephR = [];      % Ephemerides for GLONASS satellites
-
+        
         timeR_tx = [];  % Time of first transmission              [nSat, 1]
         XSR_tx = [];    % Position at first trasmission           [nSat, 1]
-        VSR_tx = [];    % Velocity at first trasmission           [nSat, 1]        
+        VSR_tx = [];    % Velocity at first trasmission           [nSat, 1]
     end
     
-    methods(Access = 'public')       
-        % Creator 
-        % the iniReader objuct MUST contains at least these sections/keys 
+    methods(Access = 'public')
+        % Creator
+        % the iniReader objuct MUST contains at least these sections/keys
         % (the values are an example:)
         % - "Receivers"
         %     |- "data_path" = "../data/ublox/"
@@ -274,13 +274,13 @@ classdef goObservation < handle
         %     |- "isSP3" = 0
         %     |- "data_path" = "../data/permanent station/"
         %     |- "file_name" = "COMO1370.11N"
-        function obj = goObservation()            
+        function obj = goObservation()
             
         end
         
-    % =========================================================================
-    %  GENERIC
-    % =========================================================================
+        % =========================================================================
+        %  GENERIC
+        % =========================================================================
         
         % Initialize the object
         function err = init(obj, ini, nFreqG, nFreqR)
@@ -296,19 +296,19 @@ classdef goObservation < handle
             % in the observation object;
             obj.setGNSS(obj.idGPS, 1);
             obj.setGNSS(obj.idGLONASS, 0);
-
+            
             % Set foundamental parameters
             if (obj.getGNSSstatus(obj.idGPS) == 1)
                 obj.setGNSSnFreq(obj.idGPS,nFreqG);
             end
             if (obj.getGNSSstatus(obj.idGLONASS) == 1)
                 obj.setGNSSnFreq(obj.idGLONASS, nFreqR);
-            end    
+            end
             
             % Extract useful info from the ini file
             % ini file - easily modifiable
             % Notice that all the check of the ini parameters should be
-            % done in the interface to prepare it. 
+            % done in the interface to prepare it.
             % Up to now, no intarface is available, every error will show a
             % msgbox window and will close goGPS
             err = obj.importIniPar(ini);
@@ -320,7 +320,7 @@ classdef goObservation < handle
         
         % Reading files and importing observations
         function loadData(obj)
-            % Loading RINEX data (Master + Receiver)            
+            % Loading RINEX data (Master + Receiver)
             obj.readRINEXs(obj.obsFile, obj.navFile);
             
             % Eventually load precise SP3 ephemerides (when available)
@@ -336,7 +336,7 @@ classdef goObservation < handle
         function inputOk = testInput(obj)
             inputOk = true;
         end
-                
+        
         % Getter of the num of Receivers available
         function nRec = getNumRec(obj)
             nRec = obj.nRec;
@@ -346,20 +346,20 @@ classdef goObservation < handle
         function iono = getIono(obj)
             iono = obj.iono;
         end
-
-    % =========================================================================
-    %  REFERENCE FRAME 
-    % =========================================================================
-    
+        
+        % =========================================================================
+        %  REFERENCE FRAME
+        % =========================================================================
+        
         %   Return the attitude of the structure at time t0
         function att = getInitialAttitude(obj)
             att = obj.attitude;
-        end        
-    
-    % =========================================================================
-    %  CONSTELLATION SPECIFIC
-    % =========================================================================
-
+        end
+        
+        % =========================================================================
+        %  CONSTELLATION SPECIFIC
+        % =========================================================================
+        
         % Getter of the num of Frequencies available
         function nFreq = getGNSSnFreq(obj, idGNSS)
             switch idGNSS
@@ -380,10 +380,10 @@ classdef goObservation < handle
             ids = find(obj.selectConstellation(:) == 1);
         end
         
-    % =========================================================================
-    %  RECEIVER SPECIFIC
-    % =========================================================================
-    
+        % =========================================================================
+        %  RECEIVER SPECIFIC
+        % =========================================================================
+        
         % Set the status of the receiver
         function setReceiverStatus(obj, idRec, status)
             obj.receiverOk(idRec+1) = logical(status);
@@ -391,7 +391,7 @@ classdef goObservation < handle
         
         % Get the status of the receiver
         function status = getReceiverStatus(obj, idRec)
-            if (nargin == 1)              
+            if (nargin == 1)
                 idRec = 0:obj.getNumRec();
             end
             idRec = idRec + 1;
@@ -400,7 +400,7 @@ classdef goObservation < handle
         
         % Get reference time
         function time = getTime_Ref(obj, idObs)
-            if (nargin < 2) % if not specified set the entire position array to the value of XM 
+            if (nargin < 2) % if not specified set the entire position array to the value of XM
                 idObs = 0; % it should be 1 or nObs
             end
             if (idObs == 0)
@@ -449,7 +449,7 @@ classdef goObservation < handle
         % if idObs is undeclared, the function returns positions for all
         % epochs
         function [XM flagPos] = getPos_M(obj, idObs)
-            if (nargin < 1) % if not specified set the entire position array to the value of XM 
+            if (nargin < 1) % if not specified set the entire position array to the value of XM
                 idObs = 1; % it should be 1 or nObs
             end
             if (idObs == 0)
@@ -467,7 +467,7 @@ classdef goObservation < handle
         
         % Set receiver approximate position
         function setPos_M(obj, XM, idObs)
-            if (nargin < 2) % if not specified set the entire position array to the value of XM 
+            if (nargin < 2) % if not specified set the entire position array to the value of XM
                 idObs = 1:size(obj.X0,2); % it should be 1 or nObs
             end
             if (idObs == 0)
@@ -475,9 +475,9 @@ classdef goObservation < handle
             end
             obj.X0(1,idObs) = XM(1,:); % Set X
             obj.X0(2,idObs) = XM(2,:); % Set Y
-            obj.X0(3,idObs) = XM(3,:); % Set Z            
+            obj.X0(3,idObs) = XM(3,:); % Set Z
         end
-            
+        
         % Get receiver sampling rate
         % idRec => id of the receiver (if 0 get all receiver)
         function sr = getSamplingRate_R(obj, idRec)
@@ -494,10 +494,10 @@ classdef goObservation < handle
             sr = obj.samplingRate(1);
         end
         
-    % =========================================================================
-    %  CLOCK SPECIFIC 
-    % =========================================================================
-       
+        % =========================================================================
+        %  CLOCK SPECIFIC
+        % =========================================================================
+        
         % Compute receiver clock error and drift
         function initClockError_R(obj, idRec)
             fprintf('Computing receiver %d/%d clock error and drift...\n', idRec, obj.getNumRec());
@@ -512,34 +512,34 @@ classdef goObservation < handle
             fprintf('Clock error and drift estimated\n');
         end
         
-        % Compute clock error and drift (idRec == 0 is the Master)        
+        % Compute clock error and drift (idRec == 0 is the Master)
         function initClockError(obj, idRec)
-            if (idRec == 0) % Master                
+            if (idRec == 0) % Master
                 [dt_tmp, dtDot_tmp] ...
-                 = clock_error(obj.getX0_M(), obj.getTime_Ref(), ...
-                               obj.getGNSSpr_M(obj.idGPS, 0, 0, 1), ...
-                               obj.getGNSSsnr_M(obj.idGPS, 0, 0, 1), ...      
-                               obj.getGNSSeph(obj.idGPS), ...
-                               obj.getGNSS_SP3time(), ...
-                               obj.getGNSS_SP3coordinates(), ...
-                               obj.getGNSS_SP3clock(), ...
-                               obj.getIono());
+                    = clock_error(obj.getX0_M(), obj.getTime_Ref(), ...
+                    obj.getGNSSpr_M(obj.idGPS, 0, 0, 1), ...
+                    obj.getGNSSsnr_M(obj.idGPS, 0, 0, 1), ...
+                    obj.getGNSSeph(obj.idGPS), ...
+                    obj.getGNSS_SP3time(), ...
+                    obj.getGNSS_SP3coordinates(), ...
+                    obj.getGNSS_SP3clock(), ...
+                    obj.getIono());
             else            % Rover
                 [dt_tmp, dtDot_tmp] ...
-                 = clock_error(obj.getX0_R(idRec), obj.getTime_Ref(), ...
-                               obj.getGNSSpr_R(obj.idGPS, 0, idRec, 0, 1), ...
-                               obj.getGNSSsnr_M(obj.idGPS, 0, idRec, 0, 1), ...
-                               obj.getGNSSeph(obj.idGPS), ...
-                               obj.getGNSS_SP3time(), ...
-                               obj.getGNSS_SP3coordinates(), ...
-                               obj.getGNSS_SP3clock(), ...
-                               obj.getIono());
+                    = clock_error(obj.getX0_R(idRec), obj.getTime_Ref(), ...
+                    obj.getGNSSpr_R(obj.idGPS, 0, idRec, 0, 1), ...
+                    obj.getGNSSsnr_M(obj.idGPS, 0, idRec, 0, 1), ...
+                    obj.getGNSSeph(obj.idGPS), ...
+                    obj.getGNSS_SP3time(), ...
+                    obj.getGNSS_SP3coordinates(), ...
+                    obj.getGNSS_SP3clock(), ...
+                    obj.getIono());
             end
             obj.dt(idRec+1,:) = dt_tmp';
             obj.dtDot(idRec+1,:) = dtDot_tmp';
         end
-    
-        % Get the drift of the clock of the Master receiver        
+        
+        % Get the drift of the clock of the Master receiver
         function dtMdot = getClockDrift_M(obj, idObs)
             if (nargin == 1)
                 idObs = 1;
@@ -559,12 +559,12 @@ classdef goObservation < handle
                 idObs = 1:obj.nObs;
             end
             dtM = obj.dt(1,idObs)';
-        end        
+        end
         
-    % =========================================================================
-    %  RECEIVERS GNSS SPECIFIC 
-    % =========================================================================
-    
+        % =========================================================================
+        %  RECEIVERS GNSS SPECIFIC
+        % =========================================================================
+        
         % Get ephemerides for GNSS satellites
         function eph = getGNSSeph(obj, idGNSS)
             switch idGNSS
@@ -577,7 +577,7 @@ classdef goObservation < handle
         
         % Get GPS pseudo-range observationa
         % idSat => id of the satellite      (if 0 get all the satellites)
-        % idRec => id of the receiver       (if 0 get all receiver) 
+        % idRec => id of the receiver       (if 0 get all receiver)
         % idObs => id of the observation    (if 0 get all the available epocs)
         % nFreq => id of the frequency used (e.g. 1 = L1, 2 = L2, ...future frequencies...)
         function pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
@@ -599,7 +599,7 @@ classdef goObservation < handle
         
         % Get GPS phase observationa
         % idSat => id of the satellite      (if 0 get all the satellites)
-        % idRec => id of the receiver       (if 0 get all receiver) 
+        % idRec => id of the receiver       (if 0 get all receiver)
         % idObs => id of the observation    (if 0 get all the available epocs)
         % nFreq => id of the frequency used (e.g. 1 = L1, 2 = L2, ...future frequencies...)
         %                                   (if 0 get all the frequencies)
@@ -652,17 +652,17 @@ classdef goObservation < handle
         function snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
             switch idGNSS
                 case obj.idGPS
-                    snr = goObservation.extractData(obj.dopxG, idSat, idRec, idObs, nFreq, obj.nRec);
+                    snr = goObservation.extractData(obj.snrxG, idSat, idRec, idObs, nFreq, obj.nRec);
                 case obj.idGLONASS
-                    snr = goObservation.extractData(obj.dopxR, idSat, idRec, idObs, nFreq, obj.nRec);
+                    snr = goObservation.extractData(obj.snrxR, idSat, idRec, idObs, nFreq, obj.nRec);
             end
         end
         function snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
             switch idGNSS
                 case obj.idGPS
-                    snr = goObservation.extractData(obj.dopxG, idSat, -1, idObs, nFreq, obj.nRec);
+                    snr = goObservation.extractData(obj.snrxG, idSat, -1, idObs, nFreq, obj.nRec);
                 case obj.idGLONASS
-                    snr = goObservation.extractData(obj.dopxR, idSat, -1, idObs, nFreq, obj.nRec);
+                    snr = goObservation.extractData(obj.snrxR, idSat, -1, idObs, nFreq, obj.nRec);
             end
         end
         
@@ -706,10 +706,10 @@ classdef goObservation < handle
             end
         end
         
-     % ======================================================================
-     %  SATELLITE SPECIFIC
-     % ======================================================================
-     
+        % ======================================================================
+        %  SATELLITE SPECIFIC
+        % ======================================================================
+        
         % Return if the navigation file is SP3 (precise orbits) or not
         function haveSP3 = haveSP3(obj)
             haveSP3 = obj.navFile.isSP3;
@@ -727,7 +727,7 @@ classdef goObservation < handle
         
         % get the full structure of the SP3 ephemerides => .time, .pos, .clock, .nObs
         function ephSP3 = getSP3(obj)
-           ephSP3 = obj.navSP3 ;
+            ephSP3 = obj.navSP3 ;
         end
         
         % extract the time information from SP3 ephemerides
@@ -775,13 +775,13 @@ classdef goObservation < handle
             end
         end
         
-%         function satObs = getSatObservation(obj, idGNSS, idSat, idObs)
-%         end        
+        %         function satObs = getSatObservation(obj, idGNSS, idSat, idObs)
+        %         end
     end
     % =========================================================================
     %    PRIVATE METHODS
     % =========================================================================
-
+    
     methods(Access = 'private')
         % Allocate the memory necessary to store all the observations of
         % the receivers (master station included)
@@ -790,7 +790,7 @@ classdef goObservation < handle
             obj.dateChart = zeros(nObs,6,nRec+2);               % date
             
             obj.X0  = zeros(3, nRec+1);                  % approximate initial position
-
+            
             obj.prxG  = zeros(obj.nSat*(nRec+1), nObs, nFreqG); % pseudo-range
             obj.phxG  = zeros(obj.nSat*(nRec+1), nObs, nFreqG); % phase
             obj.dopxG = zeros(obj.nSat*(nRec+1), nObs, nFreqG); % doppler
@@ -811,27 +811,27 @@ classdef goObservation < handle
         % Extract useful info from the ini file
         % and save them in the object
         function err = importIniPar(obj,ini)
-            err.val = 0;    % Everything is ok 
+            err.val = 0;    % Everything is ok
             err.msg = '';
             
             % Save the number of receivers
             nR = ini.getData('Receivers','nRec');
             if (isempty(nR))
                 err.val = 2;
-                err.msg = 'The receiver number has not been specified. ';                
+                err.msg = 'The receiver number has not been specified. ';
             end
             
             obj.receiverOk = false(nR+1,1);
-
+            
             % Receivers file
-            data_path = ini.getData('Receivers','data_path');             
-            if (isempty(data_path)) 
+            data_path = ini.getData('Receivers','data_path');
+            if (isempty(data_path))
                 err.val = 1;
                 err.msg = 'The receiver data path is missing.';
                 return
             end
             file_names = ini.getData('Receivers','file_name');
-            if (isempty(file_names)) 
+            if (isempty(file_names))
                 err.val = 1;
                 err.msg = 'The receivers file names is missing.';
                 return
@@ -844,7 +844,7 @@ classdef goObservation < handle
                 end
                 
                 % Assign the filenames
-                for r = nR:-1:1                
+                for r = nR:-1:1
                     obj.obsFile(r+1).name = [data_path file_names{r}];
                     if isempty(dir(obj.obsFile(r+1).name))  % Check if the receiver file is available
                         obj.setReceiverStatus(r, 0);
@@ -861,17 +861,17 @@ classdef goObservation < handle
                 err.msg = 'No rover observations are available, processing interrupted';
                 return
             end
-
+            
             % Master file
             data_path = ini.getData('Master','data_path');
-            if (isempty(data_path)) 
+            if (isempty(data_path))
                 err.val = 1;
                 err.msg = 'The master data path is missing.';
                 return
-            end            
+            end
             tmp = ini.getData('Master','file_name');
-            obj.obsFile(obj.idM).name = [data_path tmp];            
-            if (isempty(tmp) || isempty(dir(obj.obsFile(obj.idM).name))) 
+            obj.obsFile(obj.idM).name = [data_path tmp];
+            if (isempty(tmp) || isempty(dir(obj.obsFile(obj.idM).name)))
                 err.val = 1;
                 err.msg = 'The master file name is missing.';
                 return
@@ -880,18 +880,18 @@ classdef goObservation < handle
             
             % Navigation file
             data_path = ini.getData('Navigational','data_path');
-            if isempty(data_path) 
+            if isempty(data_path)
                 err.val = 1;
                 err.msg = 'The navigational data path is missing.';
                 return
-            end            
+            end
             tmp = ini.getData('Navigational','file_name');
             obj.navFile.name = [data_path tmp];
             if (isempty(tmp) || isempty(dir(obj.navFile.name)))
                 err.val = 1;
                 err.msg = 'The navigational file is missing.';
                 return
-            end            
+            end
             obj.navFile.isSP3 = ini.getData('Navigational','isSP3');
             if isempty(obj.navFile.isSP3)
                 obj.navFile.isSP3 = 0;
@@ -905,28 +905,28 @@ classdef goObservation < handle
                 err.val = 2;
                 err.msg = [err.msg 'The reference antenna has not been set. '];
                 obj.antennasRF.ref = 1; % the first receiver is the reference
-            end 
+            end
             
             obj.antennasRF.pos = zeros(3,nR+1);
             for r = 1:nR
                 tmp = ini.getData('Antennas RF',['XYZ_ant' num2str(r)]);
-                if (isempty(tmp)) 
+                if (isempty(tmp))
                     err.val = 2;
                     err.msg = [err.msg 'The antenna ' num2str(r) ' position has not been set. '];
                     obj.antennasRF.pos(:,r+1) = zeros(3,1);
                 else
                     obj.antennasRF.pos(:,r+1) = tmp;
                 end
-            end        
+            end
             
             % Store structure attitude at time T0
             % must be read from INI (ToDo)
             obj.attitude.roll = 0;
             obj.attitude.pitch = 0;
             obj.attitude.yaw = 0;
-
+            
             % Computation point
-            tmp = ini.getData('Antennas RF','XYZ_ev_point');            
+            tmp = ini.getData('Antennas RF','XYZ_ev_point');
             if (isempty(tmp))
                 err.val = 2;
                 err.msg = [err.msg 'The computation point position has not been set. '];
@@ -938,12 +938,12 @@ classdef goObservation < handle
         
         % Read RINEX files and fill the object
         function readRINEXs(obj, obsFile, navFile)
-            nR = obj.getNumRec()+1; % The first position is for the MASTER            
+            nR = obj.getNumRec()+1; % The first position is for the MASTER
             
             % GPS
             if (obj.getGNSSstatus(obj.idGPS) == 1)
                 nFreqG = obj.getGNSSnFreq(obj.idGPS);
-
+                
                 % Reading Master and Remote observations
                 % We use cells to read the receiver files
                 prGcell = cell(nR,nFreqG);
@@ -978,7 +978,7 @@ classdef goObservation < handle
             t0 = tic();
             % It should be better to change load rinex in such a way to
             % already read just the needed observations...
-            % I read both GLONASS and GPS            
+            % I read both GLONASS and GPS
             if (obj.getGNSSstatus(obj.idGPS) == 1) && (obj.getGNSSstatus(obj.idGLONASS) == 1)
                 [prGcell{obj.idM,1}, ~, phGcell{obj.idM,1}, ~, prGcell{obj.idM,2}, ~, phGcell{obj.idM,2}, ~, ...
                     dopGcell{obj.idM,1}, ~, dopGcell{obj.idM,2}, ~, snrGcell{obj.idM,1}, ~, snrGcell{obj.idM,2}, ~, ...
@@ -1006,16 +1006,16 @@ classdef goObservation < handle
             
             t0 = toc(t0);
             fprintf(['  Data read in ' num2str(t0) ' seconds\n']);
-                
+            
             tmp = timeRoundedCell{obj.idM};  % it's not possible to access single array values when they are inside a cell container
             obj.samplingRate(obj.idM) =  1/median(tmp(2:end) - tmp(1:end-1));    % Save master sample rate
-
+            
             interval = zeros(nR-1,1);
             % Reading receivers ----------------------------------------------------------
             for r=2:nR
                 fprintf('Reading RINEX of the receiver %d/%d...\n', r-1, nR-1);
                 t0 = tic();
-
+                
                 % I read both GLONASS and GPS
                 if (obj.getGNSSstatus(obj.idGPS) == 1) && (obj.getGNSSstatus(obj.idGLONASS) == 1)
                     [prGcell{r,1}, ~, phGcell{r,1}, ~, prGcell{r,2}, ~, phGcell{r,2}, ~, ...
@@ -1024,7 +1024,7 @@ classdef goObservation < handle
                         dopRcell{r,1}, ~, dopRcell{r,2}, ~, snrRcell{r,1}, ~, ...
                         timeRoundedCell{r}, timeCell{r}, ~, dateCell{r}, posCell{r}, ~, ~, ~, ~] = ...
                         load_RINEX(navFile.isSP3, obsFile(r).name, navFile.name);
-                % I read only GPS
+                    % I read only GPS
                 elseif (obj.getGNSSstatus(obj.idGPS) == 1)
                     [prGcell{r,1}, ~, phGcell{r,1}, ~, prGcell{r,2}, ~, phGcell{r,2}, ~, ...
                         dopGcell{r,1}, ~, dopGcell{r,2}, ~, snrGcell{r,1}, ~, snrGcell{r,2}, ~, ...
@@ -1032,7 +1032,7 @@ classdef goObservation < handle
                         ~, ~, ~, ~, ~, ~, ...
                         timeRoundedCell{r}, timeCell{r}, ~, dateCell{r}, posCell{r}, ~, ~, ~, ~] = ...
                         load_RINEX(navFile.isSP3, obsFile(r).name, navFile.name);
-                % I read only GLONASS    
+                    % I read only GLONASS
                 elseif (obj.getGNSSstatus(obj.idGLONASS) == 1)
                     [~, ~, ~, ~, ~, ~, ~, ~, ...
                         ~, ~, ~, ~, ~, ~, ~, ~, ...
@@ -1041,9 +1041,9 @@ classdef goObservation < handle
                         timeRoundedCell{r}, timeCell{r}, ~, dateCell{r}, posCell{r}, ~, ~, ~, ~] = ...
                         load_RINEX(navFile.isSP3, obsFile(r).name, navFile.name);
                 end
-
+                
                 t0 = toc(t0);
-               	fprintf(['  Data read in ' num2str(t0) ' seconds\n']);
+                fprintf(['  Data read in ' num2str(t0) ' seconds\n']);
                 
                 % Maintain first and last epoch for all the receivers (to check receivers syncronization)
                 tmp = timeRoundedCell{r};  % it's not possible to access single array values when they are inside a cell container
@@ -1072,7 +1072,7 @@ classdef goObservation < handle
             numObs = length(time_GPS);
             obj.nObs = numObs;
             obj.allocateMemory(numObs, nR-1, nFreqG, nFreqR);
-            obj.timeChart(:,1) = time_GPS;  % Set up reference time 
+            obj.timeChart(:,1) = time_GPS;  % Set up reference time
             
             % Cutting MASTER and REMOTEs epochs on reference time
             % Note: normally load RINEX already do this when the MASTER and
@@ -1085,7 +1085,7 @@ classdef goObservation < handle
                 [timeRoundedCell, timeCell, dateCell, prGcell, phGcell, dopGcell, snrGcell, ~, ~, ~, ~] = obj.recObsCutter(timeRoundedCell, timeCell, dateCell, prGcell, phGcell, dopGcell, snrGcell, void, void, void, void, nR, startTime, stopTime);
             elseif (obj.getGLONASSstatus(obj.idGPS) == 1)
                 [timeRoundedCell, timeCell, dateCell, ~, ~, ~, ~, prRcell, phRcell, dopRcell, snrRcell] = obj.recObsCutter(timeRoundedCell, timeCell, dateCell, void, void, void, void, prRcell, phRcell, dopRcell, snrRcell, nR, startTime, stopTime);
-            end            
+            end
             
             % Fill object tables
             for r=1:nR
@@ -1109,18 +1109,18 @@ classdef goObservation < handle
                     for f = 1:nFreqR()
                         obj.prxR((1:obj.nSat)+obj.nSat*(r-1), ids, f) = prRcell{r,f};     % pseudo-range
                         obj.phxR((1:obj.nSat)+obj.nSat*(r-1), ids, f) = phRcell{r,f};     % phase
-                        obj.dopxR((1:obj.nSat)+obj.nSat*(r-1), ids, f) = dopRcell{r,f};   % doppler                    
-                    end                
+                        obj.dopxR((1:obj.nSat)+obj.nSat*(r-1), ids, f) = dopRcell{r,f};   % doppler
+                    end
                     obj.snrxR((1:obj.nSat)+obj.nSat*(r-1), ids, f) = snrRcell{r,1};       % signal to noise ratio
-    
+                    
                     % detect missing epochs (up to now it just checks for fully missing epoch)
                     obj.flagR(r, :) = (obj.timeChart(:, r+1) == 0)';                      % flags
-                end                
+                end
                 
                 obj.X0(:, r) = posCell{r};
             end
-
-            if (obj.getGNSSstatus(obj.idGPS) == 1) 
+            
+            if (obj.getGNSSstatus(obj.idGPS) == 1)
                 clear    prGcell phGcell dopGcell snrGcell;
             end
             if (obj.getGNSSstatus(obj.idGLONASS) == 1)
@@ -1132,12 +1132,12 @@ classdef goObservation < handle
             obj.dateChart(:,:,1) = obj.dateChart(:,:,obj.idM+1);
             obj.dateChart(:,1,1) = obj.dateChart(:,1,1) + 2000;
             obj.week = floor((datenum(obj.dateChart(:,:,1)) - datenum([1980,1,6,0,0,0]))/7);
-
+            
             
             fprintf('The data is ready!\n')
-        end        
+        end
         
-        % Remove the observations of the satellites that are without ephemerides        
+        % Remove the observations of the satellites that are without ephemerides
         function cleanNoEphSat(obj)
             nR = obj.getNumRec();
             % When SP3 are available, all the ephemerides for the
@@ -1152,7 +1152,7 @@ classdef goObservation < handle
                         obj.phxG(rmSat+obj.nSat*(r-1),:,:) = 0;
                         obj.dopxG(rmSat+obj.nSat*(r-1),:,:) = 0;
                         obj.snrxG(rmSat+obj.nSat*(r-1),:,:) = 0;
-                    end                    
+                    end
                 end
                 % remove satellites without ephemerides (GLONASS)
                 if (obj.getGNSSstatus(obj.idGLONASS))
@@ -1177,11 +1177,11 @@ classdef goObservation < handle
         %        [X0 flagPos] = obj.getX0_R(idRec);
         %    end
         %end
-
-    % =========================================================================
-    %    Setter
-    % =========================================================================
-    
+        
+        % =========================================================================
+        %    Setter
+        % =========================================================================
+        
         % Setter of the num of Receiver available
         function setNumRec(obj, nRec)
             obj.nRec = nRec;
@@ -1194,7 +1194,7 @@ classdef goObservation < handle
                     obj.nFreqG = nFreq;
                 case obj.idGLONASS
                     obj.nFreqR = nFreq;
-            end                    
+            end
         end
         
         % Setters of the available constellations
@@ -1237,44 +1237,47 @@ classdef goObservation < handle
             end
         end
     end
-% =========================================================================
-%    STATIC PRIVATE METHODS
-% =========================================================================
-
+    % =========================================================================
+    %    STATIC PRIVATE METHODS
+    % =========================================================================
+    
     methods(Static, Access = 'private')
         
         % Extract a subTable from a generic observation table with size [nSat*(nRec+1), nObs, nFreq]
         function subtable = extractData(table, idSat, idRec, idObs, nFreq, nRec)
-           nS = (size(table,1)/(nRec+1));
-           if (idSat == 0)
-               idSat = 1:nS;
-           end
-           if (size(idSat,1)>size(idSat,2))
-               idSat = idSat';
-           end
-           
-           if (idRec == 0)
-               idRec = (1:nRec); % the receiver having index 1 is the Master
-           end
-           idRec = idRec + 1; % Remote receiver start from position 2 (the first is occupied by the Master)
-
-           if (idObs == 0)
-               idObs = 1:size(table,2);
-           end
-
-           if (nFreq == 0)
-               nFreq = 1:size(table,3);
-           end
-           
-           if (idRec == 0) % => I want Master observations
-               firstIndex = idSat; 
-           else
+            if islogical(idSat)
+                idSat = find(idSat);
+            end
+            nS = (size(table,1)/(nRec+1));
+            if (idSat == 0)
+                idSat = 1:nS;
+            end
+            if (size(idSat,1)>size(idSat,2))
+                idSat = idSat';
+            end
+            
+            if (idRec == 0)
+                idRec = (1:nRec); % the receiver having index 1 is the Master
+            end
+            idRec = idRec + 1; % Remote receiver start from position 2 (the first is occupied by the Master)
+            
+            if (idObs == 0)
+                idObs = 1:size(table,2);
+            end
+            
+            if (nFreq == 0)
+                nFreq = 1:size(table,3);
+            end
+            
+            if (idRec == 0) % => I want Master observations
+                firstIndex = idSat;
+            else
                 % Compute the id of the lines containing the selected receivers data
                 firstIndex = repmat(nS*(idRec-1),length(idSat),1)+repmat(idSat,length(idRec),1)';
-           end
-           
-           % Extract the table
-           subtable = table(firstIndex(:), idObs, nFreq);
+            end
+            
+            % Extract the table
+            subtable = table(firstIndex(:), idObs, nFreq);
         end
         
         % Cut an array stored in a cell of a cell array, according to start
@@ -1283,5 +1286,5 @@ classdef goObservation < handle
             tmp = cellItem(startId:stopId,:);
         end
     end
-
+    
 end

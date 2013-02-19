@@ -123,6 +123,15 @@ classdef goKalmanFilter < handle
         %estimation error covariance matrix at time t
         Cee = [];
         
+        %tmp estimated coordinates variance for each receiver
+        sigma2_XR_R = [];
+        
+        %estimated coordinates variance for the cluster
+        sigma2_XR = [];
+        
+        %estimated variance for the initial ambiguities
+        sigma2_N
+        
         %satellite configuration (1: visible, 0: not visible) at time t
         conf_sat = [];
         
@@ -276,6 +285,9 @@ classdef goKalmanFilter < handle
             obj.Xhat_t_t = zeros(nPar+obj.nN,1);        %state estimation at time t
             obj.X_t1_t = zeros(nPar+obj.nN,1);          %state estimation at time t+1 (using dynamics only)
             obj.Cee = zeros(nPar+obj.nN);               %estimation error covariance matrix at time t
+            obj.sigma2_XR_R = zeros(3,nRec);            %estimation positioning variance for each receiver
+            obj.sigma2_XR_R = zeros(3,1);               %estimation positioning variance for the cluster
+            obj.sigma2_N = zeros(obj.nN,1);                 %variances of the phase ambiguity estimate
             obj.conf_sat = zeros(nSat, nRec);           %satellite configuration (1: visible, 0: not visible) at time t
             obj.conf_cs = zeros(nSat, nRec);            %cycle-slip configuration (1: cs, 0: no cs) at time t
             obj.pivot = zeros(1,nRec);                  %index of the current pivot satellite
@@ -303,9 +315,9 @@ classdef goKalmanFilter < handle
         % Function to fill KF initial matrices
         function init(obj, goObs)
             obj.init_T(obj.mode);
-            obj.init_Xhat_t_t(goObs);
+            obj.init_Xhat_t_t(goObs, obj.mode);
             obj.init_X_t1_t();
-            obj.init_Cee(goObs.getNumRec());
+            obj.init_Cee(goObs.getNumRec(), obj.mode);
             obj.init_doppler(goObs);
             obj.init_KxDOP();
             % set the status of the KF initialization
@@ -346,7 +358,7 @@ classdef goKalmanFilter < handle
             nPar = obj.nPar;
             nN = obj.nN;
             nFreq = goObs.getGNSSnFreq(goObs.idGPS);
-            
+
             % define logical matrices for the satellites in view
             commonSat_pr = false(nSat,nRec);
             commonSat_pr_ph = false(nSat,nRec);
@@ -384,12 +396,6 @@ classdef goKalmanFilter < handle
             %--------------------------------------------------------------------------------------------
             % KALMAN FILTER INITIAL STATE
             %--------------------------------------------------------------------------------------------
-            
-            %%zeroes vectors useful in the matrices definition
-            %Z_om_1 = zeros(o1-1,1);
-            
-            %variances of the phase ambiguity estimate
-            sigma2_N = zeros(nN,1);
             
             %define vectors for the SP3 ephemerides
             SP3_time = goObs.getGNSS_SP3time();
@@ -482,18 +488,20 @@ classdef goKalmanFilter < handle
             %apply cutoffs also to phase satellites
             obj.goodSat_pr_ph = commonSat_pr_ph & obj.goodSat_pr;
             
-            % fill doppler variables
-            %             for r=1:nRec
-            %             for i = 1:sum(obj.goodSat_pr,r)
-            if (~isempty(goObs.getClockDrift_M()) && goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1) == 0 && any(Eph_1))
-                %satObs = goObs.getSatObservation(goObs.idGPS, goodSat_pr_M);
-                [goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1, 2), goObs.getGNSSdop_M(goObs.idGPS, goodSat_pr_M, 1, 1)] ...
-                    = doppler_shift_approx(goObs.getPos_M(), zeros(3,1), ...
-                    XS_tx', VS_tx', time_tx, ... %satObs.X(goodSat_pr_M,:)', satObs.V(goodSat_pr_M,:)', satObs.time(goodSat_pr_M,1), ...
-                    goObs.getClockDrift_M(), goodSat_pr_M, Eph_1);
-            end
-            %             end
-            %             end
+%             %fill doppler variables
+%             if (~isempty(goObs.getClockDrift_M()) && any(Eph_1))
+%                 for r=1:nRec
+%                     for i = 1:sum(obj.goodSat_pr,r)
+%                         if goObs.getGNSSdop_M(goObs.idGPS, obj.goodSat_pr(i,r), 1, 1) == 0
+%                             satObs = goObs.getSatObservation(goObs.idGPS, obj.goodSat_pr);
+%                             [goObs.getGNSSdop_M(goObs.idGPS, obj.goodSat_pr, 1, 1, 2), goObs.getGNSSdop_M(goObs.idGPS, obj.goodSat_pr, 1, 1)] ...
+%                                 = doppler_shift_approx(goObs.getPos_M(), zeros(3,1), ...
+%                                 XS_tx', VS_tx', time_tx, ... %satObs.X(goodSat_pr_M,:)', satObs.V(goodSat_pr_M,:)', satObs.time(goodSat_pr_M,1), ...
+%                                 goObs.getClockDrift_M(), obj.goodSat_pr, Eph_1);
+%                         end
+%                     end
+%                 end
+%             end
             
             %--------------------------------------------------------------------------------------------
             % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
@@ -501,8 +509,8 @@ classdef goKalmanFilter < handle
             
             %satellites configuration: code only (-1), both code and phase (+1);
             conf_sat = zeros(nSat,nRec);
-            conf_sat(obj.goodSat_pr) = -1;
-            conf_sat(obj.goodSat_pr_ph) = +1;
+            conf_sat = obj.goodSat_pr*-1;
+            conf_sat(obj.goodSat_pr_ph) = ones(sum(obj.goodSat_pr_ph(:)),1);
             
             %cycle-slip configuration (no cycle-slip)
             conf_cs = zeros(nSat,nRec);
@@ -519,12 +527,12 @@ classdef goKalmanFilter < handle
                 % receiver (with both code and phase obervations)
                 if ~isempty(obj.goodSat_pr_ph(:,r))
                     % find the index for the most elevated satellite (PIVOT)
-                    [null_max_elR, pivot_index(r)] = max(obj.satCoordR(obj.goodSat_pr_ph(:,r),r).el);
+                    [null_max_elR, pivot_index(r)] = max(obj.satCoordR.el(obj.goodSat_pr_ph(:,r),r));
                     s_id = 1:nSat;                          % all the satellites
                     s_id = s_id(obj.goodSat_pr_ph(:,r));        % extract available satellites
                     obj.pivot(r) = s_id(pivot_index(r));       % get the pivot satellite
                 else %only code observations
-                    [null_max_elR, pivot_index(r)] = max(obj.satCoordR(obj.goodSat_pr(:,r),r).el);
+                    [null_max_elR, pivot_index(r)] = max(obj.satCoordR.el(obj.goodSat_pr(:,r),r));
                     s_id = 1:obj.nSat;                      % all the satellites
                     s_id = s_id(obj.goodSat_pr(:,r));           % extract available satellites
                     obj.pivot(r) = s_id(pivot_index(r));       % get the pivot satellite
@@ -532,7 +540,7 @@ classdef goKalmanFilter < handle
                 
                 %if at least 4 satellites are available after the cutoffs, and if the
                 % condition number in the least squares does not exceed the threshold
-                if (sum(obj.goodSat_pr,r) >= 4 && cond_num(r) < obj.cond_num_threshold)
+                if (sum(obj.goodSat_pr(:,r)) >= 4 && cond_num(r) < obj.cond_num_threshold)
                     
                     if isempty(cov_XR(:,:,r)) %if it was not possible to compute the covariance matrix
                         cov_XR(:,:,r) = obj.sigmaq0 * eye(3);
@@ -553,8 +561,6 @@ classdef goKalmanFilter < handle
             N2 = zeros(nSat,nRec);
             sigma2_N1 = zeros(nSat,nRec);
             sigma2_N2 = zeros(nSat,nRec);
-            cov_N1 = zeros(3,3,nRec);
-            cov_N2 = zeros(3,3,nRec);
             N = zeros(nSat, nRec);
             for r=1:nRec
                 if (sum(obj.goodSat_pr(:,r)) + sum(obj.goodSat_pr_ph(:,r)) - 2 <= 3 + sum(obj.goodSat_pr_ph(:,r)) - 1 || sum(obj.goodSat_pr_ph(:,r)) <= 4)
@@ -582,22 +588,33 @@ classdef goKalmanFilter < handle
                     
                     %ROVER positioning improvement with code and phase double differences
                     if ~isempty(obj.goodSat_pr_ph(:,r))
-                        [obj.XR(:,r), N1(obj.goodSat_pr_ph(:,r),r), cov_XR(:,:,r), cov_N1(:,:,r), obj.xDOP(r).P, obj.xDOP(r).H, obj.xDOP(r).V] ...
-                            = LS_DD_code_phase(obj.XR(:,r), XM, XS(obj.goodSat_pr_ph,:), ...
-                            pr_R(obj.goodSat_pr_ph(:,r),r,1), ph_R(obj.goodSat_pr_ph(:,r),r,1), snr_R(obj.goodSat_pr_ph(:,r),r,1), ...
-                            pr_M(obj.goodSat_pr_ph(:,r),1,1), ph_M(obj.goodSat_pr_ph(:,r),1,1), snr_M(obj.goodSat_pr_ph(:,r),1,1), ...
-                            obj.satCoordR(obj.goodSat_pr_ph(:,r),r).el, obj.satCoordM(obj.goodSat_pr_ph(:,r),1).el, ...
-                            err_tropo_R(obj.goodSat_pr_ph(:,r),r), err_iono_R(obj.goodSat_pr_ph(:,r),r), ...
-                            err_tropo_M(obj.goodSat_pr_ph(:,r),r), err_iono_M(obj.goodSat_pr_ph(:,r),r), ...
-                            pivot_index(r), nFreq);
-                        [null_XR, N2(obj.goodSat_pr_ph(:,r),r), null_cov_XR, cov_N2(:,:,r)] ...
-                            = LS_DD_code_phase(obj.XR(:,r), XM, XS(obj.goodSat_pr_ph,:), ...
-                            pr_R(obj.goodSat_pr_ph(:,r),r,2), ph_R(obj.goodSat_pr_ph(:,r),r,2), snr_R(obj.goodSat_pr_ph(:,r),r,2), ...
-                            pr_M(obj.goodSat_pr_ph(:,r),1,2), ph_M(obj.goodSat_pr_ph(:,r),1,2), snr_M(obj.goodSat_pr_ph(:,r),1,2), ...
-                            obj.satCoordR(obj.goodSat_pr_ph(:,r),r).el, obj.satCoordM(obj.goodSat_pr_ph(:,r),1).el, ...
-                            err_tropo_R(obj.goodSat_pr_ph(:,r),r), err_iono_R(obj.goodSat_pr_ph(:,r),r), ...
-                            err_tropo_M(obj.goodSat_pr_ph(:,r),r), err_iono_M(obj.goodSat_pr_ph(:,r),r), ...
-                            pivot_index(r), nFreq);
+                        if nFreq == 1
+                            [obj.XR(:,r), N1(obj.goodSat_pr_ph(:,r),r), cov_XR(:,:,r), cov_N1(:,:,r), obj.xDOP.P(r), obj.xDOP.H(r), obj.xDOP.V(r)] ...
+                                = LS_DD_code_phase(obj.XR(:,r), XM, XS, ...
+                                pr_R(obj.goodSat_pr_ph(:,r),r,1), ph_R(obj.goodSat_pr_ph(:,r),r,1), goObs.getGNSSsnr_R(goObs.idGPS, obj.goodSat_pr_ph(:,r), r, 1, 1), ...
+                                pr_M(obj.goodSat_pr_ph(:,r),1,1), ph_M(obj.goodSat_pr_ph(:,r),1,1), goObs.getGNSSsnr_M(goObs.idGPS, obj.goodSat_pr_ph(:,r), 1, 1), ...
+                                obj.satCoordR.el(obj.goodSat_pr_ph(:,r),r), obj.satCoordM.el(obj.goodSat_pr_ph(:,r),1), ...
+                                err_tropo_R(obj.goodSat_pr_ph(:,r),r), err_iono_R(obj.goodSat_pr_ph(:,r),r), ...
+                                err_tropo_M(obj.goodSat_pr_ph(:,r),r), err_iono_M(obj.goodSat_pr_ph(:,r),r), ...
+                                pivot_index(r), nFreq);
+                        elseif nFreq == 2
+                            [obj.XR(:,r), N1(obj.goodSat_pr_ph(:,r),r), cov_XR(:,:,r), cov_N1(:,:,r), obj.xDOP.P(r), obj.xDOP.H(r), obj.xDOP.V(r)] ...
+                                = LS_DD_code_phase(obj.XR(:,r), XM, XS, ...
+                                pr_R(obj.goodSat_pr_ph(:,r),r,1), ph_R(obj.goodSat_pr_ph(:,r),r,1), goObs.getGNSSsnr_R(goObs.idGPS, obj.goodSat_pr_ph(:,r), r, 1, 1), ...
+                                pr_M(obj.goodSat_pr_ph(:,r),1,1), ph_M(obj.goodSat_pr_ph(:,r),1,1), goObs.getGNSSsnr_M(goObs.idGPS, obj.goodSat_pr_ph(:,r), 1, 1), ...
+                                obj.satCoordR.el(obj.goodSat_pr_ph(:,r),r), obj.satCoordM.el(obj.goodSat_pr_ph(:,r),1), ...
+                                err_tropo_R(obj.goodSat_pr_ph(:,r),r), err_iono_R(obj.goodSat_pr_ph(:,r),r), ...
+                                err_tropo_M(obj.goodSat_pr_ph(:,r),r), err_iono_M(obj.goodSat_pr_ph(:,r),r), ...
+                                pivot_index(r), nFreq);
+                            [null_XR, N2(obj.goodSat_pr_ph(:,r),r), null_cov_XR, cov_N2(:,:,r)] ...
+                                = LS_DD_code_phase(obj.XR(:,r), XM, XS, ...
+                                pr_R(obj.goodSat_pr_ph(:,r),r,2), ph_R(obj.goodSat_pr_ph(:,r),r,2), goObs.getGNSSsnr_R(goObs.idGPS, obj.goodSat_pr_ph(:,r), r, 1, 2), ...
+                                pr_M(obj.goodSat_pr_ph(:,r),1,2), ph_M(obj.goodSat_pr_ph(:,r),1,2), goObs.getGNSSsnr_M(goObs.idGPS, obj.goodSat_pr_ph(:,r), 1, 2), ...
+                                obj.satCoordR(obj.goodSat_pr_ph(:,r),r).el, obj.satCoordM(obj.goodSat_pr_ph(:,r),1).el, ...
+                                err_tropo_R(obj.goodSat_pr_ph(:,r),r), err_iono_R(obj.goodSat_pr_ph(:,r),r), ...
+                                err_tropo_M(obj.goodSat_pr_ph(:,r),r), err_iono_M(obj.goodSat_pr_ph(:,r),r), ...
+                                pivot_index(r), nFreq);
+                        end
                     end
                     
                     if isempty(cov_XR(:,:,r)) %if it was not possible to compute the covariance matrix
@@ -609,8 +626,10 @@ classdef goKalmanFilter < handle
                         cov_N1(:,:,r) = obj.sigmaq0.N * eye(length(obj.goodSat_pr_ph(:,r),r));
                     end
                     
-                    if isempty(cov_N2(:,:,r)) %if it was not possible to compute the covariance matrix
-                        cov_N2(:,:,r) = obj.sigmaq0.N * eye(length(obj.goodSat_pr_ph(:,r),r));
+                    if (nFreq == 2)
+                        if isempty(cov_N2(:,:,r)) %if it was not possible to compute the covariance matrix
+                            cov_N2(:,:,r) = obj.sigmaq0.N * eye(length(obj.goodSat_pr_ph(:,r),r));
+                        end
                     end
                     
                     if (nFreq == 2)
@@ -665,8 +684,8 @@ classdef goKalmanFilter < handle
                 case {1,2,3},   %when not estimating the attitude
                     obj.Xhat_t_t (nPar+1:end) = N(:);
                 case {4,5},     % when estimating the attitude (roll, pitch, yaw angles)
-                    obj.attitude = goObs.getInitialAttitude();
-                    obj.Xhat_t_t (nPar-6+1:nPar) = [obj.attitude.roll; 0; obj.attitude.pitch; 0; obj.attitude.yaw; 0];
+                    attitude = goObs.getInitialAttitude();
+                    obj.Xhat_t_t (nPar-6+1:nPar) = [attitude.roll; 0; attitude.pitch; 0; attitude.yaw; 0];
                     obj.Xhat_t_t (nPar+1:end) = N(:);
             end
         end
@@ -716,7 +735,7 @@ classdef goKalmanFilter < handle
                     % angular attitude
                     obj.Cee((obj.nPar-5):(obj.nPar-3),(obj.nPar-5):(obj.nPar-3)) = obj.sigmaq0.ang;
                     %angulare velocities
-                    obj.Cee((obj.nPar-23):obj.nPar,(obj.nPar-2):obj.nPar) = obj.sigmaq0.ang_vel;
+                    obj.Cee((obj.nPar-3):obj.nPar,(obj.nPar-2):obj.nPar) = obj.sigmaq0.ang_vel;
             end
             %initial ambiguities
             obj.Cee(obj.nPar+1:end,obj.nPar+1:end) = diag(obj.sigma2_N(:));
