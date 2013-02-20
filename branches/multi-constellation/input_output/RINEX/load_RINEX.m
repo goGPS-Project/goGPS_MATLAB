@@ -439,7 +439,7 @@ while (~feof(FR_oss))
     end
 
     time(k,1) = time(k-1,1) + interval;
-    
+
     if (abs(time_R(k)-time(k)) < max_desync_frac*interval)
 
         %read ROVER observations
@@ -458,18 +458,18 @@ while (~feof(FR_oss))
         dop2_R(:,k) = obs_R.D2;
         snr1_R(:,k) = obs_R.S1;
         snr2_R(:,k) = obs_R.S2;
-    else
-        %number of lines to be skipped
-        if (RINEX_version == 2)
-            nSkipLines = num_sat_R*nLinesToRead_R;
-        else
-            nSkipLines = num_sat_R;
-        end
-        
-        %skip observations
-        for s = 1 : nSkipLines
-            fgetl(FR_oss);
-        end
+%     else
+%         %number of lines to be skipped
+%         if (RINEX_version == 2)
+%             nSkipLines = num_sat_R*nLinesToRead_R;
+%         else
+%             nSkipLines = num_sat_R;
+%         end
+%         
+%         %skip observations
+%         for s = 1 : nSkipLines
+%             fgetl(FR_oss);
+%         end
     end
 
     if (filename_M_obs_PresenceFlag)
@@ -492,18 +492,18 @@ while (~feof(FR_oss))
             dop2_M(:,k) = obs_M.D2;
             snr1_M(:,k) = obs_M.S1;
             snr2_M(:,k) = obs_M.S2;
-        else
-            %number of lines to be skipped
-            if (RINEX_version == 2)
-                nSkipLines = num_sat_M*nLinesToRead_M;
-            else
-                nSkipLines = num_sat_M;
-            end
-            
-            %skip observations
-            for s = 1 : nSkipLines
-                fgetl(FM_oss);
-            end
+%         else
+%             %number of lines to be skipped
+%             if (RINEX_version == 2)
+%                 nSkipLines = num_sat_M*nLinesToRead_M;
+%             else
+%                 nSkipLines = num_sat_M;
+%             end
+%             
+%             %skip observations
+%             for s = 1 : nSkipLines
+%                 fgetl(FM_oss);
+%             end
         end
     end
     

@@ -42,7 +42,12 @@ for t = isat
 end
 
 %maximum interval from ephemeris reference time
-dtmax = 3600;
+fit_interval = Eph(29,icol);
+if (fit_interval ~= 0)
+    dtmax = fit_interval*3600/2;
+else
+    dtmax = 7200;
+end
 switch (char(Eph(31,icol)))
     case 'R' %GLONASS
         dtmax = 900;

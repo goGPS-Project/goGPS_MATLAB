@@ -36,7 +36,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   time_tx   = transmission time (vector)
 %   err_tropo = tropospheric error (vector)
 %   err_iono  = ionospheric error (vector)
-%   redsat    = satellites available after cutoffs
+%   sat       = satellites available after cutoffs
 %   el        = satellite elevation (vector)
 %   az        = satellite azimuth (vector)
 %   dist      = satellite-receiver geometric distance (vector)
@@ -112,8 +112,35 @@ if (flag_XR == 0)
     
     %if mixed observations GLONASS/other, then don't use GLONASS (system time difference)
     if (any(is_GLO) && any(~is_GLO))
+        
         index_GLO = find(is_GLO);
         index = setdiff(index,index_GLO);
+        
+        if (sum(~is_GLO) < 4) %if mixed observations without GLONASS are not enough, return
+            %empty variables
+            XR   = [];
+            dtR  = [];
+            az   = [];
+            el   = [];
+            dist = [];
+            sat  = [];
+            err_tropo = [];
+            err_iono  = [];
+            
+            if (flag_XR == 2)
+                cov_XR = zeros(3,3);
+            else
+                cov_XR = [];
+            end
+            var_dtR = [];
+            
+            PDOP = -9999;
+            HDOP = -9999;
+            VDOP = -9999;
+            cond_num = [];
+            
+            return
+        end
     end
     
     %NOTE: satellite selection may enhance the solution
