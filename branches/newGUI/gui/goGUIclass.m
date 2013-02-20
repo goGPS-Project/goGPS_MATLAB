@@ -1656,8 +1656,10 @@ classdef goGUIclass < handle
                 idEl = obj.idUI.lProcMode;
             end
             obj.getFlag(idEl) = true;
-            obj.updateGUI();
-            
+            % Read all the values of the elements
+            obj.getAllElContent();
+            obj.setAllElContent();
+
           %   MODE
           % --------------------------------------------------------------- 
             if sum(intersect(idEl, obj.idUI.lProcMode)) > 0
@@ -1734,6 +1736,11 @@ classdef goGUIclass < handle
                     obj.getFlag(idEl) = true;
                     obj.updateGUI();
                 end
+                
+                % Verify if there's still something to enable/disable
+                obj.onoffUIEl();
+                % Check dependencies
+                obj.checkUIdependencies();
             end         
             
           %   INPUT/OUTPUT FILE AND FOLDERS
@@ -2176,20 +2183,20 @@ classdef goGUIclass < handle
             %   MODE
             % ===============================================================
             
-            obj.setElVal(obj.idUI.lProcMode, state.mode, 1);
+            obj.setElVal(obj.idUI.lProcMode, state.mode, 0);
             
             obj.initCaptureMode();
-            obj.setElVal(obj.idUI.lCaptMode, state.nav_mon, 1);
+            obj.setElVal(obj.idUI.lCaptMode, state.nav_mon, 0);
             obj.initAlgorithmType();
-            obj.setElVal(obj.idUI.lAlgType, state.kalman_ls, 1);
+            obj.setElVal(obj.idUI.lAlgType, state.kalman_ls, 0);
             obj.initProcessingType();
-            obj.setElVal(obj.idUI.lProcType, state.code_dd_sa, 1);
+            obj.setElVal(obj.idUI.lProcType, state.code_dd_sa, 0);
             
             %   INPUT FILE TYPE
             % ===============================================================
             
             obj.setElVal(obj.idUI.rRin, state.rinex_files, 0);
-            obj.setElVal(obj.idUI.rBin, state.gogps_data, 0);
+            obj.setElVal(obj.idUI.rBin, state.gogps_data, 1);
             
             %   OPTIONS
             % ===============================================================
