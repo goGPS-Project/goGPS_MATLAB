@@ -44,6 +44,10 @@
 %  bool = getReadStatus(obj)                    return if the file has been already parsed
 %
 %  readFile(obj)                                force reading of the File
+%  update(obj, filename, force)                 update the object when needed:
+%                                                - filename changed 
+%                                                - force flag == 1
+%                                                - INI not yet read
 %
 % MANAGING LOGGING ----------------------------------------------------
 %
@@ -53,7 +57,9 @@
 %  verbosity = getVerbosityLev(obj)             get level of verbosity
 %
 % GETTER OF THE PARAMETERS --------------------------------------------
-%
+%  
+%  isS = isSection(obj, section)                get the presence of a section 
+%  isK = isKey(obj, section, key)               get the presence of a key 
 %  sectionList = getSections(obj)               get the list of available sections
 %  keyList = getKeys(obj, <section>)            get the list of the keys available
 %  data = getData(obj, <section>, key)          get the value of a specified key
@@ -124,12 +130,13 @@ classdef iniReader < handle
         
         % Creator
         function obj = iniReader(fileName, verbosity)
-            if (nargin >= 1)
-                    obj.setFileName(fileName);
-                    if isempty(dir(fileName))
-                        obj.printError('File not found!\n');
-                    end
+            if (nargin < 1)
+                fileName = '';
             end
+            if isempty(fileName)
+                fileName = '';
+            end
+            obj.setFileName(fileName);
             if (nargin == 2)
                 obj.setVerbosityLev(verbosity);
             end            
@@ -138,6 +145,17 @@ classdef iniReader < handle
         % Distructor
         function delete(obj)
             
+        end
+        
+        % Cleaner
+        function clearAll(obj)
+            obj.fid = 0;
+            obj.rw = 'r';
+            obj.strFileName = 'config.ini';
+            obj.rawData = {};
+            obj.verbosity = 1;
+            obj.colorMode = 1;
+            obj.section = {};
         end
         
         % ======================================================================
@@ -197,35 +215,53 @@ classdef iniReader < handle
         end
         
         % Read File -------------------------------------------------------
-        function readFile(obj)
-            % If the object already contains data - clear it
+        function errStatus = readFile(obj)
+            errStatus = false;            
+            % If the object already contains data - clean it
             if (obj.getReadStatus())
                 obj.rawData = {};
             end
-            
-            obj.fid = fopen(obj.getFileName(), obj.getRW());
-            
-            if (obj.fid ~= -1)   % If reading is ok
-                obj.rawData = textscan(obj.fid, '%s', 'delimiter', '\n', 'endOfLine', '\r\n');
-                
-                fclose(obj.fid);
-                
-                obj.readStatus = true;
-                obj.rawData = obj.rawData{1};
-                
-                if (obj.getVerbosityLev)
-                    obj.opStatus(1);
-                    cprintf('The INI file has been read correctly.\n');
-                end
-                
-                obj.cleanRaw();      % Stirp comments and spaces
-                obj.parseData();     % Parse file
-                obj.rawData = {};    % clean RAW temp data
+            if ~exist(obj.getFileName(),'file')
+                obj.printError('File not found');
+                errStatus = true;
             else
-                obj.printError(ferror(obj.fid));                
-                obj.setReadStatus(false);
-                obj.rawData = {};
+                obj.fid = fopen(obj.getFileName(), obj.getRW());
+                
+                if (obj.fid ~= -1)   % If reading is ok
+                    obj.rawData = textscan(obj.fid, '%s', 'delimiter', '\n', 'endOfLine', '\r\n');
+                    
+                    fclose(obj.fid);
+                    
+                    obj.readStatus = true;
+                    obj.rawData = obj.rawData{1};
+                    
+                    if (obj.getVerbosityLev)
+                        obj.opStatus(1);
+                        cprintf('The INI file has been read correctly.\n');
+                    end
+                    
+                    obj.cleanRaw();      % Stirp comments and spaces
+                    obj.parseData();     % Parse file
+                    obj.rawData = {};    % clean RAW temp data
+                else
+                    obj.printError(ferror(obj.fid));
+                    obj.setReadStatus(false);
+                    obj.rawData = {};
+                end
             end
+        end
+        
+        % Update File (when needed) ---------------------------------------
+        function reloaded = update(obj, filename, force)
+            if nargin == 2
+                force = 0;
+            end
+            reloaded = 0;
+            if (~strcmp(filename,obj.getFileName) || (force == 1) || ~obj.getReadStatus())
+                obj.setFileName(filename);
+                obj.readFile();
+                reloaded = 1;
+            end            
         end
                 
         % Set read status mode --------------------------------------------
@@ -246,7 +282,7 @@ classdef iniReader < handle
             verbosity = obj.verbosity;
         end
         
-        % Get the list of keys present in the file ------------------------        
+        % Get the list of sections present in the file --------------------        
         function sectionList = getSections(obj)
             if (~obj.getReadStatus())
                 obj.printWarning('File not yet read!\n');
@@ -259,6 +295,41 @@ classdef iniReader < handle
             end
         end 
         
+        % Return the presence of a section --------------------------------
+        function isS = isSection(obj, section)
+            s = 1;
+            while ((s<=length(obj.section)) && (s ~= 0))
+                if (strcmp(obj.section{s}.name,section))
+                    s = 0;      % stop searching
+                else
+                    s = s+1;    % go on with the search of the section
+                end
+            end
+           isS = s == 0;
+        end
+        
+        % Return the presence of a key ------------------------------------
+        function isK = isKey(obj, section, key)
+            s = 1;
+            while ((s<=length(obj.section)) && (s ~= 0))
+                if (strcmp(obj.section{s}.name,section))
+                    k = 1;
+                    while ((k<=length(obj.section{s}.par)) && (k ~= 0))
+                        if (strcmp(obj.section{s}.par{k}.name,key))
+                            obj.section{s}.key{k} = [];
+                            k = 0;
+                        else
+                            k = k + 1;
+                        end
+                    end
+                    s = 0;
+                else
+                    s = s + 1;    % go on with the search of the section
+                end
+            end
+            isK = k == 0;
+        end
+                
         % Get the list of keys present in the file ------------------------
         function keyList = getKeys(obj, section)
             if (nargin == 1)
@@ -356,26 +427,32 @@ classdef iniReader < handle
         
         % Add a new section to the object ---------------------------------        
         function addSection(obj, newSection)
-            newId = length(obj.section)+1;
-            obj.section{newId}.name = newSection;
-            obj.section{newId}.par = {};
+            if ~obj.isSection(newSection)
+                newId = length(obj.section)+1;
+                obj.section{newId}.name = newSection;
+                obj.section{newId}.par = {};
+            end
         end
         
         % Add a new keys to the object ------------------------------------
-        function addKey(obj, section, key, data)            
-            s = 1;
-            while ((s<=length(obj.section)) && (s ~= 0))
-                if (strcmp(obj.section{s}.name,section))
-                    newId = length(obj.section{s}.par)+1;
-                    obj.section{s}.par{newId}.name = key;
-                    obj.section{s}.par{newId}.data = data;
-                    s = 0;
-                else
-                    s = s+1;    % go on with the search of the section
+        function addKey(obj, section, key, data)
+            if obj.isKey(section, key)
+                obj.editKey(section, key, data);
+            else
+                s = 1;
+                while ((s<=length(obj.section)) && (s ~= 0))
+                    if (strcmp(obj.section{s}.name,section))
+                        newId = length(obj.section{s}.par)+1;
+                        obj.section{s}.par{newId}.name = key;
+                        obj.section{s}.par{newId}.data = data;
+                        s = 0;
+                    else
+                        s = s+1;    % go on with the search of the section
+                    end
                 end
-            end
-            if (s ~= 0)
-                obj.printError(['Section "' section '" not found!\n']);
+                if (s ~= 0)
+                    obj.printError(['Section "' section '" not found!\n']);
+                end
             end
         end
         
@@ -384,7 +461,7 @@ classdef iniReader < handle
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
-                    obj.section(s) = [];
+                    obj.section{s} = [];
                     s = 0;
                 else
                     s = s+1;    % go on with the search of the section
@@ -397,12 +474,12 @@ classdef iniReader < handle
         
         % Remove a key from the object iniReader ----------------------
         function rmKey(obj, section, key)
-                        s = 1;
+            s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
-                    while ((k<=length(obj.section(s).par)) && (k ~= 0))
+                    while ((k<=length(obj.section{s}.par)) && (k ~= 0))
                         if (strcmp(obj.section{s}.par{k}.name,key))
-                            obj.section{s}.key(k) = [];
+                            obj.section{s}.key{k} = [];
                             k = 0;
                         else
                             k = k + 1;
@@ -423,7 +500,8 @@ classdef iniReader < handle
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
-                    while ((k<=length(obj.section(s).par)) && (k ~= 0))
+                    k = 1;
+                    while ((k<=length(obj.section{s}.par)) && (k ~= 0))
                         if (strcmp(obj.section{s}.par{k}.name,key))
                             obj.section{s}.key{k}.data = data;
                             k = 0;
@@ -467,7 +545,7 @@ classdef iniReader < handle
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
-                    while ((k<=length(obj.section(s).par)) && (k ~= 0))
+                    while ((k<=length(obj.section{s}.par)) && (k ~= 0))
                         if (strcmp(obj.section{s}.par{k}.name,key))
                             k = 0;
                         else
@@ -713,12 +791,14 @@ classdef iniReader < handle
             if (nargin == 2)
                 colorMode = obj.colorMode;
             end
-            obj.opStatus(0);
-            if (colorMode)
-                cprintf('err', 'Warning: ');
-                cprintf('text', [text '\n']);
-            else
-                fprintf('Warning: %s\n', text);
+            if (obj.getVerbosityLev > 0)
+                obj.opstatus(0);
+                if (colorMode)
+                    cprintf('err', 'warning: ');
+                    cprintf('text', [text '\n']);
+                else
+                    fprintf('warning: %s\n', text);
+                end
             end
         end
         
@@ -727,12 +807,14 @@ classdef iniReader < handle
             if (nargin == 2)
                 colorMode = obj.colorMode;
             end
-            obj.opStatus(0);
-            if (colorMode)
-                cprintf('err', 'Error: ');
-                cprintf('text', [text '\n']);
-            else
-                fprintf('Error: %s\n', text);
+            if (obj.getVerbosityLev > 0)
+                obj.opStatus(0);
+                if (colorMode)
+                    cprintf('err', 'Error: ');
+                    cprintf('text', [text '\n']);
+                else
+                    fprintf('Error: %s\n', text);
+                end
             end
         end
         

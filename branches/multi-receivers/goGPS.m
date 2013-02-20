@@ -63,37 +63,37 @@ global_init;
 global order o1 o2 o3 h_antenna cutoff weights
 
 % Set global variable for goGPS obj mode
-clearvars -global goObj iniObs;
-global goObj iniObs;
+clearvars -global goObj goINI;
+global goObj;
 % For future development the flag goObs will guide a possible migration to the
 % use of generic objects (such as goObservations) able to automatically manage
 % multiple modes
 goObj = 0;  % this variable is set in the interface.
-iniObs = [];
 
 if (mode_user == 1)
-
+    
     if (~isunix)
-       [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-           flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
-           filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-           filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
+        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
+            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
     end
-
+    
+    global goINI;
     if (isempty(mode))
         return
     end
 else
-
+    
     %-------------------------------------------------------------------------------------------
     % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
     %-------------------------------------------------------------------------------------------
-
+    
     mode = 1;   % functioning mode
     % POST-PROCESSING (ABSOLUTE POSITIONING)
     % mode=1  --> LEAST SQUARES ON CODE
@@ -113,7 +113,7 @@ else
     % mode=22 --> MASTER MONITORING
     % mode=23 --> ROVER AND MASTER MONITORING
     % mode=24 --> KALMAN FILTER ON CODE AND PHASE DOUBLE DIFFERENCES (WITH/WITHOUT A CONSTRAINT)
-
+    
     % OLD POST-PROCESSING
     % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
     % mode=2  --> POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE, STAND-ALONE, NO CONSTRAINT
@@ -130,46 +130,46 @@ else
     % mode=12 --> ROVER MONITORING
     % mode=13 --> MASTER MONITORING
     % mode=14 --> ROVER AND MASTER MONITORING
-
+    
     mode_vinc = 0;    % navigation mode
     % mode_vinc=0 --> without linear constraint
     % mode_vinc=1 --> with linear constraint
-
+    
     mode_data = 1;    % data loading mode
     % mode_data=0 --> RINEX data
     % mode_data=1 --> goGPS binary data
-
+    
     mode_ref = 0;     % reference path mode
     % mode_ref=0 --> do not use a reference path
     % mode_ref=1 --> use a reference path (plot it and use it for statistics)
-
+    
     flag_ms_pos = 1;     % read master station position from RTCM or RINEX header
-
+    
     flag_ms = 0;         % plot master station position --> no=0, yes=1
-
+    
     flag_ge = 0;         % use google earth --> no=0, yes=1
-
+    
     flag_cov = 0;        % plot error ellipse --> no=0, yes=1
-
+    
     flag_NTRIP = 1;      % use NTRIP --> no=0, yes=1
-
+    
     flag_amb = 0;        % plot ambiguities (only in post-processing)
-
+    
     flag_skyplot = 1;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
-
+    
     flag_plotproc = 1;   % plot while processing
-
+    
     flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
     
     flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
-
+    
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
     %----------------------------------------------------------------------------------------------
-
+    
     %User-defined global settings
     global_settings;
-
+    
     %Check availability of Instrument Control Toolbox
     if (mode > 20)
         try
@@ -178,7 +178,7 @@ else
             error('Instrument Control Toolbox is needed to run goGPS in real-time mode.');
         end
     end
-
+    
 end
 
 %-------------------------------------------------------------------------------------------
@@ -190,35 +190,36 @@ end
 %-------------------------------------------------------------------------------------------
 
 inputOk = true;
-if (goObj)   
+if (goObj)
+    % With the new interface this file should be ready (already loaded)
     % read RINEX receivers file list
-    iniObs = iniReader(filename_R_obs, 0);
-    iniObs.readFile();
+    % goINI = iniReader(filename_R_obs, 0);
+    % goINI.readFile();
     
     % If navigation and master observations filenames are contained
     % in the ini file use them otherwise fall back to global variables
     % parameters (values from interface)
-    if (~iniObs.containsSection('Master'))
-        iniObs.addSection('Master');
+    if (~goINI.containsSection('Master'))
+        goINI.addSection('Master');
         [data_path, file_name, obsExtension] = fileparts(filename_M_obs);
-        iniObs.addKey('Master','data_path',[data_path filesep]);
-        iniObs.addKey('Master','file_name',[file_name obsExtension]);
+        goINI.addKey('Master','data_path',[data_path filesep]);
+        goINI.addKey('Master','file_name',[file_name obsExtension]);
     end
-    if (~iniObs.containsSection('Navigational'))
-        iniObs.addSection('Navigational');
+    if (~goINI.containsSection('Navigational'))
+        goINI.addSection('Navigational');
         [data_path, file_name, navExtension] = fileparts(filename_nav);
-        iniObs.addKey('Navigational','isSP3',flag_SP3);
-        iniObs.addKey('Navigational','data_path',[data_path filesep]);
-        iniObs.addKey('Navigational','file_name',[file_name navExtension]);
+        goINI.addKey('Navigational','isSP3',flag_SP3);
+        goINI.addKey('Navigational','data_path',[data_path filesep]);
+        goINI.addKey('Navigational','file_name',[file_name navExtension]);
     end
     
     % Create the observation object!!!
     % It contains all the observations, and already load the data
     % from the RINEX in its initialization
     goObs = goObservation();
-        
+    
     % Check input
-    err = goObs.init(iniObs);
+    err = goObs.init(goINI);
     if err > 0
         inputOk = false;
     end
@@ -1514,21 +1515,21 @@ if (inputOk)
             
             %kalman_initialized = 0;
             %while (~kalman_initialized)
-                if (isempty(goObs.getTime_Ref()))
-                    fprintf('It was not possible to initialize the Kalman filter.\n');
-                    return
-                end
-
-                KFmode = 5;
-                goKF = goKalmanFilter(goObs, KFmode, goObs.getSamplingRate_R(1));
-                %kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(1));
-                
-                if (~kalman_initialized)
-                    pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
-                    pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-                    pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-                    snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
-                end
+            if (isempty(goObs.getTime_Ref()))
+                fprintf('It was not possible to initialize the Kalman filter.\n');
+                return
+            end
+            
+            KFmode = 5;
+            goKF = goKalmanFilter(goObs, KFmode, goObs.getSamplingRate_R(1));
+            %kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(1));
+            
+            if (~kalman_initialized)
+                pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+                pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
+                pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
+                snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
+            end
             %end
             
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -2954,7 +2955,7 @@ if (inputOk)
         fprintf('RMS3D:  %7.4f m\n',sqrt(std(dist3D)^2+mean(dist3D)^2));
         fprintf('--------------------------------\n\n');
     end
-end        
+end
 
 %----------------------------------------------------------------------------------------------
 

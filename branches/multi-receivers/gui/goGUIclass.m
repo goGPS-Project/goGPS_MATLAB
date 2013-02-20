@@ -34,6 +34,9 @@ classdef goGUIclass < handle
         % Colors
         disableCol = [0.502 0.502 0.502];
         enableCol = [0 0 0];
+        green = [0 0.8 0];
+        yellow = [1 0.8 0.1];
+        red = [1 0 0];
         
         % goGPS Modes
         mode_RT_Nav = 24;         % Real Time Navigation
@@ -70,7 +73,7 @@ classdef goGUIclass < handle
         
         curState = [];      % This array [n x 1] contains the current status of abilitation of each element of the interface
         newState = [];      % This array [n x 1] contains the future status of abilitation of each element of the interface
-        initialState = [];    % This array [n x 1] contains a saved status of abilitation of each element of the interface
+        initialState = [];  % This array [n x 1] contains a saved status of abilitation of each element of the interface
         
         getFlag = [];       % Logical flag array [n x 1] contain 1 where a change of the value of the element is needed (from UI to current status)
         setFlag = [];       % Logical flag array [n x 1] contain 1 where a change of the value of the element is needed (from current status to UI)
@@ -144,6 +147,7 @@ classdef goGUIclass < handle
         ledOn  = 1;
         ledOk  = 3;
         ledKo  = 4;
+        ledCk  = 5;
 
     end
     
@@ -193,6 +197,8 @@ classdef goGUIclass < handle
     methods(Access = 'private')
         
         function init(obj, handles)
+            clear global goINI
+
             tic;
             obj.goWB = goWaitBar(5, 'Initializing goGPS GUI...');
             obj.goWB.titleUpdate('Init GUI');
@@ -224,6 +230,7 @@ classdef goGUIclass < handle
             
             %center the window
             set(obj.goh.main_panel, 'Position', position);
+
             % Init elements ids
             obj.initInterface();
             obj.goWB.close();
@@ -241,7 +248,6 @@ classdef goGUIclass < handle
             obj.strCaptureMode{obj.idRMon} = 'Rover Monitor';
             obj.strCaptureMode{obj.idMMon} = 'Master Monitor';
             obj.strCaptureMode{obj.idRMMon} = 'Rover and Master Monitor';
-            %obj.initCaptureMode(obj.strCaptureMode);
 
             obj.strAlgorithm{obj.idLS} = 'Least squares';
             obj.strAlgorithm{obj.idKF} = 'Kalman filter';
@@ -251,7 +257,6 @@ classdef goGUIclass < handle
             obj.strType{obj.idCP_SA} = 'Code and phase stand-alone';
             obj.strType{obj.idCP_DD} = 'Code and phase double difference';
             obj.strType{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
-            %obj.initProcessingType(obj.strType)
             
             obj.strDynModel{obj.idCVel} = 'Const. velocity';
             obj.strDynModel{obj.idCAcc} = 'Const. acceleration';
@@ -434,6 +439,7 @@ classdef goGUIclass < handle
             i=i+1; id.pOptions      = i;    id2h(i) = obj.goh.uipOptions;
             i=i+1; id.pIFiles       = i;    id2h(i) = obj.goh.file_type;
             i=i+1; id.pIOFiles      = i;    id2h(i) = obj.goh.uipInOutFiles;
+            i=i+1; id.pConstellations = i;  id2h(i) = obj.goh.pConstellations;
             i=i+1; id.pSettings     = i;    id2h(i) = obj.goh.uipSettings;
             i=i+1; id.pKF           = i;    id2h(i) = obj.goh.uipKF;
             i=i+1; id.pEStD         = i;    id2h(i) = obj.goh.uipEStD;
@@ -477,91 +483,96 @@ classdef goGUIclass < handle
             i=i+1; id.cPlotAmb      = i;    id2h(i) = obj.goh.plot_amb;
             i=i+1; id.cUseNTRIP     = i;    id2h(i) = obj.goh.use_ntrip;
             i=i+1; id.cDoppler      = i;    id2h(i) = obj.goh.flag_doppler;
-            i=i+1; id.cSBAS         = i;    id2h(i) = obj.goh.use_SBAS;
+            i=i+1; id.cUse_SBAS         = i;    id2h(i) = obj.goh.use_SBAS;
             
             % Group of ids in the panel pOptions
             idG.gPlotProc = [id.cSkyPlot id.cGEarth id.cErrEllipse id.cPlotMaster id.cPlotAmb];
-            idG.pOptions = [id.pOptions id.cConstraint:id.cSBAS]; 
+            idG.pOptions = [id.pOptions id.cConstraint:id.cUse_SBAS]; 
             
           %   INPUT/OUTPUT FILE AND FOLDERS
           % --------------------------------------------------------------- 
 
-            % Rover/INI ---------------------------------------------------
-            i=i+1; id.tRinRover     = i;    id2h(i) = obj.goh.text_RINEX_rover_obs;
-                   id.tRinINI       = i;    
-            i=i+1; id.fRinRover     = i;    id2h(i) = obj.goh.fRinRover;
-                   id.fRinINI       = i;    
-            i=i+1; id.sRinRover     = i;    id2h(i) = obj.goh.RINEX_rover_obs;
-                   id.sRinINI       = i;
-            i=i+1; id.bRinRover     = i;    id2h(i) = obj.goh.browse_rover_obs;
-                   id.bRinINI       = i;
+            % INI ---------------------------------------------------------
+            i=i+1; id.tINI          = i;    id2h(i) = obj.goh.tINI;
+            i=i+1; id.fINI          = i;    id2h(i) = obj.goh.fINI;
+            i=i+1; id.sINI          = i;    id2h(i) = obj.goh.sINI;
+            i=i+1; id.bINI          = i;    id2h(i) = obj.goh.bINI;
             
-            idG.RinRover = [id.tRinRover id.fRinRover id.sRinRover id.bRinRover];
-            idG.RinINI   = [id.tRinINI   id.fRinINI   id.sRinINI   id.bRinINI];
+            idG.gINI   = [id.tINI   id.fINI   id.sINI   id.bINI];
+                        
+            % Rover -------------------------------------------------------
+            i=i+1; id.tRinRover     = i;    id2h(i) = obj.goh.tRinRover;
+            i=i+1; id.fRinRover     = i;    id2h(i) = obj.goh.fRinRover;
+            i=i+1; id.tNumRec       = i;    id2h(i) = obj.goh.tNumRec;
+            
+            idG.RinRover = [id.tRinRover id.tNumRec id.fRinRover];
                         
             % Master ------------------------------------------------------
-            i=i+1; id.tRinMaster    = i;    id2h(i) = obj.goh.text_RINEX_master_obs;
+            i=i+1; id.tRinMaster    = i;    id2h(i) = obj.goh.tRinMaster;
             i=i+1; id.fRinMaster    = i;    id2h(i) = obj.goh.fRinMaster;
-            i=i+1; id.sRinMaster    = i;    id2h(i) = obj.goh.RINEX_master_obs;
-            i=i+1; id.bRinMaster    = i;    id2h(i) = obj.goh.browse_master_obs;
             
-            idG.RinMaster = [id.tRinMaster id.fRinMaster id.sRinMaster id.bRinMaster];
+            idG.RinMaster = [id.tRinMaster id.fRinMaster];
             
             % Navigation --------------------------------------------------
-            i=i+1; id.tRinNav       = i;    id2h(i) = obj.goh.text_RINEX_nav;
+            i=i+1; id.tRinNav       = i;    id2h(i) = obj.goh.tRinNav;
             i=i+1; id.fRinNav       = i;    id2h(i) = obj.goh.fRinNav;
-            i=i+1; id.sRinNav       = i;    id2h(i) = obj.goh.RINEX_nav;
-            i=i+1; id.bRinNav       = i;    id2h(i) = obj.goh.browse_nav;
             
-            idG.RinNav = [id.tRinNav id.fRinNav id.sRinNav id.bRinNav];
+            idG.RinNav = [id.tRinNav id.fRinNav ];
             
             % Binary In ---------------------------------------------------
-            i=i+1; id.tBinGoIn      = i;    id2h(i) = obj.goh.text_gogps_input;
+            i=i+1; id.tBinGoIn      = i;    id2h(i) = obj.goh.tBinGoIn;
             i=i+1; id.fBinGoIn      = i;    id2h(i) = obj.goh.fBinGoIn;
-            i=i+1; id.sBinGoIn      = i;    id2h(i) = obj.goh.gogps_data_input;
-            i=i+1; id.bBinGoIn      = i;    id2h(i) = obj.goh.browse_gogps_input;
             
-            idG.BinGoIn = [id.tBinGoIn id.fBinGoIn id.sBinGoIn id.bBinGoIn];            
+            idG.BinGoIn = [id.tBinGoIn id.fBinGoIn];            
 
             % Output ------------------------------------------------------
-            i=i+1; id.tDirGoOut     = i;    id2h(i) = obj.goh.text_gogps_data_output;
+            i=i+1; id.tDirGoOut     = i;    id2h(i) = obj.goh.tDirGoOut;
             i=i+1; id.fDirGoOut     = i;    id2h(i) = obj.goh.fDirGoOut;
-            i=i+1; id.sDirGoOut     = i;    id2h(i) = obj.goh.gogps_data_output;
-            i=i+1; id.bDirGoOut     = i;    id2h(i) = obj.goh.browse_gogps_data_output;
-            i=i+1; id.tPrefixGoOut  = i;    id2h(i) = obj.goh.text_gogps_data_output_prefix;
-            i=i+1; id.sPrefixGoOut  = i;    id2h(i) = obj.goh.gogps_data_output_prefix;
+            i=i+1; id.sDirGoOut     = i;    id2h(i) = obj.goh.sDirGoOut;
+            i=i+1; id.bDirGoOut     = i;    id2h(i) = obj.goh.bDirGoOut;
+            i=i+1; id.tPrefixGoOut  = i;    id2h(i) = obj.goh.tPrefixGoOut;
+            i=i+1; id.sPrefixGoOut  = i;    id2h(i) = obj.goh.sPrefixGoOut;
             
             idG.DirGoOut = [id.tDirGoOut id.fDirGoOut id.sDirGoOut id.bDirGoOut];
             idG.GoOut = id.tDirGoOut:id.sPrefixGoOut;
 
             % DTM ---------------------------------------------------------
-            i=i+1; id.tDTM          = i;    id2h(i) = obj.goh.text_dtm_path;
+            i=i+1; id.tDTM          = i;    id2h(i) = obj.goh.tDTM;
             i=i+1; id.fDTM          = i;    id2h(i) = obj.goh.fDTM;
-            i=i+1; id.sDTM          = i;    id2h(i) = obj.goh.dtm_path;
-            i=i+1; id.bDTM          = i;    id2h(i) = obj.goh.browse_dtm_path;
             
-            idG.DTM = [id.tDTM id.fDTM id.sDTM id.bDTM];
+            idG.DTM = [id.tDTM id.fDTM];
             
             % Reference Path ----------------------------------------------
-            i=i+1; id.tRefPath      = i;    id2h(i) = obj.goh.text_ref_path_input;
+            i=i+1; id.tRefPath      = i;    id2h(i) = obj.goh.tRefPath;
             i=i+1; id.fRefPath      = i;    id2h(i) = obj.goh.fRefPath;
-            i=i+1; id.sRefPath      = i;    id2h(i) = obj.goh.ref_path_input;
-            i=i+1; id.bRefPath      = i;    id2h(i) = obj.goh.browse_ref_path_input;
             
-            idG.RefPath = [id.tRefPath id.fRefPath id.sRefPath id.bRefPath];
+            idG.RefPath = [id.tRefPath id.fRefPath];
             
             % Group of ids in the panel pIOFiles
             idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.BinGoIn idG.GoOut idG.DTM idG.RefPath];
             
             % For a correct LED management these following id gorups must be syncronized 
-            idG.gFileStrings = [id.sRinRover id.sRinMaster id.sRinNav id.sDTM id.sRefPath];
-            idG.gFileLED =     [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath];
-            idG.gBinStrings =  [id.sBinGoIn];
-            idG.gBinLED =      [id.fBinGoIn];
-            idG.gDirStrings =  [id.sDirGoOut];
-            idG.gDirLED =      [id.fDirGoOut];
+            idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath];
+            idG.gBinLED =  [id.fBinGoIn];
+            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fBinGoIn];
+            idG.gDirLED =  [id.fDirGoOut];
             idG.gLED = [idG.gFileLED idG.gBinLED idG.gDirLED];
+
+          %   INPUT/OUTPUT FILE AND FOLDERS - CONSTELLATIONS
+          % --------------------------------------------------------------- 
+            i=i+1; id.cGPS          = i;    id2h(i) = obj.goh.cGPS;
+            i=i+1; id.cGLONASS      = i;    id2h(i) = obj.goh.cGLONASS;
+            i=i+1; id.cGalileo      = i;    id2h(i) = obj.goh.cGalileo;
+            i=i+1; id.cBeiDou       = i;    id2h(i) = obj.goh.cBeiDou;
+            i=i+1; id.cQZSS         = i;    id2h(i) = obj.goh.cQZSS;
+            i=i+1; id.cSBAS         = i;    id2h(i) = obj.goh.cSBAS;
             
+            % Group of ids in the panel pConstellations
+            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cUse_SBAS];
+            
+            % Constellation of satellites actually supported
+            idG.pAvailableGNSS = [id.cGPS];
+
           %   SETTINGS - KALMAN FILTER - STD
           % --------------------------------------------------------------- 
 
@@ -813,7 +824,7 @@ classdef goGUIclass < handle
             idG.onRealTime = [idG.ResetStatus ...
                               id.pMode id.lCaptMode ...
                               id.pIFiles id.rBin ...
-                              id.pIOFiles idG.BinGoIn idG.GoOut ...
+                              id.pIOFiles id.pConstellations idG.pAvailableGNSS idG.gINI idG.GoOut ...
                               id.pSettings];
                           
             % On Real Time => Navigation Mode            
@@ -826,18 +837,18 @@ classdef goGUIclass < handle
           
             % On Real Time => Rover Monitor
             idG.onRT_RMon = [idG.onRealTime ...
-                             id.pOptions id.cSBAS ...
+                             id.pOptions id.cUse_SBAS ...
                              idG.pDynModel ...
                              id.pPorts idG.nPorts idG.lPort0];
 
             % On Real Time => Master Monitor
             idG.onRT_MMon = [idG.onRealTime ...
-                             id.pOptions id.cUseNTRIP id.cSBAS ...
+                             id.pOptions id.cUseNTRIP id.cUse_SBAS ...
                              idG.pMS_NTRIP];
 
             % On Real Time => Master + Rover Monitor
             idG.onRT_RMMon = [idG.onRealTime ...
-                              id.pOptions id.cUseNTRIP id.cSBAS ...
+                              id.pOptions id.cUseNTRIP id.cUse_SBAS ...
                               idG.pDynModel ...
                               id.pPorts idG.nPorts idG.lPort0...
                               idG.pMS_NTRIP];
@@ -847,8 +858,8 @@ classdef goGUIclass < handle
             % On Post Proc
             idG.onPostProc = [idG.ResetStatus ...
                               id.pMode id.lAlgType id.lProcType ...
-                              id.pIFiles...
-                              id.pIOFiles idG.GoOut ...
+                              id.pIFiles idG.gINI...
+                              id.pIOFiles id.pConstellations idG.pAvailableGNSS idG.GoOut ...
                               id.pOptions id.cRefPath id.cPlotProc ...
                               id.pSettings idG.CutOff idG.pW];
             
@@ -858,7 +869,7 @@ classdef goGUIclass < handle
                           
             % On Post Proc => Least Squares => Code Stand Alone
             idG.onPP_LS_C_SA = [idG.onPP_LS ...
-                               id.cSBAS];
+                               id.cUse_SBAS];
             
             % On Post Proc => Least Squares => Code Double Differencies
             idG.onPP_LS_C_DD = [idG.onPP_LS ...
@@ -868,12 +879,12 @@ classdef goGUIclass < handle
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc ...
                            id.rRin ...
-                           id.pKF idG.pKF_ENU idG.StdCode idG.StdT0 id.bStdDTM ...
+                           id.pKF id.pEStD idG.pKF_ENU idG.StdCode idG.StdT0 id.bStdDTM ...
                            idG.SNR idG.MaxNumSat];
                           
             % On Post Proc => On Least Squares => Code Stand Alone
             idG.onPP_KF_C_SA = [idG.onPP_KF id.rBin ...
-                               id.cSBAS];
+                               id.cUse_SBAS];
             
             % On Post Proc => On Least Squares => Code Double Differencies
             idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin ...
@@ -881,7 +892,7 @@ classdef goGUIclass < handle
 
             % On Post Proc => On Least Squares => Code Stand Alone
             idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin ...
-                                 id.cSBAS];
+                                 id.cUse_SBAS];
             
             % On Post Proc => On Least Squares => Code Double Differencies
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin ...
@@ -1017,27 +1028,29 @@ classdef goGUIclass < handle
                 % modified panels
                 mPanel = idEl(panels & obj.getFlag);
                 
-                % Sets of text elements
+                % Sets of text elements                
                 textEl = false(length(obj.id2handle),1);     % init logical text elements group
                 textEl(obj.idGroup.strEl) = true;              % set logical indexes of the text elements
-                % modified text elements
-                mTextEl = setdiff(idEl(textEl & obj.getFlag), obj.idGroup.gLED);
+                % Modified LED elements
+                mLED = obj.idGroup.gLED(obj.getFlag(obj.idGroup.gLED));
+                % Modified text elements
+                mTextEl = setdiff(idEl(textEl & obj.getFlag), mLED);
                 
-                mIdEl = setdiff(idEl(~panels & ~textEl & obj.getFlag), obj.idGroup.gLED); % id of elements that are not panels nor text elements that have been modified
+                mIdEl = setdiff(idEl(~panels & ~textEl & obj.getFlag), mLED); % id of elements that are not panels nor text elements that have been modified
                 
                 % For each modified panel
                 for i=1:length(mPanel)
                     obj.curVal{mPanel(i)} = obj.getGuiElTitle(obj.id2handle(mPanel(i)));
                 end
                 
-                % For each modified panel
+                % For each modified txt Element
                 for i=1:length(mTextEl)
                     obj.curVal{mTextEl(i)} = obj.getGuiElStr(obj.id2handle(mTextEl(i)));
                 end
 
                 % For all the LEDs
-                for i=1:length(obj.idGroup.gLED)
-                    obj.curVal{obj.idGroup.gLED(i)} = obj.getGuiElColor(obj.id2handle(obj.idGroup.gLED(i)));
+                for i=1:length(mLED)
+                    obj.curVal{mLED(i)} = obj.getGuiElColor(obj.id2handle(mLED(i)));
                 end
 
                 % For all the other modified elements
@@ -1078,19 +1091,26 @@ classdef goGUIclass < handle
                 % Sets of text elements
                 textEl = false(length(obj.id2handle),1);     % init logical text elements group
                 textEl(obj.idGroup.strEl) = true;              % set logical indexes of the text elements
-                % modified text elements
-                mTextEl = idEl(textEl & obj.setFlag);
+                % Modified LED elements
+                mLED = obj.idGroup.gLED(obj.setFlag(obj.idGroup.gLED));
+                % Modified text elements
+                mTextEl = setdiff(idEl(textEl & obj.setFlag), mLED);
                 
-                mIdEl = idEl(~panels & ~textEl & obj.setFlag); % id of elements that are not panels nor text elements that have been modified
+                mIdEl = setdiff(idEl(~panels & ~textEl & obj.setFlag), mLED); % id of elements that are not panels nor text elements that have been modified
                 
                 % For each modified panel
                 for i=1:length(mPanel)
                     obj.setGuiElTitle(obj.id2handle(mPanel(i)), obj.newVal{mPanel(i)});
                 end
                 
-                % For each modified panel
+                % For each modified txt element
                 for i=1:length(mTextEl)
                     obj.setGuiElStr(obj.id2handle(mTextEl(i)), obj.newVal{mTextEl(i)});
+                end
+                
+                % For all the LEDs
+                for i=1:length(mLED)
+                    obj.setGuiElColor(obj.id2handle(mLED(i)), obj.newVal{mLED(i)});
                 end
                 
                 % For all the other modified elements
@@ -1235,7 +1255,12 @@ classdef goGUIclass < handle
         % Return 1 if the color of the element with id = idEl is the same
         % of color (This works only for LEDs)
         function isCol = isColor(obj, idEl, color)
-            isCol = sum(obj.getElVal(idEl) == obj.newState(idEl)) == 3;
+            tmp = obj.getElVal(idEl);
+            if length(tmp) == 3
+                isCol = sum(obj.getElVal(idEl) == color) == 3;
+            else
+                isCol = false;
+            end
         end
         
         % Return the status of activation of the element with id = idEl
@@ -1250,6 +1275,13 @@ classdef goGUIclass < handle
                 isOn = logical(obj.getElVal(idEl));
             end
             isOn = isOn & obj.isEnabled(idEl);  % To be active an elment must be Enabled and its value = 'on'
+        end
+        
+        function isOk  = okGo(obj, idEl)
+            isOk = ~obj.isEnabled(idEl);
+            if ~isOk
+                isOk = obj.isColor(idEl, obj.green);
+            end
         end
                        
         % Disable all the UI elementss but the mode and exit buttons
@@ -1608,7 +1640,8 @@ classdef goGUIclass < handle
           % For each file field enabled, I have to check the existence of
           % the folder / file to enable the go Button
             obj.onoffUIEl();
-            goOk = obj.testFiles();
+            obj.updateLEDstate();
+            goOk = obj.test4Go();
             obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
         end
         
@@ -1621,8 +1654,10 @@ classdef goGUIclass < handle
                 idEl = obj.idUI.lProcMode;
             end
             obj.getFlag(idEl) = true;
-            obj.updateGUI();
-            
+            % Read all the values of the elements
+            obj.getAllElContent();
+            obj.setAllElContent();
+
           %   MODE
           % --------------------------------------------------------------- 
             if sum(intersect(idEl, obj.idUI.lProcMode)) > 0
@@ -1667,10 +1702,7 @@ classdef goGUIclass < handle
             
             if sum(intersect(idEl, obj.idUI.lProcType)) > 0
                 if obj.isKF() && (obj.getElVal(obj.idUI.lProcType) == obj.idCP_DD_MR)
-                    obj.setElVal(obj.idUI.tRinINI, 'INI configuration file', 0);
                     obj.setRinex();
-                else
-                    obj.setElVal(obj.idUI.tRinRover, 'RINEX rover observation file', 0);
                 end
 
                 % Enable / Disable elements
@@ -1702,38 +1734,29 @@ classdef goGUIclass < handle
                     obj.getFlag(idEl) = true;
                     obj.updateGUI();
                 end
+                
+                % Verify if there's still something to enable/disable
+                obj.onoffUIEl();
+                % Check dependencies
+                obj.checkUIdependencies();
             end         
             
           %   INPUT/OUTPUT FILE AND FOLDERS
           % ---------------------------------------------------------------
 
             % Browse for rover file
-            if sum(intersect(idEl, obj.idUI.bRinRover)) > 0
-                obj.browseRoverObsFile()
+            if sum(intersect(idEl, obj.idUI.bINI)) > 0
+                obj.browseINIFile();
             end
-            % Browse for a master file
-            if sum(intersect(idEl, obj.idUI.bRinMaster)) > 0
-                obj.browseMasterObsFile()
+            if sum(intersect(idEl, obj.idGroup.gINI)) > 0
+                obj.updateLEDstate(true);
+                goOk = obj.test4Go();
+                obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
             end
-            % Browse for a navigation file
-            if sum(intersect(idEl, obj.idUI.bRinNav)) > 0
-                obj.browseNavigationFile()
-            end
-            % Browse for a binary file
-            if sum(intersect(idEl, obj.idUI.bBinGoIn)) > 0
-                obj.browseBinaryFile()
-            end
+                
             % Browse output foder fo binary data
             if sum(intersect(idEl, obj.idUI.bDirGoOut)) > 0
                 obj.browseOutDir()
-            end
-            % Browse for a DTM folder
-            if sum(intersect(idEl, obj.idUI.bDTM)) > 0
-                obj.browseDtmDir()
-            end
-            % Browse for the path containing reference points for constrained solutions
-            if sum(intersect(idEl, obj.idUI.bRefPath)) > 0
-                obj.browseRefDir()
             end
 
           %   SETTINGS - MASTER STATION
@@ -1779,49 +1802,227 @@ classdef goGUIclass < handle
     methods
         % Test if the active file/dir paths
         % contain valid file/dir
-        function goOk = testFiles(obj)
-            goOk = true;
-            for i = 1:length(obj.idGroup.gFileLED)
-                if obj.isEnabled(obj.idGroup.gFileStrings(i));
-                    if ~exist(obj.getElVal(obj.idGroup.gFileStrings(i)),'file');
-                        goOk = false;
-                        obj.setGUILedStatus(obj.idGroup.gFileLED(i), obj.ledKo, 0);
-                    else
-                        obj.setGUILedStatus(obj.idGroup.gFileLED(i), obj.ledOk, 0);
+        function updateLEDstate(obj, force)
+            global goINI
+            if nargin == 1
+                force = 0;      % force file update
+            end            
+            
+            % Check INI file
+            if obj.isEnabled(obj.idUI.sINI);
+                filename = obj.getElVal(obj.idUI.sINI);
+                if isempty(filename)
+                    obj.setGUILedStatus(obj.idUI.fINI, obj.ledKo, 0);
+                    % If I do not have an INI file, every LED should be RED
+                    for  i = 1:length(obj.idGroup.gInINILED)
+                        obj.setGUILedStatus(obj.idGroup.gInINILED(i), obj.ledKo, 0);
                     end
                 else
-                    obj.setGUILedStatus(obj.idGroup.gFileLED(i), obj.ledOff, 0);
+                    if exist(filename,'file');
+                        obj.setGUILedStatus(obj.idUI.fINI, obj.ledOk, 0);
+                        
+                        % If needed init INI reader
+                        if isempty(goINI)
+                            goINI = iniReader('', 0);
+                        end
+                        % If I have to update the ini file
+                        goINI.update(filename, force);
+                        % Receivers file --------------------------------------
+                        nR = goINI.getData('Receivers','nRec');
+                        data_path = goINI.getData('Receivers','data_path');
+                        file_name = goINI.getData('Receivers','file_name');
+                        
+                        if (isempty(data_path))
+                            if iscell(file_name)
+                                nR = length(file_name);
+                            else
+                                nR = 1;
+                            end
+                            goINI.setData('Receivers','nRec',nR);
+                        end
+                        obj.setElVal(obj.idUI.tNumRec,['x ' num2str(nR)]);
+                        
+                        if (isempty(data_path))
+                            data_path = '';
+                        end
+                        if (isempty(file_name))
+                            obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledKo, 0);
+                        else
+                            % If I have more than one receiver
+                            if iscell(file_name)
+                                % The number of receiver is = to the number of files?
+                                if nR ~= length((file_name))   % Declared number of file ~= number of files
+                                    obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
+                                else
+                                    % Check the presence of all the files
+                                    fileOk = true;
+                                    for r = 1:nR
+                                        if ~exist([data_path file_name{r}],'file')
+                                            fileOk = false;
+                                        end
+                                    end
+                                    if fileOk
+                                        obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledOk, 0);
+                                    else
+                                        obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
+                                    end
+                                end
+                            else
+                                % The number of receiver is = to the number of files?
+                                if nR > 1   % Declared number of file ~= number of files
+                                    obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
+                                else
+                                    % Check the presence of all the files
+                                    if exist([data_path file_name],'file')
+                                        obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledOk, 0);
+                                    else
+                                        obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
+                                    end
+                                end
+                            end
+                        end
+                        
+                        % Master file -----------------------------------------
+                        data_path = goINI.getData('Master','data_path');
+                        file_name = goINI.getData('Master','file_name');
+                        if (isempty(data_path))
+                            data_path = '';
+                        end
+                        if (isempty(file_name))
+                            obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledKo, 0);
+                        else
+                            % Check the presence of all the files
+                            if exist([data_path file_name],'file')
+                                obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledOk, 0);
+                            else
+                                obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledCk, 0);
+                            end
+                        end
+                        
+                        % Navigation file -------------------------------------
+                        data_path = goINI.getData('Navigational','data_path');
+                        file_name = goINI.getData('Navigational','file_name');
+                        if (isempty(data_path))
+                            data_path = '';
+                        end
+                        if (isempty(file_name))
+                            obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledKo, 0);
+                        else
+                            % Check the presence of all the files
+                            if exist([data_path file_name],'file')
+                                obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledOk, 0);
+                            else
+                                obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledCk, 0);
+                            end
+                        end
+                        
+                        % Bin file --------------------------------------------
+                        data_path = goINI.getData('Bin','data_path');
+                        file_prefix = goINI.getData('Bin','file_prefix');
+                        if (isempty(data_path))
+                            data_path = '';
+                        end
+                        if (isempty(file_prefix))
+                            obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledKo, 0);
+                        else
+                            % Check the presence of the files
+                            if ~(isempty(dir([data_path file_prefix '_obs*.bin'])) || isempty(dir([data_path file_prefix '_eph*.bin'])))
+                                obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledOk, 0);
+                            else
+                                obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledCk, 0);
+                            end
+                        end
+                        
+                        % DTM file -----------------------------------------------
+                        data_path = goINI.getData('DTM','data_path');
+                        if (isempty(data_path))
+                            obj.setGUILedStatus(obj.idUI.fDTM, obj.ledKo, 0);
+                        else
+                            % Check the presence of the directory
+                            if exist(data_path,'dir')
+                                obj.setGUILedStatus(obj.idUI.fDTM, obj.ledOk, 0);
+                            else
+                                obj.setGUILedStatus(obj.idUI.fDTM, obj.ledCk, 0);
+                            end
+                        end
+                        
+                        % Reference path file ------------------------------------
+                        data_path = goINI.getData('RefPath','data_path');
+                        file_name = goINI.getData('RefPath','file_name');
+                        if (isempty(data_path))
+                            data_path = '';
+                        end
+                        if (isempty(file_name))
+                            obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledKo, 0);
+                        else
+                            % Check the presence of all the files
+                            if exist([data_path file_name],'file')
+                                obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledOk, 0);
+                            else
+                                obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledCk, 0);
+                            end
+                        end
+                    else
+                        obj.setGUILedStatus(obj.idUI.fINI, obj.ledCk, 0);
+                        % If I do not have an INI file, every LED should be RED
+                        for  i = 1:length(obj.idGroup.gInINILED)
+                            obj.setGUILedStatus(obj.idGroup.gInINILED(i), obj.ledKo, 0);
+                        end
+                    end
                 end
             end
             
-            for i = 1:length(obj.idGroup.gBinLED)
-                if obj.isEnabled(obj.idGroup.gBinStrings(i));
-                    if isempty(dir([obj.getElVal(obj.idGroup.gBinStrings(i)) '*']))
-                        goOk = false;
-                        obj.setGUILedStatus(obj.idGroup.gBinLED(i), obj.ledKo, 0);
-                    else
-                        obj.setGUILedStatus(obj.idGroup.gBinLED(i), obj.ledOk, 0);
-                    end
-                else
-                    obj.setGUILedStatus(obj.idGroup.gBinLED(i), obj.ledOff, 0);
-                end
-            end
-
-
-            for i = 1:length(obj.idGroup.gDirLED)
-                if obj.isEnabled(obj.idGroup.gDirStrings(i));
-                    if ~exist(obj.getElVal(obj.idGroup.gDirStrings(i)),'dir');
-                        goOk = false;
-                        obj.setGUILedStatus(obj.idGroup.gDirLED(i), obj.ledKo, 0);
-                    else
-                        obj.setGUILedStatus(obj.idGroup.gDirLED(i), obj.ledOk, 0);
-                    end
-                else
-                    obj.setGUILedStatus(obj.idGroup.gDirLED(i), obj.ledOff, 0);
-                end
-            end
+          % Output dir --------------------------------------------------------
+            
+          outDir = obj.getElVal(obj.idUI.sDirGoOut);
+          if isempty(outDir)
+              obj.setGUILedStatus(obj.idUI.fDirGoOut, obj.ledKo, 0);
+          else
+              if ~exist(outDir,'dir');
+                  obj.setGUILedStatus(obj.idUI.fDirGoOut, obj.ledCk, 0);
+              else
+                  obj.setGUILedStatus(obj.idUI.fDirGoOut, obj.ledOk, 0);
+              end
+          end
             
         end        
+        
+        % Test if all the folder / files are ok
+        % and it is possible to activate go and save buttons
+        function goOk = test4Go(obj)
+            goOk = 0;
+            % Performs all the led check before allowing the launch... ehm
+            % activation of the Go! button
+            for i = 1:length(obj.idGroup.gLED)
+                goOk = goOk+obj.okGo(obj.idGroup.gLED(i));
+            end
+            goOk = (goOk - length(obj.idGroup.gLED)) == 0;            
+            
+            % Chek constellations to be used
+            % I need at least one of these constellation active
+            activeGNSS        = [obj.isActive(obj.idUI.cGPS) ...
+                                 obj.isActive(obj.idUI.cGLONASS) ...
+                                 obj.isActive(obj.idUI.cGalileo) ...
+                                 obj.isActive(obj.idUI.cBeiDou) ...
+                                 obj.isActive(obj.idUI.cQZSS)];
+            if sum(activeGNSS) == 0
+                obj.setElVal(obj.idUI.cGPS, true, 0);
+                % goOk = 0;
+            end
+        end
+        
+        % Browse INI file
+        function browseINIFile(obj)
+            % In multi receiver mode, I read from ini file
+            [filename, pathname] = uigetfile( ...
+                {'*.ini;','INI configuration file (*.ini)'; ...
+                '*.*',  'All Files (*.*)'}, ...
+                'Choose an INI configuration file',[obj.settingsDir]);
+            if (filename ~= 0)
+                obj.setElVal(obj.idUI.sINI, fullfile(pathname, filename));
+            end
+            obj.updateGUI();
+        end
         
         % Browse for rover file
         function browseRoverObsFile(obj)
@@ -1908,7 +2109,7 @@ classdef goGUIclass < handle
         end
         
         % Browse for the path containing reference points for constrained solutions
-        function browseRefDir(obj)
+        function browseRefFile(obj)
             [filename, pathname] = uigetfile('*.mat', 'Choose file containing reference path','../data');
             
             if (filename ~= 0)
@@ -1926,16 +2127,20 @@ classdef goGUIclass < handle
             end
             
             if (status == obj.ledOk)    % Led Ok
-                if ~obj.isColor(idEl, [0 0.8 0])
-                    set(obj.id2handle(idEl), 'ForegroundColor', [0 0.8 0]);
+                if ~obj.isColor(idEl, obj.green)
+                    obj.setElVal(idEl,obj.green)
                 end
             elseif (status == obj.ledKo) % Led Ko
-                if ~obj.isColor(idEl, [1 0 0])
-                    set(obj.id2handle(idEl), 'ForegroundColor', [1 0 0]);
+                if ~obj.isColor(idEl, obj.red)
+                    obj.setElVal(idEl,obj.red)
+                end
+            elseif (status == obj.ledCk) % Led Check
+                if ~obj.isColor(idEl, obj.yellow)
+                    obj.setElVal(idEl,obj.yellow)
                 end
             end
-            obj.setElStatus(idEl, status > 1, autoapply)
-            % drawnow();
+            obj.setAllElContent();
+            %obj.setElStatus(idEl, status > 1, autoapply)
         end
         
     end
@@ -1978,20 +2183,20 @@ classdef goGUIclass < handle
             %   MODE
             % ===============================================================
             
-            obj.setElVal(obj.idUI.lProcMode, state.mode, 1);
+            obj.setElVal(obj.idUI.lProcMode, state.mode, 0);
             
             obj.initCaptureMode();
-            obj.setElVal(obj.idUI.lCaptMode, state.nav_mon, 1);
+            obj.setElVal(obj.idUI.lCaptMode, state.nav_mon, 0);
             obj.initAlgorithmType();
-            obj.setElVal(obj.idUI.lAlgType, state.kalman_ls, 1);
+            obj.setElVal(obj.idUI.lAlgType, state.kalman_ls, 0);
             obj.initProcessingType();
-            obj.setElVal(obj.idUI.lProcType, state.code_dd_sa, 1);
+            obj.setElVal(obj.idUI.lProcType, state.code_dd_sa, 0);
             
             %   INPUT FILE TYPE
             % ===============================================================
             
             obj.setElVal(obj.idUI.rRin, state.rinex_files, 0);
-            obj.setElVal(obj.idUI.rBin, state.gogps_data, 0);
+            obj.setElVal(obj.idUI.rBin, state.gogps_data, 1);
             
             %   OPTIONS
             % ===============================================================
@@ -2009,21 +2214,27 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.cDoppler, state.flag_doppler, 0);
             % Temporary check in the migration to SBAS use period
             if (isfield(state,'use_sbas')) %since v0.3.2beta -> backward compatibility
-                obj.setElVal(obj.idUI.cSBAS, state.use_sbas, 0);
+                obj.setElVal(obj.idUI.cUse_SBAS, state.use_sbas, 0);
             else
-                obj.setElVal(obj.idUI.cSBAS, 0, 0);
+                obj.setElVal(obj.idUI.cUse_SBAS, 0, 0);
             end
             
             %   INPUT/OUTPUT FILE AND FOLDERS
             % ===============================================================
             
-            obj.setElVal(obj.idUI.sRinRover, state.RINEX_rover_obs, 0);
-            obj.setElVal(obj.idUI.sRinMaster, state.RINEX_master_obs, 0);
-            obj.setElVal(obj.idUI.sRinNav, state.RINEX_nav, 0);
-            obj.setElVal(obj.idUI.sBinGoIn, state.gogps_data_input, 0);
+            if (isfield(state,'INIsettings')) % backward compatibility check
+                obj.setElVal(obj.idUI.sINI, state.INIsettings, 0);
+            end
             obj.setElVal(obj.idUI.sDirGoOut, state.gogps_data_output, 0);
             obj.setElVal(obj.idUI.sPrefixGoOut, state.gogps_data_output_prefix, 0);
-            obj.setElVal(obj.idUI.sDTM, state.dtm_path, 0);
+            if (isfield(state,'activeGNSS'))
+                obj.setElVal(obj.idUI.cGPS, state.activeGNSS(1), 0);
+                obj.setElVal(obj.idUI.cGLONASS, state.activeGNSS(2), 0);
+                obj.setElVal(obj.idUI.cGalileo, state.activeGNSS(3), 0);
+                obj.setElVal(obj.idUI.cBeiDou, state.activeGNSS(4), 0);
+                obj.setElVal(obj.idUI.cQZSS, state.activeGNSS(5), 0);
+                obj.setElVal(obj.idUI.cSBAS, state.activeGNSS(6), 0);
+            end
             
             %   SETTINGS - MASTER STATION
             % ===============================================================
@@ -2058,8 +2269,7 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.rW1, state.weight_1, 0);
             obj.setElVal(obj.idUI.rW2, state.weight_2, 0);
             obj.setElVal(obj.idUI.rW3, state.weight_3, 0);
-            
-            
+                        
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
             
@@ -2117,59 +2327,106 @@ classdef goGUIclass < handle
         
         % Save the stati of the gui to a matlab file
         function exportStateMatlab(obj,filename)
-            state.master_pos = get(obj.goh.master_pos, 'Value');
-            state.constraint = get(obj.goh.constraint, 'Value');
-            state.ref_path = get(obj.goh.ref_path, 'Value');
-            state.plot_master = get(obj.goh.plot_master, 'Value');
-            state.google_earth = get(obj.goh.google_earth, 'Value');
-            state.err_ellipse = get(obj.goh.err_ellipse, 'Value');
-            state.use_ntrip = get(obj.goh.use_ntrip, 'Value');
-            state.plot_amb = get(obj.goh.plot_amb, 'Value');
-            state.no_skyplot_snr = get(obj.goh.no_skyplot_snr, 'Value');
-            state.plotproc = get(obj.goh.plotproc, 'Value');
-            state.RINEX_rover_obs = get(obj.goh.RINEX_rover_obs,'String');
-            state.RINEX_master_obs = get(obj.goh.RINEX_master_obs,'String');
-            state.RINEX_nav = get(obj.goh.RINEX_nav,'String');
-            state.gogps_data_input = get(obj.goh.gogps_data_input,'String');
-            state.gogps_data_output = get(obj.goh.gogps_data_output,'String');
-            state.gogps_data_output_prefix = get(obj.goh.gogps_data_output_prefix,'String');
-            state.dtm_path = get(obj.goh.dtm_path,'String');
-            state.ref_path_input = get(obj.goh.ref_path_input,'String');
-            state.master_X = get(obj.goh.master_X,'String');
-            state.master_Y = get(obj.goh.master_Y,'String');
-            state.master_Z = get(obj.goh.master_Z,'String');
-            state.master_lat = get(obj.goh.master_lat,'String');
-            state.master_lon = get(obj.goh.master_lon,'String');
-            state.master_h = get(obj.goh.master_h,'String');
-            state.crs = get(obj.goh.crs,'Value');
-            state.mode = get(obj.goh.mode,'Value');
-            state.nav_mon = get(obj.goh.nav_mon,'Value');
-            state.kalman_ls = get(obj.goh.kalman_ls,'Value');
-            state.code_dd_sa = get(obj.goh.code_dd_sa,'Value');
-            state.rinex_files = get(obj.goh.rinex_files,'Value');
-            state.gogps_data = get(obj.goh.gogps_data,'Value');
-            state.std_X = get(obj.goh.std_X,'String');
-            state.std_Y = get(obj.goh.std_Y,'String');
-            state.std_Z = get(obj.goh.std_Z,'String');
-            state.std_code = get(obj.goh.std_code,'String');
-            state.std_phase = get(obj.goh.std_phase,'String');
-            state.std_dtm = get(obj.goh.std_dtm,'String');
-            state.toggle_std_phase = get(obj.goh.toggle_std_phase,'Value');
-            state.toggle_std_dtm = get(obj.goh.toggle_std_dtm,'Value');
-            state.std_init = get(obj.goh.std_init,'String');
-            state.std_vel = get(obj.goh.std_vel,'String');
-            state.cs_thresh = get(obj.goh.cs_thresh,'String');
-            state.flag_doppler = get(obj.goh.flag_doppler,'Value');
-            state.amb_select = get(obj.goh.amb_select,'Value');
-            state.cut_off = get(obj.goh.cut_off,'String');
-            state.snr_thres = get(obj.goh.snr_thres,'String');
-            state.antenna_h = get(obj.goh.antenna_h,'String');
-            state.min_sat = get(obj.goh.min_sat,'String');
-            state.dyn_mod = get(obj.goh.dyn_mod,'Value');
-            state.weight_0 = get(obj.goh.weight_0,'Value');
-            state.weight_1 = get(obj.goh.weight_1,'Value');
-            state.weight_2 = get(obj.goh.weight_2,'Value');
-            state.weight_3 = get(obj.goh.weight_3,'Value');
+             
+            %   MODE
+            % ===============================================================
+            state.mode              = obj.getElVal(obj.idUI.lProcMode);
+            state.nav_mon           = obj.getElVal(obj.idUI.lCaptMode);
+            state.kalman_ls         = obj.getElVal(obj.idUI.lAlgType);
+            state.code_dd_sa        = obj.getElVal(obj.idUI.lProcType);
+
+            %   INPUT FILE TYPE
+            % ===============================================================
+
+            state.rinex_files       = obj.getElVal(obj.idUI.rRin);
+            state.gogps_data        = obj.getElVal(obj.idUI.rBin);
+
+            %   OPTIONS
+            % ===============================================================
+
+            state.master_pos        = obj.getElVal(obj.idUI.cMPos);
+            state.constraint        = obj.getElVal(obj.idUI.cConstraint);
+            state.plotproc          = obj.getElVal(obj.idUI.cPlotProc);
+            state.ref_path          = obj.getElVal(obj.idUI.cRefPath);
+            state.no_skyplot_snr    = obj.getElVal(obj.idUI.cSkyPlot);
+            state.google_earth      = obj.getElVal(obj.idUI.cGEarth);
+            state.err_ellipse       = obj.getElVal(obj.idUI.cErrEllipse);
+            state.plot_master       = obj.getElVal(obj.idUI.cPlotMaster);
+            state.plot_amb          = obj.getElVal(obj.idUI.cPlotAmb);
+            state.use_ntrip         = obj.getElVal(obj.idUI.cUseNTRIP);
+            state.flag_doppler      = obj.getElVal(obj.idUI.cDoppler);
+            state.use_sbas          = obj.getElVal(obj.idUI.cUse_SBAS);
+
+            %   INPUT/OUTPUT FILE AND FOLDERS
+            % ===============================================================
+
+            state.INIsettings       = obj.getElVal(obj.idUI.sINI);
+            state.gogps_data_output = obj.getElVal(obj.idUI.sDirGoOut);
+            state.gogps_data_output_prefix = obj.getElVal(obj.idUI.sPrefixGoOut);
+            state.activeGNSS        = [obj.isActive(obj.idUI.cGPS) ...
+                                       obj.isActive(obj.idUI.cGLONASS) ...
+                                       obj.isActive(obj.idUI.cGalileo) ...
+                                       obj.isActive(obj.idUI.cBeiDou) ...
+                                       obj.isActive(obj.idUI.cQZSS) ...
+                                       obj.isActive(obj.idUI.cSBAS) ];
+
+            %   SETTINGS - MASTER STATION
+            % ===============================================================
+
+            state.crs               = obj.getElVal(obj.idUI.lCRS);
+            state.master_X          = obj.getElVal(obj.idUI.nMX);
+            state.master_Y          = obj.getElVal(obj.idUI.nMY);
+            state.master_Z          = obj.getElVal(obj.idUI.nMZ);
+            state.master_lat        = obj.getElVal(obj.idUI.nMLat);
+            state.master_lon        = obj.getElVal(obj.idUI.nMLon);
+            state.master_h          = obj.getElVal(obj.idUI.nMh);
+            
+            %   SETTINGS - KALMAN FILTER - STD
+            % ===============================================================
+                        
+            state.std_X             = obj.getElVal(obj.idUI.nStdE);
+            state.std_Y             = obj.getElVal(obj.idUI.nStdN);
+            state.std_Z             = obj.getElVal(obj.idUI.nStdU);
+            state.std_code          = obj.getElVal(obj.idUI.nStdCode);
+            state.std_phase         = obj.getElVal(obj.idUI.nStdPhase);
+            state.std_dtm           = obj.getElVal(obj.idUI.nStdDTM);
+            state.toggle_std_phase  = obj.getElVal(obj.idUI.bStdPhase);
+            state.toggle_std_dtm    = obj.getElVal(obj.idUI.bStdDTM);
+            state.std_init          = obj.getElVal(obj.idUI.nStdT0);
+            state.std_vel           = obj.getElVal(obj.idUI.nStdVel);
+            
+            %   SETTINGS - KALMAN FILTER - WEIGHT MODEL
+            % ===============================================================
+                        
+            state.weight_0          = obj.getElVal(obj.idUI.rW0);
+            state.weight_1          = obj.getElVal(obj.idUI.rW1);
+            state.weight_2          = obj.getElVal(obj.idUI.rW2);
+            state.weight_3          = obj.getElVal(obj.idUI.rW3);
+
+            %   SETTINGS - KALMAN FILTER
+            % ===============================================================
+
+            state.cs_thresh         = obj.getElVal(obj.idUI.nCS);
+            state.cut_off           = obj.getElVal(obj.idUI.nCutOff);
+            state.snr_thres         = obj.getElVal(obj.idUI.nSNR);
+            state.antenna_h         = obj.getElVal(obj.idUI.nHAntenna);
+            state.min_sat           = obj.getElVal(obj.idUI.nMinNSat);
+            state.stopGOstop        = obj.getElVal(obj.idUI.cStopGoStop);
+            
+            %   SETTINGS - KALMAN FILTER - DYNAMIC MODEL
+            % ===============================================================
+                        
+            state.dyn_mod           = obj.getElVal(obj.idUI.lDynModel);
+            
+            %   SETTINGS - KALMAN FILTER - ARAA
+            % ===============================================================
+            
+            state.amb_select        = obj.getElVal(obj.idUI.lARAA);
+                
+            %   SETTINGS - PORTS
+            % ===============================================================
+            
+            state.num_receivers     = obj.getElVal(obj.idUI.lnPorts);
             contents = cellstr(get(obj.goh.com_select_0,'String'));
             state.com_select_0 = contents{get(obj.goh.com_select_0,'Value')};
             contents = cellstr(get(obj.goh.com_select_1,'String'));
@@ -2177,21 +2434,23 @@ classdef goGUIclass < handle
             contents = cellstr(get(obj.goh.com_select_2,'String'));
             state.com_select_2 = contents{get(obj.goh.com_select_2,'Value')};
             contents = cellstr(get(obj.goh.com_select_3,'String'));
-            state.com_select_3 = contents{get(obj.goh.com_select_3,'Value')};
-            state.protocol_select_0 = get(obj.goh.protocol_select_0,'Value');
-            state.protocol_select_1 = get(obj.goh.protocol_select_1,'Value');
-            state.protocol_select_2 = get(obj.goh.protocol_select_2,'Value');
-            state.protocol_select_3 = get(obj.goh.protocol_select_3,'Value');
-            state.num_receivers = get(obj.goh.num_receivers,'Value');
-            state.IP_address = get(obj.goh.IP_address,'String');
-            state.port = get(obj.goh.port,'String');
-            state.mountpoint = get(obj.goh.mountpoint,'String');
-            state.username = get(obj.goh.username,'String');
-            state.password = get(obj.goh.password,'Userdata');
-            state.approx_lat = get(obj.goh.approx_lat,'String');
-            state.approx_lon = get(obj.goh.approx_lon,'String');
-            state.approx_h = get(obj.goh.approx_h,'String');
-            state.stopGOstop = get(obj.goh.stopGOstop,'Value');
+            state.com_select_3 = contents{get(obj.goh.com_select_3,'Value')};                       
+            state.protocol_select_0 = obj.getElVal(obj.idUI.lProt0);
+            state.protocol_select_1 = obj.getElVal(obj.idUI.lProt1);
+            state.protocol_select_2 = obj.getElVal(obj.idUI.lProt2);
+            state.protocol_select_3 = obj.getElVal(obj.idUI.lProt3);
+            
+            %   SETTINGS - MASTER SERVER
+            % ===============================================================
+            
+            state.IP_address        = obj.getElVal(obj.idUI.sIPaddr);
+            state.port              = obj.getElVal(obj.idUI.sIPport);
+            state.mountpoint        = obj.getElVal(obj.idUI.sMnt);
+            state.username          = obj.getElVal(obj.idUI.sUName);
+            state.password          = obj.getElVal(obj.idUI.sUPass);
+            state.approx_lat        = obj.getElVal(obj.idUI.nVLat);
+            state.approx_lon        = obj.getElVal(obj.idUI.nVLon);
+            state.approx_h          = obj.getElVal(obj.idUI.nVH);
             
             save(filename, 'state');
         end
@@ -2203,7 +2462,8 @@ classdef goGUIclass < handle
     methods
         % Function to return values to goGPS.m
         function go(obj)
-            global goObj
+            global goObj goINI
+            obj.saveConstellations();
 
             %master station coordinates
             crs_contents = cellstr(get(obj.goh.crs,'String'));
@@ -2238,16 +2498,27 @@ classdef goGUIclass < handle
             contents_dyn_mod = cellstr(get(obj.goh.dyn_mod,'String'));
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             %input files
-            filerootIN = get(obj.goh.gogps_data_input,'String');
-            filerootOUT = [get(obj.goh.gogps_data_output,'String') '\' get(obj.goh.gogps_data_output_prefix,'String')];
-            filerootIN(filerootIN == '\') = '/';
-            filerootOUT(filerootOUT == '\') = '/';
-            filename_R_obs = get(obj.goh.RINEX_rover_obs,'String');
-            filename_M_obs = get(obj.goh.RINEX_master_obs,'String');
-            filename_nav = get(obj.goh.RINEX_nav,'String');
+            data_path = goINI.getData('Bin','data_path');
+            file_prefix = goINI.getData('Bin','file_prefix');            
+            filerootIN = [data_path file_prefix];
+            filerootOUT = [get(obj.goh.sDirGoOut,'String') '\' get(obj.goh.sPrefixGoOut,'String')];
+            filerootIN(filerootIN == '\') = filesep;
+            filerootOUT(filerootOUT == '\') = filesep;
+            data_path = goINI.getData('Receivers','data_path');
+            file_name = goINI.getData('Receivers','file_name');            
+            filename_R_obs = [data_path file_name];
+            data_path = goINI.getData('Master','data_path');
+            file_name = goINI.getData('Master','file_name');
+            filename_M_obs = [data_path file_name];
+            data_path = goINI.getData('Navigational','data_path');
+            file_name = goINI.getData('Navigational','file_name');
+            filename_nav = [data_path file_name];
             ref_path = get(obj.goh.ref_path, 'Value');
-            filename_ref = get(obj.goh.ref_path_input,'String');
-            dtm_dir = get(obj.goh.dtm_path,'String');
+            data_path = goINI.getData('RefPath','data_path');
+            file_name = goINI.getData('RefPath','file_name');
+            filename_ref = [data_path file_name];
+            data_path = goINI.getData('DTM','data_path');
+            dtm_dir = data_path;
             %serial communication
             % global COMportR
             contents = cellstr(get(obj.goh.com_select_0,'String'));
@@ -2267,7 +2538,7 @@ classdef goGUIclass < handle
             mode = obj.getgoGPSMode();
             
             % If I'm in a mode that uses objects instead of regular code, set goObj flag to 1
-            if (mode == 15)
+            if (mode == obj.mode_PP_KF_CP_DD_MR)
                 goObj = true;
                 % init the objects:
             else
@@ -2275,123 +2546,20 @@ classdef goGUIclass < handle
             end
             
             ready = 1;
-            
-            %check if everything is OK before starting
-            if isempty(dir(get(obj.goh.gogps_data_output,'String')))
-                waitfor(msgbox('WARNING: Output folder does not exist. Please browse to an existing folder.'));
-                obj.browseOutDir();
-            end
-            
-            if ~isempty(dir(get(obj.goh.gogps_data_output,'String')))
-                i = 1;
-                j = length(filerootOUT);
-                while (~isempty(dir([filerootOUT '_????_rover.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_master*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_????_obs*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_????_eph*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_????_dyn*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_sat*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_kal*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_dt*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_conf*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_dop*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_ECEF*.txt'])) || ...
-                        ~isempty(dir([filerootOUT '_geod*.txt'])) || ...
-                        ~isempty(dir([filerootOUT '_plan*.txt'])) || ...
-                        ~isempty(dir([filerootOUT '_????_NMEA*.txt'])) || ...
-                        ~isempty(dir([filerootOUT '.kml'])) )
-                    
-                    if (i == 100)
-                        msgbox('Automatic numbering of output file has reached the maximum (99). Please provide a different output prefix, select a different output folder or remove some files from the current output folder.');
-                        ready = 0;
-                        break
-                    end
-                    
-                    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
-                    i = i + 1;
-                end
-            else
-                ready = 0;
-            end
-            
-            if (goObj) && (get(obj.goh.file_type, 'SelectedObject') == obj.goh.rinex_files && isempty(dir(filename_R_obs)))
-                msgbox('Ini file not found.'); ready = 0;
-            end
-            
-            if (mode <= 20) && (~goObj) %if post-processing
-                if (get(obj.goh.file_type, 'SelectedObject') == obj.goh.gogps_data && (isempty(dir([filerootIN '_obs*.bin'])) || isempty(dir([filerootIN '_eph*.bin']))))
-                    msgbox('Input goGPS binary files not found (both *_obs_* and *_eph_* files are needed).'); ready = 0;
-                elseif (get(obj.goh.file_type, 'SelectedObject') == obj.goh.rinex_files && isempty(dir(filename_R_obs)))
-                    msgbox('Input rover observation RINEX file not found.'); ready = 0;
-                elseif (mode > 10 && get(obj.goh.file_type, 'SelectedObject') == obj.goh.rinex_files && isempty(dir(filename_M_obs)))
-                    msgbox('Input master observation RINEX file not found.'); ready = 0;
-                elseif (get(obj.goh.file_type, 'SelectedObject') == obj.goh.rinex_files && isempty(dir(filename_nav)))
-                    msgbox('Input navigation RINEX file not found.'); ready = 0;
-                end
-            end
-            
-            if (mode <= 20 || mode == 24) && (~goObj) %if not rover and/or master monitor
-                if (ref_path && isempty(dir(filename_ref)))
-                    msgbox('Input reference path file not found.'); ready = 0;
-                elseif ((mode == 14 || mode == 4) && get(obj.goh.toggle_std_dtm,'Value'))
-                    try
-                        load([dtm_dir '/tiles/tile_header'], 'tile_header');
-                        load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
-                    catch e
-                        msgbox('DTM directory does not contain valid data.'); ready = 0;
-                    end
-                elseif (mode > 10 && strcmp(get(obj.goh.crs,'Enable'),'on') && ...
-                        strcmp(crs_contents{get(obj.goh.crs,'Value')},'ECEF (X,Y,Z)') && ...
-                        ((isnan(master_X) || isnan(master_Y) || isnan(master_Z)) || ...
-                        (master_X == 0 && master_Y == 0 && master_Z == 0)))
-                    msgbox('Please provide valid values for the master station ECEF coordinates.'); ready = 0;
-                elseif (mode > 10 && strcmp(get(obj.goh.crs,'Enable'),'on') && ...
-                        strcmp(crs_contents{get(obj.goh.crs,'Value')},'Geodetic coord. (lat,lon,h)') && ...
-                        ((isnan(master_lat) || isnan(master_lon) || isnan(master_h)) || ...
-                        (abs(master_lat) > 90 || abs(master_lon) > 180)))
-                    msgbox('Please provide valid values for the master station geodetic coordinates.'); ready = 0;
-                elseif (isnan(std_init) || std_init < 0)
-                    msgbox('Please provide a valid value for the initial state error standard deviation.'); ready = 0;
-                elseif (isnan(std_X) || std_X < 0)
-                    msgbox('Please provide a valid value for the East coordinate error standard deviation.'); ready = 0;
-                elseif (isnan(std_Y) || std_Y < 0)
-                    msgbox('Please provide a valid value for the North coordinate error standard deviation.'); ready = 0;
-                elseif (isnan(std_Z) || std_Z < 0)
-                    msgbox('Please provide a valid value for the Up coordinate error standard deviation.'); ready = 0;
-                elseif (isnan(std_vel) || std_vel < 0)
-                    msgbox('Please provide a valid value for the velocity coordinate error standard deviation.'); ready = 0;
-                elseif (isnan(std_code) || std_code < 0)
-                    msgbox('Please provide a valid value for the code error standard deviation.'); ready = 0;
-                elseif (isnan(std_phase) || std_phase < 0)
-                    msgbox('Please provide a valid value for the phase error standard deviation.'); ready = 0;
-                elseif (isnan(std_dtm) || std_dtm < 0)
-                    msgbox('Please provide a valid value for the DTM error standard deviation.'); ready = 0;
-                elseif (isnan(min_nsat) || min_nsat < 0)
-                    msgbox('Please provide a valid value for the minimum number of satellites.'); ready = 0;
-                elseif (isnan(cutoff) || cutoff < 0 || cutoff > 90)
-                    msgbox('Please provide a valid value for the cutoff (between 0 and 90 degrees).'); ready = 0;
-                elseif (isnan(snr_threshold) || snr_threshold < 0 || snr_threshold > 60)
-                    msgbox('Please provide a valid value for the SNR threshold (between 0 and 60 dB).'); ready = 0;
-                elseif (isnan(cs_threshold) || cs_threshold < 0)
-                    msgbox('Please provide a valid value for the cycle slip threshold.'); ready = 0;
-                elseif (isnan(antenna_h) || antenna_h < 0)
-                    msgbox('Please provide a valid value for the antenna height.'); ready = 0;
-                end
-            end
-            
+                        
             %check if the dataset was surveyed with a variable dynamic model
             d = dir([filerootIN '_dyn_00.bin']);
-            if (mode <= 20 && (flag_stopGOstop || strcmp(contents_dyn_mod{get(obj.goh.dyn_mod,'Value')},'Variable')) && isempty(d))
+            if (obj.isPostProc && (flag_stopGOstop || strcmp(contents_dyn_mod{get(obj.goh.dyn_mod,'Value')},'Variable')) && isempty(d))
                 msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
             end
             
-            if (mode == 21 || mode == 23 || mode == 24) %if a COM connection to the rover is required
+            if (mode == obj.mode_RT_RMon || mode == obj.mode_RT_RMMon || mode == obj.mode_RT_Nav) %if a COM connection to the rover is required
                 if(strcmp(COMportR0, 'NA'))
                     msgbox('Please select an existing COM port.'); ready = 0;
                 end
             end
             
-            if (mode == 22 || mode == 23 || mode == 24) %if a TCP/IP connection to the master is required
+            if (mode == obj.mode_RT_MMon || mode == obj.mode_RT_RMMon || mode == obj.mode_RT_Nav) %if a TCP/IP connection to the master is required
                 if (isempty(master_ip))
                     msgbox('Please provide an IP address for the connection to the master.'); ready = 0;
                 elseif (isnan(master_port) || master_port < 0 || master_port > 65535)
@@ -2417,6 +2585,9 @@ classdef goGUIclass < handle
         
         % Function to return values to goGPS.m
         function funout = outputFun(obj)
+            global goINI;
+            
+            obj.saveConstellations();
             mode = obj.getgoGPSMode();
             mode_vinc = get(obj.goh.constraint,'Value');
             if (get(obj.goh.file_type, 'SelectedObject') == obj.goh.rinex_files)
@@ -2441,10 +2612,12 @@ classdef goGUIclass < handle
             flag_plotproc = get(obj.goh.plotproc,'Value');
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             flag_SBAS = get(obj.goh.use_SBAS,'Value');
-            filerootIN = get(obj.goh.gogps_data_input,'String');
-            filerootOUT = [get(obj.goh.gogps_data_output,'String') '\' get(obj.goh.gogps_data_output_prefix,'String')];
-            filerootIN(filerootIN == '\') = '/';
-            filerootOUT(filerootOUT == '\') = '/';
+            data_path = goINI.getData('Bin','data_path');
+            file_prefix = goINI.getData('Bin','file_prefix');            
+            filerootIN = [data_path file_prefix];
+            filerootOUT = [get(obj.goh.sDirGoOut,'String') '\' get(obj.goh.sPrefixGoOut,'String')];
+            filerootIN(filerootIN == '\') = filesep;
+            filerootOUT(filerootOUT == '\') = filesep;
             i = 1;
             j = length(filerootOUT);
             while (~isempty(dir([filerootOUT '_????_rover.bin'])) || ...
@@ -2466,15 +2639,26 @@ classdef goGUIclass < handle
                 filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
                 i = i + 1;
             end
-            filename_R_obs = get(obj.goh.RINEX_rover_obs,'String');
-            filename_M_obs = get(obj.goh.RINEX_master_obs,'String');
-            filename_nav = get(obj.goh.RINEX_nav,'String');
-            if (strcmpi(filename_nav(end-3:end),'.sp3'))
-                flag_SP3 = 1;
-            else
-                flag_SP3 = 0;
+            data_path = goINI.getData('Receivers','data_path');
+            file_name = goINI.getData('Receivers','file_name');
+            filename_R_obs = [data_path file_name];
+            data_path = goINI.getData('Master','data_path');
+            file_name = goINI.getData('Master','file_name');
+            filename_M_obs = [data_path file_name];
+            data_path = goINI.getData('Navigational','data_path');
+            file_name = goINI.getData('Navigational','file_name');
+            filename_nav = [data_path file_name];
+            flag_SP3 = goINI.getData('Navigational','isSP3');
+            if isempty(flag_SP3)
+                if (strcmpi(filename_nav(end-3:end),'.sp3'))
+                    flag_SP3 = 1;
+                else
+                    flag_SP3 = 0;
+                end
             end
-            filename_ref = get(obj.goh.ref_path_input,'String');
+            data_path = goINI.getData('RefPath','data_path');
+            file_prefix = goINI.getData('RefPath','file_prefix');
+            filename_ref = [data_path file_prefix];
             
             contents = cellstr(get(obj.goh.crs,'String'));
             if (strcmp(contents{get(obj.goh.crs,'Value')},'ECEF (X,Y,Z)'))
@@ -2662,7 +2846,7 @@ classdef goGUIclass < handle
             o2 = order*2;
             o3 = order*3;
             h_antenna = str2double(get(obj.goh.antenna_h,'String'));
-            dtm_dir = get(obj.goh.dtm_path,'String');
+            dtm_dir = goINI.getData('DTM','data_path');
             try
                 load([dtm_dir '/tiles/tile_header'], 'tile_header');
                 load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
@@ -2687,6 +2871,19 @@ classdef goGUIclass < handle
             else
                 nmea_init = '';
             end
+        end
+        
+        % Function to save in the goINI object the status of activation of
+        % the various GNSS
+        function saveConstellations(obj)
+            global goINI
+            goINI.addSection('Constellations');
+            goINI.addKey('Constellations','GPS',obj.isActive(obj.idUI.cGPS));
+            goINI.addKey('Constellations','GLONASS',obj.isActive(obj.idUI.cGLONASS));
+            goINI.addKey('Constellations','Galileo',obj.isActive(obj.idUI.cGalileo));
+            goINI.addKey('Constellations','BeiDou',obj.isActive(obj.idUI.cBeiDou));
+            goINI.addKey('Constellations','QZSS',obj.isActive(obj.idUI.cQZSS));
+            goINI.addKey('Constellations','SBAS',obj.isActive(obj.idUI.cSBAS));
         end
     end        
     
@@ -2750,6 +2947,11 @@ classdef goGUIclass < handle
             set(hObject, 'Value', value);
         end
 
+        % Set a value of an element of the interface
+        function setGuiElColor(hObject, color)
+            set(hObject, 'ForegroundColor', color);
+        end
+        
         % Set a string of an element of the interface
         function setGuiElStr(hObject, str)
             set(hObject, 'String', str);

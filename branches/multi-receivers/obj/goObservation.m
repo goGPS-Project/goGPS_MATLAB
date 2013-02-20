@@ -258,9 +258,9 @@ classdef goObservation < handle
         % the iniReader objuct MUST contains at least these sections/keys
         % (the values are an example:)
         % - "Receivers"
-        %     |- "data_path" = "../data/ublox/"
         %     |- "nRec" = 3
-        %     |- "file_names" = [ "goBulgaro_01_UBX1_rover.obs" "goBulgaro_01_UBX2_rover.obs" "goBulgaro_01_UBX3_rover.obs" ]
+        %     |- "data_path" = "../data/ublox/"
+        %     |- "file_name" = [ "goBulgaro_01_UBX1_rover.obs" "goBulgaro_01_UBX2_rover.obs" "goBulgaro_01_UBX3_rover.obs" ]
         % - "Receiver configuration"
         %     |- "ref_rec" = 2
         %     |- "XYZ_rec1" = -3.95   0.62  0.12

@@ -248,7 +248,6 @@ classdef goGUIclass < handle
             obj.strCaptureMode{obj.idRMon} = 'Rover Monitor';
             obj.strCaptureMode{obj.idMMon} = 'Master Monitor';
             obj.strCaptureMode{obj.idRMMon} = 'Rover and Master Monitor';
-            %obj.initCaptureMode(obj.strCaptureMode);
 
             obj.strAlgorithm{obj.idLS} = 'Least squares';
             obj.strAlgorithm{obj.idKF} = 'Kalman filter';
@@ -258,7 +257,6 @@ classdef goGUIclass < handle
             obj.strType{obj.idCP_SA} = 'Code and phase stand-alone';
             obj.strType{obj.idCP_DD} = 'Code and phase double difference';
             %obj.strType{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
-            %obj.initProcessingType(obj.strType)
             
             obj.strDynModel{obj.idCVel} = 'Const. velocity';
             obj.strDynModel{obj.idCAcc} = 'Const. acceleration';
@@ -1752,6 +1750,8 @@ classdef goGUIclass < handle
             end
             if sum(intersect(idEl, obj.idGroup.gINI)) > 0
                 obj.updateLEDstate(true);
+                goOk = obj.test4Go();
+                obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
             end
                 
             % Browse output foder fo binary data
