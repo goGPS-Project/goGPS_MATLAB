@@ -549,10 +549,10 @@ if (mode == 1)
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,t));
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t);
+                    rtplot_snr (snr_R(:,t), Eph_t);
                 else
-                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
@@ -628,10 +628,10 @@ elseif (mode == 2)
             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
         end
         if (flag_skyplot == 1)
-            rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-            rtplot_snr (snr_R(:,1));
+            rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
+            rtplot_snr (snr_R(:,1), Eph_t);
         else
-            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
         end
     else
         fprintf('Processing...\n');
@@ -663,10 +663,10 @@ elseif (mode == 2)
                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
             end
             if (flag_skyplot == 1)
-                rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                rtplot_snr (snr_R(:,t));
+                rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
+                rtplot_snr (snr_R(:,t), Eph_t);
             else
-                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
             end
             pause(0.01);
         end
@@ -728,10 +728,10 @@ elseif (mode == 3)
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,t));
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t);
+                    rtplot_snr (snr_R(:,t), Eph_t);
                 else
-                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
@@ -802,10 +802,10 @@ elseif (mode == 4)
             rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
         else
             if (flag_skyplot == 1)
-                rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-                rtplot_snr (snr_R(:,1));
+                rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
+                rtplot_snr (snr_R(:,1), Eph_t);
             else
-                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
             end
         end
     else
@@ -842,10 +842,10 @@ elseif (mode == 4)
                 pause(0.1);
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,t));
+                    rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
+                    rtplot_snr (snr_R(:,t), Eph_t);
                 else
-                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
                 end
                 pause(0.01);
             end
@@ -908,10 +908,10 @@ elseif (mode == 11)
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,t));
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t);
+                    rtplot_snr (snr_R(:,t), Eph_t);
                 else
-                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
@@ -985,10 +985,10 @@ elseif (mode == 12)
             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
         end
         if (flag_skyplot == 1)
-            rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-            rtplot_snr (snr_R(:,1));
+            rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
+            rtplot_snr (snr_R(:,1), Eph_t);
         else
-            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
         end
     else
         fprintf('Processing...\n');
@@ -1020,10 +1020,10 @@ elseif (mode == 12)
                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
             end
             if (flag_skyplot == 1)
-                rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                rtplot_snr (snr_R(:,t));
+                rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
+                rtplot_snr (snr_R(:,t), Eph_t);
             else
-                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
             end
             pause(0.01);
         end
@@ -1088,10 +1088,10 @@ elseif (mode == 14) & (mode_vinc == 0)
                 rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,1));
+                    rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
+                    rtplot_snr (snr_R(:,1), Eph_t);
                 else
-                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
                 end
             end
         else
@@ -1126,10 +1126,10 @@ elseif (mode == 14) & (mode_vinc == 0)
                     pause(0.1);
                 else
                     if (flag_skyplot == 1)
-                        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                        rtplot_snr (snr_R(:,t));
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
+                        rtplot_snr (snr_R(:,t), Eph_t);
                     else
-                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
                     end
                     pause(0.01);
                 end
@@ -1222,10 +1222,10 @@ elseif (mode == 14) & (mode_vinc == 0)
                 rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,1));
+                    rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
+                    rtplot_snr (snr_R(:,1), Eph_t);
                 else
-                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
                 end
             end
         else
@@ -1315,10 +1315,10 @@ elseif (mode == 14) & (mode_vinc == 0)
                     pause(0.1);
                 else
                     if (flag_skyplot == 1)
-                        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                        rtplot_snr (snr_R(:,t));
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
+                        rtplot_snr (snr_R(:,t), Eph_t);
                     else
-                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
                     end
                     pause(0.01);
                 end
@@ -1406,10 +1406,10 @@ elseif (mode == 14) & (mode_vinc == 1)
             rtplot_amb (1, window, Xhat_t_t(o1+1:o1+nSatTot), sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot))), conf_cs);
         else
             if (flag_skyplot == 1)
-                rtplot_skyplot (1, azR, elR, conf_sat, pivot);
-                rtplot_snr (snr_R(:,1));
+                rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
+                rtplot_snr (snr_R(:,1), Eph_t);
             else
-                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot);
+                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
             end
         end
     else
@@ -1439,10 +1439,10 @@ elseif (mode == 14) & (mode_vinc == 1)
                 pause(0.1);
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,t));
+                    rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
+                    rtplot_snr (snr_R(:,t), Eph_t);
                 else
-                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
                 end
                 pause(0.01);
             end
@@ -2398,6 +2398,7 @@ end
 %         end
 %         pr_der1 = zeros(length(index)-1,1);
 %         pr_der2 = zeros(length(index)-2,1);
+%         pr_der3 = zeros(length(index)-3,1);
 %         for j = 1 : length(index)-1
 %             if (index(j+1) == index(j) + 1)
 %                 pr_der1(j) = (pr(j+1)-pr(j))/interval;
@@ -2415,17 +2416,29 @@ end
 %                     end
 %                 end
 %             end
+%             if (j <= length(index)-3)
+%                 if (index(j+3) == index(j) + 3)
+%                     pr_der3(j) = (pr(j+3)-3*pr(j+2)+3*pr(j+1)-pr(j))/interval^3;
+%                 else
+%                     if (j > 1)
+%                         pr_der3(j) = pr_der3(j-1);
+%                     end
+%                 end
+%             end
 %         end
 %         pos = find(pr_der1 == 0);
 %         pr_der1(pos) = [];
 %         pr_der2(pos) = [];
 %         index(pos) = [];
 %         figure
-%         plot(index(1:end-1), pr_der1,'b-');
+%         plot(index(1:end-1), pr_der1,'b.');
 %         title(['ROVER: PSEUDORANGE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
 %         figure
-%         plot(index(1:end-2), pr_der2,'b-');
+%         plot(index(1:end-2), pr_der2,'b.');
 %         title(['ROVER: PSEUDORANGE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
+%         figure
+%         plot(index(1:end-3), pr_der3,'b.');
+%         title(['ROVER: PSEUDORANGE THIRD DERIVATIVE for SATELLITE ',num2str(i)]);
 %     end
 % end
 % 
@@ -2466,10 +2479,10 @@ end
 %         pr_der2(pos) = [];
 %         index(pos) = [];
 %         figure
-%         plot(index(1:end-1), pr_der1,'b-');
+%         plot(index(1:end-1), pr_der1,'b.');
 %         title(['MASTER: PSEUDORANGE FIRST DERIVATIVE for SATELLITE ',num2str(i)]);
 %         figure
-%         plot(index(1:end-2), pr_der2,'b-');
+%         plot(index(1:end-2), pr_der2,'b.');
 %         title(['MASTER: PSEUDORANGE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
 %     end
 % end

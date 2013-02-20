@@ -1,7 +1,7 @@
-function rttext_sat (t, az, el, snr, obs, pivot)
+function rttext_sat (t, az, el, snr, obs, pivot, Eph)
 
 % SYNTAX:
-%   rttext_sat (t, az, el, obs, pivot);
+%   rttext_sat (t, az, el, obs, pivot, Eph);
 %
 % INPUT:
 %   t   = survey time (t=1,2,...)
@@ -13,6 +13,7 @@ function rttext_sat (t, az, el, snr, obs, pivot)
 %           +1 = code & phase
 %           -1 = only code
 %   pivot = pivot satellite
+%   Eph = matrix containing 31 navigation parameters for each satellite
 %
 % DESCRIPTION:
 %   Real time textual display of satellite data.
@@ -39,8 +40,6 @@ function rttext_sat (t, az, el, snr, obs, pivot)
 
 global satid
 
-num_sat = length(el);
-
 % location on the screen
 subplot(2,3,[3 6])
 
@@ -53,7 +52,7 @@ if (t == 1)
     axis off;
     tx = text(0.0,1,'Satellite configuration');
     set(tx,'FontWeight','Bold');
-    text(0.0,0.95,'PRN  ELEV   AZIM     SNR');
+    text(0.0,0.95,'PRN   ELEV   AZIM     SNR');
 end
 
 %----------------------------------------------------------------------------------------------
@@ -62,11 +61,24 @@ end
 
 vert_pos = 0.95;
 
+num_sat = numel(el);
+
+sat = 1:numel(el);
+sat = sat'.*abs(obs);
+
+[~, idx1, idx2] = intersect(Eph(30,:), sat);
+
+sys = zeros(num_sat,1);
+prn = zeros(num_sat,1);
+
+sys(idx2) = char(Eph(31,idx1));
+prn(idx2) = Eph(1,idx1);
+
 for i = 1 : num_sat
 
     if (el(i) > 0)
 
-        sat_string = [sprintf('%02d',i) '     ' sprintf('%05.2f',el(i)) '    ' sprintf('%06.2f',az(i)) '   ' sprintf('%d',snr(i))];
+        sat_string = [sys(i) sprintf('%02d',prn(i)) '     ' sprintf('%04.1f',el(i)) '    ' sprintf('%05.1f',az(i)) '    ' sprintf('%04.1f',snr(i))];
 
         vert_pos = vert_pos - 0.05;
 

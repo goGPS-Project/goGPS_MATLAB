@@ -1,7 +1,7 @@
-function rtplot_skyplot (t, az, el, obs, pivot)
+function rtplot_skyplot (t, az, el, obs, pivot, Eph)
 
 % SYNTAX:
-%   rtplot_skyplot (t, az, el, obs, pivot);
+%   rtplot_skyplot (t, az, el, obs, pivot, Eph);
 %
 % INPUT:
 %   t   = survey time (t=1,2,...)
@@ -12,6 +12,7 @@ function rtplot_skyplot (t, az, el, obs, pivot)
 %           +1 = code & phase
 %           -1 = only code
 %   pivot = pivot satellite
+%   Eph = matrix containing 31 navigation parameters for each satellite
 %
 % DESCRIPTION:
 %   Real time skyplot.
@@ -147,10 +148,20 @@ for i = 1 : num_sat
     if (el(i) > 0)
 
         sat = [sat; i];
-
+        
         if (satid(i) == 0)
-            satid(i) = plot(x(i), y(i), '.');
-            set(satid(i), 'MarkerSize', 15);
+            switch (char(Eph(31,i)))
+                case 'G' %GPS
+                    satid(i) = plot(x(i), y(i), '.');
+                    set(satid(i), 'MarkerSize', 15);
+                case 'R' %GLONASS
+                    satid(i) = plot(x(i), y(i), '^');
+                    set(satid(i), 'MarkerSize', 6);
+                case 'J' %QZSS
+                    satid(i) = plot(x(i), y(i), '*');
+            end
+            
+            
         else
             set(satid(i), 'XData', x(i), 'YData', y(i));
         end
@@ -197,6 +208,12 @@ y = y(sat);
 delete(labid(labid > 0));
 labid = zeros(num_sat,1);
 
+% identify GNSS systems and prepare system IDs and PRNs/slot numbers
+[~, idx1, idx2] = intersect(Eph(30,:), sat);
+sat = sat(idx2);
+sys = char(Eph(31,idx1));
+prn = Eph(1,idx1);
+
 try
     % if Statistics Toolbox is installed
     D = squareform(pdist([x y])) + 180*eye(length(sat));
@@ -222,15 +239,16 @@ for i = 1 : length(sat)
     %[sat(i) sat(d) minD alpha*180/pi]
 
     if (cos(alpha) < 0)
-        labid(sat(i)) = text(x(i)-10*cos(alpha)-6,y(i)-10*sin(alpha),sprintf('%d',sat(i)));
+        labid(sat(i)) = text(x(i)-10*cos(alpha)-6,y(i)-10*sin(alpha),[sys(i) sprintf('%d',prn(i))]);
     else
         if (sat(i) < 10)
-            labid(sat(i)) = text(x(i)-10*cos(alpha),y(i)-10*sin(alpha),sprintf('%d',sat(i)));
+            labid(sat(i)) = text(x(i)-10*cos(alpha),y(i)-10*sin(alpha),[sys(i) sprintf('%d',prn(i))]);
         else
-            labid(sat(i)) = text(x(i)-10*cos(alpha)-2,y(i)-10*sin(alpha),sprintf('%d',sat(i)));
+            labid(sat(i)) = text(x(i)-10*cos(alpha)-2,y(i)-10*sin(alpha),[sys(i) sprintf('%d',prn(i))]);
         end
     end
     %labid(sat(i)) = text(x(i),y(i),num2str(sat(i)));
     set(labid(sat(i)),'Color','k')
+    set(labid(sat(i)),'FontSize',9)
     set(labid(sat(i)),'FontWeight','bold')
 end
