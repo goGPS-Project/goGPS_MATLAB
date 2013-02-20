@@ -22,7 +22,7 @@ function varargout = gui_goGPS_unix(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS_unix
 
-% Last Modified by GUIDE v2.5 15-Feb-2013 01:39:08
+% Last Modified by GUIDE v2.5 20-Feb-2013 01:17:38
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -328,19 +328,19 @@ global goGUI;
 
 % Rover/INI ---------------------------------------------------
 
-function RINEX_rover_obs_Callback(hObject, eventdata, handles)
-% hObject    handle to RINEX_rover_obs (see GCBO)
+function sINI_Callback(hObject, eventdata, handles)
+% hObject    handle to sINI (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of RINEX_rover_obs as text
-%        str2double(get(hObject,'String')) returns contents of RINEX_rover_obs as a double
+% Hints: get(hObject,'String') returns contents of sINI as text
+%        str2double(get(hObject,'String')) returns contents of sINI as a double
 global goGUI;
-    goGUI.syncFromGUI(goGUI.idUI.sRinRover);
+    goGUI.syncFromGUI(goGUI.idUI.sINI);
 
 % --- Executes during object creation, after setting all properties.
-function RINEX_rover_obs_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to RINEX_rover_obs (see GCBO)
+function sINI_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to sINI (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -350,125 +350,29 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-% --- Executes on button press in browse_rover_obs.
-function browse_rover_obs_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_rover_obs (see GCBO)
+% --- Executes on button press in bINI.
+function bINI_Callback(hObject, eventdata, handles)
+% hObject    handle to bINI (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.bRinRover);
-
-% Master ------------------------------------------------------
-    
-function RINEX_master_obs_Callback(hObject, eventdata, handles)
-% hObject    handle to RINEX_master_obs (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of RINEX_master_obs as text
-%        str2double(get(hObject,'String')) returns contents of RINEX_master_obs as a double
-global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.sRinMaster);
-
-% --- Executes during object creation, after setting all properties.
-function RINEX_master_obs_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to RINEX_master_obs (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-    
-% --- Executes on button press in browse_master_obs.
-function browse_master_obs_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_master_obs (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.bRinMaster);
-
-% Navigation --------------------------------------------------
-    
-function RINEX_nav_Callback(hObject, eventdata, handles)
-% hObject    handle to RINEX_nav (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of RINEX_nav as text
-%        str2double(get(hObject,'String')) returns contents of RINEX_nav as a double
-global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.sRinNav);
-
-% --- Executes during object creation, after setting all properties.
-function RINEX_nav_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to RINEX_nav (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes on button press in browse_nav.
-function browse_nav_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_nav (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.bRinNav);
-
-% Binary In ---------------------------------------------------
-    
-function gogps_data_input_Callback(hObject, eventdata, handles)
-% hObject    handle to gogps_data_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: get(hObject,'String') returns contents of gogps_data_input as text
-%        str2double(get(hObject,'String')) returns contents of gogps_data_input as a double
-global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.sBinGoIn);
-
-% --- Executes during object creation, after setting all properties.
-function gogps_data_input_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to gogps_data_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes on button press in browse_gogps_input.
-function browse_gogps_input_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_gogps_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.bBinGoIn);
+    goGUI.syncFromGUI(goGUI.idUI.bINI);
 
 % Output ------------------------------------------------------    
 
-function gogps_data_output_Callback(hObject, eventdata, handles)
-% hObject    handle to gogps_data_output (see GCBO)
+function sDirGoOut_Callback(hObject, eventdata, handles)
+% hObject    handle to sDirGoOut (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of gogps_data_output as text
-%        str2double(get(hObject,'String')) returns contents of gogps_data_output as a double
+% Hints: get(hObject,'String') returns contents of sDirGoOut as text
+%        str2double(get(hObject,'String')) returns contents of sDirGoOut as a double
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.sDirGoOut);
 
 % --- Executes during object creation, after setting all properties.
-function gogps_data_output_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to gogps_data_output (see GCBO)
+function sDirGoOut_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to sDirGoOut (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -478,27 +382,27 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-% --- Executes on button press in browse_gogps_data_output.
-function browse_gogps_data_output_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_gogps_data_output (see GCBO)
+% --- Executes on button press in bDirGoOut.
+function bDirGoOut_Callback(hObject, eventdata, handles)
+% hObject    handle to bDirGoOut (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bDirGoOut);
     
-function gogps_data_output_prefix_Callback(hObject, eventdata, handles)
-% hObject    handle to gogps_data_output_prefix (see GCBO)
+function sPrefixGoOut_Callback(hObject, eventdata, handles)
+% hObject    handle to sPrefixGoOut (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of gogps_data_output_prefix as text
-%        str2double(get(hObject,'String')) returns contents of gogps_data_output_prefix as a double
+% Hints: get(hObject,'String') returns contents of sPrefixGoOut as text
+%        str2double(get(hObject,'String')) returns contents of sPrefixGoOut as a double
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.sPrefixGoOut);
 
 % --- Executes during object creation, after setting all properties.
-function gogps_data_output_prefix_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to gogps_data_output_prefix (see GCBO)
+function sPrefixGoOut_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to sPrefixGoOut (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -508,69 +412,65 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-% DTM ---------------------------------------------------------
+% Constellation select ----------------------------------------
 
-function dtm_path_Callback(hObject, eventdata, handles)
-% hObject    handle to dtm_path (see GCBO)
+% --- Executes on button press in cGPS.
+function cGPS_Callback(hObject, eventdata, handles)
+% hObject    handle to cGPS (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of dtm_path as text
-%        str2double(get(hObject,'String')) returns contents of dtm_path as a double
+% Hint: get(hObject,'Value') returns toggle state of cGPS
 global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.sDTM);
+    goGUI.syncFromGUI(goGUI.idUI.cGPS);
 
-% --- Executes during object creation, after setting all properties.
-function dtm_path_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to dtm_path (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes on button press in browse_dtm_path.
-function browse_dtm_path_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_dtm_path (see GCBO)
+% --- Executes on button press in cGLONASS.
+function cGLONASS_Callback(hObject, eventdata, handles)
+% hObject    handle to cGLONASS (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.bDTM);
+    goGUI.syncFromGUI(goGUI.idUI.cGLONASS);
 
-% Reference Path ----------------------------------------------
-
-function ref_path_input_Callback(hObject, eventdata, handles)
-% hObject    handle to ref_path_input (see GCBO)
+% --- Executes on button press in cGalileo.
+function cGalileo_Callback(hObject, eventdata, handles)
+% hObject    handle to cGalileo (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-% Hints: get(hObject,'String') returns contents of ref_path_input as text
-%        str2double(get(hObject,'String')) returns contents of ref_path_input as a double
+% Hint: get(hObject,'Value') returns toggle state of cGalileo
 global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.sRefPath);
+    goGUI.syncFromGUI(goGUI.idUI.cGalileo);
 
-% --- Executes during object creation, after setting all properties.
-function ref_path_input_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to ref_path_input (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: edit controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-% --- Executes on button press in browse_ref_path_input.
-function browse_ref_path_input_Callback(hObject, eventdata, handles)
-% hObject    handle to browse_ref_path_input (see GCBO)
+% --- Executes on button press in cBeiDou.
+function cBeiDou_Callback(hObject, eventdata, handles)
+% hObject    handle to cBeiDou (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cBeiDou
 global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.bRefPath);
+    goGUI.syncFromGUI(goGUI.idUI.cBeiDou);
+
+% --- Executes on button press in cQZSS.
+function cQZSS_Callback(hObject, eventdata, handles)
+% hObject    handle to cQZSS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cQZSS
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cQZSS);
+
+% --- Executes on button press in cSBAS.
+function cSBAS_Callback(hObject, eventdata, handles)
+% hObject    handle to cSBAS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cSBAS
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cSBAS);
 
 %   SETTINGS - KALMAN FILTER - STD
 % ===============================================================
