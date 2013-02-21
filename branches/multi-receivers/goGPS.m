@@ -186,7 +186,7 @@ end
 %-------------------------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------------------------
-% Inith objects
+% Init objects
 %-------------------------------------------------------------------------------------------
 
 inputOk = true;
@@ -1513,24 +1513,14 @@ if (inputOk)
             fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
             fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
             
-            %kalman_initialized = 0;
-            %while (~kalman_initialized)
             if (isempty(goObs.getTime_Ref()))
                 fprintf('It was not possible to initialize the Kalman filter.\n');
                 return
             end
             
-            KFmode = 5;
-            goKF = goKalmanFilter(goObs, KFmode, goObs.getSamplingRate_R(1));
-            %kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(1));
-            
-            if (~kalman_initialized)
-                pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
-                pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-                pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-                snr_R(:,1) = []; snr_M(:,1) = []; dtMdot(1) = [];
-            end
-            %end
+            %tmp select the parameters you want to estimate
+            KFmode = 5; % const.acceleration filter + attitude angles and variations
+            goKF_init = goKalmanFilter_init(goObs, KFmode, goObs.getSamplingRate_R(1));
             
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
