@@ -29,6 +29,7 @@
 
 % clear all the variables in the workspace
 clear variables
+clear variables global
 
 % close all windows
 close all
