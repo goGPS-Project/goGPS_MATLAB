@@ -2636,7 +2636,7 @@ classdef goGUIclass < handle
                     ~isempty(dir([filerootOUT '_????_NMEA*.txt'])) || ...
                     ~isempty(dir([filerootOUT '.kml'])) )
                 
-                filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
+                filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
                 i = i + 1;
             end
             data_path = goINI.getData('Receivers','data_path');
