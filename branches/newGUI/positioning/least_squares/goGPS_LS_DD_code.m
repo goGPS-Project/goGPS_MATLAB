@@ -127,7 +127,7 @@ if (size(sat,1) >= 4)
         
         if (phase == 1)
             % This loop is needed to improve tje err_tropo_R estimation
-            for i=1:1
+            for i=1:3
                 [XR, cov_XR] = LS_DD_code(XR, XS, pr1_R(sat), pr1_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
                 [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
                 [az, elR(elR ~= 0), distR(distR ~= 0)] = topocent(XR, XS);
@@ -137,7 +137,7 @@ if (size(sat,1) >= 4)
             %[XR, cov_XR] = LS_DD_code(XR, XS, pr1_R(sat), pr1_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
         else
             % This loop is needed to improve tje err_tropo_R estimation
-            for i=1:1
+            for i=1:3
                 [XR, cov_XR] = LS_DD_code(XR, XS, pr2_R(sat), pr2_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
                 [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
                 [az, elR(elR ~= 0), distR(distR ~= 0)] = topocent(XR, XS);

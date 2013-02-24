@@ -1769,16 +1769,7 @@ classdef goGUIclass < handle
 
           %   BUTTONS
           % ---------------------------------------------------------------
-            
-            % on Exit
-            if sum(intersect(idEl, obj.idUI.bExit)) > 0
-                if isfield(obj.goh, 'main_panel');
-                    close(obj.goh.main_panel);
-                else % Something went wrong in the initialization phase
-                    close(gcf);
-                end
-            end
-            
+                        
             % on Load Settings
             if sum(intersect(idEl, obj.idUI.bLoad)) > 0
                 obj.loadState();
@@ -1792,7 +1783,19 @@ classdef goGUIclass < handle
             % on GO
             if sum(intersect(idEl, obj.idUI.bGo)) > 0
                 obj.go();
-            end            
+            end
+            
+            obj.onoffUIEl();
+            obj.checkUIdependencies();
+            
+            % on Exit
+            if sum(intersect(idEl, obj.idUI.bExit)) > 0
+                if isfield(obj.goh, 'main_panel');
+                    close(obj.goh.main_panel);
+                else % Something went wrong in the initialization phase
+                    close(gcf);
+                end
+            end
         end
     end
     
