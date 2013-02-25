@@ -64,17 +64,17 @@ global order o1 o2 o3 h_antenna cutoff weights
 
 if (mode_user == 1)
 
-    if (~isunix)
+%     if (~isunix)
        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
-    else
-        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
-            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
-    end
+%     else
+%         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+%             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
+%             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+%             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
+%     end
 
     if (isempty(mode))
         return
@@ -95,7 +95,7 @@ else
     % POST-PROCESSING (RELATIVE POSITIONING)
     % mode=11 --> LEAST SQUARES ON CODE DOUBLE DIFFERENCES
     % mode=12 --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES
-    % mode=13 --> LEAST SQUARES ON CODE AND PHASE DOUBLE DIFFERENCES, LAMBDA (OPTIONS: ITERATIVE LS / REGULARIZED LS)
+    % mode=13 --> LEAST SQUARES ON CODE AND PHASE DOUBLE DIFFERENCES, LAMBDA
     % mode=14 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES (WITH/WITHOUT A CONSTRAINT)
     
     % REAL-TIME
@@ -154,6 +154,8 @@ else
         end
     end
 end
+
+mode = 13
 
 % start evaluating computation time
 tic
@@ -1048,6 +1050,78 @@ elseif (mode == 12)
     fclose(fid_sat);
     fclose(fid_dop);
     fclose(fid_conf);
+    
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING (RELATIVE POSITIONING): LEAST SQUARES ON CODE AND PHASE DOUBLE DIFFERENCES
+%                                         (SOLVING AMBIGUITIES WITH WITH LAMBDA METHOD)
+%----------------------------------------------------------------------------------------------
+
+elseif (mode == 13)
+
+    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+
+    nN = 32;
+    check_on = 0;
+    check_off = 0;
+    check_pivot = 0;
+    check_cs = 0;
+    
+    plot_t = 1;
+    
+    statistic = zeros(2,length(time_GPS));
+    ambiguity = 0;
+
+    for t = 1 : length(time_GPS)
+
+        if (mode_data == 0)
+            Eph_t = rt_find_eph (Eph, time_GPS(t));
+        else
+            Eph_t = Eph(:,:,t);
+        end
+
+        goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R, ph1_M, ph2_R, ph2_M, snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+
+        if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
+            Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
+            Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
+            statistic(1,t)= success(2);
+            statistic(2,t)= success(3);
+            fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+            fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+            fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
+            fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+            
+            if (flag_plotproc)
+                if (flag_cov == 0)
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                else
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                end
+                if (flag_skyplot == 1)
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
+                    rtplot_snr (snr_R(:,t));
+                else
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                end
+                plot_t = plot_t + 1;
+                pause(0.01);
+            end
+        end
+      
+        if ((t == 1) & (~flag_plotproc))
+            fprintf('Processing...\n');
+        end
+    end
+
+    fclose(fid_kal);
+    fclose(fid_sat);
+    fclose(fid_dop);
+    fclose(fid_conf);
 
 %--------------------------------------------------------------------------------------------------------------------
 % POST-PROCESSING (RELATIVE POSITIONING): KALMAN FILTER ON CODE AND PHASE DOUBLE DIFFERENCES WITHOUT LINE CONSTRAINT
@@ -1527,18 +1601,28 @@ if (mode <= 20) || (mode == 24)
     %variable saving for final graphical representations
     nObs = size(Xhat_t_t,2);
     pos_KAL = zeros(3,nObs);
+    pos_REF = zeros(3,nObs);
+    stat_SC = zeros(2,nObs);
     estim_amb = zeros(32,nObs);
     sigma_amb = zeros(32,nObs);
     for i = 1 : nObs
         if (mode == 14 & mode_vinc == 1)
             pos_KAL(:,i) = [Yhat_t_t(1,i); Yhat_t_t(2,i); Yhat_t_t(3,i)];
-            estim_amb(:,i) = Xhat_t_t(o1+1:o1+32,i);
-            sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32,i)));
         else
             pos_KAL(:,i) = [Xhat_t_t(1,i); Xhat_t_t(o1+1,i); Xhat_t_t(o2+1,i)];
-            estim_amb(:,i) = Xhat_t_t(o3+1:o3+32,i);
-            sigma_amb(:,i) = sqrt(diag(Cee(o3+1:o3+32,o3+1:o3+32,i)));
         end
+        %if LAMBDA
+        if (mode == 13)
+            stat_SC(:,i) = [statistic(1,i); statistic(2,i)];
+        end
+        %if relative positioning (i.e. with master station)
+        if ((mode > 10) && (mode <= 20)) || (mode == 24)
+            pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
+        else
+            pos_REF(:,i) = pos_KAL(:,1);
+        end
+        estim_amb(:,i) = Xhat_t_t(o1+1:o1+32,i);
+        sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32,i)));
     end
 end
 
@@ -1559,10 +1643,28 @@ if (mode <= 20) || (mode == 24)
     [phi_KAL, lam_KAL, h_KAL] = cart2geod(X_KAL, Y_KAL, Z_KAL);
     phi_KAL = phi_KAL * 180/pi;
     lam_KAL = lam_KAL * 180/pi;
-
+    
     %coordinate transformation (UTM)
-    [EAST_KAL, NORTH_KAL, h_null, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
-
+    [EAST_UTM, NORTH_UTM, h_UTM, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
+    
+    %if relative positioning (i.e. with master station)
+    if ((mode > 10) && (mode <= 20)) || (mode == 24)
+        X_ENU = global2localPos(pos_KAL, pos_REF);
+        EAST_KAL  = X_ENU(1,:)';
+        NORTH_KAL = X_ENU(2,:)';
+        UP_KAL    = X_ENU(3,:)';
+        
+        EAST  = EAST_KAL;
+        NORTH = NORTH_KAL;
+    else
+        EAST_KAL  = zeros(size(EAST_UTM));
+        NORTH_KAL = zeros(size(NORTH_UTM));
+        UP_KAL    = zeros(size(h_UTM));
+        
+        EAST  = EAST_UTM;
+        NORTH = NORTH_UTM;
+    end
+    
     %if no Kalman filter is used or if the positioning is constrained
     if (mode_vinc == 1) | (mode == 1) | (mode == 3) | (mode == 11) | (mode == 13)
         %initialization to -9999 (no data available)
@@ -1574,10 +1676,14 @@ if (mode <= 20) || (mode == 24)
     %date formatting
     date = gps2date(week_R, time_GPS);
     date(:,1) = date(:,1) - 2000;
-
+    
+    %lower bound success rate
+    LOWER  = stat_SC(1,:)';
+    FIXING = stat_SC(2,:)';
+    
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
-    fprintf(fid_out, '    Date        GPS time         GPS TOW        Latitude       Longitude     h (ellips.)       UTM North        UTM East        h (AMSL)        UTM zone          ECEF X          ECEF Y          ECEF Z            HDOP           KHDOP\n');
+    fprintf(fid_out, '    Date        GPS time         GPS TOW        Latitude       Longitude     h (ellips.)          ECEF X          ECEF Y          ECEF Z       UTM North        UTM East         h(AMSL)        UTM zone            HDOP           KHDOP     Local North      Local East         Local H   Ambiguity fix  Succ_rate(low)\n');
     for i = 1 : nObs
         if (geoid.ncols ~= 0)
             %geoid ondulation interpolation
@@ -1587,7 +1693,7 @@ if (mode <= 20) || (mode == 24)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), NORTH_KAL(i), EAST_KAL(i), h_ortho(i), utm_zone(i,:), X_KAL(i), Y_KAL(i), Z_KAL(i), HDOP(i), KHDOP(i));
+        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), FIXING(i), LOWER(i));
     end
     fclose(fid_out);
 end
@@ -1597,7 +1703,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 %if any positioning was done (either post-processing or real-time)
-if ((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL))
+if ((mode <= 20) || (mode == 24)) && (~isempty(EAST))
     %display information
     fprintf('Writing report file (PDF)...\n');
 
@@ -1661,14 +1767,19 @@ if ((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL))
     
     %trajectory plotting
     f3 = subplot(7,3,[2 3 5 6 8 9 11 12]);
-    EAST_O = EAST_KAL(1); NORTH_O = NORTH_KAL(1);
-    plot(EAST_KAL-EAST_O, NORTH_KAL-NORTH_O, '.r');
+    %if relative positioning (i.e. with master station)
+    if (((mode > 10) && (mode <= 20)) || mode == 24)
+        EAST_O = 0; NORTH_O = 0;
+    else
+        EAST_O = EAST_UTM(1); NORTH_O = NORTH_UTM(1);
+    end
+    plot(EAST-EAST_O, NORTH-NORTH_O, '.r');
     axis equal
     xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
     hold on
     if (o1 == 1) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
         %static positioning solution plotting
-        plot(EAST_KAL(end)-EAST_O, NORTH_KAL(end)-NORTH_O, '*b');
+        plot(EAST(end)-EAST_O, NORTH(end)-NORTH_O, '*b');
 %        %covariance propagation
 %        Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],end), Xhat_t_t([1 o1+1 o2+1],end));
         
@@ -1678,19 +1789,16 @@ if ((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL))
     end
     
     if (mode == 1 | mode == 3 | mode == 13 | mode == 11)
-        EAST_R = mean(EAST_KAL);
-        NORTH_R = mean(NORTH_KAL);
+        EAST_R = mean(EAST);
+        NORTH_R = mean(NORTH);
         h_R = mean(h_KAL);
         plot(EAST_R-EAST_O, NORTH_R-NORTH_O, '*b');
     end
     
-    %if relative positioning (i.e. with master station)
-    if ((mode > 10) && (mode <= 20)) || (mode == 24)
-        %coordinate transformation (UTM)
-        [EAST_M, NORTH_M, h_M, utm_zone] = cart2plan(pos_M(1,1), pos_M(2,1), pos_M(3,1));
-        
-        plot(EAST_M-EAST_O, NORTH_M-NORTH_O, 'xc', 'LineWidth', 2);
-    end
+    %coordinate transformation (UTM)
+    [EAST_REF, NORTH_REF, h_REF, utm_zone] = cart2plan(pos_REF(1,1), pos_REF(2,1), pos_REF(3,1));
+
+    %plot(EAST_M-EAST_O, NORTH_M-NORTH_O, 'xc', 'LineWidth', 2);
 
     %statistics
     f2 = subplot(7,3,[4 7 10]);
@@ -1698,8 +1806,8 @@ if ((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL))
     if (o1 == 1) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
         text(0,0.95,'----------------');
         text(0,0.90,'Final position (UTM)');
-        text(0,0.83,sprintf('E: %.3f m', EAST_KAL(end)));
-        text(0,0.78,sprintf('N: %.3f m', NORTH_KAL(end)));
+        text(0,0.83,sprintf('E: %.3f m', EAST_UTM(end)));
+        text(0,0.78,sprintf('N: %.3f m', NORTH_UTM(end)));
         text(0,0.73,sprintf('h(ell.): %.3f m', h_KAL(end)));
 %         text(0,0.62,'----------------');
 %         text(0,0.57,'Position estimation error');
@@ -1710,16 +1818,16 @@ if ((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL))
     
     if (mode == 11 || mode == 13)
         text(0,0.95,'----------------');
-        text(0,0.90,'Baseline (average)');
-        text(0,0.83,sprintf('E: %.3f m', EAST_R-EAST_M));
-        text(0,0.78,sprintf('N: %.3f m', NORTH_R-NORTH_M));
-        text(0,0.73,sprintf('h(ell.): %.3f m', h_R-h_M));
+        text(0,0.90,'Baseline (mean)');
+        text(0,0.83,sprintf('E: %.3f m', mean(EAST_KAL)));
+        text(0,0.78,sprintf('N: %.3f m', mean(NORTH_KAL)));
+        text(0,0.73,sprintf('h: %.3f m', mean(UP_KAL)));
+    else
+        text(0,0.62,'----------------');
+        text(0,0.57,'Plot false origin (UTM)');
+        text(0,0.50,sprintf('E: %.3f m', EAST_O));
+        text(0,0.45,sprintf('N: %.3f m', NORTH_O));
     end
-    
-    text(0,0.62,'----------------');
-    text(0,0.57,'Plot false origin (UTM)');
-    text(0,0.50,sprintf('E: %.3f m', EAST_O));
-    text(0,0.45,sprintf('N: %.3f m', NORTH_O));
 
     %satellite number
     f4 = subplot(7,3,[13 14 15]);
@@ -1729,14 +1837,14 @@ if ((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL))
     
     %EAST plot
     f5 = subplot(7,3,[16 17 18]);
-    plot(EAST_KAL-EAST_O); grid on
+    plot(EAST-EAST_O); grid on
     hold on
     pos = find(pivot == 0);
     if (~isempty(pos))
-        plot(pos, EAST_KAL(pivot == 0)-EAST_O,'.y');
+        plot(pos, EAST(pivot == 0)-EAST_O,'.y');
     end
     if (o1 == 1) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
-        plot([1, nObs], [EAST_KAL(end)-EAST_O EAST_KAL(end)-EAST_O],'r');
+        plot([1, nObs], [EAST(end)-EAST_O EAST(end)-EAST_O],'r');
         title('East coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
     else
         title('East coordinates (blue); Not processed / dynamics only (yellow)');
@@ -1744,14 +1852,14 @@ if ((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL))
 
     %NORTH plot
     f6 = subplot(7,3,[19 20 21]);
-    plot(NORTH_KAL-NORTH_O); grid on
+    plot(NORTH-NORTH_O); grid on
     hold on
     pos = find(pivot == 0);
     if (~isempty(pos))
-        plot(pos, NORTH_KAL(pivot == 0)-NORTH_O,'.y');
+        plot(pos, NORTH(pivot == 0)-NORTH_O,'.y');
     end
     if (o1 == 1) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
-        plot([1, nObs], [NORTH_KAL(end)-NORTH_O NORTH_KAL(end)-NORTH_O],'r');
+        plot([1, nObs], [NORTH(end)-NORTH_O NORTH(end)-NORTH_O],'r');
         title('North coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
     else
         title('North coordinates (blue); Not processed / dynamics only (yellow)');
@@ -2061,7 +2169,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 %if any positioning was done (either post-processing or real-time, not constrained)
-if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)) && (mode_vinc == 0))
+if (((mode <= 20) || (mode == 24)) && (~isempty(EAST)) && (mode_vinc == 0))
 
     %display information
     fprintf('Writing estimated error covariance files...\n');
@@ -2072,7 +2180,7 @@ if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)) && (mode_vinc == 0))
     if (flag_cov == 1)
         %trajectory plotting
         figure
-        plot(EAST_KAL, NORTH_KAL, '.r'); axis equal
+        plot(EAST, NORTH, '.r'); axis equal
         xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
         
         hold on
@@ -2081,7 +2189,7 @@ if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)) && (mode_vinc == 0))
             n = size(x_circle,1);
             x_ellipse = zeros(n,2);         % pre-allocation
             for j = 1 : n                   % ellipse definition
-                x_ellipse(j,:) = x_circle(j,:) * T + [EAST_KAL(i), NORTH_KAL(i)];
+                x_ellipse(j,:) = x_circle(j,:) * T + [EAST(i), NORTH(i)];
             end
             plot(x_ellipse(:,1),x_ellipse(:,2));
         end
@@ -2127,10 +2235,10 @@ end
 %----------------------------------------------------------------------------------------------
 
 %if any positioning was done (either post-processing or real-time, not constrained)
-if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)))
+if (((mode <= 20) || (mode == 24)) && (~isempty(EAST)))
     %2D plot
     figure
-    plot(EAST_KAL, NORTH_KAL, '.r');
+    plot(EAST, NORTH, '.r');
     xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on
 end
 
@@ -2139,7 +2247,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 %if any positioning was done (either post-processing or real-time, not constrained)
-if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)))
+if (((mode <= 20) || (mode == 24)) && (~isempty(EAST)))
     
 %     %3D plot (XYZ)
 %     figure
@@ -2148,7 +2256,7 @@ if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)))
     
     %3D plot (ENU)
     figure
-    plot3(EAST_KAL, NORTH_KAL, h_KAL, '.r');
+    plot3(EAST, NORTH, h_KAL, '.r');
     xlabel('EAST [m]'); ylabel('NORTH [m]'); zlabel('h [m]'); grid on
 end
 
@@ -2584,13 +2692,13 @@ end
 % STATISTICS COMPUTATION AND VISUALIZATION
 %----------------------------------------------------------------------------------------------
 
-if (mode <= 20) & (mode_vinc == 0) & (~isempty(ref_path)) & (~isempty(EAST_KAL))
+if (mode <= 20) & (mode_vinc == 0) & (~isempty(ref_path)) & (~isempty(EAST))
     %coordinate transformation
     [EAST_REF, NORTH_REF, h_REF] = cart2plan(ref_path(:,1), ref_path(:,2), ref_path(:,3));
 
     ref = [EAST_REF NORTH_REF h_REF];
 
-    [dist2D, proj] = ref_2d_projection(ref,EAST_KAL,NORTH_KAL); %#ok<NASGU>
+    [dist2D, proj] = ref_2d_projection(ref,EAST,NORTH); %#ok<NASGU>
 
     fprintf('\n');
     fprintf('-------- STATISTICS ------------');
@@ -2599,7 +2707,7 @@ if (mode <= 20) & (mode_vinc == 0) & (~isempty(ref_path)) & (~isempty(EAST_KAL))
     fprintf('Std2D:  %7.4f m\n',std(dist2D,1));
     fprintf('RMS2D:  %7.4f m\n\n',sqrt(std(dist2D)^2+mean(dist2D)^2));
 
-    [dist3D,proj] = ref_3d_projection(ref,EAST_KAL,NORTH_KAL,h_KAL);
+    [dist3D,proj] = ref_3d_projection(ref,EAST,NORTH,h_KAL);
 
     fprintf('Mean3D: %7.4f m\n',mean(dist3D));
     fprintf('Std3D:  %7.4f m\n',std(dist3D,1));
