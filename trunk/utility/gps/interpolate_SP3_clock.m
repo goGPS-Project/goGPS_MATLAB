@@ -55,7 +55,7 @@ end
 
 dt_S_SP3  = 0;
 
-if (isempty(find(SP3_c >= 999999, 1)))
+if (isempty(find(SP3_c >= 0.999, 1)))
 
     %linear interpolation (clock)
     dt_S_SP3 = (1-u)*SP3_c(1) + u*SP3_c(2);
