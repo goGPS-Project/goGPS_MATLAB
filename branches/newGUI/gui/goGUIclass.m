@@ -1550,20 +1550,17 @@ classdef goGUIclass < handle
             % Plot while processing flag
             isOn = obj.isActive(obj.idUI.cPlotProc);
             obj.setElStatus([obj.idGroup.gPlotProc], isOn, 0);            
-            % If the master is not available disable the flag to plot it
-            if obj.isProcessingType(obj.idC_SA) || obj.isProcessingType(obj.idCP_SA)
+            
+            % If the master is not available disable the flag to plot it 
+            if ~obj.isEnabled(obj.idUI.fRinMaster)
                 obj.setElStatus([obj.idUI.cPlotMaster], 0, 0);
             end
+            
             % If only code is used, no ambiguities are available
-            if ~obj.isProcessingType(obj.idCP_SA) && ~obj.isProcessingType(obj.idCP_DD)
+            if obj.isProcessingType(obj.idC_SA) || obj.isProcessingType(obj.idC_DD)
                 obj.setElStatus([obj.idUI.cPlotAmb], 0, 0);
             end
-
-            % If the master is not available disable the flag to plot it
-            if obj.isProcessingType(obj.idC_SA) || obj.isProcessingType(obj.idCP_SA)
-                obj.setElStatus([obj.idUI.cPlotMaster], 0, 0);
-            end
-
+            
             % NTRIP flag
             isOn = obj.isActive(obj.idUI.cUseNTRIP);
             obj.setElStatus([obj.idGroup.gNTRIP], isOn, 0);
