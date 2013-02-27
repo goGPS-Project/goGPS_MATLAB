@@ -75,6 +75,11 @@ for i = 1 : nsat
     %compute signal transmission time
     [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3_time, SP3_clck, sbas, err_tropo(i), err_iono(i), dtR);
     
+    if (dtS(i,1) == 0)
+        no_eph(i) = 1;
+        continue
+    end
+    
     if (isempty(SP3_time))
         
         %compute satellite position and velocity at transmission time
