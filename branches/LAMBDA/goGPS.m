@@ -29,6 +29,7 @@
 
 % clear all the variables in the workspace
 clear variables
+clear variables global
 
 % close all windows
 close all
@@ -64,17 +65,17 @@ global order o1 o2 o3 h_antenna cutoff weights
 
 if (mode_user == 1)
 
-%     if (~isunix)
+     if (~isunix)
        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
-%     else
-%         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-%             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
-%             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-%             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
-%     end
+     else
+         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
+             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
+     end
 
     if (isempty(mode))
         return
@@ -154,8 +155,6 @@ else
         end
     end
 end
-
-mode = 13
 
 % start evaluating computation time
 tic
