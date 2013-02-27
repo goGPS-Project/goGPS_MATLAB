@@ -58,7 +58,8 @@ mode_user = 1;  % user interface type
 %----------------------------------------------------------------------------------------------
 
 %load multi-constellation settings and initialize 'constellation' struct
-multi_constellation_settings;
+[constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+nSatTot = constellations.nEnabledSat;
 
 %initialization of global variables/constants
 global_init;
@@ -217,11 +218,12 @@ if (mode <= 20) %post-processing
                 load_RINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3);
         end
 
+        SP3 = [];
         if (flag_SP3)
             %display message
             fprintf('Reading SP3 file...\n');
             
-            [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_nav, time_GPS, week_R);
+            SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
         end
 
 %         %read surveying mode
@@ -437,7 +439,7 @@ if (mode <= 20) %post-processing
         if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
             %compute master station clock error and drift
             fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
-            [dtM, dtMdot] = clock_error(pos_M, time_M, pr1_M, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas);
+            [dtM, dtMdot] = clock_error(pos_M, time_M, pr1_M, snr_M, Eph, SP3, iono, sbas);
         else
             dtM = zeros(size(dop1_M,2),1);
             dtMdot = zeros(size(dop1_M,2),1);
@@ -525,7 +527,7 @@ if (mode == 1)
         
         sbas_t = find_sbas(sbas, t);
 
-        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
+        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, 1);
 
         if (t == 1)
             fwrite(fid_sat, nSatTot, 'int8');
@@ -549,10 +551,10 @@ if (mode == 1)
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t);
-                    rtplot_snr (snr_R(:,t), Eph_t);
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,t), Eph_t, SP3);
                 else
-                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
@@ -601,7 +603,7 @@ elseif (mode == 2)
         
         sbas_t = find_sbas(sbas, 1);
         
-        kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
+        kalman_initialized = goGPS_KF_SA_code_init(pos_R, time_GPS(1), pr1_R(:,1), pr2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, 1);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -628,10 +630,10 @@ elseif (mode == 2)
             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
         end
         if (flag_skyplot == 1)
-            rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
-            rtplot_snr (snr_R(:,1), Eph_t);
+            rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t, SP3);
+            rtplot_snr (snr_R(:,1), Eph_t, SP3);
         else
-            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
+            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
         end
     else
         fprintf('Processing...\n');
@@ -645,7 +647,7 @@ elseif (mode == 2)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_KF_SA_code_loop(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
+        goGPS_KF_SA_code_loop(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -663,10 +665,10 @@ elseif (mode == 2)
                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
             end
             if (flag_skyplot == 1)
-                rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
-                rtplot_snr (snr_R(:,t), Eph_t);
+                rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                rtplot_snr (snr_R(:,t), Eph_t, SP3);
             else
-                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
             end
             pause(0.01);
         end
@@ -706,7 +708,7 @@ elseif (mode == 3)
         
         sbas_t = find_sbas(sbas, t);
 
-        goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
+        goGPS_LS_SA_code_phase(time_GPS(t), pr1_R(:,t), pr2_R(:,t), ph1_R(:,t), ph2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, 1);
 
         if (t == 1)
             fwrite(fid_sat, nSatTot, 'int8');
@@ -728,10 +730,10 @@ elseif (mode == 3)
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t);
-                    rtplot_snr (snr_R(:,t), Eph_t);
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,t), Eph_t, SP3);
                 else
-                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
@@ -774,7 +776,7 @@ elseif (mode == 4)
         
         sbas_t = find_sbas(sbas, 1);
         
-        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
+        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, 1);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -802,10 +804,10 @@ elseif (mode == 4)
             rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
         else
             if (flag_skyplot == 1)
-                rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
-                rtplot_snr (snr_R(:,1), Eph_t);
+                rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                rtplot_snr (snr_R(:,1), Eph_t, SP3);
             else
-                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
+                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
             end
         end
     else
@@ -822,7 +824,7 @@ elseif (mode == 4)
         
         sbas_t = find_sbas(sbas, t);
 
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, 1);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -842,10 +844,10 @@ elseif (mode == 4)
                 pause(0.1);
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
-                    rtplot_snr (snr_R(:,t), Eph_t);
+                    rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,t), Eph_t, SP3);
                 else
-                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
                 end
                 pause(0.01);
             end
@@ -884,7 +886,7 @@ elseif (mode == 11)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_LS_DD_code(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        goGPS_LS_DD_code(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, 1);
 
         if (t == 1)
             fwrite(fid_sat, nSatTot, 'int8');
@@ -908,10 +910,10 @@ elseif (mode == 11)
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t);
-                    rtplot_snr (snr_R(:,t), Eph_t);
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,t), Eph_t, SP3);
                 else
-                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
@@ -958,7 +960,7 @@ elseif (mode == 12)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = goGPS_KF_DD_code_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        kalman_initialized = goGPS_KF_DD_code_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), pr2_R(:,1), pr2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, 1);
         
         if (~kalman_initialized)
             pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -985,10 +987,10 @@ elseif (mode == 12)
             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
         end
         if (flag_skyplot == 1)
-            rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
-            rtplot_snr (snr_R(:,1), Eph_t);
+            rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t, SP3);
+            rtplot_snr (snr_R(:,1), Eph_t, SP3);
         else
-            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
+            rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
         end
     else
         fprintf('Processing...\n');
@@ -1002,7 +1004,7 @@ elseif (mode == 12)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, 1);
 
         Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
         Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -1020,10 +1022,10 @@ elseif (mode == 12)
                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
             end
             if (flag_skyplot == 1)
-                rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
-                rtplot_snr (snr_R(:,t), Eph_t);
+                rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                rtplot_snr (snr_R(:,t), Eph_t, SP3);
             else
-                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
             end
             pause(0.01);
         end
@@ -1060,7 +1062,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                 Eph_t = Eph(:,:,1);
             end
 
-            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(1));
+            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, 1, dtMdot(1));
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1088,10 +1090,10 @@ elseif (mode == 14) & (mode_vinc == 0)
                 rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
-                    rtplot_snr (snr_R(:,1), Eph_t);
+                    rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,1), Eph_t, SP3);
                 else
-                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
+                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
                 end
             end
         else
@@ -1106,7 +1108,7 @@ elseif (mode == 14) & (mode_vinc == 0)
                 Eph_t = Eph(:,:,t);
             end
 
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(t));
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, 1, dtMdot(t));
 
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -1126,10 +1128,10 @@ elseif (mode == 14) & (mode_vinc == 0)
                     pause(0.1);
                 else
                     if (flag_skyplot == 1)
-                        rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
-                        rtplot_snr (snr_R(:,t), Eph_t);
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                        rtplot_snr (snr_R(:,t), Eph_t, SP3);
                     else
-                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
                     end
                     pause(0.01);
                 end
@@ -1165,7 +1167,7 @@ elseif (mode == 14) & (mode_vinc == 0)
             flag_dyn = 1;
             order = fread(fid_dyn,1,'uint8');
             
-            kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, order, 1, dtMdot(1));
+            kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, order, 1, dtMdot(1));
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1222,10 +1224,10 @@ elseif (mode == 14) & (mode_vinc == 0)
                 rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
-                    rtplot_snr (snr_R(:,1), Eph_t);
+                    rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,1), Eph_t, SP3);
                 else
-                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
+                    rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
                 end
             end
         else
@@ -1243,7 +1245,7 @@ elseif (mode == 14) & (mode_vinc == 0)
             order0 = order;
             order = fread(fid_dyn,1,'uint8');
             
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, order, 1, dtMdot(t));
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, order, 1, dtMdot(t));
             
             if (flag_stopGOstop == 1)
                 if (order > order0)
@@ -1315,10 +1317,10 @@ elseif (mode == 14) & (mode_vinc == 0)
                     pause(0.1);
                 else
                     if (flag_skyplot == 1)
-                        rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
-                        rtplot_snr (snr_R(:,t), Eph_t);
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                        rtplot_snr (snr_R(:,t), Eph_t, SP3);
                     else
-                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                        rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
                     end
                     pause(0.01);
                 end
@@ -1383,7 +1385,7 @@ elseif (mode == 14) & (mode_vinc == 1)
             Eph_t = Eph(:,:,1);
         end
         
-        kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, ref_loop, dtMdot(1));
+        kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, 1, ref_loop, dtMdot(1));
         
         if (~kalman_initialized)
             pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1406,10 +1408,10 @@ elseif (mode == 14) & (mode_vinc == 1)
             rtplot_amb (1, window, Xhat_t_t(o1+1:o1+nSatTot), sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot))), conf_cs);
         else
             if (flag_skyplot == 1)
-                rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t);
-                rtplot_snr (snr_R(:,1), Eph_t);
+                rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                rtplot_snr (snr_R(:,1), Eph_t, SP3);
             else
-                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t);
+                rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
             end
         end
     else
@@ -1424,7 +1426,7 @@ elseif (mode == 14) & (mode_vinc == 1)
             Eph_t = Eph(:,:,t);
         end
 
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, ref_loop, dtMdot(t));
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, 1, ref_loop, dtMdot(t));
 
         fwrite(fid_kal, [Xhat_t_t; Yhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -1439,10 +1441,10 @@ elseif (mode == 14) & (mode_vinc == 1)
                 pause(0.1);
             else
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t);
-                    rtplot_snr (snr_R(:,t), Eph_t);
+                    rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,t), Eph_t, SP3);
                 else
-                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t);
+                    rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
                 end
                 pause(0.01);
             end

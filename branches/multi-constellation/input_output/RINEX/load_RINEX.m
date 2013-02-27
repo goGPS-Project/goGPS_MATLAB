@@ -83,10 +83,7 @@ else
     filename_M_obs_PresenceFlag = true;
 end
 if (isempty(constellations)) %then use only GPS as default
-    constellations.GPS = struct('numSat', 32, 'enabled', 1, 'indexes', [1:32], 'PRN', [1:32]);
-    constellations.nEnabledSat = 32;
-    constellations.indexes = constellations.GPS.indexes;
-    constellations.PRN     = constellations.GPS.PRN;
+    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
 end
 
 %number of satellite slots for enabled constellations

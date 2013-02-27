@@ -1,7 +1,7 @@
-function [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas)
+function [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3, iono, sbas)
 
 % SYNTAX:
-%   [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas);
+%   [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3, iono, sbas);
 %
 % INPUT:
 %   XR0      = receiver (approximate) position
@@ -9,9 +9,7 @@ function [dtR, dtRdot] = clock_error(XR0, time_rx, pr, snr, Eph, SP3_time, SP3_c
 %   pr       = code observation (L1 carrier)
 %   snr      = signal-to-noise ratio
 %   Eph      = matrix containing 30 navigation parameters for each satellite
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
+%   SP3      = structure containing precise ephemeris data
 %   iono     = ionosphere parameters (Klobuchar)
 %   sbas     = SBAS corrections
 %
@@ -82,7 +80,7 @@ for i = 1 : nEpochs
     %----------------------------------------------------------------------------------------------
 
     if (length(sat_pr) >= 4)
-        [XR, dtR(i)] = init_positioning(time_rx(i), pr(sat_pr,i), snr(sat_pr,i), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, XR0(:,i), [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR(i)] = init_positioning(time_rx(i), pr(sat_pr,i), snr(sat_pr,i), Eph_t, SP3, iono, sbas_t, XR0(:,i), [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
         
         if (i > 1)
             %receiver clock drift

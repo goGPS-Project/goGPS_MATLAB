@@ -1,18 +1,21 @@
-function [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_SP3, time, week, wait_dlg)
+function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 
 % SYNTAX:
-%   [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_SP3, time, week, wait_dlg);
+%   [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg);
 %
 % INPUT:
 %   filename_SP3 = SP3 file
-%   time     = time window (GPS time)
-%   week     = GPS week
+%   time = time window (GPS time)
+%   week = GPS week
+%   constellations = struct with multi-constellation settings
+%                   (see 'multi_constellation_settings.m' - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
-%   SP3_time = precise ephemeris timestamps (GPS time)
-%   SP3_coor = satellite coordinates  [m]
-%   SP3_clck = satellite clock errors [s]
+%   SP3 = structure with the following fields:
+%      .time  = precise ephemeris timestamps (GPS time)
+%      .coord = satellite coordinates  [m]
+%      .clock = satellite clock errors [s]
 %
 % DESCRIPTION:
 %   SP3 (precise ephemeris) file parser.
@@ -41,13 +44,24 @@ function [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_SP3, time, week, wai
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+if (isempty(constellations)) %then use only GPS as default
+    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+end
+
+%starting index in the total array for the various constellations
+idGPS = constellations.GPS.indexes(1);
+idGLONASS = constellations.GLONASS.indexes(1);
+idGalileo = constellations.Galileo.indexes(1);
+idBeiDou = constellations.BeiDou.indexes(1);
+idQZSS = constellations.QZSS.indexes(1);
+
 %degree of interpolation polynomial (Lagrange)
 n = 10;
 
 %number of seconds in a quarter of an hour
 quarter_sec = 900;
 
-if (nargin > 3)
+if (nargin > 4)
     waitbar(0.5,wait_dlg,'Reading SP3 (precise ephemeris) file...')
 end
 
@@ -103,10 +117,13 @@ while (week_curr <= week_end)
     dow_curr = 0;
 end
 
-nEpochs = 96*size(week_dow,1);
-SP3_time = zeros(nEpochs,1);
-SP3_coor = zeros(3,32,nEpochs);
-SP3_clck = zeros(32,nEpochs);
+nEpochs  = 96*size(week_dow,1);
+SP3.time = zeros(nEpochs,1);
+SP3.coord = zeros(3,constellations.nEnabledSat,nEpochs);
+SP3.clock = zeros(constellations.nEnabledSat,nEpochs);
+SP3.avail = zeros(constellations.nEnabledSat,1);
+SP3.prn   = zeros(constellations.nEnabledSat,1);
+SP3.sys   = zeros(constellations.nEnabledSat,1);
 
 k = 0;
 flag_unavail = 0;
@@ -143,25 +160,50 @@ for p = 1 : size(week_dow,1)
 
                 %computation of the GPS time in weeks and seconds of week
                 [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
-                SP3_time(k,1) = time;
+                SP3.time(k,1) = time;
                 
             elseif (strcmp(lin(1),'P'))
                 %read position and clock
                 %example 1: "P  1  16258.524750  -3529.015750 -20611.427050    -62.540600"
                 %example 2: "PG01   8953.350886  12240.218129 -21918.986611 999999.999999"
                 %example 3: "PG02 -13550.970765 -16758.347434 -15825.576525    274.198680  7  8  8 138"
-                if (strcmp(lin(2),'G') | strcmp(lin(2),' '))
+                sys_id = lin(2);
+                if (strcmp(sys_id,' ') | strcmp(sys_id,'G') | strcmp(sys_id,'R') | strcmp(sys_id,'E') | ...
+                    strcmp(sys_id,'C') | strcmp(sys_id,'J'))
+
                     PRN = sscanf(lin(3:4),'%f');
                     X   = sscanf(lin(5:18),'%f');
                     Y   = sscanf(lin(19:32),'%f');
                     Z   = sscanf(lin(33:46),'%f');
                     clk = sscanf(lin(47:60),'%f');
                     
-                    SP3_coor(1,PRN,k) = X*1e3;
-                    SP3_coor(2,PRN,k) = Y*1e3;
-                    SP3_coor(3,PRN,k) = Z*1e3;
+                    switch (sys_id)
+                        case 'G'
+                            index = idGPS;
+                        case 'R'
+                            index = idGLONASS;
+                        case 'E'
+                            index = idGalileo;
+                        case 'C'
+                            index = idBeiDou;
+                        case 'J'
+                            index = idQZSS;
+                    end
                     
-                    SP3_clck(PRN,k) = clk/1e6; %NOTE: clk >= 999999 stands for bad or absent clock values
+                    index = index + PRN - 1;
+                    
+                    SP3.coord(1, index, k) = X*1e3;
+                    SP3.coord(2, index, k) = Y*1e3;
+                    SP3.coord(3, index, k) = Z*1e3;
+                    
+                    SP3.clock(index,k) = clk/1e6; %NOTE: clk >= 999999 stands for bad or absent clock values
+                    
+                    SP3.prn(index) = PRN;
+                    SP3.sys(index) = sys_id;
+                    
+                    if (SP3.clock(index,k) < 0.9)
+                        SP3.avail(index) = index;
+                    end
                 end
             end
         end
@@ -180,10 +222,10 @@ if (flag_unavail)
 end
 
 %remove empty slots
-SP3_time(k+1:nEpochs) = [];
-SP3_coor(:,:,k+1:nEpochs) = [];
-SP3_clck(:,k+1:nEpochs) = [];
+SP3.time(k+1:nEpochs) = [];
+SP3.coord(:,:,k+1:nEpochs) = [];
+SP3.clock(:,k+1:nEpochs) = [];
 
-if (nargin > 3)
+if (nargin > 4)
     waitbar(1,wait_dlg)
 end

@@ -1,7 +1,7 @@
-function rttext_sat (t, az, el, snr, obs, pivot, Eph)
+function rttext_sat (t, az, el, snr, obs, pivot, Eph, SP3)
 
 % SYNTAX:
-%   rttext_sat (t, az, el, obs, pivot, Eph);
+%   rttext_sat (t, az, el, obs, pivot, Eph, SP3);
 %
 % INPUT:
 %   t   = survey time (t=1,2,...)
@@ -14,6 +14,7 @@ function rttext_sat (t, az, el, snr, obs, pivot, Eph)
 %           -1 = only code
 %   pivot = pivot satellite
 %   Eph = matrix containing 31 navigation parameters for each satellite
+%   SP3 = structure containing precise ephemeris data
 %
 % DESCRIPTION:
 %   Real time textual display of satellite data.
@@ -63,16 +64,26 @@ vert_pos = 0.95;
 
 num_sat = numel(el);
 
-sat = 1:numel(el);
-sat = sat'.*abs(obs);
-
-[~, idx1, idx2] = intersect(Eph(30,:), sat);
-
 sys = zeros(num_sat,1);
 prn = zeros(num_sat,1);
 
-sys(idx2) = char(Eph(31,idx1));
-prn(idx2) = Eph(1,idx1);
+sat = 1:numel(el);
+sat = sat'.*abs(obs);
+
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+    sys_avail = Eph(31,:);
+    prn_avail = Eph(1,:);
+else
+    eph_avail = SP3.avail';
+    sys_avail = SP3.sys';
+    prn_avail = SP3.prn';
+end
+
+[~, idx1, idx2] = intersect(eph_avail, sat);
+
+sys(idx2) = char(sys_avail(idx1));
+prn(idx2) = prn_avail(idx1);
 
 for i = 1 : num_sat
 

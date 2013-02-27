@@ -1,7 +1,7 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(XM, time_rx, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase)
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(XM, time_rx, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3, iono, phase)
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(XM, time_rx, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase);
+%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(XM, time_rx, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3, iono, phase);
 %
 % INPUT:
 %   XM = master position (X,Y,Z)
@@ -13,9 +13,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(XM
 %   snr_R = signal-to-noise ratio for ROVER observations
 %   snr_M = signal-to-noise ratio for MASTER observations
 %   Eph = satellite ephemerides
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
+%   SP3 = structure containing precise ephemeris data
 %   iono = ionospheric parameters
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %
@@ -128,11 +126,11 @@ if (nsat >= 4)
     flag_XR = 1;
     
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XM, [], [],     sat, cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XR0, XS, dtS, sat_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat, cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XM, [], [],     sat, cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XR0, XS, dtS, sat_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat, cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
     end
     
     %keep only satellites that rover and master have in common

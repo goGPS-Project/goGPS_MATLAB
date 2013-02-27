@@ -1,7 +1,7 @@
-function rtplot_skyplot (t, az, el, obs, pivot, Eph)
+function rtplot_skyplot (t, az, el, obs, pivot, Eph, SP3)
 
 % SYNTAX:
-%   rtplot_skyplot (t, az, el, obs, pivot, Eph);
+%   rtplot_skyplot (t, az, el, obs, pivot, Eph, SP3);
 %
 % INPUT:
 %   t   = survey time (t=1,2,...)
@@ -13,6 +13,7 @@ function rtplot_skyplot (t, az, el, obs, pivot, Eph)
 %           -1 = only code
 %   pivot = pivot satellite
 %   Eph = matrix containing 31 navigation parameters for each satellite
+%   SP3 = structure containing precise ephemeris data
 %
 % DESCRIPTION:
 %   Real time skyplot.
@@ -41,6 +42,16 @@ global cutoff
 global satid labid pivid
 
 num_sat = length(el);
+
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+    sys = Eph(31,:);
+    prn = Eph(1,:);
+else
+    eph_avail = SP3.avail';
+    sys = SP3.sys';
+    prn = SP3.prn';
+end
 
 %----------------------------------------------------------------------------------------------
 % SKY-PLOT BACKGROUND
@@ -150,12 +161,15 @@ for i = 1 : num_sat
         sat = [sat; i];
         
         if (satid(i) == 0)
-            switch (char(Eph(31,i)))
+            switch sys(i)
                 case 'G' %GPS
                     satid(i) = plot(x(i), y(i), '.');
                     set(satid(i), 'MarkerSize', 15);
                 case 'R' %GLONASS
                     satid(i) = plot(x(i), y(i), '^');
+                    set(satid(i), 'MarkerSize', 6);
+                case 'E' %Galileo
+                    satid(i) = plot(x(i), y(i), 'd');
                     set(satid(i), 'MarkerSize', 6);
                 case 'J' %QZSS
                     satid(i) = plot(x(i), y(i), '*');
@@ -209,10 +223,10 @@ delete(labid(labid > 0));
 labid = zeros(num_sat,1);
 
 % identify GNSS systems and prepare system IDs and PRNs/slot numbers
-[~, idx1, idx2] = intersect(Eph(30,:), sat);
+[~, idx1, idx2] = intersect(eph_avail, sat);
 sat = sat(idx2);
-sys = char(Eph(31,idx1));
-prn = Eph(1,idx1);
+sys = char(sys(idx1));
+prn = prn(idx1);
 
 try
     % if Statistics Toolbox is installed

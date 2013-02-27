@@ -1,11 +1,11 @@
 function [kalman_initialized] = goGPS_KF_DD_code_phase_init_vinc(XR0, XM, time_rx, pr1_R, pr1_M, ...
          ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase, ref, dtMdot)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, phase, ref, dtMdot)
 
 % SYNTAX:
 %   [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
 %        ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase, ref, dtMdot);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, phase, ref, dtMdot);
 %
 % INPUT:
 %   XR0 = rover approximate position (X,Y,Z)
@@ -26,9 +26,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init_vinc(XR0, XM, time_r
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   Eph = satellites ephemerides
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
+%   SP3 = structure containing precise ephemeris data
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   phase = carrier L1 (phase=1) carrier L2 (phase=2)
 %   ref = reference trajectory
@@ -204,13 +202,13 @@ if (length(sat_pr) >= 4)
     sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
     end
     
     %keep only satellites that rover and master have in common

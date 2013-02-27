@@ -1,5 +1,18 @@
+function [constellations] = multi_constellation_settings(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
+
 % SYNTAX:
-%   multi_constellation_settings;
+%   [constellations] = multi_constellation_settings(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+%
+% INPUT:
+%   GPS_flag = boolean flag for enabling/disabling GPS usage
+%   GLO_flag = boolean flag for enabling/disabling GLONASS usage
+%   GAL_flag = boolean flag for enabling/disabling Galileo usage
+%   BDS_flag = boolean flag for enabling/disabling BeiDou usage
+%   QZS_flag = boolean flag for enabling/disabling QZSS usage
+%   SBS_flag = boolean flag for enabling/disabling SBAS usage (for ranging)
+%
+% OUTPUT:
+%   constellations = struct with multi-constellation settings
 %
 % DESCRIPTION:
 %   Multi-constellation settings and initialization.
@@ -24,12 +37,12 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-constellations.GPS     = struct('numSat', 32, 'enabled', 1, 'indexes', 0, 'PRN', [1:32]);
-constellations.GLONASS = struct('numSat', 24, 'enabled', 1, 'indexes', 0, 'PRN', [1:24]);
-constellations.Galileo = struct('numSat', 30, 'enabled', 0, 'indexes', 0, 'PRN', [1:30]);
-constellations.BeiDou  = struct('numSat', 30, 'enabled', 0, 'indexes', 0, 'PRN', [6:35]);    %BeiDou not supported yet
-constellations.QZSS    = struct('numSat',  4, 'enabled', 0, 'indexes', 0, 'PRN', [193:196]);
-constellations.SBAS    = struct('numSat',  0, 'enabled', 0, 'indexes', 0, 'PRN', 0);         %SBAS ranging not supported yet
+constellations.GPS     = struct('numSat', 32, 'enabled', GPS_flag, 'indexes', 0, 'PRN', [1:32]);
+constellations.GLONASS = struct('numSat', 24, 'enabled', GLO_flag, 'indexes', 0, 'PRN', [1:24]);
+constellations.Galileo = struct('numSat', 30, 'enabled', GAL_flag, 'indexes', 0, 'PRN', [1:30]);
+constellations.BeiDou  = struct('numSat', 30, 'enabled', 0,        'indexes', 0, 'PRN', [6:35]);    %BeiDou not supported yet
+constellations.QZSS    = struct('numSat',  4, 'enabled', QZS_flag, 'indexes', 0, 'PRN', [193:196]);
+constellations.SBAS    = struct('numSat',  0, 'enabled', 0,        'indexes', 0, 'PRN', 0);         %SBAS ranging not supported yet
 
 nSatTot = 0; %total number of satellites used given the enabled constellations
 q = 0;       %counter for enabled constellations

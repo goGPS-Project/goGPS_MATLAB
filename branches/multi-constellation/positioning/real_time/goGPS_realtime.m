@@ -399,7 +399,7 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
 end
 
 %initial positioning
-pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], [], [], iono, [], [], [], [], satObs, 10, 0, 0, 0);
+pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, 10, 0, 0, 0);
 
 fprintf('ROVER approximate position computed using %d satellites\n', sum(pr_R ~= 0));
 
@@ -1493,12 +1493,12 @@ while flag
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
-                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], [], [], iono, 1);
+                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, 1);
                     else
-                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], [], [], iono, order, 1);
+                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, order, 1);
                     end
                 else
-                    kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], [], [], iono, 1, ref_path);
+                    kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, 1, ref_path);
                 end
                 
                 if (kalman_initialized)
@@ -1555,10 +1555,10 @@ while flag
                             if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                         end
                         if (flag_skyplot == 1)
-                            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                            rtplot_snr (snr_R(:,1));
+                            rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph, []);
+                            rtplot_snr (snr_R(:,1), Eph, []);
                         else
-                            rttext_sat (t, azR, elR, snr_R(:,1), conf_sat, pivot);
+                            rttext_sat (t, azR, elR, snr_R(:,1), conf_sat, pivot, Eph, []);
                         end
                     end
                     
@@ -1649,12 +1649,12 @@ while flag
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], [], [], iono, 1); %#ok<NASGU,ASGLU>
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, 1); %#ok<NASGU,ASGLU>
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], [], [], iono, order, 1); %#ok<NASGU,ASGLU>
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, order, 1); %#ok<NASGU,ASGLU>
                     end
                 else
-                    [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], [], [], iono, 1, ref_path); %#ok<NASGU,ASGLU>
+                    [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, 1, ref_path); %#ok<NASGU,ASGLU>
                 end
 
                 if (flag_stopGOstop)
@@ -1724,10 +1724,10 @@ while flag
                         if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                     end
                     if (flag_skyplot == 1)
-                        rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                        rtplot_snr (zeros(32,1));
+                        rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph, []);
+                        rtplot_snr (zeros(32,1), Eph, []);
                     else
-                        rttext_sat (t, azR, elR, zeros(32,1), conf_sat, pivot);
+                        rttext_sat (t, azR, elR, zeros(32,1), conf_sat, pivot, Eph, []);
                     end
                 end
 
@@ -1802,12 +1802,12 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, order, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1);
                         end
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
                     end
 
                     if (flag_stopGOstop)
@@ -1878,10 +1878,10 @@ while flag
                             if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                         end
                         if (flag_skyplot == 1)
-                            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                            rtplot_snr (snr_R(:,b));
+                            rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph, []);
+                            rtplot_snr (snr_R(:,b), Eph, []);
                         else
-                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot);
+                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot, Eph, []);
                         end
                     end
 
@@ -1955,12 +1955,12 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, order, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1);
                         end
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
                     end
 
                     if (flag_stopGOstop)
@@ -2030,10 +2030,10 @@ while flag
                             if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                         end
                         if (flag_skyplot == 1)
-                            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                            rtplot_snr (snr_R(:,b));
+                            rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph, []);
+                            rtplot_snr (snr_R(:,b), Eph, []);
                         else
-                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot);
+                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot, Eph, []);
                         end
                     end
 
@@ -2157,12 +2157,12 @@ while flag
                         %Kalman filter
                         if (mode_vinc == 0)
                             if (~flag_var_dyn_model)
-                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, 1);
+                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1);
                             else
-                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, order, 1);
+                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1);
                             end
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, 1, ref_path);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
                         end
 
                         if (flag_stopGOstop)
@@ -2232,10 +2232,10 @@ while flag
                                 if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                             end
                             if (flag_skyplot == 1)
-                                rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                                rtplot_snr (snr_R(:,b));
+                                rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph, []);
+                                rtplot_snr (snr_R(:,b), Eph, []);
                             else
-                                rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot);
+                                rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot, Eph, []);
                             end
                         end
 
@@ -2309,12 +2309,12 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, order, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1);
                         end
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], [], [], iono, 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
                     end
 
                     if (flag_stopGOstop)
@@ -2384,10 +2384,10 @@ while flag
                             if (flag_ge == 1), rtplot_googleearth_cov (t, [pos_t(1); pos_t(2); pos_t(3)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date), end
                         end
                         if (flag_skyplot == 1)
-                            rtplot_skyplot (t, azR, elR, conf_sat, pivot);
-                            rtplot_snr (snr_R(:,b));
+                            rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph, []);
+                            rtplot_snr (snr_R(:,b), Eph, []);
                         else
-                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot);
+                            rttext_sat (t, azR, elR, snr_R(:,b), conf_sat, pivot, Eph, []);
                         end
                     end
 

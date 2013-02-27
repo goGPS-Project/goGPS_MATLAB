@@ -1,11 +1,12 @@
-function rtplot_snr(snr, Eph)
+function rtplot_snr(snr, Eph, SP3)
 
 % SYNTAX:
-%   rtplot_snr (snr, Eph);
+%   rtplot_snr (snr, Eph, SP3);
 %
 % INPUT:
 %   snr = signal-to-noise ratio
 %   Eph = matrix containing 31 navigation parameters for each satellite
+%   SP3 = structure containing precise ephemeris data
 %
 % DESCRIPTION:
 %   Real time bar graph of signal-to-noise ratio.
@@ -32,15 +33,25 @@ function rtplot_snr(snr, Eph)
 
 subplot(2,3,6)
 
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+    sys = Eph(31,:);
+    prn = Eph(1,:);
+else
+    eph_avail = SP3.avail';
+    sys = SP3.sys';
+    prn = SP3.prn';
+end
+
 sat = find(snr > 0);
 snr = snr(sat);
 
-[~, idx1, idx2] = intersect(Eph(30,:), sat);
+[~, idx1, idx2] = intersect(eph_avail, sat);
 sat = sat(idx2);
 snr = snr(idx2);
 
-sys = char(Eph(31,idx1));
-prn = Eph(1,idx1);
+sys = char(sys(idx1));
+prn = prn(idx1);
 
 sysprn = mat2cell([sys' num2str(prn')]);
 

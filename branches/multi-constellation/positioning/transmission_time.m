@@ -1,15 +1,14 @@
-function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3_time, SP3_clck, sbas, err_tropo, err_iono, dtR)
+function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR)
 
 % SYNTAX:
-%   [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3_time, SP3_clck, sbas, err_tropo, err_iono, dtR);
+%   [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR);
 %
 % INPUT:
 %   time_rx   = reception time
 %   range     = observed range
 %   sat       = satellite index
 %   Eph       = ephemeris
-%   SP3_time  = precise ephemeris time
-%   SP3_clck  = precise ephemeris clocks
+%   SP3       = structure containing precise ephemeris data
 %   sbas      = SBAS corrections
 %   err_tropo = tropospheric delays
 %   err_iono  = ionospheric delays
@@ -47,7 +46,7 @@ time_tx_RAW = time_rx - (range - err_tropo - err_iono) / v_light + dtR;
 %     tcorr = sat_clock_error_correction(time_tx_RAW - tcorr0, Eph);
 % end
 
-if (isempty(SP3_time))
+if (isempty(SP3))
     
     %if GLONASS
     if (strcmp(char(Eph(31)),'R'))
@@ -70,7 +69,7 @@ if (isempty(SP3_time))
     end
 else
     %interpolate SP3 satellite clock correction term
-    dtS = interpolate_SP3_clock(time_tx_RAW, SP3_time, SP3_clck(sat,:));
+    dtS = interpolate_SP3_clock(time_tx_RAW, SP3, sat);
 end
 
 time_tx = time_tx_RAW - dtS;
