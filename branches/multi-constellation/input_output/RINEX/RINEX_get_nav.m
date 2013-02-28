@@ -108,7 +108,6 @@ while (~feof(fid))
     lin7 = [];
     lin8 = [];
 
-    i = i+1;
     %read the first line (containing system and time information)
     while isempty(lin1)
         lin1 = fgetl(fid);
@@ -116,11 +115,14 @@ while (~feof(fid))
     if (lin1 == -1)
         break
     end
-    
+    if (~isempty(strfind(lin1,'COMMENT')))
+        continue
+    end
+
     %character offset (to deal with various RINEX versions)
     sys_id   = lin1(1);
     sys_uint = uint8(sys_id);
-    if (strcmp(sys_id,'G') || strcmp(sys_id,'R') || strcmp(sys_id,'E') || strcmp(sys_id,'J'))
+    if (strcmp(sys_id,'G') || strcmp(sys_id,'R') || strcmp(sys_id,'E')|| strcmp(sys_id,'C')  || strcmp(sys_id,'J'))
         o = 1;                 %RINEX v2.12(not GPS) or v3.xx
         if (strcmp(sys_id,'G'))
             sys_index = constellations.GPS.indexes(1);
@@ -128,6 +130,8 @@ while (~feof(fid))
             sys_index = constellations.GLONASS.indexes(1);
         elseif (strcmp(sys_id,'E'))
             sys_index = constellations.Galileo.indexes(1);
+        elseif (strcmp(sys_id,'C'))
+            sys_index = constellations.BeiDou.indexes(1);
         elseif (strcmp(sys_id,'J'))
             sys_index = constellations.QZSS.indexes(1);
         end
@@ -173,6 +177,19 @@ while (~feof(fid))
             lin8 = RemoveUnwantedTrailingSpaces(lin8);
         end
     end
+    
+    switch sys_id
+        case 'G'
+            if (~constellations.GPS.enabled), continue, end
+        case 'R'
+            if (~constellations.GLONASS.enabled), continue, end
+        case 'E'
+            if (~constellations.Galileo.enabled), continue, end
+        case 'C'
+            if (~constellations.BeiDou.enabled), continue, end
+        case 'J'
+            if (~constellations.QZSS.enabled), continue, end
+    end
 
     svprn  = str2num(lin1(o+[1:2])); %When input is a scalar, str2double is better than str2num. But str2double does not support 'D'
     if (version < 3)
@@ -191,12 +208,15 @@ while (~feof(fid))
         second = str2num(lin1(o+[19:21]+1));
     end
     
+    i = i+1;
+    
     %if not GLONASS
     if (~strcmp(sys_id, 'R'))
+
         af0    = str2num(lin1(o+[23:41]));
         af1    = str2num(lin1(o+[42:60]));
         af2    = str2num(lin1(o+[61:79]));
-        
+
         IODE   = str2num(lin2(o+[4:22]));
         crs    = str2num(lin2(o+[23:41]));
         deltan = str2num(lin2(o+[42:60]));
@@ -221,14 +241,17 @@ while (~feof(fid))
         code_on_L2 = str2num(lin6(o+[23:41]));
         weekno     = str2num(lin6(o+[42:60]));
         L2flag     = str2num(lin6(o+[61:79]));
-        
+        if (isempty(L2flag))
+            L2flag = 0;
+        end
+
         svaccur  = str2num(lin7(o+[4:22]));
         svhealth = str2num(lin7(o+[23:41]));
         tgd      = str2num(lin7(o+[42:60]));
         iodc     = str2num(lin7(o+[61:79]));
-        
+
         tom      = str2num(lin8(o+[4:22])); %#ok<NASGU>
-        if (length(lin8) > 22)
+        if (length(lin8) > o+22)
             fit_int = str2num(lin8(o+[23:41]));
         else
             fit_int = 0;
@@ -270,7 +293,7 @@ while (~feof(fid))
         Eph(31,i) = int8(sys_id);
         
         %if IODC and IODE do not match, issue a warning
-        if (iodc ~= IODE)
+        if (iodc ~= IODE && ~strcmp(sys_id, 'C'))
             fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %02d, time %dh %dm %.1fs)\n',svprn,hour,minute,second);
         end
         

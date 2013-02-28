@@ -37,12 +37,19 @@ function [constellations] = multi_constellation_settings(GPS_flag, GLO_flag, GAL
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-constellations.GPS     = struct('numSat', 32, 'enabled', GPS_flag, 'indexes', 0, 'PRN', [1:32]);
-constellations.GLONASS = struct('numSat', 24, 'enabled', GLO_flag, 'indexes', 0, 'PRN', [1:24]);
-constellations.Galileo = struct('numSat', 30, 'enabled', GAL_flag, 'indexes', 0, 'PRN', [1:30]);
-constellations.BeiDou  = struct('numSat', 30, 'enabled', 0,        'indexes', 0, 'PRN', [6:35]);    %BeiDou not supported yet
-constellations.QZSS    = struct('numSat',  4, 'enabled', QZS_flag, 'indexes', 0, 'PRN', [193:196]);
-constellations.SBAS    = struct('numSat',  0, 'enabled', 0,        'indexes', 0, 'PRN', 0);         %SBAS ranging not supported yet
+GPS_PRN = [1:32];
+GLO_PRN = [1:24];
+GAL_PRN = [1:30];
+BDS_PRN = [1:37];
+QZS_PRN = [193:196];
+SBS_PRN = 0; %SBAS ranging not supported yet
+
+constellations.GPS     = struct('numSat', numel(GPS_PRN), 'enabled', GPS_flag, 'indexes', 0, 'PRN', GPS_PRN);
+constellations.GLONASS = struct('numSat', numel(GLO_PRN), 'enabled', GLO_flag, 'indexes', 0, 'PRN', GLO_PRN);
+constellations.Galileo = struct('numSat', numel(GAL_PRN), 'enabled', GAL_flag, 'indexes', 0, 'PRN', GAL_PRN);
+constellations.BeiDou  = struct('numSat', numel(BDS_PRN), 'enabled', BDS_flag, 'indexes', 0, 'PRN', BDS_PRN);
+constellations.QZSS    = struct('numSat', numel(QZS_PRN), 'enabled', QZS_flag, 'indexes', 0, 'PRN', QZS_PRN);
+constellations.SBAS    = struct('numSat', numel(SBS_PRN), 'enabled', 0,        'indexes', 0, 'PRN', SBS_PRN); %SBAS ranging not supported yet
 
 nSatTot = 0; %total number of satellites used given the enabled constellations
 q = 0;       %counter for enabled constellations

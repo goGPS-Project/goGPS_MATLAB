@@ -110,7 +110,7 @@ for i = 1 : nsat
             Omegae_dot = Omegae_dot_GLO;
         case 'E'
             Omegae_dot = Omegae_dot_GAL;
-        case 'B'
+        case 'C'
             Omegae_dot = Omegae_dot_BDS;
         case 'J'
             Omegae_dot = Omegae_dot_QZS;

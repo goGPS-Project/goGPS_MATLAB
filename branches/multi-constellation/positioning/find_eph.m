@@ -46,14 +46,16 @@ fit_interval = Eph(29,icol);
 if (fit_interval ~= 0)
     dtmax = fit_interval*3600/2;
 else
-    dtmax = 7200;
+    switch (char(Eph(31,icol)))
+        case 'R' %GLONASS
+            dtmax = 900;
+        case 'J' %QZSS
+            dtmax = 3600;
+        otherwise
+            dtmax = 7200;
+    end
 end
-switch (char(Eph(31,icol)))
-    case 'R' %GLONASS
-        dtmax = 900;
-    case 'J' %QZSS
-        dtmax = 900;
-end
+
 if (abs(dtmin) > dtmax)
     icol = [];
     return

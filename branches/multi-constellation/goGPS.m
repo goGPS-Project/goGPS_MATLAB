@@ -57,9 +57,19 @@ mode_user = 1;  % user interface type
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
-%load multi-constellation settings and initialize 'constellation' struct
-[constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+%load multi-constellation settings and initialize 'constellations' struct
+GPS_flag = 1;
+GLO_flag = 1;
+GAL_flag = 1;
+BDS_flag = 1;
+QZS_flag = 1;
+SBS_flag = 0;
+[constellations] = multi_constellation_settings(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 nSatTot = constellations.nEnabledSat;
+if (nSatTot == 0)
+    fprintf('No constellations selected, setting default: GPS-only processing\n');
+    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+end
 
 %initialization of global variables/constants
 global_init;

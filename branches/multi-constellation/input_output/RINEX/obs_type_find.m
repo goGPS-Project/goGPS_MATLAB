@@ -12,15 +12,15 @@ function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
 % OUTPUT:
 %   Obs_columns = structure containing the column number of each observation type
 %                 in the following fields:
-%                   .L1 = L1 column (or LA for RINEX v2.12)
-%                   .L2 = L2 column (or LC for RINEX v2.12)
-%                   .C1 = C1 column (or CA for RINEX v2.12)
-%                   .P1 = P1 column (or CA for RINEX v2.12)
-%                   .P2 = P2 column (or CC for RINEX v2.12)
-%                   .S1 = S1 column (or SA for RINEX v2.12)
-%                   .S2 = S2 column (or SC for RINEX v2.12)
-%                   .D1 = D1 column (or DA for RINEX v2.12)
-%                   .D2 = D2 column (or DC for RINEX v2.12)
+%                   .L1 = L1 column
+%                   .L2 = L2 column
+%                   .C1 = C1 column
+%                   .P1 = P1 column
+%                   .P2 = P2 column
+%                   .S1 = S1 column
+%                   .S2 = S2 column
+%                   .D1 = D1 column
+%                   .D2 = D2 column
 %                 In the case of RINEX v3.xx, an additional field is added
 %                 for specifying the constellation, e.g.:
 %                   .G.L1 (GPS)
@@ -165,8 +165,16 @@ else %RINEX v3.xx
                 idS2 = 'S5X';
                 idD1 = 'D1X';
                 idD2 = 'D5X';
-            case 'C' %Compass/Beidou (not supported yet)
-                
+            case 'C' %Compass/Beidou
+                idL1 = 'L2I';
+                idL2 = 'L7I';
+                idC1 = 'C2I';
+                idP1 = '...'; % <-- ?
+                idP2 = 'C7I';
+                idS1 = 'S2I';
+                idS2 = 'S7I';
+                idD1 = 'D2I';
+                idD2 = 'D7I';
             case 'Q' %QZSS
                 idL1 = 'L1C';
                 idL2 = 'L2C';

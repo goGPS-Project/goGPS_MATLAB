@@ -32,7 +32,7 @@ switch char(Eph(31))
         GM = GM_GLO;
     case 'E'
         GM = GM_GAL;
-    case 'B'
+    case 'C'
         GM = GM_BDS;
     case 'J'
         GM = GM_QZS;

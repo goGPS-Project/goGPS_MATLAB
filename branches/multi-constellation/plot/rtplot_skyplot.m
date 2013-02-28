@@ -161,31 +161,35 @@ for i = 1 : num_sat
         sat = [sat; i];
         
         if (satid(i) == 0)
+            
+            satid(i) = plot(x(i), y(i), '.');
+            set(satid(i), 'MarkerSize', 15);
+            
             switch sys(i)
                 case 'G' %GPS
-                    satid(i) = plot(x(i), y(i), '.');
-                    set(satid(i), 'MarkerSize', 15);
+                    set(satid(i), 'Color', 'b');
                 case 'R' %GLONASS
-                    satid(i) = plot(x(i), y(i), '^');
-                    set(satid(i), 'MarkerSize', 6);
+                    set(satid(i), 'Color', 'g');
                 case 'E' %Galileo
-                    satid(i) = plot(x(i), y(i), 'd');
-                    set(satid(i), 'MarkerSize', 6);
+                    set(satid(i), 'Color', 'y');
+                case 'C' %BeiDou
+                    set(satid(i), 'Color', 'c');
                 case 'J' %QZSS
-                    satid(i) = plot(x(i), y(i), '*');
+                    set(satid(i), 'Color', 'm');
             end
-            
-            
         else
             set(satid(i), 'XData', x(i), 'YData', y(i));
         end
 
         if (obs(i) == 1)
-            set(satid(i), 'Color', 'b');
+            set(satid(i), 'Marker', '.');
+            set(satid(i), 'MarkerSize', 15);
         elseif (obs(i) == -1)
-            set(satid(i), 'Color', 'g');
+            set(satid(i), 'Marker', 'o');
+            set(satid(i), 'MarkerSize', 6);
         else % if (obs(i) == 0)
-            set(satid(i), 'Color', 'm');
+            set(satid(i), 'Marker', '^');
+            set(satid(i), 'MarkerSize', 6);
         end
 
         if (i == pivot)

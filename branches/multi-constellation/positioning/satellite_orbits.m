@@ -36,7 +36,7 @@ switch char(Eph(31))
         Omegae_dot = Omegae_dot_GLO;
     case 'E'
         Omegae_dot = Omegae_dot_GAL;
-    case 'B'
+    case 'C'
         Omegae_dot = Omegae_dot_BDS;
     case 'J'
         Omegae_dot = Omegae_dot_QZS;
@@ -94,19 +94,60 @@ if (~strcmp(char(Eph(31)),'R'))
     x1k = cos(uk)*rk;
     y1k = sin(uk)*rk;
     
-    %corrected longitude of the ascending node
-    Omegak = Omega0 + (Omega_dot - Omegae_dot)*tk - Omegae_dot*toe;
-    Omegak = rem(Omegak + circle_rad,circle_rad);
-    
-    %satellite Earth-fixed coordinates (X,Y,Z)
-    xk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
-    yk = x1k*sin(Omegak) + y1k*cos(ik)*cos(Omegak);
-    zk = y1k*sin(ik);
-    
-    %apply SBAS corrections (if available)
-    satp(1,1) = xk + dx_sbas;
-    satp(2,1) = yk + dy_sbas;
-    satp(3,1) = zk + dz_sbas;
+    %if GPS/Galileo/QZSS or MEO/IGSO BeiDou satellite
+    if (~strcmp(char(Eph(31)),'C') || (strcmp(char(Eph(31)),'C') && Eph(1) > 5))
+        
+        %corrected longitude of the ascending node
+        Omegak = Omega0 + (Omega_dot - Omegae_dot)*tk - Omegae_dot*toe;
+        Omegak = rem(Omegak + circle_rad,circle_rad);
+        
+        %satellite Earth-fixed coordinates (X,Y,Z)
+        xk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
+        yk = x1k*sin(Omegak) + y1k*cos(ik)*cos(Omegak);
+        zk = y1k*sin(ik);
+        
+        %apply SBAS corrections (if available)
+        satp(1,1) = xk + dx_sbas;
+        satp(2,1) = yk + dy_sbas;
+        satp(3,1) = zk + dz_sbas;
+        
+    else %if GEO BeiDou satellite (ranging code number <= 5)
+        
+        %corrected longitude of the ascending node
+        Omegak = Omega0 + Omega_dot*tk - Omegae_dot*toe;
+        Omegak = rem(Omegak + circle_rad,circle_rad);
+        
+        %satellite coordinates (X,Y,Z) in inertial system
+        xgk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
+        ygk = x1k*sin(Omegak) + y1k*cos(ik)*cos(Omegak);
+        zgk = y1k*sin(ik);
+        
+        %store inertial coordinates in a vector
+        Xgk = [xgk; ygk; zgk];
+        
+        %rotation matrices from inertial system to CGCS2000
+        Rx = [1        0          0;
+              0 +cosd(-5) +sind(-5);
+              0 -sind(-5) +cosd(-5)];
+        
+        oedt = Omegae_dot*tk;
+        
+        Rz = [+cos(oedt) +sin(oedt) 0;
+              -sin(oedt) +cos(oedt) 0;
+              0           0         1];
+        
+        %apply the rotations
+        Xk = Rz*Rx*Xgk;
+        
+        xk = Xk(1);
+        yk = Xk(2);
+        zk = Xk(3);
+        
+        %store CGCS2000 coordinates
+        satp(1,1) = xk;
+        satp(2,1) = yk;
+        satp(3,1) = zk;
+    end
     
     %-------------------------------------------------------------------------------
     % ALGORITHM FOR THE COMPUTATION OF THE SATELLITE VELOCITY (as in Remondi,
