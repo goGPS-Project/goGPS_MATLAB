@@ -112,8 +112,8 @@ classdef iniReader < handle
         fid;
         rawData = {};
         rw = 'r';
-        readStatus = false;        
-        verbosity = 1;        
+        readStatus = false;
+        verbosity = 1;
         colorMode = 1;
     
         section = {}
@@ -394,7 +394,7 @@ classdef iniReader < handle
                         s = s+1;   % go on with the search of the section
                     end
                 end
-            else                
+            else
                 % search the key of a specific section
                 s = 1;
                 while ((s<=length(obj.section)) && (s > 0))
@@ -786,7 +786,7 @@ classdef iniReader < handle
 %    DISPLAY UTILITIES
 % =========================================================================
 
-        % Display Warning        
+        % Display Warning
         function printWarning(obj, text, colorMode)
             if (nargin == 2)
                 colorMode = obj.colorMode;
@@ -802,7 +802,7 @@ classdef iniReader < handle
             end
         end
         
-        % Display Error        
+        % Display Error
         function printError(obj, text, colorMode)
             if (nargin == 2)
                 colorMode = obj.colorMode;
