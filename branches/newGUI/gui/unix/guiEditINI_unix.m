@@ -1,35 +1,35 @@
-function varargout = guiEditINI(varargin)
-% GUIEDITINI MATLAB code for guiEditINI.fig
-%      GUIEDITINI, by itself, creates a new GUIEDITINI or raises the existing
+function varargout = guiEditINI_unix(varargin)
+% GUIEDITINI_UNIX MATLAB code for guiEditINI_unix.fig
+%      GUIEDITINI_UNIX, by itself, creates a new GUIEDITINI_UNIX or raises the existing
 %      singleton*.
 %
-%      H = GUIEDITINI returns the handle to a new GUIEDITINI or the handle to
+%      H = GUIEDITINI_UNIX returns the handle to a new GUIEDITINI_UNIX or the handle to
 %      the existing singleton*.
 %
-%      GUIEDITINI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in GUIEDITINI.M with the given input arguments.
+%      GUIEDITINI_UNIX('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GUIEDITINI_UNIX.M with the given input arguments.
 %
-%      GUIEDITINI('Property','Value',...) creates a new GUIEDITINI or raises the
+%      GUIEDITINI_UNIX('Property','Value',...) creates a new GUIEDITINI_UNIX or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before guiEditINI_OpeningFcn gets called.  An
+%      applied to the GUI before guiEditINI_unix_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to guiEditINI_OpeningFcn via varargin.
+%      stop.  All inputs are passed to guiEditINI_unix_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help guiEditINI
+% Edit the above text to modify the response to help guiEditINI_unix
 
-% Last Modified by GUIDE v2.5 01-Mar-2013 18:11:47
+% Last Modified by GUIDE v2.5 04-Mar-2013 17:44:15
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @guiEditINI_OpeningFcn, ...
-                   'gui_OutputFcn',  @guiEditINI_OutputFcn, ...
+                   'gui_OpeningFcn', @guiEditINI_unix_OpeningFcn, ...
+                   'gui_OutputFcn',  @guiEditINI_unix_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -44,27 +44,27 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before guiEditINI is made visible.
-function guiEditINI_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before guiEditINI_unix is made visible.
+function guiEditINI_unix_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to guiEditINI (see VARARGIN)
+% varargin   command line arguments to guiEditINI_unix (see VARARGIN)
 
-% Choose default command line output for guiEditINI
+% Choose default command line output for guiEditINI_unix
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes guiEditINI wait for user response (see UIRESUME)
+% UIWAIT makes guiEditINI_unix wait for user response (see UIRESUME)
 % uiwait(handles.wEditINI);
 global goGUI
     goGUI.initEditINI(handles);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = guiEditINI_OutputFcn(hObject, eventdata, handles) 
+function varargout = guiEditINI_unix_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -281,3 +281,21 @@ function bBrowse4Ref_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.browse4Ref();
+    
+
+
+% --- Executes on key press with focus on wEditINI and none of its controls.
+function wEditINI_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to wEditINI (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+global goGUI
+if length(eventdata.Modifier) == 1
+    eventdata.Modifier
+    if (strcmp(eventdata.Modifier{1},'control') || strcmp(eventdata.Modifier{1},'command')) && strcmp(eventdata.Key,'s')
+        goGUI.saveINI();
+    end
+end
