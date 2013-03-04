@@ -294,7 +294,6 @@ function wEditINI_KeyPressFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
 if length(eventdata.Modifier) == 1
-    eventdata.Modifier
     if (strcmp(eventdata.Modifier{1},'control') || strcmp(eventdata.Modifier{1},'command')) && strcmp(eventdata.Key,'s')
         goGUI.saveINI();
     end
