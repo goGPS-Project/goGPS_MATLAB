@@ -22,7 +22,7 @@ function varargout = guiEditINI(varargin)
 
 % Edit the above text to modify the response to help guiEditINI
 
-% Last Modified by GUIDE v2.5 01-Mar-2013 18:11:47
+% Last Modified by GUIDE v2.5 04-Mar-2013 18:10:24
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -297,4 +297,3 @@ if length(eventdata.Modifier) == 1
         goGUI.saveINI();
     end
 end
-
