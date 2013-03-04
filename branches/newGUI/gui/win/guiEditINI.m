@@ -281,3 +281,20 @@ function bBrowse4Ref_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.browse4Ref();
+    
+% --- Executes on key press with focus on wEditINI and none of its controls.
+function wEditINI_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to wEditINI (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+global goGUI
+if length(eventdata.Modifier) == 1
+    eventdata.Modifier
+    if (strcmp(eventdata.Modifier{1},'control') || strcmp(eventdata.Modifier{1},'command')) && strcmp(eventdata.Key,'s')
+        goGUI.saveINI();
+    end
+end
+

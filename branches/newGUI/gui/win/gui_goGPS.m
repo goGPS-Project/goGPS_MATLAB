@@ -1574,3 +1574,19 @@ function about_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_about;
+
+% --- Executes on key press with focus on main_panel and none of its controls.
+function main_panel_KeyPressFcn(hObject, eventdata, handles)
+% hObject    handle to main_panel (see GCBO)
+% eventdata  structure with the following fields (see FIGURE)
+%	Key: name of the key that was pressed, in lower case
+%	Character: character interpretation of the key(s) that was pressed
+%	Modifier: name(s) of the modifier key(s) (i.e., control, shift) pressed
+% handles    structure with handles and user data (see GUIDATA)
+global goGUI
+% Easter Egg: secret shortcut ALT+0 to test the interface
+if length(eventdata.Modifier) == 1
+    if strcmp(eventdata.Modifier{1},'alt') && strcmp(eventdata.Key,'0')
+        goGUI.testOnOff();
+    end
+end
