@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 20-Feb-2013 01:17:38
+% Last Modified by GUIDE v2.5 04-Mar-2013 15:28:34
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -357,6 +357,13 @@ function bINI_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bINI);
+
+% --- Executes on button press in bEditINI.
+function bEditINI_Callback(hObject, eventdata, handles)
+% hObject    handle to bEditINI (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+guiEditINI()
 
 % Output ------------------------------------------------------    
 

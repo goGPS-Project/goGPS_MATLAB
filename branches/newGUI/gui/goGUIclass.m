@@ -2915,7 +2915,12 @@ classdef goGUIclass < handle
             obj.edtINI.h = h;
             
             % Get the name of the ini file
-            fileName = goINI.getFileName();
+            
+            if isobject(goINI)
+                fileName = goINI.getFileName();
+            else
+                fileName = '';
+            end
             if isempty(fileName)
                 fileName = [obj.settingsDir obj.defaultINIFile];
                 if ~exist(fileName, 'file');
@@ -2976,6 +2981,21 @@ classdef goGUIclass < handle
             obj.edtINI.jEdit.hFields = hContainerFields;
             drawnow;
             obj.updateFieldsINI();
+            
+            % Replacing the field
+            jCodePaneBrowse = com.mathworks.widgets.SyntaxTextPane;
+            jCodePaneBrowse.setText('');
+            % Create the ScrollPanel containing the widget
+            jScrollPaneBrowse = com.mathworks.mwswing.MJScrollPane(jCodePaneBrowse);
+            % Substitute the eFields edit box with the Java Scroll Pane
+            set(obj.edtINI.h.sBrowse, 'Units', 'pixels');
+            [jhPanel, hContainerBrowse] = javacomponent(jScrollPaneBrowse,get(obj.edtINI.h.sBrowse,'Position'),h.wEditINI);
+            delete(obj.edtINI.h.sBrowse);
+            
+            % Save the new object
+            obj.edtINI.jEdit.jBrowse = jCodePaneBrowse;
+            obj.edtINI.jEdit.hBrowse = hContainerBrowse;
+            drawnow;
         end
         
         % Browse INI file => select a file to be edited
@@ -3011,8 +3031,7 @@ classdef goGUIclass < handle
                 drawnow;                
             end
         end
-
-        
+     
         % Browse 4 INI
         function saveINI(obj)
             filename = get(obj.edtINI.h.sINIout, 'String');
@@ -3021,17 +3040,16 @@ classdef goGUIclass < handle
                 fwrite(fid, char(obj.edtINI.jEdit.jINI.getText()));
                 fclose(fid);
                 
-                msgbox('The file has been saved correctly');                
+                msgbox('The file has been saved correctly');
+                % If the main goGPS interface exist
+                if (ishandle(obj.goh.main_panel))
+                    if (filename ~= 0)
+                        obj.setElVal(obj.idUI.sINI, fullfile(filename));
+                    end
+                    obj.forceINIupdate();
+                end
             catch e
                 msgbox(['Error: ' e.message ' Please provide a valid filename(path)']);
-            end
-            
-            % If the main goGPS interface exist
-            if (ishandle(obj.goh.main_panel))
-                if (filename ~= 0)
-                    obj.setElVal(obj.idUI.sINI, fullfile(filename));
-                end
-                obj.forceINIupdate();
             end
         end
         
@@ -3086,11 +3104,22 @@ classdef goGUIclass < handle
                     '*.obs','Observation files (*.obs)'; ...
                     '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
                     '*.*',  'All Files (*.*)'}, ...
+                    'MultiSelect', 'on', ...
                     'Choose a RINEX observation file',[obj.workingDir 'data_RINEX']);
                 
-            if (filename ~= 0)
-                obj.setGuiElStr(obj.edtINI.h.sBrowse, [pathname filename]);
-                clipboard('copy', [pathname filename]);
+            if ~isempty(filename)
+                str = sprintf('data_path = "%s"\n', pathname);
+                if iscell(filename)
+                    str = sprintf('nRec = %d\n%sfile_name = [', length(filename), str);
+                    for r=1:length(filename)
+                        str = sprintf('%s "%s"',str, filename{r});                      
+                    end
+                    str = sprintf('%s ]',str);
+                else
+                    str = sprintf('%sfile_name = "%s"', str, filename);
+                end
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
             end
         end
         
@@ -3104,8 +3133,9 @@ classdef goGUIclass < handle
                 'Choose a RINEX navigation file',[obj.workingDir 'data_RINEX']);
             
             if (filename ~= 0)
-                obj.setGuiElStr(obj.edtINI.h.sBrowse, [pathname filename]);
-                clipboard('copy', [pathname filename]);
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
             end
         end
         
@@ -3118,8 +3148,9 @@ classdef goGUIclass < handle
             if (filename ~= 0)
                 pos = find(filename == '_');
                 filename = filename(1:pos(end-1)-1);
-                obj.setElVal(obj.edtINI.h.sBrowse, [pathname filename]);
-                clipboard('copy', [pathname filename]);
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
             end
         end
         
@@ -3127,8 +3158,9 @@ classdef goGUIclass < handle
         function browse4Dir(obj)
             dname = uigetdir(obj.workingDir,'Choose a directory');
             if (dname ~= 0)
-                obj.setGuiElStr(obj.edtINI.h.sBrowse, dname);
-                clipboard('copy', dname);
+                str = sprintf('data_path = "%s"', dname);
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
             end
         end
         
@@ -3137,8 +3169,9 @@ classdef goGUIclass < handle
             [filename, pathname] = uigetfile('*.mat', 'Choose file containing reference path',obj.workingDir);
             
             if (filename ~= 0)
-                obj.setElVal(obj.idUI.sRefPath, fullfile(pathname, filename));
-                clipboard('copy', [pathname filename]);
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
             end
             obj.updateGUI();
         end
@@ -3150,8 +3183,8 @@ classdef goGUIclass < handle
                 'Choose a file',obj.workingDir);
             
             if (filename ~= 0)
-                obj.setGuiElStr(obj.edtINI.h.sBrowse, [pathname filename]);
-                clipboard('copy', [pathname filename]);
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                clipboard('copy', str);
             end
         end
         
