@@ -68,6 +68,8 @@ classdef goGUIclass < handle
                                   % 1 = Linux
                                   % 2 = Mac
         
+        edtINI = [];              % Handler to everything related to the editor pf the ini files
+                                  
         status; % DEPRECATE: structure containing the state of the parameters of the figure
                                           
     %  INTERFACE STATUS
@@ -91,7 +93,8 @@ classdef goGUIclass < handle
         workingDir = '../data/';              % Working folder of goGPS, it contains data files/folders
         defaultSettingsFile = 'default_settings.mat';
         lastSettingsFile = 'last_settings.mat';
-
+        defaultINIFile = 'default_InputFiles.ini';
+        defaultINIKeywordsFile = 'goGPS_iniDefaultKeywords.ini';
     %  POP UP MENUS
     % ======================================================================
     % Look initPopUps for the complete initialization
@@ -296,7 +299,7 @@ classdef goGUIclass < handle
             set(obj.goh.nav_mon,'String', str);
         end
         
-        % Fill the LgorithmType pop-up (LS, KF...)
+        % Fill the AlgorithmType pop-up (LS, KF...)
         function initAlgorithmType(obj, str)
             if nargin < 2
                 str = obj.strAlgorithm;
@@ -509,8 +512,9 @@ classdef goGUIclass < handle
             i=i+1; id.fINI          = i;    id2h(i) = obj.goh.fINI;
             i=i+1; id.sINI          = i;    id2h(i) = obj.goh.sINI;
             i=i+1; id.bINI          = i;    id2h(i) = obj.goh.bINI;
+            i=i+1; id.bEditINI      = i;    id2h(i) = obj.goh.bEditINI;
             
-            idG.gINI   = [id.tINI   id.fINI   id.sINI   id.bINI];
+            idG.gINI = [id.tINI id.fINI id.sINI id.bINI id.bEditINI];
                         
             % Rover -------------------------------------------------------
             i=i+1; id.tRinRover     = i;    id2h(i) = obj.goh.tRinRover;
@@ -1670,6 +1674,13 @@ classdef goGUIclass < handle
             obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
         end
         
+        % Force INI update
+        function forceINIupdate(obj)
+            obj.updateLEDstate(true);
+            goOk = obj.test4Go();
+            obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
+        end
+        
         % EVENT MANAGER
         % When an element is modified (and launch a callback function in
         % the GUI) this function must be called!
@@ -1778,9 +1789,7 @@ classdef goGUIclass < handle
                 obj.browseINIFile();
             end
             if sum(intersect(idEl, obj.idGroup.gINI)) > 0
-                obj.updateLEDstate(true);
-                goOk = obj.test4Go();
-                obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
+                obj.forceINIupdate();
             end
                 
             % Browse output foder fo binary data
@@ -2918,6 +2927,300 @@ classdef goGUIclass < handle
             goINI.addKey('Constellations','SBAS',obj.isActive(obj.idUI.cSBAS));
         end
     end        
+    
+
+    
+    
+    
+    
+    
+    %   GO FUNCTIONS (OUTPUT)
+    % -------------------------------------------------------------------------
+    % This part still needs to be modified (cleaned)
+    methods
+        % Function to init the INI editor
+        % creates, objects, load default valuesm, etc...
+        function initEditINI(obj, h)
+            global goINI
+            
+            % Save handler to the INI editor
+            obj.edtINI.h = h;
+            
+            % Get the name of the ini file
+            
+            if isobject(goINI)
+                fileName = goINI.getFileName();
+            else
+                fileName = '';
+            end
+            if isempty(fileName)
+                fileName = [obj.settingsDir obj.defaultINIFile];
+                if ~exist(fileName, 'file');
+                    fileName = '';
+                end
+            end
+            
+            % Get the content of the ini file
+            obj.setGuiElStr(h.sINI, fileName);
+            obj.setGuiElStr(h.sINIout, fileName);
+
+            if ~isempty(fileName)
+                fid = fopen(fileName,'r');
+                text = fread(fid, '*char');
+                text = text';
+                fclose(fid);
+            else
+                text = '# No INI file found';
+            end
+            
+            % Undocumented edit box => better management of a text file
+            % Create the widget containing the text
+            jCodePaneINI = com.mathworks.widgets.SyntaxTextPane;
+            jCodePaneINI.setText(text);
+            % Create the ScrollPanel containing the widget
+            jScrollPaneINI = com.mathworks.mwswing.MJScrollPane(jCodePaneINI);
+            % Substitute the eINI edit box with the Java Scroll Pane
+            set(obj.edtINI.h.eINI, 'Units', 'pixels');
+            [jhPanel, hContainerINI] = javacomponent(jScrollPaneINI,get(obj.edtINI.h.eINI,'Position'),h.wEditINI);
+            delete(obj.edtINI.h.eINI);
+            
+            % Save the new object
+            obj.edtINI.jEdit.jINI = jCodePaneINI;
+            obj.edtINI.jEdit.hINI = hContainerINI;
+            
+            % Load INI keywords
+            obj.edtINI.keywordsINI = iniReader([obj.settingsDir obj.defaultINIKeywordsFile], 0);
+            obj.edtINI.keywordsINI.readFile();
+            % Sections
+            sections = obj.edtINI.keywordsINI.getData('INI','sections');
+            obj.setGuiElStr(h.lSections, sections);
+            drawnow;
+            % Fields
+            obj.updateFieldsINI();
+            
+            % Replacing the field
+            jCodePaneFields = com.mathworks.widgets.SyntaxTextPane;
+            jCodePaneFields.setText('');
+            % Create the ScrollPanel containing the widget
+            jScrollPaneFields = com.mathworks.mwswing.MJScrollPane(jCodePaneFields);
+            % Substitute the eFields edit box with the Java Scroll Pane
+            set(obj.edtINI.h.eFields, 'Units', 'pixels');
+            [jhPanel, hContainerFields] = javacomponent(jScrollPaneFields,get(obj.edtINI.h.eFields,'Position'),h.wEditINI);
+            delete(obj.edtINI.h.eFields);
+            
+            % Save the new object
+            obj.edtINI.jEdit.jFields = jCodePaneFields;
+            obj.edtINI.jEdit.hFields = hContainerFields;
+            drawnow;
+            obj.updateFieldsINI();
+            
+            % Replacing the field
+            jCodePaneBrowse = com.mathworks.widgets.SyntaxTextPane;
+            jCodePaneBrowse.setText('');
+            % Create the ScrollPanel containing the widget
+            jScrollPaneBrowse = com.mathworks.mwswing.MJScrollPane(jCodePaneBrowse);
+            % Substitute the eFields edit box with the Java Scroll Pane
+            set(obj.edtINI.h.sBrowse, 'Units', 'pixels');
+            [jhPanel, hContainerBrowse] = javacomponent(jScrollPaneBrowse,get(obj.edtINI.h.sBrowse,'Position'),h.wEditINI);
+            delete(obj.edtINI.h.sBrowse);
+            
+            % Save the new object
+            obj.edtINI.jEdit.jBrowse = jCodePaneBrowse;
+            obj.edtINI.jEdit.hBrowse = hContainerBrowse;
+            drawnow;
+        end
+        
+        % Browse INI file => select a file to be edited
+        function browseINIEditInFile(obj)
+            % In multi receiver mode, I read from ini file
+            [filename, pathname] = uigetfile( ...
+                {'*.ini;','INI configuration file (*.ini)'; ...
+                '*.*',  'All Files (*.*)'}, ...
+                'Choose an INI configuration file',[obj.settingsDir]);
+            if (filename ~= 0)
+                fileName = [pathname filename];
+                obj.setGuiElStr(obj.edtINI.h.sINI, fileName);
+                obj.setGuiElStr(obj.edtINI.h.sINIout, fileName);
+                
+                % Get the name of the ini file
+                if isempty(fileName)
+                    fileName = [obj.settingsDir obj.defaultINIFile];
+                    if ~exist(fileName, 'file');
+                        fileName = '';
+                    end
+                end
+                
+                % Get the content of the ini file
+                if ~isempty(fileName)
+                    fid = fopen(fileName,'r');
+                    text = fread(fid, '*char');
+                    text = text';
+                    fclose(fid);
+                else
+                    text = '# No INI file found';
+                end
+                obj.edtINI.jEdit.jINI.setText(text);
+                drawnow;                
+            end
+        end
+     
+        % Browse 4 INI
+        function saveINI(obj)
+            filename = get(obj.edtINI.h.sINIout, 'String');
+            try
+                fid = fopen(filename,'w');
+                fwrite(fid, char(obj.edtINI.jEdit.jINI.getText()));
+                fclose(fid);
+                
+                msgbox('The file has been saved correctly');
+                % If the main goGPS interface exist
+                if (ishandle(obj.goh.main_panel))
+                    if (filename ~= 0)
+                        obj.setElVal(obj.idUI.sINI, fullfile(filename));
+                    end
+                    obj.forceINIupdate();
+                end
+            catch e
+                msgbox(['Error: ' e.message ' Please provide a valid filename(path)']);
+            end
+        end
+        
+        % Update the fields according to the selected section
+        function updateFieldsINI(obj)
+            curSection = get(obj.edtINI.h.lSections, 'String');
+            valSection = get(obj.edtINI.h.lSections, 'Value');
+            curSection = curSection{valSection};
+            
+            numFields = obj.edtINI.keywordsINI.getData(curSection, 'num_fields');
+            strFields = obj.edtINI.keywordsINI.getData(curSection, 'str_fields');
+            vectFields = obj.edtINI.keywordsINI.getData(curSection, 'vect_fields');
+                        
+            str = sprintf('[%s]\n', curSection);
+            if ~isempty(numFields)
+                if iscell(numFields)
+                    for i=1:length(numFields)
+                        str = sprintf('%s%s = 0\n',str, numFields{i});
+                    end
+                else
+                    str = sprintf('%s%s = 0\n',str, numFields);
+                end
+            end
+            if ~isempty(strFields)
+                if iscell(strFields)
+                    for i=1:length(strFields)
+                        str = sprintf('%s%s = "insert a string"\n',str, strFields{i});
+                    end
+                else
+                    str = sprintf('%s%s = "insert a string"\n',str, strFields);
+                end
+            end
+            if ~isempty(vectFields)
+                if iscell(vectFields)
+                    for i=1:length(vectFields)
+                        str = sprintf('%s%s = [0 0 0]\n',str, vectFields{i});
+                    end
+                else
+                    str = sprintf('%s%s = [0 0 0]\n',str, vectFields);
+                end
+            end
+            if isfield(obj.edtINI.jEdit,'jFields')
+                obj.edtINI.jEdit.jFields.setText(str);
+            end
+        end
+        
+        % Browse for RINEX file
+        function browse4Rin(obj)
+            % In multi receiver mode, I read from ini file
+            [filename, pathname] = uigetfile( ...
+                    {'*.obs;*.??o;*.??O','RINEX observation files (*.obs,*.??o,*.??O)';
+                    '*.obs','Observation files (*.obs)'; ...
+                    '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
+                    '*.*',  'All Files (*.*)'}, ...
+                    'MultiSelect', 'on', ...
+                    'Choose a RINEX observation file',[obj.workingDir 'data_RINEX']);
+                
+            if ~isempty(filename)
+                str = sprintf('data_path = "%s"\n', pathname);
+                if iscell(filename)
+                    str = sprintf('nRec = %d\n%sfile_name = [', length(filename), str);
+                    for r=1:length(filename)
+                        str = sprintf('%s "%s"',str, filename{r});                      
+                    end
+                    str = sprintf('%s ]',str);
+                else
+                    str = sprintf('%sfile_name = "%s"', str, filename);
+                end
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
+            end
+        end
+        
+        % Browse for a navigation file
+        function browse4Nav(obj)
+            [filename, pathname] = uigetfile( ...
+                {'*.nav;*.??n;*.??N','RINEX navigation files (*.nav,*.??n,*.??N)';
+                '*.nav','Navigation files (*.nav)'; ...
+                '*.??n;*.??N','Navigation files (*.??n,*.??N)'; ...
+                '*.*',  'All Files (*.*)'}, ...
+                'Choose a RINEX navigation file',[obj.workingDir 'data_RINEX']);
+            
+            if (filename ~= 0)
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
+            end
+        end
+        
+        % Browse for a binary file
+        function browse4Bin(obj)
+            [filename, pathname] = uigetfile( ...
+                {'*.bin','goGPS binary data (*.bin)'}, ...
+                'Choose goGPS binary data',obj.workingDir);
+            
+            if (filename ~= 0)
+                pos = find(filename == '_');
+                filename = filename(1:pos(end-1)-1);
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
+            end
+        end
+        
+        % Browse output foder
+        function browse4Dir(obj)
+            dname = uigetdir(obj.workingDir,'Choose a directory');
+            if (dname ~= 0)
+                str = sprintf('data_path = "%s"', dname);
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
+            end
+        end
+        
+        % Browse for the path containing reference points for constrained solutions
+        function browse4Ref(obj)
+            [filename, pathname] = uigetfile('*.mat', 'Choose file containing reference path',obj.workingDir);
+            
+            if (filename ~= 0)
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                obj.edtINI.jEdit.jBrowse.setText(str);
+                clipboard('copy', str);
+            end
+            obj.updateGUI();
+        end
+        
+        % Browse for a Generic File
+        function browse4Gen(obj)
+            [filename, pathname] = uigetfile( ...
+                {'*.*',  'All Files (*.*)'}, ...
+                'Choose a file',obj.workingDir);
+            
+            if (filename ~= 0)
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                clipboard('copy', str);
+            end
+        end
+        
+    end  
     
     %   GUI STATIC MODIFIERS
     % -------------------------------------------------------------------------

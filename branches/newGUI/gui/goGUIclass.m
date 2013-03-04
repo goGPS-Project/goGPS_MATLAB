@@ -46,6 +46,7 @@ classdef goGUIclass < handle
         
         mode_PP_LS_C_SA = 1;      % Post Proc Least Squares Code Stand Alone
         mode_PP_LS_C_DD = 11;     % Post Proc Least Squares Code Double Differencies
+        mode_PP_LS_CP_DD_L = 13;  % Post Proc Least Squares Code Double Differencies with Lambda
 
         mode_PP_KF_C_SA = 2;      % Post Proc Kalman Filter Code Stand Alone
         mode_PP_KF_C_DD = 12;     % Post Proc Kalman Filter Code Double Differencies
@@ -117,10 +118,12 @@ classdef goGUIclass < handle
         % Processing type
         idC_SA = 1;     % Code stand-alone
         idC_DD = 2;     % Code double difference
+        idCP_DD_L = 3;  % Code double difference with Lmbda
         idCP_SA = 3;    % Code and phase stand-alone        
         idCP_DD = 4;    % Code and phase double difference
         idCP_DD_MR = 5; % Code and phase double difference for several receivers
-        strType = {};
+        strTypeLS = {};
+        strTypeKF = {};
         
         % File types
         idRin = 1;
@@ -255,11 +258,15 @@ classdef goGUIclass < handle
             obj.strAlgorithm{obj.idLS} = 'Least squares';
             obj.strAlgorithm{obj.idKF} = 'Kalman filter';
             
-            obj.strType{obj.idC_SA} = 'Code stand-alone';
-            obj.strType{obj.idC_DD} = 'Code double difference';
-            obj.strType{obj.idCP_SA} = 'Code and phase stand-alone';
-            obj.strType{obj.idCP_DD} = 'Code and phase double difference';
-            %obj.strType{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
+            obj.strTypeLS{obj.idC_SA} = 'Code stand-alone';
+            obj.strTypeLS{obj.idC_DD} = 'Code double difference';
+            obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference with Lambda';
+
+            obj.strTypeKF{obj.idC_SA} = 'Code stand-alone';
+            obj.strTypeKF{obj.idC_DD} = 'Code double difference';
+            obj.strTypeKF{obj.idCP_SA} = 'Code and phase stand-alone';
+            obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
+            %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
             
             obj.strDynModel{obj.idCVel} = 'Const. velocity';
             obj.strDynModel{obj.idCAcc} = 'Const. acceleration';
@@ -288,7 +295,7 @@ classdef goGUIclass < handle
             set(obj.goh.nav_mon,'String', str);
         end
         
-        % Fill the CaptureMode pop-up (Navigation, Monitor...)
+        % Fill the AlgorithmType pop-up (LS, KF...)
         function initAlgorithmType(obj, str)
             if nargin < 2
                 str = obj.strAlgorithm;
@@ -299,12 +306,13 @@ classdef goGUIclass < handle
             set(obj.goh.kalman_ls,'String', str);
         end
 
-        % Fill the CaptureMode pop-up (Navigation, Monitor...)
+        % Fill the ProcessingType pop-up (C_SA, CP_DD, ...)
         function initProcessingType(obj, str)
             if nargin < 2
-                str = obj.strType;
                 if get(obj.goh.kalman_ls,'Value') == obj.idLS
-                    str = str([obj.idC_SA, obj.idC_DD]);
+                    str = obj.strTypeLS;
+                else
+                    str = obj.strTypeKF;
                 end
             end
             value = get(obj.goh.code_dd_sa,'Value');
@@ -879,6 +887,9 @@ classdef goGUIclass < handle
             idG.onPP_LS_C_DD = [idG.onPP_LS ...
                               id.pMSt id.cMPos];
                           
+            % On Post Proc => Least Squares => Code and Phase Double Differencies with Lambda
+            idG.onPP_LS_CP_DD_L = [idG.onPP_LS ...
+                              id.pMSt id.cMPos];
 
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc ...
@@ -886,25 +897,25 @@ classdef goGUIclass < handle
                            id.pKF id.pEStD idG.pKF_ENU idG.StdCode idG.StdT0 id.bStdDTM ...
                            idG.SNR idG.MaxNumSat];
                           
-            % On Post Proc => On Least Squares => Code Stand Alone
+            % On Post Proc => On Kalman Filter => Code Stand Alone
             idG.onPP_KF_C_SA = [idG.onPP_KF id.rBin ...
                                id.cUse_SBAS];
             
-            % On Post Proc => On Least Squares => Code Double Differencies
+            % On Post Proc => On Kalman Filter => Code Double Differencies
             idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin ...
                                id.pMSt id.cMPos];
 
-            % On Post Proc => On Least Squares => Code Stand Alone
+            % On Post Proc => On Kalman Filter => Code and Phase Stand Alone
             idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin ...
                                  id.cUse_SBAS];
             
-            % On Post Proc => On Least Squares => Code Double Differencies
+            % On Post Proc => On Kalman Filter => Code and Phase Double Differencies
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin ...
                                  idG.StdPhase ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
                                  id.pMSt id.cMPos];
 
-            % On Post Proc => On Least Squares => Code Double Differencies
+            % On Post Proc => On Kalman Filter => Code and Phase Double Differencies
             % => Multi Receivers Mode
             idG.onPP_KF_CP_DD_MR = [idG.onPP_KF ...
                                     idG.StdPhase ...
@@ -1371,6 +1382,8 @@ classdef goGUIclass < handle
                             mode = obj.mode_PP_LS_C_SA;
                         case obj.idC_DD
                             mode = obj.mode_PP_LS_C_DD;
+                        case obj.idCP_DD_L
+                            mode = obj.mode_PP_LS_CP_DD_L;
                     end
                 end
                 if obj.isKF()
@@ -1538,8 +1551,9 @@ classdef goGUIclass < handle
             % Check File input dependencies
             obj.setElStatus([obj.idGroup.onRin], ~obj.isBin(), 0);
             if obj.isRinex()
-                if obj.isProcessingType(obj.idC_SA) || obj.isProcessingType(obj.idCP_SA)
-                    obj.setElStatus([obj.idGroup.RinMaster], 0, 0);
+                if (obj.isLS() && obj.isProcessingType(obj.idC_SA)) || ...
+                   (obj.isKF() && (obj.isProcessingType(obj.idC_SA) || obj.isProcessingType(obj.idCP_SA)))
+                   obj.setElStatus([obj.idGroup.RinMaster], 0, 0);
                 end
             end
             obj.setElStatus([obj.idGroup.onBin], obj.isBin() && ~obj.isRealTime(), 0);
@@ -1564,7 +1578,7 @@ classdef goGUIclass < handle
             if obj.isProcessingType(obj.idC_SA) || obj.isProcessingType(obj.idC_DD)
                 obj.setElStatus([obj.idUI.cPlotAmb], 0, 0);
             end
-            
+
             % NTRIP flag
             isOn = obj.isActive(obj.idUI.cUseNTRIP);
             obj.setElStatus([obj.idGroup.gNTRIP], isOn, 0);
@@ -1722,6 +1736,8 @@ classdef goGUIclass < handle
                                 obj.setElStatus(obj.idGroup.onPP_LS_C_SA, 1, 0);
                             case obj.idC_DD
                                 obj.setElStatus(obj.idGroup.onPP_LS_C_DD, 1, 0);
+                            case obj.idCP_DD_L
+                                obj.setElStatus(obj.idGroup.onPP_LS_CP_DD_L, 1, 0);
                         end
                     end
                     if obj.isKF()
