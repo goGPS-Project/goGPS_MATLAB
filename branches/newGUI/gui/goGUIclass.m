@@ -500,8 +500,9 @@ classdef goGUIclass < handle
             i=i+1; id.fINI          = i;    id2h(i) = obj.goh.fINI;
             i=i+1; id.sINI          = i;    id2h(i) = obj.goh.sINI;
             i=i+1; id.bINI          = i;    id2h(i) = obj.goh.bINI;
+            i=i+1; id.bEditINI      = i;    id2h(i) = obj.goh.bEditINI;
             
-            idG.gINI   = [id.tINI   id.fINI   id.sINI   id.bINI];
+            idG.gINI = [id.tINI id.fINI id.sINI id.bINI id.bEditINI];
                         
             % Rover -------------------------------------------------------
             i=i+1; id.tRinRover     = i;    id2h(i) = obj.goh.tRinRover;
@@ -1645,6 +1646,13 @@ classdef goGUIclass < handle
             obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
         end
         
+        % Force INI update
+        function forceINIupdate(obj)
+            obj.updateLEDstate(true);
+            goOk = obj.test4Go();
+            obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
+        end
+        
         % EVENT MANAGER
         % When an element is modified (and launch a callback function in
         % the GUI) this function must be called!
@@ -1749,9 +1757,7 @@ classdef goGUIclass < handle
                 obj.browseINIFile();
             end
             if sum(intersect(idEl, obj.idGroup.gINI)) > 0
-                obj.updateLEDstate(true);
-                goOk = obj.test4Go();
-                obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
+                obj.forceINIupdate();
             end
                 
             % Browse output foder fo binary data
@@ -2919,6 +2925,8 @@ classdef goGUIclass < handle
             
             % Get the content of the ini file
             obj.setGuiElStr(h.sINI, fileName);
+            obj.setGuiElStr(h.sINIout, fileName);
+
             if ~isempty(fileName)
                 fid = fopen(fileName,'r');
                 text = fread(fid, '*char');
@@ -2970,7 +2978,7 @@ classdef goGUIclass < handle
             obj.updateFieldsINI();
         end
         
-        % Browse INI file
+        % Browse INI file => select a file to be edited
         function browseINIEditInFile(obj)
             % In multi receiver mode, I read from ini file
             [filename, pathname] = uigetfile( ...
@@ -2980,6 +2988,7 @@ classdef goGUIclass < handle
             if (filename ~= 0)
                 fileName = [pathname filename];
                 obj.setGuiElStr(obj.edtINI.h.sINI, fileName);
+                obj.setGuiElStr(obj.edtINI.h.sINIout, fileName);
                 
                 % Get the name of the ini file
                 if isempty(fileName)
@@ -3006,7 +3015,24 @@ classdef goGUIclass < handle
         
         % Browse 4 INI
         function saveINI(obj)
-            char(obj.edtINI.jEdit.jINI.getText())
+            filename = get(obj.edtINI.h.sINIout, 'String');
+            try
+                fid = fopen(filename,'w');
+                fwrite(fid, char(obj.edtINI.jEdit.jINI.getText()));
+                fclose(fid);
+                
+                msgbox('The file has been saved correctly');                
+            catch e
+                msgbox(['Error: ' e.message ' Please provide a valid filename(path)']);
+            end
+            
+            % If the main goGPS interface exist
+            if (ishandle(obj.goh.main_panel))
+                if (filename ~= 0)
+                    obj.setElVal(obj.idUI.sINI, fullfile(filename));
+                end
+                obj.forceINIupdate();
+            end
         end
         
         % Update the fields according to the selected section
@@ -3101,7 +3127,7 @@ classdef goGUIclass < handle
         function browse4Dir(obj)
             dname = uigetdir(obj.workingDir,'Choose a directory');
             if (dname ~= 0)
-                obj.setElVal(obj.edtINI.h.sBrowse, dname);
+                obj.setGuiElStr(obj.edtINI.h.sBrowse, dname);
                 clipboard('copy', dname);
             end
         end

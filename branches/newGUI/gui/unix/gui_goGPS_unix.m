@@ -22,7 +22,7 @@ function varargout = gui_goGPS_unix(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS_unix
 
-% Last Modified by GUIDE v2.5 20-Feb-2013 01:17:38
+% Last Modified by GUIDE v2.5 04-Mar-2013 14:20:07
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -350,6 +350,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+% --- Executes on button press in bEditINI.
 % --- Executes on button press in bINI.
 function bINI_Callback(hObject, eventdata, handles)
 % hObject    handle to bINI (see GCBO)
@@ -357,6 +358,12 @@ function bINI_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bINI);
+
+function bEditINI_Callback(hObject, eventdata, handles)
+% hObject    handle to bEditINI (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+guiEditINI
 
 % Output ------------------------------------------------------    
 
