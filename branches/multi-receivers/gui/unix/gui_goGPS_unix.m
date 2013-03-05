@@ -22,7 +22,7 @@ function varargout = gui_goGPS_unix(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS_unix
 
-% Last Modified by GUIDE v2.5 04-Mar-2013 17:37:58
+% Last Modified by GUIDE v2.5 05-Mar-2013 18:33:59
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -1582,4 +1582,3 @@ if length(eventdata.Modifier) == 1
         goGUI.testOnOff();
     end
 end
-

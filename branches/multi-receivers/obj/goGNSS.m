@@ -84,57 +84,79 @@ classdef goGNSS < handle
     end
     
     % Useful function (static)
-    methods (Static, Access = 'public')        
-        % SYNTAX:
-        %   [pos] = bancroft(B_pass);
-        %
-        % INPUT:
-        %   B_pass = Bancroft matrix
-        %
-        % OUTPUT:
-        %   pos = approximated ground position (X,Y,Z coordinates)
-        %
-        % DESCRIPTION:
-        %   Bancroft algorithm for the computation of ground coordinates
-        %   having at least 4 visible satellites.
-        %
-        % Copyright (C) Kai Borre
-        % Kai Borre 04-30-95, improved by C.C. Goad 11-24-96
-        %
-        % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-        %----------------------------------------------------------------------------------------------
-        function [pos] = bancroft(B_pass)
-            pos = zeros(4,1);
+    methods (Static, Access = 'public')   
+        
+        % Function to get a bancroft solution from one receiver
+        % 
+        % Typical old way of calling the function
+        % index = find(no_eph == 0);
+        % pos = getBancroftPos(XS(index,:), dtS(index), pseudorange(index))
+        function pos = getBancroftPos(XS, dtS, prR)
+            matB = [XS(:,:), prR(:) + goGNSS.V_LIGHT * dtS(:)]; % Bancroft matrix
+            pos = obj.bancroft(matB);            
+        end        
+    end
+    
+    methods (Static, Access = 'private')
+        % Bancroft algorithm for the computation of ground coordinates
+        % having at least 4 visible satellites.
+        
+        function pos = bancroft(matB)
+            % SYNTAX:
+            %   [pos] = bancroft(B_pass);
+            %
+            % INPUT:
+            %   B_pass = Bancroft matrix
+            %
+            % OUTPUT:
+            %   pos = approximated ground position (X,Y,Z coordinates)
+            %
+            % DESCRIPTION:
+            %   Bancroft algorithm for the computation of ground coordinates
+            %   having at least 4 visible satellites.
+            %
+            % Copyright (C) Kai Borre
+            % Kai Borre 04-30-95, improved by C.C. Goad 11-24-96
+            %
+            % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
+            %----------------------------------------------------------------------------------------------            pos = zeros(4,1);
+            
+            pos = zeros(4,1);   % Init position of the receiver
+            
+            nSat = size(matB,1);
             
             for iter = 1:2
-                B = B_pass;
-                [m,n] = size(B); %#ok<NASGU>
-                for i = 1:m
-                    x = B(i,1);
-                    y = B(i,2);
+                % Compute correctionon XS coordinates
+                % due to the rotation of the Earth
+                for s = 1:nSat
+                    x = matB(s,1);      % X coordinate of the satellite S
+                    y = matB(s,2);      % Y coordinate of the satellite S
                     if iter == 1
-                        traveltime = 0.072;
+                        traveltime = 0.072; % [s]
                     else
-                        z = B(i,3);
+                        z = matB(s,3);  % Z coordinate of the satellite S
+                        % Compute approximate distance^2 between R and S
                         rho = (x-pos(1))^2+(y-pos(2))^2+(z-pos(3))^2;
                         traveltime = sqrt(rho)/goGNSS.V_LIGHT;
                     end
                     angle = traveltime*goGNSS.OMEGAE_DOT;
                     cosa = cos(angle);
                     sina = sin(angle);
-                    B(i,1) =	cosa*x + sina*y;
-                    B(i,2) = -sina*x + cosa*y;
-                end; % i-loop
+                    % Applying correction (rotation)
+                    matB(s,1) =	cosa*x + sina*y;
+                    matB(s,2) = -sina*x + cosa*y;
+                end % i-loop
                 
-                if m > 4
-                    BBB = (B'*B)\B';
+                % Criptical way to implement Bancroft
+                if nSat > 4
+                    BBB = (matB'*matB)\matB';
                 else
-                    BBB = inv(B);
+                    BBB = inv(matB);
                 end
-                e = ones(m,1);
-                alpha = zeros(m,1);
-                for i = 1:m
-                    alpha(i) = lorentz(B(i,:)',B(i,:)')/2;
+                e = ones(nSat,1);
+                alpha = zeros(nSat,1);
+                for s = 1:nSat
+                    alpha(s) = lorentz(matB(s,:)',matB(s,:)')/2;
                 end
                 BBBe = BBB*e;
                 BBBalpha = BBB*alpha;
@@ -145,15 +167,17 @@ classdef goGNSS < handle
                 r(1) = (-b-root)/a;
                 r(2) = (-b+root)/a;
                 possible_pos = zeros(4,2);
-                for i = 1:2
-                    possible_pos(:,i) = r(i)*BBBe+BBBalpha;
-                    possible_pos(4,i) = -possible_pos(4,i);
+                for s = 1:2
+                    possible_pos(:,s) = r(s)*BBBe+BBBalpha;
+                    possible_pos(4,s) = -possible_pos(4,s);
                 end
-                for j =1:m
+                
+                abs_omc = zeros(2,1);
+                for s =1:nSat
                     for i = 1:2
                         c_dt = possible_pos(4,i);
-                        calc = norm(B(j,1:3)' -possible_pos(1:3,i))+c_dt;
-                        omc = B(j,4)-calc;
+                        calc = norm(matB(s,1:3)' -possible_pos(1:3,i))+c_dt;
+                        omc = matB(s,4)-calc;
                         abs_omc(i) = abs(omc);
                     end
                 end; % j-loop

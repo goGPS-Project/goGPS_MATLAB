@@ -28,7 +28,8 @@
 %---------------------------------------------------------------------------------------------
 
 % clear all the variables in the workspace
-clearvars all
+clearvars
+clearvars -global goGUI goObs goINI goObj
 
 % close all windows
 close all
@@ -1521,8 +1522,7 @@ if (inputOk)
             %tmp select the parameters you want to estimate
             KFmode = 5; % const.acceleration filter + attitude angles and variations
             goKF = goKalmanFilter(goObs, KFmode, goObs.getSamplingRate_R(1));
-            goKF.init(goObs);
-            
+            goKF.init(goObs);            
             
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
