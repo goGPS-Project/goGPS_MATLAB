@@ -262,7 +262,7 @@ if (inputOk)
     % FILE READING
     %----------------------------------------------------------------------------------------------
     
-    if (mode <= 20) % post-processign
+    if (mode <= 20) % post-processing
         
         if (mode_data == 0)
             
@@ -1520,7 +1520,9 @@ if (inputOk)
             
             %tmp select the parameters you want to estimate
             KFmode = 5; % const.acceleration filter + attitude angles and variations
-            goKF_init = goKalmanFilter_init(goObs, KFmode, goObs.getSamplingRate_R(1));
+            goKF = goKalmanFilter(goObs, KFmode, goObs.getSamplingRate_R(1));
+            goKF.init(goObs);
+            
             
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');

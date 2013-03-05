@@ -219,8 +219,21 @@ classdef goKalmanFilter < handle
         end
     end
     
-    % Initialization functions
+    % Function to fill KF initial matrices
+    methods (Access = 'public')
+        function init(obj, goObs)
+            obj.init_T(obj.mode);
+            obj.init_Xhat_t_t(goObs, obj.mode);
+            obj.init_X_t1_t();
+            obj.init_Cee(goObs.getNumRec(), obj.mode);
+            %obj.init_doppler(goObs, goObs.getNumRec(), goObs.getGNSSnFreq(goObs.idGPS));
+            obj.init_KxDOP(obj.mode);
+            % set the status of the KF initialization
+            obj.initKF = true;
+        end
+    end
     
+    % Initialization functions
     methods (Access = 'private')
         % Function to initialize all the variances used in the KF
         function setDefaultVariances(obj)
@@ -310,18 +323,6 @@ classdef goKalmanFilter < handle
             % Doppler-predicted range
             obj.doppler_pred_range_R = zeros(nSat,nRec,nFreq);
             obj.doppler_pred_range_M = zeros(nSat,1,nFreq);
-        end
-        
-        % Function to fill KF initial matrices
-        function init(obj, goObs)
-            obj.init_T(obj.mode);
-            obj.init_Xhat_t_t(goObs, obj.mode);
-            obj.init_X_t1_t();
-            obj.init_Cee(goObs.getNumRec(), obj.mode);
-            obj.init_doppler(goObs, goObs.getNumRec(), goObs.getGNSSnFreq(goObs.idGPS));
-            obj.init_KxDOP(obj.mode);
-            % set the status of the KF initialization
-            obj.initKF = true;
         end
         
         % Function to fill Transition matrix according to the number of parameters
@@ -741,38 +742,38 @@ classdef goKalmanFilter < handle
             obj.Cee(obj.nPar+1:end,obj.nPar+1:end) = diag(obj.sigma2_N(:));
         end
         
-        % doppler-based prediction of phase ranges
-        function init_doppler(obj, goObs, nRec, nFreq)
-            
-            %             %extract the doppler observations at the first epoch
-            %             %for the rover
-            %             %reshape to have nSat rows, nRec columns, nFreq planes
-            %             dop_R = reshape(goObs.getGNSSdop_R(goObs.idGPS, 0, 0, 1, 0),obj.nSat,nRec,nFreq);
-            %             %for the master
-            %             dop_M = goObs.getGNSSdop_M(goObs.idGPS, 0, 1, 0);
-            %
-            %             %extract phase observations at the first epoch
-            %             %for the rover
-            %             %reshape to have nSat rows, nRec columns, nFreq planes
-            %             ph_R = reshape(goObs.getGNSSph_R(goObs.idGPS, 0, 0, 1, 0),obj.nSat,nRec,nFreq);
-            %             %for the master
-            %             ph_M = goObs.getGNSSph_M(goObs.idGPS, 0, 1, 0);
-            %
-            %             for r=1:nRec
-            %                 if (dop_R(obj.goodSat_pr(:,r),r,1))
-            %                     obj.doppler_pred_range_R(obj.goodSat_pr(:,r),r) = ph_R(obj.goodSat_pr(:,r),r,1) - dop_R(obj.goodSat_pr(:,r),r,1);
-            %                 end
-            %                 if (dop_R(obj.goodSat_pr(:,r),r,2))
-            %                     obj.doppler_pred_range_R(obj.goodSat_pr(:,r),r) = ph_R(obj.goodSat_pr(:,r),r,2) - dop_R(obj.goodSat_pr(:,r),r,2);
-            %                 end
-            %             end
-            %             if (dop_M(obj.goodSat_pr(:,r),1))
-            %                 obj.doppler_pred_range_M(obj.goodSat_pr(:,r),1) = ph_M(obj.goodSat_pr(:,r),1) - dop_M(obj.goodSat_pr(:,r),1);
-            %             end
-            %             if (dop_M(obj.goodSat_pr(:,r),2))
-            %                 obj.doppler_pred_range_M(obj.goodSat_pr(:,r),1) = ph_M(obj.goodSat_pr(:,r),2) - dop_M(obj.goodSat_pr(:,r),2);
-            %             end
-        end
+        %         % doppler-based prediction of phase ranges
+        %         function init_doppler(obj, goObs, nRec, nFreq)
+        %
+        %             %             %extract the doppler observations at the first epoch
+        %             %             %for the rover
+        %             %             %reshape to have nSat rows, nRec columns, nFreq planes
+        %             %             dop_R = reshape(goObs.getGNSSdop_R(goObs.idGPS, 0, 0, 1, 0),obj.nSat,nRec,nFreq);
+        %             %             %for the master
+        %             %             dop_M = goObs.getGNSSdop_M(goObs.idGPS, 0, 1, 0);
+        %             %
+        %             %             %extract phase observations at the first epoch
+        %             %             %for the rover
+        %             %             %reshape to have nSat rows, nRec columns, nFreq planes
+        %             %             ph_R = reshape(goObs.getGNSSph_R(goObs.idGPS, 0, 0, 1, 0),obj.nSat,nRec,nFreq);
+        %             %             %for the master
+        %             %             ph_M = goObs.getGNSSph_M(goObs.idGPS, 0, 1, 0);
+        %             %
+        %             %             for r=1:nRec
+        %             %                 if (dop_R(obj.goodSat_pr(:,r),r,1))
+        %             %                     obj.doppler_pred_range_R(obj.goodSat_pr(:,r),r) = ph_R(obj.goodSat_pr(:,r),r,1) - dop_R(obj.goodSat_pr(:,r),r,1);
+        %             %                 end
+        %             %                 if (dop_R(obj.goodSat_pr(:,r),r,2))
+        %             %                     obj.doppler_pred_range_R(obj.goodSat_pr(:,r),r) = ph_R(obj.goodSat_pr(:,r),r,2) - dop_R(obj.goodSat_pr(:,r),r,2);
+        %             %                 end
+        %             %             end
+        %             %             if (dop_M(obj.goodSat_pr(:,r),1))
+        %             %                 obj.doppler_pred_range_M(obj.goodSat_pr(:,r),1) = ph_M(obj.goodSat_pr(:,r),1) - dop_M(obj.goodSat_pr(:,r),1);
+        %             %             end
+        %             %             if (dop_M(obj.goodSat_pr(:,r),2))
+        %             %                 obj.doppler_pred_range_M(obj.goodSat_pr(:,r),1) = ph_M(obj.goodSat_pr(:,r),2) - dop_M(obj.goodSat_pr(:,r),2);
+        %             %             end
+        %         end
         
         % initial kalman filter DOP (DILUTION OF PRECISION)
         function init_KxDOP(obj, mode)
@@ -797,8 +798,14 @@ classdef goKalmanFilter < handle
         
     end
     
+    % Function to fill KF loop matrices
+    methods (Access = 'public')
+        function init(obj, goObs)
+            obj........
+        end
+    end
     
-    
+    % Loop functions
     methods (Access = 'private')
         
     end

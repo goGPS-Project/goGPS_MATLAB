@@ -136,7 +136,7 @@ classdef goObservation < handle
         %   General parameters
         % =========================================================================
         
-        nObs = 0;       % number of observations avaiable
+        nObs = 0;       % number of available observations 
         
         iono = [];      % Ionosphere model observations
         
