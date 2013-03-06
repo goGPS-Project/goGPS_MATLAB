@@ -39,19 +39,6 @@ classdef goGUIclass < handle
         red = [1 0 0];
         
         % goGPS Modes
-        mode_RT_Nav = 24;         % Real Time Navigation
-        mode_RT_RMon = 21;        % Real Time Rover Monitor
-        mode_RT_MMon = 22;        % Real Time Master Monitor
-        mode_RT_RMMon = 23;       % Real Time Master + Rover Monitor
-        
-        mode_PP_LS_C_SA = 1;      % Post Proc Least Squares Code Stand Alone
-        mode_PP_LS_C_DD = 11;     % Post Proc Least Squares Code Double Differencies
-
-        mode_PP_KF_C_SA = 2;      % Post Proc Kalman Filter Code Stand Alone
-        mode_PP_KF_C_DD = 12;     % Post Proc Kalman Filter Code Double Differencies
-        mode_PP_KF_CP_SA = 4;     % Post Proc Kalman Filter Code and Phase Stand Alone
-        mode_PP_KF_CP_DD = 14;    % Post Proc Kalman Filter Code and Phase Double Differencies
-        mode_PP_KF_CP_DD_MR = 15; % Post Proc Kalman Filter Code and Phase Double Differencies Multiple Receivers    
     end
 
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -875,7 +862,7 @@ classdef goGUIclass < handle
             idG.onPP_LS_C_SA = [idG.onPP_LS ...
                                id.cUse_SBAS];
             
-            % On Post Proc => Least Squares => Code Double Differencies
+            % On Post Proc => Least Squares => Code Double Differences
             idG.onPP_LS_C_DD = [idG.onPP_LS ...
                               id.pMSt id.cMPos];
                           
@@ -890,7 +877,7 @@ classdef goGUIclass < handle
             idG.onPP_KF_C_SA = [idG.onPP_KF id.rBin ...
                                id.cUse_SBAS];
             
-            % On Post Proc => On Least Squares => Code Double Differencies
+            % On Post Proc => On Least Squares => Code Double Differences
             idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin ...
                                id.pMSt id.cMPos];
 
@@ -898,13 +885,13 @@ classdef goGUIclass < handle
             idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin ...
                                  id.cUse_SBAS];
             
-            % On Post Proc => On Least Squares => Code Double Differencies
+            % On Post Proc => On Least Squares => Code Double Differences
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin ...
                                  idG.StdPhase ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
                                  id.pMSt id.cMPos];
 
-            % On Post Proc => On Least Squares => Code Double Differencies
+            % On Post Proc => On Least Squares => Code Double Differences
             % => Multi Receivers Mode
             idG.onPP_KF_CP_DD_MR = [idG.onPP_KF ...
                                     idG.StdPhase ...
@@ -1356,35 +1343,35 @@ classdef goGUIclass < handle
             if obj.isRealTime()
                 switch obj.getElVal(obj.idUI.lCaptMode)
                     case obj.idNav
-                        mode = obj.mode_RT_Nav;
+                        mode = goGNSS.MODE_RT_NAV;
                     case obj.idRMon
-                        mode = obj.mode_RT_RMon;
+                        mode = goGNSS.MODE_RT_R_MON;
                     case obj.idMMon
-                        mode = obj.mode_RT_MMon;
+                        mode = goGNSS.MODE_RT_M_MON;
                     case obj.idRMMon
-                        mode = obj.mode_RT_RMMon;
+                        mode = goGNSS.MODE_RT_RM_MON;
                 end
             elseif obj.isPostProc()
                 if obj.isLS()
                     switch obj.getElVal(obj.idUI.lProcType)
                         case obj.idC_SA
-                            mode = obj.mode_PP_LS_C_SA;
+                            mode = goGNSS.MODE_PP_LS_C_SA;
                         case obj.idC_DD
-                            mode = obj.mode_PP_LS_C_DD;
+                            mode = goGNSS.MODE_PP_LS_C_DD;
                     end
                 end
                 if obj.isKF()
                     switch obj.getElVal(obj.idUI.lProcType)
                         case obj.idC_SA
-                            mode = obj.mode_PP_KF_C_SA;
+                            mode = goGNSS.MODE_PP_KF_C_SA;
                         case obj.idC_DD
-                            mode = obj.mode_PP_KF_C_DD;
+                            mode = goGNSS.MODE_PP_KF_C_DD;
                         case obj.idCP_SA
-                            mode = obj.mode_PP_KF_CP_SA;
+                            mode = goGNSS.MODE_PP_KF_CP_SA;
                         case obj.idCP_DD
-                            mode = obj.mode_PP_KF_CP_DD;
+                            mode = goGNSS.MODE_PP_KF_CP_DD;
                         case obj.idCP_DD_MR
-                            mode = obj.mode_PP_KF_CP_DD_MR;
+                            mode = goGNSS.MODE_PP_KF_CP_DD_MR;
                     end
                 end
             end
@@ -2547,7 +2534,7 @@ classdef goGUIclass < handle
             mode = obj.getgoGPSMode();
             
             % If I'm in a mode that uses objects instead of regular code, set goObj flag to 1
-            if (mode == obj.mode_PP_KF_CP_DD_MR)
+            if (mode == goGNSS.MODE_PP_KF_CP_DD_MR)
                 goObj = true;
                 % init the objects:
             else
@@ -2562,13 +2549,13 @@ classdef goGUIclass < handle
                 msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
             end
             
-            if (mode == obj.mode_RT_RMon || mode == obj.mode_RT_RMMon || mode == obj.mode_RT_Nav) %if a COM connection to the rover is required
+            if (mode == goGNSS.MODE_RT_RMon || mode == goGNSS.MODE_RT_RMMon || mode == goGNSS.MODE_RT_Nav) %if a COM connection to the rover is required
                 if(strcmp(COMportR0, 'NA'))
                     msgbox('Please select an existing COM port.'); ready = 0;
                 end
             end
             
-            if (mode == obj.mode_RT_MMon || mode == obj.mode_RT_RMMon || mode == obj.mode_RT_Nav) %if a TCP/IP connection to the master is required
+            if (mode == goGNSS.MODE_RT_MMon || mode == goGNSS.MODE_RT_RMMon || mode == goGNSS.MODE_RT_Nav) %if a TCP/IP connection to the master is required
                 if (isempty(master_ip))
                     msgbox('Please provide an IP address for the connection to the master.'); ready = 0;
                 elseif (isnan(master_port) || master_port < 0 || master_port > 65535)

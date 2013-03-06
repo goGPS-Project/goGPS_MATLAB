@@ -95,42 +95,7 @@ else
     % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
     %-------------------------------------------------------------------------------------------
     
-    mode = 1;   % functioning mode
-    % POST-PROCESSING (ABSOLUTE POSITIONING)
-    % mode=1  --> LEAST SQUARES ON CODE
-    % mode=2  --> KALMAN FILTER ON CODE
-    % mode=3  --> LEAST SQUARES ON CODE AND PHASE (BASE FOR FUTURE PPP IMPLEMENTATION)
-    % mode=4  --> KALMAN FILTER ON CODE AND PHASE
-    
-    % POST-PROCESSING (RELATIVE POSITIONING)
-    % mode=11 --> LEAST SQUARES ON CODE DOUBLE DIFFERENCES
-    % mode=12 --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES
-    % mode=13 --> LEAST SQUARES ON CODE AND PHASE DOUBLE DIFFERENCES, LAMBDA (OPTIONS: ITERATIVE LS / REGULARIZED LS)
-    % mode=14 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES (WITH/WITHOUT A CONSTRAINT)
-    % mode=15 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES FOR MULTIPLE RECEIVERS
-    
-    % REAL-TIME
-    % mode=21 --> ROVER MONITORING
-    % mode=22 --> MASTER MONITORING
-    % mode=23 --> ROVER AND MASTER MONITORING
-    % mode=24 --> KALMAN FILTER ON CODE AND PHASE DOUBLE DIFFERENCES (WITH/WITHOUT A CONSTRAINT)
-    
-    % OLD POST-PROCESSING
-    % mode=1  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-    % mode=2  --> POST-PROCESSING: KALMAN FILTER ON PHASE AND CODE, STAND-ALONE, NO CONSTRAINT
-    % mode=3  --> LEAST SQUARES ADJ. ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-    % mode=4  --> LEAST SQUARES ADJ. ON CODE, NO CONSTRAINT
-    % mode=5  --> KALMAN FILTER ON CODE DOUBLE DIFFERENCES, NO CONSTRAINT
-    % mode=6  --> KALMAN FILTER ON CODE, NO CONSTRAINT
-    % mode=7  --> LEAST SQUARES ADJ. ON CODE AND PHASE, NO CONSTRAINT
-    % mode=8  --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES
-    %             WITHOUT A CONSTRAINT for several receivers
-    % mode=9  --> ....
-    % REAL-TIME
-    % mode=11 --> KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
-    % mode=12 --> ROVER MONITORING
-    % mode=13 --> MASTER MONITORING
-    % mode=14 --> ROVER AND MASTER MONITORING
+    mode = goGNSS.MODE_PP_LS_C_SA;   % functioning mode    
     
     mode_vinc = 0;    % navigation mode
     % mode_vinc=0 --> without linear constraint
@@ -263,7 +228,7 @@ if (inputOk)
     % FILE READING
     %----------------------------------------------------------------------------------------------
     
-    if (mode <= 20) % post-processing
+    if goGNSS.isPP(mode) % post-processing
         
         if (mode_data == 0)
             
@@ -477,7 +442,7 @@ if (inputOk)
         end
         
         %if relative post-processing (i.e. with master station)
-        if (mode > 10) && (mode <= 20)
+        if goGNSS.isDD(mode) && goGNSS.isPP(mode)
             if (~goObj)
                 %master station position management
                 if (flag_ms_pos) && (sum(abs(pos_M)) ~= 0)
@@ -577,7 +542,7 @@ if (inputOk)
     % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE
     %----------------------------------------------------------------------------------------------
     
-    if (mode == 1)
+    if (mode == goGNSS.MODE_PP_LS_C_SA)
         
         fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
         fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
@@ -643,7 +608,7 @@ if (inputOk)
         % POST-PROCESSING (ABSOLUTE POSITIONING): KALMAN FILTER ON CODE
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 2)
+    elseif (mode == goGNSS.MODE_PP_KF_C_SA)
         
         fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
         fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
@@ -748,7 +713,7 @@ if (inputOk)
         % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE AND PHASE   (DISABLED IN GUI)
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 3)
+    elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
         
         fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
         fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
@@ -812,7 +777,7 @@ if (inputOk)
         % POST-PROCESSING (ABSOLUTE POSITIONING): KALMAN FILTER ON CODE AND PHASE
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 4)
+    elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         
         fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
         fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
@@ -916,7 +881,7 @@ if (inputOk)
         % POST-PROCESSING (RELATIVE POSITIONING): LEAST SQUARES ON CODE DOUBLE DIFFERENCES
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 11)
+    elseif (mode == goGNSS.MODE_PP_LS_C_DD)
         
         fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
         fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
@@ -982,7 +947,7 @@ if (inputOk)
         % POST-PROCESSING (RELATIVE POSITIONING): KALMAN FILTER ON CODE DOUBLE DIFFERENCES
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 12)
+    elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         
         fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
         fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
@@ -1087,7 +1052,7 @@ if (inputOk)
         % POST-PROCESSING (RELATIVE POSITIONING): KALMAN FILTER ON CODE AND PHASE DOUBLE DIFFERENCES WITHOUT LINE CONSTRAINT
         %--------------------------------------------------------------------------------------------------------------------
         
-    elseif (mode == 14) && (mode_vinc == 0)
+    elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
         
         if (flag_var_dyn_model == 0)
             
@@ -1406,7 +1371,7 @@ if (inputOk)
         % POST-PROCESSING (RELATIVE POSITIONING): KALMAN FILTER ON CODE AND PHASE DOUBLE DIFFERENCES WITH LINE CONSTRAINT
         %--------------------------------------------------------------------------------------------------------------------
         
-    elseif (mode == 14) && (mode_vinc == 1)
+    elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
         
         fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
         fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
@@ -1505,7 +1470,7 @@ if (inputOk)
         % DOUBLE DIFFERENCES WITHOUT LINE CONSTRAINT FOR SEVERAL RECEIVERS
         %--------------------------------------------------------------------------------------------------------------------
         
-    elseif (mode == 15) && (mode_vinc == 0)
+    elseif (mode == goGNSS.MODE_PP_KF_CP_DD_MR) && (mode_vinc == 0)
         
         if (flag_var_dyn_model == 0)
             
@@ -1811,7 +1776,7 @@ if (inputOk)
         % REAL-TIME: ROVER MONITORING
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 21)
+    elseif (mode == goGNSS.MODE_RT_R_MON)
         
         goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop);
         
@@ -1819,7 +1784,7 @@ if (inputOk)
         % REAL-TIME: MASTER MONITORING
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 22)
+    elseif (mode == goGNSS.MODE_M_MON)
         
         goGPS_master_monitor(filerootOUT, flag_NTRIP);
         
@@ -1827,7 +1792,7 @@ if (inputOk)
         % REAL-TIME: ROVER AND MASTER MONITORING
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 23)
+    elseif (mode == goGNSS.MODE_RM_MON)
         
         goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M);
         
@@ -1835,7 +1800,7 @@ if (inputOk)
         % REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
         %----------------------------------------------------------------------------------------------
         
-    elseif (mode == 24)
+    elseif (mode == goGNSS.MODE_RT_NAV)
         
         goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
     end
@@ -1845,7 +1810,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     %if any positioning was done (either post-processing or real-time)
-    if (mode <= 20) || (mode == 24)
+    if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         %stream reading
         % [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, ...
         %  pos_M, Eph, iono, loss_R, loss_M, stream_R, stream_M] = load_stream(filerootIN);
@@ -1853,7 +1818,7 @@ if (inputOk)
         %---------------------------------
         
         %observation file (OBS) and ephemerides file (EPH) reading
-        if (mode == 24)
+        if (mode == goGNSS.MODE_RT_NAV)
             [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
                 pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
         end
@@ -1871,7 +1836,7 @@ if (inputOk)
         estim_amb = zeros(32,nObs);
         sigma_amb = zeros(32,nObs);
         for i = 1 : nObs
-            if (mode == 14 && mode_vinc == 1)
+            if (mode == goGNSS.MODE_PP_KF_CP_DD && mode_vinc == 1)
                 pos_KAL(:,i) = [Yhat_t_t(1,i); Yhat_t_t(2,i); Yhat_t_t(3,i)];
                 estim_amb(:,i) = Xhat_t_t(o1+1:o1+32,i);
                 sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32,i)));
@@ -1888,7 +1853,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     %if any positioning was done (either post-processing or real-time)
-    if (mode <= 20) || (mode == 24)
+    if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         %display information
         fprintf('Writing output file...\n');
         %cartesian coordinates (X,Y,Z)
@@ -1905,7 +1870,7 @@ if (inputOk)
         [EAST_KAL, NORTH_KAL, h_null, utm_zone] = cart2plan(X_KAL, Y_KAL, Z_KAL);
         
         %if no Kalman filter is used or if the positioning is constrained
-        if (mode_vinc == 1) || (mode == 1) || (mode == 3) || (mode == 11) || (mode == 13)
+        if (mode_vinc == 1) || (mode == goGNSS.MODE_PP_LS_C_SA) || (mode == goGNSS.MODE_PP_LS_CP_SA) || (mode == goGNSS.MODE_PP_LS_C_DD) || (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             %initialization to -9999 (no data available)
             KHDOP(1:nObs) = -9999;
         end
@@ -1938,7 +1903,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     %if any positioning was done (either post-processing or real-time)
-    if ((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL))
+    if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST_KAL))
         %display information
         fprintf('Writing report file (PDF)...\n');
         
@@ -1978,7 +1943,7 @@ if (inputOk)
                 text(0,1.00,sprintf('Mode: code and phase\n        double difference'));
                 text(0,0.75,sprintf('Kalman filter: yes'));
         end
-        if (mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24)
+        if (mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV)
             switch order
                 case 1
                     text(0,0.50,sprintf('Dynamics: static'));
@@ -2007,7 +1972,7 @@ if (inputOk)
         axis equal
         xlabel('EAST [m]'); ylabel('NORTH [m]'); grid on;
         hold on
-        if (o1 == 1) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
+        if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
             %static positioning solution plotting
             plot(EAST_KAL(end)-EAST_O, NORTH_KAL(end)-NORTH_O, '*b');
             %        %covariance propagation
@@ -2018,7 +1983,7 @@ if (inputOk)
             legend('Positioning','Location','SouthOutside');
         end
         
-        if (mode == 1 || mode == 3 || mode == 13 || mode == 11)
+        if (mode == goGNSS.MODE_PP_LS_C_SA || mode == goGNSS.MODE_PP_LS_CP_SA || mode == goGNSS.MODE_PP_LS_CP_DD_L || mode == goGNSS.MODE_PP_LS_C_DD)
             EAST_R = mean(EAST_KAL);
             NORTH_R = mean(NORTH_KAL);
             h_R = mean(h_KAL);
@@ -2026,7 +1991,7 @@ if (inputOk)
         end
         
         %if relative positioning (i.e. with master station)
-        if ((mode > 10) && (mode <= 20)) || (mode == 24)
+        if goGNSS.isDD(mode) || (mode == goGNSS.MODE_RT_NAV)
             %coordinate transformation (UTM)
             [EAST_M, NORTH_M, h_M, utm_zone] = cart2plan(pos_M(1,1), pos_M(2,1), pos_M(3,1));
             
@@ -2036,7 +2001,7 @@ if (inputOk)
         %statistics
         f2 = subplot(7,3,[4 7 10]);
         set(f2,'Visible','off');
-        if (o1 == 1) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
+        if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
             text(0,0.95,'----------------');
             text(0,0.90,'Final position (UTM)');
             text(0,0.83,sprintf('E: %.3f m', EAST_KAL(end)));
@@ -2049,7 +2014,7 @@ if (inputOk)
             %         text(0,0.40,sprintf('U: %.4f m', Cee_ENU(3,3)));
         end
         
-        if (mode == 11 || mode == 13)
+        if (mode == goGNSS.MODE_PP_LS_C_DD || mode == goGNSS.MODE_PP_LS_CP_DD_L)
             text(0,0.95,'----------------');
             text(0,0.90,'Baseline (average)');
             text(0,0.83,sprintf('E: %.3f m', EAST_R-EAST_M));
@@ -2076,7 +2041,7 @@ if (inputOk)
         if (~isempty(pos))
             plot(pos, EAST_KAL(pivot == 0)-EAST_O,'.y');
         end
-        if (o1 == 1) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
+        if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
             plot([1, nObs], [EAST_KAL(end)-EAST_O EAST_KAL(end)-EAST_O],'r');
             title('East coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
         else
@@ -2091,7 +2056,7 @@ if (inputOk)
         if (~isempty(pos))
             plot(pos, NORTH_KAL(pivot == 0)-NORTH_O,'.y');
         end
-        if (o1 == 1) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
+        if (o1 == 1) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
             plot([1, nObs], [NORTH_KAL(end)-NORTH_O NORTH_KAL(end)-NORTH_O],'r');
             title('North coordinates (blue); Not processed / dynamics only (yellow); Final positioning (red)');
         else
@@ -2110,7 +2075,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     %if any positioning was done (either post-processing or real-time)
-    if (mode <= 20) || (mode == 24)
+    if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         %display information
         fprintf('Writing NMEA file...\n');
         %file saving
@@ -2134,12 +2099,12 @@ if (inputOk)
                 RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date(i,:));
                 GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i));
                 GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '3');
-                if (mode_vinc == 0) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
+                if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
                     PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(i), KHDOP(i), KVDOP(i), 'S');
                 end
             else
                 GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '1');
-                if (mode_vinc == 0) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
+                if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
                     PGGPKstring = NMEA_PGGPK_gen(sat, KPDOP(i), KHDOP(i), KVDOP(i), 'D');
                 end
             end
@@ -2151,7 +2116,7 @@ if (inputOk)
                 fprintf(fid_nmea, [GSVstring '\n']);
             end
             fprintf(fid_nmea, [GSAstring '\n']);
-            if (mode_vinc == 0) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
+            if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
                 fprintf(fid_nmea, [PGGPKstring '\n']);
             end
         end
@@ -2163,7 +2128,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     %if any positioning was done (either post-processing or real-time)
-    if (mode <= 20) || (mode == 24)
+    if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         %display information
         fprintf('Writing KML file...\n');
         %"clampToGround" plots the points attached to the ground
@@ -2209,7 +2174,7 @@ if (inputOk)
         end
         
         %if relative positioning (i.e. with master station)
-        if (((mode > 10) && (mode <= 20)) || mode == 24)
+        if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
             %master station coordinates
             for i = 1 : nObs
                 if (sum(abs(pos_M(:,i))) ~= 0)
@@ -2310,7 +2275,7 @@ if (inputOk)
             fprintf(fid_kml, '\t\t\t</LineStyle>\n');
             fprintf(fid_kml, '\t\t</Style>\n');
         end
-        if (((mode > 10) && (mode <= 20)) || mode == 24) %relative positioning
+        if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV) %relative positioning
             for i = 1 : length(phiM)
                 if (lamM(i) ~= 0 || phiM(i) ~= 0 || hM(i) ~= 0)
                     if (i == 1) || (lamM(i)~=lamM(i-1) || phiM(i)~=phiM(i-1) || hM(i)~=hM(i-1))
@@ -2338,7 +2303,7 @@ if (inputOk)
         fprintf(fid_kml, '\n\t\t\t\t</coordinates>\n');
         fprintf(fid_kml, '\t\t\t</LineString>\n');
         fprintf(fid_kml, '\t\t</Placemark>\n');
-        if (flag_stopGOstop && flag_var_dyn_model && mode == 14)
+        if (flag_stopGOstop && flag_var_dyn_model && mode == goGNSS.MODE_PP_KF_CP_DD)
             
             [P1Lat, P1Lon] = cart2geod(P1_GLB(1), P1_GLB(2), P1_GLB(3));
             [P2Lat, P2Lon] = cart2geod(P2_GLB(1), P2_GLB(2), P2_GLB(3));
@@ -2373,7 +2338,7 @@ if (inputOk)
         end
         fprintf(fid_kml, '\t\t</Folder>\n');
         
-        if (mode_vinc == 0) && ((mode == 2) || (mode == 4) || (mode == 12) || (mode == 14) || (mode == 24))
+        if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
             if (o1 == 1) && (nObs ~= 0)
                 %static positioning coordinates
                 phiP = phi_KAL(end);
@@ -2402,7 +2367,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     %if any positioning was done (either post-processing or real-time, not constrained)
-    if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)) && (mode_vinc == 0))
+    if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST_KAL)) && (mode_vinc == 0))
         
         %display information
         fprintf('Writing estimated error covariance files...\n');
@@ -2454,7 +2419,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     % %if any positioning was done (either post-processing or real-time, but constrained)
-    % if (((mode <= 20) || (mode == 24)) && mode_ref == 1)
+    % if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && mode_ref == 1)
     %     [EAST_ref, NORTH_ref, h_ref] = cart2plan(ref_path(:,1), ref_path(:,2),ref_path(:,3));
     %
     %     %reference data plot
@@ -2468,7 +2433,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     %if any positioning was done (either post-processing or real-time, not constrained)
-    if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)))
+    if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST_KAL)))
         %2D plot
         figure
         plot(EAST_KAL, NORTH_KAL, '.r');
@@ -2480,7 +2445,7 @@ if (inputOk)
     %----------------------------------------------------------------------------------------------
     
     %if any positioning was done (either post-processing or real-time, not constrained)
-    if (((mode <= 20) || (mode == 24)) && (~isempty(EAST_KAL)))
+    if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST_KAL)))
         
         %     %3D plot (XYZ)
         %     figure
@@ -2497,7 +2462,7 @@ if (inputOk)
     % REPRESENTATION OF THE VISIBLE SATELLITES CONFIGURATION
     %----------------------------------------------------------------------------------------------
     
-    % if (mode == 14)
+    % if (mode == goGNSS.MODE_PP_KF_CP_DD)
     %
     %    %figure
     %    %imagesc(abs(conf_sat)), grid;
@@ -2539,7 +2504,7 @@ if (inputOk)
     % REPRESENTATION OF AZIMUTH, ELEVATION AND DISTANCE FOR VISIBILE SATELLITES
     %----------------------------------------------------------------------------------------------
     
-    % if (mode == 14)
+    % if (mode == goGNSS.MODE_PP_KF_CP_DD)
     %
     %    coltab = jet;
     %
@@ -2580,7 +2545,7 @@ if (inputOk)
     % REPRESENTATION OF THE S/N RATIO FOR MASTER AND ROVER
     %----------------------------------------------------------------------------------------------
     
-    % if (mode == 14)
+    % if (mode == goGNSS.MODE_PP_KF_CP_DD)
     %
     %    coltab = jet;
     %    coltab = [1 1 1; coltab([1 16 32 48 56],:)];
@@ -2604,7 +2569,7 @@ if (inputOk)
     % REPRESENTATION OF THE COMBINATIONS OF ESTIMATED AMBIGUITIES
     %----------------------------------------------------------------------------------------------
     
-    % if (mode == 14) | (mode == 4)
+    % if (mode == goGNSS.MODE_PP_KF_CP_DD) | (mode == goGNSS.MODE_PP_KF_CP_SA)
     %
     %    for i = 1 : 32
     %       index = find(conf_sat(i,:) == 1)';
@@ -2925,7 +2890,7 @@ if (inputOk)
     % STATISTICS COMPUTATION AND VISUALIZATION
     %----------------------------------------------------------------------------------------------
     
-    if (mode <= 20) && (mode_vinc == 0) && (~isempty(ref_path)) && (~isempty(EAST_KAL))
+    if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(ref_path)) && (~isempty(EAST_KAL))
         %coordinate transformation
         [EAST_REF, NORTH_REF, h_REF] = cart2plan(ref_path(:,1), ref_path(:,2), ref_path(:,3));
         
