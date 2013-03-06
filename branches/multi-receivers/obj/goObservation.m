@@ -32,6 +32,7 @@
 %  REFERENCE FRAME ----------------------------------------------------
 %
 %   att = getInitialAttitude(obj)
+%   antenna_geometry = getGeometry(obj)
 %
 %  CONSTELLATION SPECIFIC ---------------------------------------------
 %
@@ -69,6 +70,8 @@
 %  RECEIVERS GNSS SPECIFIC --------------------------------------------
 %
 %   eph = getGNSSeph(obj, idGNSS)
+%
+%   trackSat = getTrackedSat(obj, idGNSS, idSat, idRec, idObs, nFreq)            
 %
 %   pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
 %   pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -348,6 +351,11 @@ classdef goObservation < handle
             att = obj.attitude;
         end
         
+        %   Return the geometry of the antennas
+        function antenna_geometry = getGeometry(obj)
+            antenna_geometry = obj.antennasRF.pos;
+        end
+        
         % =========================================================================
         %  CONSTELLATION SPECIFIC
         % =========================================================================
@@ -413,8 +421,14 @@ classdef goObservation < handle
         end
         
         % Get master time
-        function time = getTime_M(obj)
-            time = obj.timeChart(:,2); % the receiver having index 1 is the Reference 2 is the master
+        function time = getTime_M(obj, idObs)
+            if (nargin < 2) % if not specified set the entire position array to the value of XM
+                idObs = 0; % it should be 1 or nObs
+            end
+            if (idObs == 0)
+                idObs = 1:obj.nObs;
+            end
+            time = obj.timeChart(idObs,2); % the receiver having index 1 is the Reference 2 is the master
         end
         
         % Get receiver approximate initial position
@@ -567,7 +581,38 @@ classdef goObservation < handle
             end
         end
         
-        % Get GPS pseudo-range observationa
+        % Get logical values for satellites in view for each rover
+
+        % idSat => id of the satellite      (if 0 get all the satellites)
+        % idRec => id of the receiver       (if 0 get all receiver)
+        % idObs => id of the observation    (if 0 get all the available epocs)
+        % nFreq => id of the frequency used (e.g. 1 = L1, 2 = L2, ...future frequencies...)
+        function trackSat = getTrackedSat(obj, idGNSS, idSat, idRec, idObs, nFreq)
+            
+            if (idRec == 0)
+                idRec = (1:obj.getNumRec()); % the receiver having index 1 is the Master
+            end
+            idRec = idRec + 1; % Remote receiver start from position 2 (the first is occupied by the Master)
+            
+            if (idObs == 0)
+                idObs = 1:size(table,2);
+            end
+            
+            if (nFreq == 0)
+                nFreq = 1:size(table,3);
+            end
+
+            if idRec ~= -1 
+                trackSat = obj.getGNSSpr_R(idGNSS, idSat, idRec, idObs, nFreq) ~= 0;
+            else
+                trackSat = obj.getGNSSpr_M(idGNSS, idSat, idObs, nFreq) ~= 0;
+            end
+        end
+        
+
+
+    
+        % Get GPS pseudo-range observations
         % idSat => id of the satellite      (if 0 get all the satellites)
         % idRec => id of the receiver       (if 0 get all receiver)
         % idObs => id of the observation    (if 0 get all the available epocs)
