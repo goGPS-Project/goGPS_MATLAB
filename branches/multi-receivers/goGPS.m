@@ -137,7 +137,7 @@ else
     global_settings;
     
     %Check availability of Instrument Control Toolbox
-    if (mode > 20)
+    if goGNSS.isRT()
         try
             instrhwinfo;
         catch
@@ -238,7 +238,7 @@ if (inputOk)
             
             %read data from RINEX files
             if (~goObj)
-                if (mode <= 10) %absolute positioning
+                if goGNSS.isSA(mode) %absolute positioning
                     
                     [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
                         dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
@@ -532,7 +532,7 @@ if (inputOk)
     
     %check if the dataset was surveyed with a variable dynamic model
     d = dir([filerootIN '_dyn_00.bin']);
-    if (mode <= 20 && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
+    if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
         disp('Warning: dataset was not surveyed with a variable dynamic model:');
         disp(' Switching off variable dynamic model mode...');
         flag_var_dyn_model = 0;
@@ -2267,7 +2267,7 @@ if (inputOk)
         fprintf(fid_kml, '\t\t\t\t<width>%d</width>\n',line_widthR);
         fprintf(fid_kml, '\t\t\t</LineStyle>\n');
         fprintf(fid_kml, '\t\t</Style>\n');
-        if (flag_stopGOstop && mode <= 20) %stop-go-stop and post-processing
+        if (flag_stopGOstop && goGNSS.isPP(mode)) %stop-go-stop and post-processing
             fprintf(fid_kml, '\t\t<Style id="goLine2">\n');
             fprintf(fid_kml, '\t\t\t<LineStyle>\n');
             fprintf(fid_kml, '\t\t\t\t<color>%s</color>\n',line_colorG);

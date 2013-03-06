@@ -146,6 +146,12 @@ classdef goGNSS < handle
                      goGNSS.MODE_RT_M_MON ...
                      goGNSS.MODE_RT_RM_MON];
         
+        GMODE_SA = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of stand alone modes
+                     goGNSS.MODE_PP_LS_CP_SA ...
+                     goGNSS.MODE_PP_LS_CP_VEL ...
+                     goGNSS.MODE_PP_KF_C_SA ...
+                     goGNSS.MODE_PP_KF_CP_SA];
+                 
         GMODE_DD = [ goGNSS.MODE_PP_LS_C_DD ...     % Group of double differences modes
                      goGNSS.MODE_PP_LS_CP_DD_L ...
                      goGNSS.MODE_PP_KF_C_DD ...
@@ -170,9 +176,13 @@ classdef goGNSS < handle
         function isRealTime = isRT(mode)
            isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));
         end   
-        
+         
         function isDoubleDifferences = isDD(mode)
             isDoubleDifferences = sum(intersect(mode, goGNSS.GMODE_DD));
+        end
+        
+        function isStandAlone = isSA(mode)
+            isStandAlone = sum(intersect(mode, goGNSS.GMODE_SA));
         end
     end
     
