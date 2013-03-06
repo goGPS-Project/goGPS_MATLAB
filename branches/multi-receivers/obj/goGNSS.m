@@ -11,26 +11,26 @@
 %
 % LIST of CONSTANT
 %
-%   V_LIGHT         velocity of light in the void                 [m/s]
-%   F1              GPS carriers frequencies F1                   [1/s]
-%   F2              GPS carriers frequencies F2                   [1/s]
-%   ELL_A           ellipsoid semi-major axis                     [m]
-%   ELL_F           ellipsoid flattening
-%   ELL_E           eccentricity
+%   V_LIGHT                 velocity of light in the void                 [m/s]
+%   F1                      GPS carriers frequencies F1                   [1/s]
+%   F2                      GPS carriers frequencies F2                   [1/s]
+%   ELL_A                   ellipsoid semi-major axis                     [m]
+%   ELL_F                   ellipsoid flattening
+%   ELL_E                   eccentricity
 %
-%   OMEGAE_DOT      angular velocity of the Earth rotation        [rad/s]
-%   GM              gravitational constant (mass of Earth)        [m^3/s^2]
+%   OMEGAE_DOT              angular velocity of the Earth rotation        [rad/s]
+%   GM                      gravitational constant (mass of Earth)        [m^3/s^2]
 %
-%   MAX_SAT     	Maximum number of active satellites in a constellation
+%   MAX_SAT                 Maximum number of active satellites in a constellation
 %
 % CONSTELLATIONS IDs ----------------------------------------------
 %
-%   ID_GPS          id of GPS observations (for internal use)
-%   ID_GLONASS      id of GLONASS observations (for internal use)
-%   ID_GALILEO      id of Galileo observations (for internal use)
-%   ID_BEIDOU       id of BeiDou observations (for internal use)
-%   ID_QZSS         id of QZSS observations (for internal use)
-%   ID_SBAS         id of SBAS observations (for internal use)
+%   ID_GPS                  id of GPS observations (for internal use)
+%   ID_GLONASS              id of GLONASS observations (for internal use)
+%   ID_GALILEO              id of Galileo observations (for internal use)
+%   ID_BEIDOU               id of BeiDou observations (for internal use)
+%   ID_QZSS                 id of QZSS observations (for internal use)
+%   ID_SBAS                 id of SBAS observations (for internal use)
 %
 % goGPS MODES -----------------------------------------------------
 % 
