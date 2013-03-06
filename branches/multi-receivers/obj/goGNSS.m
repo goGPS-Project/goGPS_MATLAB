@@ -207,7 +207,7 @@ classdef goGNSS < handle
             % extract ephemerides for the first epoch
             Eph_1 = rt_find_eph (goObs.getGNSSeph(goGNSS.ID_GPS), goObs.getTime_Ref(1));
             
-            [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(goObs.getTime_M(1), goObs.getGNSSpr_M(goGNSS.ID_GPS, 0, 1, 1), sat_pr_init, Eph_1, goObs.getGNSS_SP3time(), goObs.getGNSS_SP3coordinates(), goObs.getGNSS_SP3clock(), sbas, [], goObs.getIono(), 0);
+            [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(goObs.getTime_M(1), goObs.getGNSSpr_M(goGNSS.ID_GPS, 0, 1, 1), sat_pr_init, Eph_1, goObs.getGNSS_SP3time(), goObs.getGNSS_SP3coordinates(), goObs.getGNSS_SP3clock(), goOBS.getSBAS(), [], goObs.getIono(), 0);
             
             
             %----------------------------------------------------------------------------------------------

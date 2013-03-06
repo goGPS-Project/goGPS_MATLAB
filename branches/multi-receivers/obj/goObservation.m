@@ -25,9 +25,11 @@
 %
 %   init(obj, nFreqG, nFreqR)
 %   loadData(obj)
+%   ems_data_available = loadSBAS(obj)
 %
 %   nRec = getNumRec(obj)
 %   iono = getIono(obj)
+%   sbas = getSBAS(obj)
 %
 %  REFERENCE FRAME ----------------------------------------------------
 %
@@ -134,6 +136,7 @@ classdef goObservation < handle
         nObs = 0;       % number of available observations 
         
         iono = [];      % Ionosphere model observations
+        sbas = [];      % SBAS data
         
         % =========================================================================
         %   Configuration of the antennas
@@ -327,6 +330,57 @@ classdef goObservation < handle
             obj.cleanNoEphSat();
         end
         
+        % Reading SBAS data
+        function ems_data_available = loadSBAS(obj)
+            %----------------------------------------------------------------------------------------------
+            % LOAD SBAS DATA (EGNOS EMS FILES)
+            %----------------------------------------------------------------------------------------------
+            
+            %NOTE: if SBAS corrections are not requested by the user or not available, the
+            %      'sbas' structure will be initialized to zero/empty arrays and it will not
+            %      have any effect on the positioning
+            
+            ems_data_available = false;
+            
+            %try first to read .ems files already available
+            [obj.sbas] = load_ems('../data/EMS', obj.getWeek_Ref(), obj.getTime_Ref());
+            
+            %if .ems files are not available or not sufficient, try to download them
+            if (isempty(obj.sbas))
+                
+                %EGNOS PRNs
+                prn = [120, 124, 126];
+                
+                %download
+                for p = 1 : length(prn)
+                    [file_ems] = download_ems(prn(p), [obj.getWeek_Ref(1) obj.getWeek_Ref(obj.nObs)], [obj.getTime_Ref(1) obj.getTime_Ref(obj.nObs)]);
+                    if (~isempty(file_ems))
+                        break
+                    end
+                end
+                
+                %try again to read .ems files
+                [obj.sbas] = load_ems('../data/EMS', obj.getWeek_Ref(), obj.getTime_Ref());
+            end
+            
+            %check if the survey is within the EMS grids
+            if (~isempty(obj.sbas))
+                [ems_data_available] = check_ems_extents(obj.getTime_Ref(), obj.getGNSSpr_R(goGNSS.ID_GPS, 0, 1, 0, 1), obj.getGNSSsnr_R(goGNSS.ID_GPS, 0, 1, 0, 1), obj.getGNSSeph(goGNSSS.ID_GPS), obj.getIono(), obj.sbas);
+            end   
+            
+            %if SBAS corrections are not requested or not available
+            if (isempty(obj.sbas) || ~ems_data_available)
+                
+                %initialization
+                obj.sbas = [];
+                
+                %if SBAS corrections are requested but not available
+                if (isempty(sbas))
+                    fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+                end
+            end
+        end
+                
         % Check file existence and parameters
         function inputOk = testInput(obj)
             inputOk = true;
@@ -342,6 +396,11 @@ classdef goObservation < handle
             iono = obj.iono;
         end
         
+        % Return SBAS data
+        function sbas = getSBAS(obj)
+            sbas = obj.sbas;
+        end
+
         % =========================================================================
         %  REFERENCE FRAME
         % =========================================================================
@@ -407,6 +466,16 @@ classdef goObservation < handle
                 idObs = 1:obj.nObs;
             end
             time = obj.timeChart(idObs,1);
+        end
+        
+        function week = getWeek_Ref(obj, isObs)
+            if (nargin < 2) % if not specified set the entire position array to the value of XM
+                idObs = 0; % it should be 1 or nObs
+            end
+            if (idObs == 0)
+                idObs = 1:obj.nObs;
+            end
+            week = obj.week(idObs);
         end
         
         % Get remote time

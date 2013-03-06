@@ -189,6 +189,9 @@ if (goObj)
     if err > 0
         inputOk = false;
     end
+    if (flag_SBAS)
+        goObs.loadSBAS();
+    end
 end
 
 
