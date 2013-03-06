@@ -33,18 +33,18 @@
 %   ID_SBAS                 id of SBAS observations (for internal use)
 %
 % goGPS MODES -----------------------------------------------------
-% 
+%
 %   MODE_RT_NAV             Real Time Navigation (Kalman Filter on Code and Phase Double Differences (with/without a constraint)
 %   MODE_RT_R_MON           Real Time Rover Monitor
 %   MODE_RT_M_MON           Real Time Master Monitor
 %   MODE_RT_RM_MON          Real Time Master + Rover Monitor
-%    
+%
 %   MODE_PP_LS_C_SA         Post Proc Least Squares on Code Stand Alone
 %   MODE_PP_LS_CP_SA        Post Proc Least Squares on Code Stand Alone (BASE FOR FUTURE PPP IMPLEMENTATION)
 %   MODE_PP_LS_C_DD         Post Proc Least Squares on Code Double Differences
 %   MODE_PP_LS_CP_DD_L      Post Proc Least Squares on Code Double Differences with Lambda
 %   MODE_PP_LS_CP_VEL       Post Proc Least Squares on Code and Phase for Velocity estimation
-%    
+%
 %   MODE_PP_KF_C_SA         Post Proc Kalman Filter on Code Stand Alone
 %   MODE_PP_KF_C_DD         Post Proc Kalman Filter on Code Double Differencies
 %   MODE_PP_KF_CP_SA        Post Proc Kalman Filter on Code and Phase Stand Alone
@@ -60,7 +60,7 @@
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
-%    Code contributed by Andrea Gatti
+%    Code contributed by Stefano Caldera, Andrea Gatti, Lisa Pertusini
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -77,33 +77,33 @@
 %---------------------------------------------------------------------------------------------
 
 classdef goGNSS < handle
-
-    % Constant values 
+    
+    % Constant values
     % => to discriminate them from function (in autocompletition) they are
     % written in capital letters
     properties (Constant)
         % GENERIC CONSTANTS -----------------------------------------------
-                
+        
         V_LIGHT = 299792458;                  % velocity of light in the void [m/s]
-                        
+        
         ELL_A = 6378137;                      % Ellipsoid semi-major axis [m]
-        ELL_F = 1/298.257222101;              % Ellipsoid flattening                
+        ELL_F = 1/298.257222101;              % Ellipsoid flattening
         ELL_E = sqrt(1-(1-goGNSS.ELL_F)^2);   % Eccentricity
-                 
+        
         OMEGAE_DOT = 7.2921151467e-5;         % Angular velocity of the Earth rotation [rad/s]
-        GM = 3.986004418e14;                  % Gravitational constant * (mass of Earth) [m^3/s^2]        
+        GM = 3.986004418e14;                  % Gravitational constant * (mass of Earth) [m^3/s^2]
         
         MAX_SAT      = 32                     % Maximum number of active satellites in a constellation
-
+        
         % CONSTELLATION SPECIFIC ------------------------------------------
         
         F1 = 1575.420*1e6;                    % GPS carriers frequency  [Hz]
-        F2 = 1227.600*1e6;                    % GPS carriers frequency  [Hz]                
+        F2 = 1227.600*1e6;                    % GPS carriers frequency  [Hz]
         LAMBDA1 = goGNSS.V_LIGHT / goGNSS.F1; % GPS carriers wavelength [m]
         LAMBDA2 = goGNSS.V_LIGHT / goGNSS.F2; % GPS carriers wavelength [m]
         
         % CONSTELLATIONS IDs ----------------------------------------------
-                
+        
         ID_GPS     = 1
         ID_GLONASS = 2
         ID_GALILEO = 3
@@ -112,7 +112,7 @@ classdef goGNSS < handle
         ID_SBAS    = 6
         
         % goGPS MODES -----------------------------------------------------
-
+        
         MODE_RT_NAV          = 24;  % Real Time Navigation (Kalman Filter on Code and Phase Double Differences (with/without a constraint)
         MODE_RT_R_MON        = 21;  % Real Time Rover Monitor
         MODE_RT_M_MON        = 22;  % Real Time Master Monitor
@@ -123,40 +123,40 @@ classdef goGNSS < handle
         MODE_PP_LS_C_DD      = 11;  % Post Proc Least Squares on Code Double Differences
         MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code Double Differences with Lambda
         MODE_PP_LS_CP_VEL    = 3.1; % Post Proc Least Squares on Code and Phase for Velocity estimation
-
+        
         MODE_PP_KF_C_SA      = 2;   % Post Proc Kalman Filter on Code Stand Alone
         MODE_PP_KF_C_DD      = 12;  % Post Proc Kalman Filter on Code Double Differencies
         MODE_PP_KF_CP_SA     = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone
         MODE_PP_KF_CP_DD     = 14;  % Post Proc Kalman Filter on Code and Phase Double Differences
-        MODE_PP_KF_CP_DD_MR  = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences Multiple Receivers    
+        MODE_PP_KF_CP_DD_MR  = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences Multiple Receivers
         
         GMODE_PP = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of post processing modes
-                     goGNSS.MODE_PP_LS_CP_SA ...
-                     goGNSS.MODE_PP_LS_C_DD ...
-                     goGNSS.MODE_PP_LS_CP_DD_L ...
-                     goGNSS.MODE_PP_LS_CP_VEL ...
-                     goGNSS.MODE_PP_KF_C_SA ...
-                     goGNSS.MODE_PP_KF_C_DD ...
-                     goGNSS.MODE_PP_KF_CP_SA ...
-                     goGNSS.MODE_PP_KF_CP_DD ...
-                     goGNSS.MODE_PP_KF_CP_DD_MR]; 
+            goGNSS.MODE_PP_LS_CP_SA ...
+            goGNSS.MODE_PP_LS_C_DD ...
+            goGNSS.MODE_PP_LS_CP_DD_L ...
+            goGNSS.MODE_PP_LS_CP_VEL ...
+            goGNSS.MODE_PP_KF_C_SA ...
+            goGNSS.MODE_PP_KF_C_DD ...
+            goGNSS.MODE_PP_KF_CP_SA ...
+            goGNSS.MODE_PP_KF_CP_DD ...
+            goGNSS.MODE_PP_KF_CP_DD_MR];
         
         GMODE_RT = [ goGNSS.MODE_RT_NAV ...         % Group of real time modes
-                     goGNSS.MODE_RT_R_MON ...
-                     goGNSS.MODE_RT_M_MON ...
-                     goGNSS.MODE_RT_RM_MON];
+            goGNSS.MODE_RT_R_MON ...
+            goGNSS.MODE_RT_M_MON ...
+            goGNSS.MODE_RT_RM_MON];
         
         GMODE_SA = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of stand alone modes
-                     goGNSS.MODE_PP_LS_CP_SA ...
-                     goGNSS.MODE_PP_LS_CP_VEL ...
-                     goGNSS.MODE_PP_KF_C_SA ...
-                     goGNSS.MODE_PP_KF_CP_SA];
-                 
+            goGNSS.MODE_PP_LS_CP_SA ...
+            goGNSS.MODE_PP_LS_CP_VEL ...
+            goGNSS.MODE_PP_KF_C_SA ...
+            goGNSS.MODE_PP_KF_CP_SA];
+        
         GMODE_DD = [ goGNSS.MODE_PP_LS_C_DD ...     % Group of double differences modes
-                     goGNSS.MODE_PP_LS_CP_DD_L ...
-                     goGNSS.MODE_PP_KF_C_DD ...
-                     goGNSS.MODE_PP_KF_CP_DD ...
-                     goGNSS.MODE_PP_KF_CP_DD_MR];
+            goGNSS.MODE_PP_LS_CP_DD_L ...
+            goGNSS.MODE_PP_KF_C_DD ...
+            goGNSS.MODE_PP_KF_CP_DD ...
+            goGNSS.MODE_PP_KF_CP_DD_MR];
     end
     
     % Creator (empty)
@@ -170,13 +170,13 @@ classdef goGNSS < handle
     % function to detect a certain kind of processing
     methods (Static, Access = 'public')
         function isPostProcessing = isPP(mode)
-           isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
+            isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
         end
-    
+        
         function isRealTime = isRT(mode)
-           isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));
-        end   
-         
+            isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));
+        end
+        
         function isDoubleDifferences = isDD(mode)
             isDoubleDifferences = sum(intersect(mode, goGNSS.GMODE_DD));
         end
@@ -188,24 +188,44 @@ classdef goGNSS < handle
     
     %   USEFUL FUNCTION (STATIC)
     % -------------------------------------------------------------------------
-    methods (Static, Access = 'public')   
+    methods (Static, Access = 'public')
         
         % Function to get a bancroft solution from one receiver
-        % it returns pos + dt => X is a [4 x 1] <=> 3 coord + dt
-        %
-        % Typical old way of calling the function
-        % index = find(no_eph == 0);
-        % X = getBancroftPos(XS(index,:), dtS(index), pseudorange(index))
-        function X = getBancroftPos(XS, dtS, prR)
+        function [XR, dtR] = getBancroftPos(XS, dtS, prR)
             matB = [XS(:,:), prR(:) + goGNSS.V_LIGHT * dtS(:)]; % Bancroft matrix
-            X = obj.bancroft(matB);            
+            b = obj.bancroft(matB);
+            XR = b(1:3);
+            dtR = b(4)/goGNSS.V_LIGHT;
         end
-                
+        
+        function [XR, dtR] = LS_MR_C_SA(goObs)
+            %----------------------------------------------------------------------------------------------
+            % FIRST ESTIMATE OF SATELLITE POSITIONS from Master observations
+            %----------------------------------------------------------------------------------------------
+            % satellites in view by the master at the first epoch
+            sat_pr_init = find(goObs.getTrackedSat(goGNSS.ID_GPS, 0, -1, 1, 1) ~= 0);
+            % extract ephemerides for the first epoch
+            Eph_1 = rt_find_eph (goObs.getGNSSeph(goGNSS.ID_GPS), goObs.getTime_Ref(1));
+            
+            [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(goObs.getTime_M(1), goObs.getGNSSpr_M(goGNSS.ID_GPS, 0, 1, 1), sat_pr_init, Eph_1, goObs.getGNSS_SP3time(), goObs.getGNSS_SP3coordinates(), goObs.getGNSS_SP3clock(), sbas, [], goObs.getIono(), 0);
+            
+            
+            %----------------------------------------------------------------------------------------------
+            % APPROXIMATE RECEIVER POSITION BY BANCROFT ALGORITHM
+            %----------------------------------------------------------------------------------------------
+            %satellites with no ephemeris available
+            index = find(no_eph == 0);
+            for r=1:goObs.getNumRec()
+                prR = goObs.getGNSSpr_R(goGNSS.ID_GPS, 0, r, 1, 1);
+                [XR, dtR] = getBancroftPos(XS(index,:), dtS(index), prR(index));
+            end
+        end
+        
     end
     
     methods (Static, Access = 'private')
         % Bancroft algorithm for the computation of ground coordinates
-        % having at least 4 visible satellites.        
+        % having at least 4 visible satellites.
         function pos = bancroft(matB)
             % SYNTAX:
             %   [pos] = bancroft(B_pass);

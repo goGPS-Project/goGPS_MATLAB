@@ -424,11 +424,9 @@ classdef goKalmanFilter < handle
             % using the cutoff value for the master
             %initialization of atmospheric errors vectors for the master: (nSatxnRec) to be
             %consistent with atmospheric errors vectors for the rovers
-            err_tropo_M = zeros(nSat,nR);
-            err_iono_M = zeros(nSat,nR);
-            
+
             [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, ...
-                err_tropo, err_iono, sat_pr_M, ...
+                err_tropo_M, err_iono_M, sat_pr_M, ...
                 elM, azM, distM, ...
                 cov_XM, var_dtM] ...
                 = init_positioning(goObs.getTime_Ref(1), pr_M(sat_pr_M_init,1,1), goObs.getGNSSsnr_M(goGNSS.ID_GPS, sat_pr_M_init,1,1), ...
@@ -443,12 +441,12 @@ classdef goKalmanFilter < handle
             %having at least 4 satellites in common in view
             %if (sum(commonSat_pr) >= 4)
             % initialization of variables outside the loop
-            err_tropo_R = zeros(nSat, nR);
-            err_iono_R = zeros(nSat, nR);
             var_dtR = zeros(nR,1);
             dtR = zeros(nR,1);
             cond_num = zeros(nR,1);
-            for r=1:nR
+
+            
+            
                 %having at least 4 satellites in view from the master
                 %station after applying the cutoff
                 if (sum(goodSat_pr_M) < 4); return; end
@@ -456,15 +454,15 @@ classdef goKalmanFilter < handle
                 % after the Master cutoff
                 % _init because it is before applying the rover cutoff
                 % (it is a logical vector)
-                sat_pr_R_init = find((goodSat_pr_M ~= 0) & (commonSat_pr(:,r) ~= 0));
-                
+                % ---------------------------------------------------------
+
                 [obj.XR(:,r), dtR(r), ~, ~, ~, ~, ~, ...
-                    err_tropo, err_iono, sat_pr_R, ...
+                    err_tropo_R, err_iono_R, sat_pr_R, ...
                     elR, azR, distR, ...
                     cov_XR(:,:,r), var_dtR(r), obj.xDOP.P(r), obj.xDOP.H(r), obj.xDOP.V(r), cond_num(r)] ...
-                    = init_positioning(goObs.getTime_Ref(1), pr_R(sat_pr_R_init,r,1), goObs.getGNSSsnr_R(goGNSS.ID_GPS, sat_pr_R_init, r, 1, 1), ...
+                    = goGNSS.init_positioning(goObs.getTime_Ref(1), pr_R(sat_pr_R_init,r,1), goObs.getGNSSsnr_R(goGNSS.ID_GPS, sat_pr_R_init, r, 1, 1), ...
                     Eph_1, SP3_time, SP3_coor, SP3_clck, ...
-                    goObs.getIono(), [], XR0(:,r), XS, dtS, sat_pr_R_init, obj.cutoff, obj.snr_threshold, flag_XR(r), 1);
+                    goObs.getIono(), [], XR0(:,r), XS, dtS, sat_pr_R_init, obj.cutoff, obj.snr_threshold, flag_XR(r), 1, goObs);
                 obj.satCoordR.el(sat_pr_R,r) = elR;
                 obj.satCoordR.az(sat_pr_R,r) = azR;
                 obj.satCoordR.dist(sat_pr_R,r) = distR;
@@ -477,8 +475,8 @@ classdef goKalmanFilter < handle
                 % common between the master (outside the for loop) and each rover (nRec columns)
                 err_tropo_R(sat_pr_R,r) = err_tropo;
                 err_iono_R(sat_pr_R,r) = err_iono;
-            end
-            
+
+            %-------------------------------------------------------------
             err_tropo_M(sat_pr_R,[1:nR]) = repmat(err_tropo,1,nR);
             err_iono_M (sat_pr_R,[1:nR]) = repmat(err_iono,1,nR);
             
