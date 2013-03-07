@@ -1819,7 +1819,7 @@ classdef goGUIclass < handle
                         
                         % If needed init INI reader
                         if isempty(goINI)
-                            goINI = iniReader('', 0);
+                            goINI = goIniReader('', 0);
                         end
                         % If I have to update the ini file
                         goINI.update(filename, force);
@@ -2944,7 +2944,7 @@ classdef goGUIclass < handle
             obj.edtINI.jEdit.hINI = hContainerINI;
             
             % Load INI keywords
-            obj.edtINI.keywordsINI = iniReader([obj.settingsDir obj.defaultINIKeywordsFile], 0);
+            obj.edtINI.keywordsINI = goIniReader([obj.settingsDir obj.defaultINIKeywordsFile], 0);
             obj.edtINI.keywordsINI.readFile();
             % Sections
             sections = obj.edtINI.keywordsINI.getData('INI','sections');

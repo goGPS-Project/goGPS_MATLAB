@@ -31,9 +31,6 @@
 %   iono = getIono(obj)
 %   sbas = getSBAS(obj)
 %
-%   cutoff = getCutOff(obj)
-%   snrThr = getSNRthreshold(obj)
-%
 %  REFERENCE FRAME ----------------------------------------------------
 %
 %   att = getInitialAttitude(obj)
@@ -140,10 +137,7 @@ classdef goObservation < handle
         
         iono = [];      % Ionosphere model observations
         sbas = [];      % SBAS data
-        
-        cutOff = 10;    % cutOff for satellite usage
-        snrThr = 0;     % snrThr threshold for SNR
-        
+                
         % =========================================================================
         %   Configuration of the antennas
         % =========================================================================
@@ -405,16 +399,6 @@ classdef goObservation < handle
         % Return SBAS data
         function sbas = getSBAS(obj)
             sbas = obj.sbas;
-        end
-
-        % Get the cutOff angle for valid satellites
-        function cutOff = getCutOff(obj)
-            cutOff = obj.cutOff;
-        end
-        
-        % Get SNR threshold for valid satellite data
-        function snrThr = getSNRthreshold(obj)
-            snrThr = obj.snrThr;
         end
 
         % =========================================================================
@@ -936,15 +920,18 @@ classdef goObservation < handle
             err.val = 0;    % Everything is ok
             err.msg = '';
             
+            % Receiver Section ---------------------------------------------
+            
             % Save the number of receivers
-            nR = ini.getData('Receivers','nRec');
+            nR = ini.getNumRec();
             if (isempty(nR))
                 err.val = 2;
                 err.msg = 'The receiver number has not been specified. ';
+                nR = 0;
             end
             
             obj.receiverOk = false(nR+1,1);
-            
+
             % Receivers file
             data_path = ini.getData('Receivers','data_path');
             if (isempty(data_path))
