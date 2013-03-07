@@ -12,8 +12,9 @@
 % LIST of CONSTANT
 %
 %   V_LIGHT                 velocity of light in the void                 [m/s]
-%   F1                      GPS carriers frequencies F1                   [1/s]
-%   F2                      GPS carriers frequencies F2                   [1/s]
+%   FG                      GPS carriers frequencies                      [1/s]
+%   LAMBDAG                 GPS carriers wavelengths                      [m]
+%
 %   ELL_A                   ellipsoid semi-major axis                     [m]
 %   ELL_F                   ellipsoid flattening
 %   ELL_E                   eccentricity
@@ -97,10 +98,8 @@ classdef goGNSS < handle
         
         % CONSTELLATION SPECIFIC ------------------------------------------
         
-        F1 = 1575.420*1e6;                    % GPS carriers frequency  [Hz]
-        F2 = 1227.600*1e6;                    % GPS carriers frequency  [Hz]
-        LAMBDA1 = goGNSS.V_LIGHT / goGNSS.F1; % GPS carriers wavelength [m]
-        LAMBDA2 = goGNSS.V_LIGHT / goGNSS.F2; % GPS carriers wavelength [m]
+        FG = [1575.420 1227.600]*1e6;         % GPS carriers frequencies [Hz]
+        LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;% GPS carriers wavelengths [m]
         
         % CONSTELLATIONS IDs ----------------------------------------------
         
@@ -164,11 +163,31 @@ classdef goGNSS < handle
         function obj = goGNSS()
         end
     end
+
+    %   COMPATIBILITY FUNCTION (STATIC)
+    % -------------------------------------------------------------------------
+    % function to keep compatibility with the past
+    methods (Static, Access = 'public')
+        function f1 = F1()
+            f1 = goGNSS.FG(1);
+        end        
+        function f1 = F2()
+            f1 = goGNSS.FG(2);
+        end
+        
+        function lambda1 = LAMBDA1()
+            lambda1 = goGNSS.LAMBDAG(1);
+        end
+        
+        function lambda2 = LAMBDA2()
+            lambda2 = goGNSS.LAMBDAG(2);
+        end        
+    end
     
     %   MODE FUNCTION (STATIC)
     % -------------------------------------------------------------------------
     % function to detect a certain kind of processing
-    methods (Static, Access = 'public')
+    methods (Static, Access = 'public')        
         function isPostProcessing = isPP(mode)
             isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
         end
