@@ -193,7 +193,8 @@ classdef goObservation < handle
         dateChart = [];  % date table                        [nObs, 6, (nRec+2)]
         week = [];        % gps week of the reference time /date
         
-        X0  = [];        % approximate initial position      [3, nRec+1]
+        X0R  = [];        % approximate initial position Rec  [3, nRec]
+        X0M  = [];        % fixed master position             [3, nObs]
         
         dt
         dtDot = [];      % clock drift of the receivers      [nRec+1]
@@ -509,8 +510,7 @@ classdef goObservation < handle
             if (idRec == 0)
                 idRec = 1:obj.nRec;
             end
-            idRec = idRec + 1; % the receiver having index 1 is the Master
-            X0R = obj.X0(:, idRec);
+            X0R = obj.X0R(:, idRec);
             
             flagPos = (sum(X0R,1) ~= 0);
         end
@@ -531,10 +531,10 @@ classdef goObservation < handle
                 idObs = 1:obj.nObs;
             end
             % if the Master position is fixed
-            if (size(obj.X0,2) == 1)
-                XM = repmat(obj.X0(:),1,length(idObs));
+            if (size(obj.X0M,2) == 1)
+                XM = repmat(obj.X0M(:),1,length(idObs));
             else
-                XM = obj.X0(:, idObs);
+                XM = obj.X0M(:, idObs);
             end
             
             flagPos = (sum(XM,1) ~= 0);
@@ -543,14 +543,14 @@ classdef goObservation < handle
         % Set receiver approximate position
         function setPos_M(obj, XM, idObs)
             if (nargin < 2) % if not specified set the entire position array to the value of XM
-                idObs = 1:size(obj.X0,2); % it should be 1 or nObs
+                idObs = 1:size(obj.X0M,2); % it should be 1 or nObs
             end
             if (idObs == 0)
                 idObs = 1:obj.nObs;
             end
-            obj.X0(1,idObs) = XM(1,:); % Set X
-            obj.X0(2,idObs) = XM(2,:); % Set Y
-            obj.X0(3,idObs) = XM(3,:); % Set Z
+            obj.X0M(1,idObs) = XM(1,:); % Set X
+            obj.X0M(2,idObs) = XM(2,:); % Set Y
+            obj.X0M(3,idObs) = XM(3,:); % Set Z
         end
         
         % Get receiver sampling rate
@@ -895,7 +895,7 @@ classdef goObservation < handle
             obj.timeChart = zeros(nObs, nRec+2);                % time table
             obj.dateChart = zeros(nObs,6,nRec+2);               % date
             
-            obj.X0  = zeros(3, nRec+1);                  % approximate initial position
+            obj.X0R  = zeros(3, nRec);                  % approximate initial position
             
             obj.prxG  = zeros(goGNSS.MAX_SAT*(nRec+1), nObs, nFreqG); % pseudo-range
             obj.phxG  = zeros(goGNSS.MAX_SAT*(nRec+1), nObs, nFreqG); % phase
@@ -921,37 +921,26 @@ classdef goObservation < handle
             err.msg = '';
             
             % Receiver Section ---------------------------------------------
-            
-            % Save the number of receivers
-            nR = ini.getNumRec();
+
+            % Receivers file
+            [data_path file_names nR] = ini.getRecFiles();
             if (isempty(nR))
                 err.val = 2;
                 err.msg = 'The receiver number has not been specified. ';
                 nR = 0;
             end
-            
             obj.receiverOk = false(nR+1,1);
-
-            % Receivers file
-            data_path = ini.getData('Receivers','data_path');
+            
             if (isempty(data_path))
                 err.val = 1;
                 err.msg = 'The receiver data path is missing.';
                 return
             end
-            file_names = ini.getData('Receivers','file_name');
             if (isempty(file_names))
                 err.val = 1;
                 err.msg = 'The receivers file names is missing.';
                 return
             else
-                % If missing, get the number of receiver from the file name list
-                if isempty(nR)
-                    err.val = 0;
-                    err.msg ='';
-                    nR = length(file_names);
-                end
-                
                 % Assign the filenames
                 for r = nR:-1:1
                     obj.obsFile(r+1).name = [data_path file_names{r}];
@@ -963,6 +952,7 @@ classdef goObservation < handle
                     end
                 end
             end
+            
             if (nR > 0)
                 obj.setNumRec(nR);
             else
@@ -1121,7 +1111,7 @@ classdef goObservation < handle
             
             interval = zeros(nR-1,1);
             % Reading receivers ----------------------------------------------------------
-            for r=2:nR
+            for r=2:nR 
                 fprintf('Reading RINEX of the receiver %d/%d...\n', r-1, nR-1);
                 t0 = tic();
                 
@@ -1174,7 +1164,7 @@ classdef goObservation < handle
                 interval(r-1) = median(tmp(2:end) - tmp(1:end-1));
                 obj.samplingRate(r) = 1/interval(r-1);    % Save single receiver sampling rate
                 clear tmp;
-            end
+            end 
             interval = mean(interval); % mean interval among all the receivers
             time_GPS = (epoch_init:interval:epoch_end)'; % reference GPS time for all the receivers
             
@@ -1196,7 +1186,7 @@ classdef goObservation < handle
                 [timeRoundedCell, timeCell, dateCell, ~, ~, ~, ~, prRcell, phRcell, dopRcell, snrRcell] = obj.recObsCutter(timeRoundedCell, timeCell, dateCell, void, void, void, void, prRcell, phRcell, dopRcell, snrRcell, nR, startTime, stopTime);
             end
             
-            % Fill object tables
+            % Fill object tables for all the receiver (including Master)
             for r=1:nR
                 [ncu ids]= intersect(time_GPS, timeRoundedCell{r});
                 obj.timeChart(ids, r+1) = timeCell{r};                                   % time
@@ -1226,7 +1216,11 @@ classdef goObservation < handle
                     obj.flagR(r, :) = (obj.timeChart(:, r+1) == 0)';                      % flags
                 end
                 
-                obj.X0(:, r) = posCell{r};
+                if r == 1
+                    obj.X0M = posCell{r};
+                else
+                    obj.X0R(:, r-1) = posCell{r};
+                end
             end
             
             if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
@@ -1276,17 +1270,7 @@ classdef goObservation < handle
                 end
             end
         end
-        
-        % Get initial position (idRec == 0 return the master)
-        % Commented => it is not currently used
-        % function [X0 flagPos] = getX0(obj, idRec)
-        %    if (idRec == 0)
-        %        [X0 flagPos] = obj.getX0_M;
-        %    else
-        %        [X0 flagPos] = obj.getX0_R(idRec);
-        %    end
-        %end
-        
+                
         % =========================================================================
         %    Setter
         % =========================================================================

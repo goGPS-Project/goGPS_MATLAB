@@ -15,7 +15,7 @@
 %    GNU General Public License for more details.
 %
 %    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%    along with this program. If not, see <http://www.gnu.org/licenses/>.
 %---------------------------------------------------------------------------------------------
 
 classdef goGUIclass < handle
@@ -75,11 +75,12 @@ classdef goGUIclass < handle
     % =========================================================================
 
         settingsDir = './settings/';     % Settings folder of goGPS, it contains settings files
-        workingDir = '../data/';              % Working folder of goGPS, it contains data files/folders
+        workingDir = '../../../data/';   % Working folder of goGPS, it contains data files/folders
         defaultSettingsFile = 'default_settings.mat';
         lastSettingsFile = 'last_settings.mat';
         defaultINIFile = 'default_InputFiles.ini';
         defaultINIKeywordsFile = 'goGPS_iniDefaultKeywords.ini';
+        
     %  POP UP MENUS
     % ======================================================================
     % Look initPopUps for the complete initialization
@@ -1834,7 +1835,7 @@ classdef goGUIclass < handle
                             else
                                 nR = 1;
                             end
-                            goINI.setData('Receivers','nRec',nR);
+                            goINI.addKey('Receivers','nRec',nR);
                         end
                         obj.setElVal(obj.idUI.tNumRec,['x ' num2str(nR)]);
                         
@@ -2799,8 +2800,10 @@ classdef goGUIclass < handle
                 disp('Minimum number of satellites is forced to 4 (for stand-alone positioning)');
                 min_nsat = 4;
             end
+            goINI.addKey('Generic','cutoff', str2double(get(obj.goh.cut_off,'String')));
             cutoff = str2double(get(obj.goh.cut_off,'String'));
             snr_threshold = str2double(get(obj.goh.snr_thres,'String'));
+            goINI.addKey('Generic','snrThr', str2double(get(obj.goh.cs_thresh,'String')));
             cs_threshold = str2double(get(obj.goh.cs_thresh,'String'));
             if (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_0)
                 weights = 0;
@@ -3093,8 +3096,8 @@ classdef goGUIclass < handle
                     '*.*',  'All Files (*.*)'}, ...
                     'MultiSelect', 'on', ...
                     'Choose a RINEX observation file',[obj.workingDir 'data_RINEX']);
-                
             if ~isempty(filename)
+                obj.workingDir = [pathname];
                 str = sprintf('data_path = "%s"\n', pathname);
                 if iscell(filename)
                     str = sprintf('nRec = %d\n%sfile_name = [', length(filename), str);
@@ -3120,6 +3123,7 @@ classdef goGUIclass < handle
                 'Choose a RINEX navigation file',[obj.workingDir 'data_RINEX']);
             
             if (filename ~= 0)
+                obj.workingDir = [pathname];
                 str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
@@ -3145,6 +3149,7 @@ classdef goGUIclass < handle
         function browse4Dir(obj)
             dname = uigetdir(obj.workingDir,'Choose a directory');
             if (dname ~= 0)
+                obj.workingDir = [dname '..' filesep];
                 str = sprintf('data_path = "%s"', dname);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
@@ -3156,6 +3161,7 @@ classdef goGUIclass < handle
             [filename, pathname] = uigetfile('*.mat', 'Choose file containing reference path',obj.workingDir);
             
             if (filename ~= 0)
+                obj.workingDir = [pathname];
                 str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
@@ -3256,7 +3262,7 @@ classdef goGUIclass < handle
         function closeGUI(src,evnt)
             global goGUI % I cannot pass the object directly
             selection = questdlg('Do you want to quit goGPS?',...
-                'Close Request Function',...
+                '',...
                 'Yes','No','Yes');
             switch selection,
                 case 'Yes',

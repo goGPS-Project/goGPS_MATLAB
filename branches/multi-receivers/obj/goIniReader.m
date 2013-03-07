@@ -1,5 +1,5 @@
 % =========================================================================
-%   OBJECT goIniReader -> for goGPS 
+%   OBJECT goIniReader => for goGPS 
 %   father: IniReader
 % =========================================================================
 %
@@ -21,70 +21,6 @@
 % REQUIRES:
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
 %
-% LIST of METHODS
-%
-% IniReader(fileName, verbosity)                creator
-% delete(obj)                                   distructor (empty)
-%
-% FILE ----------------------------------------------------------------
-%
-%  setFileName(obj, fileName)                   set the complete path of the ini file
-%  fileName = getFileName(obj)                  get the complete path of the ini file
-%
-% INI SYNTAX ----------------------------------------------------------
-%
-%  setCommentChar(obj, character)               define the characters that define comment lines
-%
-% R/W MODES OF THE FILE -----------------------------------------------
-%
-%  setRW(obj,rwMode)                            set mode for open the ini file
-%  rwMode = getRW(obj)                          get the current mode of the file
-%  bool = readMode(obj)                         is it in read mode?
-%  bool = writeMode(obj)                        is it in write mode?
-%
-%  bool = getReadStatus(obj)                    return if the file has been already parsed
-%
-%  readFile(obj)                                force reading of the File
-%  update(obj, filename, force)                 update the object when needed:
-%                                                - filename changed 
-%                                                - force flag == 1
-%                                                - INI not yet read
-%
-% MANAGING LOGGING ----------------------------------------------------
-%
-%  setColorMode(obj, bool)                      set useage of colors in text output
-%  bool = getColorMode(obj)                     get useage of colors in text output
-%  setVerbosityLev(obj, verbosity)              set level of verbosity
-%  verbosity = getVerbosityLev(obj)             get level of verbosity
-%
-% GETTER OF THE PARAMETERS --------------------------------------------
-%  
-%  isS = isSection(obj, section)                get the presence of a section 
-%  isK = isKey(obj, section, key)               get the presence of a key 
-%  sectionList = getSections(obj)               get the list of available sections
-%  keyList = getKeys(obj, <section>)            get the list of the keys available
-%  data = getData(obj, <section>, key)          get the value of a specified key
-%
-% MODIFIER FUNCTIONS --------------------------------------------------
-%
-%  addSection(obj, newSection)                  add a new section to the object
-%  addKey(obj, section, key, data)              add a new keys to the object
-%  rmSection(obj, section)                      remove a section from the object IniReader
-%  rmKey(obj, section, key)                     remove a key from the object IniReader
-%  editKey(obj, section, key, data)             edit a key in the object IniReader
-%
-% CONTAIN FUNCTION ----------------------------------------------------
-%
-% isPresent = containsSection(obj, section)     search a section in the object IniReader
-% isPresent = containsKey(obj, section, key)    search a key in the object IniReader
-%
-% VISUALIZATION FUNCTIONS ---------------------------------------------
-%
-%  listSections(obj, <colorMode>)               list the list of available sections
-%  listKeys(obj, <section>, <colorMode>)        list the list of the keys available
-%  showData(obj, <section>, <colorMode>)        list the data contained in the ini
-%
-%
 %----------------------------------------------------------------------------------------------
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -104,7 +40,6 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %---------------------------------------------------------------------------------------------
-
 classdef goIniReader < IniReader
     
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -112,23 +47,67 @@ classdef goIniReader < IniReader
         snrThr = 0;
     end
     
+    methods
+        function obj = goIniReader(fileName, verbosity)
+            % INI creator hinerited by iniReader
+            if (nargin < 1)
+                fileName = '';
+            end
+            if isempty(fileName)
+                fileName = '';
+            end
+            obj.setFileName(fileName);
+            if (nargin == 2)
+                obj.setVerbosityLev(verbosity);
+            end
+        end
+    end
+    
     methods (Access = 'public')
 
-        % Get the number of receiver in the INI
+        
         function nR = getNumRec(obj)
+            % Get the number of receiver in the INI
             nR = obj.getData('Receivers','nRec');
         end
-        
-        % Get the minimum angle of acceptance for a satellit
+                
+        function [dataPath fileName nR] = getRecFiles(obj)
+            % Get the dataPath containing the files, file names and number of available receivers
+            nR = getNumRec(obj);
+            
+            dataPath = obj.getData('Receivers','data_path');
+            if (isempty(dataPath))
+                dataPath = '';
+            end
+            
+            fileName = obj.getData('Receivers','file_name');
+            if (isempty(fileName))
+                fileName = '';
+            else
+                % If missing, get the number of receiver from the file name list
+                if isempty(nR)
+                    nR = length(fileName);
+                end
+            end
+            
+            % If I have only one receiver fileName is not a cell => convert it
+            if nR == 1
+                tmp = fileName;
+                fileName = cell(1);
+                fileName{1} = tmp;
+            end
+        end
+                
         function cutoff = getCutoff(obj)
+            % Get the minimum angle of acceptance for a satellit
             cutoff = ini.getData('Generic','cutoff');
             if (isempty(cutoff))
                 cutoff = obj.cutoff;
             end            
         end
-        
-        % Get the minimum SNR threshold acceptable
+                
         function snrThr = getSnrThr(obj)
+            % Get the minimum SNR threshold acceptable
             snrThr = ini.getData('Generic','snrThr');
             if (isempty(snrThr))
                 snrThr = obj.snrThr;

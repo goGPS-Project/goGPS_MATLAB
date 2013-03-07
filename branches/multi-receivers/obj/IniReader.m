@@ -1,3 +1,5 @@
+% IniReader(fileName, verbosity)
+%
 % =========================================================================
 %   OBJECT IniReader
 % =========================================================================
@@ -19,70 +21,6 @@
 %
 % REQUIRES:
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
-%
-% LIST of METHODS
-%
-% IniReader(fileName, verbosity)                creator
-% delete(obj)                                   distructor (empty)
-%
-% FILE ----------------------------------------------------------------
-%
-%  setFileName(obj, fileName)                   set the complete path of the ini file
-%  fileName = getFileName(obj)                  get the complete path of the ini file
-%
-% INI SYNTAX ----------------------------------------------------------
-%
-%  setCommentChar(obj, character)               define the characters that define comment lines
-%
-% R/W MODES OF THE FILE -----------------------------------------------
-%
-%  setRW(obj,rwMode)                            set mode for open the ini file
-%  rwMode = getRW(obj)                          get the current mode of the file
-%  bool = readMode(obj)                         is it in read mode?
-%  bool = writeMode(obj)                        is it in write mode?
-%
-%  bool = getReadStatus(obj)                    return if the file has been already parsed
-%
-%  readFile(obj)                                force reading of the File
-%  update(obj, filename, force)                 update the object when needed:
-%                                                - filename changed 
-%                                                - force flag == 1
-%                                                - INI not yet read
-%
-% MANAGING LOGGING ----------------------------------------------------
-%
-%  setColorMode(obj, bool)                      set useage of colors in text output
-%  bool = getColorMode(obj)                     get useage of colors in text output
-%  setVerbosityLev(obj, verbosity)              set level of verbosity
-%  verbosity = getVerbosityLev(obj)             get level of verbosity
-%
-% GETTER OF THE PARAMETERS --------------------------------------------
-%  
-%  isS = isSection(obj, section)                get the presence of a section 
-%  isK = isKey(obj, section, key)               get the presence of a key 
-%  sectionList = getSections(obj)               get the list of available sections
-%  keyList = getKeys(obj, <section>)            get the list of the keys available
-%  data = getData(obj, <section>, key)          get the value of a specified key
-%
-% MODIFIER FUNCTIONS --------------------------------------------------
-%
-%  addSection(obj, newSection)                  add a new section to the object
-%  addKey(obj, section, key, data)              add a new keys to the object
-%  rmSection(obj, section)                      remove a section from the object IniReader
-%  rmKey(obj, section, key)                     remove a key from the object IniReader
-%  editKey(obj, section, key, data)             edit a key in the object IniReader
-%
-% CONTAIN FUNCTION ----------------------------------------------------
-%
-% isPresent = containsSection(obj, section)     search a section in the object IniReader
-% isPresent = containsKey(obj, section, key)    search a key in the object IniReader
-%
-% VISUALIZATION FUNCTIONS ---------------------------------------------
-%
-%  listSections(obj, <colorMode>)               list the list of available sections
-%  listKeys(obj, <section>, <colorMode>)        list the list of the keys available
-%  showData(obj, <section>, <colorMode>)        list the data contained in the ini
-%
 %
 %----------------------------------------------------------------------------------------------
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
@@ -107,7 +45,7 @@
 classdef IniReader < handle
       
     properties (GetAccess = 'private', SetAccess = 'private')
-        chrComment  = [';', '#']; % style of comments
+        chrComment  = [';', '#']; % Style of comments
         strFileName = 'config.ini';
         fid;
         rawData = {};
@@ -130,6 +68,7 @@ classdef IniReader < handle
         
         % Creator
         function obj = IniReader(fileName, verbosity)
+        % IniReader(fileName, verbosity) creator
             if (nargin < 1)
                 fileName = '';
             end
@@ -149,6 +88,7 @@ classdef IniReader < handle
         
         % Cleaner
         function clearAll(obj)
+            % Reset the object
             obj.fid = 0;
             obj.rw = 'r';
             obj.strFileName = 'config.ini';
@@ -157,31 +97,50 @@ classdef IniReader < handle
             obj.colorMode = 1;
             obj.section = {};
         end
-        
-        % ======================================================================
-        %    Getter / Setter
-        % ======================================================================
+    end
+    
+    % =========================================================================
+    %  FILE
+    % =========================================================================
+    methods    
         
         % Set file name ---------------------------------------------------
         function setFileName(obj, fileName)
+            % Set the complete path of the ini file
             obj.strFileName = fileName;
         end
         
         function fileName = getFileName(obj)
+            % Get the complete path of the ini file
             fileName = obj.strFileName;
         end
-        
+    end
+    
+    % =========================================================================
+    %  INI SYNTAX
+    % =========================================================================
+    methods    
         % Set Comment Character -------------------------------------------
         function setCommentChar(obj, character)
+            % define the characters that define comment lines
             obj.chrComment = character;
         end
         
         function characters = getCommentChar(obj)
+            % Get the characters that define comment lines
             characters = obj.chrComment;
         end
-        
+
+    end
+    
+    % =========================================================================
+    %  R/W MODES OF THE FILE
+    % =========================================================================
+    methods    
+                
         % Set RW mode -----------------------------------------------------
         function setRW(obj,rwMode)
+            % Set mode for open the ini file
             if ( ~obj.readMode() && ~writeMode())
                 obj.rw = 'r';
             else
@@ -190,10 +149,12 @@ classdef IniReader < handle
         end
         
         function rwMode = getRW(obj)
+            % Get the current mode of the file
             rwMode = obj.rw;
         end
         
         function bool = readMode(obj)
+            % Is it in read mode?
             if ((obj.rw(1)=='r'))
                 bool = true;
             else
@@ -202,6 +163,7 @@ classdef IniReader < handle
         end
         
         function bool = writeMode(obj)
+            % Is it in write mode?
             if ((obj.rw(1)=='w'))
                 bool = true;
             else
@@ -211,11 +173,13 @@ classdef IniReader < handle
         
         % Get read status mode --------------------------------------------        
         function bool = getReadStatus(obj)
+            % Return if the file has been already parsed
             bool = obj.readStatus;
         end
         
         % Read File -------------------------------------------------------
         function errStatus = readFile(obj)
+            % Force reading of the File
             errStatus = false;            
             % If the object already contains data - clean it
             if (obj.getReadStatus())
@@ -253,6 +217,10 @@ classdef IniReader < handle
         
         % Update File (when needed) ---------------------------------------
         function reloaded = update(obj, filename, force)
+            % Update the object when needed:
+            %  - filename changed 
+            %  - force flag == 1
+            %  - INI not yet read
             if nargin == 2
                 force = 0;
             end
@@ -263,27 +231,45 @@ classdef IniReader < handle
                 reloaded = 1;
             end            
         end
-                
+        
+    end
+    
+    % =========================================================================
+    %  MANAGING LOGGING
+    % =========================================================================
+    methods    
+    
         % Set read status mode --------------------------------------------
         function setColorMode(obj, bool)
+            % Set useage of colors in text output
             obj.colorMode = bool;
         end
         
         function bool = getColorMode(obj)
+            % Get useage of colors in text output
             bool = obj.colorMode;
         end
         
         % Set verbosity level ---------------------------------------------
         function setVerbosityLev(obj, verbosity)
+            % Set level of verbosity
             obj.verbosity = verbosity;
         end
         
         function verbosity = getVerbosityLev(obj)
+            % Get level of verbosity
             verbosity = obj.verbosity;
         end
+    end
+    
+    % =========================================================================
+    %  GETTER OF THE PARAMETERS
+    % =========================================================================
+    methods
         
         % Get the list of sections present in the file --------------------        
         function sectionList = getSections(obj)
+            % Get the list of available sections
             if (~obj.getReadStatus())
                 obj.printWarning('File not yet read!\n');
                 obj.readFile();
@@ -297,10 +283,11 @@ classdef IniReader < handle
         
         % Return the presence of a section --------------------------------
         function isS = isSection(obj, section)
+            % Get the presence of a section
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
-                    s = 0;      % stop searching
+                    s = 0;      % Stop searching
                 else
                     s = s+1;    % go on with the search of the section
                 end
@@ -310,6 +297,7 @@ classdef IniReader < handle
         
         % Return the presence of a key ------------------------------------
         function isK = isKey(obj, section, key)
+            % Get the presence of a key 
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
@@ -332,6 +320,7 @@ classdef IniReader < handle
                 
         % Get the list of keys present in the file ------------------------
         function keyList = getKeys(obj, section)
+            % Get the list of the keys available
             if (nargin == 1)
                 section = 0;
             end
@@ -358,7 +347,7 @@ classdef IniReader < handle
                             keyList{l} = obj.section{s}.par{p}.name;
                             l = l+1;
                         end
-                        s = 0;      % stop searching
+                        s = 0;      % Stop searching
                     else
                         s = s+1;    % go on with the search of the section
                     end
@@ -368,6 +357,7 @@ classdef IniReader < handle
         
         % Get data --------------------------------------------------------        
         function data = getData(obj, section, key)
+            % Get the value of a specified key
             if (~obj.getReadStatus())
                 obj.printWarning('File not yet read!\n');
                 obj.readFile();
@@ -376,26 +366,26 @@ classdef IniReader < handle
             data = [];
             if (nargin == 2)
                 key = section;
-                % search the key among all the sections
+                % Search the key among all the sections
                 s = 1;
                 while ((s<=length(obj.section)) && (s > 0))
                     p = 1;
                     while ((p <= length(obj.section{s}.par)) && (p ~= 0))
                         if (strcmp(obj.section{s}.par{p}.name,key))
                             data = obj.section{s}.par{p}.data;
-                            p = 0;      % stop searching key
+                            p = 0;      % Stop searching key
                         else
                             p = p+1;    % go on with the search of the key
                         end
                     end
                     if (p == 0)
-                        s = 0;     % stop searching section
+                        s = 0;     % Stop searching section
                     else
                         s = s+1;   % go on with the search of the section
                     end
                 end
             else                
-                % search the key of a specific section
+                % Search the key of a specific section
                 s = 1;
                 while ((s<=length(obj.section)) && (s > 0))
                     if (strcmp(obj.section{s}.name,section))
@@ -403,12 +393,12 @@ classdef IniReader < handle
                         while ((p <= length(obj.section{s}.par)) && (p ~= 0))
                             if (strcmp(obj.section{s}.par{p}.name,key))
                                 data = obj.section{s}.par{p}.data;
-                                p = 0; % stop searching key
+                                p = 0; % Stop searching key
                             else
                                 p = p+1;    % go on with the search of the key
                             end
                         end
-                        s = 0;      % stop searching section
+                        s = 0;      % Stop searching section
                     else
                         s = s+1;    % go on with the search of the section
                     end
@@ -420,13 +410,16 @@ classdef IniReader < handle
                 data = [];
             end
         end
-           
-        % ======================================================================
-        %    Modifiers functions
-        % ======================================================================
+    end
+    
+    % =========================================================================
+    %  MODIFIER FUNCTIONS
+    % =========================================================================
+    methods
         
         % Add a new section to the object ---------------------------------        
         function addSection(obj, newSection)
+            % Add a new section to the object
             if ~obj.isSection(newSection)
                 newId = length(obj.section)+1;
                 obj.section{newId}.name = newSection;
@@ -436,6 +429,7 @@ classdef IniReader < handle
         
         % Add a new keys to the object ------------------------------------
         function addKey(obj, section, key, data)
+            % Add a new keys to the object
             if obj.isKey(section, key)
                 obj.editKey(section, key, data);
             else
@@ -458,6 +452,7 @@ classdef IniReader < handle
         
         % Remove a section from the object IniReader ----------------------
         function rmSection(obj, section)
+            % Remove a section from the object IniReader
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
@@ -474,6 +469,7 @@ classdef IniReader < handle
         
         % Remove a key from the object IniReader ----------------------
         function rmKey(obj, section, key)
+            % Remove a key from the object IniReader
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
@@ -497,6 +493,7 @@ classdef IniReader < handle
         
         % Edit a key in the object IniReader ----------------------
         function editKey(obj, section, key, data)
+            % Edit a key in the object IniReader
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
@@ -518,13 +515,15 @@ classdef IniReader < handle
                 obj.printError(['Key "' key '" not found!\n']);
             end
         end
-        
-        % ======================================================================
-        %    Search functions
-        % ======================================================================
-        
+    end
+    
+    % =========================================================================
+    %  SEARCH FUNCTIONS
+    % =========================================================================
+    methods
         % Search a section in the object IniReader ------------------------
         function isPresent = containsSection(obj, section)
+            % Search a section in the object IniReader
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
@@ -542,6 +541,7 @@ classdef IniReader < handle
         
         % Search a key in the object IniReader ----------------------------
         function isPresent = containsKey(obj, section, key)
+            % Search a key in the object IniReader
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
@@ -562,15 +562,16 @@ classdef IniReader < handle
             else
                 isPresent = false;
             end
-        end
-        
-        
-        % ======================================================================
-        %    Visualization functions
-        % ======================================================================
-        
+        end                
+    end
+    
+    % =========================================================================
+    %  VISUALIZATION FUNCTIONS
+    % =========================================================================
+    methods
         % List Sections ---------------------------------------------------
         function listSections(obj, colorMode)
+            % List the list of available sections
             if (nargin == 1)
                 colorMode = obj.getColorMode();
             end
@@ -589,6 +590,7 @@ classdef IniReader < handle
         
         % List Key --------------------------------------------------------
         function listKeys(obj, section, colorMode)
+            % List the list of the keys available
             if (nargin == 1)
                 section = 0;
                 colorMode = obj.getColorMode();
@@ -624,7 +626,7 @@ classdef IniReader < handle
                         for p = 1:length(obj.section{s}.par)
                             obj.printData(obj.section{s}.par{p}.name, obj.section{s}.par{p}.data, colorMode)
                         end
-                        s = 0;      % stop searching
+                        s = 0;      % Stop searching
                     else
                         s = s+1;    % go on with the search of the section
                     end
@@ -634,6 +636,7 @@ classdef IniReader < handle
 
         % Show data -------------------------------------------------------
         function showData(obj, section, colorMode)
+            % List the data contained in the ini
             if (nargin == 1)
                 section = 0;
                 colorMode = obj.colorMode;
@@ -669,14 +672,13 @@ classdef IniReader < handle
                         for p = 1:length(obj.section{s}.par)
                             obj.printData(obj.section{s}.par{p}.name, obj.section{s}.par{p}.data, colorMode)                           
                         end
-                        s = 0;      % stop searching
+                        s = 0;      % Stop searching
                     else
                         s = s+1;    % go on with the search of the section
                     end
                 end
             end
-        end
-        
+        end        
     end
     
     % =========================================================================
@@ -685,11 +687,11 @@ classdef IniReader < handle
     
     methods (Access = 'private')
         
-        % strip empty/comment lines
+        % Strip empty/comment lines
         function cleanRaw(obj)
-            % strip empty lines
+            % Strip empty lines
             obj.rawData((cellfun(@length, obj.rawData)==0)) = [];
-            % strip commented lines
+            % Strip commented lines
             r = 1;
             while (r <= length(obj.rawData))
                 if ismember(obj.rawData{r}(1), obj.chrComment);
@@ -700,7 +702,7 @@ classdef IniReader < handle
             end
             
             for r=1:length(obj.rawData)
-                % strip comments
+                % Strip comments
                 
                 start = regexp(obj.rawData{r}, ['([' obj.chrComment ']).*'], 'start');
                 if (~isempty(start))
@@ -736,7 +738,7 @@ classdef IniReader < handle
                         p = p+1;
                         obj.section{s}.par{p}.name = parName{1};
                         
-                        % GET the DATA!
+                        % Get the DATA!
                         strData = regexp(obj.rawData{r}, '(?<=\=).*', 'match');
                         if (isempty(strData))
                             obj.section{s}.par{p}.data = [];
@@ -752,9 +754,9 @@ classdef IniReader < handle
                                     if (size(tmpData,2) == 1)
                                         obj.section{s}.par{p}.data = tmpData{1};
                                     else                                        
-                                        % strip empty cells
+                                        % Strip empty cells
                                         tmpData((cellfun(@length, tmpData)==0)) = [];
-                                        % strip space only cells
+                                        % Strip space only cells
                                         for c=size(tmpData,2):-1:1
                                             if isempty(regexp(tmpData{c}, '[^ ]*', 'match'))
                                                 tmpData(c) = [];
@@ -852,7 +854,7 @@ classdef IniReader < handle
             if (colorMode)
                 cprintf('blue','             |- ');
                 tmpData = data;
-                if (iscell(tmpData))    % the only dataset that can be a cell array is an array of strings
+                if (iscell(tmpData))    % The only dataset that can be a cell array is an array of strings
                     cprintf('text','"%s" = [', key);
                     for (l = 1:size(tmpData,2))
                         cprintf('text', ' "%s"', tmpData{l});
@@ -868,7 +870,7 @@ classdef IniReader < handle
                 end
             else
                 tmpData = data;
-                if (iscell(tmpData))    % the only dataset that can be a cell array is an array of strings
+                if (iscell(tmpData))    % The only dataset that can be a cell array is an array of strings
                     fprintf('             |- "%s" = [', key);
                     for l = 1:size(tmpData,2)
                         fprintf(' "%s"', tmpData{l});
