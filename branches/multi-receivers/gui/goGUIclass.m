@@ -2549,13 +2549,13 @@ classdef goGUIclass < handle
                 msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
             end
             
-            if (mode == goGNSS.MODE_RT_RMon || mode == goGNSS.MODE_RT_RMMon || mode == goGNSS.MODE_RT_Nav) %if a COM connection to the rover is required
+            if (mode == goGNSS.MODE_RT_R_MON || mode == goGNSS.MODE_RT_RM_MON || mode == goGNSS.MODE_RT_NAV) %if a COM connection to the rover is required
                 if(strcmp(COMportR0, 'NA'))
                     msgbox('Please select an existing COM port.'); ready = 0;
                 end
             end
             
-            if (mode == goGNSS.MODE_RT_MMon || mode == goGNSS.MODE_RT_RMMon || mode == goGNSS.MODE_RT_Nav) %if a TCP/IP connection to the master is required
+            if (mode == goGNSS.MODE_RT_M_MON || mode == goGNSS.MODE_RT_RM_MON || mode == goGNSS.MODE_RT_NAV) %if a TCP/IP connection to the master is required
                 if (isempty(master_ip))
                     msgbox('Please provide an IP address for the connection to the master.'); ready = 0;
                 elseif (isnan(master_port) || master_port < 0 || master_port > 65535)

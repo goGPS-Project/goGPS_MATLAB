@@ -16,8 +16,8 @@
 %
 % LIST of CONSTANT
 %
-%   idGPS          identifier of the GPS constellation inside this object
-%   idGLONASS      identifier of the GLONASS constellation inside this object
+%   ID_GPS          identifier of the GPS constellation inside this object
+%   ID_GLONASS      identifier of the GLONASS constellation inside this object
 %
 % LIST of METHODS
 %
@@ -292,15 +292,15 @@ classdef goObservation < handle
             % Somewhere I need to read which GNSS constellation is
             % available, up to know GLONASS is not managed, so I disable it
             % in the observation object;
-            obj.setGNSS(goGNSS.idGPS, 1);
-            obj.setGNSS(goGNSS.idGLONASS, 0);
+            obj.setGNSS(goGNSS.ID_GPS, 1);
+            obj.setGNSS(goGNSS.ID_GLONASS, 0);
             
             % Set foundamental parameters
-            if (obj.getGNSSstatus(goGNSS.idGPS) == 1)
-                obj.setGNSSnFreq(goGNSS.idGPS,nFreqG);
+            if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
+                obj.setGNSSnFreq(goGNSS.ID_GPS,nFreqG);
             end
-            if (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
-                obj.setGNSSnFreq(goGNSS.idGLONASS, nFreqR);
+            if (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
+                obj.setGNSSnFreq(goGNSS.ID_GLONASS, nFreqR);
             end
             
             % Extract useful info from the ini file
@@ -422,9 +422,9 @@ classdef goObservation < handle
         % Getter of the num of Frequencies available
         function nFreq = getGNSSnFreq(obj, idGNSS)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     nFreq = obj.nFreqG;
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     nFreq = obj.nFreqR;
             end
         end
@@ -592,9 +592,9 @@ classdef goObservation < handle
             if (idRec == 0) % Master
                 [dt_tmp, dtDot_tmp] ...
                     = clock_error(obj.getX0_M(), obj.getTime_Ref(), ...
-                    obj.getGNSSpr_M(goGNSS.idGPS, 0, 0, 1), ...
-                    obj.getGNSSsnr_M(goGNSS.idGPS, 0, 0, 1), ...
-                    obj.getGNSSeph(goGNSS.idGPS), ...
+                    obj.getGNSSpr_M(goGNSS.ID_GPS, 0, 0, 1), ...
+                    obj.getGNSSsnr_M(goGNSS.ID_GPS, 0, 0, 1), ...
+                    obj.getGNSSeph(goGNSS.ID_GPS), ...
                     obj.getGNSS_SP3time(), ...
                     obj.getGNSS_SP3coordinates(), ...
                     obj.getGNSS_SP3clock(), ...
@@ -602,9 +602,9 @@ classdef goObservation < handle
             else            % Rover
                 [dt_tmp, dtDot_tmp] ...
                     = clock_error(obj.getX0_R(idRec), obj.getTime_Ref(), ...
-                    obj.getGNSSpr_R(goGNSS.idGPS, 0, idRec, 0, 1), ...
-                    obj.getGNSSsnr_M(goGNSS.idGPS, 0, idRec, 0, 1), ...
-                    obj.getGNSSeph(goGNSS.idGPS), ...
+                    obj.getGNSSpr_R(goGNSS.ID_GPS, 0, idRec, 0, 1), ...
+                    obj.getGNSSsnr_M(goGNSS.ID_GPS, 0, idRec, 0, 1), ...
+                    obj.getGNSSeph(goGNSS.ID_GPS), ...
                     obj.getGNSS_SP3time(), ...
                     obj.getGNSS_SP3coordinates(), ...
                     obj.getGNSS_SP3clock(), ...
@@ -643,9 +643,9 @@ classdef goObservation < handle
         % Get ephemerides for GNSS satellites
         function eph = getGNSSeph(obj, idGNSS)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     eph = obj.ephG;
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     eph = obj.ephR;
             end
         end
@@ -688,17 +688,17 @@ classdef goObservation < handle
         % nFreq => id of the frequency used (e.g. 1 = L1, 2 = L2, ...future frequencies...)
         function pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     pr = goObservation.extractData(obj.prxG, idSat, idRec, idObs, nFreq, obj.nRec);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     pr = goObservation.extractData(obj.prxR, idSat, idRec, idObs, nFreq, obj.nRec);
             end
         end
         function pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     pr = goObservation.extractData(obj.prxG, idSat, -1, idObs, nFreq, obj.nRec);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     pr = goObservation.extractData(obj.prxR, idSat, -1, idObs, nFreq, obj.nRec);
             end
         end
@@ -711,17 +711,17 @@ classdef goObservation < handle
         %                                   (if 0 get all the frequencies)
         function ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     ph = goObservation.extractData(obj.phxG, idSat, idRec, idObs, nFreq, obj.nRec);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     ph = goObservation.extractData(obj.phxR, idSat, idRec, idObs, nFreq, obj.nRec);
             end
         end
         function ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     ph = goObservation.extractData(obj.phxG, idSat, -1, idObs, nFreq, obj.nRec);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     ph = goObservation.extractData(obj.phxR, idSat, -1, idObs, nFreq, obj.nRec);
             end
         end
@@ -734,17 +734,17 @@ classdef goObservation < handle
         %                                   (if 0 get all the frequencies)
         function dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     dop = goObservation.extractData(obj.dopxG, idSat, idRec, idObs, nFreq, obj.nRec);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     dop = goObservation.extractData(obj.dopxR, idSat, idRec, idObs, nFreq, obj.nRec);
             end
         end
         function dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     dop = goObservation.extractData(obj.dopxG, idSat, -1, idObs, nFreq, obj.nRec);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     dop = goObservation.extractData(obj.dopxR, idSat, -1, idObs, nFreq, obj.nRec);
             end
         end
@@ -757,17 +757,17 @@ classdef goObservation < handle
         %                                   (if 0 get all the frequencies)
         function snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     snr = goObservation.extractData(obj.snrxG, idSat, idRec, idObs, nFreq, obj.nRec);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     snr = goObservation.extractData(obj.snrxR, idSat, idRec, idObs, nFreq, obj.nRec);
             end
         end
         function snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     snr = goObservation.extractData(obj.snrxG, idSat, -1, idObs, nFreq, obj.nRec);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     snr = goObservation.extractData(obj.snrxR, idSat, -1, idObs, nFreq, obj.nRec);
             end
         end
@@ -789,9 +789,9 @@ classdef goObservation < handle
             end
             
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     flag = obj.flagG(idRec,idObs);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     flag = obj.flagR(idRec,idObs);
             end
         end
@@ -805,9 +805,9 @@ classdef goObservation < handle
             end
             
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     flag = obj.flagG(1,idObs);
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     flag = obj.flagR(1,idObs);
             end
         end
@@ -1047,8 +1047,8 @@ classdef goObservation < handle
             nR = obj.getNumRec()+1; % The first position is for the MASTER
             
             % GPS
-            if (obj.getGNSSstatus(goGNSS.idGPS) == 1)
-                nFreqG = obj.getGNSSnFreq(goGNSS.idGPS);
+            if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
+                nFreqG = obj.getGNSSnFreq(goGNSS.ID_GPS);
                 
                 % Reading Master and Remote observations
                 % We use cells to read the receiver files
@@ -1061,8 +1061,8 @@ classdef goObservation < handle
             end
             
             % GLONASS
-            if (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
-                nFreqR = obj.getGLONASSnFreq(goGNSS.idGLONASS);
+            if (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
+                nFreqR = obj.getGLONASSnFreq(goGNSS.ID_GLONASS);
                 
                 % Reading Master and Remote observations
                 % We use cells to read the receiver files
@@ -1085,7 +1085,7 @@ classdef goObservation < handle
             % It should be better to change load rinex in such a way to
             % already read just the needed observations...
             % I read both GLONASS and GPS
-            if (obj.getGNSSstatus(goGNSS.idGPS) == 1) && (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
+            if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1) && (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
                 [prGcell{obj.idM,1}, ~, phGcell{obj.idM,1}, ~, prGcell{obj.idM,2}, ~, phGcell{obj.idM,2}, ~, ...
                     dopGcell{obj.idM,1}, ~, dopGcell{obj.idM,2}, ~, snrGcell{obj.idM,1}, ~, snrGcell{obj.idM,2}, ~, ...
                     prRcell{obj.idM,1}, ~, phRcell{obj.idM,1}, ~, prRcell{obj.idM,2}, ~, phRcell{obj.idM,2}, ~, ...
@@ -1093,7 +1093,7 @@ classdef goObservation < handle
                     timeRoundedCell{obj.idM}, timeCell{obj.idM}, ~, dateCell{obj.idM}, posCell{obj.idM}, ~, obj.ephG, obj.iono, obj.ephR] = ...
                     load_RINEX(navFile.isSP3, obsFile(obj.idM).name, navFile.name);
                 % I read only GPS
-            elseif (obj.getGNSSstatus(goGNSS.idGPS) == 1)
+            elseif (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
                 [prGcell{obj.idM,1}, ~, phGcell{obj.idM,1}, ~, prGcell{obj.idM,2}, ~, phGcell{obj.idM,2}, ~, ...
                     dopGcell{obj.idM,1}, ~, dopGcell{obj.idM,2}, ~, snrGcell{obj.idM,1}, ~, snrGcell{obj.idM,2}, ~, ...
                     ~, ~, ~, ~, ~, ~, ~, ~, ...
@@ -1101,7 +1101,7 @@ classdef goObservation < handle
                     timeRoundedCell{obj.idM}, timeCell{obj.idM}, ~, dateCell{obj.idM}, posCell{obj.idM}, ~, obj.ephG, obj.iono, ~] = ...
                     load_RINEX(navFile.isSP3, obsFile(obj.idM).name, navFile.name);
                 % I read only GLONASS
-            elseif (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
+            elseif (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
                 [~, ~, ~, ~, ~, ~, ~, ~, ...
                     ~, ~, ~, ~, ~, ~, ~, ~, ...
                     prRcell{obj.idM,1}, ~, phRcell{obj.idM,1}, ~, prRcell{obj.idM,2}, ~, phRcell{obj.idM,2}, ~, ...
@@ -1123,7 +1123,7 @@ classdef goObservation < handle
                 t0 = tic();
                 
                 % I read both GLONASS and GPS
-                if (obj.getGNSSstatus(goGNSS.idGPS) == 1) && (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
+                if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1) && (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
                     [prGcell{r,1}, ~, phGcell{r,1}, ~, prGcell{r,2}, ~, phGcell{r,2}, ~, ...
                         dopGcell{r,1}, ~, dopGcell{r,2}, ~, snrGcell{r,1}, ~, snrGcell{r,2}, ~, ...
                         prRcell{r,1}, ~, phRcell{r,1}, ~, prRcell{r,2}, ~, phRcell{r,2}, ~, ...
@@ -1131,7 +1131,7 @@ classdef goObservation < handle
                         timeRoundedCell{r}, timeCell{r}, ~, dateCell{r}, posCell{r}, ~, ~, ~, ~] = ...
                         load_RINEX(navFile.isSP3, obsFile(r).name, navFile.name);
                     % I read only GPS
-                elseif (obj.getGNSSstatus(goGNSS.idGPS) == 1)
+                elseif (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
                     [prGcell{r,1}, ~, phGcell{r,1}, ~, prGcell{r,2}, ~, phGcell{r,2}, ~, ...
                         dopGcell{r,1}, ~, dopGcell{r,2}, ~, snrGcell{r,1}, ~, snrGcell{r,2}, ~, ...
                         ~, ~, ~, ~, ~, ~, ~, ~, ...
@@ -1139,7 +1139,7 @@ classdef goObservation < handle
                         timeRoundedCell{r}, timeCell{r}, ~, dateCell{r}, posCell{r}, ~, ~, ~, ~] = ...
                         load_RINEX(navFile.isSP3, obsFile(r).name, navFile.name);
                     % I read only GLONASS
-                elseif (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
+                elseif (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
                     [~, ~, ~, ~, ~, ~, ~, ~, ...
                         ~, ~, ~, ~, ~, ~, ~, ~, ...
                         prRcell{r,1}, ~, phRcell{r,1}, ~, prRcell{r,2}, ~, phRcell{r,2}, ~, ...
@@ -1185,11 +1185,11 @@ classdef goObservation < handle
             % the REMOTE RINEX are read together (but here I need to read
             % them separately - I have more than one Receivers)
             void = {};
-            if (obj.getGNSSstatus(goGNSS.idGPS) == 1) && (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
+            if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1) && (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
                 [timeRoundedCell, timeCell, dateCell, prGcell, phGcell, dopGcell, snrGcell, prRcell, phRcell, dopRcell, snrRcell] = obj.recObsCutter(timeRoundedCell, timeCell, dateCell, prGcell, phGcell, dopGcell, snrGcell, prRcell, phRcell, dopRcell, snrRcell, nR, startTime, stopTime);
-            elseif (obj.getGNSSstatus(goGNSS.idGPS) == 1)
+            elseif (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
                 [timeRoundedCell, timeCell, dateCell, prGcell, phGcell, dopGcell, snrGcell, ~, ~, ~, ~] = obj.recObsCutter(timeRoundedCell, timeCell, dateCell, prGcell, phGcell, dopGcell, snrGcell, void, void, void, void, nR, startTime, stopTime);
-            elseif (obj.getGLONASSstatus(goGNSS.idGPS) == 1)
+            elseif (obj.getGLONASSstatus(goGNSS.ID_GPS) == 1)
                 [timeRoundedCell, timeCell, dateCell, ~, ~, ~, ~, prRcell, phRcell, dopRcell, snrRcell] = obj.recObsCutter(timeRoundedCell, timeCell, dateCell, void, void, void, void, prRcell, phRcell, dopRcell, snrRcell, nR, startTime, stopTime);
             end
             
@@ -1199,7 +1199,7 @@ classdef goObservation < handle
                 obj.timeChart(ids, r+1) = timeCell{r};                                   % time
                 obj.dateChart(ids, :, r+1) = dateCell{r};                                       % date
                 
-                if (obj.getGNSSstatus(goGNSS.idGPS) == 1)
+                if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
                     for f = 1:nFreqG()
                         obj.prxG((1:goGNSS.MAX_SAT)+goGNSS.MAX_SAT*(r-1), ids, f) = prGcell{r,f};     % pseudo-range
                         obj.phxG((1:goGNSS.MAX_SAT)+goGNSS.MAX_SAT*(r-1), ids, f) = phGcell{r,f};     % phase
@@ -1211,7 +1211,7 @@ classdef goObservation < handle
                     obj.flagG(r, :) = (obj.timeChart(:, r+1) == 0)';                      % flags
                 end
                 
-                if (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
+                if (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
                     for f = 1:nFreqR()
                         obj.prxR((1:goGNSS.MAX_SAT)+goGNSS.MAX_SAT*(r-1), ids, f) = prRcell{r,f};     % pseudo-range
                         obj.phxR((1:goGNSS.MAX_SAT)+goGNSS.MAX_SAT*(r-1), ids, f) = phRcell{r,f};     % phase
@@ -1226,10 +1226,10 @@ classdef goObservation < handle
                 obj.X0(:, r) = posCell{r};
             end
             
-            if (obj.getGNSSstatus(goGNSS.idGPS) == 1)
+            if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
                 clear    prGcell phGcell dopGcell snrGcell;
             end
-            if (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
+            if (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
                 clear    prRcell phRcell dopRcell snrRcell;
             end
             clear    timeRoundedCell timeCell dateCell posCell;
@@ -1250,8 +1250,8 @@ classdef goObservation < handle
             % satellites are available.
             if (~obj.haveSP3())
                 % remove satellites without ephemerides (GPS)
-                if (obj.getGNSSstatus(goGNSS.idGPS))
-                    eph = getGNSSeph(obj, goGNSS.idGPS);
+                if (obj.getGNSSstatus(goGNSS.ID_GPS))
+                    eph = getGNSSeph(obj, goGNSS.ID_GPS);
                     rmSat = setdiff(1:goGNSS.MAX_SAT,unique(eph(1,:))); % Check satellite idS that are not in the list of svPRN
                     for r = 1:nR
                         obj.prxG(rmSat+goGNSS.MAX_SAT*(r-1),:,:) = 0;
@@ -1261,8 +1261,8 @@ classdef goObservation < handle
                     end
                 end
                 % remove satellites without ephemerides (GLONASS)
-                if (obj.getGNSSstatus(goGNSS.idGLONASS))
-                    eph = getGNSSeph(obj, goGNSS.idGLONASS);
+                if (obj.getGNSSstatus(goGNSS.ID_GLONASS))
+                    eph = getGNSSeph(obj, goGNSS.ID_GLONASS);
                     rmSat = setdiff(1:goGNSS.MAX_SAT,unique(eph(1,:)));
                     for r = 1:nR
                         obj.prxR(rmSat+goGNSS.MAX_SAT*(r-1),:,:) = 0;
@@ -1296,9 +1296,9 @@ classdef goObservation < handle
         % Setter of the num of Frequencies to be used available
         function setGNSSnFreq(obj, idGNSS, nFreq)
             switch idGNSS
-                case goGNSS.idGPS
+                case goGNSS.ID_GPS
                     obj.nFreqG = nFreq;
-                case goGNSS.idGLONASS
+                case goGNSS.ID_GLONASS
                     obj.nFreqR = nFreq;
             end
         end
@@ -1324,16 +1324,16 @@ classdef goObservation < handle
                 timeRoundedCell{r} = goObservation.cutCellItem(timeRoundedCell{r}, startId, stopId);
                 timeCell{r} = goObservation.cutCellItem(timeCell{r}, startId, stopId);
                 dateCell{r} = goObservation.cutCellItem(dateCell{r}, startId, stopId);
-                if (obj.getGNSSstatus(goGNSS.idGPS) == 1)
-                    for f = 1:obj.getGNSSnFreq(goGNSS.idGPS)
+                if (obj.getGNSSstatus(goGNSS.ID_GPS) == 1)
+                    for f = 1:obj.getGNSSnFreq(goGNSS.ID_GPS)
                         prGcell{r,f} = goObservation.cutCellItem(prGcell{r,f}', startId, stopId)';
                         phGcell{r,f} = goObservation.cutCellItem(phGcell{r,f}', startId, stopId)';
                         dopGcell{r,f} = goObservation.cutCellItem(dopGcell{r,f}', startId, stopId)';
                         snrGcell{r,f} = goObservation.cutCellItem(snrGcell{r,f}', startId, stopId)';
                     end
                 end
-                if (obj.getGNSSstatus(goGNSS.idGLONASS) == 1)
-                    for f = 1:obj.getGNSSnFreq(goGNSS.idGLONASS)
+                if (obj.getGNSSstatus(goGNSS.ID_GLONASS) == 1)
+                    for f = 1:obj.getGNSSnFreq(goGNSS.ID_GLONASS)
                         prRcell{r,f} = goObservation.cutCellItem(prRcell{r,f}', startId, stopId)';
                         phRcell{r,f} = goObservation.cutCellItem(phRcell{r,f}', startId, stopId)';
                         dopRcell{r,f} = goObservation.cutCellItem(dopRcell{r,f}', startId, stopId)';
