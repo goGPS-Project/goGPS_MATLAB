@@ -208,17 +208,29 @@ classdef goGNSS < handle
             Eph_1 = rt_find_eph (goObs.getGNSSeph(goGNSS.ID_GPS), goObs.getTime_Ref(1));
             
             [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(goObs.getTime_M(1), goObs.getGNSSpr_M(goGNSS.ID_GPS, 0, 1, 1), sat_pr_init, Eph_1, goObs.getGNSS_SP3time(), goObs.getGNSS_SP3coordinates(), goObs.getGNSS_SP3clock(), goOBS.getSBAS(), [], goObs.getIono(), 0);
-            
+
+            %satellites with no ephemeris available
+            usableSat = no_eph == 0;
             
             %----------------------------------------------------------------------------------------------
             % APPROXIMATE RECEIVER POSITION BY BANCROFT ALGORITHM
             %----------------------------------------------------------------------------------------------
-            %satellites with no ephemeris available
-            index = find(no_eph == 0);
+            XR = zeros(3,goObs.getNumRec());
             for r=1:goObs.getNumRec()
                 prR = goObs.getGNSSpr_R(goGNSS.ID_GPS, 0, r, 1, 1);
-                [XR, dtR] = getBancroftPos(XS(index,:), dtS(index), prR(index));
+                [XR(:,r), dtR] = getBancroftPos(XS(usableSat,:), dtS(usableSat), prR(usableSat));
             end
+            
+            %----------------------------------------------------------------------------------------------
+            % ELEVATION CUTOFF, SNR CUTOFF AND REMOVAL OF SATELLITES WITHOUT EPHEMERIS
+            %----------------------------------------------------------------------------------------------
+            
+            for r=1:goObs.getNumRec()
+                satCoord = struct('az',zeros(goGNSS.MAX_SAT,nRec),'el',zeros(goGNSS.MAX_SAT,nRec),'dist',zeros(goGNSS.MAX_SAT,nRec));
+                %satellite topocentric coordinates (azimuth, elevation, distance)
+                [satCoord.az(:,r), satCoord.el(:,r), satCoord.dist(:,r)] = topocent(XR(:,r), XS);
+            end
+
         end
         
     end
@@ -244,7 +256,7 @@ classdef goGNSS < handle
             % Kai Borre 04-30-95, improved by C.C. Goad 11-24-96
             %
             % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-            %----------------------------------------------------------------------------------------------            pos = zeros(4,1);
+            %----------------------------------------------------------------------------------------------
             
             pos = zeros(4,1);   % Init position of the receiver
             
