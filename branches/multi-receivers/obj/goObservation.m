@@ -31,6 +31,9 @@
 %   iono = getIono(obj)
 %   sbas = getSBAS(obj)
 %
+%   cutoff = getCutOff(obj)
+%   snrThr = getSNRthreshold(obj)
+%
 %  REFERENCE FRAME ----------------------------------------------------
 %
 %   att = getInitialAttitude(obj)
@@ -137,6 +140,9 @@ classdef goObservation < handle
         
         iono = [];      % Ionosphere model observations
         sbas = [];      % SBAS data
+        
+        cutOff = 10;    % cutOff for satellite usage
+        snrThr = 0;     % snrThr threshold for SNR
         
         % =========================================================================
         %   Configuration of the antennas
@@ -399,6 +405,16 @@ classdef goObservation < handle
         % Return SBAS data
         function sbas = getSBAS(obj)
             sbas = obj.sbas;
+        end
+
+        % Get the cutOff angle for valid satellites
+        function cutOff = getCutOff(obj)
+            cutOff = obj.cutOff;
+        end
+        
+        % Get SNR threshold for valid satellite data
+        function snrThr = getSNRthreshold(obj)
+            snrThr = obj.snrThr;
         end
 
         % =========================================================================
