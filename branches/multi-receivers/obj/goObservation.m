@@ -73,8 +73,8 @@
 %
 %   eph = getGNSSeph(obj, idGNSS)
 %
-%   trackSat_pr = getTrackedSat(obj, idGNSS, idSat, idRec, idObs, nFreq) 
-%   trackSat_ph = getTrackedSat(obj, idGNSS, idSat, idRec, idObs, nFreq) 
+%   trackSat_pr = getTrackedSat_pr(obj, idGNSS, idSat, idRec, idObs, nFreq) 
+%   trackSat_ph = getTrackedSat_ph(obj, idGNSS, idSat, idRec, idObs, nFreq) 
 %   commonSat = getCommonSat(obj, idGNSS, idObs, nFreq)
 %   commonSat_pr = getCommonSatPr(obj, idGNSS, idObs, nFreq)
 %   commonSat_ph = getCommonSatPh(obj, idGNSS, idObs, nFreq)
@@ -665,7 +665,6 @@ classdef goObservation < handle
             if (idRec == 0)
                 idRec = (1:obj.getNumRec()); % the receiver having index 1 is the Master
             end
-            idRec = idRec + 1; % Remote receiver start from position 2 (the first is occupied by the Master)
             
             if (idObs == 0)
                 idObs = 1:size(table,2);
@@ -687,7 +686,6 @@ classdef goObservation < handle
             if (idRec == 0)
                 idRec = (1:obj.getNumRec()); % the receiver having index 1 is the Master
             end
-            idRec = idRec + 1; % Remote receiver start from position 2 (the first is occupied by the Master)
             
             if (idObs == 0)
                 idObs = 1:size(table,2);

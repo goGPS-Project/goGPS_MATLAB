@@ -97,10 +97,19 @@ classdef goIniReader < IniReader
                 fileName{1} = tmp;
             end
         end
-                
+        
+        function [geometry ev_point] = getGeometry(obj)
+            % Get the receiver coordinates in instrumental RF
+            geometry = zeros(3,obj.getNumRec());
+            for r = 1:obj.getNumRec()
+               geometry(:,r) = obj.getData('Antennas RF',['XYZ_ant' num2str(r)]);
+            end
+            ev_point = obj.getData('Antennas RF','XYZ_ev_point');
+        end
+        
         function cutoff = getCutoff(obj)
             % Get the minimum angle of acceptance for a satellit
-            cutoff = ini.getData('Generic','cutoff');
+            cutoff = obj.getData('Generic','cutoff');
             if (isempty(cutoff))
                 cutoff = obj.cutoff;
             end            
@@ -108,7 +117,7 @@ classdef goIniReader < IniReader
                 
         function snrThr = getSnrThr(obj)
             % Get the minimum SNR threshold acceptable
-            snrThr = ini.getData('Generic','snrThr');
+            snrThr = obj.getData('Generic','snrThr');
             if (isempty(snrThr))
                 snrThr = obj.snrThr;
             end            
