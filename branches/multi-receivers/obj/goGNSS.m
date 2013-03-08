@@ -181,7 +181,13 @@ classdef goGNSS < handle
             dtR = b(4)/goGNSS.V_LIGHT;
         end
         
-        function [XR, dtR] = LS_MR_C_SA(goObs)
+        function [X, dt, usableSat, satCoord, cov_X, var_dt, PDOP, HDOP, VDOP, cond_num] = LS_MR_C_SA(goObs, goIni)
+            %------------------------------------------------------------------------------------
+            % APPROXIMATE POSITION for the rovers and the master
+            %-----------------------------------------------------------------------------------
+
+            [XM0 flag_M] = goObs.getX0_M();    %[sized 3x1]
+            
             % get a Least Squares solution using only Code Stand Alone using Master and Multiple Rover Receivers
             
             %----------------------------------------------------------------------------------------------
@@ -195,7 +201,7 @@ classdef goGNSS < handle
             [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(goObs.getTime_M(1), goObs.getGNSSpr_M(goGNSS.ID_GPS, 0, 1, 1), sat_pr_init, Eph_1, goObs.getGNSS_SP3time(), goObs.getGNSS_SP3coordinates(), goObs.getGNSS_SP3clock(), goOBS.getSBAS(), [], goObs.getIono(), 0);
             
             %satellites with no ephemeris available
-            usableSat = (no_eph == 0);
+            usableSatM = (no_eph == 0);
             
             %----------------------------------------------------------------------------------------------
             % APPROXIMATE RECEIVER POSITION BY BANCROFT ALGORITHM
@@ -203,22 +209,23 @@ classdef goGNSS < handle
             XR = zeros(3,goObs.getNumRec());
             prR = goObs.getGNSSpr_R(goGNSS.ID_GPS, 0, 0, 1, 1);
             for r=1:goObs.getNumRec()
-                [XR(:,r), dtR] = getBancroftPos(XS(usableSat,:), dtS(usableSat), prR(usableSat,r));
+                [XR(:,r), dtR] = getBancroftPos(XS(usableSatM,:), dtS(usableSatM), prR(usableSatM,r));
             end
             
             %----------------------------------------------------------------------------------------------
             % ELEVATION CUTOFF, SNR CUTOFF AND REMOVAL OF SATELLITES WITHOUT EPHEMERIS
             %----------------------------------------------------------------------------------------------
-            satCoord = struct('az',zeros(goGNSS.MAX_SAT,goObs.getNumRec()),'el',zeros(goGNSS.MAX_SAT,goObs.getNumRec()),'dist',zeros(goGNSS.MAX_SAT,goObs.getNumRec()));
-            st_pr_initR = usableSat; %coming from the Master observations, when working in DD
+            
+            satCoord = struct('az',zeros(goGNSS.MAX_SAT,goObs.getNumRec()+1),'el',zeros(goGNSS.MAX_SAT,goObs.getNumRec()+1),'dist',zeros(goGNSS.MAX_SAT,goObs.getNumRec()+1)); %first column: MASTER, further columns: ROVERS
+
             for r=1:goObs.getNumRec()
                 %satellite topocentric coordinates (azimuth, elevation, distance)
-                [satCoord.az(:,r), satCoord.el(:,r), satCoord.dist(:,r)] = topocent(XR(:,r), XS);
+                [satCoord.az(:,r+1), satCoord.el(:,r+1), satCoord.dist(:,r+1)] = topocent(XR(:,r), XS);
                 %elevation cutoff, SNR cutoff and removal of satellites without ephemeris
                 if (any(goObs.getGNSSsnr_R(goGNSS.ID_GPS, sat_pr_initR, r, 1, 1)))
-                    usableSatR(:,r) = find((satCoord.el(:,r) > goObs.cutoff) & ((goObs.getGNSSsnr_R(goGNSS.ID_GPS, sat_pr_initR, r, 1, 1) ~= 0) & (goObs.getGNSSsnr_R(goGNSS.ID_GPS, sat_pr_initR, r, 1, 1) > goObs.snr_threshold)) & (no_eph == 0));
+                    usableSatR(:,r) = find((satCoord.el(:,r+1) > goIni.getCutoff) & ((goObs.getGNSSsnr_R(goGNSS.ID_GPS, sat_pr_initR, r, 1, 1) ~= 0) & (goObs.getGNSSsnr_R(goGNSS.ID_GPS, sat_pr_initR, r, 1, 1) > goIni.getSnrThr)) & (usableSatM));
                 else
-                    usableSatR(:,r) = find((satCoord.el(:,r) > goObs.cutoff) & (no_eph == 0));
+                    usableSatR(:,r) = find((satCoord.el(:,r+1) > goIni.getCutoff) & (usableSatM));
                 end
             end
             %             %set the matrices for the ROVER least squares solutions
@@ -228,8 +235,8 @@ classdef goGNSS < handle
             % %             el   = satCoord.el(usableSatR,r);
             % %             az   = satCoord.az(usableSatR,r);
             % %             dist = satCoord.dist(usableSatR,r);
-            % %             XS   = XS(usableSat,:);
-            % %             dtS  = dtS(usableSat);
+            % %             XS   = XS(usableSatM,:);
+            % %             dtS  = dtS(usableSatM);
             % %             nsat = sum(usableSatR);
             
             %--------------------------------------------------------------------------------------------
@@ -246,15 +253,19 @@ classdef goGNSS < handle
                     lamR = lamR * 180 / pi;
                     
                     %computation of tropospheric errors
-                    err_tropo(:,r) = tropo_error_correction(satCoord.el(:,r), hR(:,r));
+                    err_tropo(:,r) = tropo_error_correction(satCoord.el(:,r+1), hR(:,r));
                     
                     %computation of ionospheric errors
-                    err_iono(:,r) = iono_error_correction(phiRhR(:,r), lamRhR(:,r), satCoord.az(:,r), satCoord.el(:,r), goObs.getTime_Ref(1), goObs.getIono(), sbas);
+                    err_iono(:,r) = iono_error_correction(phiR(:,r), lamR(:,r), satCoord.az(:,r+1), satCoord.el(:,r+1), goObs.getTime_Ref(1), goObs.getIono(), sbas);
                 end
-                save data.mat
+
                 %LS solution for ROVER receivers
                 [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono);
-             
+                
+                for r=1:goObs.getNumRec()
+                    %satellite topocentric coordinates (azimuth, elevation, distance)
+                    [satCoord.az(:,r), satCoord.el(:,r), satCoord.dist(:,r)] = topocent(XR(:,r), XS);
+                end
             else
                 %empty variables
                 dtR = [];

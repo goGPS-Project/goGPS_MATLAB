@@ -73,7 +73,11 @@
 %
 %   eph = getGNSSeph(obj, idGNSS)
 %
-%   trackSat = getTrackedSat(obj, idGNSS, idSat, idRec, idObs, nFreq)            
+%   trackSat_pr = getTrackedSat(obj, idGNSS, idSat, idRec, idObs, nFreq) 
+%   trackSat_ph = getTrackedSat(obj, idGNSS, idSat, idRec, idObs, nFreq) 
+%   commonSat = getCommonSat(obj, idGNSS, idObs, nFreq)
+%   commonSat_pr = getCommonSatPr(obj, idGNSS, idObs, nFreq)
+%   commonSat_ph = getCommonSatPh(obj, idGNSS, idObs, nFreq)
 %
 %   pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
 %   pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -656,7 +660,7 @@ classdef goObservation < handle
         % idRec => id of the receiver       (if 0 get all receiver)
         % idObs => id of the observation    (if 0 get all the available epocs)
         % nFreq => id of the frequency used (e.g. 1 = L1, 2 = L2, ...future frequencies...)
-        function trackSat = getTrackedSat(obj, idGNSS, idSat, idRec, idObs, nFreq)
+        function trackSat_pr = getTrackedSat_pr(obj, idGNSS, idSat, idRec, idObs, nFreq)
             
             if (idRec == 0)
                 idRec = (1:obj.getNumRec()); % the receiver having index 1 is the Master
@@ -672,15 +676,85 @@ classdef goObservation < handle
             end
 
             if idRec ~= -1 
-                trackSat = obj.getGNSSpr_R(idGNSS, idSat, idRec, idObs, nFreq) ~= 0;
+                trackSat_pr = obj.getGNSSpr_R(idGNSS, idSat, idRec, idObs, nFreq) ~= 0;
             else
-                trackSat = obj.getGNSSpr_M(idGNSS, idSat, idObs, nFreq) ~= 0;
+                trackSat_pr = obj.getGNSSpr_M(idGNSS, idSat, idObs, nFreq) ~= 0;
             end
         end
         
+        function trackSat_ph = getTrackedSat_ph(obj, idGNSS, idSat, idRec, idObs, nFreq)
+            
+            if (idRec == 0)
+                idRec = (1:obj.getNumRec()); % the receiver having index 1 is the Master
+            end
+            idRec = idRec + 1; % Remote receiver start from position 2 (the first is occupied by the Master)
+            
+            if (idObs == 0)
+                idObs = 1:size(table,2);
+            end
+            
+            if (nFreq == 0)
+                nFreq = 1:size(table,3);
+            end
+            
+            if idRec ~= -1
+                trackSat_ph = obj.getGNSSph_R(idGNSS, idSat, idRec, idObs, nFreq) ~= 0;
+            else
+                trackSat_ph = obj.getGNSSph_M(idGNSS, idSat, idObs, nFreq) ~= 0;
+            end
+        end
+        
+        % Get logical values for common satellites in view from Master and
+        % each Rover (only code *_pr, only phase *_ph, code and phase)
 
+        % idObs => id of the observation    (if 0 get all the available epocs)
+        % nFreq => id of the frequency used (e.g. 1 = L1, 2 = L2, ...future frequencies...)
+        function commonSat_pr = getCommonSat_pr(obj, idGNSS, idObs, nFreq)
+            
+            if (idObs == 0)
+                idObs = 1:size(table,2);
+            end
+            
+            if (nFreq == 0)
+                nFreq = 1:size(table,3);
+            end
 
-    
+            commonSat_pr = repmat(obj.getTrackedSat_pr(idGNSS, 0, -1, idObs, nFreq), 1, obj.getNumRec);
+            commonSat_pr = commonSat_pr & obj.getTrackedSat_pr(idGNSS, 0, 0, idObs, nFreq);
+
+        end
+        
+        function commonSat_ph = getCommonSat_ph(obj, idGNSS, idObs, nFreq)
+            
+            if (idObs == 0)
+                idObs = 1:size(table,2);
+            end
+            
+            if (nFreq == 0)
+                nFreq = 1:size(table,3);
+            end
+            
+            commonSat_ph = repmat(obj.getTrackedSat_ph(idGNSS, 0, -1, idObs, nFreq), 1, obj.getNumRec);
+            commonSat_ph = commonSat_pr & obj.getTrackedSat_ph(idGNSS, 0, 0, idObs, nFreq);
+            
+        end
+        
+                function commonSat = getCommonSat(obj, idGNSS, idObs, nFreq)
+            
+            if (idObs == 0)
+                idObs = 1:size(table,2);
+            end
+            
+            if (nFreq == 0)
+                nFreq = 1:size(table,3);
+            end
+            
+            commonSat = obj.commonSat_pr(idGNSS, idObs, nFreq) & obj.commonSat_ph(idGNSS, idObs, nFreq);
+           
+            
+        end
+        
+        
         % Get GPS pseudo-range observations
         % idSat => id of the satellite      (if 0 get all the satellites)
         % idRec => id of the receiver       (if 0 get all receiver)
