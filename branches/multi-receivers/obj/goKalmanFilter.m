@@ -177,11 +177,11 @@ classdef goKalmanFilter < handle
     
     methods
         % Creator (Brahma)
-        function obj = goKalmanFilter(goObs, mode, sampling_rate)
-            if nargin < 3
+        function obj = goKalmanFilter(goObs, goIni, mode, sampling_rate)
+            if nargin < 4
                 sampling_rate = 1;
             end
-            if nargin < 2
+            if nargin < 3
                 mode = 1;
             end
             if mode > 5
@@ -202,7 +202,7 @@ classdef goKalmanFilter < handle
             obj.setCurrentParameters();     % Init current parameters
             obj.allocateMemory(goObs.getNumRec(), goObs.getGNSSnFreq(goGNSS.ID_GPS)); % only GPS observations
             
-            obj.init(goObs)
+            obj.init(goObs, goIni)
         end
         
         % Destructor (Shiva)
@@ -217,9 +217,9 @@ classdef goKalmanFilter < handle
     
     % Function to fill KF initial matrices
     methods (Access = 'public')
-        function init(obj, goObs)
+        function init(obj, goObs, goIni)
             obj.init_T(obj.mode);
-            obj.init_Xhat_t_t(goObs, obj.mode);
+            obj.init_Xhat_t_t(goObs, goIni, obj.mode);
             obj.init_X_t1_t();
             obj.init_Cee(goObs.getNumRec(), obj.mode);
             %obj.init_doppler(goObs, goObs.getNumRec(), goObs.getGNSSnFreq(goGNSS.ID_GPS));
@@ -349,13 +349,13 @@ classdef goKalmanFilter < handle
         end
         
         % initialization of the parameter vector for all receivers
-        function init_Xhat_t_t(obj, goObs, mode)   %% to initialize Xhat_t_t_R: cell of [nPar+nSat*nFreq,1] and Xhat_t_t;
+        function init_Xhat_t_t(obj, goObs, goIni, mode)   %% to initialize Xhat_t_t_R: cell of [nPar+nSat*nFreq,1] and Xhat_t_t;
       
             %--------------------------------------------------------------------------------------------
             % KALMAN FILTER INITIAL STATE
             %--------------------------------------------------------------------------------------------
 
-            [X, dt, usableSat, satCoord, cov_X, var_dt, PDOP, HDOP, VDOP, cond_num] = LS_MR_C_SA(goObs, goIni);
+            [X, dt, usableSat, satCoord, cov_X, var_dt, PDOP, HDOP, VDOP, cond_num] = goGNSS.LS_MR_C_SA(goObs, goIni);
             
             %--------------------------------------------------------------------------------------------
             % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION

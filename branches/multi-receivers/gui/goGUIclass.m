@@ -188,7 +188,7 @@ classdef goGUIclass < handle
     methods(Access = 'private')
         
         function init(obj, handles)
-            clear global goINI
+            clear global goIni
 
             tic;
             obj.goWB = goWaitBar(5, 'Initializing goGPS GUI...');
@@ -1800,7 +1800,7 @@ classdef goGUIclass < handle
         % Test if the active file/dir paths
         % contain valid file/dir
         function updateLEDstate(obj, force)
-            global goINI
+            global goIni
             if nargin == 1
                 force = 0;      % force file update
             end            
@@ -1819,15 +1819,15 @@ classdef goGUIclass < handle
                         obj.setGUILedStatus(obj.idUI.fINI, obj.ledOk, 0);
                         
                         % If needed init INI reader
-                        if isempty(goINI)
-                            goINI = IniReader('', 0);
+                        if isempty(goIni)
+                            goIni = goIniReader('', 0);
                         end
                         % If I have to update the ini file
-                        goINI.update(filename, force);
+                        goIni.update(filename, force);
                         % Receivers file --------------------------------------
-                        nR = goINI.getData('Receivers','nRec');
-                        data_path = goINI.getData('Receivers','data_path');
-                        file_name = goINI.getData('Receivers','file_name');
+                        nR = goIni.getData('Receivers','nRec');
+                        data_path = goIni.getData('Receivers','data_path');
+                        file_name = goIni.getData('Receivers','file_name');
                         
                         if (isempty(data_path))
                             if iscell(file_name)
@@ -1835,7 +1835,7 @@ classdef goGUIclass < handle
                             else
                                 nR = 1;
                             end
-                            goINI.addKey('Receivers','nRec',nR);
+                            goIni.addKey('Receivers','nRec',nR);
                         end
                         obj.setElVal(obj.idUI.tNumRec,['x ' num2str(nR)]);
                         
@@ -1880,8 +1880,8 @@ classdef goGUIclass < handle
                         end
                         
                         % Master file -----------------------------------------
-                        data_path = goINI.getData('Master','data_path');
-                        file_name = goINI.getData('Master','file_name');
+                        data_path = goIni.getData('Master','data_path');
+                        file_name = goIni.getData('Master','file_name');
                         if (isempty(data_path))
                             data_path = '';
                         end
@@ -1897,8 +1897,8 @@ classdef goGUIclass < handle
                         end
                         
                         % Navigation file -------------------------------------
-                        data_path = goINI.getData('Navigational','data_path');
-                        file_name = goINI.getData('Navigational','file_name');
+                        data_path = goIni.getData('Navigational','data_path');
+                        file_name = goIni.getData('Navigational','file_name');
                         if (isempty(data_path))
                             data_path = '';
                         end
@@ -1914,8 +1914,8 @@ classdef goGUIclass < handle
                         end
                         
                         % Bin file --------------------------------------------
-                        data_path = goINI.getData('Bin','data_path');
-                        file_prefix = goINI.getData('Bin','file_prefix');
+                        data_path = goIni.getData('Bin','data_path');
+                        file_prefix = goIni.getData('Bin','file_prefix');
                         if (isempty(data_path))
                             data_path = '';
                         end
@@ -1931,7 +1931,7 @@ classdef goGUIclass < handle
                         end
                         
                         % DTM file -----------------------------------------------
-                        data_path = goINI.getData('DTM','data_path');
+                        data_path = goIni.getData('DTM','data_path');
                         if (isempty(data_path))
                             obj.setGUILedStatus(obj.idUI.fDTM, obj.ledKo, 0);
                         else
@@ -1944,8 +1944,8 @@ classdef goGUIclass < handle
                         end
                         
                         % Reference path file ------------------------------------
-                        data_path = goINI.getData('RefPath','data_path');
-                        file_name = goINI.getData('RefPath','file_name');
+                        data_path = goIni.getData('RefPath','data_path');
+                        file_name = goIni.getData('RefPath','file_name');
                         if (isempty(data_path))
                             data_path = '';
                         end
@@ -2459,7 +2459,7 @@ classdef goGUIclass < handle
     methods
         % Function to return values to goGPS.m
         function go(obj)
-            global goObj goINI
+            global goObj goIni
             obj.saveConstellations();
 
             %master station coordinates
@@ -2495,26 +2495,26 @@ classdef goGUIclass < handle
             contents_dyn_mod = cellstr(get(obj.goh.dyn_mod,'String'));
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             %input files
-            data_path = goINI.getData('Bin','data_path');
-            file_prefix = goINI.getData('Bin','file_prefix');            
+            data_path = goIni.getData('Bin','data_path');
+            file_prefix = goIni.getData('Bin','file_prefix');            
             filerootIN = [data_path file_prefix];
             filerootOUT = [get(obj.goh.sDirGoOut,'String') '\' get(obj.goh.sPrefixGoOut,'String')];
             filerootIN(filerootIN == '\') = filesep;
             filerootOUT(filerootOUT == '\') = filesep;
-            data_path = goINI.getData('Receivers','data_path');
-            file_name = goINI.getData('Receivers','file_name');            
+            data_path = goIni.getData('Receivers','data_path');
+            file_name = goIni.getData('Receivers','file_name');            
             filename_R_obs = [data_path file_name];
-            data_path = goINI.getData('Master','data_path');
-            file_name = goINI.getData('Master','file_name');
+            data_path = goIni.getData('Master','data_path');
+            file_name = goIni.getData('Master','file_name');
             filename_M_obs = [data_path file_name];
-            data_path = goINI.getData('Navigational','data_path');
-            file_name = goINI.getData('Navigational','file_name');
+            data_path = goIni.getData('Navigational','data_path');
+            file_name = goIni.getData('Navigational','file_name');
             filename_nav = [data_path file_name];
             ref_path = get(obj.goh.ref_path, 'Value');
-            data_path = goINI.getData('RefPath','data_path');
-            file_name = goINI.getData('RefPath','file_name');
+            data_path = goIni.getData('RefPath','data_path');
+            file_name = goIni.getData('RefPath','file_name');
             filename_ref = [data_path file_name];
-            data_path = goINI.getData('DTM','data_path');
+            data_path = goIni.getData('DTM','data_path');
             dtm_dir = data_path;
             %serial communication
             % global COMportR
@@ -2582,7 +2582,7 @@ classdef goGUIclass < handle
         
         % Function to return values to goGPS.m
         function funout = outputFun(obj)
-            global goINI;
+            global goIni;
             
             obj.saveConstellations();
             mode = obj.getgoGPSMode();
@@ -2609,8 +2609,8 @@ classdef goGUIclass < handle
             flag_plotproc = get(obj.goh.plotproc,'Value');
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             flag_SBAS = get(obj.goh.use_SBAS,'Value');
-            data_path = goINI.getData('Bin','data_path');
-            file_prefix = goINI.getData('Bin','file_prefix');            
+            data_path = goIni.getData('Bin','data_path');
+            file_prefix = goIni.getData('Bin','file_prefix');            
             filerootIN = [data_path file_prefix];
             filerootOUT = [get(obj.goh.sDirGoOut,'String') '\' get(obj.goh.sPrefixGoOut,'String')];
             filerootIN(filerootIN == '\') = filesep;
@@ -2636,16 +2636,16 @@ classdef goGUIclass < handle
                 filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
                 i = i + 1;
             end
-            data_path = goINI.getData('Receivers','data_path');
-            file_name = goINI.getData('Receivers','file_name');
+            data_path = goIni.getData('Receivers','data_path');
+            file_name = goIni.getData('Receivers','file_name');
             filename_R_obs = [data_path file_name];
-            data_path = goINI.getData('Master','data_path');
-            file_name = goINI.getData('Master','file_name');
+            data_path = goIni.getData('Master','data_path');
+            file_name = goIni.getData('Master','file_name');
             filename_M_obs = [data_path file_name];
-            data_path = goINI.getData('Navigational','data_path');
-            file_name = goINI.getData('Navigational','file_name');
+            data_path = goIni.getData('Navigational','data_path');
+            file_name = goIni.getData('Navigational','file_name');
             filename_nav = [data_path file_name];
-            flag_SP3 = goINI.getData('Navigational','isSP3');
+            flag_SP3 = goIni.getData('Navigational','isSP3');
             if isempty(flag_SP3)
                 if (strcmpi(filename_nav(end-3:end),'.sp3'))
                     flag_SP3 = 1;
@@ -2653,8 +2653,8 @@ classdef goGUIclass < handle
                     flag_SP3 = 0;
                 end
             end
-            data_path = goINI.getData('RefPath','data_path');
-            file_prefix = goINI.getData('RefPath','file_prefix');
+            data_path = goIni.getData('RefPath','data_path');
+            file_prefix = goIni.getData('RefPath','file_prefix');
             filename_ref = [data_path file_prefix];
             
             contents = cellstr(get(obj.goh.crs,'String'));
@@ -2800,10 +2800,10 @@ classdef goGUIclass < handle
                 disp('Minimum number of satellites is forced to 4 (for stand-alone positioning)');
                 min_nsat = 4;
             end
-            goINI.addKey('Generic','cutoff', str2double(get(obj.goh.cut_off,'String')));
+            goIni.addKey('Generic','cutoff', str2double(get(obj.goh.cut_off,'String')));
             cutoff = str2double(get(obj.goh.cut_off,'String'));
             snr_threshold = str2double(get(obj.goh.snr_thres,'String'));
-            goINI.addKey('Generic','snrThr', str2double(get(obj.goh.cs_thresh,'String')));
+            goIni.addKey('Generic','snrThr', str2double(get(obj.goh.cs_thresh,'String')));
             cs_threshold = str2double(get(obj.goh.cs_thresh,'String'));
             if (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_0)
                 weights = 0;
@@ -2845,7 +2845,7 @@ classdef goGUIclass < handle
             o2 = order*2;
             o3 = order*3;
             h_antenna = str2double(get(obj.goh.antenna_h,'String'));
-            dtm_dir = goINI.getData('DTM','data_path');
+            dtm_dir = goIni.getData('DTM','data_path');
             try
                 load([dtm_dir '/tiles/tile_header'], 'tile_header');
                 load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
@@ -2872,17 +2872,17 @@ classdef goGUIclass < handle
             end
         end
         
-        % Function to save in the goINI object the status of activation of
+        % Function to save in the goIni object the status of activation of
         % the various GNSS
         function saveConstellations(obj)
-            global goINI
-            goINI.addSection('Constellations');
-            goINI.addKey('Constellations','GPS',obj.isActive(obj.idUI.cGPS));
-            goINI.addKey('Constellations','GLONASS',obj.isActive(obj.idUI.cGLONASS));
-            goINI.addKey('Constellations','Galileo',obj.isActive(obj.idUI.cGalileo));
-            goINI.addKey('Constellations','BeiDou',obj.isActive(obj.idUI.cBeiDou));
-            goINI.addKey('Constellations','QZSS',obj.isActive(obj.idUI.cQZSS));
-            goINI.addKey('Constellations','SBAS',obj.isActive(obj.idUI.cSBAS));
+            global goIni
+            goIni.addSection('Constellations');
+            goIni.addKey('Constellations','GPS',obj.isActive(obj.idUI.cGPS));
+            goIni.addKey('Constellations','GLONASS',obj.isActive(obj.idUI.cGLONASS));
+            goIni.addKey('Constellations','Galileo',obj.isActive(obj.idUI.cGalileo));
+            goIni.addKey('Constellations','BeiDou',obj.isActive(obj.idUI.cBeiDou));
+            goIni.addKey('Constellations','QZSS',obj.isActive(obj.idUI.cQZSS));
+            goIni.addKey('Constellations','SBAS',obj.isActive(obj.idUI.cSBAS));
         end
     end        
     
@@ -2899,15 +2899,15 @@ classdef goGUIclass < handle
         % Function to init the INI editor
         % creates, objects, load default valuesm, etc...
         function initEditINI(obj, h)
-            global goINI
+            global goIni
             
             % Save handler to the INI editor
             obj.edtINI.h = h;
             
             % Get the name of the ini file
             
-            if isobject(goINI)
-                fileName = goINI.getFileName();
+            if isobject(goIni)
+                fileName = goIni.getFileName();
             else
                 fileName = '';
             end
@@ -2947,7 +2947,7 @@ classdef goGUIclass < handle
             obj.edtINI.jEdit.hINI = hContainerINI;
             
             % Load INI keywords
-            obj.edtINI.keywordsINI = IniReader([obj.settingsDir obj.defaultINIKeywordsFile], 0);
+            obj.edtINI.keywordsINI = goIniReader([obj.settingsDir obj.defaultINIKeywordsFile], 0);
             obj.edtINI.keywordsINI.readFile();
             % Sections
             sections = obj.edtINI.keywordsINI.getData('INI','sections');

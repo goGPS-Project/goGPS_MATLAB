@@ -299,6 +299,7 @@ classdef IniReader < handle
         function isK = isKey(obj, section, key)
             % Get the presence of a key 
             s = 1;
+            k = 0;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
                     k = 1;
@@ -495,6 +496,7 @@ classdef IniReader < handle
         function editKey(obj, section, key, data)
             % Edit a key in the object IniReader
             s = 1;
+            k = 0;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
                     k = 1;

@@ -29,7 +29,7 @@
 
 % clear all the variables in the workspace
 clearvars
-clearvars -global goGUI goObs goINI goObj
+clearvars -global goGUI goObs goIni goObj
 
 % close all windows
 close all
@@ -64,7 +64,7 @@ global_init;
 global order o1 o2 o3 h_antenna cutoff weights
 
 % Set global variable for goGPS obj mode
-clearvars -global goObj goINI;
+clearvars -global goObj goIni;
 global goObj;
 % For future development the flag goObs will guide a possible migration to the
 % use of generic objects (such as goObservations) able to automatically manage
@@ -85,7 +85,7 @@ if (mode_user == 1)
             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
     end
     
-    global goINI;
+    global goIni;
     if (isempty(mode))
         return
     end
@@ -159,24 +159,24 @@ inputOk = true;
 if (goObj)
     % With the new interface this file should be ready (already loaded)
     % read RINEX receivers file list
-    % goINI = iniReader(filename_R_obs, 0);
-    % goINI.readFile();
+    % goIni = iniReader(filename_R_obs, 0);
+    % goIni.readFile();
     
     % If navigation and master observations filenames are contained
     % in the ini file use them otherwise fall back to global variables
     % parameters (values from interface)
-    if (~goINI.containsSection('Master'))
-        goINI.addSection('Master');
+    if (~goIni.containsSection('Master'))
+        goIni.addSection('Master');
         [data_path, file_name, obsExtension] = fileparts(filename_M_obs);
-        goINI.addKey('Master','data_path',[data_path filesep]);
-        goINI.addKey('Master','file_name',[file_name obsExtension]);
+        goIni.addKey('Master','data_path',[data_path filesep]);
+        goIni.addKey('Master','file_name',[file_name obsExtension]);
     end
-    if (~goINI.containsSection('Navigational'))
-        goINI.addSection('Navigational');
+    if (~goIni.containsSection('Navigational'))
+        goIni.addSection('Navigational');
         [data_path, file_name, navExtension] = fileparts(filename_nav);
-        goINI.addKey('Navigational','isSP3',flag_SP3);
-        goINI.addKey('Navigational','data_path',[data_path filesep]);
-        goINI.addKey('Navigational','file_name',[file_name navExtension]);
+        goIni.addKey('Navigational','isSP3',flag_SP3);
+        goIni.addKey('Navigational','data_path',[data_path filesep]);
+        goIni.addKey('Navigational','file_name',[file_name navExtension]);
     end
     
     % Create the observation object!!!
@@ -185,7 +185,7 @@ if (goObj)
     goObs = goObservation();
     
     % Check input
-    err = goObs.init(goINI);
+    err = goObs.init(goIni);
     if err > 0
         inputOk = false;
     end
@@ -1489,7 +1489,7 @@ if (inputOk)
             
             %tmp select the parameters you want to estimate
             KFmode = 5; % const.acceleration filter + attitude angles and variations
-            goKF = goKalmanFilter(goObs, KFmode, goObs.getSamplingRate_R(1));
+            goKF = goKalmanFilter(goObs, goIni, KFmode, goObs.getSamplingRate_R(1));
             goKF.init(goObs);            
             
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
