@@ -291,8 +291,15 @@ classdef goGNSS < handle
                     err_iono(:,r+1) = iono_error_correction(phiR(:,r), lamR(:,r), satCoord.az(:,r+1), satCoord.el(:,r+1), goObs.getTime_Ref(1), goObs.getIono(), goObs.getSBAS());
                 end
 
+                
+                %% STEFANO
+                % get geometry
+                [geometry ev_point]=goIni.getGeometry();
+                
+                
+                
                 %LS solution for ROVER receivers
-    %            [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code_nRec(XR, XS, prR, snr(:,2:end), satCoord.el(2:end), satCoord.dist(2:end), dtS, err_tropo(2:end), err_iono(2:end), usableSat(:,2:end), );
+                [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code_nRec(XR, XS, prR, snr(:,2:end), satCoord.el(:,2:end), satCoord.dist(:,2:end), dtS, err_tropo(:,2:end), err_iono(:,2:end), usableSat(:,2:end), geometry);
                 
                 for r=1:goObs.getNumRec()
                     %satellite topocentric coordinates (azimuth, elevation, distance)
