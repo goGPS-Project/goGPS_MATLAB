@@ -108,7 +108,8 @@ classdef goGUIclass < handle
         idCP_SA = 3;    % Code and phase stand-alone        
         idCP_DD = 4;    % Code and phase double difference
         idCP_DD_MR = 5; % Code and phase double difference for several receivers
-        strType = {};
+        strTypeLS = {};
+        strTypeKF = {};
         
         % File types
         idRin = 1;
@@ -243,11 +244,15 @@ classdef goGUIclass < handle
             obj.strAlgorithm{obj.idLS} = 'Least squares';
             obj.strAlgorithm{obj.idKF} = 'Kalman filter';
             
-            obj.strType{obj.idC_SA} = 'Code stand-alone';
-            obj.strType{obj.idC_DD} = 'Code double difference';
-            obj.strType{obj.idCP_SA} = 'Code and phase stand-alone';
-            obj.strType{obj.idCP_DD} = 'Code and phase double difference';
-            obj.strType{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
+            obj.strTypeLS{obj.idC_SA} = 'Code stand-alone';
+            obj.strTypeLS{obj.idC_DD} = 'Code double difference';
+            % obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference with Lambda';
+
+            obj.strTypeKF{obj.idC_SA} = 'Code stand-alone';
+            obj.strTypeKF{obj.idC_DD} = 'Code double difference';
+            obj.strTypeKF{obj.idCP_SA} = 'Code and phase stand-alone';
+            obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
+            %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
             
             obj.strDynModel{obj.idCVel} = 'Const. velocity';
             obj.strDynModel{obj.idCAcc} = 'Const. acceleration';
@@ -290,9 +295,10 @@ classdef goGUIclass < handle
         % Fill the CaptureMode pop-up (Navigation, Monitor...)
         function initProcessingType(obj, str)
             if nargin < 2
-                str = obj.strType;
                 if get(obj.goh.kalman_ls,'Value') == obj.idLS
-                    str = str([obj.idC_SA, obj.idC_DD]);
+                    str = obj.strTypeLS;
+                else
+                    str = obj.strTypeKF;
                 end
             end
             value = get(obj.goh.code_dd_sa,'Value');
@@ -874,25 +880,25 @@ classdef goGUIclass < handle
                            id.pKF id.pEStD idG.pKF_ENU idG.StdCode idG.StdT0 id.bStdDTM ...
                            idG.SNR idG.MaxNumSat];
                           
-            % On Post Proc => On Least Squares => Code Stand Alone
+            % On Post Proc => On Kalman Filter => Code Stand Alone
             idG.onPP_KF_C_SA = [idG.onPP_KF id.rBin ...
                                id.cUse_SBAS];
             
-            % On Post Proc => On Least Squares => Code Double Differences
+            % On Post Proc => On Kalman Filter => Code Double Differencies
             idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin ...
                                id.pMSt id.cMPos];
 
-            % On Post Proc => On Least Squares => Code Stand Alone
+            % On Post Proc => On Kalman Filter => Code and Phase Stand Alone
             idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin ...
                                  id.cUse_SBAS];
             
-            % On Post Proc => On Least Squares => Code Double Differences
+            % On Post Proc => On Kalman Filter => Code and Phase Double Differencies
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin ...
                                  idG.StdPhase ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
                                  id.pMSt id.cMPos];
 
-            % On Post Proc => On Least Squares => Code Double Differences
+            % On Post Proc => On Kalman Filter => Code and Phase Double Differencies
             % => Multi Receivers Mode
             idG.onPP_KF_CP_DD_MR = [idG.onPP_KF ...
                                     idG.StdPhase ...
@@ -1552,7 +1558,7 @@ classdef goGUIclass < handle
             if obj.isProcessingType(obj.idC_SA) || obj.isProcessingType(obj.idC_DD)
                 obj.setElStatus([obj.idUI.cPlotAmb], 0, 0);
             end
-            
+
             % NTRIP flag
             isOn = obj.isActive(obj.idUI.cUseNTRIP);
             obj.setElStatus([obj.idGroup.gNTRIP], isOn, 0);
@@ -3047,42 +3053,44 @@ classdef goGUIclass < handle
         function updateFieldsINI(obj)
             curSection = get(obj.edtINI.h.lSections, 'String');
             valSection = get(obj.edtINI.h.lSections, 'Value');
-            curSection = curSection{valSection};
-            
-            numFields = obj.edtINI.keywordsINI.getData(curSection, 'num_fields');
-            strFields = obj.edtINI.keywordsINI.getData(curSection, 'str_fields');
-            vectFields = obj.edtINI.keywordsINI.getData(curSection, 'vect_fields');
-                        
-            str = sprintf('[%s]\n', curSection);
-            if ~isempty(numFields)
-                if iscell(numFields)
-                    for i=1:length(numFields)
-                        str = sprintf('%s%s = 0\n',str, numFields{i});
+            if length(curSection) > 1
+                curSection = curSection{valSection};
+                
+                numFields = obj.edtINI.keywordsINI.getData(curSection, 'num_fields');
+                strFields = obj.edtINI.keywordsINI.getData(curSection, 'str_fields');
+                vectFields = obj.edtINI.keywordsINI.getData(curSection, 'vect_fields');
+                
+                str = sprintf('[%s]\n', curSection);
+                if ~isempty(numFields)
+                    if iscell(numFields)
+                        for i=1:length(numFields)
+                            str = sprintf('%s%s = 0\n',str, numFields{i});
+                        end
+                    else
+                        str = sprintf('%s%s = 0\n',str, numFields);
                     end
-                else
-                    str = sprintf('%s%s = 0\n',str, numFields);
                 end
-            end
-            if ~isempty(strFields)
-                if iscell(strFields)
-                    for i=1:length(strFields)
-                        str = sprintf('%s%s = "insert a string"\n',str, strFields{i});
+                if ~isempty(strFields)
+                    if iscell(strFields)
+                        for i=1:length(strFields)
+                            str = sprintf('%s%s = "insert a string"\n',str, strFields{i});
+                        end
+                    else
+                        str = sprintf('%s%s = "insert a string"\n',str, strFields);
                     end
-                else
-                    str = sprintf('%s%s = "insert a string"\n',str, strFields);
                 end
-            end
-            if ~isempty(vectFields)
-                if iscell(vectFields)
-                    for i=1:length(vectFields)
-                        str = sprintf('%s%s = [0 0 0]\n',str, vectFields{i});
+                if ~isempty(vectFields)
+                    if iscell(vectFields)
+                        for i=1:length(vectFields)
+                            str = sprintf('%s%s = [0 0 0]\n',str, vectFields{i});
+                        end
+                    else
+                        str = sprintf('%s%s = [0 0 0]\n',str, vectFields);
                     end
-                else
-                    str = sprintf('%s%s = [0 0 0]\n',str, vectFields);
                 end
-            end
-            if isfield(obj.edtINI.jEdit,'jFields')
-                obj.edtINI.jEdit.jFields.setText(str);
+                if isfield(obj.edtINI.jEdit,'jFields')
+                    obj.edtINI.jEdit.jFields.setText(str);
+                end
             end
         end
         
@@ -3096,6 +3104,7 @@ classdef goGUIclass < handle
                     '*.*',  'All Files (*.*)'}, ...
                     'MultiSelect', 'on', ...
                     'Choose a RINEX observation file',[obj.workingDir 'data_RINEX']);
+                
             if ~isempty(filename)
                 obj.workingDir = [pathname];
                 str = sprintf('data_path = "%s"\n', pathname);
