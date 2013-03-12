@@ -193,13 +193,17 @@ end
 if (mode <= 20) %post-processing
 
     if (mode_data == 0)
-
-        %display message
-        fprintf('Reading RINEX files...\n');
         
-        %read data from RINEX files
+        if (flag_SP3)
+            %display message
+            fprintf('Reading SP3 file...\n');
+            [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_nav, time_GPS, week_R);
+        end
+
         if (mode <= 10) %absolute positioning
 
+            %RINEX reading
+            fprintf('Reading RINEX files...\n');
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
                 dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
                 snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
@@ -207,21 +211,26 @@ if (mode <= 20) %post-processing
                 time_GPS, time_R, time_M, week_R, week_M, date_R, date_M, pos_R, pos_M, Eph, iono, Eph_RR, interval] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav);
 
+%             %pre-processing
+%             fprintf('Pre-processing rover observations...\n');
+%             [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+
         else %relative positioning
 
+            %RINEX reading
+            fprintf('Reading RINEX files...\n');
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
                 dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
                 snr2_R, snr2_M, pr1_RR, pr1_MR, ph1_RR, ph1_MR, pr2_RR, pr2_MR, ph2_RR, ph2_MR, ...
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, week_R, week_M, date_R, date_M, pos_R, pos_M, Eph, iono, Eph_RR, interval] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs);
-        end
-
-        if (flag_SP3)
-            %display message
-            fprintf('Reading SP3 file...\n');
             
-            [SP3_time, SP3_coor, SP3_clck] = load_SP3(filename_nav, time_GPS, week_R);
+            %pre-processing
+            %fprintf('Pre-processing rover observations...\n');
+            %[pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            %fprintf('Pre-processing master observations...\n');
+            %[pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
         end
 
 %         %read surveying mode
@@ -471,7 +480,7 @@ if (mode <= 20) %post-processing
         if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
             %compute master station clock error and drift
             fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
-            [dtM, dtMdot] = clock_error(pos_M, time_M, pr1_M, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas);
+            [~, ~, ~, ~, dtM, dtMdot] = pre_processing_clock(time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
         else
             dtM = zeros(size(dop1_M,2),1);
             dtMdot = zeros(size(dop1_M,2),1);
@@ -2214,6 +2223,44 @@ if (((mode <= 20) || (mode == 24)) && (~isempty(EAST)) && (mode_vinc == 0))
     fclose(fid_cov);
 
 end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
+%----------------------------------------------------------------------------------------------
+
+figure
+epochs = time_GPS-time_GPS(1);
+ax(1) = subplot(3,1,1); hold on; grid on
+ax(2) = subplot(3,1,2); hold on; grid on
+ax(3) = subplot(3,1,3); hold on; grid on
+xlabel('epoch')
+
+%if relative positioning (i.e. with master station)
+if (((mode > 10) && (mode <= 20)) || mode == 24)
+
+    subplot(ax(1))
+    plot(epochs, EAST,'.'); title('EAST'); ylabel('[m]')
+    subplot(ax(2))
+    plot(epochs, NORTH,'.'); title('NORTH'); ylabel('[m]')
+    subplot(ax(3))
+    plot(epochs, UP_KAL,'.'); title('UP'); ylabel('[m]')
+
+    if (mode == 13)
+        pos = find(FIXING == 1);
+        plot(ax(1), epochs(pos), EAST(pos),'xr')
+        plot(ax(2), epochs(pos), NORTH(pos),'xr')
+        plot(ax(3), epochs(pos), UP_KAL(pos),'xr')
+    end
+else
+    subplot(ax(1))
+    plot(epochs, EAST_UTM,'.'); title('EAST UTM'); ylabel('[m]')
+    subplot(ax(2))
+    plot(epochs, NORTH_UTM,'.'); title('NORTH UTM'); ylabel('[m]')
+    subplot(ax(3))
+    plot(epochs, h_KAL,'.'); title('ellipsoidal height'); ylabel('[m]')
+end
+
+linkaxes(ax,'x')
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE REFERENCE TRAJECTORY
