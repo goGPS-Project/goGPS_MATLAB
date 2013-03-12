@@ -204,7 +204,7 @@ classdef IniReader < handle
                         cprintf('The INI file has been read correctly.\n');
                     end
                     
-                    obj.cleanRaw();      % Stirp comments and spaces
+                    obj.cleanRaw();      % Strip comments and spaces
                     obj.parseData();     % Parse file
                     obj.rawData = {};    % clean RAW temp data
                 else
