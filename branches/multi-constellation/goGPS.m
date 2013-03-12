@@ -59,10 +59,10 @@ mode_user = 1;  % user interface type
 
 %load multi-constellation settings and initialize 'constellations' struct
 GPS_flag = 1;
-GLO_flag = 1;
-GAL_flag = 1;
-BDS_flag = 1;
-QZS_flag = 1;
+GLO_flag = 0;
+GAL_flag = 0;
+BDS_flag = 0;
+QZS_flag = 0;
 SBS_flag = 0;
 [constellations] = multi_constellation_settings(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 nSatTot = constellations.nEnabledSat;
@@ -78,17 +78,17 @@ global order o1 o2 o3 h_antenna cutoff weights
 
 if (mode_user == 1)
 
-%     if (~isunix)
-       [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-           flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
-           filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-           filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
-%     else
-%         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-%             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
-%             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-%             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
-%     end
+    if (~isunix || (ismac && verLessThan('matlab', '7.14')))
+        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
+            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
+    else
+        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
+            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
+    end
 
     if (isempty(mode))
         return
