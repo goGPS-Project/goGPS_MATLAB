@@ -72,8 +72,8 @@ for i = 1 : nsat
 
     %compute signal transmission time
     [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3, sbas, err_tropo(i), err_iono(i), dtR);
-    
-    if (dtS(i,1) == 0)
+
+    if (isempty(time_tx(i,1)))
         no_eph(i) = 1;
         continue
     end
