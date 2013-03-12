@@ -299,13 +299,12 @@ classdef IniReader < handle
         function isK = isKey(obj, section, key)
             % Get the presence of a key 
             s = 1;
-            k = 0;
+            k = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
                     k = 1;
                     while ((k<=length(obj.section{s}.key)) && (k ~= 0))
                         if (strcmp(obj.section{s}.key{k}.name,key))
-                            obj.section{s}.key{k} = [];
                             k = 0;
                         else
                             k = k + 1;
@@ -457,7 +456,7 @@ classdef IniReader < handle
             s = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
-                    obj.section{s} = [];
+                    obj.section(s) = [];
                     s = 0;
                 else
                     s = s+1;    % go on with the search of the section
@@ -472,11 +471,13 @@ classdef IniReader < handle
         function rmKey(obj, section, key)
             % Remove a key from the object IniReader
             s = 1;
+            k = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
+                    k = 1;
                     while ((k<=length(obj.section{s}.key)) && (k ~= 0))
                         if (strcmp(obj.section{s}.key{k}.name,key))
-                            obj.section{s}.key{k} = [];
+                            obj.section{s}.key(k) = [];
                             k = 0;
                         else
                             k = k + 1;
@@ -496,7 +497,7 @@ classdef IniReader < handle
         function editKey(obj, section, key, data)
             % Edit a key in the object IniReader
             s = 1;
-            k = 0;
+            k = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
                     k = 1;
@@ -796,7 +797,7 @@ classdef IniReader < handle
                 colorMode = obj.colorMode;
             end
             if (obj.getVerbosityLev > 0)
-                obj.opstatus(0);
+                obj.opStatus(0);
                 if (colorMode)
                     cprintf('err', 'warning: ');
                     cprintf('text', [text '\n']);
@@ -879,7 +880,7 @@ classdef IniReader < handle
                     end
                     fprintf(' ]\n');
                 else
-                    % if it is not an array of string...
+                    % if it iks not an array of string...
                     if (ischar(tmpData))
                         fprintf('             |- "%s" = "%s"\n',key, num2str(tmpData));
                     else    

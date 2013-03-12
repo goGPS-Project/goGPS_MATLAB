@@ -299,7 +299,7 @@ classdef IniReader < handle
         function isK = isKey(obj, section, key)
             % Get the presence of a key 
             s = 1;
-            k = 0;
+            k = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
                     k = 1;
@@ -471,9 +471,10 @@ classdef IniReader < handle
         function rmKey(obj, section, key)
             % Remove a key from the object IniReader
             s = 1;
-            k = 0;
+            k = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
+                    k = 1;
                     while ((k<=length(obj.section{s}.key)) && (k ~= 0))
                         if (strcmp(obj.section{s}.key{k}.name,key))
                             obj.section{s}.key(k) = [];
@@ -496,7 +497,7 @@ classdef IniReader < handle
         function editKey(obj, section, key, data)
             % Edit a key in the object IniReader
             s = 1;
-            k = 0;
+            k = 1;
             while ((s<=length(obj.section)) && (s ~= 0))
                 if (strcmp(obj.section{s}.name,section))
                     k = 1;
@@ -879,7 +880,7 @@ classdef IniReader < handle
                     end
                     fprintf(' ]\n');
                 else
-                    % if it is not an array of string...
+                    % if it iks not an array of string...
                     if (ischar(tmpData))
                         fprintf('             |- "%s" = "%s"\n',key, num2str(tmpData));
                     else    
@@ -894,7 +895,7 @@ classdef IniReader < handle
 %    DISPLAY UTILITIES
 % =========================================================================
 
-    methods(Static, Access = 'public')
+    methods(Static, Access = 'private')
         
         % Display a flag of operation status
         function opStatus(statusOk)
