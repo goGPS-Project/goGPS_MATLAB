@@ -90,6 +90,7 @@ else
     % mode=1  --> LEAST SQUARES ON CODE
     % mode=2  --> KALMAN FILTER ON CODE
     % mode=3  --> LEAST SQUARES ON CODE AND PHASE (BASE FOR FUTURE PPP IMPLEMENTATION)
+    % mode=3.1 -> 
     % mode=4  --> KALMAN FILTER ON CODE AND PHASE
     
     % POST-PROCESSING (RELATIVE POSITIONING)
@@ -596,7 +597,7 @@ if (mode == 1)
     fclose(fid_sat);
     fclose(fid_dop);
     fclose(fid_conf);
-    
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (ABSOLUTE POSITIONING): KALMAN FILTER ON CODE
 %----------------------------------------------------------------------------------------------
@@ -769,6 +770,71 @@ elseif (mode == 3)
     fclose(fid_sat);
     fclose(fid_dop);
     fclose(fid_conf);
+    
+    %----------------------------------------------------------------------------------------------
+    % VARIOMETRIC APPROACH FOR VELOCITY ESTIMATION STAND-ALONE ENGINE
+    %----------------------------------------------------------------------------------------------
+    
+elseif (mode == 3.1)
+    
+    fid_kal = fopen([filerootOUT '_kal_00.txt'],'w');
+    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+
+    
+    nN = 32;
+    check_on = 0;
+    check_off = 0;
+    check_pivot = 0;
+    check_cs = 0;
+    
+    plot_t = 1;
+    %time_step=10;    %time step to perform the difference between phase observations
+    for t = 1 : length(time_GPS)-(time_step)
+
+        if (mode_data == 0)
+            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step));
+        else
+            Eph_t = Eph(:,:,t+time_step);
+            Eph_t1 = Eph(:,:,t+time_step);
+        end
+
+        goGPS_LS_SA_goDURIA(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, 1,time_step);
+        Xhat_t_t=Xhat_t_t./(interval.*time_step);
+        if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
+            Xhat_t_t_dummy = [Xhat_t_t];
+            Cee_dummy = [Cee];
+            fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n', Xhat_t_t );
+            fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
+            fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
+            fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+            
+            if (flag_plotproc)
+                if (flag_cov == 0)
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                    rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                else
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                end
+                if (flag_skyplot == 1)
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
+                    rtplot_snr (snr_R(:,t));
+                else
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                end
+                plot_t = plot_t + 1;
+                pause(0.01);
+            end
+        end
+    end
+
+    fclose(fid_kal);
+    fclose(fid_sat);
+    fclose(fid_dop);
+    fclose(fid_conf);    
     
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (ABSOLUTE POSITIONING): KALMAN FILTER ON CODE AND PHASE
