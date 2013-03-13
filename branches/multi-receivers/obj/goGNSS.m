@@ -182,10 +182,15 @@ classdef goGNSS < handle
         end
         
         function [X, dt, usableSat, satCoord, cov_X, var_dt, PDOP, HDOP, VDOP, cond_num] = LS_MR_C_SA(goObs, goIni)
+
+            n_rec=goObs.getNumRec();
+            
+            
+            
             %------------------------------------------------------------------------------------
             % APPROXIMATE POSITION for the rovers and the master
             %-----------------------------------------------------------------------------------
-
+           
             [XM0 flag_M] = goObs.getX0_M();    %[sized 3x1]
             
             % get a Least Squares solution using only Code Stand Alone using Master and Multiple Rover Receivers
@@ -216,22 +221,22 @@ classdef goGNSS < handle
             %----------------------------------------------------------------------------------------------
             % APPROXIMATE RECEIVER POSITION BY BANCROFT ALGORITHM
             %----------------------------------------------------------------------------------------------
-            XR = zeros(3,goObs.getNumRec());
-            dtR = zeros(1,goObs.getNumRec());
-            prR = reshape(goObs.getGNSSpr_R(goGNSS.ID_GPS, 0, 0, 1, 1),goGNSS.MAX_SAT,goObs.getNumRec());
-            for r=1:goObs.getNumRec()
-                [XR(:,r), dtR(:,r)] = goGNSS.getBancroftPos(XS(usableSatM,:), dtS(usableSatM), prR(usableSatM,r));
+            XR_approx = zeros(3,n_rec);
+            dtR = zeros(1,n_rec);
+            prR = reshape(goObs.getGNSSpr_R(goGNSS.ID_GPS, 0, 0, 1, 1),goGNSS.MAX_SAT,n_rec);
+            for r=1:n_rec
+                [XR_approx(:,r), dtR(:,r)] = goGNSS.getBancroftPos(XS(usableSatM,:), dtS(usableSatM), prR(usableSatM,r));
             end
             
             %----------------------------------------------------------------------------------------------
             % ELEVATION CUTOFF, SNR CUTOFF AND REMOVAL OF SATELLITES WITHOUT EPHEMERIS
             %----------------------------------------------------------------------------------------------
-            snr = NaN(goGNSS.MAX_SAT,goObs.getNumRec()+1);
+            snr = NaN(goGNSS.MAX_SAT,n_rec+1);
             snr(sat_pr_init,1) = goObs.getGNSSsnr_M(goGNSS.ID_GPS, sat_pr_init, 1, 1);
-            for r=1:goObs.getNumRec()
+            for r=1:n_rec
                 snr(sat_pr_init,r+1) = goObs.getGNSSsnr_R(goGNSS.ID_GPS, sat_pr_init, r, 1, 1);
             end
-            satCoord = struct('az',zeros(goGNSS.MAX_SAT,goObs.getNumRec()+1),'el',zeros(goGNSS.MAX_SAT,goObs.getNumRec()+1),'dist',zeros(goGNSS.MAX_SAT,goObs.getNumRec()+1)); %first column: MASTER, further columns: ROVERS
+            satCoord = struct('az',zeros(goGNSS.MAX_SAT,n_rec+1),'el',zeros(goGNSS.MAX_SAT,n_rec+1),'dist',zeros(goGNSS.MAX_SAT,n_rec+1)); %first column: MASTER, further columns: ROVERS
             %master
             %topacentric satellite coordinates (azimuth, elevation, distance)
             [satCoord.az(:,1), satCoord.el(:,1), satCoord.dist(:,1)] = topocent(XM0, XS);
@@ -242,10 +247,10 @@ classdef goGNSS < handle
                 usableSatM = (satCoord.el(:,1) > goIni.getCutoff) & (usableSatM);
             end
             %rover
-            usableSatR = NaN(goGNSS.MAX_SAT, goObs.getNumRec());
-            for r=1:goObs.getNumRec()
+            usableSatR = NaN(goGNSS.MAX_SAT, n_rec);
+            for r=1:n_rec
                 %topacentric satellite coordinates (azimuth, elevation, distance)
-                [satCoord.az(:,r+1), satCoord.el(:,r+1), satCoord.dist(:,r+1)] = topocent(XR(:,r), XS);
+                [satCoord.az(:,r+1), satCoord.el(:,r+1), satCoord.dist(:,r+1)] = topocent(XR_approx(:,r), XS);
                 %elevation cutoff, SNR cutoff and removal of satellites without ephemeris
                 if (any(snr(:,r+1)))
                     usableSatR(:,r) = (satCoord.el(:,r+1) > goIni.getCutoff) & isfinite(snr(:,r+1)) & (snr(:,r+1) > goIni.getSnrThr) & (usableSatM);
@@ -259,9 +264,9 @@ classdef goGNSS < handle
             % LEAST SQUARES SOLUTION
             %--------------------------------------------------------------------------------------------
             % if I have at least 4 satellites for each receiver (master included) 
-            if sum(sum(usableSat)>=4) == goObs.getNumRec()+1
-                err_tropo = NaN(goGNSS.MAX_SAT, goObs.getNumRec());
-                err_iono = NaN(goGNSS.MAX_SAT, goObs.getNumRec());
+            if sum(sum(usableSat)>=4) == n_rec+1
+                err_tropo = NaN(goGNSS.MAX_SAT, n_rec);
+                err_iono = NaN(goGNSS.MAX_SAT, n_rec);
                 %master
                 %cartesian to geodetic conversion of ROVER coordinates
                 [phiM, lamM, hM] = cart2geod(XM0(1), XM0(2), XM0(3));
@@ -276,9 +281,9 @@ classdef goGNSS < handle
                 %computation of ionospheric errors
                 err_iono(:,1) = iono_error_correction(phiM, lamM, satCoord.az(:,1), satCoord.el(:,1), goObs.getTime_Ref(1), goObs.getIono(), goObs.getSBAS());
                 %rovers
-                for r=1:goObs.getNumRec()
+                for r=1:n_rec
                     %cartesian to geodetic conversion of ROVER coordinates
-                    [phiR(:,r), lamR(:,r), hR(:,r)] = cart2geod(XR(1,r), XR(2,r), XR(3,r));
+                    [phiR(:,r), lamR(:,r), hR(:,r)] = cart2geod(XR_approx(1,r), XR_approx(2,r), XR_approx(3,r));
                     
                     %radians to degrees
                     phiR = phiR * 180 / pi;
@@ -292,16 +297,229 @@ classdef goGNSS < handle
                 end
 
                 
-                %% STEFANO
                 % get geometry
                 [geometry ev_point]=goIni.getGeometry();
+
+                
+                %% obtaining improved receiver coordinates using constraints on distances with least squares
+
+                % compute distances from object coordinates
+                
+                keyboard
+                % graph     
+                baselines=[];
+                
+                %distances
+                distances_3D=[];
+                distances_2D=[];
+
+                for i=1:n_rec-1
+                    for j=i+1:n_rec
+                        baselines=[baselines;i,j];                        
+                        distances_3D=[distances_3D;goGNSS.compute_distance(geometry(:,i),geometry(:,j))];  
+                        distances_2D=[distances_2D;goGNSS.compute_distance(geometry(1:2,i),geometry(1:2,j))];  
+                    end
+                end
+
+                % pre-allocation                
+                
+                % y0: observation vector
+                y0 = NaN(sum(sum(usableSat(:,2:end)))+length(distances_3D),1);
+                
+                %known term vector
+                b = NaN(sum(sum(usableSat(:,2:end)))+length(distances_3D),1);
+                
+                %observation covariance matrix
+                Q = zeros(sum(sum(usableSat(:,2:end)))+length(distances_3D));
+                
+                % A: design matrix..
+                A = zeros(sum(sum(usableSat(:,2:end)))+length(distances_3D),4*n_rec);
+                n_row_A=0;
+                
+                
+                % pseuduoranges of all the receivers from all the visible satellites and known distances between receivers
+                for i=1:n_rec
+                    n_sat_i= sum(usableSat(:,i+1));
+                    index_sat_i=find(usableSat(:,i+1)==1);
+                    
+                    %satellite-receivers geometry
+                    A(n_row_A+1:n_row_A+n_sat_i,(i-1)*3+1:i*3)=[(XR_approx(1,i) - XS(index_sat_i,1)) ./ satCoord.dist(index_sat_i,i+1), ... %column for X coordinate
+                        (XR_approx(2,i) - XS(index_sat_i,2)) ./ satCoord.dist(index_sat_i,i+1), ... %column for Y coordinate
+                        (XR_approx(3,i) - XS(index_sat_i,3)) ./ satCoord.dist(index_sat_i,i+1)];
+                    
+                    %receiver clocks
+                    A(n_row_A+1:n_row_A+n_sat_i,3*n_rec+i)=ones(n_sat_i,1);
+                    
+                    y0(n_row_A+1:n_row_A+n_sat_i,1) = prR(index_sat_i,i);
+                    b(n_row_A+1:n_row_A+n_sat_i,1) = satCoord.dist(index_sat_i,i+1) - goGNSS.V_LIGHT.*dtS(index_sat_i) + err_tropo(index_sat_i,i+1) + err_iono(index_sat_i,i+1);
+                    
+                    Q(n_row_A+1:n_row_A+n_sat_i,n_row_A+1:n_row_A+n_sat_i)= cofactor_matrix_SA(satCoord.el(index_sat_i,i+1), snr(index_sat_i,i+1));
+                    
+                    n_row_A=n_row_A+n_sat_i;
+                end
+                
+
+                % constraints on distances
+                for i=1:size(distances_3D,1);
+                    % indexes of the two receivers
+                    rec_i = baselines(i,1);
+                    rec_j = baselines(i,2);
+                    dist_ij_approx=goGNSS.compute_distance(XR_approx(:,rec_i),XR_approx(:,rec_j));
+                    
+
+                    A(n_row_A+1,(rec_i-1)*3+1:rec_i*3) = [(XR_approx(1,rec_i)-XR_approx(1,rec_j))/dist_ij_approx ...
+                        +(XR_approx(2,rec_i)-XR_approx(2,rec_j))/dist_ij_approx ...
+                        +(XR_approx(3,rec_i)-XR_approx(3,rec_j))/dist_ij_approx];
+                    A(n_row_A+1,(rec_j-1)*3+1:rec_j*3) = -[(XR_approx(1,rec_i)-XR_approx(1,rec_j))/dist_ij_approx ...
+                        +(XR_approx(2,rec_i)-XR_approx(2,rec_j))/dist_ij_approx ...
+                        +(XR_approx(3,rec_i)-XR_approx(3,rec_j))/dist_ij_approx];
+                    
+                    y0(n_row_A+1,1)= distances_3D(i);
+                    b(n_row_A+1,1) = dist_ij_approx;  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!!!!!!!!!!!
+                    
+                    Q(n_row_A+1,n_row_A+1) = 10^-4;
+                    n_row_A = n_row_A+1;
+                end
+
+
+                %Least-Squares adjustement
+                %normal matrix
+                N = (A'*(Q^-1)*A);
+                
+                %least squares solution
+                x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
+                XR_hat  = XR_approx + reshape(x_hat(1:n_rec*3),3,n_rec);
+                dtR_hat = x_hat(3*n_rec+1:end) ./ goGNSS.V_LIGHT;
+
+
+
+                % number of observations (n) and unknown (m)
+                [n,m] = size(A);
+                
+                %estimation of the variance of the observation error
+                y_hat = A*x_hat + b;
+                v_hat = y0 - y_hat;
+                sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
+                
+
+                
+                % try with OOLO
+                %[x_oolo Cxx_oolo y_hat_oolo Cyy_hat_oolo v_hat_oolo Cuu_hat_oolo sigma02_hat_oolo index_outlier_oolo v_hat_all_oolo]=goGNSS.OLOO_General(A, y0-b, Q,ones(n,1), 0.95,0);
+                
+                
+                %% compute apriori values for rotations 
+                
+                % global XYZ and geographic coordinates of barycenter
+                Xb_hat=mean(XR_hat,2);
+                [phi_b_hat, lam_b_hat, h_b_hat] = cart2geod(Xb_hat(1), Xb_hat(2), Xb_hat(3));
+                
+                % rotation matrix from local to global coordinates,
+                % centered into the receiver barycenter
+                R1t=[-sin(lam_b_hat) cos(lam_b_hat) 0; ...
+                    -sin(phi_b_hat)*cos(lam_b_hat) -sin(phi_b_hat)*sin(lam_b_hat) cos(phi_b_hat); ...
+                    cos(phi_b_hat)*cos(lam_b_hat) cos(phi_b_hat)*sin(lam_b_hat) sin(phi_b_hat)];
+                
+                
+                % compute local East-North-Up coordinates from XYZ obtained
+                % from the constrained LS
+                XRl_hat=NaN(3,n_rec);
+                for i=1:n_rec
+                    XRl_hat(1:3,i)=R1t*(XR_hat(1:3,i)-Xb_hat);
+                end
+                
+                % instrumental RS coordinates
+                % barycenter definition
+                xb=mean(geometry,2);
+                % barycentric instrumental RS coordinates  
+                xR=geometry-repmat(xb,1,n_rec);
+                
+                % compute Euler parameters of the rotation from local to
+                % instrumental RF
+                % xR=Rt*XRl -> where Rt is a 3x3 rotation matrix containing
+                % the Euler parameters r11, r21, r31 ; r12 ... (it's
+                % transposed)
+                y0=xR(:);
+                A=NaN(n_rec*3,9);
+                for i=1:n_rec
+                    A((i-1)*3+1:i*3,1:9)=[XRl_hat(1,i) XRl_hat(2,i) XRl_hat(3,i) 0 0 0 0 0 0 ; ...
+                        0 0 0 XRl_hat(1,i) XRl_hat(2,i) XRl_hat(3,i) 0 0 0 ; ...
+                        0 0 0 0 0 0 XRl_hat(1,i) XRl_hat(2,i) XRl_hat(3,i)];
+                end
+                
+                euler_parameters=inv(A'*A)*A'*y0;                
+                roll_approx=mod(atan2(euler_parameters(8),euler_parameters(9)),2*pi);
+                yaw_approx=mod(atan2(-cos(roll)*euler_parameters(2)+sin(roll)*euler_parameters(3) , cos(roll)*euler_parameters(5)-sin(roll)*euler_parameters(6)),2*pi);
+                pitch_approx=mod(atan2(-euler_parameters(7),sin(roll)*euler_parameters(8)+cos(roll)*euler_parameters(9)),2*pi);
+                
+                % force the apriori attitude to be planar
+                roll_approx=0;
+                pitch_approx=0;    
+                
+
                 
                 
                 
-                %LS solution for ROVER receivers
-                [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code_nRec(XR, XS, prR, snr(:,2:end), satCoord.el(:,2:end), satCoord.dist(:,2:end), dtS, err_tropo(:,2:end), err_iono(:,2:end), usableSat(:,2:end), geometry);
                 
-                for r=1:goObs.getNumRec()
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+figure
+hold on
+axis equal
+plot3([xR(1,:) xR(1,1)], [xR(2,:) xR(2,1)], [xR(3,:) xR(3,1)],'-r');
+plot3([XRl(1,:) XRl(1,1)], [XRl(2,:) XRl(2,1)] , [XRl(3,:) XRl(3,1)],'-b');
+grid on
+
+% distanze a posteriori
+distances_3D_post=[];
+distances_2D_post=[];
+for i=1:n_rec-1
+    for j=i+1:n_rec
+        distances_3D_post=[distances_3D_post;goGNSS.compute_distance(XR(:,i),XR(:,j))];
+        distances_2D_post=[distances_2D_post;goGNSS.compute_distance(XR(1:2,i),XR(1:2,j))];
+    end
+end
+
+              
+                %%LS solution for ROVER receivers
+                %[XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code_nRec(XR, XS, prR, snr(:,2:end), satCoord.el(:,2:end), satCoord.dist(:,2:end), dtS, err_tropo(:,2:end), err_iono(:,2:end), usableSat(:,2:end), geometry);
+                
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                for r=1:n_rec
                     %satellite topocentric coordinates (azimuth, elevation, distance)
                     [satCoord.az(:,r), satCoord.el(:,r), satCoord.dist(:,r)] = topocent(XR(:,r), XS);
                 end
@@ -325,6 +543,206 @@ classdef goGNSS < handle
     end
     
     methods (Static, Access = 'private')
+        % function to compute distance between points of known coordinates
+        % a and b should be vectors with 2 or 3 components
+        function dist=compute_distance(a,b)
+            dist= sqrt(sum((a-b).^2));       
+        end
+        
+        
+        % optimized Leave One Out for outlier detection in LS approach
+        function [xfin Cxx yfin Cyy ufin Cuu s2fin imax um]=OLOO_General(A, y, Q, Dim, significance,rms_threshold)
+            %Purpose:   perform LS on blocks of correlated observations
+            %           identify one (block) outlier
+            %           reject it
+            %           re-estimate unknowns
+            %           according to the theory in "##"
+            %1.0: Ludovico Biagi, Stefano Caldera, 06.02.2012
+            %input:
+            %   A: design matrix
+            %   y: observations vector
+            %   Q: cofactor matrix
+            %   Dim: dimension of each block of correlated observations,
+            %   significance: test significance
+            %output
+            %   xfin: final parameters estimates
+            %   Cxx: covariance matrix
+            %   yfin: final observation estimates (outliers rejected)
+            %   Cyy: covariance matrix
+            %   ufin: estimated residuals (outlier rejected)
+            %   Cuu= covariance matrix
+            %   s2fin: final estimated variance
+            %   imax: index of the rejected block
+            %   um: vector of residuals of the intial global solution
+
+            
+            m=length(Dim);
+            
+            
+            %fprintf(' ******** OOLO v.1.0 *********\n');
+            %fprintf(' *  Optimized Leave One Out  * \n');
+            %fprintf(' ***************************** \n\n');
+            
+            [M,n]=size(A);
+            
+            Qm=cell(m,1);
+            Am=cell(m,1);
+            Bm=cell(m,1);
+            Cm=cell(m,1);
+            Km=cell(m,1);
+            Kminv=cell(m,1);
+            Wm=cell(m,1);
+            ym=cell(m,1);
+            um=cell(m,1);
+            N=zeros(n,n);
+            xsi=0;
+            s2cap=0;
+            wm=cell(m,1);
+            s2m=zeros(m,1);
+            Qw=cell(m,1);
+            Qwinv=cell(m,1);
+            F=zeros(m,1);
+            Flim=zeros(m,1);
+            
+            Row(1)=1;
+            for i=1:m
+                if i>1
+                    Row(i)=Row(i-1)+Dim(i-1);
+                end
+                Qm{i}=Q(Row(i):Row(i)+Dim(i)-1,Row(i):Row(i)+Dim(i)-1);
+                Am{i}=A(Row(i):Row(i)+Dim(i)-1,:);
+                Wm{i}=inv(Qm{i});
+                ym{i}=y(Row(i):Row(i)+Dim(i)-1);
+            end
+            
+            
+            %% compute the global solution
+            for i=1:m
+                N = N+Am{i}'*Wm{i}*Am{i};
+                xsi =xsi+Am{i}'*Wm{i}*ym{i};
+            end
+            Ninv=N\eye(length(N));
+            xcap=Ninv*xsi;
+            
+            for i=1:m
+                um{i}=ym{i}-Am{i}*xcap;
+                s2cap=s2cap+um{i}'*Wm{i}*um{i};
+            end
+            s2cap =s2cap/(M-n);
+            
+            
+            %fprintf('       -> S0  : %.3e\n',s2cap^.5);
+            %fprintf('       -> Chi2: %.2f, Chi2Lim: %.2f \n',chi2cap,chi2lim);
+            %fprintf('       -> MaxU: %.3e, in Block: %d \n',u0_max,u0_max_ib);
+            %fprintf('       -> MaxV: %.3e, in Block: %d \n',v0_max,v0_max_ib);
+            
+            stop=0;
+            if M-n>2 && s2cap>rms_threshold^2
+                
+                %% start outliers rejection
+                for i=1:m
+                    Im=eye(n);
+                    Bm{i}=Ninv*Am{i}';
+                    Cm{i}=Am{i}*Bm{i};
+                    Km{i}=Qm{i}-Cm{i};
+                    if sum(sum(Km{i}== zeros(Dim(i))))==Dim(i)*Dim(i)
+                        %fprintf('WARNING!! Cluster %d cannot be checked. It is essential to the estimation\n\n',i);
+                        stop=1;
+                        break
+                    else
+                        %Kminv{i}=inv(Km{i});
+                        Kminv{i}=Km{i}\eye(length(Km{i}));
+                        wm{i}=Qm{i}*Kminv{i}*um{i};
+                        if M-n-Dim(i)<1
+                            %fprintf('WARNING!! Cluster %d cannot be checked. Redudancy= %d\n\n',i, M-n-Dim(i));
+                            stop=1;
+                            break
+                        else
+                            s2m(i)=((M-n)*s2cap-um{i}'*Kminv{i}*um{i})/(M-n-Dim(i));
+                            Qw{i}=Qm{i}+Bm{i}'*(Im+Am{i}'*Kminv{i}*Bm{i}')*Am{i}';
+                            %Qwinv{i}=inv(Qw{i});
+                            Qwinv{i}=Qw{i}\eye(length(Qw{i}));
+                            deg1=Dim(i);
+                            deg2=M-n-Dim(i);
+                            F(i)=wm{i}'*Qwinv{i}*wm{i}/(Dim(i)*s2m(i));
+                            Flim(i)=finv(significance,deg1,deg2);
+                        end
+                    end
+                end
+                if stop==0
+                    %% apply final solution
+                    % find maximum F(i)/Flim(i)
+                    imax=find(abs(F./Flim)==max(abs(F./Flim)));
+                    
+                    if (abs(F(imax))<Flim(imax))
+                        % no outlier
+                        %fprintf('  -> No outlier found!\n');
+                        %fprintf('        -> Chi quadro sper   : %.2f\n',s2cap/(0.5)^2*(M-n));
+                        imax=0;
+                        xfin=xcap;
+                        dum=y;
+                        Afin=A;
+                        Qfin=Q;
+                        s2fin=s2cap;
+                        Ninvfin=Ninv;
+                    else
+                        %     % if the maximum ratio exceedes the threshold, the block is eliminated from the solution
+                        %     %fprintf('  -> BLOCK %d found as outlier!\n',imax);
+                        xfin=xcap-Bm{imax}*Kminv{imax}*um{imax};
+                        dum=[y(1:Row(imax)-1);y(Row(imax)+Dim(imax):length(y))];
+                        Afin1=A(1:Row(imax)-1,:);
+                        Afin2=A(Row(imax)+Dim(imax):length(y),:);
+                        Afin=[Afin1;Afin2];
+                        Qfin11=Q(1:Row(imax)-1,1:Row(imax)-1);
+                        Qfin12=Q(1:Row(imax)-1,Row(imax)+Dim(imax):length(y));
+                        Qfin21=Q(Row(imax)+Dim(imax):length(y),1:Row(imax)-1);
+                        Qfin22=Q(Row(imax)+Dim(imax):length(y),Row(imax)+Dim(imax):length(y));
+                        Qfin=[Qfin11 Qfin12;Qfin21 Qfin22];
+                        s2fin=s2m(imax);
+                        Ninvfin=Ninv+Bm{imax}*Kminv{imax}*Bm{imax}';
+                        
+                        %fprintf('       -> S0 with block %2d   : %.3e\n',imax,s2cap^.5);
+                        %fprintf('       -> S0 without block %2d: %.3e\n',imax,s2fin^.5);
+                        
+                    end
+                    
+                    yfin=Afin*xfin;
+                    ufin=dum-yfin;
+                    Cxx=s2fin*Ninvfin;
+                    Cyy=Afin*Cxx*Afin';
+                    Cuu=s2fin*Qfin-Cyy;
+                else
+                    imax=0;
+                    xfin=xcap;
+                    dum=y;
+                    Afin=A;
+                    Qfin=Q;
+                    s2fin=s2cap;
+                    Ninvfin=Ninv;
+                    yfin=Afin*xfin;
+                    ufin=dum-yfin;
+                    Cxx=s2fin*Ninvfin;
+                    Cyy=Afin*Cxx*Afin';
+                    Cuu=s2fin*Qfin-Cyy;
+                end
+            else
+                imax=0;
+                xfin=xcap;
+                dum=y;
+                Afin=A;
+                Qfin=Q;
+                s2fin=s2cap;
+                Ninvfin=Ninv;
+                yfin=Afin*xfin;
+                ufin=dum-yfin;
+                Cxx=s2fin*Ninvfin;
+                Cyy=Afin*Cxx*Afin';
+                Cuu=s2fin*Qfin-Cyy;
+            end
+        end
+        
+        
+        
         % Bancroft algorithm for the computation of ground coordinates
         % having at least 4 visible satellites.
         function pos = bancroft(matB)
