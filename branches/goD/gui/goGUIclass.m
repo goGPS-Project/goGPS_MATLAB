@@ -105,7 +105,8 @@ classdef goGUIclass < handle
         % Processing type
         idC_SA = 1;     % Code stand-alone
         idC_DD = 2;     % Code double difference
-        idCP_DD_L = 3;  % Code double difference with Lmbda
+        idCP_DD_L = 3;  % Code double difference with Lambda
+		idCP_Vel = 4;   % Variometric approach for velocity estimation
         idCP_SA = 3;    % Code and phase stand-alone        
         idCP_DD = 4;    % Code and phase double difference
         idCP_DD_MR = 5; % Code and phase double difference for several receivers
@@ -248,6 +249,7 @@ classdef goGUIclass < handle
             obj.strTypeLS{obj.idC_SA} = 'Code stand-alone';
             obj.strTypeLS{obj.idC_DD} = 'Code double difference';
             obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference with Lambda';
+			obj.strTypeLS{obj.idCP_Vel} = 'Variometric approach for velocity estimation';
 
             obj.strTypeKF{obj.idC_SA} = 'Code stand-alone';
             obj.strTypeKF{obj.idC_DD} = 'Code double difference';
@@ -282,7 +284,7 @@ classdef goGUIclass < handle
             set(obj.goh.nav_mon,'String', str);
         end
         
-        % Fill the CaptureMode pop-up (Navigation, Monitor...)
+        % Fill the AlgorithmType pop-up (LS, KF...)
         function initAlgorithmType(obj, str)
             if nargin < 2
                 str = obj.strAlgorithm;
@@ -293,7 +295,7 @@ classdef goGUIclass < handle
             set(obj.goh.kalman_ls,'String', str);
         end
 
-        % Fill the CaptureMode pop-up (Navigation, Monitor...)
+        % Fill the ProcessingType pop-up (C_SA, CP_DD, ...)
         function initProcessingType(obj, str)
             if nargin < 2
                 if get(obj.goh.kalman_ls,'Value') == obj.idLS
@@ -878,6 +880,9 @@ classdef goGUIclass < handle
             idG.onPP_LS_CP_DD_L = [idG.onPP_LS ...
                               id.pMSt id.cMPos];
 
+            % On Post Proc => Least Squares => Code and Phase Velocity estimation
+            idG.onPP_LS_CP_Vel = [idG.onPP_LS];
+
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc ...
                            id.rRin ...
@@ -1371,6 +1376,8 @@ classdef goGUIclass < handle
                             mode = goGNSS.MODE_PP_LS_C_DD;
                         case obj.idCP_DD_L
                             mode = goGNSS.MODE_PP_LS_CP_DD_L;
+						case obj.idCP_Vel
+                            mode = goGNSS.MODE_PP_LS_CP_VEL
                     end
                 end
                 if obj.isKF()
@@ -1427,7 +1434,7 @@ classdef goGUIclass < handle
         end
         
         function isSA = isStandAlone(obj)
-            isSA = obj.isProcessingType(obj.idC_SA) || (obj.isKF() && obj.isProcessingType(obj.idCP_SA));
+            isSA = obj.isProcessingType(obj.idC_SA) || (obj.isLS() && obj.isProcessingType(obj.idCP_Vel)) || (obj.isKF() && obj.isProcessingType(obj.idCP_SA));
         end        
 
         %   INTERFACE GETTERS - INPUT FILE TYPE
@@ -1570,6 +1577,11 @@ classdef goGUIclass < handle
                 obj.setElStatus([obj.idUI.cPlotAmb], 0, 0);
             end
 
+            % Only for or goDURIA google Earth plot is disabled
+            if obj.isLS() && obj.isProcessingType(obj.idCP_Vel)
+                obj.setElStatus([obj.idUI.cGEarth], 0, 0);
+            end
+            
             % NTRIP flag
             isOn = obj.isActive(obj.idUI.cUseNTRIP);
             obj.setElStatus([obj.idGroup.gNTRIP], isOn, 0);
@@ -1729,6 +1741,8 @@ classdef goGUIclass < handle
                                 obj.setElStatus(obj.idGroup.onPP_LS_C_DD, 1, 0);
                             case obj.idCP_DD_L
                                 obj.setElStatus(obj.idGroup.onPP_LS_CP_DD_L, 1, 0);
+                            case obj.idCP_Vel
+                                obj.setElStatus(obj.idGroup.onPP_LS_CP_Vel, 1, 0);
                         end
                     end
                     if obj.isKF()

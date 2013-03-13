@@ -241,6 +241,7 @@ if (inputOk)
             
             %read data from RINEX files
             if (~goObj)
+                
                 if goGNSS.isSA(mode) %absolute positioning
                     
                     [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
@@ -445,7 +446,7 @@ if (inputOk)
         end
         
         %if relative post-processing (i.e. with master station)
-        if goGNSS.isDD(mode) && goGNSS.isPP(mode)
+        if goGNSS.isDD(mode)
             if (~goObj)
                 %master station position management
                 if (flag_ms_pos) && (sum(abs(pos_M)) ~= 0)

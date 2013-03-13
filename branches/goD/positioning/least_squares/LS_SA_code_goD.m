@@ -1,5 +1,5 @@
-function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phase)
-
+function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_goD(XR_approx_t0,XR_approx_t1, XS_t0,XS_t1,ph_t0,ph_t1, snr_t0,snr_t1, elR, distR_approx_t0,distR_approx_t1, sat_pr, sat_ph, dtS_t0, dtS_t1, err_tropo_t0,err_tropo_t1, err_iono_t0,err_iono_t1, phase)
+                                                                                       
 % SYNTAX:
 %   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phase);
 %
@@ -32,7 +32,7 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.3.0 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -68,56 +68,64 @@ end
 %number of observations (assuming that sat_ph is a subset of sat_pr)
 nsat_pr = length(sat_pr);
 nsat_ph = length(sat_ph);
-n = nsat_pr + nsat_ph;
+n = nsat_ph;
 
 %number of unknown parameters
-m = 4 + nsat_ph;
+m = 4;
 
 % %approximate receiver-satellite distance
 % XR_mat = XR_approx(:,ones(n,1))';
 % distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
 
 %design matrix (code)
-A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ...   %column for X coordinate
-     (XR_approx(2) - XS(:,2)) ./ distR_approx, ...   %column for Y coordinate
-     (XR_approx(3) - XS(:,3)) ./ distR_approx, ...   %column for Z coordinate
-      zeros(nsat_pr,nsat_ph), ... %column for phase ambiguities   (here zero)
-      ones(nsat_pr,1)];    %column for receiver clock delay (multiplied by c)
 
+
+
+A = [];
+
+
+for i = 1 : n
 %design matrix (phase)
-A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ... %column for X coordinate
-        (XR_approx(2) - XS(index,2)) ./ distR_approx(index), ... %column for Y coordinate
-        (XR_approx(3) - XS(index,3)) ./ distR_approx(index), ... %column for Z coordinate
-         -lambda * eye(nsat_ph), ...                        %column for phase ambiguities
-         ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
+
+    eij_approx_t0=((XR_approx_t0 - XS_t0(i,:)'))./distR_approx_t0(i);
+    eij_approx_t1=((XR_approx_t1 - XS_t1(i,:)'))./distR_approx_t1(i);
+    eij_approx=(eij_approx_t0+eij_approx_t1)./2;
+
+    A = [A; eij_approx(1) eij_approx(2) eij_approx(3) 1];
 
 %known term vector
-b_pr = distR_approx - v_light*dtS + err_tropo + err_iono; %code
-b_ph = distR_approx - v_light*dtS + err_tropo - err_iono; %phase
-b = [b_pr; b_ph(index)];
+end
+
+
+    try
+    b = [distR_approx_t0'-distR_approx_t1' - v_light*(dtS_t0-dtS_t1)]; %phase
+    catch
+        distR_approx_t0';
+    end
+   
 
 %observation vector
-y0 = [pr; lambda*ph(index)];
+    y0 = [ lambda*(ph_t0(index)-ph_t1(index))];
 
 %observation noise covariance matrix
 Q = zeros(n);
-Q1 = cofactor_matrix_SA(elR, snr);
+Q1 = cofactor_matrix_SA(elR, snr_t0);
 Q2 = Q1(index,index);
-Q(1:nsat_pr,1:nsat_pr) = sigmaq_cod1 * Q1;
-Q(nsat_pr+1:end,nsat_pr+1:end) = sigmaq_ph * Q2;
+%Q(1:nsat_pr,1:nsat_pr) = sigmaq_cod1 * Q1;
+Q(1:nsat_pr,1:nsat_pr) = sigmaq_ph * Q2;
 
 %normal matrix
 N = (A'*(Q^-1)*A);
 
 %least squares solution
 x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
-XR = XR_approx + x_hat(1:3);
+XR = XR_approx_t0-XR_approx_t1 + x_hat(1:3);
 
 %estimated phase ambiguities
-N_hat = x_hat(4:end-1);
+
 
 %estimated receiver clock
-dtR = x_hat(end) / v_light;
+dtR = x_hat(end) ;
 
 %estimation of the variance of the observation error
 y_hat = A*x_hat + b;
