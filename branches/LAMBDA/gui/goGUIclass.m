@@ -1397,12 +1397,13 @@ classdef goGUIclass < handle
         function isRT = isRealTime(obj)
             isOn = obj.isEnabled(obj.idUI.lProcMode);
             isRT = isOn && (obj.getElVal(obj.idUI.lProcMode) == obj.idRealTime);
-        end        
+        end
+        
         function isPP = isPostProc(obj)
             isOn = obj.isEnabled(obj.idUI.lProcMode);
             isPP = isOn && (obj.getElVal(obj.idUI.lProcMode) == obj.idPostProc);
         end
-        
+                
         % Get capture mode
         function isCM = isCaptureMode(obj, idCaptureMode)
             isOn = obj.isEnabled(obj.idUI.lCaptMode);
@@ -1425,6 +1426,10 @@ classdef goGUIclass < handle
             isPT = isOn && obj.isPostProc() &&  (obj.getElVal(obj.idUI.lProcType) == idProcessingType);
         end
         
+        function isSA = isStandAlone(obj)
+            isSA = obj.isProcessingType(obj.idC_SA) || (obj.isKF() && obj.isProcessingType(obj.idCP_SA));
+        end        
+
         %   INTERFACE GETTERS - INPUT FILE TYPE
         % =================================================================
 
@@ -1538,7 +1543,7 @@ classdef goGUIclass < handle
             % Check File input dependencies
             obj.setElStatus([obj.idGroup.onRin], ~obj.isBin(), 0);
             if obj.isRinex()
-                if obj.isProcessingType(obj.idC_SA) || obj.isProcessingType(obj.idCP_SA)
+                if obj.isStandAlone()
                     obj.setElStatus([obj.idGroup.RinMaster], 0, 0);
                 end
             end
