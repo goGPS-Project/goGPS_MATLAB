@@ -1,4 +1,4 @@
-%   OBJECT goGNSS
+%   CLASS goGNSS
 % =========================================================================
 %
 % DESCRIPTION
@@ -72,9 +72,9 @@ classdef goGNSS < handle
         
         MODE_PP_LS_C_SA      = 1;   % Post Proc Least Squares on Code Stand Alone
         MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code Stand Alone (BASE FOR FUTURE PPP IMPLEMENTATION)
+        MODE_PP_LS_CP_VEL    = 3.1; % Post Proc Least Squares on Code and Phase for Velocity estimation
         MODE_PP_LS_C_DD      = 11;  % Post Proc Least Squares on Code Double Differences
         MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code Double Differences with Lambda
-        MODE_PP_LS_CP_VEL    = 3.1; % Post Proc Least Squares on Code and Phase for Velocity estimation
         
         MODE_PP_KF_C_SA      = 2;   % Post Proc Kalman Filter on Code Stand Alone
         MODE_PP_KF_C_DD      = 12;  % Post Proc Kalman Filter on Code Double Differencies

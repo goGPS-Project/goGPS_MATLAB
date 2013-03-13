@@ -786,7 +786,6 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
     fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-
     
     nN = 32;
     check_on = 0;
@@ -797,46 +796,52 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     plot_t = 1;
     time_step = goIni.getTimeStep();   %time step to perform the difference between phase observations
     fprintf('TimeStep used is %d epochs\n', time_step);
-    for t = 1 : length(time_GPS)-(time_step)
-
-        if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
-            Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step));
-        else
-            Eph_t = Eph(:,:,t+time_step);
-            Eph_t1 = Eph(:,:,t+time_step);
-        end
-
-        goGPS_LS_SA_goD(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, sbas, 1,time_step);
-        Xhat_t_t=Xhat_t_t./(interval.*time_step);
-        if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
-            Xhat_t_t_dummy = [Xhat_t_t];
-            Cee_dummy = Cee;
-            fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n', Xhat_t_t );
-            fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
-            fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
-            fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+    % External loop to show bar update every 10 epochs
+    stepUpdate = 15; 
+    goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
+    goWB.titleUpdate('Variometric approach running...');
+    for tExt = 1:stepUpdate:length(time_GPS)-(time_step)
+        for t = tExt:min(tExt+stepUpdate,length(time_GPS)-(time_step))
+            if (mode_data == 0)
+                Eph_t = rt_find_eph (Eph, time_GPS(t));
+                Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step));
+            else
+                Eph_t = Eph(:,:,t+time_step);
+                Eph_t1 = Eph(:,:,t+time_step);
+            end
             
-            if (flag_plotproc)
-                if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
-                    rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
-                else
-                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
-                    rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
-                end
-                if (flag_skyplot == 1)
-                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,t));
-                else
-                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
-                end
-                plot_t = plot_t + 1;
-                % drawnow;
-                %pause(0.01);
+            goGPS_LS_SA_goD(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, sbas, 1,time_step);
+            Xhat_t_t=Xhat_t_t./(interval.*time_step);
+            if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
+                Xhat_t_t_dummy = [Xhat_t_t];
+                Cee_dummy = Cee;
+                fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n', Xhat_t_t );
+                fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
+                fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
+                fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+                
+                %if (flag_plotproc)
+                %    if (flag_cov == 0)
+                %        if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                %        rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                %    else
+                %        if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                %        rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                %    end
+                %    if (flag_skyplot == 1)
+                %        rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
+                %        rtplot_snr (snr_R(:,t));
+                %    else
+                %        rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                %    end
+                %    plot_t = plot_t + 1;
+                %    %pause(0.01);
+                %end
             end
         end
+        goWB.goTime(tExt/stepUpdate);
     end
+    goWB.close();
     
     fclose(fid_kal);
     fclose(fid_sat);
@@ -2294,32 +2299,31 @@ end
 % REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
 %----------------------------------------------------------------------------------------------
 
-figure
-epochs = (time_GPS-time_GPS(1))/interval;
-ax(1) = subplot(3,1,1); hold on; grid on
-ax(2) = subplot(3,1,2); hold on; grid on
-ax(3) = subplot(3,1,3); hold on; grid on
-xlabel('epoch')
-
-%if relative positioning (i.e. with master station)
-if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
-
-    subplot(ax(1))
-    plot(epochs, EAST,'.'); title('EAST'); ylabel('[m]')
-    subplot(ax(2))
-    plot(epochs, NORTH,'.'); title('NORTH'); ylabel('[m]')
-    subplot(ax(3))
-    plot(epochs, UP_KAL,'.'); title('UP'); ylabel('[m]')
-
-    if (mode == goGNSS.MODE_PP_LS_CP_DD_L)
-        pos = find(FIXING == 1);
-        plot(ax(1), epochs(pos), EAST(pos),'xr')
-        plot(ax(2), epochs(pos), NORTH(pos),'xr')
-        plot(ax(3), epochs(pos), UP_KAL(pos),'xr')
-    end
-else
-    if (mode == goGNSS.MODE_PP_LS_CP_VEL)
-    else    
+if (mode ~= goGNSS.MODE_PP_LS_CP_VEL)    
+    figure
+    epochs = (time_GPS-time_GPS(1))/interval;
+    ax(1) = subplot(3,1,1); hold on; grid on
+    ax(2) = subplot(3,1,2); hold on; grid on
+    ax(3) = subplot(3,1,3); hold on; grid on
+    xlabel('epoch')
+    
+    %if relative positioning (i.e. with master station)
+    if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
+        
+        subplot(ax(1))
+        plot(epochs, EAST,'.'); title('EAST'); ylabel('[m]')
+        subplot(ax(2))
+        plot(epochs, NORTH,'.'); title('NORTH'); ylabel('[m]')
+        subplot(ax(3))
+        plot(epochs, UP_KAL,'.'); title('UP'); ylabel('[m]')
+        
+        if (mode == goGNSS.MODE_PP_LS_CP_DD_L)
+            pos = find(FIXING == 1);
+            plot(ax(1), epochs(pos), EAST(pos),'xr')
+            plot(ax(2), epochs(pos), NORTH(pos),'xr')
+            plot(ax(3), epochs(pos), UP_KAL(pos),'xr')
+        end
+    else
         subplot(ax(1))
         plot(epochs, EAST_UTM,'.'); title('EAST UTM'); ylabel('[m]')
         subplot(ax(2))
@@ -2327,10 +2331,9 @@ else
         subplot(ax(3))
         plot(epochs, h_KAL,'.'); title('ellipsoidal height'); ylabel('[m]')
     end
+    
+    linkaxes(ax,'x')
 end
-
-linkaxes(ax,'x')
-
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE REFERENCE TRAJECTORY
 %----------------------------------------------------------------------------------------------

@@ -282,7 +282,7 @@ classdef goGUIclass < handle
             set(obj.goh.nav_mon,'String', str);
         end
         
-        % Fill the CaptureMode pop-up (Navigation, Monitor...)
+        % Fill the AlgorithmType pop-up (LS, KF...)
         function initAlgorithmType(obj, str)
             if nargin < 2
                 str = obj.strAlgorithm;
@@ -293,7 +293,7 @@ classdef goGUIclass < handle
             set(obj.goh.kalman_ls,'String', str);
         end
 
-        % Fill the CaptureMode pop-up (Navigation, Monitor...)
+        % Fill the ProcessingType pop-up (C_SA, CP_DD, ...)
         function initProcessingType(obj, str)
             if nargin < 2
                 if get(obj.goh.kalman_ls,'Value') == obj.idLS
