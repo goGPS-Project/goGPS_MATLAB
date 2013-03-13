@@ -49,7 +49,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_rx, XR0, 
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global lambda1 lambda2 v_light
+%global lambda1 lambda2 v_light
 global cutoff snr_threshold
 
 %number of epochs
@@ -108,8 +108,16 @@ for i = 1 : nEpochs
     end
 end
 
+%check if it is needed to correct observations for receiver clocks offsets
+% (some RINEX files contain clock-corrected observations, although they are
+%  not respecting the specifications); clock offsets lower than 1
+%  microsecond don't need to be corrected
+if (max(abs(dtR)) < 1e-6)
+    return
+end
+
 %----------------------------------------------------------------------------------------------
-% RECEIVER CLOCK DISCONTINUITIES
+% RECEIVER CLOCK DRIFT DISCONTINUITIES
 %----------------------------------------------------------------------------------------------
 
 %check if there is any discontinuity in the clock drift
@@ -133,15 +141,47 @@ dtRdot(end+1) = dtRdot(end);
 % OBSERVATION CORRECTION FOR CLOCK ERROR
 %----------------------------------------------------------------------------------------------
 
+%two types of corrections (as in http://www.navcen.uscg.gov/?pageName=RINEX):
+% 1. "frequency correction" c*dtR
+% 2. "receiver-satellite dynamics correction" by interpolating observations
+%    on the time tag corrected by dtR)
 for s = 1 : 32
-    for i = 1 : nEpochs
-        if (pr1(s,i) ~= 0)
-            pr1(s,i) = pr1(s,i) - v_light*dtR(i);
-            ph1(s,i) = ph1(s,i) - v_light*dtR(i)/lambda1;
-        end
-        if (pr2(s,i) ~= 0)
-            pr2(s,i) = pr2(s,i) - v_light*dtR(i);
-            ph2(s,i) = ph2(s,i) - v_light*dtR(i)/lambda2;
-        end
+
+    time_GPS = time_rx + dtR;
+
+    if (any(pr1(s,:)))
+        
+        %pr1(s,:) = pr1(s,:) - v_light*dtR';
+        
+        pr1_tmp = pr1(s,:);
+        pr1_tmp(pr1_tmp == 0) = NaN;
+        pr1(s,:) = interp1(time_rx, pr1_tmp, time_GPS, 'spline');
+    end
+    
+    if (any(pr2(s,:)))
+        
+        %pr2(s,:) = pr2(s,:) - v_light*dtR';
+        
+        pr2_tmp = pr2(s,:);
+        pr2_tmp(pr2_tmp == 0) = NaN;
+        pr2(s,:) = interp1(time_rx, pr2_tmp, time_GPS, 'spline');
+    end
+    
+    if (any(ph1(s,:)))
+        
+        %ph1(s,:) = ph1(s,:) - v_light*dtR'/lambda1;
+        
+        ph1_tmp = ph1(s,:);
+        ph1_tmp(ph1_tmp == 0) = NaN;
+        ph1(s,:) = interp1(time_rx, ph1_tmp, time_GPS, 'spline');
+    end
+    
+    if (any(ph2(s,:)))
+        
+        %ph2(s,:) = ph2(s,:) - v_light*dtR'/lambda2;
+        
+        ph2_tmp = ph2(s,:);
+        ph2_tmp(ph2_tmp == 0) = NaN;
+        ph2(s,:) = interp1(time_rx, ph2_tmp, time_GPS, 'spline');
     end
 end

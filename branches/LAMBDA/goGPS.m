@@ -227,10 +227,10 @@ if (mode <= 20) %post-processing
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs);
             
             %pre-processing
-            %fprintf('Pre-processing rover observations...\n');
-            %[pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
-            %fprintf('Pre-processing master observations...\n');
-            %[pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            fprintf('Pre-processing rover observations...\n');
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            fprintf('Pre-processing master observations...\n');
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
         end
 
 %         %read surveying mode
