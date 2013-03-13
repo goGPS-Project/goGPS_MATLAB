@@ -157,7 +157,7 @@ if (n > m)
         z = afix(:,1);
         posType = 1; %fixed
     elseif O > 0.5%0.787%0.6 %above treshold, reject the LAMBDA result
-        z = round(afl);
+        z = afl;
         posType = 0; %float
     end
 
