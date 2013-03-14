@@ -350,7 +350,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-% --- Executes on button press in bEditINI.
 % --- Executes on button press in bINI.
 function bINI_Callback(hObject, eventdata, handles)
 % hObject    handle to bINI (see GCBO)
@@ -359,11 +358,13 @@ function bINI_Callback(hObject, eventdata, handles)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bINI);
 
+% --- Executes on button press in bEditINI.
 function bEditINI_Callback(hObject, eventdata, handles)
 % hObject    handle to bEditINI (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-guiEditINI_unix
+global goGUI
+    goGUI.openEditINI();
 
 % Output ------------------------------------------------------    
 

@@ -386,6 +386,27 @@ classdef goGUIclass < handle
 
         end
         
+        % Get working directory
+        function wdir = getWorkingDir(obj)
+            wdir = obj.workingDir;
+            if isempty(wdir)
+                wdir = ['.' filesep];
+            end
+            if wdir == 0
+                wdir = ['.' filesep];
+            end
+        end
+        
+        % Get settings directory
+        function sdir = getSettingsDir(obj)
+            sdir = obj.settingsDir;
+            if isempty(sdir)
+                sdir = ['.' filesep];
+            end
+            if sdir == 0
+                sdir = ['.' filesep];
+            end
+        end
     end
     
     %   INTERNAL OBJ STRUCTURE    < = >    GUI
@@ -1077,7 +1098,7 @@ classdef goGUIclass < handle
         end
 
         % Set content of the element of the interface
-        function setAllElContent(obj)            
+        function setAllElContent(obj)
             obj.setFlag(1) = false; % the figure doesn't change its status;
             
             if (sum(obj.setFlag) > 0)
@@ -1148,13 +1169,13 @@ classdef goGUIclass < handle
             obj.getAllElStatus();            
             
             % If the working folder does not exist
-            if isempty(dir(obj.settingsDir))
+            if isempty(dir(obj.getSettingsDir()))
                 waitfor(msgbox('WARNING: The folder containing the settings is not in the working directory, please chose settings directory!'));
                 dname = uigetdir('../','Choose the directory that contains goGPS settings');
                 if (dname ~= 0)
                     obj.settingsDir = [dname filesep];
-                    if isempty(dir(obj.workingDir))
-                        obj.workingDir = [obj.settingsDir '..' filesep];
+                    if isempty(dir(obj.getWorkingDir()))
+                        obj.workingDir = [obj.getSettingsDir() '..' filesep];
                     end
                 end
             end
@@ -1166,10 +1187,10 @@ classdef goGUIclass < handle
             obj.initPopUp(); % Popup are also modified / reloaded in importStateMatlab
             
             obj.goWB.goMsg('Importing the last used settings...');
-            if exist([obj.settingsDir obj.lastSettingsFile],'file')
-                obj.importStateMatlab([obj.settingsDir obj.lastSettingsFile]);
-            elseif exist([obj.settingsDir obj.defaultSettingsFile],'file')
-                obj.importStateMatlab([obj.settingsDir obj.defaultSettingsFile]);
+            if exist([obj.getSettingsDir() obj.lastSettingsFile],'file')
+                obj.importStateMatlab([obj.getSettingsDir() obj.lastSettingsFile]);
+            elseif exist([obj.getSettingsDir() obj.defaultSettingsFile],'file')
+                obj.importStateMatlab([obj.getSettingsDir() obj.defaultSettingsFile]);
             else
                 waitfor(msgbox('No settings file has been found, goGPS may not work properly!'));
             end
@@ -2047,7 +2068,7 @@ classdef goGUIclass < handle
             [filename, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
                 '*.*',  'All Files (*.*)'}, ...
-                'Choose an INI configuration file',[obj.settingsDir]);
+                'Choose an INI configuration file',[obj.getSettingsDir()]);
             if (filename ~= 0)
                 obj.setElVal(obj.idUI.sINI, fullfile(pathname, filename));
             end
@@ -2061,14 +2082,14 @@ classdef goGUIclass < handle
                 [filename, pathname] = uigetfile( ...
                     {'*.ini;','INI configuration file (*.ini)'; ...
                     '*.*',  'All Files (*.*)'}, ...
-                    'Choose an INI configuration file',[obj.settingsDir]);                
+                    'Choose an INI configuration file',[obj.getSettingsDir()]);                
             else
                 [filename, pathname] = uigetfile( ...
                     {'*.obs;*.??o;*.??O','RINEX observation files (*.obs,*.??o,*.??O)';
                     '*.obs','Observation files (*.obs)'; ...
                     '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
                     '*.*',  'All Files (*.*)'}, ...
-                    'Choose a RINEX observation file for the rover',[obj.workingDir 'data_RINEX']);
+                    'Choose a RINEX observation file for the rover',[obj.getWorkingDir() 'data_RINEX']);
             end
             if (filename ~= 0)
                 obj.setElVal(obj.idUI.sRinRover, fullfile(pathname, filename));
@@ -2083,7 +2104,7 @@ classdef goGUIclass < handle
                 '*.obs','Observation files (*.obs)'; ...
                 '*.??o','Observation files (*.??o)'; ...
                 '*.*',  'All Files (*.*)'}, ...
-                'Choose a RINEX observation file for the master',[obj.workingDir 'data_RINEX']);
+                'Choose a RINEX observation file for the master',[obj.getWorkingDir() 'data_RINEX']);
             
             if (filename ~= 0)
                 obj.setElVal(obj.idUI.sRinMaster, fullfile(pathname, filename));
@@ -2098,7 +2119,7 @@ classdef goGUIclass < handle
                 '*.nav','Navigation files (*.nav)'; ...
                 '*.??n;*.??N','Navigation files (*.??n,*.??N)'; ...
                 '*.*',  'All Files (*.*)'}, ...
-                'Choose a RINEX navigation file',[obj.workingDir 'data_RINEX']);
+                'Choose a RINEX navigation file',[obj.getWorkingDir() 'data_RINEX']);
             
             if (filename ~= 0)
                 obj.setElVal(obj.idUI.sRinNav, fullfile(pathname, filename));
@@ -2122,7 +2143,7 @@ classdef goGUIclass < handle
         
         % Browse output foder fo binary data
         function browseOutDir(obj)
-            dname = uigetdir(obj.workingDir,'Choose a directory to store goGPS data');
+            dname = uigetdir(obj.getWorkingDir(),'Choose a directory to store goGPS data');
             if (dname ~= 0)
                 obj.setElVal(obj.idUI.sDirGoOut, dname);
             end
@@ -2131,7 +2152,7 @@ classdef goGUIclass < handle
         
         % Browse for a DTM folder
         function browseDtmDir(obj)
-            dname = uigetdir([obj.workingDir 'dtm'],'Choose a directory containing DTM data');
+            dname = uigetdir([obj.getWorkingDir() 'dtm'],'Choose a directory containing DTM data');
             if (dname ~= 0)
                 obj.setElVal(obj.idUI.sDTM, dname);
             end
@@ -2604,10 +2625,10 @@ classdef goGUIclass < handle
             
             if (ready)
                 % If the working folder does not exist
-                if isempty(dir(obj.settingsDir))
+                if isempty(dir(obj.getSettingsDir()))
                     msgbox('Non existent settings folder. It has beeen probably erased! It is not possible to save the last settings.');
                 else
-                    obj.exportStateMatlab([obj.settingsDir obj.lastSettingsFile]);
+                    obj.exportStateMatlab([obj.getSettingsDir() obj.lastSettingsFile]);
                 end
                 uiresume(obj.goh.main_panel);
             end
@@ -2929,6 +2950,15 @@ classdef goGUIclass < handle
     % -------------------------------------------------------------------------
     % This part still needs to be modified (cleaned)
     methods
+        % Function to load the Edit INI window
+        function openEditINI(obj)
+            if (isfield(obj.edtINI,'h'))
+                close(obj.edtINI.h.wEditINI);
+                delete obj.edtINI.h
+            end
+            guiEditINI_unix();
+        end
+        
         % Function to init the INI editor
         % creates, objects, load default valuesm, etc...
         function initEditINI(obj, h)
@@ -2945,7 +2975,7 @@ classdef goGUIclass < handle
                 fileName = '';
             end
             if isempty(fileName)
-                fileName = [obj.settingsDir obj.defaultINIFile];
+                fileName = [obj.getSettingsDir() obj.defaultINIFile];
                 if ~exist(fileName, 'file');
                     fileName = '';
                 end
@@ -2980,7 +3010,7 @@ classdef goGUIclass < handle
             obj.edtINI.jEdit.hINI = hContainerINI;
             
             % Load INI keywords
-            obj.edtINI.keywordsINI = goIniReader([obj.settingsDir obj.defaultINIKeywordsFile], 0);
+            obj.edtINI.keywordsINI = goIniReader([obj.getSettingsDir() obj.defaultINIKeywordsFile], 0);
             obj.edtINI.keywordsINI.readFile();
             % Sections
             sections = obj.edtINI.keywordsINI.getData('INI','sections');
@@ -3027,7 +3057,7 @@ classdef goGUIclass < handle
             [filename, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
                 '*.*',  'All Files (*.*)'}, ...
-                'Choose an INI configuration file',[obj.settingsDir]);
+                'Choose an INI configuration file',[obj.getSettingsDir()]);
             if (filename ~= 0)
                 fileName = [pathname filename];
                 obj.setGuiElStr(obj.edtINI.h.sINI, fileName);
@@ -3035,7 +3065,7 @@ classdef goGUIclass < handle
                 
                 % Get the name of the ini file
                 if isempty(fileName)
-                    fileName = [obj.settingsDir obj.defaultINIFile];
+                    fileName = [obj.getSettingsDir() obj.defaultINIFile];
                     if ~exist(fileName, 'file');
                         fileName = '';
                     end
@@ -3130,7 +3160,7 @@ classdef goGUIclass < handle
                     '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
                     '*.*',  'All Files (*.*)'}, ...
                     'MultiSelect', 'on', ...
-                    'Choose a RINEX observation file',[obj.workingDir 'data_RINEX']);
+                    'Choose a RINEX observation file',[obj.getWorkingDir() 'data_RINEX']);
                 
             if ~isempty(filename)
                 obj.workingDir = [pathname];
@@ -3156,7 +3186,7 @@ classdef goGUIclass < handle
                 '*.nav','Navigation files (*.nav)'; ...
                 '*.??n;*.??N','Navigation files (*.??n,*.??N)'; ...
                 '*.*',  'All Files (*.*)'}, ...
-                'Choose a RINEX navigation file',[obj.workingDir 'data_RINEX']);
+                'Choose a RINEX navigation file',[obj.getWorkingDir() 'data_RINEX']);
             
             if (filename ~= 0)
                 obj.workingDir = [pathname];
@@ -3170,7 +3200,7 @@ classdef goGUIclass < handle
         function browse4Bin(obj)
             [filename, pathname] = uigetfile( ...
                 {'*.bin','goGPS binary data (*.bin)'}, ...
-                'Choose goGPS binary data',obj.workingDir);
+                'Choose goGPS binary data',obj.getWorkingDir());
             
             if (filename ~= 0)
                 pos = find(filename == '_');
@@ -3183,7 +3213,7 @@ classdef goGUIclass < handle
         
         % Browse output foder
         function browse4Dir(obj)
-            dname = uigetdir(obj.workingDir,'Choose a directory');
+            dname = uigetdir(obj.getWorkingDir(),'Choose a directory');
             if (dname ~= 0)
                 obj.workingDir = [dname '..' filesep];
                 str = sprintf('data_path = "%s"', dname);
@@ -3194,7 +3224,7 @@ classdef goGUIclass < handle
         
         % Browse for the path containing reference points for constrained solutions
         function browse4Ref(obj)
-            [filename, pathname] = uigetfile('*.mat', 'Choose file containing reference path',obj.workingDir);
+            [filename, pathname] = uigetfile('*.mat', 'Choose file containing reference path',obj.getWorkingDir());
             
             if (filename ~= 0)
                 obj.workingDir = [pathname];
@@ -3209,7 +3239,7 @@ classdef goGUIclass < handle
         function browse4Gen(obj)
             [filename, pathname] = uigetfile( ...
                 {'*.*',  'All Files (*.*)'}, ...
-                'Choose a file',obj.workingDir);
+                'Choose a file',obj.getWorkingDir());
             
             if (filename ~= 0)
                 str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
