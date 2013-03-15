@@ -45,6 +45,7 @@ function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
 time = 0;
 sat = [];
 sat_types = [];
+num_sat = 0;
 datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
 eof = 0;
 if nargout>3
