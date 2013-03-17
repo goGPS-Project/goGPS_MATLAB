@@ -390,10 +390,10 @@ classdef goGUIclass < handle
         function wdir = getWorkingDir(obj)
             wdir = obj.workingDir;
             if isempty(wdir)
-                wdir = ['.' filesep];
+                wdir = './';
             end
             if wdir == 0
-                wdir = ['.' filesep];
+                wdir = './';
             end
         end
         
@@ -401,10 +401,10 @@ classdef goGUIclass < handle
         function sdir = getSettingsDir(obj)
             sdir = obj.settingsDir;
             if isempty(sdir)
-                sdir = ['.' filesep];
+                sdir = './';
             end
             if sdir == 0
-                sdir = ['.' filesep];
+                sdir = './';
             end
         end
     end
@@ -1173,9 +1173,9 @@ classdef goGUIclass < handle
                 waitfor(msgbox('WARNING: The folder containing the settings is not in the working directory, please chose settings directory!'));
                 dname = uigetdir('../','Choose the directory that contains goGPS settings');
                 if (dname ~= 0)
-                    obj.settingsDir = [dname filesep];
+                    obj.settingsDir = [dname '/'];
                     if isempty(dir(obj.getWorkingDir()))
-                        obj.workingDir = [obj.getSettingsDir() '..' filesep];
+                        obj.workingDir = [obj.getSettingsDir() '../'];
                     end
                 end
             end
@@ -2552,9 +2552,7 @@ classdef goGUIclass < handle
             data_path = goIni.getData('Bin','data_path');
             file_prefix = goIni.getData('Bin','file_prefix');            
             filerootIN = [data_path file_prefix];
-            filerootOUT = [get(obj.goh.sDirGoOut,'String') '\' get(obj.goh.sPrefixGoOut,'String')];
-            filerootIN(filerootIN == '\') = filesep;
-            filerootOUT(filerootOUT == '\') = filesep;
+            filerootOUT = [get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')];
             data_path = goIni.getData('Receivers','data_path');
             file_name = goIni.getData('Receivers','file_name');            
             filename_R_obs = [data_path file_name];
@@ -2666,9 +2664,7 @@ classdef goGUIclass < handle
             data_path = goIni.getData('Bin','data_path');
             file_prefix = goIni.getData('Bin','file_prefix');            
             filerootIN = [data_path file_prefix];
-            filerootOUT = [get(obj.goh.sDirGoOut,'String') '\' get(obj.goh.sPrefixGoOut,'String')];
-            filerootIN(filerootIN == '\') = filesep;
-            filerootOUT(filerootOUT == '\') = filesep;
+            filerootOUT = [get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')];
             i = 1;
             j = length(filerootOUT);
             while (~isempty(dir([filerootOUT '_????_rover.bin'])) || ...
@@ -3219,7 +3215,7 @@ classdef goGUIclass < handle
         function browse4Dir(obj)
             dname = uigetdir(obj.getWorkingDir(),'Choose a directory');
             if (dname ~= 0)
-                obj.workingDir = [dname '..' filesep];
+                obj.workingDir = [dname '../'];
                 str = sprintf('data_path = "%s"', dname);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
