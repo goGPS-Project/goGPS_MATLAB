@@ -2956,7 +2956,11 @@ classdef goGUIclass < handle
                 close(obj.edtINI.h.wEditINI);
                 delete obj.edtINI.h
             end
-            guiEditINI_unix();
+            if (obj.interfaceOS == obj.isUnix)
+                guiEditINI_unix();
+            else
+                guiEditINI();
+            end
         end
         
         % Function to init the INI editor
