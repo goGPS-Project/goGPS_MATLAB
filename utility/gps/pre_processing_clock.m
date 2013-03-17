@@ -1,11 +1,12 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_rx, XR0, pr1, ph1, pr2, ph2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time_rx, XR0, pr1, ph1, pr2, ph2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_rx, XR0, pr1, ph1, pr2, ph2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time_rx, XR0, pr1, ph1, pr2, ph2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono);
 %
 % INPUT:
+%   time_GPS = GPS reference time
+%   time_rx = GPS reception time (as read from RINEX file)
 %   XR0 = receiver position (=[] if not available)
-%   time_rx = GPS reception time
 %   pr1 = code observation (L1 carrier)
 %   ph1 = phase observation (L1 carrier)
 %   pr2 = code observation (L2 carrier)
@@ -49,7 +50,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_rx, XR0, 
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%global lambda1 lambda2 v_light
+global v_light lambda1 lambda2
 global cutoff snr_threshold
 
 %number of epochs
@@ -65,7 +66,7 @@ dtRdot = zeros(nEpochs-1,1);
 % APPROXIMATE POSITION
 %-----------------------------------------------------------------------------------
 
-if ((sum(abs(XR0)) == 0) | isempty(XR0))
+if ((sum(abs(XR0)) == 0) || isempty(XR0))
     %approximate position not available
     flag_XR = 0;
 else
@@ -145,43 +146,50 @@ dtRdot(end+1) = dtRdot(end);
 % 1. "frequency correction" c*dtR
 % 2. "receiver-satellite dynamics correction" by interpolating observations
 %    on the time tag corrected by dtR)
+
+%available epochs
+index_e = find(time_rx ~= 0);
+
+%if the nominal time (e.g. read from RINEX) and the reference time are identical
+if (~any(time_GPS(index_e) - time_rx(index_e)))
+    time_rx(index_e) = time_rx(index_e) + dtR(index_e);
+end
+
 for s = 1 : 32
 
-    time_GPS = time_rx + dtR;
-
     if (any(pr1(s,:)))
+
+        index_s = find(pr1(s,:) ~= 0);
+        index = intersect(index_e,index_s);
         
-        %pr1(s,:) = pr1(s,:) - v_light*dtR';
-        
-        pr1_tmp = pr1(s,:);
-        pr1_tmp(pr1_tmp == 0) = NaN;
-        pr1(s,:) = interp1(time_rx, pr1_tmp, time_GPS, 'spline');
+        pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
+        pr1(s,index) = interp1(time_rx(index), pr1(s,index), time_GPS(index), 'spline');
     end
     
     if (any(pr2(s,:)))
         
-        %pr2(s,:) = pr2(s,:) - v_light*dtR';
+        index_s = find(pr2(s,:) ~= 0);
+        index = intersect(index_e,index_s);
         
-        pr2_tmp = pr2(s,:);
-        pr2_tmp(pr2_tmp == 0) = NaN;
-        pr2(s,:) = interp1(time_rx, pr2_tmp, time_GPS, 'spline');
+        pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
+        pr2(s,index) = interp1(time_rx(index), pr2(s,index), time_GPS(index), 'spline');
     end
     
     if (any(ph1(s,:)))
         
-        %ph1(s,:) = ph1(s,:) - v_light*dtR'/lambda1;
+        index_s = find(ph1(s,:) ~= 0);
+        index = intersect(index_e,index_s);
         
-        ph1_tmp = ph1(s,:);
-        ph1_tmp(ph1_tmp == 0) = NaN;
-        ph1(s,:) = interp1(time_rx, ph1_tmp, time_GPS, 'spline');
+        ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda1;
+        ph1(s,index) = interp1(time_rx(index), ph1(s,index), time_GPS(index), 'spline');
     end
     
     if (any(ph2(s,:)))
         
-        %ph2(s,:) = ph2(s,:) - v_light*dtR'/lambda2;
+        index_s = find(ph2(s,:) ~= 0);
+        index = intersect(index_e,index_s);
         
-        ph2_tmp = ph2(s,:);
-        ph2_tmp(ph2_tmp == 0) = NaN;
-        ph2(s,:) = interp1(time_rx, ph2_tmp, time_GPS, 'spline');
+        ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda2;
+        ph2(s,index) = interp1(time_rx(index), ph2(s,index), time_GPS(index), 'spline');
     end
 end

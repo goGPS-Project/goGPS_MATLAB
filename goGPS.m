@@ -207,10 +207,6 @@ if goGNSS.isPP(mode) % post-processing
                 time_GPS, time_R, time_M, week_R, week_M, date_R, date_M, pos_R, pos_M, Eph, iono, Eph_RR, interval] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav);
 
-%             %pre-processing
-%             fprintf('Pre-processing rover observations...\n');
-%             [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
-
         else %relative positioning
 
             %RINEX reading
@@ -224,9 +220,9 @@ if goGNSS.isPP(mode) % post-processing
 
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
-            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
         end
 
 %         %read surveying mode
@@ -473,14 +469,14 @@ if goGNSS.isPP(mode) % post-processing
             fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
         end
         
-        if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
-            %compute master station clock error and drift
-            fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
-            [~, ~, ~, ~, dtM, dtMdot] = pre_processing_clock(time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
-        else
-            dtM = zeros(size(dop1_M,2),1);
-            dtMdot = zeros(size(dop1_M,2),1);
-        end
+%         if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
+%             %compute master station clock error and drift
+%             fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
+%             [~, ~, ~, ~, dtM, dtMdot] = pre_processing_clock(time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+%         else
+%             dtM = zeros(size(dop1_M,2),1);
+%             dtMdot = zeros(size(dop1_M,2),1);
+%         end
 
         %if master station data are not available
         if (~any(pr1_M(:)))
@@ -1676,7 +1672,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
         conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, ...
         KHDOP, KVDOP] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
-
+    
     %variable saving for final graphical representations
     nObs = size(Xhat_t_t,2);
     pos_KAL = zeros(3,nObs);
