@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<name>goGPS.kml</name>
+	<snippet>created by goGPS</snippet>
+		<Style id="go1">
+			<IconStyle>
+				<color>fff5005a</color>
+				<colorMode>normal</colorMode>
+				<scale>0.40</scale>
+				<Icon>
+					<href>http://maps.google.com/mapfiles/kml/pal2/icon26.png</href>
+				</Icon>
+			</IconStyle>
+			<LabelStyle>
+				<color>fff5005a</color>
+				<scale>7.000000e-01</scale>
+			</LabelStyle>
+		</Style>
+		<Style id="master">
+			<IconStyle>
+				<color>ff00ffff</color>
+				<colorMode>normal</colorMode>
+				<scale>0.80</scale>
+				<Icon>
+					<href>http://maps.google.com/mapfiles/kml/shapes/square.png</href>
+				</Icon>
+			</IconStyle>
+			<LabelStyle>
+				<color>ff00ffff</color>
+				<scale>7.000000e-01</scale>
+			</LabelStyle>
+		</Style>
+		<Placemark>
+			<name>Master station</name>
+			<description><![CDATA[ <i>Latitude:</i> 34.59087153 &#176;<br/> <i>Longitude:</i> 135.51291355 &#176;<br/> <i>Elevation:</i> 60.7 m<br/> <i>Time:</i> 2010-01-06 05:57:14]]></description>
+			<styleUrl>#master</styleUrl>
+			<Point>
+				<altitudeMode>clampToGround</altitudeMode>
+				<coordinates>135.51291355,34.59087153,60.674</coordinates>
+			</Point>
+		</Placemark>
+		<Placemark>
+			<name>8</name>
+			<description><![CDATA[ <i>Latitude:</i> 34.59081412 &#176;<br/> <i>Longitude:</i> 135.51290812 &#176;<br/> <i>Elevation:</i> 45.1 m<br/> <i>Satellites:</i> 8 <br/> <i>Time:</i> 2010-01-06 05:57:14]]></description>
+			<styleUrl>#go1</styleUrl>
+			<Point>
+				<altitudeMode>clampToGround</altitudeMode>
+				<coordinates>135.51290812,34.59081412,45.082</coordinates>
+			</Point>
+		</Placemark>
+</Document>
+</kml>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+	<open>1</open>
+	<ScreenOverlay>
+		<name>goGPS logo</name>
+		<visibility>1</visibility>
+		<Icon>
+			<href>./ge-goGPS.png</href>
+		</Icon>
+		<overlayXY x="0" y="1" xunits="fraction" yunits="fraction"/>
+		<screenXY x="0" y="1" xunits="fraction" yunits="fraction"/>
+		<rotationXY x="0" y="0" xunits="fraction" yunits="fraction"/>
+		<size x="0" y="0" xunits="fraction" yunits="fraction"/>
+	</ScreenOverlay>
+	<NetworkLink>
+		<name>goGPS</name>
+		<Link id="ID">
+			<href>./goGPS.kml</href>
+			<refreshMode>onInterval</refreshMode>
+			<refreshInterval>0.5</refreshInterval>
+		</Link>
+	</NetworkLink>
+	<Placemark>
+		<name>Starting location</name>
+		<visibility>0</visibility>
+		<description><![CDATA[ <i>Latitude:</i> 34.59081412 &#176;<br/> <i>Longitude:</i> 135.51290812 &#176;<br/> <i>Elevation:</i> 45.082 m]]></description>
+		<LookAt>
+			<longitude>135.51290812</longitude>
+			<latitude>34.59081412</latitude>
+			<altitude>0</altitude>
+			<range>120</range>
+			<tilt>30</tilt>
+			<heading>0</heading>
+		</LookAt>
+		<Style>
+			<IconStyle>
+				<colorMode>normal</colorMode>
+				<scale>0.50</scale>
+				<Icon>
+					<href>http://maps.google.com/mapfiles/kml/pal2/icon10.png</href>
+				</Icon>
+			</IconStyle>
+		</Style>
+		<Point>
+			<altitudeMode>clampToGround</altitudeMode>
+			<coordinates>135.51290812,34.59081412,45.082</coordinates>
+		</Point>
+	</Placemark>
+</Document>
+</kml>
