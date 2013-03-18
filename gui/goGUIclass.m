@@ -32,11 +32,11 @@ classdef goGUIclass < handle
         %isMac = 3;
         
         % Colors
-        disableCol = [0.502 0.502 0.502];
-        enableCol = [0 0 0];
-        green = [0 0.8 0];
-        yellow = [1 0.8 0.1];
-        red = [1 0 0];
+        disableCol = [0.502 0.502 0.502];   % Grey (disabled color)
+        enableCol = [0 0 0];                % Black (enabled color)
+        green = [0 0.8 0];                  % Green - for flas
+        yellow = [1 0.8 0.1];               % Yellow - for flas
+        red = [1 0 0];                      % Red - for flas
         
         % goGPS Modes
     end
@@ -74,74 +74,75 @@ classdef goGUIclass < handle
     %  INTERFACE STATUS - PATH
     % =========================================================================
 
-        settingsDir = './settings/';     % Settings folder of goGPS, it contains settings files
-        workingDir = '../../../data/';   % Working folder of goGPS, it contains data files/folders
-        defaultSettingsFile = 'default_settings.mat';
-        lastSettingsFile = 'last_settings.mat';
-        defaultINIFile = 'default_InputFiles.ini';
-        defaultINIKeywordsFile = 'goGPS_iniDefaultKeywords.ini';
+        intSettingsDir = './settings/';                 % Settings folder of goGPS, it contains default settings files
+        settingsDir = '../data/settings/';              % Settings folder of goGPS, it contains all the other settings files
+        workingDir = '../data/';                        % Working folder of goGPS, it contains data files/folders
+        defaultSettingsFile = 'default_settings.mat';   % Name of the file containing default_settings
+        lastSettingsFile = 'last_settings.mat';         % Name of the file containing last settings
+        defaultINIFile = 'default_InputFiles.ini';      % Name of the file containing the default example of an ini file (yamatogawa case)
+        defaultINIKeywordsFile = 'goGPS_iniDefaultKeywords.ini'; % File containing hint parameters for building an ini files
         
     %  POP UP MENUS
     % ======================================================================
     % Look initPopUps for the complete initialization
 
         % Processing Mode
-        idRealTime = 1;
-        idPostProc = 2;
-        strMode = {};  
+        idRealTime = 1;     % id of the pop-up menu Processing mode for Real Time
+        idPostProc = 2;     % id of the pop-up menu Processing mode for Post processing
+        strMode = {};       % string containing the pop-up menu fields
         
         % Capture mode
-        idNav = 1;      % Navigation + capture
-        idRMon = 2;     % Rover monitoring (only Rover capture)
-        idMMon = 3;     % Master monitoring (only Master capture)
-        idRMMon = 4;    % Rover + Master monitoring (Rover and Master capture)
-        strCaptureMode = {};
+        idNav = 1;           % Navigation + capture
+        idRMon = 2;          % Rover monitoring (only Rover capture)
+        idMMon = 3;          % Master monitoring (only Master capture)
+        idRMMon = 4;         % Rover + Master monitoring (Rover and Master capture)
+        strCaptureMode = {}; % string containing the pop-up menu fields
         
         % Algorithm type
-        idLS = 1;       % Least Squares
-        idKF = 2;       % Kalman Filter
-        strAlgorithm = {};
+        idLS = 1;          % Least Squares
+        idKF = 2;          % Kalman Filter
+        strAlgorithm = {}; % string containing the pop-up menu fields
         
         % Processing type
-        idC_SA = 1;     % Code stand-alone
-        idC_DD = 2;     % Code double difference
-        idCP_DD_L = 3;  % Code double difference with Lambda
-		idCP_Vel = 4;   % Variometric approach for velocity estimation
-        idCP_SA = 3;    % Code and phase stand-alone        
-        idCP_DD = 4;    % Code and phase double difference
-        idCP_DD_MR = 5; % Code and phase double difference for several receivers
-        strTypeLS = {};
-        strTypeKF = {};
+        idC_SA = 1;      % Code stand-alone
+        idC_DD = 2;      % Code double difference
+        idCP_DD_L = 3;   % Code double difference with Lambda
+		idCP_Vel = 4;    % Variometric approach for velocity estimation
+        idCP_SA = 3;     % Code and phase stand-alone        
+        idCP_DD = 4;     % Code and phase double difference
+        idCP_DD_MR = 5;  % Code and phase double difference for several receivers
+        strTypeLS = {};  % string containing the pop-up menu fields
+        strTypeKF = {};  % string containing the pop-up menu fields
         
         % File types
         idRin = 1;
         idBin = 2;
         
         % Dynamic model
-        idCVel = 1;     % Costant velocity
-        idCAcc = 2;     % Costant acceleration
-        idStatic = 3;   % Static model
-        idVariable = 4; % Variable model
-        strDynModel = {};
-        idMonConstant = 1;
-        idMonVariable = 2;
-        strMonDynModel = {};
+        idCVel = 1;          % Costant velocity
+        idCAcc = 2;          % Costant acceleration
+        idStatic = 3;        % Static model
+        idVariable = 4;      % Variable model
+        strDynModel = {};    % String containing the pop-up menu fields
+        idMonConstant = 1;   % Monitor mode constant
+        idMonVariable = 2;   % Monitor mode variable
+        strMonDynModel = {}; % String containing the pop-up menu fields
         
         % Ports
-        strPorts = {};
+        strPorts = {};       % String containing the pop-up menu fields
         
         % Master station
-        idXYZ = 1;
-        idGeodetic = 2;
+        idXYZ = 1;           % Pop up Master station (id in the pop-up for idXYZ)
+        idGeodetic = 2;      % Pop up Master station (id in the pop-up for idGeodetic)
 
     %  OTHER IDs
     % ======================================================================
     
-        ledOff = 0;
-        ledOn  = 1;
-        ledOk  = 3;
-        ledKo  = 4;
-        ledCk  = 5;
+        ledOff = 0;          % Led status off
+        ledOn  = 1;          % Led status on
+        ledOk  = 3;          % Led status ok
+        ledKo  = 4;          % Led status ko
+        ledCk  = 5;          % Led status check
 
     end
     
@@ -171,6 +172,7 @@ classdef goGUIclass < handle
         
         % Creator (Brahma)
         function obj = goGUIclass(handles, typeOS)            
+            % Creator (Brahma)
             if (length(intersect(typeOS, [obj.isWin obj.isUnix])) ~= 1)
                 typeOS = obj.isWin;
             end
@@ -190,14 +192,15 @@ classdef goGUIclass < handle
     % Internal Init functions
     methods(Access = 'private')
         
+        % Init all the UI
         function init(obj, handles)
+            % Init all the UI
             clear global goIni
 
             tic;
             obj.goWB = goWaitBar(5, 'Initializing goGPS GUI...');
             obj.goWB.titleUpdate('Init GUI');
             obj.goh = handles;  % Save the handle of the figure
-
             % Init pup-up strings
             obj.initPopUps();
             
@@ -234,6 +237,8 @@ classdef goGUIclass < handle
 
         % Fill all the Pop-up menus
         function initPopUps(obj)
+            % Fill all the Pop-up menus
+
             % Processing Mode
             obj.strMode{obj.idRealTime} = 'Real-time';
             obj.strMode{obj.idPostProc} = 'Post-processing';
@@ -270,11 +275,13 @@ classdef goGUIclass < handle
             obj.strPorts{3} = '3';
             obj.strPorts{4} = '4';
             
-            obj.initNumPorts(obj.strPorts);
+            obj.initPorts(obj.strPorts);
         end
         
         % Fill the CaptureMode pop-up (Navigation, Monitor...)
         function initCaptureMode(obj, str)
+            % Fill the CaptureMode pop-up (Navigation, Monitor...)
+            
             if nargin < 2
                 str = obj.strCaptureMode;
             end
@@ -286,6 +293,7 @@ classdef goGUIclass < handle
         
         % Fill the AlgorithmType pop-up (LS, KF...)
         function initAlgorithmType(obj, str)
+            % Fill the AlgorithmType pop-up (LS, KF...)
             if nargin < 2
                 str = obj.strAlgorithm;
             end
@@ -297,6 +305,7 @@ classdef goGUIclass < handle
 
         % Fill the ProcessingType pop-up (C_SA, CP_DD, ...)
         function initProcessingType(obj, str)
+            % Fill the ProcessingType pop-up (C_SA, CP_DD, ...)
             if nargin < 2
                 if get(obj.goh.kalman_ls,'Value') == obj.idLS
                     str = obj.strTypeLS;
@@ -312,6 +321,7 @@ classdef goGUIclass < handle
         
         % Fill the Dynamic Model pop-up (constant velocity, accelleration...)
         function initDynModel(obj, str)
+            % Fill the Dynamic Model pop-up (constant velocity, accelleration...)        
             if nargin < 2
                 str = obj.strDynModel;
             end
@@ -345,7 +355,7 @@ classdef goGUIclass < handle
         end
         
         % Fill the num ports pop-up list
-        function initNumPorts(obj, str)
+        function initPorts(obj, str)
             if nargin < 2
                 str = obj.strPorts;
             end
@@ -359,6 +369,7 @@ classdef goGUIclass < handle
             catch e
                 num_ports = 0;
             end
+            
             if num_ports == 0
                 set(obj.goh.num_receivers,'String','1');
             elseif num_ports <= size(str,1);
@@ -366,10 +377,15 @@ classdef goGUIclass < handle
             else
                 set(obj.goh.num_receivers,'String',str);
             end
+            
+            set(obj.goh.com_select_0,'String', serialInfo.AvailableSerialPorts);
+            set(obj.goh.com_select_1,'String', serialInfo.AvailableSerialPorts);
+            set(obj.goh.com_select_2,'String', serialInfo.AvailableSerialPorts);
+            set(obj.goh.com_select_3,'String', serialInfo.AvailableSerialPorts);
         end
 
         % Fill the Dynamic Model pop-up (constant velocity, accelleration...)
-        function [select_0 select_1 select_2 select_3] = initPorts(obj, s0, s1, s2, s3)
+        function [select_0 select_1 select_2 select_3] = getPortValues(obj, s0, s1, s2, s3)
             contents = get(obj.goh.com_select_0,'String');
             select_0 = 1; select_1 = 1; select_2 = 1; select_3 = 1;
             for i = 1 : numel(contents)
@@ -399,7 +415,7 @@ classdef goGUIclass < handle
         
         % Get settings directory
         function sdir = getSettingsDir(obj)
-            sdir = obj.settingsDir;
+            sdir = obj.intSettingsDir;
             if isempty(sdir)
                 sdir = './';
             end
@@ -504,7 +520,7 @@ classdef goGUIclass < handle
             i=i+1; id.cPlotAmb      = i;    id2h(i) = obj.goh.plot_amb;
             i=i+1; id.cUseNTRIP     = i;    id2h(i) = obj.goh.use_ntrip;
             i=i+1; id.cDoppler      = i;    id2h(i) = obj.goh.flag_doppler;
-            i=i+1; id.cUse_SBAS         = i;    id2h(i) = obj.goh.use_SBAS;
+            i=i+1; id.cUse_SBAS     = i;    id2h(i) = obj.goh.use_SBAS;
             
             % Group of ids in the panel pOptions
             idG.gPlotProc = [id.cSkyPlot id.cGEarth id.cErrEllipse id.cPlotMaster id.cPlotAmb];
@@ -1173,7 +1189,7 @@ classdef goGUIclass < handle
                 waitfor(msgbox('WARNING: The folder containing the settings is not in the working directory, please chose settings directory!'));
                 dname = uigetdir('../','Choose the directory that contains goGPS settings');
                 if (dname ~= 0)
-                    obj.settingsDir = [dname '/'];
+                    obj.intSettingsDir = [dname '/'];
                     if isempty(dir(obj.getWorkingDir()))
                         obj.workingDir = [obj.getSettingsDir() '../'];
                     end
@@ -2345,7 +2361,7 @@ classdef goGUIclass < handle
             %   SETTINGS - PORTS
             % ===============================================================
             
-            [s0 s1 s2 s3] = obj.initPorts(state.com_select_0, state.com_select_1, state.com_select_2, state.com_select_3);
+            [s0 s1 s2 s3] = obj.getPortValues(state.com_select_0, state.com_select_1, state.com_select_2, state.com_select_3);
             
             obj.setElVal(obj.idUI.lnPorts, state.num_receivers, 0);
             
