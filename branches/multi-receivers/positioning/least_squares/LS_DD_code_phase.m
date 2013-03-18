@@ -1,8 +1,8 @@
-function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
-         (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase)
+function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase ...
+    (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase)
 
 % SYNTAX:
-%   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
+%   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase ...
 %   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
 %
 % INPUT:
@@ -32,7 +32,6 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
 %   PDOP = position dilution of precision
 %   HDOP = horizontal dilution of precision
 %   VDOP = vertical dilution of precision
-
 %
 % DESCRIPTION:
 %   Least squares solution using code and phase double differences.
@@ -42,6 +41,8 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
 %                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Hendy F. Suhandri
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -84,13 +85,13 @@ distM = sqrt(sum((XS-XM_mat).^2 ,2));
 A = [((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
      ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
      ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index)), ... %column for Z coordinate
-       zeros(n/2,n/2)]; %column for phase ambiguities   (here zero)
- 
+     zeros(n/2,n/2)]; %column for phase ambiguities   (here zero)
+
 %design matrix (phase)
 A = [A; ((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
         ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
         ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index)), ... %column for Z coordinate
-          -lambda * eye(n/2)]; %column for phase ambiguities
+        -lambda * eye(n/2)]; %column for phase ambiguities
 
 %known term vector
 b_pr =        (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
@@ -122,39 +123,75 @@ N = (A'*(Q^-1)*A);
 
 %least squares solution
 x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
-XR = XR_approx + x_hat(1:3);
-
-%estimated double difference ambiguities (without PIVOT)
-N_hat_nopivot = x_hat(4:end);
-
-%add a zero at PIVOT position
-N_hat = zeros(n/2+1,1);
-N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-
-%estimation of the variance of the observation error
-y_hat = A*x_hat + b;
-v_hat = y0 - y_hat;
-sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 
 %covariance matrix of the estimation error
 if (n > m)
-    Cxx = sigma02_hat * (N^-1);
-
+    Qxx = (N^-1);   %vcm of parameter computed from inverse of normal matrix
+    [U] = chol(Qxx);    %compute cholesky decomp. for identical comp of vcm purpose
+    Cxx = U'*U; %find back the vcm of parameter, now the off diag. comp. are identical :)
+    
+    %%this part for future statistical test of data reliability :)
+    %     Q_hat = A*Cxx*A';
+    %     Qv_hat= Q - Q_hat;
+    %     alpha = 0.05;
+    %     [identify,BNR_xhat, BNR_y] = test_statistic(Q_hat, Q, A, alpha, v_hat,Qv_hat)
+    
     %rover position covariance matrix
-    cov_XR = Cxx(1:3,1:3);
+    %     cov_XR = Cxx(1:3,1:3);
+    Cbb = Cxx(1:3,1:3); %vcm block of baseline component
+    Cba = Cxx(1:3,4:end);% correlation of baselines and ambiguities comp.
+    Cab = Cxx(4:end,1:3);
+    Caa = Cxx(4:end,4:end);%vcm block of ambiguity component 
+    
+    %ambiguity estimation
+    afl = x_hat(4:end); %extract float ambiguity from float least-squares
+    [afix, sqnorm, Qahat, Z, D, L] = lambda_routine2(afl,Caa); %using LAMBDA routines
+    
+    %Integer ambiguity validation
+    %----------------------------
+    O1 = (afl - afix(:,1))' * (Caa)^-1 * (afl - afix(:,1)); %nominator component
+    O2 = (afl - afix(:,2))' * (Caa)^-1 * (afl - afix(:,2)); %denominator component
+    O  = O1 / O2; %ratio test
+    
+    if O <= 0.5%0.787%0.6 %if below treshold, use the LAMBDA result
+        z = afix(:,1);
+        posType = 1; %fixed
+    elseif O > 0.5%0.787%0.6 %above treshold, reject the LAMBDA result
+        z = afl;
+        posType = 0; %float
+    end
 
+    bias = check_bias(D); %no bias detected
+    [up_bound, lo_bound] = success_rate(D,L,bias); %compute success rate of ambiguity
+    
+    %Computing definite coordinate
+    %-----------------------------
+    bfl    = x_hat(1:3); %float baseline component
+    bdef   = bfl - Cba * Caa^-1 * (afl - z); %compute the conditional baseline component
+    cov_XR = Cbb - (Cba * Caa^-1 * Cab) + (Cba * Caa^-1*Qahat*(Caa^-1)'*Cab); %compute its vcm
+    XR     = (XR_approx + bdef); %define the definitive coordinate
+    std    = sqrt(diag(cov_XR)); %standard deviation of baseline
+    bl     = norm(XM - XR); %baseline length
+
+    %estimated double difference ambiguities (without PIVOT)
+    N_hat_nopivot = z;
+    
+    %add a zero at PIVOT position
+    N_hat = zeros(n/2+1,1);
+    N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
+    N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
+    
     %combined ambiguity covariance matrix
-    cov_N_nopivot = Cxx(4:end,4:end);
-
+    cov_N_nopivot = Qahat;
+    
     %add one line and one column (zeros) at PIVOT position
     cov_N = zeros(n/2+1);
     cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
     cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
-
+    
 else
     cov_XR = [];
-
+    
     cov_N = [];
 end
 

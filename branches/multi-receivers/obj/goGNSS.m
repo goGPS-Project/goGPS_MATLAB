@@ -296,6 +296,9 @@ classdef goGNSS < handle
                     err_iono(:,r+1) = iono_error_correction(phiR(:,r), lamR(:,r), satCoord.az(:,r+1), satCoord.el(:,r+1), goObs.getTime_Ref(1), goObs.getIono(), goObs.getSBAS());
                 end
 
+                % inizialize dtR
+                dtR_approx=zeros(1,n_rec+1);
+                
                 
                 % get geometry
                 [geometry ev_point]=goIni.getGeometry();
@@ -305,7 +308,7 @@ classdef goGNSS < handle
 
                 % compute distances from object coordinates
                 
-                keyboard
+                keyboard 
                 % graph     
                 baselines=[];
                 
@@ -351,7 +354,7 @@ classdef goGNSS < handle
                     A(n_row_A+1:n_row_A+n_sat_i,3*n_rec+i)=ones(n_sat_i,1);
                     
                     y0(n_row_A+1:n_row_A+n_sat_i,1) = prR(index_sat_i,i);
-                    b(n_row_A+1:n_row_A+n_sat_i,1) = satCoord.dist(index_sat_i,i+1) - goGNSS.V_LIGHT.*dtS(index_sat_i) + err_tropo(index_sat_i,i+1) + err_iono(index_sat_i,i+1);
+                    b(n_row_A+1:n_row_A+n_sat_i,1) = satCoord.dist(index_sat_i,i+1) - goGNSS.V_LIGHT.*dtS(index_sat_i) + err_tropo(index_sat_i,i+1) + err_iono(index_sat_i,i+1) + goGNSS.V_LIGHT.*dtR_approx(i+1);
                     
                     Q(n_row_A+1:n_row_A+n_sat_i,n_row_A+1:n_row_A+n_sat_i)= cofactor_matrix_SA(satCoord.el(index_sat_i,i+1), snr(index_sat_i,i+1));
                     
@@ -375,7 +378,7 @@ classdef goGNSS < handle
                         +(XR_approx(3,rec_i)-XR_approx(3,rec_j))/dist_ij_approx];
                     
                     y0(n_row_A+1,1)= distances_3D(i);
-                    b(n_row_A+1,1) = dist_ij_approx;  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!!!!!!!!!!!
+                    b(n_row_A+1,1) = dist_ij_approx;  
                     
                     Q(n_row_A+1,n_row_A+1) = 10^-4;
                     n_row_A = n_row_A+1;
@@ -389,7 +392,7 @@ classdef goGNSS < handle
                 %least squares solution
                 x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
                 XR_hat  = XR_approx + reshape(x_hat(1:n_rec*3),3,n_rec);
-                dtR_hat = x_hat(3*n_rec+1:end) ./ goGNSS.V_LIGHT;
+                dtR_hat(2:n_rec+1) = (dtR_approx(2:end)+[x_hat(3*n_rec+1:end)]') ./ goGNSS.V_LIGHT; %#ok<NBRAK>
 
 
 
@@ -456,6 +459,30 @@ classdef goGNSS < handle
                 pitch_approx=0;    
                 
 
+                %% computation of linearized equations
+                % (expression of XR as funtction of xR)
+                
+                syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS
+                
+                % rotation from local to global
+                s_Rgl=[-sin(s_lam_b) cos(s_lam_b) 0; ...
+                    -sin(s_phi_b)*cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b) cos(s_phi_b); ...
+                    cos(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*sin(s_lam_b) sin(s_phi_b)];
+                
+                % rotation from instrumental to local
+                s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_pitch)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)+sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
+                    sin(s_roll)+cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
+                    -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
+                
+                
+                s_X=[s_Xb; s_Yb; s_Zb]+s_Rgl*s_Rli*[s_x;s_y;s_z];                
+                s_PR=sqrt((s_X(1)-s_XS)^2+(s_X(2)-s_YS)^2 + (s_X(3)-s_ZS)^2);       
+                
+                
+                s_Ai=[diff(s_PR,s_Xb) diff(s_PR,s_Yb) diff(s_PR,s_Zb) diff(s_PR,s_roll) diff(s_PR,s_pitch) diff(s_PR,s_yaw)];
+                
+                F_Ai=inline(s_Ai); %% <-- colonne della matrice disegno corrispondenti alle incognite geometriche 
+                F_PR=inline(s_PR); %% <-- parte geometrica dei termini noti
                 
                 
                 
@@ -489,8 +516,8 @@ distances_3D_post=[];
 distances_2D_post=[];
 for i=1:n_rec-1
     for j=i+1:n_rec
-        distances_3D_post=[distances_3D_post;goGNSS.compute_distance(XR(:,i),XR(:,j))];
-        distances_2D_post=[distances_2D_post;goGNSS.compute_distance(XR(1:2,i),XR(1:2,j))];
+        distances_3D_post=[distances_3D_post;goGNSS.compute_distance(XR_hat(:,i),XR_hat(:,j))];
+        distances_2D_post=[distances_2D_post;goGNSS.compute_distance(XR_hat(1:2,i),XR_hat(1:2,j))];
     end
 end
 

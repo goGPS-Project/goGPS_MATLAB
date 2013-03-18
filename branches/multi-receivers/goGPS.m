@@ -260,6 +260,9 @@ if (inputOk)
                         load_RINEX(flag_SP3, filename_R_obs, filename_nav, filename_M_obs);
                 end
                 
+              
+                
+                
                 %GPS week number
                 date(:,1) = date(:,1) + 2000;
                 week_R = date2gps(date);
@@ -495,6 +498,7 @@ if (inputOk)
                     end
                 end
             else % object mode
+                
                 %master station position management
                 if (~flag_ms_pos)
                     % Fix Master position manually
@@ -1475,7 +1479,6 @@ if (inputOk)
         %--------------------------------------------------------------------------------------------------------------------
         
     elseif (mode == goGNSS.MODE_PP_KF_CP_DD_MR) && (mode_vinc == 0)
-        
         if (flag_var_dyn_model == 0)
             
             fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
@@ -1487,6 +1490,191 @@ if (inputOk)
                 fprintf('It was not possible to initialize the Kalman filter.\n');
                 return
             end
+            
+            
+           
+            % pre-preprocessing (is done on all the epochs!) 
+            % ----------------------------------------------
+            %  - for the master receiver:
+            %       - compute receiver clock and correction for dtR and observation time difference            
+            %  - for each rover receiver:
+            %       - compute receiver clock and approx position from
+            %         bancroft + least square on code and correction for dtR and observation time difference  
+            
+            % it might would be better if this can be done epoch by epoch,
+            % but at the moment pre_processing_clock() requires all the
+            % vector to compute drift and discontinuities in the recevier
+            % clock
+            
+
+            % fix %
+            ID_GNSS=1; % <- must be taken from the object!
+            MAX_SAT=32;
+            % fix %
+            
+            
+            nRec=goObs.getNumRec();
+            
+            % cambiare -> vorrei anche poter prendere solo un'epoca se volessi
+            time_GPS=goObs.getTime_Ref();
+            %
+
+            nFreq=goObs.getGNSSnFreq(ID_GNSS);
+            Eph=goObs.getGNSSeph(ID_GNSS);
+            iono=goObs.getIono();          
+            SP3_time=goObs.getGNSS_SP3time();
+            SP3_coor=goObs.getGNSS_SP3coordinates();
+            SP3_clck=goObs.getGNSS_SP3clock();
+            
+            % master receiver: preprocessing
+            % ------------------------------
+            time_M=goObs.getTime_M();  
+            [pos_M flag_M]= goObs.getPos_M(0);
+                       
+            pr1_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq) 
+            ph1_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+            snr_M=goObs.getGNSSsnr_M(ID_GNSS, 0, 0, 1); %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)            
+            
+            pr2_M=zeros(size(pr1_M));
+            ph2_M=zeros(size(pr1_M));
+            if nFreq==2
+                pr2_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+                ph2_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+            end
+             
+            fprintf('Master station ');
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, ...
+                pr2_M, ph2_M, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            fprintf('\n');
+            % ------------------------------
+            
+            
+            % rover receivers: preprocessing
+            % ------------------------------
+            for i=1:nRec
+                time_R=goObs.getTime_R(i); %time = getTime_R(obj, idRec)
+                pos_R =[];
+                pr1_R=goObs.getGNSSpr_R(ID_GNSS,0,i,0,1);    %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                ph1_R=goObs.getGNSSph_R(ID_GNSS,0,i,0,1);    %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                snr_R=goObs.getGNSSsnr_R(ID_GNSS,0,i,0,1); %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+ 
+                pr2_R=zeros(size(pr1_R));
+                ph2_R=zeros(size(pr1_R));
+                if nFreq==2
+                    pr2_R=goObs.getGNSSpr_R(ID_GNSS,0,i,0,2);    %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                    ph2_R=goObs.getGNSSph_R(ID_GNSS,0,i,0,2);    %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                end
+ 
+                fprintf('Rover #%d ',i);
+                [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, ...
+                    pr2_R, ph2_R, snr_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+                fprintf('\n');
+                
+                %--> come modifico il contenuto globale di %%goObs.getGNSSpr_R(ID_GNSS,0,i,0,1) ????
+                %--> perchè non mi tengo già le coordinate dei rover che escono da qui come valori a priori, 
+                %    invece di farle con bancroft ancora dopo?
+                            
+                            
+            end
+            % ------------------------------
+
+            
+         
+%             QUESTO VA FATTO ADESSO? PENSO DI SI', MA DEVO CAPIRE COME SI MODIFICANO I DATI DENTRO L'OBJ!!            
+%             if (~flag_SP3)
+%                 %remove satellites without ephemerides (GPS)
+%                 delsat = setdiff(1:32,unique(Eph(1,:)));
+%                 pr1_R(delsat,:) = 0;
+%                 pr1_M(delsat,:) = 0;
+%                 pr2_R(delsat,:) = 0;
+%                 pr2_M(delsat,:) = 0;
+%                 ph1_R(delsat,:) = 0;
+%                 ph1_M(delsat,:) = 0;
+%                 ph2_R(delsat,:) = 0;
+%                 ph2_M(delsat,:) = 0;
+%                 dop1_R(delsat,:) = 0;
+%                 dop1_M(delsat,:) = 0;
+%                 dop2_R(delsat,:) = 0;
+%                 dop2_M(delsat,:) = 0;
+%                 snr_R(delsat,:) = 0;
+%                 snr_M(delsat,:) = 0;
+%             end
+
+            sbas = [];
+            
+
+            % Processing
+            % ----------
+            %  - for each rover receiver:
+            %       - enhance coordinates with code and phase DD in single
+            %         epoch (lambda)
+            %  - estimation of apriori attitude
+            %  - enhance solution with constrained least squares (DD in
+            %         single epoch (lambda))
+            
+            
+            
+            % for each rover receiver: enhance coordinates with code and phase DD in single epoch (lambda)
+            % --------------------------------------------------------------------------------------------            
+            nN = MAX_SAT;
+            check_on = 0;
+            check_off = 0;
+            check_pivot = 0;
+            check_cs = 0;
+            
+            plot_t = 1;
+            
+            
+            % per il nostro caso bisogna invertire i cicli.. ovvero per
+            % ogni t si fanno i tre ricevitori, e poi si passano a kalman
+            for i=1:nRec                
+                statistic = zeros(2,length(time_GPS)); % <-- VA DIMENSIONATO IN 3D!!!!?
+                ambiguity = 0;                         % <-- VA DIMENSIONATO IN 3D!!!!?
+                
+                pr1_R=goObs.getGNSSpr_R(ID_GNSS,0,i,0,1);    %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                ph1_R=goObs.getGNSSph_R(ID_GNSS,0,i,0,1);    %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                snr_R=goObs.getGNSSsnr_R(ID_GNSS,0,i,0,1);   %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                
+                progbar = progressBar(length(time_GPS),sprintf('Code+Phase DD MASTER - Receiver %d',i));
+                for t = 1 : length(time_GPS)
+                    progbar(t);
+                    if (mode_data == 0)
+                        Eph_t = rt_find_eph (Eph, time_GPS(t));
+                    else
+                        Eph_t = Eph(:,:,t);
+                    end                  
+
+                    goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+                    % funziona ma bisogna salvare le coordinate e il resto
+                    % NON in Xhat_t_t ma in una variabile locale per poi
+                    % proseguire con l'attitude e kalman
+                
+                
+                end
+                fprintf('\n');
+            end
+            
+            
+            
+            
+            keyboard
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             
             %tmp select the parameters you want to estimate
             KFmode = 5; % const.acceleration filter + attitude angles and variations

@@ -3,7 +3,7 @@
 % =========================================================================
 %
 % DESCRIPTION:
-%   Object to read and collect observation of multiple recevers
+%   Object to read and collect observation of multiple receivers
 %   (including master station)
 %
 % EXAMPLE:
