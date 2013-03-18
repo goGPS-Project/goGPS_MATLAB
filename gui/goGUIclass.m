@@ -378,13 +378,18 @@ classdef goGUIclass < handle
                 set(obj.goh.num_receivers,'String',str);
             end
             
-            set(obj.goh.com_select_0,'String', serialInfo.AvailableSerialPorts);
-            set(obj.goh.com_select_1,'String', serialInfo.AvailableSerialPorts);
-            set(obj.goh.com_select_2,'String', serialInfo.AvailableSerialPorts);
-            set(obj.goh.com_select_3,'String', serialInfo.AvailableSerialPorts);
+            availablePorts = serialInfo.AvailableSerialPorts;
+            if (isempty(availablePorts))
+                availablePorts = {'NA'};
+            end
+            
+            set(obj.goh.com_select_0,'String', availablePorts);
+            set(obj.goh.com_select_1,'String', availablePorts);
+            set(obj.goh.com_select_2,'String', availablePorts);
+            set(obj.goh.com_select_3,'String', availablePorts);
         end
 
-        % Fill the Dynamic Model pop-up (constant velocity, accelleration...)
+        % Fill the available ports pop-ups
         function [select_0 select_1 select_2 select_3] = getPortValues(obj, s0, s1, s2, s3)
             contents = get(obj.goh.com_select_0,'String');
             select_0 = 1; select_1 = 1; select_2 = 1; select_3 = 1;
@@ -433,7 +438,7 @@ classdef goGUIclass < handle
     methods (Access = 'private');
       
         % Set an id value for the each User Interface element
-        % This is the most iportant function containing the entire 
+        % This is the most important function containing the entire 
         % configuration of the interface.
         % To add an element in the interface (and to be able to manage it
         % from this object follow these steps:
@@ -448,7 +453,7 @@ classdef goGUIclass < handle
             
             % Rough pre-allocation
             id2h = zeros(160);	% rough estimation of the handle array size
-            					% at the end of the function i will contain the exact size
+            					% at the end of the function it will contain the exact size
 
             % Id naming convections:
             %  p    panels
@@ -589,7 +594,7 @@ classdef goGUIclass < handle
             % Group of ids in the panel pIOFiles
             idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.BinGoIn idG.GoOut idG.DTM idG.RefPath];
             
-            % For a correct LED management these following id gorups must be syncronized 
+            % For a correct LED management these following id groups must be synchronized 
             idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath];
             idG.gBinLED =  [id.fBinGoIn];
             idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fBinGoIn];
@@ -621,7 +626,7 @@ classdef goGUIclass < handle
             
             idG.StdE = [id.tStdE id.nStdE id.uStdE];
             
-            % Nord --------------------------------------------------------            
+            % North -------------------------------------------------------            
             i=i+1; id.tStdN         = i;    id2h(i) = obj.goh.text_std_Y;
             i=i+1; id.nStdN         = i;    id2h(i) = obj.goh.std_Y;
             i=i+1; id.uStdN         = i;    id2h(i) = obj.goh.text_std_Y_unit;
@@ -907,49 +912,51 @@ classdef goGUIclass < handle
                           
             % On Post Proc => Least Squares => Code Stand Alone
             idG.onPP_LS_C_SA = [idG.onPP_LS id.cPlotProc ...
-                               id.cUse_SBAS];
+                                id.cUse_SBAS];
             
             % On Post Proc => Least Squares => Code Double Differences
             idG.onPP_LS_C_DD = [idG.onPP_LS id.cPlotProc ...
-                              id.pMSt id.cMPos];
+                                id.pMSt id.cMPos];
                           
             % On Post Proc => Least Squares => Code and Phase Double Differencies with Lambda
             idG.onPP_LS_CP_DD_L = [idG.onPP_LS id.cPlotProc ...
-                              id.pMSt id.cMPos];
+                                   idG.StdCode idG.StdPhase ...
+                                   id.pMSt id.cMPos];
 
             % On Post Proc => Least Squares => Code and Phase Velocity estimation
             idG.onPP_LS_CP_Vel = idG.onPP_LS;
 
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc id.cPlotProc ...
-                           id.rRin ...
-                           id.pKF id.pEStD idG.pKF_ENU idG.StdCode idG.StdT0 id.bStdDTM ...
+                           id.rRin idG.pDynModel ...
+                           id.pKF id.pEStD idG.pKF_ENU idG.StdCode idG.StdT0 ...
                            idG.SNR idG.MaxNumSat];
                           
             % On Post Proc => On Kalman Filter => Code Stand Alone
             idG.onPP_KF_C_SA = [idG.onPP_KF id.rBin ...
                                id.cUse_SBAS];
             
-            % On Post Proc => On Kalman Filter => Code Double Differencies
+            % On Post Proc => On Kalman Filter => Code Double Differences
             idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin ...
                                id.pMSt id.cMPos];
 
             % On Post Proc => On Kalman Filter => Code and Phase Stand Alone
             idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin ...
-                                 id.cUse_SBAS];
+                                 idG.StdPhase idG.CS ...
+                                 id.cDoppler id.cUse_SBAS];
             
-            % On Post Proc => On Kalman Filter => Code and Phase Double Differencies
-            idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin ...
-                                 idG.StdPhase ...
+            % On Post Proc => On Kalman Filter => Code and Phase Double Differences
+            idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin id.cConstraint ...
+                                 idG.StdPhase id.bStdDTM ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
-                                 id.pMSt id.cMPos];
+                                 id.pMSt id.cMPos id.cDoppler];
 
-            % On Post Proc => On Kalman Filter => Code and Phase Double Differencies
+            % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             % => Multi Receivers Mode
             idG.onPP_KF_CP_DD_MR = [idG.onPP_KF ...
                                     idG.StdPhase ...
                                     idG.CS idG.StopGoStop idG.pARAA... 
-                                    id.pMSt id.cMPos];
+                                    id.pMSt id.cMPos id.cDoppler];
 
             % ---------------------------------------------------------------
           
@@ -1599,7 +1606,8 @@ classdef goGUIclass < handle
             % Reference path file
             isOn = obj.isActive(obj.idUI.cRefPath);
             obj.setElStatus([obj.idGroup.RefPath], isOn, 0);
-
+            obj.setElStatus([obj.idUI.cConstraint], isOn, 0);
+            
             % Plot while processing flag
             isOn = obj.isActive(obj.idUI.cPlotProc);
             obj.setElStatus([obj.idGroup.gPlotProc], isOn, 0);            
@@ -1752,7 +1760,7 @@ classdef goGUIclass < handle
                 obj.updateGUI();
             end
             
-            % I'm in post processinge and these popup menus are active
+            % I'm in post processing and these popup menus are active
             if sum(intersect(idEl, obj.idUI.lAlgType)) > 0
                 obj.initProcessingType();
                 obj.getFlag(obj.idUI.lProcType) = true;
