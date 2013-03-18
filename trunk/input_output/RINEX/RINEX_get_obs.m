@@ -80,6 +80,12 @@ function [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types,
     strObs = char(ones(14,nObsToRead)*32);
     
     for s = 1 : nSat
+        
+        %DEBUG
+        if (sat(s) > 32)
+            sat(s) = 32; %this happens only with SBAS; it's already fixed in the multi-constellation version
+        end
+        
         lin = char(lin*0+32); % clear line -> fill with spaces
         
         % read all the lines containing the observations needed
