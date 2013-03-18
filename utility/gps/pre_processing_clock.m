@@ -103,18 +103,10 @@ for i = 1 : nEpochs
         else
             if (i > 2)
                 dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
-                dtRdot(i-1) = (dtR(i) - dtR(i-1));
+                dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time_rx(i) - time_rx(i-1));
             end
         end
     end
-end
-
-%check if it is needed to correct observations for receiver clocks offsets
-% (some RINEX files contain clock-corrected observations, although they are
-%  not respecting the specifications); clock offsets lower than 1
-%  microsecond don't need to be corrected
-if (max(abs(dtR)) < 1e-6)
-    return
 end
 
 %----------------------------------------------------------------------------------------------
@@ -137,6 +129,14 @@ for i = 1 : length(disc)
 end
 
 dtRdot(end+1) = dtRdot(end);
+
+%check if it is needed to correct observations for receiver clocks offsets
+% (some RINEX files contain clock-corrected observations, although they are
+%  not respecting the specifications); clock offsets lower than 1
+%  microsecond don't need to be corrected
+if (max(abs(dtR)) < 1e-6)
+    return
+end
 
 %----------------------------------------------------------------------------------------------
 % OBSERVATION CORRECTION FOR CLOCK ERROR

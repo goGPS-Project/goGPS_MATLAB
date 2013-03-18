@@ -468,15 +468,6 @@ if goGNSS.isPP(mode) % post-processing
             fprintf('Warning: master position fixed to user-defined values:\n');
             fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
         end
-        
-%         if (flag_doppler_cs & sum(abs(dop1_M(:,1))) == 0)
-%             %compute master station clock error and drift
-%             fprintf('Computing master station clock error and drift (needed to compute Doppler shift)...\n');
-%             [~, ~, ~, ~, dtM, dtMdot] = pre_processing_clock(time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
-%         else
-%             dtM = zeros(size(dop1_M,2),1);
-%             dtMdot = zeros(size(dop1_M,2),1);
-%         end
 
         %if master station data are not available
         if (~any(pr1_M(:)))
@@ -1689,13 +1680,13 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         %if LAMBDA
         if (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             stat_SC(:,i) = [statistic(1,i); statistic(2,i)];
-    end
+        end
         %if relative positioning (i.e. with master station)
         if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
             pos_REF(:,i) = [pos_M(1,i); pos_M(2,i); pos_M(3,i)];
         else
             pos_REF(:,i) = pos_KAL(:,1);
-end
+        end
         estim_amb(:,i) = Xhat_t_t(o1+1:o1+32,i);
         sigma_amb(:,i) = sqrt(diag(Cee(o1+1:o1+32,o1+1:o1+32,i)));
     end
