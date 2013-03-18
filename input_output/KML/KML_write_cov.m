@@ -175,7 +175,7 @@ fprintf(fkml, '\t\t</Style>\n');
 fprintf(fkml, '\t\t<Style id="ellipse">\n');
 fprintf(fkml, '\t\t\t<LineStyle>\n');
 fprintf(fkml, '\t\t\t<color>ff0000ff</color>\n');
-fprintf(fkml, '\t\t\t<width>20</width>\n');
+fprintf(fkml, '\t\t\t<width>2</width>\n');
 fprintf(fkml, '\t\t\t</LineStyle>\n');
 fprintf(fkml, '\t\t\t<PolyStyle>\n');
 fprintf(fkml, '\t\t\t<color>330000ff</color>\n');
