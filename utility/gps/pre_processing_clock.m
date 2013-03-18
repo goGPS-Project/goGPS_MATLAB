@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time_rx, XR0, pr1, ph1, pr2, ph2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time_rx, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time_rx, XR0, pr1, ph1, pr2, ph2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time_rx, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono);
 %
 % INPUT:
 %   time_GPS = GPS reference time
@@ -11,6 +11,8 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time
 %   ph1 = phase observation (L1 carrier)
 %   pr2 = code observation (L2 carrier)
 %   ph2 = phase observation (L2 carrier)
+%   dop1 = Doppler observation (L1 carrier)
+%   dop2 = Doppler observation (L2 carrier)
 %   snr1 = signal-to-noise ratio
 %   Eph = matrix containing 31 ephemerides for each satellite
 %   SP3_time = precise ephemeris time
@@ -50,7 +52,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light lambda1 lambda2
+global v_light f1 f2 lambda1 lambda2
 global cutoff snr_threshold
 
 %number of epochs
@@ -144,8 +146,8 @@ end
 
 %two types of corrections (as in http://www.navcen.uscg.gov/?pageName=RINEX):
 % 1. "frequency correction" c*dtR
-% 2. "receiver-satellite dynamics correction" by interpolating observations
-%    on the time tag corrected by dtR)
+% 2. "receiver-satellite dynamics correction" by using Doppler if available,
+%     otherwise by interpolating observations on the time tag corrected by dtR
 
 %available epochs
 index_e = find(time_rx ~= 0);
@@ -163,7 +165,11 @@ for s = 1 : 32
         index = intersect(index_e,index_s);
         
         pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
-        pr1(s,index) = interp1(time_rx(index), pr1(s,index), time_GPS(index), 'spline');
+%         if (any(dop1(s,index)))
+%             pr1(s,index) = pr1(s,index) + (time_GPS(index) - time_rx(index))'.*(f1 - dop1(s,index))*lambda1;
+%         else
+            pr1(s,index) = interp1(time_rx(index), pr1(s,index), time_GPS(index), 'spline');
+%         end
     end
     
     if (any(pr2(s,:)))
@@ -172,7 +178,11 @@ for s = 1 : 32
         index = intersect(index_e,index_s);
         
         pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
-        pr2(s,index) = interp1(time_rx(index), pr2(s,index), time_GPS(index), 'spline');
+%         if (any(dop2(s,index)))
+%             pr2(s,index) = pr2(s,index) + (time_GPS(index) - time_rx(index))'.*(f2 - dop2(s,index))*lambda2;
+%         else
+            pr2(s,index) = interp1(time_rx(index), pr2(s,index), time_GPS(index), 'spline');
+%         end
     end
     
     if (any(ph1(s,:)))
@@ -181,7 +191,11 @@ for s = 1 : 32
         index = intersect(index_e,index_s);
         
         ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda1;
-        ph1(s,index) = interp1(time_rx(index), ph1(s,index), time_GPS(index), 'spline');
+%         if (any(dop1(s,index)))
+%             ph1(s,index) = ph1(s,index) + (time_GPS(index) - time_rx(index))'.*(f1 - dop1(s,index));
+%         else
+            ph1(s,index) = interp1(time_rx(index), ph1(s,index), time_GPS(index), 'spline');
+%         end
     end
     
     if (any(ph2(s,:)))
@@ -190,6 +204,10 @@ for s = 1 : 32
         index = intersect(index_e,index_s);
         
         ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda2;
-        ph2(s,index) = interp1(time_rx(index), ph2(s,index), time_GPS(index), 'spline');
+%         if (any(dop2(s,index)))
+%             ph2(s,index) = ph2(s,index) + (time_GPS(index) - time_rx(index))'.*(f2 - dop2(s,index));
+%         else
+            ph2(s,index) = interp1(time_rx(index), ph2(s,index), time_GPS(index), 'spline');
+%         end
     end
 end
