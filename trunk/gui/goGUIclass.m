@@ -378,7 +378,11 @@ classdef goGUIclass < handle
                 set(obj.goh.num_receivers,'String',str);
             end
             
-            availablePorts = serialInfo.AvailableSerialPorts;
+            availablePorts = [];
+            try
+                availablePorts = serialInfo.AvailableSerialPorts;
+            catch e
+            end
             if (isempty(availablePorts))
                 availablePorts = {'NA'};
             end
