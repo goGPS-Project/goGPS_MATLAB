@@ -1,9 +1,9 @@
 function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase ...
-    (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase)
+         (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_Tykhon)
 
 % SYNTAX:
 %   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase ...
-%   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
+%   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_Tykhon);
 %
 % INPUT:
 %   XR_approx   = receiver approximate position (X,Y,Z)
@@ -21,8 +21,9 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posTyp
 %   err_tropo_M = tropospheric error
 %   err_iono_R  = ionospheric error
 %   err_iono_M  = ionospheric error
-%   pivot_index  = index identifying the pivot satellite
+%   pivot_index = index identifying the pivot satellite
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   flag_Tykhon = flag to enable/disable Tykhonov-Phillips regularization
 %
 % OUTPUT:
 %   XR = estimated position (X,Y,Z)
@@ -35,7 +36,7 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posTyp
 %
 % DESCRIPTION:
 %   Least squares solution using code and phase double differences.
-%   Epoch-by-epoch solution.
+%   Epoch-by-epoch solution, optionally with Tykhonov-Phillips regularization.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -67,6 +68,10 @@ if (phase == 1)
     lambda = lambda1;
 else
     lambda = lambda2;
+end
+
+if (nargin < 18)
+    flag_Tykhon = 0;
 end
 
 %number of observations
@@ -124,9 +129,28 @@ N = (A'*(Q^-1)*A);
 %least squares solution
 x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
 
+if (flag_Tykhon)
+    %Processing with Tykhonov-Phillips regularization
+    [x_hat, bias, lbd] = tykhonov_regularization(x_hat, y0, b, A, Q);
+    
+    %computation of the condition number on the eigenvalues of N
+    N_min_eig = min(eig(N + lbd*eye(m)));
+    N_max_eig = max(eig(N + lbd*eye(m)));
+    cond_num = ceil(log10(N_max_eig / N_min_eig));
+else
+    %computation of the condition number on the eigenvalues of N
+    N_min_eig = min(eig(N));
+    N_max_eig = max(eig(N));
+    cond_num = ceil(log10(N_max_eig / N_min_eig));
+end
+
 %covariance matrix of the estimation error
 if (n > m)
-    Qxx = (N^-1);   %vcm of parameter computed from inverse of normal matrix
+    if (~flag_Tykhon)
+        Qxx = (N^-1);   %vcm of parameter computed from inverse of normal matrix
+    else
+        Qxx = ((N + lbd*eye(m))^-1)*N*((N + lbd*eye(m))^-1); %vcm of parameter
+    end
     [U] = chol(Qxx);    %compute cholesky decomp. for identical comp of vcm purpose
     Cxx = U'*U; %find back the vcm of parameter, now the off diag. comp. are identical :)
     
@@ -153,15 +177,19 @@ if (n > m)
     O2 = (afl - afix(:,2))' * (Caa)^-1 * (afl - afix(:,2)); %denominator component
     O  = O1 / O2; %ratio test
     
-    if O <= 0.5%0.787%0.6 %if below treshold, use the LAMBDA result
+    if O <= 0.5%0.787%0.6    %if below threshold, use the LAMBDA result
         z = afix(:,1);
         posType = 1; %fixed
-    elseif O > 0.5%0.787%0.6 %above treshold, reject the LAMBDA result
+    else                     %if above threshold, reject the LAMBDA result
         z = afl;
         posType = 0; %float
     end
-
-    bias = check_bias(D); %no bias detected
+    
+    if (~flag_Tykhon)
+        bias = check_bias(D); %no bias detected
+    else
+        bias = check_bias(D,bias(4:end)); %use bias component from ambiguity
+    end
     [up_bound, lo_bound] = success_rate(D,L,bias); %compute success rate of ambiguity
     
     %Computing definite coordinate
@@ -170,9 +198,9 @@ if (n > m)
     bdef   = bfl - Cba * Caa^-1 * (afl - z); %compute the conditional baseline component
     cov_XR = Cbb - (Cba * Caa^-1 * Cab) + (Cba * Caa^-1*Qahat*(Caa^-1)'*Cab); %compute its vcm
     XR     = (XR_approx + bdef); %define the definitive coordinate
-    std    = sqrt(diag(cov_XR)); %standard deviation of baseline
-    bl     = norm(XM - XR); %baseline length
-
+    %std    = sqrt(diag(cov_XR)); %standard deviation of baseline
+    %bl     = norm(XM - XR); %baseline length
+    
     %estimated double difference ambiguities (without PIVOT)
     N_hat_nopivot = z;
     
