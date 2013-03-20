@@ -1492,7 +1492,19 @@ if (inputOk)
             end
             
             
-           
+            %tmp select the parameters you want to estimate
+            KFmode = 5; % const.acceleration filter + attitude angles and variations
+            goKF = goKalmanFilter(goObs, goIni, KFmode, goObs.getSamplingRate_R(1));
+            goKF.init(goObs);                        
+            
+            
+            
+            return
+            
+            
+            
+            
+            
             % pre-preprocessing (is done on all the epochs!) 
             % ----------------------------------------------
             %  - for the master receiver:
@@ -1563,8 +1575,7 @@ if (inputOk)
             dtR=NaN(length(time_M),1,nRec);
             dtRdot=NaN(length(time_M),1,nRec);
             
-            % rover receivers: preprocessing
-            % ------------------------------
+
             for i=1:nRec
                 time_R(:,1,i)=goObs.getTime_R(i); %time = getTime_R(obj, idRec)
                 pos_R =[];
@@ -1651,8 +1662,10 @@ if (inputOk)
             pitch=[];
             yaw=[];
             
-            for t = 1 : length(time_GPS)
-            %for t = 1 : 1
+            Xb_tot=[];
+            
+            %for t = 1 : length(time_GPS)
+            for t = 1 : 1
                 progbar(t);
                 if (mode_data == 0)
                     Eph_t = rt_find_eph (Eph, time_GPS(t));
@@ -1679,6 +1692,11 @@ if (inputOk)
                 % global XYZ and geographic coordinates of barycenter
                 Xb_apriori=mean([XR_DD(:,t,1), XR_DD(:,t,2),XR_DD(:,t,3)],2);
                 [phi_b_apriori, lam_b_apriori, h_b_apriori] = cart2geod(Xb_apriori(1), Xb_apriori(2), Xb_apriori(3));
+                
+                
+                Xb_tot=[Xb_tot;phi_b_apriori/180*pi,lam_b_apriori/180*pi,h_b_apriori];
+                
+                
                 
                 % rotation matrix from local to global coordinates,
                 % centered into the receiver barycenter
@@ -1716,6 +1734,8 @@ if (inputOk)
                 end
                 
                 euler_parameters=inv(A'*A)*A'*y0;
+
+                
                 roll_approx=mod(atan2(euler_parameters(8),euler_parameters(9)),2*pi);
                 yaw_approx=mod(atan2(-cos(roll_approx)*euler_parameters(2)+sin(roll_approx)*euler_parameters(3) , cos(roll_approx)*euler_parameters(5)-sin(roll_approx)*euler_parameters(6)),2*pi);
                 pitch_approx=mod(atan2(-euler_parameters(7),sin(roll_approx)*euler_parameters(8)+cos(roll_approx)*euler_parameters(9)),2*pi);
@@ -1723,6 +1743,13 @@ if (inputOk)
                 roll(t)=roll_approx/pi*180;
                 yaw(t)=yaw_approx/pi*180;
                 pitch(t)=pitch_approx/pi*180;
+                
+                
+                
+                
+                
+                
+                
                 
                 
                 

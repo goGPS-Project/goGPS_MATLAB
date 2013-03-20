@@ -180,6 +180,23 @@ classdef goGNSS < handle
             XR = b(1:3);
             dtR = b(4)/goGNSS.V_LIGHT;
         end
+    
+        
+        function chiamalacomevuoi(goObs, goIni)
+            
+            keyboard
+            
+            
+            
+            
+            
+        end
+        
+        
+        
+        
+        
+        
         
         function [X, dt, usableSat, satCoord, cov_X, var_dt, PDOP, HDOP, VDOP, cond_num] = LS_MR_C_SA(goObs, goIni)
 
