@@ -186,6 +186,225 @@ classdef goGNSS < handle
             
             keyboard
             
+            ID_GNSS=1; % <- must be taken from the object!
+            
+            nRec=goObs.getNumRec();
+            
+            time_GPS=goObs.getTime_Ref();
+            
+            nFreq=goObs.getGNSSnFreq(ID_GNSS);
+            Eph=goObs.getGNSSeph(ID_GNSS);
+            iono=goObs.getIono();
+            SP3_time=goObs.getGNSS_SP3time();
+            SP3_coor=goObs.getGNSS_SP3coordinates();
+            SP3_clck=goObs.getGNSS_SP3clock();
+            
+            % master receiver: preprocessing
+            % ------------------------------
+            time_M=goObs.getTime_M();
+            [pos_M flag_M]= goObs.getPos_M(0);
+            
+            pr1_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+            ph1_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+            snr_M=goObs.getGNSSsnr_M(ID_GNSS, 0, 0, 1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
+            dop1_M=goObs.getGNSSdop_M(ID_GNSS, 0, 0, 1); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+            
+            
+            pr2_M=zeros(size(pr1_M));
+            ph2_M=zeros(size(pr1_M));
+            dop2_M=zeros(size(pr1_M));
+            if nFreq==2
+                pr2_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+                ph2_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+                dop2_M=goObs.getGNSSdop_M(ID_GNSS, 0, 0, 2); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+            end
+            
+            fprintf('Master station ');
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, ...
+                pr2_M, ph2_M, snr_M, dop1_M, dop2_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            fprintf('\n');
+            % ------------------------------
+            
+            time_R=zeros(length(time_M),1,nRec);
+            pr1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            ph1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            snr_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            dop1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            pr2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            ph2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            dop2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            
+            
+            dtR=NaN(length(time_M),1,nRec);
+            dtRdot=NaN(length(time_M),1,nRec);
+            
+            
+            for i=1:nRec
+                time_R(:,1,i)=goObs.getTime_R(i); %time = getTime_R(obj, idRec)
+                pos_R =[];
+                pr1_R(:,:,i)=goObs.getGNSSpr_R(ID_GNSS,0,i,0,1);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                ph1_R(:,:,i)=goObs.getGNSSph_R(ID_GNSS,0,i,0,1);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                snr_R(:,:,i)=goObs.getGNSSsnr_R(ID_GNSS,0,i,0,1);      %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                dop1_R(:,:,i)=goObs.getGNSSdop_R(ID_GNSS, 0, i, 0, 1); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                
+                if nFreq==2
+                    pr2_R(:,:,i)=goObs.getGNSSpr_R(ID_GNSS,0,i,0,2);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                    ph2_R(:,:,i)=goObs.getGNSSph_R(ID_GNSS,0,i,0,2);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                    dop2_R(:,:,i)=goObs.getGNSSdop_R(ID_GNSS, 0, i, 0, 2); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                end
+                
+                fprintf('Rover #%d ',i);
+                [pr1_R(:,:,i), ph1_R(:,:,i), pr2_R(:,:,i), ph2_R(:,:,i), dtR(:,:,i), dtRdot(:,:,i)] = pre_processing_clock(time_GPS, time_R(:,1,i), pos_R, pr1_R(:,:,i), ph1_R(:,:,i), ...
+                    pr2_R(:,:,i), ph2_R(:,:,i), snr_R(:,:,i), dop1_R(:,:,i), dop2_R(:,:,i), Eph, SP3_time, SP3_coor, SP3_clck, iono);
+                fprintf('\n');
+                
+                %--> come modifico il contenuto globale di %%goObs.getGNSSpr_R(ID_GNSS,0,i,0,1) ????
+                %--> perchè non mi tengo già le coordinate dei rover che escono da qui come valori a priori,
+                %    invece di farle con bancroft ancora dopo?
+                
+                
+            end
+            
+            
+            
+            %  QUESTO VA FATTO ADESSO? PENSO DI SI'
+            %if (~flag_SP3)  <-- sistemare il flag_SP3 prendenolo dall'obj
+                %remove satellites without ephemerides (GPS)
+                delsat = setdiff(1:32,unique(Eph(1,:)));
+                pr1_R(delsat,:,:) = 0;
+                pr1_M(delsat,:,:) = 0;
+                pr2_R(delsat,:,:) = 0;
+                pr2_M(delsat,:,:) = 0;
+                ph1_R(delsat,:,:) = 0;
+                ph1_M(delsat,:,:) = 0;
+                ph2_R(delsat,:,:) = 0;
+                ph2_M(delsat,:,:) = 0;
+                dop1_R(delsat,:,:) = 0;
+                dop1_M(delsat,:,:) = 0;
+                dop2_R(delsat,:,:) = 0;
+                dop2_M(delsat,:,:) = 0;
+                snr_R(delsat,:,:) = 0;
+                snr_M(delsat,:,:) = 0;
+            %end
+            
+            
+            
+            % Processing
+            % ----------
+            %  - for each rover receiver:
+            %       - enhance coordinates with code and phase DD in single
+            %         epoch (lambda)
+            %  - estimation of apriori attitude
+            %  - enhance solution with constrained least squares (DD in
+            %         single epoch (lambda))
+            
+            
+            
+            
+            % instrumental RS coordinates
+            % ---------------------------
+            % get geometry
+            [geometry ev_point]=goIni.getGeometry();
+            
+            % barycenter definition
+            xb=mean(geometry,2);
+            % barycentric instrumental RS coordinates
+            xR=geometry-repmat(xb,1,nRec);
+            
+            
+            
+            % for each rover receiver: enhance coordinates with code and phase DD in single epoch (lambda)
+            % --------------------------------------------------------------------------------------------
+            
+            % cosa sono???
+            check_on = 0;
+            check_off = 0;
+            check_pivot = 0;
+            check_cs = 0;            
+            plot_t = 1;
+            %
+            
+
+            XR_DD=NaN(3,1,nRec);
+            
+            roll_approx=[];
+            pitch_approx=[];
+            yaw_approx=[];
+            
+                                   
+            global Xhat_t_t  % forse conviene aggiungere output alla funzione goGPS_LS_DD_code_phase
+            
+            for t = 1 : 1
+                Eph_t = Eph(:,:,t);
+                
+                for i=1:nRec
+                    statistic = zeros(2,length(time_GPS)); % <-- VA DIMENSIONATO IN 3D!!!!?
+                    ambiguity = 0;                         % <-- VA DIMENSIONATO IN 3D!!!!?
+                    
+                    goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t,i), pr1_M(:,t), pr2_R(:,t,i), pr2_M(:,t), ph1_R(:,t,i), ph1_M(:,t), ph2_R(:,t,i), ph2_M(:,t), snr_R(:,t,i), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+                    
+                    XR_DD(1,t,i)=Xhat_t_t(1);
+                    XR_DD(2,t,i)=Xhat_t_t(3);
+                    XR_DD(3,t,i)=Xhat_t_t(5);
+                    
+                end
+                
+                
+                % computing apriori attitude
+                % --------------------------
+                
+                % global XYZ and geographic coordinates of barycenter
+                Xb_apriori=mean([XR_DD(:,t,1), XR_DD(:,t,2),XR_DD(:,t,3)],2);
+                [phi_b_apriori, lam_b_apriori, h_b_apriori] = cart2geod(Xb_apriori(1), Xb_apriori(2), Xb_apriori(3));
+
+                
+                % rotation matrix from local to global coordinates,
+                % centered into the receiver barycenter
+                R1t=[-sin(lam_b_apriori) cos(lam_b_apriori) 0; ...
+                    -sin(phi_b_apriori)*cos(lam_b_apriori) -sin(phi_b_apriori)*sin(lam_b_apriori) cos(phi_b_apriori); ...
+                    cos(phi_b_apriori)*cos(lam_b_apriori) cos(phi_b_apriori)*sin(lam_b_apriori) sin(phi_b_apriori)];
+                
+                
+                % compute local East-North-Up coordinates from XYZ obtained
+                % from CODE+PHASE DD
+                XRl_apriori=NaN(3,nRec);
+                for i=1:nRec
+                    XRl_apriori(1:3,i)=R1t*(XR_DD(1:3,t,i)-Xb_apriori);
+                end
+                
+
+                
+                % compute Euler parameters of the rotation from local to
+                % instrumental RF
+                % xR=Rt*XRl -> where Rt is a 3x3 rotation matrix containing
+                % the Euler parameters r11, r21, r31 ; r12 ... (it's
+                % transposed)
+                y0=xR(:);
+                A=NaN(nRec*3,9);
+                for i=1:nRec
+                    A((i-1)*3+1:i*3,1:9)=[XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i) 0 0 0 0 0 0 ; ...
+                        0 0 0 XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i) 0 0 0 ; ...
+                        0 0 0 0 0 0 XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i)];
+                end
+                
+                euler_parameters=inv(A'*A)*A'*y0;
+               
+                %Cxx_euler=(y0-A*euler_parameters)'*(y0-A*euler_parameters)/(size(A,1)-size(A,2)+1)*(inv(A'*A));
+                % non c'è ridondanza e il condizionamento di N è uno schifo
+                
+                
+                roll_approx=mod(atan2(euler_parameters(8),euler_parameters(9)),2*pi);
+                yaw_approx=mod(atan2(-cos(roll_approx)*euler_parameters(2)+sin(roll_approx)*euler_parameters(3) , cos(roll_approx)*euler_parameters(5)-sin(roll_approx)*euler_parameters(6)),2*pi);
+                pitch_approx=mod(atan2(-euler_parameters(7),sin(roll_approx)*euler_parameters(8)+cos(roll_approx)*euler_parameters(9)),2*pi);
+             
+                
+            end
+
+            
+            
+            
+            
+            
             
             
             

@@ -583,17 +583,21 @@ classdef goKalmanFilter < handle
                 yaw(t)=yaw_approx/pi*180;
                 pitch(t)=pitch_approx/pi*180;
                 
-                
-                
             end
             
             
-            %% MI FAI TIRARE SU
+            keyboard
+            
+            
+            
+            
+            
+
             %--------------------------------------------------------------------------------------------
             % KALMAN FILTER INITIAL STATE
             %--------------------------------------------------------------------------------------------
 
-            [X, dt, usableSat, satCoord, cov_X, var_dt, PDOP, HDOP, VDOP, cond_num] = goGNSS.LS_MR_C_SA(goObs, goIni);
+            %[X, dt, usableSat, satCoord, cov_X, var_dt, PDOP, HDOP, VDOP, cond_num] = goGNSS.LS_MR_C_SA(goObs, goIni);
             
             %--------------------------------------------------------------------------------------------
             % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
