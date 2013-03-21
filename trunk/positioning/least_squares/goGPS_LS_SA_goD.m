@@ -267,7 +267,7 @@ sigma2_XR = diag(cov_XR);
 
 %initialization of the initial point with 6(positions and velocities) +
 %32 or 64 (N combinations) variables
-Xhat_t_t = [XR(1);sigma2_XR(1);  XR(2);sigma2_XR(2);  XR(3);sigma2_XR(3) ];
+Xhat_t_t = [XR(1);sigma2_XR(1);  XR(2);sigma2_XR(2);  XR(3);sigma2_XR(3); (XR_t0(1)+XR_t1(1))./2;(XR_t0(2)+XR_t1(2))./2;(XR_t0(3)+XR_t1(3))./2 ];
 
 %--------------------------------------------------------------------------------------------
 % INITIAL STATE COVARIANCE MATRIX

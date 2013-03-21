@@ -206,6 +206,8 @@ if goGNSS.isPP(mode) % post-processing
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, week_R, week_M, date_R, date_M, pos_R, pos_M, Eph, iono, Eph_RR, interval] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav);
+             fprintf('Pre-processing rover observations...\n');
+             [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
 
         else %relative positioning
 
@@ -787,8 +789,9 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     stepUpdate = 15; 
     goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
     goWB.titleUpdate('Variometric approach running...');
-    for tExt = 1:stepUpdate:length(time_GPS)-(time_step)
-        for t = tExt:min(tExt+stepUpdate,length(time_GPS)-(time_step))
+    ind=0;
+    for tExt = 1:stepUpdate:(length(time_GPS)-(time_step))
+        for t = tExt:min(tExt+stepUpdate-1,length(time_GPS)-(time_step))
             if (mode_data == 0)
                 Eph_t = rt_find_eph (Eph, time_GPS(t));
                 Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step));
@@ -798,11 +801,13 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             end
             
             goGPS_LS_SA_goD(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, sbas, 1,time_step);
-            Xhat_t_t=Xhat_t_t./(interval.*time_step);
+            Xhat_t_t(1:6)=-Xhat_t_t(1:6)./(interval.*time_step);
             if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
                 Xhat_t_t_dummy = [Xhat_t_t];
+                ind=ind+1;
+                vel_pos(ind,:)=Xhat_t_t;
                 Cee_dummy = Cee;
-                fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n', Xhat_t_t );
+                %         fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n', Xhat_t_t );
                 fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
                 fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
@@ -828,6 +833,29 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         end
         goWB.goTime(tExt/stepUpdate);
     end
+    goDX=cumsum(vel_pos(:,1)).*(interval.*time_step);
+    goDY=cumsum(vel_pos(:,3)).*(interval.*time_step);
+    goDZ=cumsum(vel_pos(:,5)).*(interval.*time_step);
+    goDX=goDX-mean(goDX)+mean(vel_pos(:,7));
+    goDY=goDY-mean(goDY)+mean(vel_pos(:,8));
+    goDZ=goDZ-mean(goDZ)+mean(vel_pos(:,9));
+    %goDX=goDX-goDX(1)+(vel_pos(1,7));
+    %goDY=goDY-goDY(1)+(vel_pos(1,8));
+    %goDZ=goDZ-goDZ(1)+(vel_pos(1,9));
+    [phiX, lamX, hX] = cart2geod(goDX,goDY,goDZ);
+    vel_pos(:,7)=goDX;
+    vel_pos(:,8)=goDY;
+    vel_pos(:,9)=goDZ;
+    vel_pos(:,10)=phiX.*180/pi;
+    vel_pos(:,11)=lamX.*180/pi;
+    vel_pos(:,12)=hX;
+    for epo=1:length(goDX)
+        [vENU(epo,:) ] = global2localVel(vel_pos(epo,1:2:6)', [phiX(epo), lamX(epo)]'.*180/pi);
+        velpos(epo,:)=[vel_pos(epo,:), vENU(epo,:), time_GPS(epo)];
+        
+        fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f \n',velpos(epo,:));
+    end
+    
     goWB.close();
     
     fclose(fid_kal);
