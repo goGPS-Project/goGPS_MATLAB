@@ -124,7 +124,7 @@ sigma2_N = zeros(nN,1);
 if (size(sat,1) >= 4)
     
     sat_pr_old = sat_pr;
-    
+     
     if (phase == 1)
 
         [XR_t0, dtR_t0, XS_t0, dtS_t0, XS_tx_t0, VS_tx_t0, time_tx_t0, err_tropo_t0, err_iono_t0, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR_t0, var_dtR_t, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t0, pr1_t0(sat_pr), snr_t0(sat_pr), Eph_t0, SP3_time_t0, SP3_coor_t0, SP3_clck_t0, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
@@ -141,7 +141,13 @@ if (size(sat,1) >= 4)
   
         
     if length(sat_pr_t0)~=length(sat_pr_t1)
-         sat_pr = intersect(sat_pr_t0,sat_pr_t1);    
+       % sat_pr_t0
+       % sat_pr_t1
+        sat_pr = intersect(sat_pr_t0,sat_pr_t1); 
+        if size(sat_pr,1) <= 4
+                 Xhat_t_t = [0;9999;  0;9999; 0;9999; 0;0;0];
+            return
+        end
         [XR_t0, dtR_t0, XS_t0, dtS_t0, XS_tx_t0, VS_tx_t0, time_tx_t0, err_tropo_t0, err_iono_t0, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR_t0, var_dtR_t, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t0, pr1_t0(sat_pr), snr_t0(sat_pr), Eph_t0, SP3_time_t0, SP3_coor_t0, SP3_clck_t0, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
         distR_t0(sat_pr)=distR(sat_pr);
         [XR_t1, dtR_t1, XS_t1, dtS_t1, XS_tx_t1, VS_tx_t1, time_tx_t1, err_tropo_t1, err_iono_t1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR_t1, var_dtR_t1, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t1, pr1_t1(sat_pr), snr_t1(sat_pr), Eph_t0, SP3_time_t1, SP3_coor_t1, SP3_clck_t1, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
@@ -172,23 +178,27 @@ if (size(sat,1) >= 4)
     
     %if less than 4 satellites are available after the cutoffs, or if the 
     % condition number in the least squares exceeds the threshold
-    if (size(sat,1) < 4 | cond_num > cond_num_threshold)
+    if (size(sat,1) < 4 || cond_num > cond_num_threshold)
 
-        if (~isempty(Xhat_t_t))
-            XR = Xhat_t_t([1,o1+1,o2+1]);
-            pivot = 0;
-        else
+       % if (~isempty(Xhat_t_t))
+       %     XR_t0 = Xhat_t_t([1,o1+1,o2+1]);
+       %     pivot = 0;
+       % else
+       
+            Xhat_t_t = [0;9999;  0;9999; 0;9999; 0;0;0];
             return
-        end
+        %end
     end
 else
-    if (~isempty(Xhat_t_t))
-        XR = Xhat_t_t([1,o1+1,o2+1]);
-        pivot = 0;
-    else
-        return
+   % if (~isempty(Xhat_t_t))
+   %     XR_t0 = Xhat_t_t([1,o1+1,o2+1]);
+   %     pivot = 0;
+   % else
+   sat
+          Xhat_t_t = [0;9999;  0;9999; 0;9999; 0;0;0];
+     return
     end
-end
+
 
 if isempty(cov_XR) %if it was not possible to compute the covariance matrix
     cov_XR = sigmaq0 * eye(3);
