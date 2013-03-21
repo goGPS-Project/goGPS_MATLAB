@@ -206,8 +206,8 @@ if goGNSS.isPP(mode) % post-processing
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, week_R, week_M, date_R, date_M, pos_R, pos_M, Eph, iono, Eph_RR, interval] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav);
-             fprintf('Pre-processing rover observations...\n');
-             [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+             %fprintf('Pre-processing rover observations...\n');
+             %[pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
 
         else %relative positioning
 
@@ -836,9 +836,39 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     goDX=cumsum(vel_pos(:,1)).*(interval.*time_step);
     goDY=cumsum(vel_pos(:,3)).*(interval.*time_step);
     goDZ=cumsum(vel_pos(:,5)).*(interval.*time_step);
-    goDX=goDX-mean(goDX)+mean(vel_pos(:,7));
-    goDY=goDY-mean(goDY)+mean(vel_pos(:,8));
-    goDZ=goDZ-mean(goDZ)+mean(vel_pos(:,9));
+    %jumps=0.*goDX;
+    jumps=(find(vel_pos(:,2)==-9999));
+    jumps=[0; jumps; length(goDX)-1];
+    mX = zeros(length(jumps)-1,1);
+    mY = zeros(length(jumps)-1,1);
+    mZ = zeros(length(jumps)-1,1);
+    lastX=0;
+    lastY=0;
+    lastZ=0;
+    for epo=1:length(jumps)-1;
+        if (jumps(epo+1)-jumps(epo))~=1;             
+        mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
+        mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
+        mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
+        lastX = goDX(jumps(epo)+1:jumps(epo+1)-1) - mean(goDX(jumps(epo)+1:jumps(epo+1)-1)) + mX(epo);
+        lastY = goDY(jumps(epo)+1:jumps(epo+1)-1) - mean(goDY(jumps(epo)+1:jumps(epo+1)-1)) + mY(epo);
+        lastZ = goDZ(jumps(epo)+1:jumps(epo+1)-1) - mean(goDZ(jumps(epo)+1:jumps(epo+1)-1)) + mZ(epo);
+        goDX(jumps(epo)+1:jumps(epo+1)-1)= lastX;
+        goDY(jumps(epo)+1:jumps(epo+1)-1)= lastY;
+        goDZ(jumps(epo)+1:jumps(epo+1)-1)= lastZ;
+        else
+            mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
+            mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
+            mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
+            goDX(jumps(epo)) = lastX(end);
+            goDY(jumps(epo)) = lastY(end);
+            goDZ(jumps(epo)) = lastZ(end);
+        end
+    end
+    flag = find(diff(goDX) > 100);
+    goDX(flag)=goDX(flag-1);
+    goDY(flag)=goDY(flag-1);
+    goDZ(flag)=goDZ(flag-1);
     %goDX=goDX-goDX(1)+(vel_pos(1,7));
     %goDY=goDY-goDY(1)+(vel_pos(1,8));
     %goDZ=goDZ-goDZ(1)+(vel_pos(1,9));
@@ -850,6 +880,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     vel_pos(:,11)=lamX.*180/pi;
     vel_pos(:,12)=hX;
     for epo=1:length(goDX)
+        
         [vENU(epo,:) ] = global2localVel(vel_pos(epo,1:2:6)', [phiX(epo), lamX(epo)]'.*180/pi);
         velpos(epo,:)=[vel_pos(epo,:), vENU(epo,:), time_GPS(epo)];
         
