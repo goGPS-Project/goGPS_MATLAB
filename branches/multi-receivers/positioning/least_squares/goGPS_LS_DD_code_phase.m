@@ -183,7 +183,6 @@ if isempty(cov_XR) %if it was not possible to compute the covariance matrix
 end
 sigma2_XR = diag(cov_XR);
 
-
 %--------------------------------------------------------------------------------------------
 % GOGPS OUTPUT SAVING
 %--------------------------------------------------------------------------------------------
