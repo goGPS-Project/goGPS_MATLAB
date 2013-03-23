@@ -373,9 +373,10 @@ if (~isempty(data_rover_all))
         snr_threshold = 0;
         weights = 0;
         i = 1;
-        %try to compute an approximate position; if still no luck by the
-        %100th epoch, give up
-        while (sum(abs((pos_R))) == 0 & i <= 100)
+        %try to compute an approximate position; if still no luck by the 100th epoch
+        %(or by the total number of available epochs, whichever comes first), give up
+        epoch_limit = min(length(time_R), 100);
+        while (sum(abs((pos_R))) == 0 & i <= epoch_limit)
             satObs = find(pr1_R(:,i) ~= 0);
             Eph_t = rt_find_eph (Eph_R, time_R(i));
             satEph = find(Eph_t(1,:) ~= 0);
