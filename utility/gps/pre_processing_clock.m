@@ -165,11 +165,11 @@ for s = 1 : 32
         index = intersect(index_e,index_s);
         
         pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
-%         if (any(dop1(s,index)))
-%             pr1(s,index) = pr1(s,index) + (time_GPS(index) - time_rx(index))'.*(f1 - dop1(s,index))*lambda1;
-%         else
+        if (any(dop1(s,index)))
+            pr1(s,index) = pr1(s,index) + (time_GPS(index) - time_rx(index))'.*(f1 - dop1(s,index))*lambda1;
+        else
             pr1(s,index) = interp1(time_rx(index), pr1(s,index), time_GPS(index), 'spline');
-%         end
+        end
     end
     
     if (any(pr2(s,:)))
@@ -178,11 +178,11 @@ for s = 1 : 32
         index = intersect(index_e,index_s);
         
         pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
-%         if (any(dop2(s,index)))
-%             pr2(s,index) = pr2(s,index) + (time_GPS(index) - time_rx(index))'.*(f2 - dop2(s,index))*lambda2;
-%         else
+        if (any(dop2(s,index)))
+            pr2(s,index) = pr2(s,index) + (time_GPS(index) - time_rx(index))'.*(f2 - dop2(s,index))*lambda2;
+        else
             pr2(s,index) = interp1(time_rx(index), pr2(s,index), time_GPS(index), 'spline');
-%         end
+        end
     end
     
     if (any(ph1(s,:)))
@@ -191,11 +191,11 @@ for s = 1 : 32
         index = intersect(index_e,index_s);
         
         ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda1;
-%         if (any(dop1(s,index)))
-%             ph1(s,index) = ph1(s,index) + (time_GPS(index) - time_rx(index))'.*(f1 - dop1(s,index));
-%         else
+        if (any(dop1(s,index)))
+            ph1(s,index) = ph1(s,index) + (time_GPS(index) - time_rx(index))'.*(f1 - dop1(s,index));
+        else
             ph1(s,index) = interp1(time_rx(index), ph1(s,index), time_GPS(index), 'spline');
-%         end
+        end
     end
     
     if (any(ph2(s,:)))
@@ -204,10 +204,10 @@ for s = 1 : 32
         index = intersect(index_e,index_s);
         
         ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda2;
-%         if (any(dop2(s,index)))
-%             ph2(s,index) = ph2(s,index) + (time_GPS(index) - time_rx(index))'.*(f2 - dop2(s,index));
-%         else
+        if (any(dop2(s,index)))
+            ph2(s,index) = ph2(s,index) + (time_GPS(index) - time_rx(index))'.*(f2 - dop2(s,index));
+        else
             ph2(s,index) = interp1(time_rx(index), ph2(s,index), time_GPS(index), 'spline');
-%         end
+        end
     end
 end

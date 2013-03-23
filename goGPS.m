@@ -206,8 +206,10 @@ if goGNSS.isPP(mode) % post-processing
                 dop1_RR, dop1_MR, dop2_RR, dop2_MR, snr_RR, snr_MR, ...
                 time_GPS, time_R, time_M, week_R, week_M, date_R, date_M, pos_R, pos_M, Eph, iono, Eph_RR, interval] = ...
                 load_RINEX(flag_SP3, filename_R_obs, filename_nav);
-             %fprintf('Pre-processing rover observations...\n');
-             %[pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            
+            %pre-processing
+            fprintf('Pre-processing rover observations...\n');
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
 
         else %relative positioning
 
