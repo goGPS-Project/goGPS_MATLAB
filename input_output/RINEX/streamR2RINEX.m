@@ -389,6 +389,12 @@ if (~isempty(data_rover_all))
     end
     
     %----------------------------------------------------------------------------------------------
+    % OBSERVATION RATE (INTERVAL)
+    %----------------------------------------------------------------------------------------------
+    
+    interval = median(time_R(2:end) - time_R(1:end-1));
+    
+    %----------------------------------------------------------------------------------------------
     % RINEX OBSERVATION FILE
     %----------------------------------------------------------------------------------------------
     
@@ -416,7 +422,7 @@ if (~isempty(data_rover_all))
     fprintf(fid_obs,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
     fprintf(fid_obs,'     2     0                                                WAVELENGTH FACT L1/2\n');
     fprintf(fid_obs,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
-    %fprintf(fid_obs,'     1                                                      INTERVAL            \n');
+    fprintf(fid_obs,'%10.3f                                                  INTERVAL            \n', interval);
     fprintf(fid_obs,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
         date(1,1), date(1,2), date(1,3), date(1,4), date(1,5), date(1,6));
     fprintf(fid_obs,'                                                            END OF HEADER       \n');
