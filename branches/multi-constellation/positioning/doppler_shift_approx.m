@@ -50,6 +50,7 @@ k = find_eph(Eph, sat, time);
 af2   = Eph(2,k);
 af1   = Eph(20,k);
 toc   = Eph(21,k);
+if (strcmp(char(Eph(31)),'C')); time = time - 14; end %consider BeiDou time (BDT) for BeiDou satellites
 dt = check_t(time - toc);
 sat_clock_drift = af1 + 2*af2*dt; %satellite clock drift
 doppler_app1 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda1;

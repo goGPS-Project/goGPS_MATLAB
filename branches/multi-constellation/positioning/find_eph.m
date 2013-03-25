@@ -25,13 +25,19 @@ function icol = find_eph(Eph, sat, time)
 %----------------------------------------------------------------------------------------------
 
 isat = find(Eph(30,:) == sat);
+
 n = size(isat,2);
 if (n == 0)
     icol = [];
     return
 end
 icol = isat(1);
-% time = check_t(time);
+
+%consider BeiDou time (BDT) for BeiDou satellites
+if (strcmp(char(Eph(31)),'C'))
+    time = time - 14;
+end
+
 dtmin = Eph(18,icol) - time;
 for t = isat
     dt = Eph(18,t) - time;

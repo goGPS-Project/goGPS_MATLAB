@@ -42,6 +42,11 @@ switch char(Eph(31))
         Omegae_dot = Omegae_dot_QZS;
 end
 
+%consider BeiDou time (BDT) for BeiDou satellites
+if (strcmp(char(Eph(31)),'C'))
+    t = t - 14;
+end
+
 %GPS/Galileo/BeiDou/QZSS satellite coordinates computation
 if (~strcmp(char(Eph(31)),'R'))
     
