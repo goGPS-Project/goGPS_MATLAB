@@ -2977,7 +2977,9 @@ classdef goGUIclass < handle
         % Function to load the Edit INI window
         function openEditINI(obj)
             if (isfield(obj.edtINI,'h'))
-                close(obj.edtINI.h.wEditINI);
+                if ishandle(obj.edtINI.h.wEditINI)
+                    close(obj.edtINI.h.wEditINI);
+                end
                 delete obj.edtINI.h
             end
             if (obj.interfaceOS == obj.isUnix)
