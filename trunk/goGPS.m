@@ -787,7 +787,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     plot_t = 1;
     time_step = goIni.getTimeStep();   %time step to perform the difference between phase observations
     fprintf('TimeStep used is %d epochs\n', time_step);
-    % External loop to show bar update every 10 epochs
+    % External loop to show bar update every 15 epochs
     stepUpdate = 15;
     goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
     goWB.titleUpdate('Variometric approach running...');
@@ -802,8 +802,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
                 Eph_t1 = Eph(:,:,t+time_step);
             end
             
-            goGPS_LS_SA_goD(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, sbas, 1,time_step);
-            %goGPS_LS_DD_goD(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, sbas, 1,time_step);
+            goGPS_LS_SA_variometric(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, sbas, 1,time_step);
             Xhat_t_t(1:6)=-Xhat_t_t(1:6)./(interval.*time_step);
             if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
                 Xhat_t_t_dummy = [Xhat_t_t];
