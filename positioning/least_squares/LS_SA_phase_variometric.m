@@ -1,7 +1,7 @@
-function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_goD(XR_approx_t0,XR_approx_t1, XS_t0,XS_t1,ph_t0,ph_t1, snr_t0,snr_t1, elR, distR_approx_t0,distR_approx_t1, sat_pr, sat_ph, dtS_t0, dtS_t1, err_tropo_t0,err_tropo_t1, err_iono_t0,err_iono_t1, phase)
+function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, phase)
                                                                                        
 % SYNTAX:
-%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phase);
+%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, phase);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -54,7 +54,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_goD(XR_approx_t0,X
 %variable initialization
 global v_light
 global lambda1 lambda2
-global sigmaq_cod1 sigmaq_ph
+global sigmaq_ph
 
 if (phase == 1)
     lambda = lambda1;
@@ -62,11 +62,7 @@ else
     lambda = lambda2;
 end
 
-%data indexes
-[~, index] = intersect(sat_pr,sat_ph); %sat_ph is a subset of sat_pr
-
-%number of observations (assuming that sat_ph is a subset of sat_pr)
-nsat_pr = length(sat_pr);
+%number of observations
 nsat_ph = length(sat_ph);
 n = nsat_ph;
 
@@ -77,42 +73,32 @@ m = 4;
 % XR_mat = XR_approx(:,ones(n,1))';
 % distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
 
-%design matrix (code)
-
-
-
+%design matrix (phase)
 A = [];
 
-
 for i = 1 : n
-%design matrix (phase)
 
     eij_approx_t0=((XR_approx_t0 - XS_t0(i,:)'))./distR_approx_t0(i);
     eij_approx_t1=((XR_approx_t1 - XS_t1(i,:)'))./distR_approx_t1(i);
-    eij_approx=(eij_approx_t0+eij_approx_t1)./2;
-
+    eij_approx=(eij_approx_t0 + eij_approx_t1)./2;
+    
     A = [A; eij_approx(1) eij_approx(2) eij_approx(3) 1];
-
-%known term vector
 end
 
-
-    try
-    b = [distR_approx_t0'-distR_approx_t1' - v_light*(dtS_t0-dtS_t1)]; %phase
-    catch
-        distR_approx_t0';
-    end
+%known term vector
+% try
+    b = distR_approx_t0' - distR_approx_t1' - v_light*(dtS_t0 - dtS_t1);
+%   %b = b + (err_tropo_t0 - err_tropo_t1) - (err_iono_t0 - err_iono_t1);
+% catch
+%     distR_approx_t0'; %DEBUG
+% end
    
-
 %observation vector
-    y0 = [ lambda*(ph_t0(index)-ph_t1(index))];
+y0 = lambda*(ph_t0 - ph_t1);
 
 %observation noise covariance matrix
-Q = zeros(n);
-Q1 = cofactor_matrix_SA(elR, snr_t0);
-Q2 = Q1(index,index);
-%Q(1:nsat_pr,1:nsat_pr) = sigmaq_cod1 * Q1;
-Q(1:nsat_pr,1:nsat_pr) = sigmaq_ph * Q2;
+Q1 = cofactor_matrix_SA(elR, snr);
+Q  = sigmaq_ph * Q1;
 
 %normal matrix
 N = (A'*(Q^-1)*A);
@@ -121,11 +107,8 @@ N = (A'*(Q^-1)*A);
 x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
 XR = XR_approx_t0-XR_approx_t1 + x_hat(1:3);
 
-%estimated phase ambiguities
-
-
-%estimated receiver clock
-dtR = x_hat(end) ;
+%estimated receiver clock drift
+dtR = x_hat(end)/v_light;
 
 %estimation of the variance of the observation error
 y_hat = A*x_hat + b;
@@ -136,17 +119,15 @@ sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
-    cov_N   = Cxx(4:end-1,4:end-1);
     var_dtR = Cxx(end,end);
 else
     cov_XR  = [];
-    cov_N   = [];
     var_dtR = []; 
 end
 
 %DOP computation
 if (nargout > 6)
-    cov_XYZ = (A(1:nsat_pr,1:3)'*A(1:nsat_pr,1:3))^-1;
+    cov_XYZ = (A(1:nsat_ph,1:3)'*A(1:nsat_ph,1:3))^-1;
     cov_ENU = global2localCov(cov_XYZ, XR);
     
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
