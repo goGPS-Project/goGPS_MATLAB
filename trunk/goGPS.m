@@ -768,8 +768,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
     fclose(fid_conf);
     
 %----------------------------------------------------------------------------------------------
-    % VARIOMETRIC APPROACH FOR VELOCITY ESTIMATION STAND-ALONE ENGINE
-    %----------------------------------------------------------------------------------------------
+% VARIOMETRIC APPROACH FOR VELOCITY ESTIMATION STAND-ALONE ENGINE
+%----------------------------------------------------------------------------------------------
     
 elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     
@@ -788,7 +788,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     time_step = goIni.getTimeStep();   %time step to perform the difference between phase observations
     fprintf('TimeStep used is %d epochs\n', time_step);
     % External loop to show bar update every 10 epochs
-    stepUpdate = 15; 
+    stepUpdate = 15;
     goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
     goWB.titleUpdate('Variometric approach running...');
     ind=0;
@@ -803,6 +803,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             end
             
             goGPS_LS_SA_goD(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, sbas, 1,time_step);
+            %goGPS_LS_DD_goD(time_GPS(t),time_GPS(t+time_step),pr1_R(:,t),  pr1_R(:,t+time_step),  pr2_R(:,t),pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step),ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1,[],[], [],[], [],[], iono, sbas, 1,time_step);
             Xhat_t_t(1:6)=-Xhat_t_t(1:6)./(interval.*time_step);
             if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
                 Xhat_t_t_dummy = [Xhat_t_t];
@@ -848,16 +849,16 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     lastY=0;
     lastZ=0;
     for epo=1:length(jumps)-1;
-        if (jumps(epo+1)-jumps(epo))~=1;             
-        mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
-        mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
-        mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
-        lastX = goDX(jumps(epo)+1:jumps(epo+1)-1) - mean(goDX(jumps(epo)+1:jumps(epo+1)-1)) + mX(epo);
-        lastY = goDY(jumps(epo)+1:jumps(epo+1)-1) - mean(goDY(jumps(epo)+1:jumps(epo+1)-1)) + mY(epo);
-        lastZ = goDZ(jumps(epo)+1:jumps(epo+1)-1) - mean(goDZ(jumps(epo)+1:jumps(epo+1)-1)) + mZ(epo);
-        goDX(jumps(epo)+1:jumps(epo+1)-1)= lastX;
-        goDY(jumps(epo)+1:jumps(epo+1)-1)= lastY;
-        goDZ(jumps(epo)+1:jumps(epo+1)-1)= lastZ;
+        if (jumps(epo+1)-jumps(epo))~=1;
+            mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
+            mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
+            mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
+            lastX = goDX(jumps(epo)+1:jumps(epo+1)-1) - mean(goDX(jumps(epo)+1:jumps(epo+1)-1)) + mX(epo);
+            lastY = goDY(jumps(epo)+1:jumps(epo+1)-1) - mean(goDY(jumps(epo)+1:jumps(epo+1)-1)) + mY(epo);
+            lastZ = goDZ(jumps(epo)+1:jumps(epo+1)-1) - mean(goDZ(jumps(epo)+1:jumps(epo+1)-1)) + mZ(epo);
+            goDX(jumps(epo)+1:jumps(epo+1)-1)= lastX;
+            goDY(jumps(epo)+1:jumps(epo+1)-1)= lastY;
+            goDZ(jumps(epo)+1:jumps(epo+1)-1)= lastZ;
         else
             mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
             mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
@@ -881,13 +882,29 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     vel_pos(:,10)=phiX.*180/pi;
     vel_pos(:,11)=lamX.*180/pi;
     vel_pos(:,12)=hX;
+
     for epo=1:length(goDX)
         
-        [vENU(epo,:) ] = global2localVel(vel_pos(epo,1:2:6)', [phiX(epo), lamX(epo)]'.*180/pi);
+        xENU(epo,:) = global2localPos(vel_pos(epo,7:9)', vel_pos(1,7:9)');
+        vENU(epo,:) = global2localVel(vel_pos(epo,1:2:5)', [phiX(epo), lamX(epo)]'.*180/pi);
         velpos(epo,:)=[vel_pos(epo,:), vENU(epo,:), time_GPS(epo)];
         
         fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f \n',velpos(epo,:));
     end
+    
+    figure
+    plot(xENU(:,1))
+    hold on
+    plot(xENU(:,2),'r')
+    plot(xENU(:,3),'g')
+    title('Displacement (blue=E; red=N; green=U)')
+    
+    figure
+    plot(vENU(:,1))
+    hold on
+    plot(vENU(:,2),'r')
+    plot(vENU(:,3),'g')
+    title('Velocity (blue=E; red=N; green=U)')
     
     goWB.close();
     
