@@ -123,6 +123,18 @@ classdef goWaitBar < handle
             set(obj.h,'Name', msg);
         end
         
+        % Shift the waitbar downward (e.g. to make room for processing plots)
+        function shiftDown(obj, shf)
+            if (nargin < 2)
+                shf = 120;
+            end
+            pos = get(obj.h,'Position');
+            if (pos(2) > shf + pos(4))
+                pos(2) = pos(2) - shf;
+            end
+            set(obj.h,'Position',pos);
+        end
+        
         % Close the window
         function close(obj)
             close(obj.h);

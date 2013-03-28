@@ -230,5 +230,6 @@ for i = 1 : length(sat)
     end
     %labid(sat(i)) = text(x(i),y(i),num2str(sat(i)));
     set(labid(sat(i)),'Color','k')
+    set(labid(sat(i)),'FontSize',9)
     set(labid(sat(i)),'FontWeight','bold')
 end
