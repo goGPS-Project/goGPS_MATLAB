@@ -332,7 +332,7 @@ classdef goGNSS < handle
             %
             
             
-            XR_DD=NaN(3,1,nRec);
+
             
 
             global Xhat_t_t  % forse conviene aggiungere output alla funzione goGPS_LS_DD_code_phase
@@ -344,24 +344,32 @@ classdef goGNSS < handle
             err_tropo = NaN(goGNSS.MAX_SAT, nRec+1);
             
             
-            %cartesian to geodetic conversion of ROVER coordinates
-            [phiM, lamM, hM] = cart2geod(pos_M(1,1), pos_M(2,1), pos_M(3,1));
+  
             
-            %radians to degrees
-            phiM = phiM * 180 / pi;
-            lamM = lamM * 180 / pi;
-            
-
+keyboard
             
             for t = first_epoch : first_epoch
+                XR_DD=NaN(3,1,nRec);
+                %cartesian to geodetic conversion of ROVER coordinates
+                [phiM, lamM, hM] = cart2geod(pos_M(1,t), pos_M(2,t), pos_M(3,t));
+                
+                %radians to degrees
+                phiM = phiM * 180 / pi;
+                lamM = lamM * 180 / pi;
+                
+                
                 %                 Eph_t = Eph(:,:,t);
                 Eph_t=rt_find_eph(goObs.getGNSSeph(goGNSS.ID_GPS), goObs.getTime_Ref(t));
                 for i=1:nRec
                     statistic = zeros(2,length(time_GPS)); % <-- VA DIMENSIONATO IN 3D!!!!?
                     ambiguity = 0;                         % <-- VA DIMENSIONATO IN 3D!!!!?
                     
-                    goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t,i), pr1_M(:,t), pr2_R(:,t,i), pr2_M(:,t), ph1_R(:,t,i), ph1_M(:,t), ph2_R(:,t,i), ph2_M(:,t), snr_R(:,t,i), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
                     
+                    
+                    Xhat_t_t=zeros(size(Xhat_t_t));
+                    
+                    [X_sat conf_sat(1:32,i)]=goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t,i), pr1_M(:,t), pr2_R(:,t,i), pr2_M(:,t), ph1_R(:,t,i), ph1_M(:,t), ph2_R(:,t,i), ph2_M(:,t), snr_R(:,t,i), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+
                     XR_DD(1,t,i)=Xhat_t_t(1);
                     XR_DD(2,t,i)=Xhat_t_t(3);
                     XR_DD(3,t,i)=Xhat_t_t(5);
@@ -370,7 +378,7 @@ classdef goGNSS < handle
                     [phiR, lamR, hR] = cart2geod(XR_DD(1,t,i), XR_DD(2,t,i), XR_DD(3,t,i));
                     phiR = phiR * 180 / pi;
                     lamR = lamR * 180 / pi;
-                    
+ 
                     distM(~distM)=NaN;
                     azM(isnan(distM))=NaN;
                     elM(isnan(distM))=NaN;
@@ -466,35 +474,40 @@ classdef goGNSS < handle
             roll_approx=mod(atan2(euler_parameters(8),euler_parameters(9)),2*pi);
             yaw_approx=mod(atan2(-cos(roll_approx)*euler_parameters(2)+sin(roll_approx)*euler_parameters(3) , cos(roll_approx)*euler_parameters(5)-sin(roll_approx)*euler_parameters(6)),2*pi);
             pitch_approx=mod(atan2(-euler_parameters(7),sin(roll_approx)*euler_parameters(8)+cos(roll_approx)*euler_parameters(9)),2*pi);
+                      
+            attitude_approx=[roll_approx;pitch_approx;yaw_approx];
             
-            roll_approx/pi*180
-            yaw_approx/pi*180
-            pitch_approx/pi*180
             
             % code + phase double differenecs with Xb and attitude
+            XS=NaN(goGNSS.MAX_SAT,3);
+            XS(conf_sat==1,1:3)=X_sat;
+            sat=find(conf_sat==1);
+            
+            %actual pivot
 
-            keyboard
+            [null_max_elR pivot_index]=max(satCoord.el(sat,1));
+            pivot = sat(pivot_index);
             
-            sat=find((pr1_M(:,1)>0));
-            
-            
-            
+
+                        
             if (size(sat,1) >= 4) % & cond_num < cond_num_threshold)
-                
+                phase_1=1;
+                               
                 %loop is needed to improve the atmospheric error correction
                 for i = 1 : 3
                     %if (phase == 1)
-                        [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR_DD, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
+                        [Xb_apriori, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType, attitude_approx, XR_DD(:,t,:)] = LS_DD_code_phase_MR(Xb_apriori, XR_DD(:,t,:), pos_M(:,t), X_sat, pr1_R(sat,t,:), ph1_R(sat,t,:), snr_R(sat,t,:), pr1_M(sat,t), ph1_M(sat,t), snr_M(sat,t), satCoord.el(sat,2:nRec+1), satCoord.az(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, geometry);
                     %else
                     %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
                     %end
+                 
+                    %[phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
+                    %[azR(azR ~= 0), elR(elR ~= 0), distR(distR ~= 0)] = topocent(XR, XS);
                     
-                    [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
-                    [azR(azR ~= 0), elR(elR ~= 0), distR(distR ~= 0)] = topocent(XR, XS);
-                    
-                    err_tropo_R = tropo_error_correction(elR(elR ~= 0), hR);
-                    err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR ~= 0), elR(elR ~= 0), time_rx, iono, []);
+                    %err_tropo_R = tropo_error_correction(elR(elR ~= 0), hR);
+                    %err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR ~= 0), elR(elR ~= 0), time_rx, iono, []);
                 end
+                keyboard
             else
                 if (~isempty(Xhat_t_t))
                     XR = Xhat_t_t([1,o1+1,o2+1]);
