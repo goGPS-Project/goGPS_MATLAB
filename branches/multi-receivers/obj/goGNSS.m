@@ -306,20 +306,7 @@ classdef goGNSS < handle
             
             
             
-            % instrumental RS coordinates
-            % ---------------------------
-            % get geometry
-            [geometry ev_point]=goIni.getGeometry();
-            
-            % barycenter definition
-            %xb=mean(geometry,2);
-            % barycentric instrumental RS coordinates
-            %xR=geometry-repmat(xb,1,nRec);
-            
-            % non barycentric! the origin is the first receiver
-            xR=geometry;
-            
-            
+           
             % for each rover receiver: enhance coordinates with code and phase DD in single epoch (lambda)
             % --------------------------------------------------------------------------------------------
             
@@ -346,7 +333,7 @@ classdef goGNSS < handle
             
   
             
-keyboard
+
             
             for t = first_epoch : first_epoch
                 XR_DD=NaN(3,1,nRec);
@@ -358,18 +345,24 @@ keyboard
                 lamM = lamM * 180 / pi;
                 
                 
-                %                 Eph_t = Eph(:,:,t);
+                % Eph_t = Eph(:,:,t);
                 Eph_t=rt_find_eph(goObs.getGNSSeph(goGNSS.ID_GPS), goObs.getTime_Ref(t));
+                
+                
+                
+                X_sat=zeros(goGNSS.MAX_SAT,3,nRec);
+                conf_sat=zeros(goGNSS.MAX_SAT,nRec);
+                
                 for i=1:nRec
                     statistic = zeros(2,length(time_GPS)); % <-- VA DIMENSIONATO IN 3D!!!!?
                     ambiguity = 0;                         % <-- VA DIMENSIONATO IN 3D!!!!?
-                    
-                    
-                    
+                                      
                     Xhat_t_t=zeros(size(Xhat_t_t));
-                    
-                    [X_sat conf_sat(1:32,i)]=goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t,i), pr1_M(:,t), pr2_R(:,t,i), pr2_M(:,t), ph1_R(:,t,i), ph1_M(:,t), ph2_R(:,t,i), ph2_M(:,t), snr_R(:,t,i), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+               
+                    [X_sat_i conf_sat(:,i)]=goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t,i), pr1_M(:,t), pr2_R(:,t,i), pr2_M(:,t), ph1_R(:,t,i), ph1_M(:,t), ph2_R(:,t,i), ph2_M(:,t), snr_R(:,t,i), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
 
+                    X_sat(find(conf_sat(:,i)==1),1:3,i)=X_sat_i;
+                    
                     XR_DD(1,t,i)=Xhat_t_t(1);
                     XR_DD(2,t,i)=Xhat_t_t(3);
                     XR_DD(3,t,i)=Xhat_t_t(5);
@@ -410,114 +403,209 @@ keyboard
                 
             end
             
-            % computing apriori attitude
-            % --------------------------
             
-            % global XYZ and geographic coordinates of barycenter
-            %Xb_apriori=mean([XR_DD(:,t,1), XR_DD(:,t,2),XR_DD(:,t,3)],2);
-            
-            % the origin is the first point
-            %------------------------------
-            Xb_apriori=[XR_DD(1,t,1), XR_DD(2,t,1),XR_DD(3,t,1)]';
-            [phi_b_apriori, lam_b_apriori, h_b_apriori] = cart2geod(Xb_apriori(1), Xb_apriori(2), Xb_apriori(3));
-            %------------------------------
-            
-            % rotation matrix from local to global coordinates,
-            % centered into the receiver barycenter
-            R1t=[-sin(lam_b_apriori) cos(lam_b_apriori) 0; ...
-                -sin(phi_b_apriori)*cos(lam_b_apriori) -sin(phi_b_apriori)*sin(lam_b_apriori) cos(phi_b_apriori); ...
-                cos(phi_b_apriori)*cos(lam_b_apriori) cos(phi_b_apriori)*sin(lam_b_apriori) sin(phi_b_apriori)];
+            % leftin zeros the apriori attitude
+            attitude_approx=[0 0 0]';
             
             
-            % compute local East-North-Up coordinates from XYZ obtained
-            % from CODE+PHASE DD
-            XRl_apriori=NaN(3,nRec);
-            for i=1:nRec
-                XRl_apriori(1:3,i)=R1t*(XR_DD(1:3,t,i)-Xb_apriori);
-            end
-            % compute Euler parameters of the rotation from local to
-            % instrumental RF
-            % xR=Rt*XRl -> where Rt is a 3x3 rotation matrix containing
-            % the Euler parameters r11, r21, r31 ; r12 ... (it's
-            % transposed)
+            % instrumental RS coordinates
+            % ---------------------------
+            % get geometry
+            [geometry ev_point]=goIni.getGeometry();
             
-            % non funziona se cerco il baricentro, viene A linearmente
-            % dipendente! per questo l'origine è sul primo punto
-%             y0=xR(:);
-%             A=NaN(nRec*3,9);
-%             for i=1:nRec
-%                 A((i-1)*3+1:i*3,1:9)=[XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i) 0 0 0 0 0 0 ; ...
-%                     0 0 0 XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i) 0 0 0 ; ...
-%                     0 0 0 0 0 0 XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i)];
-%             end
-%             euler_parameters=inv(A'*A)*A'*y0;
-%                        
-%             %Cxx_euler=(y0-A*euler_parameters)'*(y0-A*euler_parameters)/(size(A,1)-size(A,2)+1)*(inv(A'*A));
-%             % non c'è ridondanza e il condizionamento di N è uno schifo
-%             
-%             roll_approx=mod(atan2(euler_parameters(8),euler_parameters(9)),2*pi);
-%             yaw_approx=mod(atan2(-cos(roll_approx)*euler_parameters(2)+sin(roll_approx)*euler_parameters(3) , cos(roll_approx)*euler_parameters(5)-sin(roll_approx)*euler_parameters(6)),2*pi);
-%             pitch_approx=mod(atan2(-euler_parameters(7),sin(roll_approx)*euler_parameters(8)+cos(roll_approx)*euler_parameters(9)),2*pi);
-%             
+            % barycenter definition
+            xb=mean(geometry,2);
+            % barycentric instrumental RS coordinates
+            xR=geometry-repmat(xb,1,nRec);
             
-
-            % block solution
-            euler_parameters=[];
-            A=NaN(nRec,3);
-            for i=1:nRec
-                A(i,1:3)=[XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i)];
-            end
-            y0=xR(:);
-            euler_parameters(1:3,1)=inv(A'*A)*A'*y0(1:3:end);
-            euler_parameters(4:6,1)=inv(A'*A)*A'*y0(2:3:end);            
-            euler_parameters(7:9,1)=inv(A'*A)*A'*y0(3:3:end);  
-            roll_approx=mod(atan2(euler_parameters(8),euler_parameters(9)),2*pi);
-            yaw_approx=mod(atan2(-cos(roll_approx)*euler_parameters(2)+sin(roll_approx)*euler_parameters(3) , cos(roll_approx)*euler_parameters(5)-sin(roll_approx)*euler_parameters(6)),2*pi);
-            pitch_approx=mod(atan2(-euler_parameters(7),sin(roll_approx)*euler_parameters(8)+cos(roll_approx)*euler_parameters(9)),2*pi);
-                      
-            attitude_approx=[roll_approx;pitch_approx;yaw_approx];
+            % non barycentric! the origin is the first receiver
+            %xR=geometry;
             
             
+            % estimated local coordinates of baycenter
+            %-----------------------------------------
+            Xb_apriori=[mean(XR_DD(1,t,:)), mean(XR_DD(2,t,:)),mean(XR_DD(3,t,:))]';
+            
+        
+            
+                  
             % code + phase double differenecs with Xb and attitude
-            XS=NaN(goGNSS.MAX_SAT,3);
-            XS(conf_sat==1,1:3)=X_sat;
-            sat=find(conf_sat==1);
+            % ----------------------------------------------------
+            sat=ones(goGNSS.MAX_SAT,1);
             
-            %actual pivot
+            for i=1:nRec
+                sat=sat(:,1)&conf_sat(:,i);
+            end
+            sat=find(sat==1); %only common sat! it would be better to use all receiver independently
+            
+            
+            XS=NaN(goGNSS.MAX_SAT,3);
+            XS(sat,1:3)=X_sat(sat,1:3,1);
 
+            %actual pivot
             [null_max_elR pivot_index]=max(satCoord.el(sat,1));
             pivot = sat(pivot_index);
             
+            
+            
+            %% compute diff --------- must be put outside to avoid the recomputation every epoch
+            syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
+            syms r11 r12 r13 r21 r22 r23 r31 r32 r33
+            
+            % rotation from local to global
+            s_Rgl=[-sin(s_lam_b) cos(s_lam_b) 0; ...
+                -sin(s_phi_b)*cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b) cos(s_phi_b); ...
+                cos(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*sin(s_lam_b) sin(s_phi_b)];
+            
+            
+            % rotation from instrumental to local
+            s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_pitch)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)+sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
+                sin(s_roll)+cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
+                -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
+            
+            % rotation from instrumental to local
+            %s_Rli=[r11 r12 r13; r21 r22 r23; r31 r32 r33];
+            
+            
+            s_X=[s_Xb; s_Yb; s_Zb]+s_Rgl*s_Rli*[s_x;s_y;s_z];
+            
+            s_PR_DD=sqrt((s_X(1)-s_XS)^2+(s_X(2)-s_YS)^2 + (s_X(3)-s_ZS)^2) - sqrt((s_XM-s_XS)^2+(s_YM-s_YS)^2 + (s_ZM-s_ZS)^2) - ...
+                (sqrt((s_X(1)-s_XS_Piv)^2+(s_X(2)-s_YS_Piv)^2 + (s_X(3)-s_ZS_Piv)^2) - sqrt((s_XM-s_XS_Piv)^2+(s_YM-s_YS_Piv)^2 + (s_ZM-s_ZS_Piv)^2));
+            
+            
+            s_Ai=[diff(s_PR_DD,s_Xb) diff(s_PR_DD,s_Yb) diff(s_PR_DD,s_Zb) diff(s_PR_DD,s_roll) diff(s_PR_DD,s_pitch) diff(s_PR_DD,s_yaw)];
+            %s_Ai=[diff(s_PR_DD,s_Xb) diff(s_PR_DD,s_Yb) diff(s_PR_DD,s_Zb) diff(s_PR_DD,r11) diff(s_PR_DD,r12) diff(s_PR_DD,r13) diff(s_PR_DD,r21) diff(s_PR_DD,r22) diff(s_PR_DD,r23) diff(s_PR_DD,r31) diff(s_PR_DD,r32) diff(s_PR_DD,r33)];
+            
+       
 
-                        
+            F_Ai=inline(s_Ai); %% <-- colonne della matrice disegno corrispondenti alle incognite geometriche
+            F_PR_DD=inline(s_PR_DD); %% <-- parte geometrica dei termini noti
+            F_s_X=inline(s_X); %% <-- per calcolare le coordinate aggiornate di ogni ricevitore a partire da quelle nuove del punto 'baricentro'
+            %%
+            
+            keyboard
+            index_sat_without_pivot=sat;
+            index_sat_without_pivot(pivot_index)=[];
+            
+            
             if (size(sat,1) >= 4) % & cond_num < cond_num_threshold)
                 phase_1=1;
-                               
+                            
                 %loop is needed to improve the atmospheric error correction
-                for i = 1 : 3
+                for i = 1 : 5
                     %if (phase == 1)
-                        [Xb_apriori, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType, attitude_approx, XR_DD(:,t,:)] = LS_DD_code_phase_MR(Xb_apriori, XR_DD(:,t,:), pos_M(:,t), X_sat, pr1_R(sat,t,:), ph1_R(sat,t,:), snr_R(sat,t,:), pr1_M(sat,t), ph1_M(sat,t), snr_M(sat,t), satCoord.el(sat,2:nRec+1), satCoord.az(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, geometry);
+                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, XR_DD(:,t,:), PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, XR_DD(:,t,:), pos_M(:,t), XS(sat,:), pr1_R(sat,t,:), ph1_R(sat,t,:), snr_R(sat,t,:), pr1_M(sat,t), ph1_M(sat,t), snr_M(sat,t), satCoord.el(sat,2:nRec+1), satCoord.az(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, geometry, 0, F_Ai, F_PR_DD, F_s_X,index_sat_without_pivot);
                     %else
                     %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
                     %end
-                 
-                    %[phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
-                    %[azR(azR ~= 0), elR(elR ~= 0), distR(distR ~= 0)] = topocent(XR, XS);
+                    Xb_apriori
+                    attitude_approx./pi*180
+                    % compute elevation and atmospheric corrections from XR_DD coordinates
+                    for r=1:nRec
+                        [phiR, lamR, hR] = cart2geod(XR_DD(1,t,r), XR_DD(2,t,r), XR_DD(3,t,r));
+                        phiR = phiR * 180 / pi;
+                        lamR = lamR * 180 / pi;
+                        [satCoord.az(sat,r+1),satCoord.el(sat,r+1), satCoord.dist(sat,r+1)] = topocent(XR_DD(:,t,r), XS(sat,:));
+                        
+                        %computation of atmospheric errors of Rover receiver
+                        err_tropo(:,r+1) = tropo_error_correction(satCoord.el(:,r+1), hR);
+                        
+                        %computation of ionospheric errors
+                        err_iono(:,r+1) = iono_error_correction(phiR, lamR, satCoord.az(:,r+1), satCoord.el(:,r+1), goObs.getTime_Ref(t), goObs.getIono(), goObs.getSBAS());
+                        err_iono(isnan(distM),r+1)=NaN;
+                        
+
+                    end
                     
-                    %err_tropo_R = tropo_error_correction(elR(elR ~= 0), hR);
-                    %err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR ~= 0), elR(elR ~= 0), time_rx, iono, []);
                 end
-                keyboard
+
             else
-                if (~isempty(Xhat_t_t))
-                    XR = Xhat_t_t([1,o1+1,o2+1]);
-                    pivot = 0;
-                else
-                    return
-                end
+
+                
             end
             
             
+            keyboard
+            
+            Xhat_t_t(1:9) = [obj.XR(1,1); 0; 0; obj.XR(2,1); 0; 0; obj.XR(3,1); 0; 0];
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
+%             % computing apriori attitude
+%             % --------------------------
+%             
+%             % global XYZ and geographic coordinates of barycenter
+%             %Xb_apriori=mean([XR_DD(:,t,1), XR_DD(:,t,2),XR_DD(:,t,3)],2);
+%             
+%             % the origin is the first point
+%             %------------------------------
+%             Xb_apriori=[XR_DD(1,t,1), XR_DD(2,t,1),XR_DD(3,t,1)]';
+%             [phi_b_apriori, lam_b_apriori, h_b_apriori] = cart2geod(Xb_apriori(1), Xb_apriori(2), Xb_apriori(3));
+%             %------------------------------
+%             
+%             % rotation matrix from local to global coordinates,
+%             % centered into the receiver barycenter
+%             R1t=[-sin(lam_b_apriori) cos(lam_b_apriori) 0; ...
+%                 -sin(phi_b_apriori)*cos(lam_b_apriori) -sin(phi_b_apriori)*sin(lam_b_apriori) cos(phi_b_apriori); ...
+%                 cos(phi_b_apriori)*cos(lam_b_apriori) cos(phi_b_apriori)*sin(lam_b_apriori) sin(phi_b_apriori)];
+%             
+%             
+%             % compute local East-North-Up coordinates from XYZ obtained
+%             % from CODE+PHASE DD
+%             XRl_apriori=NaN(3,nRec);
+%             for i=1:nRec
+%                 XRl_apriori(1:3,i)=R1t*(XR_DD(1:3,t,i)-Xb_apriori);
+%             end
+%             % compute Euler parameters of the rotation from local to
+%             % instrumental RF
+%             % xR=Rt*XRl -> where Rt is a 3x3 rotation matrix containing
+%             % the Euler parameters r11, r21, r31 ; r12 ... (it's
+%             % transposed)
+%             
+%             % non funziona se cerco il baricentro, viene A linearmente
+%             % dipendente! per questo l'origine è sul primo punto
+% %             y0=xR(:);
+% %             A=NaN(nRec*3,9);
+% %             for i=1:nRec
+% %                 A((i-1)*3+1:i*3,1:9)=[XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i) 0 0 0 0 0 0 ; ...
+% %                     0 0 0 XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i) 0 0 0 ; ...
+% %                     0 0 0 0 0 0 XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i)];
+% %             end
+% %             euler_parameters=inv(A'*A)*A'*y0;
+% %                        
+% %             %Cxx_euler=(y0-A*euler_parameters)'*(y0-A*euler_parameters)/(size(A,1)-size(A,2)+1)*(inv(A'*A));
+% %             % non c'è ridondanza e il condizionamento di N è uno schifo
+% %             
+% %             roll_approx=mod(atan2(euler_parameters(8),euler_parameters(9)),2*pi);
+% %             yaw_approx=mod(atan2(-cos(roll_approx)*euler_parameters(2)+sin(roll_approx)*euler_parameters(3) , cos(roll_approx)*euler_parameters(5)-sin(roll_approx)*euler_parameters(6)),2*pi);
+% %             pitch_approx=mod(atan2(-euler_parameters(7),sin(roll_approx)*euler_parameters(8)+cos(roll_approx)*euler_parameters(9)),2*pi);
+% %             
+%             
+% 
+%             % block solution
+%             euler_parameters=[];
+%             A=NaN(nRec,3);
+%             for i=1:nRec
+%                 A(i,1:3)=[XRl_apriori(1,i) XRl_apriori(2,i) XRl_apriori(3,i)];
+%             end
+%             y0=xR(:);
+%             euler_parameters(1:3,1)=inv(A'*A)*A'*y0(1:3:end);
+%             euler_parameters(4:6,1)=inv(A'*A)*A'*y0(2:3:end);            
+%             euler_parameters(7:9,1)=inv(A'*A)*A'*y0(3:3:end);  
+%             roll_approx=mod(atan2(euler_parameters(8),euler_parameters(9)),2*pi);
+%             yaw_approx=mod(atan2(-cos(roll_approx)*euler_parameters(2)+sin(roll_approx)*euler_parameters(3) , cos(roll_approx)*euler_parameters(5)-sin(roll_approx)*euler_parameters(6)),2*pi);
+%             pitch_approx=mod(atan2(-euler_parameters(7),sin(roll_approx)*euler_parameters(8)+cos(roll_approx)*euler_parameters(9)),2*pi);
+%                       
+%             attitude_approx=[roll_approx;pitch_approx;yaw_approx];
+            
+      
             
             
             
@@ -531,43 +619,7 @@ keyboard
             
             
             
-                           %% computation of linearized equations
-                % (expression of XR as funtction of xR)
-                
-%                 syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS
-%                 
-%                 % rotation from local to global
-%                 s_Rgl=[-sin(s_lam_b) cos(s_lam_b) 0; ...
-%                     -sin(s_phi_b)*cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b) cos(s_phi_b); ...
-%                     cos(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*sin(s_lam_b) sin(s_phi_b)];
-%                 
-%                 % rotation from instrumental to local
-%                 s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_pitch)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)+sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
-%                     sin(s_roll)+cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
-%                     -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
-%                 
-%                 
-%                 s_X=[s_Xb; s_Yb; s_Zb]+s_Rgl*s_Rli*[s_x;s_y;s_z];                
-%                 s_PR=sqrt((s_X(1)-s_XS)^2+(s_X(2)-s_YS)^2 + (s_X(3)-s_ZS)^2);       
-%                 
-%                 
-%                 s_Ai=[diff(s_PR,s_Xb) diff(s_PR,s_Yb) diff(s_PR,s_Zb) diff(s_PR,s_roll) diff(s_PR,s_pitch) diff(s_PR,s_yaw)];
-%                 
-%                 F_Ai=inline(s_Ai); %% <-- colonne della matrice disegno corrispondenti alle incognite geometriche 
-%                 F_PR=inline(s_PR); %% <-- parte geometrica dei termini noti
-%                 
-%                 
-                
-            
-            
-            
-            
-            
-            
-            
-            
-       
-        
+  
         
         
         
