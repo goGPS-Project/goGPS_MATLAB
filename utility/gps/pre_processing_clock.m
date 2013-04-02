@@ -108,6 +108,11 @@ for i = 1 : nEpochs
                 dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
             end
         end
+    else
+        if (i > 2)
+            dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
+            dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
+        end
     end
 end
 

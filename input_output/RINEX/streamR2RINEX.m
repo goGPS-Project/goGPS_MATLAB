@@ -408,6 +408,7 @@ if (~isempty(data_rover_all))
     
     %maximum filename length for MARKER NAME field
     pos = find(filename == '/');
+    if (isempty(pos)), pos = 0; end
     marker_name = filename(pos(end)+1:end);
     mn_len = min(60,length(marker_name));
 
@@ -576,7 +577,7 @@ if (~isempty(data_rover_all))
                 fit_int  = Eph_R(29,satEph(j),i);
                 
                 %time of measurement decoding
-                date = gps2date(week_R, toc);
+                date = gps2date(week_R(i), toc);
                 date(1) = two_digit_year(date(1));
                 
                 lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
