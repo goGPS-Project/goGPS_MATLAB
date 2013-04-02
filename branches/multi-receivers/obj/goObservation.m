@@ -473,7 +473,7 @@ classdef goObservation < handle
             time = obj.timeChart(idObs,1);
         end
         
-        function week = getWeek_Ref(obj, isObs)
+        function week = getWeek_Ref(obj, idObs)
             if (nargin < 2) % if not specified set the entire position array to the value of XM
                 idObs = 0; % it should be 1 or nObs
             end
@@ -777,7 +777,6 @@ classdef goObservation < handle
         
         % Get GPS phase observationa
         % idSat => id of the satellite      (if 0 get all the satellites)
-        % idRec => id of the receiver       (if 0 get all receiver)
         % idObs => id of the observation    (if 0 get all the available epocs)
         % nFreq => id of the frequency used (e.g. 1 = L1, 2 = L2, ...future frequencies...)
         %                                   (if 0 get all the frequencies)
@@ -955,6 +954,104 @@ classdef goObservation < handle
         
         %         function satObs = getSatObservation(obj, idGNSS, idSat, idObs)
         %         end
+        
+        %pre-processing of master and rover data (to be changed soon!)
+        function doPreProcessing(obj)
+            nP = obj.nPar;
+            %goGNSS.chiamalacomevuoi(goObs,goIni);
+            ID_GNSS=1; % <- must be taken from the object!
+            
+            nRec=obj.getNumRec();
+            
+            time_GPS=obj.getTime_Ref();
+            
+            nFreq=obj.getGNSSnFreq(ID_GNSS);
+            Eph=obj.getGNSSeph(ID_GNSS);
+            iono=obj.getIono();
+            SP3_time=obj.getGNSS_SP3time();
+            SP3_coor=obj.getGNSS_SP3coordinates();
+            SP3_clck=obj.getGNSS_SP3clock();
+            
+            % master receiver: preprocessing
+            % ------------------------------
+            time_M=obj.getTime_M();
+            [pos_M flag_M]= obj.getPos_M(0);
+            
+            pr1_M=obj.getGNSSpr_M(ID_GNSS, 0, 0, 1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+            ph1_M=obj.getGNSSph_M(ID_GNSS, 0, 0, 1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+            snr_M=obj.getGNSSsnr_M(ID_GNSS, 0, 0, 1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
+            dop1_M=obj.getGNSSdop_M(ID_GNSS, 0, 0, 1); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+            
+            
+            pr2_M=zeros(size(pr1_M));
+            ph2_M=zeros(size(pr1_M));
+            dop2_M=zeros(size(pr1_M));
+            if nFreq==2
+                pr2_M=obj.getGNSSpr_M(ID_GNSS, 0, 0, 2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+                ph2_M=obj.getGNSSph_M(ID_GNSS, 0, 0, 2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+                dop2_M=obj.getGNSSdop_M(ID_GNSS, 0, 0, 2); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+            end
+            
+            fprintf('Master station ');
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, ...
+                pr2_M, ph2_M, snr_M, dop1_M, dop2_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            fprintf('\n');
+            % ------------------------------
+            
+            time_R=zeros(length(time_M),1,nRec);
+            pr1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            ph1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            snr_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            dop1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            pr2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            ph2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            dop2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+            
+            
+            dtR=NaN(length(time_M),1,nRec);
+            dtRdot=NaN(length(time_M),1,nRec);
+            
+            
+            for i=1:nRec
+                time_R(:,1,i)=obj.getTime_R(i); %time = getTime_R(obj, idRec)
+                pos_R =[];
+                pr1_R(:,:,i)=obj.getGNSSpr_R(ID_GNSS,0,i,0,1);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                ph1_R(:,:,i)=obj.getGNSSph_R(ID_GNSS,0,i,0,1);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                snr_R(:,:,i)=obj.getGNSSsnr_R(ID_GNSS,0,i,0,1);      %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                dop1_R(:,:,i)=obj.getGNSSdop_R(ID_GNSS, 0, i, 0, 1); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                
+                if nFreq==2
+                    pr2_R(:,:,i)=obj.getGNSSpr_R(ID_GNSS,0,i,0,2);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                    ph2_R(:,:,i)=obj.getGNSSph_R(ID_GNSS,0,i,0,2);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                    dop2_R(:,:,i)=obj.getGNSSdop_R(ID_GNSS, 0, i, 0, 2); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                end
+                
+                fprintf('Rover #%d ',i);
+                [pr1_R(:,:,i), ph1_R(:,:,i), pr2_R(:,:,i), ph2_R(:,:,i), dtR(:,:,i), dtRdot(:,:,i)] = pre_processing_clock(time_GPS, time_R(:,1,i), pos_R, pr1_R(:,:,i), ph1_R(:,:,i), ...
+                    pr2_R(:,:,i), ph2_R(:,:,i), snr_R(:,:,i), dop1_R(:,:,i), dop2_R(:,:,i), Eph, SP3_time, SP3_coor, SP3_clck, iono);
+                fprintf('\n');
+     
+            end
+            
+            obj.prxG(1:goGNSS.MAX_SAT,:,1) = pr1_M;
+            obj.phxG(1:goGNSS.MAX_SAT,:,1) = ph1_M;
+            if nFreq==2
+                obj.prxG(1:goGNSS.MAX_SAT,:,2) = pr2_M;
+                obj.phxG(1:goGNSS.MAX_SAT,:,2) = ph2_M;
+            end
+            obj.dt(1,:) = dtM';          %size dt = nRec+1,nObs
+            obj.dtDot(1,:) = dtMdot';    %size dtDot = nRec+1,nObs
+            
+            obj.prxG(goGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,1) = pr1_R(:,:,i);
+            obj.phxG(goGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,1) = ph1_R(:,:,i);
+            if nFreq==2
+                obj.prxGgoGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,2) = ph2_R(:,:,i);
+                obj.phxGgoGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,2) = ph2_R(:,:,i);
+            end            
+            obj.dt(i+1,:) = dtR(:,:,i)';          %size dt = nRec+1,nObs
+            obj.dtDot(i+1,:) = dtRdot(:,:,i)';    %size dtDot = nRec+1,nObs
+            
+        end
     end
     % =========================================================================
     %    PRIVATE METHODS
@@ -980,8 +1077,7 @@ classdef goObservation < handle
             obj.dopxR = zeros(goGNSS.MAX_SAT*(nRec+1), nObs, nFreqR); % doppler
             obj.snrxR = zeros(goGNSS.MAX_SAT*(nRec+1), nObs, 1);      % signal to noise ratio
             obj.flagR = zeros(nRec+1, nObs);                    % flags
-            
-            % Up to now, These're not used for the receivers but the memory is allocated anyway for compatibility reason
+
             obj.dt = zeros(nRec+1,nObs);
             obj.dtDot = zeros(nRec+1,nObs);
         end
@@ -1238,7 +1334,7 @@ classdef goObservation < handle
                 clear tmp;
             end 
             interval = mean(interval); % mean interval among all the receivers
-            time_GPS = (epoch_init:interval:epoch_end)'; % reference GPS time for all the receivers
+            time_GPS = (startTime:interval:stopTime)'; % reference GPS time for all the receivers
             
             numObs = length(time_GPS);
             obj.nObs = numObs;

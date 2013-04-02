@@ -351,94 +351,94 @@ classdef goKalmanFilter < handle
         % initialization of the parameter vector for all receivers
         function init_Xhat_t_t(obj, goObs, goIni, mode)   %% to initialize Xhat_t_t_R: cell of [nPar+nSat*nFreq,1] and Xhat_t_t;
             
-            nP = obj.nPar;
-            %goGNSS.chiamalacomevuoi(goObs,goIni);
-            ID_GNSS=1; % <- must be taken from the object!
-            
-            nRec=goObs.getNumRec();
-            
-            time_GPS=goObs.getTime_Ref();
-            
-            nFreq=goObs.getGNSSnFreq(ID_GNSS);
-            Eph=goObs.getGNSSeph(ID_GNSS);
-            iono=goObs.getIono();
-            SP3_time=goObs.getGNSS_SP3time();
-            SP3_coor=goObs.getGNSS_SP3coordinates();
-            SP3_clck=goObs.getGNSS_SP3clock();
-            
-            % master receiver: preprocessing
-            % ------------------------------
-            time_M=goObs.getTime_M();
-            [pos_M flag_M]= goObs.getPos_M(0);
-            
-            pr1_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
-            ph1_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
-            snr_M=goObs.getGNSSsnr_M(ID_GNSS, 0, 0, 1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
-            dop1_M=goObs.getGNSSdop_M(ID_GNSS, 0, 0, 1); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
-            
-            
-            pr2_M=zeros(size(pr1_M));
-            ph2_M=zeros(size(pr1_M));
-            dop2_M=zeros(size(pr1_M));
-            if nFreq==2
-                pr2_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
-                ph2_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
-                dop2_M=goObs.getGNSSdop_M(ID_GNSS, 0, 0, 2); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
-            end
-            
-            fprintf('Master station ');
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, ...
-                pr2_M, ph2_M, snr_M, dop1_M, dop2_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
-            fprintf('\n');
-            % ------------------------------
-            
-            time_R=zeros(length(time_M),1,nRec);
-            pr1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-            ph1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-            snr_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-            dop1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-            pr2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-            ph2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-            dop2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-            
-            
-            dtR=NaN(length(time_M),1,nRec);
-            dtRdot=NaN(length(time_M),1,nRec);
-            
-            
-            for i=1:nRec
-                time_R(:,1,i)=goObs.getTime_R(i); %time = getTime_R(obj, idRec)
-                pos_R =[];
-                pr1_R(:,:,i)=goObs.getGNSSpr_R(ID_GNSS,0,i,0,1);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                ph1_R(:,:,i)=goObs.getGNSSph_R(ID_GNSS,0,i,0,1);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                snr_R(:,:,i)=goObs.getGNSSsnr_R(ID_GNSS,0,i,0,1);      %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                dop1_R(:,:,i)=goObs.getGNSSdop_R(ID_GNSS, 0, i, 0, 1); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                
-                if nFreq==2
-                    pr2_R(:,:,i)=goObs.getGNSSpr_R(ID_GNSS,0,i,0,2);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                    ph2_R(:,:,i)=goObs.getGNSSph_R(ID_GNSS,0,i,0,2);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                    dop2_R(:,:,i)=goObs.getGNSSdop_R(ID_GNSS, 0, i, 0, 2); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                end
-                
-                fprintf('Rover #%d ',i);
-                [pr1_R(:,:,i), ph1_R(:,:,i), pr2_R(:,:,i), ph2_R(:,:,i), dtR(:,:,i), dtRdot(:,:,i)] = pre_processing_clock(time_GPS, time_R(:,1,i), pos_R, pr1_R(:,:,i), ph1_R(:,:,i), ...
-                    pr2_R(:,:,i), ph2_R(:,:,i), snr_R(:,:,i), dop1_R(:,:,i), dop2_R(:,:,i), Eph, SP3_time, SP3_coor, SP3_clck, iono);
-                fprintf('\n');
-                
-                %--> come modifico il contenuto globale di %%goObs.getGNSSpr_R(ID_GNSS,0,i,0,1) ????
-                %--> perchè non mi tengo già le coordinate dei rover che escono da qui come valori a priori,
-                %    invece di farle con bancroft ancora dopo?
-                
-                
-            end
-            
-            
-            
-            % vanno tagliate le epoche all'inizio e alla fine, ci sono zeri!!!!!!
-            index_epoch_common=find(time_R>0);
-            first_epoch=index_epoch_common(1);
-            
-            
+%             nP = obj.nPar;
+%             %goGNSS.chiamalacomevuoi(goObs,goIni);
+%             ID_GNSS=1; % <- must be taken from the object!
+%             
+%             nRec=goObs.getNumRec();
+%             
+%             time_GPS=goObs.getTime_Ref();
+%             
+%             nFreq=goObs.getGNSSnFreq(ID_GNSS);
+%             Eph=goObs.getGNSSeph(ID_GNSS);
+%             iono=goObs.getIono();
+%             SP3_time=goObs.getGNSS_SP3time();
+%             SP3_coor=goObs.getGNSS_SP3coordinates();
+%             SP3_clck=goObs.getGNSS_SP3clock();
+%             
+%             % master receiver: preprocessing
+%             % ------------------------------
+%             time_M=goObs.getTime_M();
+%             [pos_M flag_M]= goObs.getPos_M(0);
+%             
+%             pr1_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+%             ph1_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+%             snr_M=goObs.getGNSSsnr_M(ID_GNSS, 0, 0, 1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
+%             dop1_M=goObs.getGNSSdop_M(ID_GNSS, 0, 0, 1); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+%             
+%             
+%             pr2_M=zeros(size(pr1_M));
+%             ph2_M=zeros(size(pr1_M));
+%             dop2_M=zeros(size(pr1_M));
+%             if nFreq==2
+%                 pr2_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+%                 ph2_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+%                 dop2_M=goObs.getGNSSdop_M(ID_GNSS, 0, 0, 2); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+%             end
+%             
+%             fprintf('Master station ');
+%             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, ...
+%                 pr2_M, ph2_M, snr_M, dop1_M, dop2_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+%             fprintf('\n');
+%             % ------------------------------
+%             
+%             time_R=zeros(length(time_M),1,nRec);
+%             pr1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+%             ph1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+%             snr_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+%             dop1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+%             pr2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+%             ph2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+%             dop2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
+%             
+%             
+%             dtR=NaN(length(time_M),1,nRec);
+%             dtRdot=NaN(length(time_M),1,nRec);
+%             
+%             
+%             for i=1:nRec
+%                 time_R(:,1,i)=goObs.getTime_R(i); %time = getTime_R(obj, idRec)
+%                 pos_R =[];
+%                 pr1_R(:,:,i)=goObs.getGNSSpr_R(ID_GNSS,0,i,0,1);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%                 ph1_R(:,:,i)=goObs.getGNSSph_R(ID_GNSS,0,i,0,1);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%                 snr_R(:,:,i)=goObs.getGNSSsnr_R(ID_GNSS,0,i,0,1);      %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%                 dop1_R(:,:,i)=goObs.getGNSSdop_R(ID_GNSS, 0, i, 0, 1); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%                 
+%                 if nFreq==2
+%                     pr2_R(:,:,i)=goObs.getGNSSpr_R(ID_GNSS,0,i,0,2);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%                     ph2_R(:,:,i)=goObs.getGNSSph_R(ID_GNSS,0,i,0,2);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%                     dop2_R(:,:,i)=goObs.getGNSSdop_R(ID_GNSS, 0, i, 0, 2); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+%                 end
+%                 
+%                 fprintf('Rover #%d ',i);
+%                 [pr1_R(:,:,i), ph1_R(:,:,i), pr2_R(:,:,i), ph2_R(:,:,i), dtR(:,:,i), dtRdot(:,:,i)] = pre_processing_clock(time_GPS, time_R(:,1,i), pos_R, pr1_R(:,:,i), ph1_R(:,:,i), ...
+%                     pr2_R(:,:,i), ph2_R(:,:,i), snr_R(:,:,i), dop1_R(:,:,i), dop2_R(:,:,i), Eph, SP3_time, SP3_coor, SP3_clck, iono);
+%                 fprintf('\n');
+%                 
+%                 %--> come modifico il contenuto globale di %%goObs.getGNSSpr_R(ID_GNSS,0,i,0,1) ????
+%                 %--> perchè non mi tengo già le coordinate dei rover che escono da qui come valori a priori,
+%                 %    invece di farle con bancroft ancora dopo?
+%                 
+%                 
+%             end
+%             
+%             
+%             
+%             % vanno tagliate le epoche all'inizio e alla fine, ci sono zeri!!!!!!
+%             index_epoch_common=find(time_R>0);
+%             first_epoch=index_epoch_common(1);
+%             
+%             
             
             
             %  QUESTO VA FATTO ADESSO? PENSO DI SI'
