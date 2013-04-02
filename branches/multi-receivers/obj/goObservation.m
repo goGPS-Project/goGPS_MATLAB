@@ -957,7 +957,6 @@ classdef goObservation < handle
         
         %pre-processing of master and rover data (to be changed soon!)
         function doPreProcessing(obj)
-            nP = obj.nPar;
             %goGNSS.chiamalacomevuoi(goObs,goIni);
             ID_GNSS=1; % <- must be taken from the object!
             
@@ -1029,8 +1028,20 @@ classdef goObservation < handle
                 fprintf('Rover #%d ',i);
                 [pr1_R(:,:,i), ph1_R(:,:,i), pr2_R(:,:,i), ph2_R(:,:,i), dtR(:,:,i), dtRdot(:,:,i)] = pre_processing_clock(time_GPS, time_R(:,1,i), pos_R, pr1_R(:,:,i), ph1_R(:,:,i), ...
                     pr2_R(:,:,i), ph2_R(:,:,i), snr_R(:,:,i), dop1_R(:,:,i), dop2_R(:,:,i), Eph, SP3_time, SP3_coor, SP3_clck, iono);
+                
+                obj.prxG(goGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,1) = pr1_R(:,:,i);
+                obj.phxG(goGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,1) = ph1_R(:,:,i);
+                if nFreq==2
+                    obj.prxG(goGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,2) = ph2_R(:,:,i);
+                    obj.phxG(goGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,2) = ph2_R(:,:,i);
+                end
+                obj.dt(i+1,:) = dtR(:,:,i)';          %size dt = nRec+1,nObs
+                obj.dtDot(i+1,:) = dtRdot(:,:,i)';    %size dtDot = nRec+1,nObs
+                
+                
+                
                 fprintf('\n');
-     
+                
             end
             
             obj.prxG(1:goGNSS.MAX_SAT,:,1) = pr1_M;
@@ -1042,14 +1053,7 @@ classdef goObservation < handle
             obj.dt(1,:) = dtM';          %size dt = nRec+1,nObs
             obj.dtDot(1,:) = dtMdot';    %size dtDot = nRec+1,nObs
             
-            obj.prxG(goGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,1) = pr1_R(:,:,i);
-            obj.phxG(goGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,1) = ph1_R(:,:,i);
-            if nFreq==2
-                obj.prxGgoGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,2) = ph2_R(:,:,i);
-                obj.phxGgoGNSS.MAX_SAT*(i)+1:goGNSS.MAX_SAT*(i+1),:,2) = ph2_R(:,:,i);
-            end            
-            obj.dt(i+1,:) = dtR(:,:,i)';          %size dt = nRec+1,nObs
-            obj.dtDot(i+1,:) = dtRdot(:,:,i)';    %size dtDot = nRec+1,nObs
+            
             
         end
     end

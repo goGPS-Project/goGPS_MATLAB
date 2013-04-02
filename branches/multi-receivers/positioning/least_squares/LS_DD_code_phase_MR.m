@@ -77,9 +77,8 @@ if (nargin < 21)
     flag_Tykhon = 0;
 end
 
-
 %number of observations
-nRec=size(pr_R,3);
+nRec=size(pr_R,2);
 n = 2*size(pr_R,1)*(nRec);
 
 %number of unknown parameters
@@ -113,7 +112,7 @@ for i=1:nRec
         b=[b;F_PR_DD(XM(1),XS(j,1), XS(pivot_index,1), Xb_approx(1), XM(2), XS(j,2), XS(pivot_index,2), Xb_approx(2), XM(3), XS(j,3), XS(pivot_index,3), Xb_approx(3), lam_b_apriori, phi_b_apriori, attitude(2), attitude(1), geometry(1,i), geometry(2,i), attitude(3), geometry(3,i)) + ...
             (err_tropo_R(j,i) - err_tropo_M(j,1)) - (err_tropo_R(pivot_index,i)  - err_tropo_M(pivot_index,1)) + ...
             (err_iono_R(j,i)  - err_iono_M(j,1))  - (err_iono_R(pivot_index,i)   - err_iono_M(pivot_index,1))];
-        y0=[y0; (pr_R(j,1,i) - pr_M(j,1)) - (pr_R(pivot_index,1,i) - pr_M(pivot_index,1))];
+        y0=[y0; (pr_R(j,i) - pr_M(j,1)) - (pr_R(pivot_index,i) - pr_M(pivot_index,1))];
 
     
     end
@@ -126,7 +125,7 @@ for i=1:nRec
         b=[b;F_PR_DD(XM(1),XS(j,1), XS(pivot_index,1), Xb_approx(1), XM(2), XS(j,2), XS(pivot_index,2), Xb_approx(2), XM(3), XS(j,3), XS(pivot_index,3), Xb_approx(3), lam_b_apriori, phi_b_apriori, attitude(2), attitude(1), geometry(1,i), geometry(2,i), attitude(3), geometry(3,i)) + ...
             (err_tropo_R(j,i) - err_tropo_M(j,1)) - (err_tropo_R(pivot_index,i)  - err_tropo_M(pivot_index,1)) - ...
             (err_iono_R(j,i)  - err_iono_M(j,1))  + (err_iono_R(pivot_index,i)   - err_iono_M(pivot_index,1))];
-        y0=[y0; lambda*((ph_R(j,1,i) - ph_M(j,1)) - (ph_R(pivot_index,1,i) - ph_M(pivot_index,1)))];
+        y0=[y0; lambda*((ph_R(j,i) - ph_M(j,1)) - (ph_R(pivot_index,i) - ph_M(pivot_index,1)))];
         A(nRec*size(pr_R,1)+j+(i-1)*size(pr_R,1),6+(i-1)*size(pr_R,1)+j)=-lambda;
     
     end
@@ -144,7 +143,7 @@ y0(pivot_index:size(pr_R,1):end)    = [];
 %observation noise covariance matrix
 Q = zeros(n);
 for i=1:nRec    
-    Q1 = cofactor_matrix(elR(:,i), elM, snr_R(:,1,i), snr_M, pivot_index);
+    Q1 = cofactor_matrix(elR(:,i), elM, snr_R(:,i), snr_M, pivot_index);
     Q((i-1)*(size(pr_R,1)-1)+1 : (i-1)*(size(pr_R,1)-1)+ (size(pr_R,1)-1), (i-1)*(size(pr_R,1)-1)+1 : (i-1)*(size(pr_R,1)-1)+ (size(pr_R,1)-1)) = sigmaq_cod1 * Q1;
     Q(n/2+(i-1)*(size(pr_R,1)-1)+1: n/2+(i-1)*(size(pr_R,1)-1)+size(pr_R,1)-1,n/2+(i-1)*(size(pr_R,1)-1)+1:n/2+(i-1)*(size(pr_R,1)-1)+size(pr_R,1)-1) = sigmaq_ph * Q1;
 end

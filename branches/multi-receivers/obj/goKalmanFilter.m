@@ -219,7 +219,7 @@ classdef goKalmanFilter < handle
     methods (Access = 'public')
         function init(obj, goObs, goIni)
             obj.init_T(obj.mode);
-            %obj.init_Xhat_t_t(goObs, goIni, obj.mode);
+            obj.init_Xhat_t_t(goObs, goIni, obj.mode);
             obj.init_X_t1_t(); 
             obj.init_Cee(goObs.getNumRec(), obj.mode);
        %     %obj.init_doppler(goObs, goObs.getNumRec(), goObs.getGNSSnFreq(goGNSS.ID_GPS));
@@ -350,96 +350,8 @@ classdef goKalmanFilter < handle
         
         % initialization of the parameter vector for all receivers
         function init_Xhat_t_t(obj, goObs, goIni, mode)   %% to initialize Xhat_t_t_R: cell of [nPar+nSat*nFreq,1] and Xhat_t_t;
-            
-%             nP = obj.nPar;
-%             %goGNSS.chiamalacomevuoi(goObs,goIni);
-%             ID_GNSS=1; % <- must be taken from the object!
-%             
-%             nRec=goObs.getNumRec();
-%             
-%             time_GPS=goObs.getTime_Ref();
-%             
-%             nFreq=goObs.getGNSSnFreq(ID_GNSS);
-%             Eph=goObs.getGNSSeph(ID_GNSS);
-%             iono=goObs.getIono();
-%             SP3_time=goObs.getGNSS_SP3time();
-%             SP3_coor=goObs.getGNSS_SP3coordinates();
-%             SP3_clck=goObs.getGNSS_SP3clock();
-%             
-%             % master receiver: preprocessing
-%             % ------------------------------
-%             time_M=goObs.getTime_M();
-%             [pos_M flag_M]= goObs.getPos_M(0);
-%             
-%             pr1_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
-%             ph1_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
-%             snr_M=goObs.getGNSSsnr_M(ID_GNSS, 0, 0, 1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
-%             dop1_M=goObs.getGNSSdop_M(ID_GNSS, 0, 0, 1); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
-%             
-%             
-%             pr2_M=zeros(size(pr1_M));
-%             ph2_M=zeros(size(pr1_M));
-%             dop2_M=zeros(size(pr1_M));
-%             if nFreq==2
-%                 pr2_M=goObs.getGNSSpr_M(ID_GNSS, 0, 0, 2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
-%                 ph2_M=goObs.getGNSSph_M(ID_GNSS, 0, 0, 2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
-%                 dop2_M=goObs.getGNSSdop_M(ID_GNSS, 0, 0, 2); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
-%             end
-%             
-%             fprintf('Master station ');
-%             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, ...
-%                 pr2_M, ph2_M, snr_M, dop1_M, dop2_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
-%             fprintf('\n');
-%             % ------------------------------
-%             
-%             time_R=zeros(length(time_M),1,nRec);
-%             pr1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-%             ph1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-%             snr_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-%             dop1_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-%             pr2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-%             ph2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-%             dop2_R=zeros(goGNSS.MAX_SAT,length(time_M),nRec);
-%             
-%             
-%             dtR=NaN(length(time_M),1,nRec);
-%             dtRdot=NaN(length(time_M),1,nRec);
-%             
-%             
-%             for i=1:nRec
-%                 time_R(:,1,i)=goObs.getTime_R(i); %time = getTime_R(obj, idRec)
-%                 pos_R =[];
-%                 pr1_R(:,:,i)=goObs.getGNSSpr_R(ID_GNSS,0,i,0,1);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-%                 ph1_R(:,:,i)=goObs.getGNSSph_R(ID_GNSS,0,i,0,1);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-%                 snr_R(:,:,i)=goObs.getGNSSsnr_R(ID_GNSS,0,i,0,1);      %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-%                 dop1_R(:,:,i)=goObs.getGNSSdop_R(ID_GNSS, 0, i, 0, 1); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-%                 
-%                 if nFreq==2
-%                     pr2_R(:,:,i)=goObs.getGNSSpr_R(ID_GNSS,0,i,0,2);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-%                     ph2_R(:,:,i)=goObs.getGNSSph_R(ID_GNSS,0,i,0,2);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-%                     dop2_R(:,:,i)=goObs.getGNSSdop_R(ID_GNSS, 0, i, 0, 2); %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-%                 end
-%                 
-%                 fprintf('Rover #%d ',i);
-%                 [pr1_R(:,:,i), ph1_R(:,:,i), pr2_R(:,:,i), ph2_R(:,:,i), dtR(:,:,i), dtRdot(:,:,i)] = pre_processing_clock(time_GPS, time_R(:,1,i), pos_R, pr1_R(:,:,i), ph1_R(:,:,i), ...
-%                     pr2_R(:,:,i), ph2_R(:,:,i), snr_R(:,:,i), dop1_R(:,:,i), dop2_R(:,:,i), Eph, SP3_time, SP3_coor, SP3_clck, iono);
-%                 fprintf('\n');
-%                 
-%                 %--> come modifico il contenuto globale di %%goObs.getGNSSpr_R(ID_GNSS,0,i,0,1) ????
-%                 %--> perchè non mi tengo già le coordinate dei rover che escono da qui come valori a priori,
-%                 %    invece di farle con bancroft ancora dopo?
-%                 
-%                 
-%             end
-%             
-%             
-%             
-%             % vanno tagliate le epoche all'inizio e alla fine, ci sono zeri!!!!!!
-%             index_epoch_common=find(time_R>0);
-%             first_epoch=index_epoch_common(1);
-%             
-%             
-            goObs.doPreProcessing(obj)
+
+            goObs.doPreProcessing()
             
             %load of the observation data after pre-processing
             
@@ -458,76 +370,7 @@ classdef goKalmanFilter < handle
             SP3_coor=goObs.getGNSS_SP3coordinates();
             SP3_clck=goObs.getGNSS_SP3clock();
             
-            pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,0,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
-            ph1_M=goObs.getGNSSph_M(ID_GNSS,0,0,1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
-            snr_M=goObs.getGNSSsnr_M(ID_GNSS,0,0,1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
-            dop1_M=goObs.getGNSSdop_M(ID_GNSS,0,0,1); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
-
-            if nFreq==2
-                pr2_M=goObs.getGNSSpr_M(ID_GNSS,0,0,2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
-                ph2_M=goObs.getGNSSph_M(ID_GNSS,0,0,2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
-                dop2_M=goObs.getGNSSdop_M(ID_GNSS,0,0,2); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
-            end
-
-            pr1_R=goObs.getGNSSpr_R(ID_GNSS,0,0,0,1);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-            ph1_R=goObs.getGNSSph_R(ID_GNSS,0,0,0,1);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-            snr_R=goObs.getGNSSsnr_R(ID_GNSS,0,0,0,1);      %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-            dop1_R=goObs.getGNSSdop_R(ID_GNSS,0,0,0,1);     %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-            
-            if nFreq==2
-                pr2_R=goObs.getGNSSpr_R(ID_GNSS,0,0,0,2);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                ph2_R=goObs.getGNSSph_R(ID_GNSS,0,0,0,2);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-                dop2_R=goObs.getGNSSdop_R(ID_GNSS,0,0,0,2);     %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
-            end
-            
-            
-            
-            %  QUESTO VA FATTO ADESSO? PENSO DI SI'
-            %if (~flag_SP3)  <-- sistemare il flag_SP3 prendenolo dall'obj
-            %remove satellites without ephemerides (GPS)
-            delsat = setdiff(1:32,unique(Eph(1,:)));
-            pr1_R(delsat,:,:) = 0;
-            pr1_M(delsat,:,:) = 0;
-            pr2_R(delsat,:,:) = 0;
-            pr2_M(delsat,:,:) = 0;
-            ph1_R(delsat,:,:) = 0;
-            ph1_M(delsat,:,:) = 0;
-            ph2_R(delsat,:,:) = 0;
-            ph2_M(delsat,:,:) = 0;
-            dop1_R(delsat,:,:) = 0;
-            dop1_M(delsat,:,:) = 0;
-            dop2_R(delsat,:,:) = 0;
-            dop2_M(delsat,:,:) = 0;
-            snr_R(delsat,:,:) = 0;
-            snr_M(delsat,:,:) = 0;
-            %end
-            
-            
-            
-            % Processing
-            % ----------
-            %  - for each rover receiver:
-            %       - enhance coordinates with code and phase DD in single
-            %         epoch (lambda)
-            %  - estimation of apriori attitude
-            %  - enhance solution with constrained least squares (DD in
-            %         single epoch (lambda))
-            
-            
-            % for each rover receiver: enhance coordinates with code and phase DD in single epoch (lambda)
-            % --------------------------------------------------------------------------------------------
-            
-            % cosa sono???
-            check_on = 0;
-            check_off = 0;
-            check_pivot = 0;
-            check_cs = 0;
-            plot_t = 1;
-            %
-            
-            
-            
-            
+    
             
             global Xhat_t_t  % forse conviene aggiungere output alla funzione goGPS_LS_DD_code_phase
             
@@ -537,14 +380,97 @@ classdef goKalmanFilter < handle
             err_iono = NaN(goGNSS.MAX_SAT, nRec+1);
             err_tropo = NaN(goGNSS.MAX_SAT, nRec+1);
             
-            
-            
-            
-            
-            
-            for t = first_epoch : first_epoch
+           
+            for t = 1 : 1                
+                pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+                ph1_M=goObs.getGNSSph_M(ID_GNSS,0,t,1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+                snr_M=goObs.getGNSSsnr_M(ID_GNSS,0,t,1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
+                dop1_M=goObs.getGNSSdop_M(ID_GNSS,0,t,1); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+                
+                
+                pr2_M=zeros(size(pr1_M));
+                ph2_M=zeros(size(pr1_M));
+                dop2_M=zeros(size(pr1_M));
+                if nFreq==2
+                    pr2_M=goObs.getGNSSpr_M(ID_GNSS,0,t,2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+                    ph2_M=goObs.getGNSSph_M(ID_GNSS,0,t,2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+                    dop2_M=goObs.getGNSSdop_M(ID_GNSS,0,t,2); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+                end
+                
+
+                pr1_R=zeros(goGNSS.MAX_SAT,nRec);
+                ph1_R=zeros(goGNSS.MAX_SAT,nRec);
+                snr_R=zeros(goGNSS.MAX_SAT,nRec);
+                dop1_R=zeros(goGNSS.MAX_SAT,nRec);
+                pr2_R=zeros(goGNSS.MAX_SAT,nRec);
+                ph2_R=zeros(goGNSS.MAX_SAT,nRec);
+                dop2_R=zeros(goGNSS.MAX_SAT,nRec);
+                
+                pr1_R=reshape(goObs.getGNSSpr_R(ID_GNSS,0,0,t,1),goGNSS.MAX_SAT,nRec);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                ph1_R=reshape(goObs.getGNSSph_R(ID_GNSS,0,0,t,1),goGNSS.MAX_SAT,nRec);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                snr_R=reshape(goObs.getGNSSsnr_R(ID_GNSS,0,0,t,1),goGNSS.MAX_SAT,nRec);      %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                dop1_R=reshape(goObs.getGNSSdop_R(ID_GNSS,0,0,t,1),goGNSS.MAX_SAT,nRec);     %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                
+                if nFreq==2
+                    pr2_R=reshape(goObs.getGNSSpr_R(ID_GNSS,0,0,t,2),goGNSS.MAX_SAT,nRec);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                    ph2_R=reshape(goObs.getGNSSph_R(ID_GNSS,0,0,t,2),goGNSS.MAX_SAT,nRec);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                    dop2_R=reshape(goObs.getGNSSdop_R(ID_GNSS,0,0,t,2),goGNSS.MAX_SAT,nRec);     %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                end
+                
+                
+                
+                %  QUESTO VA FATTO ADESSO? PENSO DI SI'
+                %if (~flag_SP3)  <-- sistemare il flag_SP3 prendenolo dall'obj
+                %remove satellites without ephemerides (GPS)
+                delsat = setdiff(1:32,unique(Eph(1,:)));
+                pr1_R(delsat,:) = 0;
+                pr1_M(delsat,:) = 0;
+                pr2_R(delsat,:) = 0;
+                pr2_M(delsat,:) = 0;
+                ph1_R(delsat,:) = 0;
+                ph1_M(delsat,:) = 0;
+                ph2_R(delsat,:) = 0;
+                ph2_M(delsat,:) = 0;
+                dop1_R(delsat,:) = 0;
+                dop1_M(delsat,:) = 0;
+                dop2_R(delsat,:) = 0;
+                dop2_M(delsat,:) = 0;
+                snr_R(delsat,:) = 0;
+                snr_M(delsat,:) = 0;
+                %end
+                
+                
+                
+                % Processing
+                % ----------
+                %  - for each rover receiver:
+                %       - enhance coordinates with code and phase DD in single
+                %         epoch (lambda)
+                %  - estimation of apriori attitude
+                %  - enhance solution with constrained least squares (DD in
+                %         single epoch (lambda))
+                
+                
+                % for each rover receiver: enhance coordinates with code and phase DD in single epoch (lambda)
+                % --------------------------------------------------------------------------------------------
+                
+                % cosa sono???
+                check_on = 0;
+                check_off = 0;
+                check_pivot = 0;
+                check_cs = 0;
+                plot_t = 1;
+                %
+                
+                
+                
+                
+                
+                
+                
                 XR_DD=NaN(3,1,nRec);
-                %cartesian to geodetic conversion of ROVER coordinates
+                %cartesian to geodetic conversion of MASTER coordinates
+                [pos_M flag_M]= goObs.getPos_M(t);
                 [phiM, lamM, hM] = cart2geod(pos_M(1,t), pos_M(2,t), pos_M(3,t));
                 
                 %radians to degrees
@@ -566,7 +492,7 @@ classdef goKalmanFilter < handle
                     
                     Xhat_t_t=zeros(size(Xhat_t_t));
                     
-                    [X_sat_i conf_sat(:,i)]=goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t,i), pr1_M(:,t), pr2_R(:,t,i), pr2_M(:,t), ph1_R(:,t,i), ph1_M(:,t), ph2_R(:,t,i), ph2_M(:,t), snr_R(:,t,i), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+                    [X_sat_i conf_sat(:,i)]=goGPS_LS_DD_code_phase(time_GPS(t), pos_M, pr1_R(:,i), pr1_M, pr2_R(:,i), pr2_M, ph1_R(:,i), ph1_M, ph2_R(:,i), ph2_M, snr_R(:,i), snr_M, Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
                     
                     X_sat(find(conf_sat(:,i)==1),1:3,i)=X_sat_i;
                     
@@ -701,7 +627,7 @@ classdef goKalmanFilter < handle
                 %loop is needed to improve the atmospheric error correction
                 for i = 1 : 3
                     %if (phase == 1)
-                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, XR_DD(:,t,:), PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, XR_DD(:,t,:), pos_M(:,t), XS(sat,:), pr1_R(sat,t,:), ph1_R(sat,t,:), snr_R(sat,t,:), pr1_M(sat,t), ph1_M(sat,t), snr_M(sat,t), satCoord.el(sat,2:nRec+1), satCoord.az(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, geometry, 0, F_Ai, F_PR_DD, F_s_X);
+                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, XR_DD(:,t,:), PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, XR_DD(:,t,:), pos_M(:,t), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,t), snr_M(sat,t), satCoord.el(sat,2:nRec+1), satCoord.az(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, geometry, 0, F_Ai, F_PR_DD, F_s_X);
                     %else
                     %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
                     %end
@@ -721,6 +647,8 @@ classdef goKalmanFilter < handle
                         err_iono(isnan(distM),r+1)=NaN;        
                     end
                 end
+                
+                
             else
             end
 
