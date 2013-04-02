@@ -224,9 +224,9 @@ if goGNSS.isPP(mode) % post-processing
 
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
-            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, snr1_R, dop1_R, dop2_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, snr1_M, dop1_R, dop2_R, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_R, dop2_R, snr1_M, Eph, SP3_time, SP3_coor, SP3_clck, iono);
         end
 
 %         %read surveying mode
@@ -2343,7 +2343,10 @@ if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && (
             for j = 1 : n                   % ellipse definition
                 x_ellipse(j,:) = x_circle(j,:) * T + [EAST(i), NORTH(i)];
             end
-            plot(x_ellipse(:,1),x_ellipse(:,2));
+            he = plot(x_ellipse(:,1),x_ellipse(:,2),'b');
+            if (any(FIXING) && FIXING(i) == 0)
+                set(he,'Color',[0.8 0.5 0])
+            end
         end
         hold off
     end

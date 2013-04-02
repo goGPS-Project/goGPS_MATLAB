@@ -54,7 +54,7 @@ n = size(A,2);
 %identity matrix
 I = eye(n);
 
-while abs(Dalp) > tol;
+while (abs(Dalp) > tol && cnt1 < 1e4);
     alp_o = alp; %initial value
     alp   = (trace(N*(N + alp*I)^-3))/(x'*(N + alp*I)^-2*N*(N + alp*I)^-1*x); %compute alpha  
     Dalp  = alp - alp_o;
@@ -65,13 +65,14 @@ lbd  = alp; %take lambda value from alpha
 Dlbd = 1;
 tol  = 1e-5;
 cnt2 = 0;
+N2   = N + lbd*I;
 
-while abs(Dlbd) > tol;
+while (abs(Dlbd) > tol && cnt2 < 1e4);
     lbd_o = lbd;
-    lbd   = (trace(N*(N + lbd*I)^-3))/(x'*(N + lbd*I)^-2*N*(N + lbd*I)^-1*x); %compute lambda
-    
+    lbd   = (trace(N*N2^-3))/(x'*N2^-2*N*N2^-1*x); %compute lambda
     Dlbd  = lbd - lbd_o;
     cnt2  = cnt2 + 1;
+    N2    = N + lbd*I;
 end
 x_hat = ((N + lbd*I)^-1)*A'*Q^-1*(y0-b);
 bias  = -lbd * (N + lbd*I)^-1 * x;
