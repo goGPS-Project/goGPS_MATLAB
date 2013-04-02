@@ -472,9 +472,9 @@ classdef goKalmanFilter < handle
             %  - enhance solution with constrained least squares (DD in
             %         single epoch (lambda))
             
-            
-            
-            
+            %%------------
+            % qua vanno caricati i dati che servono con getGNSS...
+            %%------------
             
             % for each rover receiver: enhance coordinates with code and phase DD in single epoch (lambda)
             % --------------------------------------------------------------------------------------------
