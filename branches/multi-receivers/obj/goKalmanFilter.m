@@ -439,6 +439,47 @@ classdef goKalmanFilter < handle
 %             first_epoch=index_epoch_common(1);
 %             
 %             
+            goObs.doPreProcessing(obj)
+            
+            %load of the observation data after pre-processing
+            
+            nP = obj.nPar;
+            
+            ID_GNSS=1; % <- must be taken from the object!
+            
+            nRec=goObs.getNumRec();
+            
+            time_GPS=goObs.getTime_Ref();
+            
+            nFreq=goObs.getGNSSnFreq(ID_GNSS);
+            Eph=goObs.getGNSSeph(ID_GNSS);
+            iono=goObs.getIono();
+            SP3_time=goObs.getGNSS_SP3time();
+            SP3_coor=goObs.getGNSS_SP3coordinates();
+            SP3_clck=goObs.getGNSS_SP3clock();
+            
+            pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,0,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+            ph1_M=goObs.getGNSSph_M(ID_GNSS,0,0,1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+            snr_M=goObs.getGNSSsnr_M(ID_GNSS,0,0,1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
+            dop1_M=goObs.getGNSSdop_M(ID_GNSS,0,0,1); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+
+            if nFreq==2
+                pr2_M=goObs.getGNSSpr_M(ID_GNSS,0,0,2);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
+                ph2_M=goObs.getGNSSph_M(ID_GNSS,0,0,2);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
+                dop2_M=goObs.getGNSSdop_M(ID_GNSS,0,0,2); %dop = getGNSSdop_M(obj, idGNSS, idSat, idObs, nFreq)
+            end
+
+            pr1_R=goObs.getGNSSpr_R(ID_GNSS,0,0,0,1);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+            ph1_R=goObs.getGNSSph_R(ID_GNSS,0,0,0,1);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+            snr_R=goObs.getGNSSsnr_R(ID_GNSS,0,0,0,1);      %snr = getGNSSsnr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+            dop1_R=goObs.getGNSSdop_R(ID_GNSS,0,0,0,1);     %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+            
+            if nFreq==2
+                pr2_R=goObs.getGNSSpr_R(ID_GNSS,0,0,0,2);       %pr = getGNSSpr_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                ph2_R=goObs.getGNSSph_R(ID_GNSS,0,0,0,2);       %ph = getGNSSph_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+                dop2_R=goObs.getGNSSdop_R(ID_GNSS,0,0,0,2);     %dop = getGNSSdop_R(obj, idGNSS, idSat, idRec, idObs, nFreq)
+            end
+            
             
             
             %  QUESTO VA FATTO ADESSO? PENSO DI SI'
@@ -472,9 +513,6 @@ classdef goKalmanFilter < handle
             %  - enhance solution with constrained least squares (DD in
             %         single epoch (lambda))
             
-            %%------------
-            % qua vanno caricati i dati che servono con getGNSS...
-            %%------------
             
             % for each rover receiver: enhance coordinates with code and phase DD in single epoch (lambda)
             % --------------------------------------------------------------------------------------------
