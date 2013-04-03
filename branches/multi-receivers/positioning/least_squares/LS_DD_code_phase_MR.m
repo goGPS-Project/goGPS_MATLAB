@@ -91,7 +91,7 @@ distR_approx=NaN(n/2/(nRec),nRec);
 XM_mat = XM(:,ones(n/2/(nRec),1))';
 distM = sqrt(sum((XS-XM_mat).^2 ,2));
 for i=1:nRec
-    XR_approx_i=XR_approx(:,1,i);
+    XR_approx_i=XR_approx(:,i);
     XR_mat = XR_approx_i(:,ones(n/2/(nRec),1))';
     distR_approx(:,i) = sqrt(sum((XS-XR_mat).^2 ,2));
 end

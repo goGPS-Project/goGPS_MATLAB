@@ -1495,7 +1495,7 @@ if (inputOk)
             %tmp select the parameters you want to estimate
             KFmode = 5; % const.acceleration filter + attitude angles without variations
             goKF = goKalmanFilter(goObs, goIni, KFmode, goObs.getSamplingRate_R(1));
-            goKF.init(goObs, goIni);                        
+               
             
  
             keyboard
