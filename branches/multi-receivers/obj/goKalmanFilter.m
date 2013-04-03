@@ -1346,7 +1346,7 @@ classdef goKalmanFilter < handle
 %                     %antenna height addition
 %                     h_dtm = h_dtm + h_antenna;
 %                 else
-                     h_dtm = tile_header.nodata;
+%                      h_dtm = tile_header.nodata;
 %                 end
 
 
