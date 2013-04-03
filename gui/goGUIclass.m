@@ -326,7 +326,7 @@ classdef goGUIclass < handle
                 str = obj.strDynModel;
             end
             value = get(obj.goh.dyn_mod,'Value');
-	    value = max(1,min(length(str), value));
+            value = max(1,min(length(str), value));
             set(obj.goh.dyn_mod, 'String', str);
             set(obj.goh.dyn_mod,'Value', value);
         end
