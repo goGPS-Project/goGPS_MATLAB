@@ -1,11 +1,11 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time_rx, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_GPS, time_rx, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono);
 %
 % INPUT:
-%   time_GPS = GPS reference time
-%   time_rx = GPS reception time (as read from RINEX file)
+%   time_ref = GPS reference time
+%   time     = GPS nominal time (as read from RINEX file)
 %   XR0 = receiver position (=[] if not available)
 %   pr1 = code observation (L1 carrier)
 %   ph1 = phase observation (L1 carrier)
@@ -56,13 +56,13 @@ global v_light f1 f2 lambda1 lambda2
 global cutoff snr_threshold
 
 %number of epochs
-nEpochs = length(time_rx);
+nEpochs = length(time);
 
 %receiver clock error
-dtR = NaN(nEpochs,1);
+dtR = zeros(nEpochs,1);
 
 %receiver clock drift
-dtRdot = NaN(nEpochs-1,1);
+dtRdot = zeros(nEpochs-1,1);
 
 %------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
@@ -84,7 +84,7 @@ for i = 1 : nEpochs
     
     sat0 = find(pr1(:,i) ~= 0);
 
-    Eph_t = rt_find_eph (Eph, time_rx(i));
+    Eph_t = rt_find_eph (Eph, time(i));
     
     %----------------------------------------------------------------------------------------------
     % RECEIVER POSITION AND CLOCK ERROR
@@ -92,21 +92,26 @@ for i = 1 : nEpochs
     
     if (length(sat0) >= 4)
         
-        [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, [], XR0, [], [], sat0, cutoff, snr_threshold, flag_XR, 0);
+        [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, [], XR0, [], [], sat0, cutoff, snr_threshold, flag_XR, 0);
         
         if (size(sat,1) >= 4)
             
             if (i > 1)
                 %compute receiver clock drift
                 if (dtR(i) ~= 0 && dtR(i-1) ~= 0)
-                    dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time_rx(i) - time_rx(i-1));
+                    dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
                 end
             end
         else
             if (i > 2)
                 dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
-                dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time_rx(i) - time_rx(i-1));
+                dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
             end
+        end
+    else
+        if (i > 2)
+            dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
+            dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
         end
     end
 end
@@ -150,12 +155,13 @@ end
 %     otherwise by interpolating observations on the time tag corrected by dtR
 
 %available epochs
-index_e = find(time_rx ~= 0);
+index_e = find(time ~= 0);
 
-%if the nominal time (e.g. read from RINEX) and the reference time are identical
-if (~any(time_GPS(index_e) - time_rx(index_e)))
-    time_rx(index_e) = time_rx(index_e) + dtR(index_e);
-end
+%nominal time desynchronization (e.g. with some low-cost receivers)
+time_desync = time_ref - time;
+
+%reference time "correction"
+time_ref(index_e) = time(index_e) + dtR(index_e) + time_desync(index_e);
 
 for s = 1 : 32
 
@@ -166,9 +172,9 @@ for s = 1 : 32
         
         pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
 %         if (any(dop1(s,index)))
-%             pr1(s,index) = pr1(s,index) + (time_GPS(index) - time_rx(index))'.*(f1 - dop1(s,index))*lambda1;
+%             pr1(s,index) = pr1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index))*lambda1;
 %         else
-            pr1(s,index) = interp1(time_rx(index), pr1(s,index), time_GPS(index), 'spline');
+            pr1(s,index) = interp1(time(index), pr1(s,index), time_ref(index), 'spline');
 %         end
     end
     
@@ -179,9 +185,9 @@ for s = 1 : 32
         
         pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
 %         if (any(dop2(s,index)))
-%             pr2(s,index) = pr2(s,index) + (time_GPS(index) - time_rx(index))'.*(f2 - dop2(s,index))*lambda2;
+%             pr2(s,index) = pr2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index))*lambda2;
 %         else
-            pr2(s,index) = interp1(time_rx(index), pr2(s,index), time_GPS(index), 'spline');
+            pr2(s,index) = interp1(time(index), pr2(s,index), time_ref(index), 'spline');
 %         end
     end
     
@@ -192,9 +198,9 @@ for s = 1 : 32
         
         ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda1;
 %         if (any(dop1(s,index)))
-%             ph1(s,index) = ph1(s,index) + (time_GPS(index) - time_rx(index))'.*(f1 - dop1(s,index));
+%             ph1(s,index) = ph1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index));
 %         else
-            ph1(s,index) = interp1(time_rx(index), ph1(s,index), time_GPS(index), 'spline');
+            ph1(s,index) = interp1(time(index), ph1(s,index), time_ref(index), 'spline');
 %         end
     end
     
@@ -205,9 +211,9 @@ for s = 1 : 32
         
         ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda2;
 %         if (any(dop2(s,index)))
-%             ph2(s,index) = ph2(s,index) + (time_GPS(index) - time_rx(index))'.*(f2 - dop2(s,index));
+%             ph2(s,index) = ph2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index));
 %         else
-            ph2(s,index) = interp1(time_rx(index), ph2(s,index), time_GPS(index), 'spline');
+            ph2(s,index) = interp1(time(index), ph2(s,index), time_ref(index), 'spline');
 %         end
     end
 end
