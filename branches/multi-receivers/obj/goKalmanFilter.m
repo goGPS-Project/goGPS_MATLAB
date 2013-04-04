@@ -893,7 +893,7 @@ classdef goKalmanFilter < handle
         % initialization of point estimation at step t+1 ==
         % estimation at step t, because the initial velocity is equal to 0
         function init_X_t1_t(obj)
-            X_t1_t = obj.T*obj.Xhat_t_t;
+            obj.X_t1_t = obj.T*obj.Xhat_t_t;
         end
         
         % initialization of state covariance matrix
@@ -1077,8 +1077,6 @@ classdef goKalmanFilter < handle
             
             
             
-            
-            
             %for t = 2 : length(time_GPS)
             for t=2:2
                 pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -1227,7 +1225,7 @@ classdef goKalmanFilter < handle
                 switch(mode)
                     %case {1,2,3},   %when not estimating the attitude                    
                     case {5},                        
-                        attitude_approx=[obj.Xhat_t_t(nP-3+1:nP)];                        
+                        attitude_approx=[obj.X_t1_t(nP-3+1:nP)];                        
                 end
                 
                 % instrumental RS coordinates
@@ -1279,9 +1277,9 @@ classdef goKalmanFilter < handle
                 %approximate position
                 switch(mode)
                     case {5},
-                        XR0 = obj.Xhat_t_t([1,4,7]);
+                        XR0 = obj.X_t1_t([1,4,7]);
                         flag_XR = 2;
-                        VR0 = obj.Xhat_t_t([2,5,8]);
+                        VR0 = obj.X_t1_t([2,5,8]);
                 end
                 
                 %approximated coordinates X Y Z
@@ -1349,25 +1347,24 @@ classdef goKalmanFilter < handle
 %                      h_dtm = tile_header.nodata;
 %                 end
 
-
-                %% questa cosa ??
-%                 %----------------------------------------------------------------------------------------
-%                 % MODEL ERROR COVARIANCE MATRIX
-%                 %----------------------------------------------------------------------------------------
-%                 
-%                 %re-initialization of Cvv matrix of the model error
-%                 % (if a static model is used, no noise is added)
-%                 Cvv = zeros(o3+nN);
-%                 if (o1 > 1)
-%                     Cvv(o1,o1) = sigmaq_vE;
-%                     Cvv(o2,o2) = sigmaq_vN;
-%                     Cvv(o3,o3) = sigmaq_vU;
-%                     
-%                     %propagate diagonal local cov matrix to global cov matrix
-%                     Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
-%                 end
-                %%
+    keyboard
+                % questa cosa ??
+                %----------------------------------------------------------------------------------------
+                % MODEL ERROR COVARIANCE MATRIX
+                %----------------------------------------------------------------------------------------
                 
+                %re-initialization of Cvv matrix of the model error
+                % (if a static model is used, no noise is added)
+                global sigmaq_vE sigmaq_vN sigmaq_vU
+                Cvv = zeros(nP+goGNSS.MAX_SAT*nRec);
+                switch(mode)
+                    case {5},
+                    Cvv(3,3) = sigmaq_vE;
+                    Cvv(6,6) = sigmaq_vN;
+                    Cvv(9,9) = sigmaq_vU;                    
+                    %propagate diagonal local cov matrix to global cov matrix
+                    Cvv([3 6 9],[3 6 9]) = local2globalCov(Cvv([3 6 9],[3 6 9]), obj.X_t1_t([1 4 7]));
+                end
                 
                 
                 %cycle-slip configuration
