@@ -297,8 +297,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [     XR, N1(sat),      cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS(index,:), pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono_R(index), err_tropo_M(index), err_iono_M(index), pivot_index, phase);
-        [null_XR, N2(sat), null_cov_XR, cov_N2] = LS_DD_code_phase(XR, XM, XS(index,:), pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono_R(index), err_tropo_M(index), err_iono_M(index), pivot_index, phase); %#ok<ASGLU>
+        [     XR, N1(sat),      cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS(index,:), pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono_R(index), err_tropo_M(index), err_iono_M(index), pivot_index, phase, 0);
+        [null_XR, N2(sat), null_cov_XR, cov_N2] = LS_DD_code_phase(XR, XM, XS(index,:), pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono_R(index), err_tropo_M(index), err_iono_M(index), pivot_index, phase, 0); %#ok<ASGLU>
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix
