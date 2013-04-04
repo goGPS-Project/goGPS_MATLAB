@@ -626,7 +626,7 @@ classdef goKalmanFilter < handle
                 %loop is needed to improve the atmospheric error correction
                 for i = 1 : 3
                     %if (phase == 1)
-                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, obj.XR, pos_M(:,t), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,t), snr_M(sat,t), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, geometry, 0, F_Ai, F_PR_DD, F_s_X);
+                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, obj.XR, pos_M(:,t), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,t), snr_M(sat,t), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X);
                     %else
                     %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
                     %end
@@ -1655,124 +1655,164 @@ classdef goKalmanFilter < handle
                     % p = find(ismember(setdiff(sat_pr,pivot),setdiff(sat,pivot))==1);
                     p = setdiff(sat,obj.pivot(1)); %sat without pivot
            
-         keyboard      
+
                     
                     %function that calculates the Kalman filter parameters
-                    [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman_MR(XR0, X_sat(sat,:,1), pr1_R(sat,:), ph1_R(sat,:), pr1_M(sat), ph1_M(sat), pr2_R(sat,:), ph2_R(sat,:), pr2_M(sat), ph2_M(sat), err_tropo(sat,2:end), err_iono(sat,2:end), err_tropo(sat,1), err_iono(sat,1), obj.satCoordR.dist(sat,:), obj.satCoordM.dist(sat), sat, obj.pivot(1), attitude_approx, geometry, F_Ai, F_PR_DD, F_s_X);
+                    [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman_MR(XR0, X_sat(sat,:,1), pr1_R(sat,:), ph1_R(sat,:), pr1_M(sat), ph1_M(sat), pr2_R(sat,:), ph2_R(sat,:), pr2_M(sat), ph2_M(sat), err_tropo(sat,2:end), err_iono(sat,2:end), err_tropo(sat,1), err_iono(sat,1), obj.satCoordR.dist(sat,:), obj.satCoordM.dist(sat), sat, obj.pivot(1), attitude_approx, xR, F_Ai, F_PR_DD, F_s_X);
                     
-                    n=size(alpha,1)/nRec/2;
+                    n=length(sat)-1; % simplification! here we have only observation from satellite that have both code and phase! -1 because pivot is removed
                     %zeroes vector useful in matrix definitions
-                    Z_1_nN = zeros(1,obj.nN/nRec);
-                    Z_n_nN = zeros(n,obj.nN/nRec);
+                    Z_1_nN_nRec = zeros(1,obj.nN);
+                    Z_n_nN_nRec = zeros(n*nRec,obj.nN);
                     
                     switch(mode)
                         case {4},
-                            o1 = (obj.nPar-3)/3;                            
+                            o1 = (obj.nPar-3)/3;
+                            
+                            Z_n_om = zeros(nRec*n,o1-1);
+                            Z_1_om = zeros(1,o1-1);   
                     end
-                    Z_n_om = zeros(n,o1-1);
-                    Z_1_om = zeros(1,o1-1);
-                    Z_att_om = zeros(n,3);
                     
                     
- for i=1:nRec
-     
-                    %H matrix computation for the code
-                    H_cod1_i = [alpha((i-1)*n+1:i*n,1) Z_n_om alpha((i-1)*n+1:i*n,2) Z_n_om alpha((i-1)*n+1:i*n,3) Z_n_om Z_att_om Z_n_nN];
-                    %H_cod2 = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN];
-%                     if (length(phase) == 2)
-%                         H_cod = [H_cod1; H_cod2];
-%                     else
-%                         if (phase == 1)
-                            H_cod_i = H_cod1;
-%                         else
-%                             H_cod = H_cod2;
-%                         end
-%                     end
+                    H_cod1=[alpha(1:nRec*n,1) Z_n_om alpha(1:nRec*n,2) Z_n_om alpha(1:nRec*n,3) Z_n_om alpha(1:nRec*n,4:6) Z_n_nN_nRec];                    
+                    H_cod2=[]; %fill for second frequency
                     
-
-
+                    H_cod=[H_cod1; H_cod2];
+                    
+                    
 
                     %lambda positions computation
                     L_pha1 = zeros(n,goGNSS.MAX_SAT);
-                    L_pha2 = zeros(n,goGNSS.MAX_SAT);
+                    %L_pha2 = zeros(n,goGNSS.MAX_SAT);
                     v = 1;
                     
                     
-                    for u = 1 : n/nRec+1 % with the pivot
+                    for u = 1 : n+1 % with the pivot
                         if (sat(u) ~= obj.pivot(1))
-                            L_pha1(v,sat(u)) = -(lambda1);
-                            L_pha2(v,sat(u)) = -(lambda2);
+                            L_pha1(v,sat(u)) = -(goGNSS.LAMBDAG(1));
+                            %L_pha2(v,sat(u)) = -(goGNSS.LAMBDAG(2));
                             v = v+1;
                         end
                     end
                     
                     %H matrix computation for the phase
-                    if ~isempty(p)
-                        H_pha1 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:)];
-                        H_pha2 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:)];
-                        if (length(phase) == 2)
-                            H_pha1(:,o3+1:o3+32) = L_pha1(p,:);
-                            H_pha2(:,o3+33:o3+64) = L_pha2(p,:);
-                            H_pha = [H_pha1; H_pha2];
-                        else
-                            if (phase == 1)
-                                H_pha1(:,o3+1:o3+32) = L_pha1(p,:);
-                                H_pha = H_pha1;
-                            else
-                                H_pha2(:,o3+1:o3+32) = L_pha2(p,:);
-                                H_pha = H_pha2;
-                            end
-                        end
-                    else
-                        H_pha = [];
+                    %                     if ~isempty(p)
+                    H_pha1 = [alpha(nRec*n+1:end,1) Z_n_om alpha(nRec*n+1:end,2) Z_n_om alpha(nRec*n+1:end,3) Z_n_om alpha(nRec*n+1:end,4:6) Z_n_nN_nRec];
+                    %H_pha2 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:)];
+                    %                         if (length(phase) == 2)
+                    %                             H_pha1(:,o3+1:o3+32) = L_pha1(p,:);
+                    %                             H_pha2(:,o3+33:o3+64) = L_pha2(p,:);
+                    %                             H_pha = [H_pha1; H_pha2];
+                    %                         else
+                    %                             if (phase == 1)
+                    for i=1:nRec
+                        H_pha1(1+(i-1)*n:i*n,nP+1+(i-1)*goGNSS.MAX_SAT:nP+i*goGNSS.MAX_SAT) = L_pha1;                        
                     end
+                    H_pha = H_pha1;
+%                             else
+%                                 H_pha2(:,o3+1:o3+32) = L_pha2(p,:);
+%                                 H_pha = H_pha2;
+%                             end
+%                         end
+%                     else
+%                         H_pha = [];
+%                     end
                     
-                    %H matrix computation for the DTM pseudo-observation
-                    H_dtm = [];
-                    if (h_dtm ~= tile_header.nodata)
-                        H_dtm = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
-                    end
+%                     %H matrix computation for the DTM pseudo-observation
+                     H_dtm = [];
+%                     if (h_dtm ~= tile_header.nodata)
+%                         H_dtm = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
+%                     end
                     
                     %construction of the complete H matrix
                     H = [H_cod; H_pha; H_dtm];
                     
                     %Y0 vector computation for the code
-                    y0_cod1 = probs_pr1 - prapp_pr1 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
-                    y0_cod2 = probs_pr2 - prapp_pr2 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
+                    y0_cod1 = probs_pr1 - prapp_pr1 + alpha(1:n*nRec,1)*X_app + alpha(1:n*nRec,2)*Y_app + alpha(1:n*nRec,3)*Z_app +...
+                        alpha(1:n*nRec,4)*attitude_approx(1) + alpha(1:n*nRec,5)*attitude_approx(2) + alpha(1:n*nRec,6)*attitude_approx(3);
+                    
+                    y0_cod2=[];
+                    %y0_cod2 = probs_pr2 - prapp_pr2 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
                     
                     %Y0 vector computation for the phase
-                    if ~isempty(p)
-                        y0_pha1 = probs_ph1(p) - prapp_ph1(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
-                        y0_pha2 = probs_ph2(p) - prapp_ph2(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
-                    else
-                        y0_pha1 = [];
-                        y0_pha2 = [];
-                    end
-                    
+                    y0_pha1 = probs_ph1 - prapp_ph1 + alpha(n*nRec+1:end,1)*X_app + alpha(n*nRec+1:end,2)*Y_app + alpha(n*nRec+1:end,3)*Z_app + ...
+                         alpha(n*nRec+1:end,4)*attitude_approx(1) + alpha(n*nRec+1:end,5)*attitude_approx(2) + alpha(n*nRec+1:end,6)*attitude_approx(3);
+%                     if ~isempty(p)
+%                         y0_pha1 = probs_ph1(p) - prapp_ph1(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+%                         y0_pha2 = probs_ph2(p) - prapp_ph2(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+%                     else
+%                         y0_pha1 = [];
+                         y0_pha2 = [];
+%                     end
+%                     
                     %Y0 vector computation for DTM constraint
                     y0_dtm = [];
-                    if (h_dtm ~= tile_header.nodata)
-                        y0_dtm = h_dtm  - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
-                    end
+%                     if (h_dtm ~= tile_header.nodata)
+%                         y0_dtm = h_dtm  - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
+%                     end
                     
                     %construction of the total Y0 vector
-                    if (length(phase) == 2)
+%                     if (length(phase) == 2)
                         y0_cod = [y0_cod1; y0_cod2];
                         y0_pha = [y0_pha1; y0_pha2];
-                    else
-                        if (phase == 1)
-                            y0_cod = y0_cod1;
-                            y0_pha = y0_pha1;
-                        else
-                            y0_cod = y0_cod2;
-                            y0_pha = y0_pha2;
-                        end
-                    end
+%                     else
+%                         if (phase == 1)
+%                             y0_cod = y0_cod1;
+%                             y0_pha = y0_pha1;
+%                         else
+%                             y0_cod = y0_cod2;
+%                             y0_pha = y0_pha2;
+%                         end
+%                     end
                     y0 = [y0_cod; y0_pha; y0_dtm];
                     
                     
                     
+                    %------------------------------------------------------------------------------------
+                    % OBSERVATION COVARIANCE MATRIX
+                    %------------------------------------------------------------------------------------
                     
+                    %construction of the cofactor matrix
+                    
+                    Q = zeros(n*nRec);
+                    for i=1:nRec
+                        Q1 = cofactor_matrix(obj.satCoordR.el(sat,i), obj.satCoordM.el(sat), snr_R(sat,i), snr_M(sat), pivot_index);
+                        Q((i-1)*(n)+1 : (i-1)*(n)+ (n), (i-1)*(n)+1 : (i-1)*(n)+ (n)) =  obj.sigmaq.cod1 * Q1;
+                        Q(n*nRec+(i-1)*(n)+1: n*nRec+(i-1)*(n)+n,n*nRec+(i-1)*(n)+1:n*nRec+(i-1)*(n)+n) = obj.sigmaq.ph * Q1;
+                    end
+                    
+                             keyboard      
+                    %%%% qui
+                    
+                    %zeroes vector useful in matrix definitions
+                    Z_n_n = zeros(n,n);
+                    
+                    %multiplication by the code variance and the phase variance to build the matrix
+                    if ~isempty(p)
+                        if (length(phase) == 2)
+                            Cnn = [sigmaq_cod1*Q(:,:) Z_n_n(:,:) Z_n_n(:,p) Z_n_n(:,p); Z_n_n(:,:) sigmaq_cod2*Q(:,:) Z_n_n(:,p) Z_n_n(:,p);
+                                Z_n_n(p,:) Z_n_n(p,:) sigmaq_ph*Q(p,p) Z_n_n(p,p); Z_n_n(p,:) Z_n_n(p,:) Z_n_n(p,p) sigmaq_ph*Q(p,p)];
+                        else
+                            if (phase == 1)
+                                Cnn = [sigmaq_cod1*Q(:,:) Z_n_n(:,p); Z_n_n(p,:) sigmaq_ph*Q(p,p)];
+                            else
+                                Cnn = [sigmaq_cod2*Q(:,:) Z_n_n(:,p); Z_n_n(p,:) sigmaq_ph*Q(p,p)];
+                            end
+                        end
+                    else
+                        if (length(phase) == 2)
+                            Cnn = [sigmaq_cod1*Q Z_n_n; Z_n_n sigmaq_cod2*Q];
+                        else
+                            if (phase == 1)
+                                Cnn = sigmaq_cod1*Q;
+                            else
+                                Cnn = sigmaq_cod2*Q;
+                            end
+                        end
+                    end
+                    if (h_dtm ~= tile_header.nodata)
+                        Cnn(end+1,end+1) = sigmaq_dtm;
+                    end
                     
                     
                     
