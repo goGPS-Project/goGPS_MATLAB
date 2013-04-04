@@ -227,16 +227,12 @@ if (nsat >= min_nsat)
         % SATELLITE ADDITION/LOSS
         %------------------------------------------------------------------------------------
         
-        sat_dead = []; %#ok<NASGU>
-        sat_born = [];
-        
         %search for a lost satellite
-        if (length(sat) < length(sat_old))
+        sat_dead = setdiff(sat_old,sat);
+        
+        if (~isempty(sat_dead))
             
             check_off = 1;
-            
-            %save lost satellites
-            sat_dead = setdiff(sat_old,sat);
             
             %for lost satellites it is fundamental to set their N-PIVOT
             % combinations to 0. Furthermore it could be convenient to raise
@@ -258,12 +254,11 @@ if (nsat >= min_nsat)
         end
         
         %search for a new satellite
-        if (length(sat) > length(sat_old))
+        sat_born = setdiff(sat,sat_old);
+        
+        if (~isempty(sat_born))
             
             check_on = 1;
-            
-            %new satellites
-            sat_born = setdiff(sat,sat_old);
             
             %if a new satellite is going to be the pivot, its ambiguity needs
             %to be estimated before applying the pivot change
