@@ -1,6 +1,6 @@
 function [Xb, N_hat, cov_Xb, cov_N, cov_ATT, attitude, XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR ...
          (Xb_approx, XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, attitude, geometry, flag_Tykhon,F_Ai, F_PR_DD, F_s_X)
-
+ 
 % SYNTAX:
 %   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase ...
 %   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_Tykhon);
@@ -99,9 +99,6 @@ end
 %Xb_approx=mean([XR_approx(:,1,1), XR_approx(:,1,2),XR_approx(:,1,3)],2);
 [phi_b_apriori, lam_b_apriori, h_b_apriori] = cart2geod(Xb_approx(1), Xb_approx(2), Xb_approx(3));
 
-
-
-
 A=zeros(n,m);
 b=[];
 y0=[];
@@ -139,7 +136,6 @@ b(pivot_index:size(pr_R,1):end)    = [];
 y0(pivot_index:size(pr_R,1):end)    = [];
 [n,m]=size(A);
 
-
 %observation noise covariance matrix
 Q = zeros(n);
 for i=1:nRec    
@@ -157,7 +153,6 @@ x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 Xb=Xb_approx+x_hat(1:3);
 [phi_b, lam_b, h_b] = cart2geod(Xb(1), Xb(2), Xb(3));
 attitude= attitude+x_hat(4:6);
@@ -165,7 +160,6 @@ attitude= attitude+x_hat(4:6);
 for i=1:nRec    
     XR(1:3,1,i)=F_s_X(Xb(1),Xb(2),Xb(3),lam_b,phi_b,attitude(2),attitude(1),geometry(1,i),geometry(2,i),attitude(3),geometry(3,i));
 end
-
 
 N_hat=x_hat(7:end);
 

@@ -1491,11 +1491,15 @@ if (inputOk)
                 return
             end
             
-            
+            clear global goKF
+            global goKF
             %tmp select the parameters you want to estimate
             KFmode = 4; % force to be const.velocities filter + attitude angles without variations
-            goKF = goKalmanFilter(goObs, goIni, KFmode, goObs.getSamplingRate_R(1));
- 
+            goKF = goKalmanFilter1(goObs, goIni, KFmode, goObs.getSamplingRate_R(1));
+            goKF.init(goObs, goIni);
+            goKF.KF_loop(goObs, goIni);
+             
+            
             keyboard
            
             return

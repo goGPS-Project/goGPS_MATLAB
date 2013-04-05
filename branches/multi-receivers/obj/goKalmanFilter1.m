@@ -46,7 +46,7 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %---------------------------------------------------------------------------------------------
 
-classdef goKalmanFilter < handle
+classdef goKalmanFilter1 < handle
     
     properties (GetAccess = 'public', SetAccess = 'public')
         % Initialization variances
@@ -183,7 +183,7 @@ classdef goKalmanFilter < handle
     
     methods
         % Creator (Brahma)
-        function obj = goKalmanFilter(goObs, goIni, mode, sampling_rate)
+        function obj = goKalmanFilter1(goObs, goIni, mode, sampling_rate)
             if nargin < 4
                 sampling_rate = 1;
             end
@@ -208,7 +208,7 @@ classdef goKalmanFilter < handle
             obj.setCurrentParameters();     % Init current parameters
             obj.allocateMemory(goObs.getNumRec(), goObs.getGNSSnFreq(goGNSS.ID_GPS)); % only GPS observations
             
-            %obj.init(goObs, goIni)
+            obj.init(goObs, goIni)
         end
         
         % Destructor (Shiva)
@@ -224,26 +224,17 @@ classdef goKalmanFilter < handle
     % Function to fill KF initial matrices
     methods (Access = 'public')
         function init(obj, goObs, goIni)
-            goObs.doPreProcessing()
+            obj.init_T(obj.mode);
+            obj.init_Xhat_t_t(goObs, goIni, obj.mode);
+            obj.init_X_t1_t();
+            obj.init_Cee(goObs.getNumRec(), obj.mode);
             %     %obj.init_doppler(goObs, goObs.getNumRec(), goObs.getGNSSnFreq(goGNSS.ID_GPS));
             %     obj.init_KxDOP(obj.mode);
-            %     obj.MR_loop(goObs, goIni, obj.mode);
+            obj.MR_loop(goObs, goIni, obj.mode);
             %     % set the status of the KF initialization
             %     obj.initKF = true;
         end
     end
-    
-    % Loop
-    methods (Access = 'public')
-        function KF_loop(obj, goObs, goIni)
-            obj.init_T(obj.mode);            
-            obj.init_Xhat_t_t(goObs, goIni, obj.mode);
-            obj.init_X_t1_t();
-            obj.init_Cee(goObs.getNumRec(), obj.mode);
-            obj.MR_loop(goObs, goIni, obj.mode);
-        end
-    end
-    
     
     % Initialization functions
     methods (Access = 'private')
@@ -368,7 +359,7 @@ classdef goKalmanFilter < handle
         % initialization of the parameter vector for all receivers
         function init_Xhat_t_t(obj, goObs, goIni, mode)   %% to initialize Xhat_t_t_R: cell of [nPar+nSat*nFreq,1] and Xhat_t_t;
             
-
+            goObs.doPreProcessing()
             
             %load of the observation data after pre-processing
             
@@ -397,8 +388,37 @@ classdef goKalmanFilter < handle
             err_iono = NaN(goGNSS.MAX_SAT, nRec+1);
             err_tropo = NaN(goGNSS.MAX_SAT, nRec+1);
             
+            %% compute diff --------- must be put outside to avoid the recomputation every epoch
+ syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
+            syms r11 r12 r13 r21 r22 r23 r31 r32 r33
             
-            for t = 1 : 1
+            % rotation from local to global
+            s_Rgl=[-sin(s_lam_b) -sin(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*cos(s_lam_b); ...
+                cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b)  cos(s_phi_b)*sin(s_lam_b); ...
+                0 cos(s_phi_b) sin(s_phi_b)];           
+            
+            % rotation from instrumental to local
+            s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_roll)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
+                sin(s_roll)*cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw)+cos(s_roll)*cos(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
+                -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
+            
+            s_X=[s_Xb; s_Yb; s_Zb]+s_Rgl*s_Rli*[s_x;s_y;s_z];
+            
+            s_PR_DD=sqrt((s_X(1)-s_XS)^2+(s_X(2)-s_YS)^2 + (s_X(3)-s_ZS)^2) - sqrt((s_XM-s_XS)^2+(s_YM-s_YS)^2 + (s_ZM-s_ZS)^2) - ...
+                (sqrt((s_X(1)-s_XS_Piv)^2+(s_X(2)-s_YS_Piv)^2 + (s_X(3)-s_ZS_Piv)^2) - sqrt((s_XM-s_XS_Piv)^2+(s_YM-s_YS_Piv)^2 + (s_ZM-s_ZS_Piv)^2));
+               
+            s_Ai=[diff(s_PR_DD,s_Xb) diff(s_PR_DD,s_Yb) diff(s_PR_DD,s_Zb) diff(s_PR_DD,s_roll) diff(s_PR_DD,s_pitch) diff(s_PR_DD,s_yaw)];
+                  
+            F_Ai=inline(s_Ai); %% <-- colonne della matrice disegno corrispondenti alle incognite geometriche
+            F_PR_DD=inline(s_PR_DD); %% <-- parte geometrica dei termini noti
+            F_s_X=inline(s_X); %% <-- per calcolare le coordinate aggiornate di ogni ricevitore a partire da quelle nuove del punto 'baricentro'
+            %%
+            
+            
+            for t = 1 : length(time_GPS)
+                
+                
+
                 pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
                 ph1_M=goObs.getGNSSph_M(ID_GNSS,0,t,1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
                 snr_M=goObs.getGNSSsnr_M(ID_GNSS,0,t,1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -485,7 +505,7 @@ classdef goKalmanFilter < handle
                 
                 %cartesian to geodetic conversion of MASTER coordinates
                 [pos_M flag_M]= goObs.getPos_M(t);
-                [phiM, lamM, hM] = cart2geod(pos_M(1,t), pos_M(2,t), pos_M(3,t));
+                [phiM, lamM, hM] = cart2geod(pos_M(1,1), pos_M(2,1), pos_M(3,1));
                 
                 %radians to degrees
                 phiM = phiM * 180 / pi;
@@ -545,9 +565,7 @@ classdef goKalmanFilter < handle
                     err_iono(isnan(distM),i+1)=NaN;
                     
                 end
-                
-            end
-            
+                          
             
             % leftin zeros the apriori attitude
             attitude_approx=[0 0 0]';
@@ -593,32 +611,6 @@ classdef goKalmanFilter < handle
             
             
             
-            %% compute diff --------- must be put outside to avoid the recomputation every epoch
-            syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
-            syms r11 r12 r13 r21 r22 r23 r31 r32 r33
-            
-            % rotation from local to global
-            s_Rgl=[-sin(s_lam_b) -sin(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*cos(s_lam_b); ...
-                cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b)  cos(s_phi_b)*sin(s_lam_b); ...
-                0 cos(s_phi_b) sin(s_phi_b)];
-            
-            % rotation from instrumental to local
-            s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_roll)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
-                sin(s_roll)*cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw)+cos(s_roll)*cos(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
-                -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
-            
-            s_X=[s_Xb; s_Yb; s_Zb]+s_Rgl*s_Rli*[s_x;s_y;s_z];
-            
-            s_PR_DD=sqrt((s_X(1)-s_XS)^2+(s_X(2)-s_YS)^2 + (s_X(3)-s_ZS)^2) - sqrt((s_XM-s_XS)^2+(s_YM-s_YS)^2 + (s_ZM-s_ZS)^2) - ...
-                (sqrt((s_X(1)-s_XS_Piv)^2+(s_X(2)-s_YS_Piv)^2 + (s_X(3)-s_ZS_Piv)^2) - sqrt((s_XM-s_XS_Piv)^2+(s_YM-s_YS_Piv)^2 + (s_ZM-s_ZS_Piv)^2));
-            
-            s_Ai=[diff(s_PR_DD,s_Xb) diff(s_PR_DD,s_Yb) diff(s_PR_DD,s_Zb) diff(s_PR_DD,s_roll) diff(s_PR_DD,s_pitch) diff(s_PR_DD,s_yaw)];
-            
-            F_Ai=inline(s_Ai); %% <-- colonne della matrice disegno corrispondenti alle incognite geometriche
-            F_PR_DD=inline(s_PR_DD); %% <-- parte geometrica dei termini noti
-            F_s_X=inline(s_X); %% <-- per calcolare le coordinate aggiornate di ogni ricevitore a partire da quelle nuove del punto 'baricentro'
-            
-            %%
 
             
             index_sat_without_pivot=sat;
@@ -630,7 +622,7 @@ classdef goKalmanFilter < handle
                 %loop is needed to improve the atmospheric error correction
                 for i = 1 : 3
                     %if (phase == 1)
-                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, obj.XR, pos_M(:,t), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,t), snr_M(sat,t), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X);
+                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, obj.XR, pos_M(:,1), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,1), snr_M(sat,1), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X);
                     %else
                     %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
                     %end
@@ -697,8 +689,67 @@ classdef goKalmanFilter < handle
                     obj.Xhat_t_t (nP+1:end) = N1(:); %% <-- sistemare per la doppia frequenza!
             end
             
-        end
+            
+                  if t==1
+                      fig1=figure;
+                      fig2=figure;
+                    figure(fig1);
+                    [EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5));
+                    subplot(3,1,1)
+                    title('EAST');
+                    plot(1,EAST_xb_0-EAST_xb_0,'.b');
+                    subplot(3,1,2)
+                    title('NORTH');
+                    plot(1,NORTH_xb_0-NORTH_xb_0,'.b');
+                    subplot(3,1,3)
+                    title('UP');
+                    plot(1,h_xb_0-h_xb_0,'.b');
+                    
+                    figure(fig2);
+                    attitude_0=[obj.Xhat_t_t(7), obj.Xhat_t_t(8),obj.Xhat_t_t(9)];
+                    subplot(3,1,1)
+                    title('ROLL');
+                    plot(1,attitude_0(1)/pi*180,'.r');
+                    subplot(3,1,2)
+                    title('PITCH');
+                    plot(1,attitude_0(2)/pi*180,'.r');
+                    subplot(3,1,3)
+                    title('YAW');
+                    plot(1,attitude_0(3)/pi*180,'.r');
+                    
+                    
+                end
+                
+                figure(fig1);
+                [EAST_xb, NORTH_xb, h_xb, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5));
+                subplot(3,1,1)
+                hold on
+                plot(t,EAST_xb-EAST_xb_0,'.b');
+                subplot(3,1,2)
+                hold on
+                plot(t,NORTH_xb-NORTH_xb_0,'.b');
+                subplot(3,1,3)
+                hold on
+                plot(t,h_xb-h_xb_0,'.b');
+                
+                figure(fig2);
+                subplot(3,1,1)
+                hold on
+                plot(t,obj.Xhat_t_t(7)/pi*180,'.r');
+                subplot(3,1,2)
+                hold on
+                plot(t,obj.Xhat_t_t(8)/pi*180,'.r');
+                subplot(3,1,3)
+                hold on
+                plot(t,obj.Xhat_t_t(9)/pi*180,'.r');
+                
+                drawnow;
+                fprintf('\tEAST: %13.4f ... NORTH: %13.4f ... h= %13.4f\n',EAST_xb,NORTH_xb,h_xb);
+                
+                
+            end
         
+        end
         
         % initialization of point estimation at step t+1 ==
         % estimation at step t, because the initial velocity is equal to 0
@@ -860,44 +911,30 @@ classdef goKalmanFilter < handle
             
             % compute diff --------- must be put outside to avoid the recomputation every epoch
             % ---------------------------------------------------------------------------------
-            syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
+  syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
             syms r11 r12 r13 r21 r22 r23 r31 r32 r33
-            
-            %             % rotation from local to global
-            %             s_Rgl=[-sin(s_lam_b) cos(s_lam_b) 0; ...
-            %                 -sin(s_phi_b)*cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b) cos(s_phi_b); ...
-            %                 cos(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*sin(s_lam_b) sin(s_phi_b)];
             
             % rotation from local to global
             s_Rgl=[-sin(s_lam_b) -sin(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*cos(s_lam_b); ...
                 cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b)  cos(s_phi_b)*sin(s_lam_b); ...
-                0 cos(s_phi_b) sin(s_phi_b)];
-
-            % rotation from instrumental to local
-%             s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_pitch)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)+sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
-%                 sin(s_roll)+cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
-%                 -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
-%             
+                0 cos(s_phi_b) sin(s_phi_b)];           
             
+            % rotation from instrumental to local
             s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_roll)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
                 sin(s_roll)*cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw)+cos(s_roll)*cos(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
                 -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
-            
-           
-            % rotation from instrumental to local
-            %s_Rli=[r11 r12 r13; r21 r22 r23; r31 r32 r33];
             
             s_X=[s_Xb; s_Yb; s_Zb]+s_Rgl*s_Rli*[s_x;s_y;s_z];
             
             s_PR_DD=sqrt((s_X(1)-s_XS)^2+(s_X(2)-s_YS)^2 + (s_X(3)-s_ZS)^2) - sqrt((s_XM-s_XS)^2+(s_YM-s_YS)^2 + (s_ZM-s_ZS)^2) - ...
                 (sqrt((s_X(1)-s_XS_Piv)^2+(s_X(2)-s_YS_Piv)^2 + (s_X(3)-s_ZS_Piv)^2) - sqrt((s_XM-s_XS_Piv)^2+(s_YM-s_YS_Piv)^2 + (s_ZM-s_ZS_Piv)^2));
-            
+               
             s_Ai=[diff(s_PR_DD,s_Xb) diff(s_PR_DD,s_Yb) diff(s_PR_DD,s_Zb) diff(s_PR_DD,s_roll) diff(s_PR_DD,s_pitch) diff(s_PR_DD,s_yaw)];
-            %s_Ai=[diff(s_PR_DD,s_Xb) diff(s_PR_DD,s_Yb) diff(s_PR_DD,s_Zb) diff(s_PR_DD,r11) diff(s_PR_DD,r12) diff(s_PR_DD,r13) diff(s_PR_DD,r21) diff(s_PR_DD,r22) diff(s_PR_DD,r23) diff(s_PR_DD,r31) diff(s_PR_DD,r32) diff(s_PR_DD,r33)];
-            
+                  
             F_Ai=inline(s_Ai); %% <-- colonne della matrice disegno corrispondenti alle incognite geometriche
             F_PR_DD=inline(s_PR_DD); %% <-- parte geometrica dei termini noti
             F_s_X=inline(s_X); %% <-- per calcolare le coordinate aggiornate di ogni ricevitore a partire da quelle nuove del punto 'baricentro'
+
             % ---------------------------------------------------------------------------------
             
             fig1=figure;
