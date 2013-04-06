@@ -1,6 +1,6 @@
 function [Xb, N_hat, cov_Xb, cov_N, cov_ATT, attitude, XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR ...
          (Xb_approx, XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, attitude, geometry, flag_Tykhon,F_Ai, F_PR_DD, F_s_X)
- 
+
 % SYNTAX:
 %   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase ...
 %   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_Tykhon);
@@ -144,10 +144,8 @@ for i=1:nRec
     Q(n/2+(i-1)*(size(pr_R,1)-1)+1: n/2+(i-1)*(size(pr_R,1)-1)+size(pr_R,1)-1,n/2+(i-1)*(size(pr_R,1)-1)+1:n/2+(i-1)*(size(pr_R,1)-1)+size(pr_R,1)-1) = sigmaq_ph * Q1;
 end
 
-     
 %normal matrix
 N = (A'*(Q^-1)*A);
-
 %least squares solution
 x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

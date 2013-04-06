@@ -416,9 +416,6 @@ classdef goKalmanFilter1 < handle
             
             
             for t = 1 : length(time_GPS)
-                
-                
-
                 pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
                 ph1_M=goObs.getGNSSph_M(ID_GNSS,0,t,1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
                 snr_M=goObs.getGNSSsnr_M(ID_GNSS,0,t,1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -615,6 +612,9 @@ classdef goKalmanFilter1 < handle
             
             index_sat_without_pivot=sat;
             index_sat_without_pivot(pivot_index)=[];
+            if t==3
+                keyboard
+            end
             
             if (size(sat,1) >= 4) % & cond_num < cond_num_threshold)
                 phase_1=1;

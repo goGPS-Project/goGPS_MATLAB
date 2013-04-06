@@ -243,7 +243,7 @@ classdef goKalmanFilter < handle
             obj.MR_loop(goObs, goIni, obj.mode);
         end
     end
-    
+     
     
     % Initialization functions
     methods (Access = 'private')
@@ -398,7 +398,7 @@ classdef goKalmanFilter < handle
             err_tropo = NaN(goGNSS.MAX_SAT, nRec+1);
             
             
-            for t = 1 : 1
+             for t = 1 : 1
                 pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
                 ph1_M=goObs.getGNSSph_M(ID_GNSS,0,t,1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
                 snr_M=goObs.getGNSSsnr_M(ID_GNSS,0,t,1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -485,7 +485,7 @@ classdef goKalmanFilter < handle
                 
                 %cartesian to geodetic conversion of MASTER coordinates
                 [pos_M flag_M]= goObs.getPos_M(t);
-                [phiM, lamM, hM] = cart2geod(pos_M(1,t), pos_M(2,t), pos_M(3,t));
+                [phiM, lamM, hM] = cart2geod(pos_M(1,1), pos_M(2,1), pos_M(3,1));
                 
                 %radians to degrees
                 phiM = phiM * 180 / pi;
@@ -626,11 +626,11 @@ classdef goKalmanFilter < handle
             
             if (size(sat,1) >= 4) % & cond_num < cond_num_threshold)
                 phase_1=1;
-                
+
                 %loop is needed to improve the atmospheric error correction
                 for i = 1 : 3
                     %if (phase == 1)
-                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, obj.XR, pos_M(:,t), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,t), snr_M(sat,t), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X);
+                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, obj.XR, pos_M(:,1), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,1), snr_M(sat,1), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X);
                     %else
                     %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
                     %end
@@ -760,7 +760,7 @@ classdef goKalmanFilter < handle
                     % angular attitude
                     %
                     Cee_diag((obj.nPar-2):(obj.nPar)) = obj.sigmaq0.ang;  %% QUESTION: conviene prenderlo dalla Cxx stimata?
-                     Cee_diag((obj.nPar-2):(obj.nPar)) = obj.sigma2_ATT;
+                    %Cee_diag((obj.nPar-2):(obj.nPar)) = obj.sigma2_ATT;
                     %                 case 5
                     %                     % angular attitude
                     %                     %obj.Cee((obj.nPar-2):(obj.nPar),(obj.nPar-2):(obj.nPar)) = obj.sigmaq0.ang;
@@ -873,12 +873,7 @@ classdef goKalmanFilter < handle
                 cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b)  cos(s_phi_b)*sin(s_lam_b); ...
                 0 cos(s_phi_b) sin(s_phi_b)];
 
-            % rotation from instrumental to local
-%             s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_pitch)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)+sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
-%                 sin(s_roll)+cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
-%                 -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
-%             
-            
+           
             s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_roll)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
                 sin(s_roll)*cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw)+cos(s_roll)*cos(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
                 -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
@@ -928,7 +923,7 @@ classdef goKalmanFilter < handle
             plot(1,attitude_0(3)/pi*180,'.r');  
             
             
-            for t = 2 : length(time_GPS)
+            for t = 2 : 30
             %for t=2:length(time_GPS)
                 fprintf('t: %05d/%05d\n',t,length(time_GPS));
                 pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -1073,12 +1068,14 @@ classdef goKalmanFilter < handle
                     
                 end
                 
+              
                 % get apriori attitude (from previous step)
                 switch(mode)
                     %case {1,2,3},   %when not estimating the attitude
                     case {4,5},
                         attitude_approx=[obj.X_t1_t(nP-3+1:nP)];
                 end
+                
                 
                 % instrumental RS coordinates
                 % ---------------------------
@@ -1249,6 +1246,11 @@ classdef goKalmanFilter < handle
                         %                         Cvv(9,9) = sigmaq_vU;
                         %                         %propagate diagonal local cov matrix to global cov matrix
                         %                         Cvv([3 6 9],[3 6 9]) = local2globalCov(Cvv([3 6 9],[3 6 9]), obj.X_t1_t([1 4 7]));
+                        Cvv(nP-2,nP-2)=obj.sigmaq0.ang;
+                        Cvv(nP-1,nP-1)=obj.sigmaq0.ang;
+                        Cvv(nP,nP)=obj.sigmaq0.ang;
+
+                       
                 end
                 
                 
@@ -1270,6 +1272,7 @@ classdef goKalmanFilter < handle
                     % if (length(sat) < length(sat_old))   %%% <-------------- perchè??? Se un sat muore e uno nasce, la lunghezza è cmq uguale!
                     sat_dead = setdiff(sat_old,sat);
                     if ~isempty(sat_dead)
+                        fprintf('    Satellite morto!\n');
                         %for lost satellites it is fundamental to set their N-PIVOT
                         % combinations to 0. Furthermore it could be convenient to raise
                         %their uncertainty (not necessary - done when a new satellite is
@@ -1299,10 +1302,12 @@ classdef goKalmanFilter < handle
                     sat_born = setdiff(sat,sat_old);
                     
                     if ~isempty(sat_born)
+                        fprintf('    Satellite nato!\n');
                         check_on = 1;
                         %if a new satellite is going to be the pivot, its ambiguity needs
                         %to be estimated before applying the pivot change
                         if ~isempty(find(sat_born == obj.pivot(1), 1))
+                            fprintf('    Satellite nato e sarà pivot!\n');
                             %%if it is not the only satellite with phase
                             %if (length(sat) > 1)
                             %if the former pivot is still among satellites with phase
@@ -1362,7 +1367,7 @@ classdef goKalmanFilter < handle
                     
                     %search for a possible PIVOT change
                     if (obj.pivot(1) ~= obj.pivot_old(1) && obj.pivot_old(1) ~= 0)
-                        
+                        fprintf('    Cambio di Pivot!\n');
                         check_pivot = 1;
                         
                         %matrix construction to update the PIVOT change
@@ -1419,9 +1424,11 @@ classdef goKalmanFilter < handle
                     
                     global flag_doppler_cs lambda1 lambda2;
                     
-                    for i=1:nRec
-                        if ~isempty(sat)
-                            
+                    
+                    if ~isempty(sat)
+                        sat_slip=zeros(goGNSS.MAX_SAT,nRec);
+                        N_slip=zeros(goGNSS.MAX_SAT,nRec);
+                        for i=1:nRec
                             %Test presence/absence of a cycle-slip at the current epoch.
                             %The state of the system is not changed yet
                             if (length(phase) == 2)
@@ -1433,19 +1440,22 @@ classdef goKalmanFilter < handle
                                 %                             end
                             else
                                 if (phase == 1)
-                                    [check_cs(1,i), N_slip, sat_slip] = cycle_slip_detection(obj.X_t1_t(nP+(i-i)*goGNSS.MAX_SAT+1:nP+i*goGNSS.MAX_SAT), ph1_R(sat,i), ph1_M(sat), obj.satCoordR.dist(sat,i), obj.satCoordM.dist(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), obj.pivot(1), sat, sat_born, obj.cs_threshold, 1); %#ok<ASGLU>
-%                                 else
-%                                     [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                                    [check_cs(1,i), N_slip_i, sat_slip_i] = cycle_slip_detection(obj.X_t1_t(nP+(i-i)*goGNSS.MAX_SAT+1:nP+i*goGNSS.MAX_SAT), ph1_R(sat,i), ph1_M(sat), obj.satCoordR.dist(sat,i), obj.satCoordM.dist(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), obj.pivot(1), sat, sat_born, obj.cs_threshold, 1); %#ok<ASGLU>
+                                    sat_slip(sat_slip_i,i)=1;
+                                    N_slip(sat_slip_i,i)=N_slip_i;
+                                    %                                 else
+                                    %                                     [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
                                 end
                             end
-                        else
-                            sat_slip1 = [];
-                            sat_slip2 = [];
-                            sat_slip = [];    %% question: non sembra essere utile adesso, quindi non lo divido per MR. Anche N_slip
-                            check_cs1(1,i) = 0;
-                            check_cs2(1,i) = 0;
-                            check_cs(1,i) = 0;
+                            
                         end
+                    else
+                        sat_slip1 = [];
+                        sat_slip2 = [];
+                        sat_slip = [];    %% question: non sembra essere utile adesso, quindi non lo divido per MR. Anche N_slip
+                        check_cs1(1,i) = 0;
+                        check_cs2(1,i) = 0;
+                        check_cs(1,i) = 0;
                     end
                     
                     
@@ -1488,7 +1498,7 @@ classdef goKalmanFilter < handle
 %                                 if (phase == 1)                                                                                                                                                                                                                                                                                                                                                                                                                                      
                                     [N_slip, N_born] = ambiguity_init(XR0, X_sat(sat,:,i), pr1_R(sat,1), pr1_M(sat), ph1_R(sat,1), ...
                                         ph1_M(sat), snr_R(sat,1), snr_M(sat), obj.satCoordR.el(sat,i), obj.satCoordM.el(sat), sat, ...
-                                        sat, sat_slip, sat_born, obj.satCoordR.dist(sat,i),obj.satCoordM.dist(sat), err_tropo(sat,i+1), ...
+                                        sat, find(sat_slip(:,i)==1), sat_born, obj.satCoordR.dist(sat,i),obj.satCoordM.dist(sat), err_tropo(sat,i+1), ...
                                         err_tropo(sat,1), err_iono(sat,i+1), err_iono(sat,1), obj.pivot(i), phase, ...
                                         obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat), obj.Cee(nP+goGNSS.MAX_SAT*(i-1)+sat, nP+goGNSS.MAX_SAT*(i-1)+sat));
                                     %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
@@ -1499,17 +1509,20 @@ classdef goKalmanFilter < handle
                                 
                                 if (check_on)
                                     for j=1:length(N_born)
+                                        fprintf('    Satellite nato, ho stimato la sua amb!\n');
                                         obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat_born(j),1) = N_born(j);
                                     %Cvv(o3+sat_born,o3+sat_born) = sigmaq_N_born * eye(size(sat_born,1));
-                                        Cvv(nP+goGNSS.MAX_SAT*(i-1)+sat_born(j),nP+goGNSS.MAX_SAT*(i-1)+sat_born(j)) = obj.sigmaq0.N;
+                                     Cvv(nP+goGNSS.MAX_SAT*(i-1)+sat_born(j),nP+goGNSS.MAX_SAT*(i-1)+sat_born(j)) = obj.sigmaq0.N;
                                     end
                                 end
                                 
-                                if (check_cs)
-                                    obj.conf_cs(sat_slip,i) = 1;
-                                    for j=1:length(sat_slip)
-                                        obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j)) = N_slip(j);
-                                        Cvv(nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j),nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j)) = obj.sigmaq0.N;
+                                if (check_cs(1,i))
+                                    obj.conf_cs(find(sat_slip(:,i)==1),i) = 1;
+                                    fprintf('    Cycle slip!\n');
+                                    sat_slip_i=find(sat_slip(:,i)==1);
+                                    for j=1:length(sat_slip_i)                                        
+                                        obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat_slip_i(j)) = N_slip(j);
+                                        Cvv(nP+goGNSS.MAX_SAT*(i-1)+sat_slip_i(j),nP+goGNSS.MAX_SAT*(i-1)+sat_slip_i(j)) = obj.sigmaq0.N;
                                     end
                                 end
 %                             end
@@ -1529,9 +1542,8 @@ classdef goKalmanFilter < handle
                     %rows in which the phase observation is available
                     % p = find(ismember(setdiff(sat_pr,pivot),setdiff(sat,pivot))==1);
                     p = setdiff(sat,obj.pivot(1)); %sat without pivot
-           
 
-                    
+                    attitude_approx=[0 0 0];
                     %function that calculates the Kalman filter parameters
                     [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman_MR(XR0, X_sat(sat,:,1), pr1_R(sat,:), ph1_R(sat,:), pr1_M(sat), ph1_M(sat), pr2_R(sat,:), ph2_R(sat,:), pr2_M(sat), ph2_M(sat), err_tropo(sat,2:end), err_iono(sat,2:end), err_tropo(sat,1), err_iono(sat,1), obj.satCoordR.dist(sat,:), obj.satCoordM.dist(sat), sat, obj.pivot(1), attitude_approx, xR, F_Ai, F_PR_DD, F_s_X);
                     
@@ -1542,12 +1554,12 @@ classdef goKalmanFilter < handle
                     
                     switch(mode)
                         case {4},
-                            o1 = (obj.nPar-3)/3;
-                            
+                            o1 = (obj.nPar-3)/3;                            
                             Z_n_om = zeros(nRec*n,o1-1);
                             Z_1_om = zeros(1,o1-1);   
                     end
                     
+
                     
                     H_cod1=[alpha(1:nRec*n,1) Z_n_om alpha(1:nRec*n,2) Z_n_om alpha(1:nRec*n,3) Z_n_om alpha(1:nRec*n,4:6) Z_n_nN_nRec];                    
                     H_cod2=[]; %fill for second frequency
@@ -1569,6 +1581,7 @@ classdef goKalmanFilter < handle
                             v = v+1;
                         end
                     end
+
                     
                     %H matrix computation for the phase
                     %                     if ~isempty(p)
@@ -1605,13 +1618,19 @@ classdef goKalmanFilter < handle
                     %Y0 vector computation for the code
                     y0_cod1 = probs_pr1 - prapp_pr1 + alpha(1:n*nRec,1)*X_app + alpha(1:n*nRec,2)*Y_app + alpha(1:n*nRec,3)*Z_app +...
                         alpha(1:n*nRec,4)*attitude_approx(1) + alpha(1:n*nRec,5)*attitude_approx(2) + alpha(1:n*nRec,6)*attitude_approx(3);
-                    
+
+
+                   
+
                     y0_cod2=[];
                     %y0_cod2 = probs_pr2 - prapp_pr2 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
                     
                     %Y0 vector computation for the phase
                     y0_pha1 = probs_ph1 - prapp_ph1 + alpha(n*nRec+1:end,1)*X_app + alpha(n*nRec+1:end,2)*Y_app + alpha(n*nRec+1:end,3)*Z_app + ...
                          alpha(n*nRec+1:end,4)*attitude_approx(1) + alpha(n*nRec+1:end,5)*attitude_approx(2) + alpha(n*nRec+1:end,6)*attitude_approx(3);
+              
+                     
+                     
 %                     if ~isempty(p)
 %                         y0_pha1 = probs_ph1(p) - prapp_ph1(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
 %                         y0_pha2 = probs_ph2(p) - prapp_ph2(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
@@ -1731,6 +1750,19 @@ classdef goKalmanFilter < handle
                     %data were not analysed (motion by dynamics only).
                     obj.pivot(:) = zeros(1,nRec);
                 end
+                               
+                
+%                 Cvv(7,7)=100000;
+%                 Cvv(8,8)=100000;
+%                 Cvv(9,9)=100000;
+%                  Cvv(2,2)=100000;
+%                 Cvv(4,4)=100000;
+%                 Cvv(6,6)=100000;  
+                
+%                 for i=10:length(Cvv)
+%                     Cvv(i,i)=10^20;
+%                 end
+                
                 
                 
                 %----------------------------------------------------------------------------------------
@@ -1743,9 +1775,8 @@ classdef goKalmanFilter < handle
                     
                     G = K*H' * (H*K*H' + Cnn)^(-1);
                     
-                    obj.Xhat_t_t = (obj.I-G*H)*obj.X_t1_t + G*y0;
-                    
-                    
+                    obj.Xhat_t_t = (obj.I-G*H)*obj.X_t1_t + G*y0;                    
+                   
                     
                     obj.X_t1_t = obj.T*obj.Xhat_t_t;
                     

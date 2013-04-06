@@ -127,7 +127,8 @@ probs_ph2=[];  % sistemare la doppia frequenza!
 for i=1:nRec
     probs_pr1_i  = (pr1_R(:,i) - pr1_M) - (pr1_R(pivot_index,i) - pr1_M(pivot_index));  %observed pseudorange DD (L1 code)
     probs_ph1_i  = (lambda1 * ph1_R(:,i) - lambda1 * ph1_M) - (lambda1 * ph1_R(pivot_index,i) - lambda1 * ph1_M(pivot_index)); %observed pseudorange DD (L1 phase)
-    
+
+       
     %remove pivot-pivot lines
     probs_pr1_i(pivot_index) = [];
     probs_ph1_i(pivot_index) = [];
