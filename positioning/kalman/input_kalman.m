@@ -80,7 +80,7 @@ probs_ph2  = (lambda2 * ph2_R - lambda2 * ph2_M) - (lambda2 * ph2_R(pivot_index)
 prapp_pr  =            (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
 prapp_pr  = prapp_pr + (err_tropo_R - err_tropo_M) - (err_tropo_R(pivot_index)  - err_tropo_M(pivot_index)); %tropospheric error DD
 prapp_pr1 = prapp_pr + (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (L1 code)
-prapp_ph1 = prapp_pr - (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (L1 phase)
+prapp_ph1 = prapp_pr - (err_iono_R  - err_iono_M)  + (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (L1 phase)
 prapp_pr2 = prapp_pr + (lambda2/lambda1)^2 * ((err_iono_R - err_iono_M) - (err_iono_R(pivot_index) - err_iono_M(pivot_index)));  %ionoshperic error DD (L2 code)
 prapp_ph2 = prapp_pr - (lambda2/lambda1)^2 * ((err_iono_R - err_iono_M) - (err_iono_R(pivot_index) - err_iono_M(pivot_index)));  %ionoshperic error DD (L2 phase)
 

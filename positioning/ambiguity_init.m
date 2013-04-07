@@ -182,10 +182,10 @@ else
     probs_ph  = (lambda * ph_R - lambda * ph_M) - (lambda * ph_R(pivot_index_ph) - lambda * ph_M(pivot_index_ph)); %observed pseudorange DD
     
     %approximate pseudoranges
-    prapp_pr =            (distR_approx - distM)      - (distR_approx(pivot_index_pr) - distM(pivot_index_pr));       %approximate pseudorange DD
-    prapp_pr = prapp_pr + (err_tropo_R - err_tropo_M) - (err_tropo_R(pivot_index_pr)  - err_tropo_M(pivot_index_pr)); %tropospheric error DD
-    prapp_pr = prapp_pr + (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index_pr)   - err_iono_M(pivot_index_pr));  %ionoshperic error DD
-    prapp_ph = prapp_pr - (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index_pr)   - err_iono_M(pivot_index_pr));  %ionoshperic error DD
+    prapp    =         (distR_approx - distM)      - (distR_approx(pivot_index_pr) - distM(pivot_index_pr));       %approximate pseudorange DD
+    prapp    = prapp + (err_tropo_R - err_tropo_M) - (err_tropo_R(pivot_index_pr)  - err_tropo_M(pivot_index_pr)); %tropospheric error DD
+    prapp_pr = prapp + (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index_pr)   - err_iono_M(pivot_index_pr));  %ionoshperic error DD
+    prapp_ph = prapp - (err_iono_R  - err_iono_M)  + (err_iono_R(pivot_index_pr)   - err_iono_M(pivot_index_pr));  %ionoshperic error DD
     
     %remove pivot-pivot lines
     A(pivot_index_pr, :) = [];
