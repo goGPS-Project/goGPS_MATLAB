@@ -126,7 +126,7 @@ classdef goKalmanFilter1 < handle
         sigma2_XR = [];
         
         % Estimated attitude variance
-        sigma2_ATT =[];        
+        sigma2_ATT =[];
         
         % Estimated variance for the initial ambiguities
         sigma2_N
@@ -208,7 +208,7 @@ classdef goKalmanFilter1 < handle
             obj.setCurrentParameters();     % Init current parameters
             obj.allocateMemory(goObs.getNumRec(), goObs.getGNSSnFreq(goGNSS.ID_GPS)); % only GPS observations
             
-            obj.init(goObs, goIni)
+            %obj.init(goObs, goIni)
         end
         
         % Destructor (Shiva)
@@ -233,6 +233,17 @@ classdef goKalmanFilter1 < handle
             obj.MR_loop(goObs, goIni, obj.mode);
             %     % set the status of the KF initialization
             %     obj.initKF = true;
+        end
+    end
+    
+    % Loop
+    methods (Access = 'public')
+        function KF_loop(obj, goObs, goIni)
+            obj.init_T(obj.mode);            
+            obj.init_Xhat_t_t(goObs, goIni, obj.mode); 
+            %obj.init_X_t1_t();
+            %obj.init_Cee(goObs.getNumRec(), obj.mode);
+            %obj.MR_loop(goObs, goIni, obj.mode);
         end
     end
     
@@ -359,7 +370,6 @@ classdef goKalmanFilter1 < handle
         % initialization of the parameter vector for all receivers
         function init_Xhat_t_t(obj, goObs, goIni, mode)   %% to initialize Xhat_t_t_R: cell of [nPar+nSat*nFreq,1] and Xhat_t_t;
             
-            goObs.doPreProcessing()
             
             %load of the observation data after pre-processing
             
@@ -389,13 +399,13 @@ classdef goKalmanFilter1 < handle
             err_tropo = NaN(goGNSS.MAX_SAT, nRec+1);
             
             %% compute diff --------- must be put outside to avoid the recomputation every epoch
- syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
+            syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
             syms r11 r12 r13 r21 r22 r23 r31 r32 r33
             
             % rotation from local to global
             s_Rgl=[-sin(s_lam_b) -sin(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*cos(s_lam_b); ...
                 cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b)  cos(s_phi_b)*sin(s_lam_b); ...
-                0 cos(s_phi_b) sin(s_phi_b)];           
+                0 cos(s_phi_b) sin(s_phi_b)];
             
             % rotation from instrumental to local
             s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_roll)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
@@ -406,16 +416,28 @@ classdef goKalmanFilter1 < handle
             
             s_PR_DD=sqrt((s_X(1)-s_XS)^2+(s_X(2)-s_YS)^2 + (s_X(3)-s_ZS)^2) - sqrt((s_XM-s_XS)^2+(s_YM-s_YS)^2 + (s_ZM-s_ZS)^2) - ...
                 (sqrt((s_X(1)-s_XS_Piv)^2+(s_X(2)-s_YS_Piv)^2 + (s_X(3)-s_ZS_Piv)^2) - sqrt((s_XM-s_XS_Piv)^2+(s_YM-s_YS_Piv)^2 + (s_ZM-s_ZS_Piv)^2));
-               
+            
             s_Ai=[diff(s_PR_DD,s_Xb) diff(s_PR_DD,s_Yb) diff(s_PR_DD,s_Zb) diff(s_PR_DD,s_roll) diff(s_PR_DD,s_pitch) diff(s_PR_DD,s_yaw)];
-                  
+            
             F_Ai=inline(s_Ai); %% <-- colonne della matrice disegno corrispondenti alle incognite geometriche
             F_PR_DD=inline(s_PR_DD); %% <-- parte geometrica dei termini noti
             F_s_X=inline(s_X); %% <-- per calcolare le coordinate aggiornate di ogni ricevitore a partire da quelle nuove del punto 'baricentro'
             %%
             
             
-            for t = 1 : length(time_GPS)
+            x_tot=NaN(length(time_GPS),1);
+            y_tot=NaN(length(time_GPS),1);
+            z_tot=NaN(length(time_GPS),1);
+            roll_tot=NaN(length(time_GPS),1);
+            pitch_tot=NaN(length(time_GPS),1);
+            yaw_tot=NaN(length(time_GPS),1);
+            Cxrxr_tot=NaN(3,3,length(time_GPS));
+            Catat_tot=NaN(3,3,length(time_GPS));
+            
+            global O
+            time_GPS(1)
+            for t = 1: length(time_GPS)
+
                 pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
                 ph1_M=goObs.getGNSSph_M(ID_GNSS,0,t,1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
                 snr_M=goObs.getGNSSsnr_M(ID_GNSS,0,t,1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -518,12 +540,17 @@ classdef goKalmanFilter1 < handle
                 for i=1:nRec
                     statistic = zeros(2,length(time_GPS)); % <-- VA DIMENSIONATO IN 3D!!!!?
                     ambiguity = 0;                         % <-- VA DIMENSIONATO IN 3D!!!!?
-                    
                     Xhat_t_t=zeros(size(Xhat_t_t));
+                    [X_sat_i conf_sat_i]=goGPS_LS_DD_code_phase(time_GPS(t), pos_M, pr1_R(:,i), pr1_M, pr2_R(:,i), pr2_M, ph1_R(:,i), ph1_M, ph2_R(:,i), ph2_M, snr_R(:,i), snr_M, Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
                     
-                    [X_sat_i obj.goodSat_pr_ph(:,i)]=goGPS_LS_DD_code_phase(time_GPS(t), pos_M, pr1_R(:,i), pr1_M, pr2_R(:,i), pr2_M, ph1_R(:,i), ph1_M, ph2_R(:,i), ph2_M, snr_R(:,i), snr_M, Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+                    if size(X_sat_i,1)<4
+                        break
+                    end
                     
+                    obj.goodSat_pr_ph(:,i)=conf_sat_i;
                     X_sat(find(obj.goodSat_pr_ph(:,i)==1),1:3,i)=X_sat_i;
+                    
+                    
                     
                     obj.XR(1,i)=Xhat_t_t(1);
                     obj.XR(2,i)=Xhat_t_t(3);
@@ -562,193 +589,393 @@ classdef goKalmanFilter1 < handle
                     err_iono(isnan(distM),i+1)=NaN;
                     
                 end
-                          
-            
-            % leftin zeros the apriori attitude
-            attitude_approx=[0 0 0]';
-            
-            
-            % instrumental RS coordinates
-            % ---------------------------
-            % get geometry
-            [geometry ev_point]=goIni.getGeometry();
-            
-            % barycenter definition
-            xb=mean(geometry,2);
-            % barycentric instrumental RS coordinates
-            xR=geometry-repmat(xb,1,nRec);
-            
-            % non barycentric! the origin is the first receiver
-            %xR=geometry;
-            
-            
-            % estimated local coordinates of baycenter
-            %-----------------------------------------
-            Xb_apriori=[mean(obj.XR(1,:)), mean(obj.XR(2,:)),mean(obj.XR(3,:))]';
-            
-            
-            
-            
-            % code + phase double differenecs with Xb and attitude
-            % ----------------------------------------------------
-            obj.conf_sat=ones(goGNSS.MAX_SAT,1);
-            
-            for i=1:nRec
-                obj.conf_sat=obj.conf_sat(:,1)&obj.goodSat_pr_ph(:,i);
-            end
-            sat=find(obj.conf_sat==1); %only common sat! it would be better to use all receiver independently
-            
-            
-            XS=NaN(goGNSS.MAX_SAT,3);
-            XS(sat,1:3)=X_sat(sat,1:3,1);
-            
-            %actual pivot
-            [null_max_elR pivot_index]=max(obj.satCoordM.el(sat,1));
-            pivot_r = sat(pivot_index);
-            
-            
-            
-
-            
-            index_sat_without_pivot=sat;
-            index_sat_without_pivot(pivot_index)=[];
-            if t==3
-                keyboard
-            end
-            
-            if (size(sat,1) >= 4) % & cond_num < cond_num_threshold)
-                phase_1=1;
                 
-                %loop is needed to improve the atmospheric error correction
-                for i = 1 : 3
-                    %if (phase == 1)
-                    [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR(Xb_apriori, obj.XR, pos_M(:,1), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,1), snr_M(sat,1), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X);
-                    %else
-                    %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
-                    %end
+                
+                if size(X_sat_i,1)>3
+                %% try to estimate attitude
+                   [geometry ev_point]=goIni.getGeometry();
                     
-                    % compute elevation and atmospheric corrections from XR_DD coordinates
-                    for r=1:nRec
-                        [phiR, lamR, hR] = cart2geod(obj.XR(1,r), obj.XR(2,r), obj.XR(3,r));
-                        phiR = phiR * 180 / pi;
-                        lamR = lamR * 180 / pi;
-                        [obj.satCoordR.az(sat,r),obj.satCoordR.el(sat,r), obj.satCoordR.dist(sat,r)] = topocent(obj.XR(:,r), XS(sat,:));
-                        
-                        %computation of atmospheric errors of Rover receiver
-                        err_tropo(:,r+1) = tropo_error_correction(obj.satCoordR.el(:,r), hR);
-                        
-                        %computation of ionospheric errors
-                        err_iono(:,r+1) = iono_error_correction(phiR, lamR, obj.satCoordR.az(:,r), obj.satCoordR.el(:,r), goObs.getTime_Ref(t), goObs.getIono(), goObs.getSBAS());
-                        err_iono(isnan(distM),r+1)=NaN;
+                    % barycenter definition
+                    xb=mean(geometry,2);
+                    % barycentric instrumental RS coordinates
+                    xR=geometry-repmat(xb,1,nRec);
+                    
+                    % non barycentric! the origin is the first receiver
+                    %xR=geometry;
+                    
+                    
+                    % estimated local coordinates of baycenter
+                    %-----------------------------------------
+                    Xb_apriori=[mean(obj.XR(1,:)), mean(obj.XR(2,:)),mean(obj.XR(3,:))]';                
+                
+                
+                    % local coordinates of receivers with repect to
+                    % barycenter
+                    xloc_b_apriori=zeros(3,nRec);
+                    
+                    for i=1:nRec
+                        xloc_b_apriori(1:3,i) = global2localPos(obj.XR(1:3,i), Xb_apriori);
                     end
+                    
+                    
+                   
+                    [R,T,Yf,Err] = rot3dfit(xloc_b_apriori',xR');
+                    %[R,T,Yf,Err] = rot3dfit(xR',xloc_b_apriori')
+                    
+%                     A=[];
+%                     y0=xloc_b_apriori(:);
+%                     %y0(3:3:end)=xR(3,:); % discardheight
+%                      for i=1:nRec
+%                       A=[A;xR(1,i) xR(2,i) xR(3,i) 0 0 0 0 0 0;0 0 0 xR(1,i) xR(2,i) xR(3,i) 0 0 0 ;0 0 0 0 0 0 xR(1,i) xR(2,i) xR(3,i)];
+%                     end
+%                     diagQ=repmat([1 1 10000],1,nRec);
+%                     Q=diag(diagQ);
+%                     euler_parameters=inv(A'*inv(Q)*A)*A'*inv(Q)*y0;
+%                     euler_parameters=reshape(euler_parameters,3,3);
+%                     euler_parameters=euler_parameters';
+
+                    euler_parameters=R;
+%                     pitch(1)=mod(atan2(-euler_parameters(3,1),sqrt(euler_parameters(3,2)^2+euler_parameters(3,3)^2)),2*pi);
+%                     pitch(2)=mod(atan2(-euler_parameters(3,1),-sqrt(euler_parameters(3,2)^2+euler_parameters(3,3)^2)),2*pi);
+%                 
+%                     % remove implssible case (assuming pitch can't be
+%                     % greater than 90 deg!
+%                     pitch=pitch(find(abs(pitch)==min(abs(pitch))));
+%                     roll=mod(atan2(euler_parameters(3,2)/cos(pitch),euler_parameters(3,3)/cos(pitch)),2*pi);
+%                     yaw=mod(atan2(euler_parameters(2,1)/cos(pitch),euler_parameters(1,1)/cos(pitch)),2*pi);
+                    
+
+
+                    roll=mod(atan2(euler_parameters(3,2),euler_parameters(3,3)),pi);
+                    if roll > pi/2
+                        roll = roll -pi;
+                    end
+                    if roll <-pi/2
+                        roll = roll + pi;
+                    end
+                    yaw=mod(atan2(-cos(roll)*euler_parameters(1,2)+sin(roll)*euler_parameters(1,3),cos(roll)*euler_parameters(2,2)-sin(roll)*euler_parameters(2,3)),2*pi);
+                     if yaw > pi
+                        yaw = yaw -2*pi;
+                    end
+                    if yaw <-pi
+                        yaw = yaw + 2*pi;
+                    end                  
+                      
+                    pitch=mod(atan2(-euler_parameters(3,1),sin(roll)*euler_parameters(3,2)+cos(roll)*euler_parameters(3,3)),pi);
+                     if pitch > pi/2
+                        pitch = pitch -pi;
+                    end
+                    if pitch <-pi/2
+                        pitch = pitch + pi;
+                    end                  
+                      
+                    
+                    
+                    
+
+                    
+                    roll/pi*180
+                    pitch/pi*180
+                    yaw/pi*180
+                    
+                %%
+                
+
+                    % leftin zeros the apriori attitude
+                    attitude_approx=[0 0 0]';
+                    
+                    attitude_approx=[roll, pitch, yaw]';
+                    
+%                     % instrumental RS coordinates
+%                     % ---------------------------
+%                     % get geometry
+%                     [geometry ev_point]=goIni.getGeometry();
+%                     
+%                     % barycenter definition
+%                     xb=mean(geometry,2);
+%                     % barycentric instrumental RS coordinates
+%                     xR=geometry-repmat(xb,1,nRec);
+%                     
+%                     % non barycentric! the origin is the first receiver
+%                     %xR=geometry;
+%                     
+%                     
+%                     % estimated local coordinates of baycenter
+%                     %-----------------------------------------
+%                     Xb_apriori=[mean(obj.XR(1,:)), mean(obj.XR(2,:)),mean(obj.XR(3,:))]';
+%                     
+%                     
+                    
+                    
+                    % code + phase double differenecs with Xb and attitude
+                    % ----------------------------------------------------
+                    obj.conf_sat=ones(goGNSS.MAX_SAT,1);
+                    
+                    for i=1:nRec
+                        obj.conf_sat=obj.conf_sat(:,1)&obj.goodSat_pr_ph(:,i);
+                    end
+                    sat=find(obj.conf_sat==1); %only common sat! it would be better to use all receiver independently
+                    
+                    
+                    XS=NaN(goGNSS.MAX_SAT,3);
+                    XS(sat,1:3)=X_sat(sat,1:3,1);
+                    
+                    %actual pivot
+                    [null_max_elR pivot_index]=max(obj.satCoordM.el(sat,1));
+                    pivot_r = sat(pivot_index);
+                    
+                    
+                    
+                    
+                    
+                    index_sat_without_pivot=sat;
+                    index_sat_without_pivot(pivot_index)=[];
+                    
+                    if (size(sat,1) >= 4) % & cond_num < cond_num_threshold)
+                        phase_1=1;
+                        
+                        %loop is needed to improve the atmospheric error correction
+                        threshold=[0.5 0.6 0.8];
+                        for i = 1 : 3
+                            %if (phase == 1)
+                            [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP, posType] = LS_DD_code_phase_MR_FIX(Xb_apriori, obj.XR, pos_M(:,1), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,1), snr_M(sat,1), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X, threshold(i));
+                            %else
+                            %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
+                            %end
+                            
+                            % compute elevation and atmospheric corrections from XR_DD coordinates
+                            for r=1:nRec
+                                [phiR, lamR, hR] = cart2geod(obj.XR(1,r), obj.XR(2,r), obj.XR(3,r));
+                                phiR = phiR * 180 / pi;
+                                lamR = lamR * 180 / pi;
+                                [obj.satCoordR.az(sat,r),obj.satCoordR.el(sat,r), obj.satCoordR.dist(sat,r)] = topocent(obj.XR(:,r), XS(sat,:));
+                                
+                                %computation of atmospheric errors of Rover receiver
+                                err_tropo(:,r+1) = tropo_error_correction(obj.satCoordR.el(:,r), hR);
+                                
+                                %computation of ionospheric errors
+                                err_iono(:,r+1) = iono_error_correction(phiR, lamR, obj.satCoordR.az(:,r), obj.satCoordR.el(:,r), goObs.getTime_Ref(t), goObs.getIono(), goObs.getSBAS());
+                                err_iono(isnan(distM),r+1)=NaN;
+                            end
+                        end
+                        
+                        
+                    else
+                    end
+                    
+                    
+                    %interfacing with old version
+                    %----------------------------
+                    % initialize pivot
+                    obj.pivot = zeros(1,nRec);
+                    %previous pivot
+                    obj.pivot_old = zeros(1,nRec);
+                    N1=zeros(goGNSS.MAX_SAT,nRec);
+                    obj.sigma2_XR=diag(cov_Xb);
+                    
+                    obj.sigma2_ATT=diag(cov_ATT);
+                    
+                    cov_N1=diag(cov_N1);
+                    for r=1:nRec
+                        obj.pivot(r)=pivot_r;
+                        N1(index_sat_without_pivot,r)=N1_hat((r-1)*length(index_sat_without_pivot)+1:r*length(index_sat_without_pivot));
+                        obj.sigma2_N(index_sat_without_pivot,r)=cov_N1((r-1)*length(index_sat_without_pivot)+1:r*length(index_sat_without_pivot));
+                        obj.xDOP.P(r)=PDOP(1,r);
+                        obj.xDOP.H(r)=HDOP(1,r);
+                        obj.xDOP.V(r)=VDOP(1,r);
+                    end
+                    
+                    switch(mode)
+                        %case 1,
+                        %    obj.Xhat_t_t(1:3) = [obj.XR(1,1); obj.XR(2,1); obj.XR(3,1)];
+                        %case {2,4},
+                        %    obj.Xhat_t_t(1:6) = [obj.XR(1,1); 0; obj.XR(2,1); 0; obj.XR(3,1); 0];
+                        case {4}
+                            obj.Xhat_t_t(1:6) = [Xb_apriori(1,1); 0; Xb_apriori(2,1); 0; Xb_apriori(3,1); 0];
+                            %  case {3,5},
+                            %  obj.Xhat_t_t(1:9) = [Xb_apriori(1,1); 0; 0; Xb_apriori(2,1); 0; 0; Xb_apriori(3,1); 0; 0];
+                    end
+                    
+                    switch(mode)
+                        %case {1,2,3},   %when not estimating the attitude
+                        %    obj.Xhat_t_t (nP+1:end) = N(:);
+                        case {4,5},     % when estimating the attitude (roll, pitch, yaw angles)
+                            %attitude = goObs.getInitialAttitude();
+                            obj.Xhat_t_t (nP-3+1:nP) = [attitude_approx(1); attitude_approx(2); attitude_approx(3)];
+                            obj.Xhat_t_t (nP+1:end) = N1(:); %% <-- sistemare per la doppia frequenza!
+                    end
+                             
+            
+            
+                    %Tykhonov filter-like
+                    % Coordinates of the barycenter
+                    Cxrxr_tot(1:3,1:3,t)=cov_Xb;
+                    Catat_tot(1:3,1:3,t)=cov_ATT;
+                    
+                    sigma2_w = ones(3,t);
+                    sigma2_w(1,:) = 0.002*sigma2_w(1,:);
+                    sigma2_w(2,:) = 0.002*sigma2_w(2,:);
+                    sigma2_w(3,:) = 0.002*sigma2_w(3,:);
+                    
+                    x_tot(t,1)=obj.Xhat_t_t(1);
+                    y_tot(t,1)=obj.Xhat_t_t(3);
+                    z_tot(t,1)=obj.Xhat_t_t(5);
+                    roll_tot(t,1)=attitude_approx(1);
+                    pitch_tot(t,1)=attitude_approx(2);
+                    yaw_tot(t,1)=attitude_approx(3);
+                    
+
+                    
+                    
+                   % plot 
+                    
+                   
+                   if t==1
+                       fout1=fopen('d:\results_nofilter.txt','wt');
+                       fig1=figure;
+                       fig2=figure;
+                       fig3=figure;
+                       
+                       [EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(4398302.8204, 704154.7988, 4550158.1558);
+                       
+                   end
+                   
+                   [EAST_xb, NORTH_xb, h_xb, ~]  = cart2plan(x_tot(t,1), y_tot(t,1), z_tot(t,1));
+                   if t>1
+                   if posType==1
+                       figure(fig1);
+                       subplot(3,1,1)
+                       hold on
+                       title('EAST');
+                       plot(t,EAST_xb-EAST_xb_0,'*r');
+                       subplot(3,1,2)
+                       title('NORTH');
+                       hold on
+                       plot(t,NORTH_xb-NORTH_xb_0,'*r');
+                       subplot(3,1,3)
+                       hold on
+                       title('UP');
+                       plot(t,h_xb-h_xb_0,'*r');
+                       
+                       figure(fig2);
+                       attitude_0=[obj.Xhat_t_t(7), obj.Xhat_t_t(8),obj.Xhat_t_t(9)];
+                       subplot(3,1,1)
+                       hold on
+                       title('ROLL');
+                       plot(t,roll_tot(t,1)/pi*180,'*r');
+                       subplot(3,1,2)
+                       hold on
+                       title('PITCH');
+                       plot(t, pitch_tot(t,1)/pi*180,'*r');
+                       subplot(3,1,3)
+                       hold on
+                       title('YAW');
+                       plot(t, yaw_tot(t,1)/pi*180,'*r');
+                       
+                       figure(fig3);
+                       hold on
+                       plot(EAST_xb-EAST_xb_0,NORTH_xb-NORTH_xb_0,'*r');
+                       
+                   else
+                       figure(fig1);
+                       subplot(3,1,1)
+                       title('EAST');
+                       hold on
+                       plot(t,EAST_xb-EAST_xb_0,'.b');
+                       subplot(3,1,2)
+                       hold on
+                       title('NORTH');
+                       plot(t,NORTH_xb-NORTH_xb_0,'.b');
+                       subplot(3,1,3)
+                       hold on
+                       title('UP');
+                       plot(t,h_xb-h_xb_0,'.b');
+                       
+                       figure(fig2);
+                       subplot(3,1,1)
+                       title('ROLL');
+                       hold on
+                       plot(t,roll_tot(t,1)/pi*180,'.b');
+                       subplot(3,1,2)
+                       hold on
+                       title('PITCH');
+                       plot(t,pitch_tot(t,1)/pi*180,'.b');
+                       subplot(3,1,3)
+                       hold on
+                       title('YAW');
+                       plot(t,yaw_tot(t,1)/pi*180,'.b');
+                       
+                       figure(fig3);
+                       hold on
+                       plot(EAST_xb-EAST_xb_0,NORTH_xb-NORTH_xb_0,'.b');
+                   end
+                   end
+                   fprintf(fout1,'%10d\t%13.4f\t%13.4f\t%13.4f\t%7.3f\t%7.3f\t%7.3f\t%d\t%7.2f\n',t, obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5),obj.Xhat_t_t(7)/pi*180,obj.Xhat_t_t(8)/pi*180,obj.Xhat_t_t(9)/pi*180,posType,O);
+                   
+                   drawnow;
+                   fprintf('\t=%10d ... X: %13.4f ... Y: %13.4f ... Z= %13.4f .. %7.2f\n',t, obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5),O);
+                   
+                   
+                   
+                   
+                    
+                    
+                    
+                    
+                    
+                else
+%                     fprintf('BUCO!!!\n');%           
+%                     % fitto
+%                     Cvv_tyc(1:3,1:3,t)=Cvv_tyc(1:3,1:3,t-1); % previous epoch
+%                     
+%                     sigma2_w = ones(3,t);
+%                     sigma2_w(1,:) = 0.002*sigma2_w(1,:);
+%                     sigma2_w(2,:) = 0.002*sigma2_w(2,:);
+%                     sigma2_w(3,:) = 0.002*sigma2_w(3,:);
+%                     
+%                    
+%                     % linear interpolation of the last 5 solutions (if
+%                     % available
+%                     t_interp_low=t-5;
+%                     t_interp_hig=t-1;
+%                     if t-5 <1
+%                         t_interp_low=1;
+%                     end
+% 
+%                     coeff=polyfit((t_interp_low:t_interp_hig)',x(t_interp_low:t_interp_hig),1);
+%                     x(t,1)=polyval(coeff,t);
+%                     
+%                     coeff=polyfit((t_interp_low:t_interp_hig)',y(t_interp_low:t_interp_hig),1);
+%                     y(t,1)=polyval(coeff,t);
+%                     
+%                     coeff=polyfit((t_interp_low:t_interp_hig)',z(t_interp_low:t_interp_hig),1);
+%                     z(t,1)=polyval(coeff,t);
+%                     
+%                     obj.Xhat_t_t(1)=x(t,1);
+%                     obj.Xhat_t_t(3)=y(t,1);
+%                     obj.Xhat_t_t(5)=z(t,1);
+
+                
+                
+                
+%                 if t>1
+%                     fprintf('tycho\n');
+%                    [x y z] = tykonov_3D (x, y, z, Cvv_tyc, sigma2_w, 0);
+%                     %                    [obj.Xhat_t_t(1) obj.Xhat_t_t(3) obj.Xhat_t_t(5)] = tykonov_3D (obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5), Cvv, sigma2_w, 1);
+%                 end
+                
+
+
+                    
                 end
+
                 
-                
-            else
-            end
-            
-            
-            %interfacing with old version
-            %----------------------------
-            % initialize pivot
-            obj.pivot = zeros(1,nRec);
-            %previous pivot
-            obj.pivot_old = zeros(1,nRec);
-            N1=zeros(goGNSS.MAX_SAT,nRec);
-            obj.sigma2_XR=diag(cov_Xb);
-            
-            obj.sigma2_ATT=diag(cov_ATT);
-            
-            cov_N1=diag(cov_N1);
-            for r=1:nRec
-                obj.pivot(r)=pivot_r;
-                N1(index_sat_without_pivot,r)=N1_hat((r-1)*length(index_sat_without_pivot)+1:r*length(index_sat_without_pivot));
-                obj.sigma2_N(index_sat_without_pivot,r)=cov_N1((r-1)*length(index_sat_without_pivot)+1:r*length(index_sat_without_pivot));
-                obj.xDOP.P(r)=PDOP(1,r);
-                obj.xDOP.H(r)=HDOP(1,r);
-                obj.xDOP.V(r)=VDOP(1,r);
-            end
-            
-            switch(mode)
-                %case 1,
-                %    obj.Xhat_t_t(1:3) = [obj.XR(1,1); obj.XR(2,1); obj.XR(3,1)];
-                %case {2,4},
-                %    obj.Xhat_t_t(1:6) = [obj.XR(1,1); 0; obj.XR(2,1); 0; obj.XR(3,1); 0];
-                case {4}
-                    obj.Xhat_t_t(1:6) = [Xb_apriori(1,1); 0; Xb_apriori(2,1); 0; Xb_apriori(3,1); 0];
-                    %  case {3,5},
-                    %  obj.Xhat_t_t(1:9) = [Xb_apriori(1,1); 0; 0; Xb_apriori(2,1); 0; 0; Xb_apriori(3,1); 0; 0];
-            end
-            
-            switch(mode)
-                %case {1,2,3},   %when not estimating the attitude
-                %    obj.Xhat_t_t (nP+1:end) = N(:);
-                case {4,5},     % when estimating the attitude (roll, pitch, yaw angles)
-                    %attitude = goObs.getInitialAttitude();
-                    obj.Xhat_t_t (nP-3+1:nP) = [attitude_approx(1); attitude_approx(2); attitude_approx(3)];
-                    obj.Xhat_t_t (nP+1:end) = N1(:); %% <-- sistemare per la doppia frequenza!
-            end
-            
-            
-                  if t==1
-                      fig1=figure;
-                      fig2=figure;
-                    figure(fig1);
-                    [EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5));
-                    subplot(3,1,1)
-                    title('EAST');
-                    plot(1,EAST_xb_0-EAST_xb_0,'.b');
-                    subplot(3,1,2)
-                    title('NORTH');
-                    plot(1,NORTH_xb_0-NORTH_xb_0,'.b');
-                    subplot(3,1,3)
-                    title('UP');
-                    plot(1,h_xb_0-h_xb_0,'.b');
-                    
-                    figure(fig2);
-                    attitude_0=[obj.Xhat_t_t(7), obj.Xhat_t_t(8),obj.Xhat_t_t(9)];
-                    subplot(3,1,1)
-                    title('ROLL');
-                    plot(1,attitude_0(1)/pi*180,'.r');
-                    subplot(3,1,2)
-                    title('PITCH');
-                    plot(1,attitude_0(2)/pi*180,'.r');
-                    subplot(3,1,3)
-                    title('YAW');
-                    plot(1,attitude_0(3)/pi*180,'.r');
-                    
-                    
-                end
-                
-                figure(fig1);
-                [EAST_xb, NORTH_xb, h_xb, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5));
-                subplot(3,1,1)
-                hold on
-                plot(t,EAST_xb-EAST_xb_0,'.b');
-                subplot(3,1,2)
-                hold on
-                plot(t,NORTH_xb-NORTH_xb_0,'.b');
-                subplot(3,1,3)
-                hold on
-                plot(t,h_xb-h_xb_0,'.b');
-                
-                figure(fig2);
-                subplot(3,1,1)
-                hold on
-                plot(t,obj.Xhat_t_t(7)/pi*180,'.r');
-                subplot(3,1,2)
-                hold on
-                plot(t,obj.Xhat_t_t(8)/pi*180,'.r');
-                subplot(3,1,3)
-                hold on
-                plot(t,obj.Xhat_t_t(9)/pi*180,'.r');
-                
-                drawnow;
-                fprintf('\tEAST: %13.4f ... NORTH: %13.4f ... h= %13.4f\n',EAST_xb,NORTH_xb,h_xb);
                 
                 
             end
-        
+            save('epochbyepoch.mat','x_tot','y_tot','z_tot','roll_tot','pitch_tot','yaw_tot','Cxrxr_tot','Catat_tot');
+            fclose(fout1);
+            return
         end
         
         % initialization of point estimation at step t+1 ==
@@ -811,7 +1038,7 @@ classdef goKalmanFilter1 < handle
                     % angular attitude
                     %
                     Cee_diag((obj.nPar-2):(obj.nPar)) = obj.sigmaq0.ang;  %% QUESTION: conviene prenderlo dalla Cxx stimata?
-                     Cee_diag((obj.nPar-2):(obj.nPar)) = obj.sigma2_ATT;
+                    Cee_diag((obj.nPar-2):(obj.nPar)) = obj.sigma2_ATT;
                     %                 case 5
                     %                     % angular attitude
                     %                     %obj.Cee((obj.nPar-2):(obj.nPar),(obj.nPar-2):(obj.nPar)) = obj.sigmaq0.ang;
@@ -911,13 +1138,13 @@ classdef goKalmanFilter1 < handle
             
             % compute diff --------- must be put outside to avoid the recomputation every epoch
             % ---------------------------------------------------------------------------------
-  syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
+            syms s_Xb s_Yb s_Zb s_phi_b s_lam_b s_roll s_pitch s_yaw s_x s_y s_z s_XS s_YS s_ZS s_XS_Piv s_YS_Piv s_ZS_Piv s_XM s_YM s_ZM
             syms r11 r12 r13 r21 r22 r23 r31 r32 r33
             
             % rotation from local to global
             s_Rgl=[-sin(s_lam_b) -sin(s_phi_b)*cos(s_lam_b) cos(s_phi_b)*cos(s_lam_b); ...
                 cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b)  cos(s_phi_b)*sin(s_lam_b); ...
-                0 cos(s_phi_b) sin(s_phi_b)];           
+                0 cos(s_phi_b) sin(s_phi_b)];
             
             % rotation from instrumental to local
             s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_roll)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
@@ -928,29 +1155,29 @@ classdef goKalmanFilter1 < handle
             
             s_PR_DD=sqrt((s_X(1)-s_XS)^2+(s_X(2)-s_YS)^2 + (s_X(3)-s_ZS)^2) - sqrt((s_XM-s_XS)^2+(s_YM-s_YS)^2 + (s_ZM-s_ZS)^2) - ...
                 (sqrt((s_X(1)-s_XS_Piv)^2+(s_X(2)-s_YS_Piv)^2 + (s_X(3)-s_ZS_Piv)^2) - sqrt((s_XM-s_XS_Piv)^2+(s_YM-s_YS_Piv)^2 + (s_ZM-s_ZS_Piv)^2));
-               
+            
             s_Ai=[diff(s_PR_DD,s_Xb) diff(s_PR_DD,s_Yb) diff(s_PR_DD,s_Zb) diff(s_PR_DD,s_roll) diff(s_PR_DD,s_pitch) diff(s_PR_DD,s_yaw)];
-                  
+            
             F_Ai=inline(s_Ai); %% <-- colonne della matrice disegno corrispondenti alle incognite geometriche
             F_PR_DD=inline(s_PR_DD); %% <-- parte geometrica dei termini noti
             F_s_X=inline(s_X); %% <-- per calcolare le coordinate aggiornate di ogni ricevitore a partire da quelle nuove del punto 'baricentro'
-
+            
             % ---------------------------------------------------------------------------------
             
             fig1=figure;
             fig2=figure;
             
-            figure(fig1);            
+            figure(fig1);
             [EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5));
             subplot(3,1,1)
             title('EAST');
             plot(1,EAST_xb_0-EAST_xb_0,'.b');
             subplot(3,1,2)
             title('NORTH');
-            plot(1,NORTH_xb_0-NORTH_xb_0,'.b');            
+            plot(1,NORTH_xb_0-NORTH_xb_0,'.b');
             subplot(3,1,3)
             title('UP');
-            plot(1,h_xb_0-h_xb_0,'.b');               
+            plot(1,h_xb_0-h_xb_0,'.b');
             
             figure(fig2);
             attitude_0=[obj.Xhat_t_t(7), obj.Xhat_t_t(8),obj.Xhat_t_t(9)];
@@ -959,15 +1186,15 @@ classdef goKalmanFilter1 < handle
             plot(1,attitude_0(1)/pi*180,'.r');
             subplot(3,1,2)
             title('PITCH');
-            plot(1,attitude_0(2)/pi*180,'.r');            
+            plot(1,attitude_0(2)/pi*180,'.r');
             subplot(3,1,3)
             title('YAW');
-            plot(1,attitude_0(3)/pi*180,'.r');  
+            plot(1,attitude_0(3)/pi*180,'.r');
             
             
             for t = 2 : length(time_GPS)
-            %for t=2:length(time_GPS)
-                fprintf('t: %05d/%05d\n',t,length(time_GPS));
+                %for t=2:length(time_GPS)
+                %fprintf('t: %05d/%05d\n',t,length(time_GPS));
                 pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
                 ph1_M=goObs.getGNSSph_M(ID_GNSS,0,t,1);   %ph = getGNSSph_M(obj, idGNSS, idSat, idObs, nFreq)
                 snr_M=goObs.getGNSSsnr_M(ID_GNSS,0,t,1);  %snr = getGNSSsnr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -1440,13 +1667,13 @@ classdef goKalmanFilter1 < handle
                     end
                     
                     
-                     
+                    
                     %------------------------------------------------------------------------------------
                     % CYCLE-SLIP
                     %------------------------------------------------------------------------------------
                     
                     % QUESTION: va calcolato prima??
-                    doppler_pred_range_R=0; 
+                    doppler_pred_range_R=0;
                     doppler_pred_range_M=0;
                     doppler_pred_range1_R = zeros(goGNSS.MAX_SAT,1);
                     doppler_pred_range2_R = zeros(goGNSS.MAX_SAT,1);
@@ -1471,8 +1698,8 @@ classdef goKalmanFilter1 < handle
                             else
                                 if (phase == 1)
                                     [check_cs(1,i), N_slip, sat_slip] = cycle_slip_detection(obj.X_t1_t(nP+(i-i)*goGNSS.MAX_SAT+1:nP+i*goGNSS.MAX_SAT), ph1_R(sat,i), ph1_M(sat), obj.satCoordR.dist(sat,i), obj.satCoordM.dist(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), obj.pivot(1), sat, sat_born, obj.cs_threshold, 1); %#ok<ASGLU>
-%                                 else
-%                                     [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                                    %                                 else
+                                    %                                     [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+32), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
                                 end
                             end
                         else
@@ -1487,7 +1714,7 @@ classdef goKalmanFilter1 < handle
                     
                     
                     
-
+                    
                     
                     
                     %------------------------------------------------------------------------------------
@@ -1495,68 +1722,68 @@ classdef goKalmanFilter1 < handle
                     %------------------------------------------------------------------------------------
                     for i=1:nRec
                         if (check_on | check_cs(1,i))
-%                             if (length(phase) == 2)
-%                                 [N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-%                                 [N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-%                                 %[N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
-%                                 %[N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
-%                                 
-%                                 if (check_on)
-%                                     X_t1_t(o3+sat_born,1) = N1_born;
-%                                     X_t1_t(o3+32+sat_born,1) = N2_born;
-%                                     %Cvv(o3+sat_born,o3+sat_born) = sigmaq_N1_born * eye(size(sat_born,1));
-%                                     %Cvv(o3+32+sat_born,o3+32+sat_born) = sigmaq_N2_born * eye(size(sat_born,1));
-%                                     Cvv(o3+sat_born,o3+sat_born) = sigmaq0_N * eye(size(sat_born,1));
-%                                     Cvv(o3+32+sat_born,o3+32+sat_born) = sigmaq0_N * eye(size(sat_born,1));
-%                                 end
-%                                 
-%                                 if (check_cs1)
-%                                     conf_cs(sat_slip1) = 1;
-%                                     X_t1_t(o3+sat_slip1) = N1_slip;
-%                                     Cvv(o3+sat_slip1,o3+sat_slip1) = sigmaq0_N * eye(size(sat_slip1,1));
-%                                 end
-%                                 
-%                                 if (check_cs2)
-%                                     conf_cs(sat_slip2) = 1;
-%                                     X_t1_t(o3+32+sat_slip2) = N2_slip;
-%                                     Cvv(o3+32+sat_slip2,o3+32+sat_slip2) = sigmaq0_N * eye(size(sat_slip2,1));
-%                                 end
-%                             else
-%                                 if (phase == 1)                                                                                                                                                                                                                                                                                                                                                                                                                                      
-                                    [N_slip, N_born] = ambiguity_init(XR0, X_sat(sat,:,i), pr1_R(sat,1), pr1_M(sat), ph1_R(sat,1), ...
-                                        ph1_M(sat), snr_R(sat,1), snr_M(sat), obj.satCoordR.el(sat,i), obj.satCoordM.el(sat), sat, ...
-                                        sat, sat_slip, sat_born, obj.satCoordR.dist(sat,i),obj.satCoordM.dist(sat), err_tropo(sat,i+1), ...
-                                        err_tropo(sat,1), err_iono(sat,i+1), err_iono(sat,1), obj.pivot(i), phase, ...
-                                        obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat), obj.Cee(nP+goGNSS.MAX_SAT*(i-1)+sat, nP+goGNSS.MAX_SAT*(i-1)+sat));
-                                    %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
-%                                 else
-%                                     [N_slip, N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-%                                     %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
-%                                 end
-                                
-                                if (check_on)
-                                    for j=1:length(N_born)
-                                        obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat_born(j),1) = N_born(j);
+                            %                             if (length(phase) == 2)
+                            %                                 [N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+                            %                                 [N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+                            %                                 %[N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
+                            %                                 %[N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
+                            %
+                            %                                 if (check_on)
+                            %                                     X_t1_t(o3+sat_born,1) = N1_born;
+                            %                                     X_t1_t(o3+32+sat_born,1) = N2_born;
+                            %                                     %Cvv(o3+sat_born,o3+sat_born) = sigmaq_N1_born * eye(size(sat_born,1));
+                            %                                     %Cvv(o3+32+sat_born,o3+32+sat_born) = sigmaq_N2_born * eye(size(sat_born,1));
+                            %                                     Cvv(o3+sat_born,o3+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                            %                                     Cvv(o3+32+sat_born,o3+32+sat_born) = sigmaq0_N * eye(size(sat_born,1));
+                            %                                 end
+                            %
+                            %                                 if (check_cs1)
+                            %                                     conf_cs(sat_slip1) = 1;
+                            %                                     X_t1_t(o3+sat_slip1) = N1_slip;
+                            %                                     Cvv(o3+sat_slip1,o3+sat_slip1) = sigmaq0_N * eye(size(sat_slip1,1));
+                            %                                 end
+                            %
+                            %                                 if (check_cs2)
+                            %                                     conf_cs(sat_slip2) = 1;
+                            %                                     X_t1_t(o3+32+sat_slip2) = N2_slip;
+                            %                                     Cvv(o3+32+sat_slip2,o3+32+sat_slip2) = sigmaq0_N * eye(size(sat_slip2,1));
+                            %                                 end
+                            %                             else
+                            %                                 if (phase == 1)
+                            [N_slip, N_born] = ambiguity_init(XR0, X_sat(sat,:,i), pr1_R(sat,1), pr1_M(sat), ph1_R(sat,1), ...
+                                ph1_M(sat), snr_R(sat,1), snr_M(sat), obj.satCoordR.el(sat,i), obj.satCoordM.el(sat), sat, ...
+                                sat, sat_slip, sat_born, obj.satCoordR.dist(sat,i),obj.satCoordM.dist(sat), err_tropo(sat,i+1), ...
+                                err_tropo(sat,1), err_iono(sat,i+1), err_iono(sat,1), obj.pivot(i), phase, ...
+                                obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat), obj.Cee(nP+goGNSS.MAX_SAT*(i-1)+sat, nP+goGNSS.MAX_SAT*(i-1)+sat));
+                            %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
+                            %                                 else
+                            %                                     [N_slip, N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+                            %                                     %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
+                            %                                 end
+                            
+                            if (check_on)
+                                for j=1:length(N_born)
+                                    obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat_born(j),1) = N_born(j);
                                     %Cvv(o3+sat_born,o3+sat_born) = sigmaq_N_born * eye(size(sat_born,1));
-                                        Cvv(nP+goGNSS.MAX_SAT*(i-1)+sat_born(j),nP+goGNSS.MAX_SAT*(i-1)+sat_born(j)) = obj.sigmaq0.N;
-                                    end
+                                    Cvv(nP+goGNSS.MAX_SAT*(i-1)+sat_born(j),nP+goGNSS.MAX_SAT*(i-1)+sat_born(j)) = obj.sigmaq0.N;
                                 end
-                                
-                                if (check_cs)
-                                    obj.conf_cs(sat_slip,i) = 1;
-                                    for j=1:length(sat_slip)
-                                        obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j)) = N_slip(j);
-                                        Cvv(nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j),nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j)) = obj.sigmaq0.N;
-                                    end
+                            end
+                            
+                            if (check_cs)
+                                obj.conf_cs(sat_slip,i) = 1;
+                                for j=1:length(sat_slip)
+                                    obj.X_t1_t(nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j)) = N_slip(j);
+                                    Cvv(nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j),nP+goGNSS.MAX_SAT*(i-1)+sat_slip(j)) = obj.sigmaq0.N;
                                 end
-%                             end
+                            end
+                            %                             end
                         end
                     end
                     
                     
                     
                     
-
+                    
                     
                     
                     %------------------------------------------------------------------------------------
@@ -1566,8 +1793,8 @@ classdef goKalmanFilter1 < handle
                     %rows in which the phase observation is available
                     % p = find(ismember(setdiff(sat_pr,pivot),setdiff(sat,pivot))==1);
                     p = setdiff(sat,obj.pivot(1)); %sat without pivot
-           
-
+                    
+                    
                     
                     %function that calculates the Kalman filter parameters
                     [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman_MR(XR0, X_sat(sat,:,1), pr1_R(sat,:), ph1_R(sat,:), pr1_M(sat), ph1_M(sat), pr2_R(sat,:), ph2_R(sat,:), pr2_M(sat), ph2_M(sat), err_tropo(sat,2:end), err_iono(sat,2:end), err_tropo(sat,1), err_iono(sat,1), obj.satCoordR.dist(sat,:), obj.satCoordM.dist(sat), sat, obj.pivot(1), attitude_approx, xR, F_Ai, F_PR_DD, F_s_X);
@@ -1582,17 +1809,17 @@ classdef goKalmanFilter1 < handle
                             o1 = (obj.nPar-3)/3;
                             
                             Z_n_om = zeros(nRec*n,o1-1);
-                            Z_1_om = zeros(1,o1-1);   
+                            Z_1_om = zeros(1,o1-1);
                     end
                     
                     
-                    H_cod1=[alpha(1:nRec*n,1) Z_n_om alpha(1:nRec*n,2) Z_n_om alpha(1:nRec*n,3) Z_n_om alpha(1:nRec*n,4:6) Z_n_nN_nRec];                    
+                    H_cod1=[alpha(1:nRec*n,1) Z_n_om alpha(1:nRec*n,2) Z_n_om alpha(1:nRec*n,3) Z_n_om alpha(1:nRec*n,4:6) Z_n_nN_nRec];
                     H_cod2=[]; %fill for second frequency
                     
                     H_cod=[H_cod1; H_cod2];
                     
                     
-
+                    
                     %lambda positions computation
                     L_pha1 = zeros(n,goGNSS.MAX_SAT);
                     %L_pha2 = zeros(n,goGNSS.MAX_SAT);
@@ -1618,23 +1845,23 @@ classdef goKalmanFilter1 < handle
                     %                         else
                     %                             if (phase == 1)
                     for i=1:nRec
-                        H_pha1(1+(i-1)*n:i*n,nP+1+(i-1)*goGNSS.MAX_SAT:nP+i*goGNSS.MAX_SAT) = L_pha1;                        
+                        H_pha1(1+(i-1)*n:i*n,nP+1+(i-1)*goGNSS.MAX_SAT:nP+i*goGNSS.MAX_SAT) = L_pha1;
                     end
                     H_pha = H_pha1;
-%                             else
-%                                 H_pha2(:,o3+1:o3+32) = L_pha2(p,:);
-%                                 H_pha = H_pha2;
-%                             end
-%                         end
-%                     else
-%                         H_pha = [];
-%                     end
+                    %                             else
+                    %                                 H_pha2(:,o3+1:o3+32) = L_pha2(p,:);
+                    %                                 H_pha = H_pha2;
+                    %                             end
+                    %                         end
+                    %                     else
+                    %                         H_pha = [];
+                    %                     end
                     
-%                     %H matrix computation for the DTM pseudo-observation
-                     H_dtm = [];
-%                     if (h_dtm ~= tile_header.nodata)
-%                         H_dtm = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
-%                     end
+                    %                     %H matrix computation for the DTM pseudo-observation
+                    H_dtm = [];
+                    %                     if (h_dtm ~= tile_header.nodata)
+                    %                         H_dtm = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
+                    %                     end
                     
                     %construction of the complete H matrix
                     H = [H_cod; H_pha; H_dtm];
@@ -1648,34 +1875,34 @@ classdef goKalmanFilter1 < handle
                     
                     %Y0 vector computation for the phase
                     y0_pha1 = probs_ph1 - prapp_ph1 + alpha(n*nRec+1:end,1)*X_app + alpha(n*nRec+1:end,2)*Y_app + alpha(n*nRec+1:end,3)*Z_app + ...
-                         alpha(n*nRec+1:end,4)*attitude_approx(1) + alpha(n*nRec+1:end,5)*attitude_approx(2) + alpha(n*nRec+1:end,6)*attitude_approx(3);
-%                     if ~isempty(p)
-%                         y0_pha1 = probs_ph1(p) - prapp_ph1(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
-%                         y0_pha2 = probs_ph2(p) - prapp_ph2(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
-%                     else
-%                         y0_pha1 = [];
-                         y0_pha2 = [];
-%                     end
-%                     
+                        alpha(n*nRec+1:end,4)*attitude_approx(1) + alpha(n*nRec+1:end,5)*attitude_approx(2) + alpha(n*nRec+1:end,6)*attitude_approx(3);
+                    %                     if ~isempty(p)
+                    %                         y0_pha1 = probs_ph1(p) - prapp_ph1(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+                    %                         y0_pha2 = probs_ph2(p) - prapp_ph2(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+                    %                     else
+                    %                         y0_pha1 = [];
+                    y0_pha2 = [];
+                    %                     end
+                    %
                     %Y0 vector computation for DTM constraint
                     y0_dtm = [];
-%                     if (h_dtm ~= tile_header.nodata)
-%                         y0_dtm = h_dtm  - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
-%                     end
+                    %                     if (h_dtm ~= tile_header.nodata)
+                    %                         y0_dtm = h_dtm  - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
+                    %                     end
                     
                     %construction of the total Y0 vector
-%                     if (length(phase) == 2)
-                        y0_cod = [y0_cod1; y0_cod2];
-                        y0_pha = [y0_pha1; y0_pha2];
-%                     else
-%                         if (phase == 1)
-%                             y0_cod = y0_cod1;
-%                             y0_pha = y0_pha1;
-%                         else
-%                             y0_cod = y0_cod2;
-%                             y0_pha = y0_pha2;
-%                         end
-%                     end
+                    %                     if (length(phase) == 2)
+                    y0_cod = [y0_cod1; y0_cod2];
+                    y0_pha = [y0_pha1; y0_pha2];
+                    %                     else
+                    %                         if (phase == 1)
+                    %                             y0_cod = y0_cod1;
+                    %                             y0_pha = y0_pha1;
+                    %                         else
+                    %                             y0_cod = y0_cod2;
+                    %                             y0_pha = y0_pha2;
+                    %                         end
+                    %                     end
                     y0 = [y0_cod; y0_pha; y0_dtm];
                     
                     
@@ -1691,7 +1918,7 @@ classdef goKalmanFilter1 < handle
                         Q1 = cofactor_matrix(obj.satCoordR.el(sat,i), obj.satCoordM.el(sat), snr_R(sat,i), snr_M(sat), pivot_index);
                         Q((i-1)*(n)+1 : (i-1)*(n)+ (n), (i-1)*(n)+1 : (i-1)*(n)+ (n)) =  obj.sigmaq.cod1 * Q1;
                         Q(n*nRec+(i-1)*(n)+1: n*nRec+(i-1)*(n)+n,n*nRec+(i-1)*(n)+1:n*nRec+(i-1)*(n)+n) = obj.sigmaq.ph * Q1;
-                    end    
+                    end
                     
                     
                     Cnn=Q;
@@ -1762,7 +1989,7 @@ classdef goKalmanFilter1 < handle
                     %                         doppler_pred_range2_M(sat,1) = ph2_M(sat) - dop2_M(sat);
                     %                     end
                     %
-
+                    
                 else
                     %to point out that notwithstanding the satellite configuration,
                     %data were not analysed (motion by dynamics only).
@@ -1816,12 +2043,12 @@ classdef goKalmanFilter1 < handle
                 obj.xDOP.KP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
                 obj.xDOP.KH = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
                 obj.xDOP.KV = sqrt(Cee_ENU(3,3));
-                 
+                
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 % END KALMAN
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 
-   
+                
                 
                 
                 
@@ -1860,12 +2087,13 @@ classdef goKalmanFilter1 < handle
                 plot(t,obj.Xhat_t_t(9)/pi*180,'.r');
                 
                 drawnow;
-                fprintf('\tEAST: %13.4f ... NORTH: %13.4f ... h= %13.4f\n',EAST_xb,NORTH_xb,h_xb);
+                fprintf('\t=%10d ... X: %13.4f ... Y: %13.4f ... Z= %13.4f\n',t, obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5));
+                fprintf(fout1,'%10d\t%13.4f\t%13.4f\tZ\t%13.4f\t%7.3f\t%7.3f\t%7.3f\n',t, obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5),obj.Xhat_t_t(7)/pi*180,obj.Xhat_t_t(8)/pi*180,bj.Xhat_t_t(9)/pi*180);
                 
-            
+                
             end
             
-
+            
             
         end
     end

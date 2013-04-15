@@ -219,8 +219,12 @@ if (n > m)
     
 else
     cov_XR = [];
-    
+    XR=XR_approx+x_hat(1:3);
     cov_N = [];
+    N_hat=x_hat(4:end);
+    up_bound=[];
+    lo_bound=[];
+    posType=0;
 end
 
 %DOP computation

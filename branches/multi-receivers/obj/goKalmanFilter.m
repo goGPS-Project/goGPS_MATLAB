@@ -87,6 +87,7 @@ classdef goKalmanFilter < handle
         % 3) constant acceleration
         % 4) constant velocity + attitude estimation
         % 5) constant acceleration + attitude estimation
+        % 6) static with attitude
         mode = 1;
         
         % Order of the dynamic model polynomial
@@ -190,7 +191,7 @@ classdef goKalmanFilter < handle
             if nargin < 3
                 mode = 1;
             end
-            if mode > 5
+            if mode > 6
                 mode = 1;
             end
             switch mode
@@ -201,6 +202,7 @@ classdef goKalmanFilter < handle
                     %more then one receiver
                 case 4, obj.nPar = 9;  % const.velocity filter + attitude angles without variations
                 case 5, obj.nPar = 12;  % const.acceleration filter + attitude angles without variations
+                case 6, obj.nPar = 6;  % static + attitude angles 
             end
             obj.mode = mode;
             obj.interval = 1/sampling_rate;	% Init estimation sampling rate
@@ -252,14 +254,14 @@ classdef goKalmanFilter < handle
             %variance of initial state %big variances also for velocities
             %because the receivers are assumed to be still at the first
             %epoch, but then they move
-            obj.sigmaq0.pos = 9;        %[m^2]
-            obj.sigmaq0.vel = 9;        %[m^2/s^2]
-            obj.sigmaq0.acc = 9;        %[m^4/s^4]
-            obj.sigmaq0.ang = 9;        %[rad^2]
-            obj.sigmaq0.ang_vel = 9;    %[rad^2/s^2]
+            obj.sigmaq0.pos = 900000;        %[m^2]
+            obj.sigmaq0.vel = 900000;        %[m^2/s^2]
+            obj.sigmaq0.acc = 900000;        %[m^4/s^4]
+            obj.sigmaq0.ang = 900000;        %[rad^2]
+            obj.sigmaq0.ang_vel = 900000;    %[rad^2/s^2]
             
             %variance of ambiguity combinations [cycles]
-            obj.sigmaq0.N = 1000;
+            obj.sigmaq0.N = 1000000000;
             
             %variance of velocity coordinates [m^2/s^2]
             obj.sigmaq.vE = 1e-1;
@@ -360,6 +362,9 @@ classdef goKalmanFilter < handle
                     % obj.T(1:nPar,1:nPar) = eye(nPar);
                     obj.T(1:3:(nP-3),2:3:(nP-3)) = diag(ones(3,1)*obj.interval);
                     obj.T(2:3:(nP-3),3:3:(nP-3)) = diag(ones(3,1)*obj.interval);
+                case 6,
+                    % obj.T(1:nPar,1:nPar) = eye(nPar);
+                    %obj.T(1:2:(nP-3),2:2:(nP-3)) = diag(ones(3,1)*obj.interval);
             end
             % note that: the remaining part of the T matrix has already
             % been created as an identity matrix sized nN.
@@ -686,12 +691,15 @@ classdef goKalmanFilter < handle
                     obj.Xhat_t_t(1:6) = [Xb_apriori(1,1); 0; Xb_apriori(2,1); 0; Xb_apriori(3,1); 0];
                     %  case {3,5},
                     %  obj.Xhat_t_t(1:9) = [Xb_apriori(1,1); 0; 0; Xb_apriori(2,1); 0; 0; Xb_apriori(3,1); 0; 0];
+                case {6}
+                    obj.Xhat_t_t(1:3) = [Xb_apriori(1,1); Xb_apriori(2,1); Xb_apriori(3,1)];
+
             end
             
             switch(mode)
                 %case {1,2,3},   %when not estimating the attitude
                 %    obj.Xhat_t_t (nP+1:end) = N(:);
-                case {4,5},     % when estimating the attitude (roll, pitch, yaw angles)
+                case {4,5,6},     % when estimating the attitude (roll, pitch, yaw angles)
                     %attitude = goObs.getInitialAttitude();
                     obj.Xhat_t_t (nP-3+1:nP) = [attitude_approx(1); attitude_approx(2); attitude_approx(3)];
                     obj.Xhat_t_t (nP+1:end) = N1(:); %% <-- sistemare per la doppia frequenza!
@@ -718,7 +726,7 @@ classdef goKalmanFilter < handle
                 %                     o1 = obj.nPar/3;
                 %                     obj.Cee(1+o1,1+o1) = obj.sigma2_XR(2);
                 %                     obj.Cee(1+o1*2,1+o1*2) = obj.sigma2_XR(3);
-                case 4
+                case {4,6}
                     o1 = (obj.nPar-3)/3;
                     % obj.Cee(1+o1,1+o1) = obj.sigma2_XR(2);
                     % obj.Cee(1+o1*2,1+o1*2) = obj.sigma2_XR(3);
@@ -756,7 +764,7 @@ classdef goKalmanFilter < handle
             %             end
             
             switch(mode)
-                case 4
+                case {4,6}
                     % angular attitude
                     %
                     Cee_diag((obj.nPar-2):(obj.nPar)) = obj.sigmaq0.ang;  %% QUESTION: conviene prenderlo dalla Cxx stimata?
@@ -814,7 +822,7 @@ classdef goKalmanFilter < handle
                 %                     o1 = obj.nPar/3;
                 %                     Cee_XYZ = obj.Cee(1:o1:obj.nPar,1:o1:obj.nPar);
                 %                     Cee_ENU = global2localCov(Cee_XYZ, obj.Xhat_t_t(1:o1:obj.nPar));
-                case {4}
+                case {4,6}
                     o1 = (obj.nPar-3)/3;
                     Cee_XYZ = obj.Cee(1:o1:(obj.nPar-3),1:o1:(obj.nPar-3));
                     Cee_ENU = global2localCov(Cee_XYZ, obj.Xhat_t_t(1:o1:(obj.nPar-3)));
@@ -899,7 +907,7 @@ classdef goKalmanFilter < handle
             fig2=figure;
             
             figure(fig1);            
-            [EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5));
+            [EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(2), obj.Xhat_t_t(3));
             subplot(3,1,1)
             title('EAST');
             plot(1,EAST_xb_0-EAST_xb_0,'.b');
@@ -911,7 +919,7 @@ classdef goKalmanFilter < handle
             plot(1,h_xb_0-h_xb_0,'.b');               
             
             figure(fig2);
-            attitude_0=[obj.Xhat_t_t(7), obj.Xhat_t_t(8),obj.Xhat_t_t(9)];
+            attitude_0=[obj.Xhat_t_t(nP-2), obj.Xhat_t_t(nP-1),obj.Xhat_t_t(nP)];
             subplot(3,1,1)
             title('ROLL');
             plot(1,attitude_0(1)/pi*180,'.r');
@@ -923,7 +931,7 @@ classdef goKalmanFilter < handle
             plot(1,attitude_0(3)/pi*180,'.r');  
             
             
-            for t = 2 : 30
+            for t = 2 : length(time_GPS)
             %for t=2:length(time_GPS)
                 fprintf('t: %05d/%05d\n',t,length(time_GPS));
                 pr1_M=goObs.getGNSSpr_M(ID_GNSS,0,t,1);   %pr = getGNSSpr_M(obj, idGNSS, idSat, idObs, nFreq)
@@ -1072,7 +1080,7 @@ classdef goKalmanFilter < handle
                 % get apriori attitude (from previous step)
                 switch(mode)
                     %case {1,2,3},   %when not estimating the attitude
-                    case {4,5},
+                    case {4,6},
                         attitude_approx=[obj.X_t1_t(nP-3+1:nP)];
                 end
                 
@@ -1155,6 +1163,10 @@ classdef goKalmanFilter < handle
                         XR0 = obj.X_t1_t([1:o1:nP-3]);
                         flag_XR = 2;
                         VR0 = obj.X_t1_t([2:o1:nP-3]);
+                    case {6},
+                        o1 = 1;
+                        XR0 = obj.X_t1_t([1:o1:nP-3]);
+                        flag_XR = 2;
                 end
                 
                 %approximated coordinates X Y Z
@@ -1249,8 +1261,10 @@ classdef goKalmanFilter < handle
                         Cvv(nP-2,nP-2)=obj.sigmaq0.ang;
                         Cvv(nP-1,nP-1)=obj.sigmaq0.ang;
                         Cvv(nP,nP)=obj.sigmaq0.ang;
-
-                       
+                    case {6},
+                        %Cvv(nP-2,nP-2)=obj.sigmaq0.ang;
+                        %Cvv(nP-1,nP-1)=obj.sigmaq0.ang;
+                        %Cvv(nP,nP)=obj.sigmaq0.ang;                   
                 end
                 
                 
@@ -1556,7 +1570,10 @@ classdef goKalmanFilter < handle
                         case {4},
                             o1 = (obj.nPar-3)/3;                            
                             Z_n_om = zeros(nRec*n,o1-1);
-                            Z_1_om = zeros(1,o1-1);   
+                            Z_1_om = zeros(1,o1-1);  
+                        case {6},
+                             Z_n_om=[]; 
+                            
                     end
                     
 
@@ -1801,6 +1818,9 @@ classdef goKalmanFilter < handle
                     case {4},
                         o1=2;
                         o2=4;
+                    case {6},
+                        o1=1;
+                        o2=2;
                 end
                 
                 Cee_XYZ = obj.Cee([1 o1+1 o2+1],[1 o1+1 o2+1]);
@@ -1831,7 +1851,7 @@ classdef goKalmanFilter < handle
                 
                 
                 figure(fig1);
-                [EAST_xb, NORTH_xb, h_xb, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5));
+                [EAST_xb, NORTH_xb, h_xb, ~]  = cart2plan(obj.Xhat_t_t(1), obj.Xhat_t_t(2), obj.Xhat_t_t(3));
                 subplot(3,1,1)
                 hold on
                 plot(t,EAST_xb-EAST_xb_0,'.b');
@@ -1841,17 +1861,16 @@ classdef goKalmanFilter < handle
                 subplot(3,1,3)
                 hold on
                 plot(t,h_xb-h_xb_0,'.b');
-                
                 figure(fig2);
                 subplot(3,1,1)
                 hold on
-                plot(t,obj.Xhat_t_t(7)/pi*180,'.r');
+                plot(t,obj.Xhat_t_t(nP-2)/pi*180,'.r');
                 subplot(3,1,2)
                 hold on
-                plot(t,obj.Xhat_t_t(8)/pi*180,'.r');
+                plot(t,obj.Xhat_t_t(nP-1)/pi*180,'.r');
                 subplot(3,1,3)
                 hold on
-                plot(t,obj.Xhat_t_t(9)/pi*180,'.r');
+                plot(t,obj.Xhat_t_t(nP)/pi*180,'.r');
                 
                 drawnow;
                 fprintf('\tEAST: %13.4f ... NORTH: %13.4f ... h= %13.4f\n',EAST_xb,NORTH_xb,h_xb);

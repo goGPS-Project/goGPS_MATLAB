@@ -102,7 +102,7 @@ if (size(sat,1) >= 4)
     
     if (phase == 1)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XM, [],  [], sat,   cutoff, snr_threshold, 2, 0); %#ok<NASGU,ASGLU>
-        if (length(sat_M) < 4); return; end
+        if (length(sat_M) < 4); conf_sat=zeros(32,1); conf_sat(sat_M)=1; return; end
         [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], [], XS, dtS, sat_M, cutoff, snr_threshold, 0, 1); %#ok<ASGLU>
     else
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XM, [],  [], sat,   cutoff, snr_threshold, 2, 0); %#ok<NASGU,ASGLU>
@@ -161,6 +161,9 @@ if (size(sat,1) >= 4)
             err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR ~= 0), elR(elR ~= 0), time_rx, iono, []);
         end
     else
+        XS=[];
+        conf_sat=zeros(32,1);
+        conf_sat(sat,1)=1;
         if (~isempty(Xhat_t_t))
             XR = Xhat_t_t([1,o1+1,o2+1]);
             pivot = 0;
@@ -170,6 +173,9 @@ if (size(sat,1) >= 4)
     end
        
 else
+    XS=[];
+    conf_sat=zeros(32,1);
+    conf_sat(sat,1)=1;
     if (~isempty(Xhat_t_t))
         XR = Xhat_t_t([1,o1+1,o2+1]);
         pivot = 0;
@@ -196,7 +202,7 @@ Cee(1,1) = sigma2_XR(1);
 Cee(o1+1,o1+1) = sigma2_XR(2);
 Cee(o2+1,o2+1) = sigma2_XR(3);
 
-success = zeros(3,1);
-success(1) = up_bound;
-success(2) = lo_bound;
-success(3) = posType;
+% success = zeros(3,1);
+% success(1) = up_bound;
+% success(2) = lo_bound;
+% success(3) = posType;

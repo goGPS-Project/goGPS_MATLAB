@@ -144,6 +144,7 @@ for i=1:nRec
     Q(n/2+(i-1)*(size(pr_R,1)-1)+1: n/2+(i-1)*(size(pr_R,1)-1)+size(pr_R,1)-1,n/2+(i-1)*(size(pr_R,1)-1)+1:n/2+(i-1)*(size(pr_R,1)-1)+size(pr_R,1)-1) = sigmaq_ph * Q1;
 end
 
+
 %normal matrix
 N = (A'*(Q^-1)*A);
 %least squares solution
