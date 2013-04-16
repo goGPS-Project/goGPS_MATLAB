@@ -768,7 +768,7 @@ function cs_thresh_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of cs_thresh as text
 %        str2double(get(hObject,'String')) returns contents of cs_thresh as a double
 global goGUI
-    goGUI.syncFromGUI(goGUI.idUI.nSNR);
+    goGUI.syncFromGUI(goGUI.idUI.nCS);
 
 % --- Executes during object creation, after setting all properties.
 function cs_thresh_CreateFcn(hObject, eventdata, handles)
