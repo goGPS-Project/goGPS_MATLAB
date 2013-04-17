@@ -38,6 +38,8 @@ function [data] = decode_AID_EPH(msg)
 %          2.27)GPS svhealth;
 %          2.28)GPS tgd;
 %          2.29)GPS fit_int;
+%          2.30)multi-constellation satellite index (here only GPS is assumed)
+%
 % DESCRIPTION:
 %   AID-EPH binary message decoding.
 
@@ -67,16 +69,16 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(29,1);
+data{2} = zeros(31,1);
 
 %output data save
 data{1} = 'AID-EPH';
 
-%satellite SVN (4 bytes)
-SVN = msg(pos:pos+31); pos = pos + 32;
-SVN = fliplr(reshape(SVN,8,[]));                  % byte order inversion (little endian)
-SVN = SVN(:)';
-SVN = fbin2dec((SVN(1:32)));
+%satellite PRN (4 bytes)
+PRN = msg(pos:pos+31); pos = pos + 32;
+PRN = fliplr(reshape(PRN,8,[]));                  % byte order inversion (little endian)
+PRN = PRN(:)';
+PRN = fbin2dec((PRN(1:32)));
 
 %Hand-Over Word (4 bytes)
 % HOW = msg(pos:pos+31);
@@ -129,7 +131,7 @@ IDOT     = subframe_3_data(9);
 
 %output and reorder ephemerides data (if IODC == IODE)
 if (IODC == IODE2) & (IODC == IODE3)
-    data{2}(1) = SVN;
+    data{2}(1) = PRN;
     data{2}(2) = af2;
     data{2}(3) = M0;
     data{2}(4) = root_A;
@@ -158,4 +160,5 @@ if (IODC == IODE2) & (IODC == IODE3)
     data{2}(27) = svhealth;
     data{2}(28) = tgd;
     data{2}(29) = fit_int;
+    data{2}(30) = PRN; %assume only GPS (not multi-constellation)
 end

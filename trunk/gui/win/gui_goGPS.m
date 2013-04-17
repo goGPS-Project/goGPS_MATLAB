@@ -321,7 +321,7 @@ function use_SBAS_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of use_SBAS
 global goGUI;
-    goGUI.syncFromGUI(goGUI.idUI.cSBAS);
+    goGUI.syncFromGUI(goGUI.idUI.cUse_SBAS);
     
 %   INPUT/OUTPUT FILE AND FOLDERS
 % ===============================================================

@@ -42,5 +42,3 @@ function [EAST, NORTH, h, utm_zone] = cart2plan(X, Y, Z)
 
 %projection to UTM
 [EAST, NORTH, utm_zone] = geod2plan(phi, lam);
-
-%-------------------------------------------------------------------------------

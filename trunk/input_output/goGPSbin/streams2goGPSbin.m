@@ -48,7 +48,7 @@ EphAvailable = [];
 
 if (~isempty(Eph))
 
-    EphAvailable = find(Eph(1,:,:)~=0, 1);
+    EphAvailable = find(Eph(30,:,:)~=0, 1);
 
     if ~isempty(data_master_all)
         satObs = find((pr1_R(:,1) ~= 0) & (pr1_M(:,1) ~= 0));

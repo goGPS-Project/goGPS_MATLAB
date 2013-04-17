@@ -1,18 +1,19 @@
-function [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_types)
+function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col, nObsTypes, constellations)
 
 % SYNTAX:
-%   [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types, obs_types);
+%   [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col, nObsTypes, constellations);
 %
 % INPUT:
 %   file_RINEX = observation RINEX file
-%   sat  = list of all visible satellites
+%   nSat = number of available satellites (NOTE: RINEX v3.xx does not provide 'sat' and 'sat_types'))
+%   sat = list of all available satellites
 %   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
-%   obs_types = observations types (e.g. C1L1P1...)
+%   obs_col = structure defining in which columns each observation type is to be found
+%   nObsTypes = number of available observations
+%   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
 %
 % OUTPUT:
-%   obs_GPS = GPS observations
-%   obs_GLO = GLONASS observations
-%   obs_SBS = SBAS observations
+%   obs_struct = struct with observations of enabled constellations
 %
 % DESCRIPTION:
 %   Acquisition of RINEX observation data (code, phase and signal-to-noise ratio).
@@ -42,34 +43,46 @@ function [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-    nSat = length(sat);
+%total number of satellites (according to enabled constellations)
+nSatTot = constellations.nEnabledSat;
 
-    % Convert constellations letter to index
-    nConstellations = 3; % Number of constellations available 1: GPS, 2: GLONASS, 3: SBAS
-    % nConstellations = 4; % Number of constellations available 1: GPS, 2: GLONASS, 3: SBAS 4: QZSS
-    idGPS = 1;      sat_types_id = uint8(sat_types == 'G');
-    idGLONASS = 2;  sat_types_id(sat_types == 'R') = idGLONASS;
-    idSBAS = 3;     sat_types_id(sat_types == 'S') = idSBAS;
-    %idQZSS = 4;     sat_types_id(sat_types == 'J') = idQZSS;
+%array to contain the starting index for each constellation in the total array (with length = nSatTot)
+sat_types_id = zeros(size(sat_types));
+
+%starting index in the total array for the various constellations
+idGPS = constellations.GPS.indexes(1);
+idGLONASS = constellations.GLONASS.indexes(1);
+idGalileo = constellations.Galileo.indexes(1);
+idBeiDou = constellations.BeiDou.indexes(1);
+idQZSS = constellations.QZSS.indexes(1);
+idSBAS = constellations.SBAS.indexes(1);
+
+%output observations structure initialization
+obs_struct = struct('L1', zeros(nSatTot,1), 'L2', zeros(nSatTot,1), ...
+    'C1', zeros(nSatTot,1), ...
+    'P1', zeros(nSatTot,1), 'P2', zeros(nSatTot,1), ...
+    'S1', zeros(nSatTot,1), 'S2', zeros(nSatTot,1), ...
+    'D1', zeros(nSatTot,1), 'D2', zeros(nSatTot,1));
+
+obs_tmp = struct('TMP1', zeros(nSatTot,1), 'TMP2', zeros(nSatTot,1));
+
+if (~isempty(sat_types)) %RINEX v2.xx
+    
+    %convert constellations letter to starting index in the total array
+    sat_types_id(sat_types == 'G') = idGPS*constellations.GPS.enabled;
+    sat_types_id(sat_types == 'R') = idGLONASS*constellations.GLONASS.enabled;
+    sat_types_id(sat_types == 'E') = idGalileo*constellations.Galileo.enabled;
+    sat_types_id(sat_types == 'C') = idBeiDou*constellations.BeiDou.enabled;
+    sat_types_id(sat_types == 'J') = idQZSS*constellations.QZSS.enabled;
+    sat_types_id(sat_types == 'S') = idSBAS*constellations.SBAS.enabled;
     
     %observation types
-    [col_L1, col_L2, col_C1, col_P1, col_P2, col_S1, col_S2, col_D1, col_D2] = obs_type_find(obs_types);
-    nObsTypes = size(obs_types,2)/2;
     nLinesToRead = ceil(nObsTypes/5);  % I read a maximum of 5 obs per line => this is the number of lines to read
     nObsToRead = nLinesToRead * 5;     % Each line contains 5 observations
     
-    %observations structure initialization
-    obs_struct = struct('L1', zeros(32,nConstellations), 'L2', zeros(32,nConstellations), ...
-                        'C1', zeros(32,nConstellations), ...
-                        'P1', zeros(32,nConstellations), 'P2', zeros(32,nConstellations), ...
-                        'S1', zeros(32,nConstellations), 'S2', zeros(32,nConstellations), ...
-                        'D1', zeros(32,nConstellations), 'D2', zeros(32,nConstellations));
-                    
-    obs_tmp = struct('TMP1', zeros(32,nConstellations), 'TMP2', zeros(32,nConstellations));
-    
     %data read and assignment
     lin = char(32*uint8(ones(16*nObsToRead,1))'); % preallocate the line to read
-
+    
     % Mask to filter all the possible observations (max 15)
     mask = false(16,nObsToRead);
     mask(2:14,:) = true;
@@ -88,93 +101,207 @@ function [obs_GPS, obs_GLO, obs_SBS] = RINEX_get_obs(file_RINEX, sat, sat_types,
         
         lin = char(lin*0+32); % clear line -> fill with spaces
         
-        % read all the lines containing the observations needed
-        for l = 1 : (nLinesToRead)
-            linTmp = fgetl(file_RINEX);
-            linLengthTmp = length(linTmp);
-            lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum lenght of 80 characters
+        if (sat_types_id(s) ~= 0)
+            % read all the lines containing the observations needed
+            for l = 1 : (nLinesToRead)
+                linTmp = fgetl(file_RINEX);
+                linLengthTmp = length(linTmp);
+                lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum lenght of 80 characters
+            end
+            linLength = 80*(nLinesToRead-1)+linLengthTmp;
+            
+            % convert the lines read from the RINEX file to a single matrix
+            % containing all the observations
+            strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead));
+            fltObs = sscanf(strObs, '%f'); % read all the observations in the string
+            obsId = 0; % index of the current observation
+            % start parsing the observation string
+            for k = 1 : min(nObsTypes, floor(linLength/16))
+                % check if the element is empty
+                if (~strcmp(strObs(:,k)','              ')) % if the current val is not missing (full of spaces)
+                    obsId = obsId+1;
+                    %obs = sscanf(lin(mask(:,k)), '%f');
+                    obs = fltObs(obsId);
+                    
+                    %check and assign the observation type
+                    if (any(~(k-obs_col.L1)))
+                        obs_struct.L1(sat_types_id(s)+sat(s)-1) = obs;
+                        if (linLength>=16*k)
+                            %convert signal-to-noise ratio
+                            % faster conversion of a single ASCII character into an int
+                            snr = mod((lin(16*k)-48),16);
+                            obs_tmp.TMP1(sat_types_id(s)+sat(s)-1) = 6 * snr;
+                        end
+                    elseif (any(~(k-obs_col.L2)))
+                        obs_struct.L2(sat_types_id(s)+sat(s)-1) = obs;
+                        if (linLength>=16*k)
+                            %convert signal-to-noise ratio
+                            % faster conversion of a single ASCII character into an int
+                            snr = mod((lin(16*k)-48),16);
+                            obs_tmp.TMP2(sat_types_id(s)+sat(s)-1) = 6 * snr;
+                        end
+                    elseif (any(~(k-obs_col.C1)))
+                        obs_struct.C1(sat_types_id(s)+sat(s)-1) = obs;
+                    elseif (any(~(k-obs_col.P1)))
+                        obs_struct.P1(sat_types_id(s)+sat(s)-1) = obs;
+                    elseif (any(~(k-obs_col.P2)))
+                        obs_struct.P2(sat_types_id(s)+sat(s)-1) = obs;
+                    elseif (any(~(k-obs_col.D1)))
+                        obs_struct.D1(sat_types_id(s)+sat(s)-1) = obs;
+                    elseif (any(~(k-obs_col.D2)))
+                        obs_struct.D2(sat_types_id(s)+sat(s)-1) = obs;
+                    elseif (any(~(k-obs_col.S1)))
+                        obs_struct.S1(sat_types_id(s)+sat(s)-1) = obs;
+                    elseif (any(~(k-obs_col.S2)))
+                        obs_struct.S2(sat_types_id(s)+sat(s)-1) = obs;
+                    end
+                end
+            end
+            if (~obs_struct.S1(sat_types_id(s)+sat(s)-1))
+                obs_struct.S1(sat_types_id(s)+sat(s)-1) = obs_tmp.TMP1(sat_types_id(s)+sat(s)-1);
+            end
+            if (~obs_struct.S2(sat_types_id(s)+sat(s)-1))
+                obs_struct.S2(sat_types_id(s)+sat(s)-1) = obs_tmp.TMP2(sat_types_id(s)+sat(s)-1);
+            end
+        else
+            %skip all the observation lines for the unused satellite
+            for l = 1 : (nLinesToRead)
+                fgetl(file_RINEX);
+            end
         end
-        linLength = 80*(nLinesToRead-1)+linLengthTmp;
+    end
+    
+else %RINEX v3.xx
+
+    for s = 1 : nSat
+        
+        %read the line for satellite 's'
+        linTmp = fgetl(file_RINEX);
+        
+        %read the constellation ID
+        sysId = linTmp(1);
+        
+        %read the satellite PRN/slot number
+        satId = str2num(linTmp(2:3));
+        
+        %number of observations to be read on this line
+        nObsToRead = nObsTypes.(sysId);
+        
+        %data read and assignment
+        lin = char(32*uint8(ones(16*nObsToRead,1))'); % preallocate the line to read
+        
+        %keep only the part of 'lin' containing the observations
+        linTmp = linTmp(4:end);
+        linLengthTmp = length(linTmp);
+        
+        %fill in the 'lin' variable with the actual line read (may be shorter than expected)
+        lin(1:linLengthTmp) = linTmp;
+        linLength = length(lin);
+
+        %compute the index in the total array and check if the current
+        %constellation is required (if not, skip the line)
+        switch (sysId)
+            case 'G'
+                if (constellations.GPS.enabled)
+                    index = idGPS + satId - 1;
+                else
+                    continue
+                end
+            case 'R'
+                if (constellations.GLONASS.enabled)
+                    index = idGLONASS + satId - 1;
+                else
+                    continue
+                end
+            case 'E'
+                if (constellations.Galileo.enabled)
+                    index = idGalileo + satId - 1;
+                else
+                    continue
+                end
+            case 'C'
+                if (constellations.BeiDou.enabled)
+                    index = idBeiDou + satId - 1;
+                else
+                    continue
+                end
+            case 'J'
+                if (constellations.QZSS.enabled)
+                    index = idQZSS + satId - 1;
+                else
+                    continue
+                end
+            case 'S'
+                if (constellations.SBAS.enabled)
+                    index = idSBAS + satId - 1;
+                else
+                    continue
+                end
+        end
+
+        % Mask to filter all the possible observations
+        mask = false(16,nObsToRead);
+        mask(2:14,:) = true;
+        % preallocate a matrix of n strings (of length 14 characters)
+        % notice that each observation element has a max length of 13 char,
+        % the first character is added as a padding to separate the strings for
+        % the command sscanf that now can be launched once for each satellite
+        strObs = char(ones(14,nObsToRead)*32);
         
         % convert the lines read from the RINEX file to a single matrix
         % containing all the observations
-        strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead)); 
-        fltObs = sscanf(strObs, '%f'); % read all the numbers in the stringe
-        obsId = 0; % index of the actual observation
-        % start parsing the string of the observation
-        for k = 1 : min(nObsTypes, floor(linLength/16))
+        strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead));
+        fltObs = sscanf(strObs, '%f'); % read all the observations in the string
+        obsId = 0; % index of the current observation
+        % start parsing the observation string
+        for k = 1 :  min(nObsToRead, floor(linLength/16))
             % check if the element is empty
-            if(~strcmp(strObs(:,k)','              ')) % if the current val is missing (full of spaces)            
+            if (~strcmp(strObs(:,k)','              ')) % if the current val is not missing (full of spaces)
                 obsId = obsId+1;
                 %obs = sscanf(lin(mask(:,k)), '%f');
                 obs = fltObs(obsId);
                 
                 %check and assign the observation type
-                switch k
-                    case col_L1
-                        obs_struct.L1(sat(s),sat_types_id(s)) = obs;
-                        if (linLength>=16*k)
-                            %convert signal-to-noise ratio
-                            % faster conversion of a single ASCII character into an int
-                            snr = mod((lin(16*k)-48),16);
-                            obs_tmp.TMP1(sat(s),sat_types_id(s)) = 6 * snr;
-                        end
-                    case col_L2
-                        obs_struct.L2(sat(s),sat_types_id(s)) = obs;
-                        if (linLength>=16*k)
-                            %convert signal-to-noise ratio
-                            % faster conversion of a single ASCII character into an int
-                            snr = mod((lin(16*k)-48),16);
-                            obs_tmp.TMP2(sat(s),sat_types_id(s)) = 6 * snr;
-                        end
-                    case col_C1
-                        obs_struct.C1(sat(s),sat_types_id(s)) = obs;
-                    case col_P1
-                        obs_struct.P1(sat(s),sat_types_id(s)) = obs;
-                    case col_P2
-                        obs_struct.P2(sat(s),sat_types_id(s)) = obs;
-                    case col_D1
-                        obs_struct.D1(sat(s),sat_types_id(s)) = obs;
-                    case col_D2
-                        obs_struct.D2(sat(s),sat_types_id(s)) = obs;
-                    case col_S1
-                        obs_struct.S1(sat(s),sat_types_id(s)) = obs;
-                    case col_S2
-                        obs_struct.S2(sat(s),sat_types_id(s)) = obs;
+                if (any(~(k-obs_col.(sysId).L1)))
+                    obs_struct.L1(index) = obs;
+                    if (linLength>=16*k)
+                        %convert signal-to-noise ratio
+                        % faster conversion of a single ASCII character into an int
+                        snr = mod((lin(16*k)-48),16);
+                        obs_tmp.TMP1(index) = 6 * snr;
+                    end
+                elseif (any(~(k-obs_col.(sysId).L2)))
+                    obs_struct.L2(index) = obs;
+                    if (linLength>=16*k)
+                        %convert signal-to-noise ratio
+                        % faster conversion of a single ASCII character into an int
+                        snr = mod((lin(16*k)-48),16);
+                        obs_tmp.TMP2(index) = 6 * snr;
+                    end
+                elseif (any(~(k-obs_col.(sysId).C1)))
+                    obs_struct.C1(index) = obs;
+                elseif (any(~(k-obs_col.(sysId).P1)))
+                    obs_struct.P1(index) = obs;
+                elseif (any(~(k-obs_col.(sysId).P2)))
+                    obs_struct.P2(index) = obs;
+                elseif (any(~(k-obs_col.(sysId).D1)))
+                    obs_struct.D1(index) = obs;
+                elseif (any(~(k-obs_col.(sysId).D2)))
+                    obs_struct.D2(index) = obs;
+                elseif (any(~(k-obs_col.(sysId).S1)))
+                    obs_struct.S1(index) = obs;
+                elseif (any(~(k-obs_col.(sysId).S2)))
+                    obs_struct.S2(index) = obs;
                 end
             end
         end
-        if (~obs_struct.S1(sat(s)))
-            obs_struct.S1(sat(s),sat_types_id(s)) = obs_tmp.TMP1(sat(s),sat_types_id(s));
+        if (~obs_struct.S1(index))
+            obs_struct.S1(index) = obs_tmp.TMP1(index);
         end
-        if (~obs_struct.S2(sat(s)))
-            obs_struct.S2(sat(s),sat_types_id(s)) = obs_tmp.TMP2(sat(s),sat_types_id(s));
+        if (~obs_struct.S2(index))
+            obs_struct.S2(index) = obs_tmp.TMP2(index);
         end
-    end
-    
-    clear obs_tmp;
-    
-    % Distribute the observations in constellation separate structures
-    obs_GPS = copyObsStruct(obs_struct, idGPS);
-    obs_GLO = copyObsStruct(obs_struct, idGLONASS);
-    obs_SBS = copyObsStruct(obs_struct, idSBAS);    
-    % obs_QZSS = copyObsStruct(obs_struct, idQZSS); 
-    
-% -------------------------------------------------------------------------  
-% End of function - start nested function declaration
-% -------------------------------------------------------------------------    
-    
-    % Divide the multi constellation structure into single structures for each
-    % constellation type
-    function obsStruct = copyObsStruct(multiObsStruct, satTypeId)
-        obsStruct.L1 = multiObsStruct.L1(:,satTypeId);
-        obsStruct.L2 = multiObsStruct.L2(:,satTypeId);
-        obsStruct.C1 = multiObsStruct.C1(:,satTypeId);
-        obsStruct.P1 = multiObsStruct.P1(:,satTypeId);
-        obsStruct.P2 = multiObsStruct.P2(:,satTypeId);
-        obsStruct.D1 = multiObsStruct.D1(:,satTypeId);
-        obsStruct.D2 = multiObsStruct.D2(:,satTypeId);
-        obsStruct.S1 = multiObsStruct.S1(:,satTypeId);
-        obsStruct.S2 = multiObsStruct.S2(:,satTypeId);
     end
 end
+
+clear obs_tmp

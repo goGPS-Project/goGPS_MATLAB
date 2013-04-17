@@ -1,16 +1,17 @@
-function [time, sat, sat_types, datee] = RINEX_get_epoch(fid)
+function [time, datee, num_sat, sat, sat_types] = RINEX_get_epoch(fid)
 
 % SYNTAX:
-%   [time, sat, sat_types, datee] = RINEX_get_epoch(fid);
+%   [time, datee, num_sat, sat, sat_types] = RINEX_get_epoch(fid);
 %
 % INPUT:
 %   fid = pointer to the observation RINEX file
 %
 % OUTPUT:
 %   time = observation GPS time
-%   sat  = list of all visible satellites
-%   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
 %   datee = date (year,month,day,hour,minute,second)
+%   num_sat = number of available satellites (NOTE: RINEX v3.xx does not output 'sat' and 'sat_types')
+%   sat = list of all visible satellites
+%   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
 %
 % DESCRIPTION:
 %   Scan the first line of each epoch (RINEX) and return
@@ -48,7 +49,7 @@ sat_types = [];
 num_sat = 0;
 datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
 eof = 0;
-if nargout>3
+if (nargout > 3)
     datee_RequestedInOutputFlag = true;
 else
     datee_RequestedInOutputFlag = false;
@@ -81,57 +82,84 @@ while (eof==0)
     if (feof(fid) == 1);
         return
     end
-    %check if it is a string that should be analyzed
-    if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
-    % if lin(2) ~= ' '
 
-        %save line information
-        data   = textscan(lin(1:26),'%f%f%f%f%f%f');
-        year   = data{1};
-        month  = data{2};
-        day    = data{3};
-        hour   = data{4};
-        minute = data{5};
-        second = data{6};
-
-        %computation of the GPS time in weeks and seconds of week
-        year = four_digit_year(year);
-        [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
-
-        %number of visible satellites
-        [num_sat] = sscanf(lin(30:32),'%d');
+    %check RINEX version
+    if (~strcmp(lin(1),'>')) %RINEX v2.xx
         
-        %keep just the satellite data
-        lin = ExtractSubstring(lin, 33, 68);
-
-        %remove 'blank spaces' and unwanted characters at the end of the string
-        lin = RemoveUnwantedTrailingSpaces(lin);
-        
-        %add the second line in case there are more than 12 satellites
-        if (num_sat > 12)
-            %lin_add = fgetl(fid);
-            %lin_add = ExtractSubstring(lin_add, 33, 68);
-            lin = [lin ExtractSubstring(fgetl(fid), 33, 68)];
-        end
-
-        pos = 1;
-        sat = zeros(num_sat,1);
-        sat_types = char(32*uint8(ones(num_sat,1))');
-        for i = 1 : num_sat
-            %check if GPS satellites are labeled 'G' or not labeled
-            if (strcmp(lin(pos),' '))
-                type = 'G';
-            else
-                type = lin(pos);
+        %check if it is a string that should be analyzed
+        if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
+            
+            %save time information
+            data   = textscan(lin(1:26),'%f%f%f%f%f%f');
+            year   = data{1};
+            month  = data{2};
+            day    = data{3};
+            hour   = data{4};
+            minute = data{5};
+            second = data{6};
+            
+            %computation of the GPS time in weeks and seconds of week
+            year = four_digit_year(year);
+            [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
+            
+            %number of visible satellites
+            [num_sat] = sscanf(lin(30:32),'%d');
+            
+            %keep just the satellite data
+            lin = ExtractSubstring(lin, 33, 68);
+            
+            %remove 'blank spaces' and unwanted characters at the end of the string
+            lin = RemoveUnwantedTrailingSpaces(lin);
+            
+            %add the second line in case there are more than 12 satellites
+            if (num_sat > 12)
+                %lin_add = fgetl(fid);
+                %lin_add = ExtractSubstring(lin_add, 33, 68);
+                lin = [lin ExtractSubstring(fgetl(fid), 33, 68)];
             end
-            % sat_types = [sat_types; type];
-            sat_types(i) = type;
-            % sat(i) = sscanf(lin(pos+1:pos+2),'%d');
-            sat(i) = mod((lin(pos+1)-48)*10+(lin(pos+2)-48),160);
-            pos = pos + 3;
+            
+            pos = 1;
+            sat = zeros(num_sat,1);
+            sat_types = char(32*uint8(ones(num_sat,1))');
+            for i = 1 : num_sat
+                %check if GPS satellites are labeled 'G' or not labeled
+                if (strcmp(lin(pos),' '))
+                    type = 'G';
+                else
+                    type = lin(pos);
+                end
+                % sat_types = [sat_types; type];
+                sat_types(i) = type;
+                % sat(i) = sscanf(lin(pos+1:pos+2),'%d');
+                sat(i) = mod((lin(pos+1)-48)*10+(lin(pos+2)-48),160);
+                pos = pos + 3;
+            end
+            
+            eof = 1;
         end
-
-        eof = 1;
+        
+    else %RINEX v3.xx
+        
+        %check if it is a string that should be analyzed
+        if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
+            
+            %save time information
+            data   = textscan(lin(2:29),'%f%f%f%f%f%f');
+            year   = data{1};
+            month  = data{2};
+            day    = data{3};
+            hour   = data{4};
+            minute = data{5};
+            second = data{6};
+            
+            %computation of the GPS time in weeks and seconds of week
+            [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
+            
+            %number of visible satellites
+            [num_sat] = sscanf(lin(33:35),'%d');
+            
+            eof = 1;
+        end
     end
 end
 

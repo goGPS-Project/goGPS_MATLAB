@@ -45,22 +45,28 @@ if (isempty(dir(filename_R_nav)) & isempty(dir(filename_M_nav)))
     end
     return
 elseif (isempty(dir(filename_R_nav)))
-    filename_R_nav = filename_M_nav;
+    filename_nav = filename_M_nav;
 elseif (isempty(dir(filename_M_nav)))
-    filename_M_nav = filename_R_nav;
+    filename_nav = filename_R_nav;
+else
+    filename_nav = filename_M_nav;
 end
+
+%load multi-constellation settings and initialize 'constellation' struct
+multi_constellation_settings
 
 if (~isempty(dir(filename_R_obs)))
     
     %ROVER RINEX files reading
     if (nargin >= 6)
-        [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, Eph_R, iono_R, snr1_R, snr2_R, ...
-            pr1_RR, ph1_RR, pr2_RR, ph2_RR, dop1_RR, dop2_RR, Eph_RR, snr_RR, time_R, week_R] = ...
-            load_RINEX_SA(filename_R_obs, filename_R_nav, wait_dlg); %#ok<ASGLU>
+
+        [pr1_R, ~, ph1_R, ~, ~, ~, ~, ~, dop1_R, ~, ~, ~, snr1_R, ~, ~, ~,  ...
+         ~, time_R, ~, week_R, ~, ~, ~, ~, ~, Eph_R, iono_R, interval_R] = ...
+         load_RINEX(filename_nav, filename_R_obs, [], constellations, 0, wait_dlg);
     else
-        [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, Eph_R, iono_R, snr1_R, snr2_R, ...
-            pr1_RR, ph1_RR, pr2_RR, ph2_RR, dop1_RR, dop2_RR, Eph_RR, snr_RR, time_R, week_R] = ...
-            load_RINEX_SA(filename_R_obs, filename_R_nav); %#ok<ASGLU>
+        [pr1_R, ~, ph1_R, ~, ~, ~, ~, ~, dop1_R, ~, ~, ~, snr1_R, ~, ~, ~,  ...
+         ~, time_R, ~, week_R, ~, ~, ~, ~, ~, Eph_R, iono_R, interval_R] = ...
+         load_RINEX(filename_nav, filename_R_obs, [], constellations, 0);
     end
     
     %TEMP
@@ -76,29 +82,31 @@ else
 end
 
 time_GPS = time_R;
-epochs = length(time_GPS);
+epochs  = length(time_GPS);
+num_sat = size(pr1_R,1);
 
 %MASTER variable initialization
 time_M = zeros(epochs,1);
-pr1_M  = zeros(32,epochs);
-ph1_M  = zeros(32,epochs);
-dop1_M = zeros(32,epochs);
-snr_M  = zeros(32,epochs);
+pr1_M  = zeros(num_sat,epochs);
+ph1_M  = zeros(num_sat,epochs);
+dop1_M = zeros(num_sat,epochs);
+snr_M  = zeros(num_sat,epochs);
 pos_M  = zeros(3,epochs);
-Eph_M  = zeros(29,32,epochs);
+Eph_M  = zeros(31,num_sat,epochs);
 iono   = zeros(8,epochs);
 
 if (~isempty(dir(filename_M_obs)))
     
     %MASTER RINEX files reading
     if (nargin >= 6)
-        [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph_M, iono_M, snr1_M, snr2_M, ...
-            pr1_MR, ph1_MR, pr2_MR, ph2_MR, dop1_MR, dop2_MR, Eph_MR, snr_MR, time_M, week_M, date_M, pos_M] = ...
-            load_RINEX_SA(filename_M_obs, filename_M_nav, wait_dlg, time_GPS(end)); %#ok<ASGLU>
+        
+        [pr1_M, ~, ph1_M, ~, ~, ~, ~, ~, dop1_M, ~, ~, ~, snr1_M, ~, ~, ~,  ...
+         ~, time_M, ~, ~, ~, ~, Eph_M, iono_M, interval_M] = ...
+         load_RINEX(filename_nav, filename_M_obs, [], constellations, 0, wait_dlg);
     else
-        [pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, Eph_M, iono_M, snr1_M, snr2_M, ...
-            pr1_MR, ph1_MR, pr2_MR, ph2_MR, dop1_MR, dop2_MR, Eph_MR, snr_MR, time_M, week_M, date_M, pos_M] = ...
-            load_RINEX_SA(filename_M_obs, filename_M_nav); %#ok<ASGLU>
+        [pr1_M, ~, ph1_M, ~, ~, ~, ~, ~, dop1_M, ~, ~, ~, snr1_M, ~, ~, ~,  ...
+         ~, time_M, ~, ~, ~, ~, Eph_M, iono_M, interval_M] = ...
+         load_RINEX(filename_nav, filename_M_obs, [], constellations, 0);
     end
     
     %TEMP
@@ -111,10 +119,10 @@ if (~isempty(dir(filename_M_obs)))
     end
 
     %round time values for synchronizing rover and master epochs
-    interval_R = median(time_R(2:end) - time_R(1:end-1));
+    %interval_R = median(time_R(2:end) - time_R(1:end-1));
     roundtime_R = roundmod(time_R,interval_R);
     
-    interval_M = median(time_M(2:end) - time_M(1:end-1));
+    %interval_M = median(time_M(2:end) - time_M(1:end-1));
     roundtime_M = roundmod(time_M,interval_M);
     
     if ~isempty(time_R) & ~isempty(time_M)
@@ -197,10 +205,10 @@ if (~isempty(dir(filename_M_obs)))
                 
                 time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
                 week_R = [week_R(1:pos);  week_R(pos);   week_R(pos+1:end)]; %does not take into account week change (TBD)
-                pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
-                ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
-                dop1_R = [dop1_R(:,1:pos) zeros(32,1)    dop1_R(:,pos+1:end)];
-                snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
+                pr1_R  = [pr1_R(:,1:pos)  zeros(num_sat,1)    pr1_R(:,pos+1:end)];
+                ph1_R  = [ph1_R(:,1:pos)  zeros(num_sat,1)    ph1_R(:,pos+1:end)];
+                dop1_R = [dop1_R(:,1:pos) zeros(num_sat,1)    dop1_R(:,pos+1:end)];
+                snr_R  = [snr_R(:,1:pos)  zeros(num_sat,1)    snr_R(:,pos+1:end)];
                 iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
                 
                 roundtime_R = roundmod(time_R,interval_R);
@@ -208,10 +216,10 @@ if (~isempty(dir(filename_M_obs)))
         else
             time_R = time_GPS;
             week_R = zeros(1,length(time_GPS));
-            pr1_R  = zeros(32,length(time_GPS));
-            ph1_R  = zeros(32,length(time_GPS));
-            dop1_R = zeros(32,length(time_GPS));
-            snr_R  = zeros(32,length(time_GPS));
+            pr1_R  = zeros(num_sat,length(time_GPS));
+            ph1_R  = zeros(num_sat,length(time_GPS));
+            dop1_R = zeros(num_sat,length(time_GPS));
+            snr_R  = zeros(num_sat,length(time_GPS));
             iono   = zeros(8,length(time_GPS));
         end
         
@@ -223,18 +231,18 @@ if (~isempty(dir(filename_M_obs)))
                 pos = find(roundtime_M == newtime_M(i) - interval);  %position before the "holes"
                 
                 time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
-                pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
-                ph1_M  = [ph1_M(:,1:pos)  zeros(32,1)    ph1_M(:,pos+1:end)];
-                snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
+                pr1_M  = [pr1_M(:,1:pos)  zeros(num_sat,1)    pr1_M(:,pos+1:end)];
+                ph1_M  = [ph1_M(:,1:pos)  zeros(num_sat,1)    ph1_M(:,pos+1:end)];
+                snr_M  = [snr_M(:,1:pos)  zeros(num_sat,1)    snr_M(:,pos+1:end)];
                 pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
                 
                 roundtime_M = roundmod(time_M,interval_M);
             end
         else
             time_M = time_GPS;
-            pr1_M  = zeros(32,length(time_GPS));
-            ph1_M  = zeros(32,length(time_GPS));
-            snr_M  = zeros(32,length(time_GPS));
+            pr1_M  = zeros(num_sat,length(time_GPS));
+            ph1_M  = zeros(num_sat,length(time_GPS));
+            snr_M  = zeros(num_sat,length(time_GPS));
             pos_M  = zeros(3,length(time_GPS));
         end
     end
@@ -259,7 +267,7 @@ end
 if (nargin >= 6)
     waitbar(0,wait_dlg,'Reconstruct complete ephemerides set...')
 end
-Eph = zeros(29,32,epochs);
+Eph = zeros(31,num_sat,epochs);
 for i = 1 : epochs
     Eph(:,:,i) = rt_find_eph(Eph_tmp, time_GPS(i));
     if (nargin >= 6)
@@ -335,7 +343,7 @@ if (nargin >= 6)
 end
 for i = 1 : epochs
     satEph = find(sum(abs(Eph(:,:,i)))~=0);
-    delsat = setdiff(1:32,satEph);
+    delsat = setdiff(1:num_sat,satEph);
     pr1_R(delsat,i)  = 0;
     pr1_M(delsat,i)  = 0;
     ph1_R(delsat,i)  = 0;
@@ -385,6 +393,10 @@ end
 fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
+%write number of satellites
+fwrite(fid_obs, num_sat, 'int8');
+fwrite(fid_eph, num_sat, 'int8');
+
 %"file hour" variable
 hour = 0;
 
@@ -414,6 +426,8 @@ for t = 1 : length(time_GPS)
         fid_obs    = fopen([filerootOUT '_obs_' hour_str '.bin'],'w+');
         fid_eph    = fopen([filerootOUT '_eph_' hour_str '.bin'],'w+');
         
+        fwrite(fid_obs, num_sat, 'int8');
+        fwrite(fid_eph, num_sat, 'int8');
     end
     
     Eph_t = Eph(:,:,t);

@@ -1,7 +1,7 @@
-function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase, flag_IAR)
+function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, phase, flag_IAR)
 
 % SYNTAX:
-%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase, flag_IAR);
+%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, phase, flag_IAR);
 %
 % INPUT:
 %   pos_R = rover approximate coordinates (X, Y, Z)
@@ -14,9 +14,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %   dop2 = ROVER_SATELLITE Doppler observation (carrier L2)
 %   snr  = ROVER-SATELLITE signal-to-noise ratio
 %   Eph  = satellite ephemerides
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
+%   SP3 = structure containing precise ephemeris data
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   sbas = SBAS corrections
 %   phase = L1 carrier (phase=1) L2 carrier (phase=2)
@@ -61,13 +59,16 @@ global ratiotest mutest succ_rate
 
 kalman_initialized = 0;
 
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1,1);
+
 %topocentric coordinates initialization
-azR = zeros(32,1);
-elR = zeros(32,1);
-distR = zeros(32,1);
-azM = zeros(32,1);
-elM = zeros(32,1);
-distM = zeros(32,1);
+azR = zeros(nSatTot,1);
+elR = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
+azM = zeros(nSatTot,1);
+elM = zeros(nSatTot,1);
+distM = zeros(nSatTot,1);
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -75,9 +76,9 @@ distM = zeros(32,1);
 
 %number of unknown phase ambiguities
 if (length(phase) == 1)
-    nN = 32;
+    nN = nSatTot;
 else
-    nN = 64;
+    nN = nSatTot*2;
 end
 
 %--------------------------------------------------------------------------------------------
@@ -112,8 +113,7 @@ T = [T0      Z_o1_o1 Z_o1_o1 Z_o1_nN;
      Z_o1_o1 Z_o1_o1 T0      Z_o1_nN;
      Z_nN_o1 Z_nN_o1 Z_nN_o1 N0];
 
-%construction of an identity matrix of 38 variables (6 for position and
-%velocity + 32 or 64 for the satellites number) for the further computations
+%construction of an identity matrix
 I = eye(o3+nN);
 
 %--------------------------------------------------------------------------------------------
@@ -132,6 +132,8 @@ else
         sat = find( (pr2 ~= 0) & (ph2 ~= 0) );
     end
 end
+sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
+sat = sat(ismember(sat, Eph(30,:)));
 
 %only satellites with code and phase
 %sat_pr = sat;
@@ -170,26 +172,34 @@ if (length(sat_pr) >= 4)
     sat_pr_old = sat_pr;
 
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
     end
 
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
+    
+    %if mixed observations GLONASS/other, then an additional parameter will be
+    %added to the least squares adjustment (i.e. at least 5 satellites required)
+    if (any(is_GLO) && any(~is_GLO))
+        min_nsat = 5;
+    else
+        min_nsat = 4;
+    end
 
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
     
     %satellites configuration: code only (-1), both code and phase (+1);
-    conf_sat = zeros(32,1);
+    conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr) = -1;
     conf_sat(sat) = +1;
     
     %cycle-slip configuration
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     pivot_old = 0;
     
@@ -197,9 +207,9 @@ if (length(sat_pr) >= 4)
     [null_max_elR, i] = max(elR(sat_pr)); %#ok<ASGLU>
     pivot = sat_pr(i);
     
-    %if at least 4 satellites are available after the cutoffs, and if the
-    % condition number in the least squares does not exceed the threshold
-    if (size(sat_pr,1) >= 4 & cond_num < cond_num_threshold)
+    %if the number of satellites is not sufficient after the cutoffs, and
+    %if the condition number in the least squares exceeds the threshold
+    if (size(sat_pr,1) >= min_nsat & cond_num < cond_num_threshold)
         
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
@@ -215,14 +225,14 @@ end
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-if (length(sat) < 4)
+if (length(sat) < min_nsat)
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
-    sigma2_N1 = zeros(32,1);
-    sigma2_N2 = zeros(32,1);
+    N1 = zeros(nSatTot,1);
+    N2 = zeros(nSatTot,1);
+    sigma2_N1 = zeros(nSatTot,1);
+    sigma2_N2 = zeros(nSatTot,1);
     
     %computation of the phase double differences in order to estimate N
     if ~isempty(sat)
@@ -248,13 +258,13 @@ else
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
+    N1 = zeros(nSatTot,1);
+    N2 = zeros(nSatTot,1);
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, 1); %#ok<ASGLU>
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, 2);
+        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, 1); %#ok<ASGLU>
+        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, 2);
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix
@@ -289,11 +299,10 @@ else
     end
 end
 
-%initialization of the initial point with 6(positions and velocities) +
-%32 or 64 (N combinations) variables
+%initialization of the state vector
 Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N];
 
-%point estimation at step t+1 X Vx Y Vy Z Vz comb_N
+%state update at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
 X_t1_t = T*Xhat_t_t;
 

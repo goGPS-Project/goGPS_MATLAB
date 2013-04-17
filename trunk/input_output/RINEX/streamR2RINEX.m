@@ -158,7 +158,7 @@ if (~isempty(data_rover_all))
     dop1_R = zeros(32,Ncell);                             %doppler measurements
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     lock_R = zeros(32,Ncell);                             %loss of lock indicator
-    Eph_R  = zeros(29,32,Ncell);                          %broadcast ephemerides
+    Eph_R  = zeros(31,32,Ncell);                          %broadcast ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
@@ -378,7 +378,8 @@ if (~isempty(data_rover_all))
         epoch_limit = min(length(time_R), 100);
         while (sum(abs((pos_R))) == 0 & i <= epoch_limit)
             satObs = find(pr1_R(:,i) ~= 0);
-            Eph_t = rt_find_eph (Eph_R, time_R(i));
+            nsat = length(satObs);
+            Eph_t = rt_find_eph (Eph_R, time_R(i), nsat);
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
@@ -575,9 +576,11 @@ if (~isempty(data_rover_all))
                 svhealth = Eph_R(27,satEph(j),i);
                 tgd      = Eph_R(28,satEph(j),i);
                 fit_int  = Eph_R(29,satEph(j),i);
+                system   = Eph_R(31,satEph(j),i); %#ok<NASGU>
                 
                 %time of measurement decoding
                 date = gps2date(week_R(i), toc);
+                date(1) = two_digit_year(date(1));
                 date(1) = two_digit_year(date(1));
                 
                 lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...

@@ -46,8 +46,10 @@ if ~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootM '_obs_*'])) ...
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
             iono, loss_R, loss_M] = load_observ(filerootR, filerootM);
     end
+    
+    num_sat = size(pr1_R,1);
 
-    EphAvailable = find(Eph(1,:,:)~=0, 1);
+    EphAvailable = find(Eph(30,:,:)~=0, 1);
     %if the dataset has ephemerides available at least for one epoch
     if (~isempty(EphAvailable))
         satEph = find(sum(abs(Eph(:,:,1)))~=0);
@@ -80,7 +82,7 @@ if ~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootM '_obs_*'])) ...
         %remove observations without ephemerides
         for i = 1 : length(time_GPS)
             satEph = find(sum(abs(Eph(:,:,i)))~=0);
-            delsat = setdiff(1:32,satEph);
+            delsat = setdiff(1:num_sat,satEph);
             pr1_R(delsat,i)  = 0;
             pr1_M(delsat,i)  = 0;
             ph1_R(delsat,i)  = 0;

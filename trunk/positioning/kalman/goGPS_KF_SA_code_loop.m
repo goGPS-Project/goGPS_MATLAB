@@ -1,7 +1,7 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase)
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, phase)
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase);
+%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, phase);
 %
 % INPUT:
 %   time_rx = GPS reception time
@@ -9,9 +9,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(ti
 %   pr2 = ROVER-SATELLITE code pseudorange (L2 carrier)
 %   snr = signal-to-noise ratio for ROVER observations
 %   Eph = satellite ephemerides
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
+%   SP3 = structure containing precise ephemeris data
 %   iono = ionospheric parameters
 %   sbas = SBAS corrections
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
@@ -63,13 +61,16 @@ check_off = 0;
 check_pivot = 0;
 check_cs = 0;
 
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1,1);
+
 %azimuth, elevation and ROVER-satellite and MASTER-satellite distances
-azR = zeros(32,1);
-azM = zeros(32,1);
-elR = zeros(32,1);
-elM = zeros(32,1);
-distR = zeros(32,1);
-distM = zeros(32,1);
+azR = zeros(nSatTot,1);
+azM = zeros(nSatTot,1);
+elR = zeros(nSatTot,1);
+elM = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
+distM = zeros(nSatTot,1);
 
 %----------------------------------------------------------------------------------------
 % MODEL ERROR COVARIANCE MATRIX
@@ -101,6 +102,7 @@ else
         sat = find( pr2 ~= 0 );
     end
 end
+sat = sat(ismember(sat, Eph(30,:)));
 
 %previous satellite configuration
 sat_old = find(conf_sat == 1);
@@ -126,9 +128,9 @@ if (size(sat,1) >= 4)
     flag_XR = 1;
     
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, [], [], sat, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, cutoff, snr_threshold, flag_XR, 0); %#ok<ASGLU>
     end
     
     %----------------------------------------------------------------------------------------
@@ -136,11 +138,11 @@ if (size(sat,1) >= 4)
     %----------------------------------------------------------------------------------------
 
     %satellite configuration
-    conf_sat = zeros(32,1);
+    conf_sat = zeros(nSatTot,1);
     conf_sat(sat) = +1;
     
     %no cycle-slips working with code only
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     %previous pivot
     if (pivot ~= 0)

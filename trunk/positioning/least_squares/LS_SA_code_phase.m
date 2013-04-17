@@ -1,7 +1,7 @@
-function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phase)
+function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, is_GLO, phase)
 
 % SYNTAX:
-%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phase);
+%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, is_GLO, phase);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -16,6 +16,7 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %   dtS          = satellite clock error (vector)
 %   err_tropo    = tropospheric error
 %   err_iono     = ionospheric error
+%   is_GLO       = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
 %   phase        = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % OUTPUT:
@@ -90,6 +91,14 @@ A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ... %column for X c
         (XR_approx(3) - XS(index,3)) ./ distR_approx(index), ... %column for Z coordinate
          -lambda * eye(nsat_ph), ...                        %column for phase ambiguities
          ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
+     
+%if mixed observations GLONASS/other, then add a parameter to account for
+% sub-second difference between GLONASS system time and GPS(or other) system time.
+% NOTE: only for GLONASS satellites
+if (any(is_GLO) && any(~is_GLO))
+    m = m + 1;
+    A = [A, [is_GLO;is_GLO(index)]];
+end
 
 %known term vector
 b_pr = distR_approx - v_light*dtS + err_tropo + err_iono; %code
@@ -114,10 +123,10 @@ x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
 XR = XR_approx + x_hat(1:3);
 
 %estimated phase ambiguities
-N_hat = x_hat(4:end-1);
+N_hat = x_hat(3+[1:nsat_ph]);
 
 %estimated receiver clock
-dtR = x_hat(end) / v_light;
+dtR = x_hat(3+nsat_ph+1) / v_light;
 
 %estimation of the variance of the observation error
 y_hat = A*x_hat + b;
@@ -128,8 +137,8 @@ sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
-    cov_N   = Cxx(4:end-1,4:end-1);
-    var_dtR = Cxx(end,end);
+    cov_N   = Cxx(3+[1:nsat_ph],3+[1:nsat_ph]);
+    var_dtR = Cxx(3+nsat_ph+1,3+nsat_ph+1);
 else
     cov_XR  = [];
     cov_N   = [];

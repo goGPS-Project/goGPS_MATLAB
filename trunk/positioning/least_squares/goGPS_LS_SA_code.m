@@ -1,7 +1,7 @@
-function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase)
+function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, phase)
 
 % SYNTAX:
-%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase);
+%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, phase);
 %
 % INPUT:
 %   time_rx  = GPS reception time
@@ -9,9 +9,7 @@ function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3_time, SP3_coor, SP3_c
 %   pr2      = code observations (L2 carrier)
 %   snr      = signal-to-noise ratio
 %   Eph      = satellite ephemeris
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
+%   SP3      = structure containing precise ephemeris data
 %   iono     = ionosphere parameters
 %   sbas     = SBAS corrections
 %   phase    = L1 carrier (phase=1), L2 carrier (phase=2)
@@ -50,17 +48,26 @@ global PDOP HDOP VDOP
 %covariance matrix initialization
 cov_XR = [];
 
-%topocentric coordinate initialization
-azR   = zeros(32,1);
-elR   = zeros(32,1);
-distR = zeros(32,1);
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1,1);
 
-%visible satellites (ROVER)
+%topocentric coordinate initialization
+azR   = zeros(nSatTot,1);
+elR   = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
+
+%available satellites (ROVER)
 if (phase == 1)
     sat = find(pr1 ~= 0);
 else
     sat = find(pr2 ~= 0);
 end
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+else
+    eph_avail = SP3.avail;
+end
+sat = sat(ismember(sat, eph_avail));
 
 %--------------------------------------------------------------------------------------------
 % SBAS FAST CORRECTIONS
@@ -75,12 +82,14 @@ end
 % POSITIONING
 %--------------------------------------------------------------------------------------------
 
-if (size(sat,1) >= 4)
+min_nsat = 4;
+
+if (size(sat,1) >= min_nsat)
     
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     end
 
     %--------------------------------------------------------------------------------------------
@@ -88,11 +97,11 @@ if (size(sat,1) >= 4)
     %--------------------------------------------------------------------------------------------
     
     %satellite configuration
-    conf_sat = zeros(32,1);
+    conf_sat = zeros(nSatTot,1);
     conf_sat(sat,1) = +1;
     
     %no cycle-slips when working with code only
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     %previous pivot
     pivot_old = 0;
@@ -103,7 +112,7 @@ if (size(sat,1) >= 4)
 
     %if less than 4 satellites are available after the cutoffs, or if the 
     % condition number in the least squares exceeds the threshold
-    if (size(sat,1) < 4 | cond_num > cond_num_threshold)
+    if (size(sat,1) < min_nsat | cond_num > cond_num_threshold)
         
         if (~isempty(Xhat_t_t))
             XR = Xhat_t_t([1,o1+1,o2+1]);

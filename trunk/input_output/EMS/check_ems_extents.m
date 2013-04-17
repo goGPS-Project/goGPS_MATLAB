@@ -44,7 +44,7 @@ fprintf('Checking that the receiver approximate position falls within the availa
 
 pos_R = zeros(3,1);
 
-if (~isempty(find(Eph(1,:,:) ~= 0, 1)))
+if (~isempty(find(Eph(30,:,:) ~= 0, 1)))
     
     cutoff = 15;
     snr_threshold = 0;
@@ -54,14 +54,15 @@ if (~isempty(find(Eph(1,:,:) ~= 0, 1)))
     while (sum(abs((pos_R))) == 0 & i <= length(time_R))
         
         satObs = find(pr(:,i) ~= 0);
+        nsat = length(satObs);
         
-        Eph_t  = rt_find_eph (Eph, time_R(i));
+        Eph_t  = rt_find_eph (Eph, time_R(i), nsat);
         
         satEph = find(Eph_t(1,:) ~= 0);
         satAvail = intersect(satObs,satEph)';
-        
+
         if (length(satAvail) >=4)
-            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), [], [], [], iono(:,i), [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
+            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), [], iono, [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
         end
         
         i = i + 1;
