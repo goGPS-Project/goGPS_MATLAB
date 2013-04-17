@@ -1722,10 +1722,13 @@ classdef goGUIclass < handle
                 if (obj.isLambda3Par())
                     obj.setElStatus([obj.idUI.tP0], 1, 0);
                     obj.setElStatus([obj.idUI.nP0], 1, 0);
-                    set(obj.goh.tP0,'String','Min. success rate (P0):');
-                else
-                    set(obj.goh.tP0,'String','Fixed failure rate (P0):');
                 end
+            end
+            
+            if (obj.isLambda3Par())
+                set(obj.goh.tP0,'String','Min. success rate (P0):');
+            else
+                set(obj.goh.tP0,'String','Fixed failure rate (P0):');
             end
 
             % Automatic mu flag
