@@ -338,3 +338,14 @@ global SP3_time SP3_coor SP3_clck
 SP3_time = [];
 SP3_coor = [];
 SP3_clck = [];
+
+%-------------------------------------------------------------------------------
+% LAMBDA
+%-------------------------------------------------------------------------------
+
+global ratiotest mutest succ_rate
+
+ratiotest = [];
+mutest = [];
+succ_rate = [];
+

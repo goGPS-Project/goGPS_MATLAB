@@ -1,7 +1,7 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase)
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase, flag_IAR)
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase);
+%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, phase, flag_IAR);
 %
 % INPUT:
 %   time_rx = GPS time
@@ -19,6 +19,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_l
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   sbas = SBAS corrections
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %
 % OUTPUT:
 %   check_on = boolean variable for satellite addition
@@ -34,6 +35,8 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_l
 %                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Andrea Nardo
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -62,6 +65,7 @@ global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
+global ratiotest mutest succ_rate
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -594,6 +598,19 @@ else
 
     Cee = T*Cee*T';
 
+end
+
+%--------------------------------------------------------------------------------------------
+% INTEGER AMBIGUITY SOLVING BY LAMBDA METHOD
+%--------------------------------------------------------------------------------------------
+
+if (flag_IAR && ~isempty(sat) && nsat >= min_nsat)
+    %try to solve integer ambiguities
+    [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat,o3+sat), Cee([1 o1+1 o2+1],o3+sat));
+else
+    ratiotest = [ratiotest NaN];
+    mutest    = [mutest NaN];
+    succ_rate = [succ_rate NaN];
 end
 
 %--------------------------------------------------------------------------------------------

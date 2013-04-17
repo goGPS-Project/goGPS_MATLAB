@@ -75,12 +75,12 @@ if (mode_user == 1)
 
     if (~isunix || (ismac && verLessThan('matlab', '7.14')))
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
     else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS,...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix;
     end
@@ -130,6 +130,8 @@ else
     flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
     
     flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
+    
+    flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
 
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -941,7 +943,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         
         sbas_t = find_sbas(sbas, 1);
         
-        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
+        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1, flag_IAR);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -988,7 +990,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         
         sbas_t = find_sbas(sbas, t);
 
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, sbas_t, 1, flag_IAR);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -1196,7 +1198,6 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
 
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (RELATIVE POSITIONING): LEAST SQUARES ON CODE AND PHASE DOUBLE DIFFERENCES
-%                                         (SOLVING AMBIGUITIES WITH WITH LAMBDA METHOD)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
@@ -1213,9 +1214,6 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
     check_cs = 0;
     
     plot_t = 1;
-    
-    statistic = zeros(2,length(time_GPS));
-    ambiguity = 0;
 
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -1229,14 +1227,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1);
+        goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, flag_IAR);
 
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
-            Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
-            Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
-            statistic(1,t)= success(2);
-            statistic(2,t)= success(3);
-            fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+            fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
@@ -1301,7 +1295,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
                 Eph_t = Eph(:,:,1);
             end
 
-            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(1));
+            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(1), flag_IAR);
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1346,7 +1340,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
                 Eph_t = Eph(:,:,t);
             end
 
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(t));
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, dtMdot(t), flag_IAR);
 
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -1405,7 +1399,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
             flag_dyn = 1;
             order = fread(fid_dyn,1,'uint8');
             
-            kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, order, 1, dtMdot(1));
+            kalman_initialized = goGPS_KF_DD_code_phase_init_model(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, order, 1, dtMdot(1), flag_IAR);
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1482,7 +1476,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
             order0 = order;
             order = fread(fid_dyn,1,'uint8');
             
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, order, 1, dtMdot(t));
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, order, 1, dtMdot(t), flag_IAR);
             
             if (flag_stopGOstop == 1)
                 if (order > order0)
@@ -1757,15 +1751,17 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     stat_SC = zeros(2,nObs);
     estim_amb = zeros(32,nObs);
     sigma_amb = zeros(32,nObs);
+    if (~isempty(ratiotest) && any(~isnan(ratiotest)))
+        fixed_amb = ratiotest <= mutest;
+    else
+        fixed_amb = zeros(1,nObs);
+        succ_rate = zeros(1,nObs);
+    end
     for i = 1 : nObs
         if (mode == goGNSS.MODE_PP_KF_CP_DD & mode_vinc == 1)
             pos_KAL(:,i) = [Yhat_t_t(1,i); Yhat_t_t(2,i); Yhat_t_t(3,i)];
         else
             pos_KAL(:,i) = [Xhat_t_t(1,i); Xhat_t_t(o1+1,i); Xhat_t_t(o2+1,i)];
-        end
-        %if LAMBDA
-        if (mode == goGNSS.MODE_PP_LS_CP_DD_L)
-            stat_SC(:,i) = [statistic(1,i); statistic(2,i)];
         end
         %if relative positioning (i.e. with master station)
         if goGNSS.isDD(mode) && goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
@@ -1828,14 +1824,10 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     %date formatting
     date = gps2date(week_R, time_GPS);
     date(:,1) = date(:,1) - 2000;
-
-    %lower bound success rate
-    LOWER  = stat_SC(1,:)';
-    FIXING = stat_SC(2,:)';
     
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
-    fprintf(fid_out, '    Date        GPS time         GPS TOW        Latitude       Longitude     h (ellips.)          ECEF X          ECEF Y          ECEF Z       UTM North        UTM East         h(AMSL)        UTM zone            HDOP           KHDOP     Local North      Local East         Local H   Ambiguity fix  Succ_rate(low)\n');
+    fprintf(fid_out, '    Date        GPS time         GPS TOW        Latitude       Longitude     h (ellips.)          ECEF X          ECEF Y          ECEF Z       UTM North        UTM East         h(AMSL)        UTM zone            HDOP           KHDOP     Local North      Local East         Local H   Ambiguity fix  Success rate\n');
     for i = 1 : nObs
         if (geoid.ncols ~= 0)
             %geoid ondulation interpolation
@@ -1845,7 +1837,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), FIXING(i), LOWER(i));
+        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
     end
     fclose(fid_out);
 end
@@ -2344,7 +2336,7 @@ if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && (
                 x_ellipse(j,:) = x_circle(j,:) * T + [EAST(i), NORTH(i)];
             end
             he = plot(x_ellipse(:,1),x_ellipse(:,2),'b');
-            if (any(FIXING) && FIXING(i) == 0)
+            if (any(fixed_amb) && fixed_amb(i) == 0)
                 set(he,'Color',[0.8 0.5 0])
             end
         end
@@ -2393,12 +2385,11 @@ if (mode ~= goGNSS.MODE_PP_LS_CP_VEL)
         subplot(ax(3))
         plot(epochs, UP_KAL,'.'); title('UP'); ylabel('[m]')
         
-        if (mode == goGNSS.MODE_PP_LS_CP_DD_L)
-            pos = find(FIXING == 1);
-            plot(ax(1), epochs(pos), EAST(pos),'xr')
-            plot(ax(2), epochs(pos), NORTH(pos),'xr')
-            plot(ax(3), epochs(pos), UP_KAL(pos),'xr')
-        end
+        pos = find(fixed_amb == 1);
+        plot(ax(1), epochs(pos), EAST(pos),'xr')
+        plot(ax(2), epochs(pos), NORTH(pos),'xr')
+        plot(ax(3), epochs(pos), UP_KAL(pos),'xr')
+        
     else
         subplot(ax(1))
         plot(epochs, EAST_UTM,'.'); title('EAST UTM'); ylabel('[m]')
@@ -2406,10 +2397,21 @@ if (mode ~= goGNSS.MODE_PP_LS_CP_VEL)
         plot(epochs, NORTH_UTM,'.'); title('NORTH UTM'); ylabel('[m]')
         subplot(ax(3))
         plot(epochs, h_KAL,'.'); title('ellipsoidal height'); ylabel('[m]')
+        
+        pos = find(fixed_amb == 1);
+        plot(ax(1), epochs(pos), EAST_UTM(pos),'xr')
+        plot(ax(2), epochs(pos), NORTH_UTM(pos),'xr')
+        plot(ax(3), epochs(pos), h_KAL(pos),'xr')
     end
+    
+    pos = find(pivot == 0);
+    plot(ax(1), epochs(pos), EAST(pos),'.y')
+    plot(ax(2), epochs(pos), NORTH(pos),'.y')
+    plot(ax(3), epochs(pos), UP_KAL(pos),'.y')
     
     linkaxes(ax,'x')
 end
+
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE REFERENCE TRAJECTORY
 %----------------------------------------------------------------------------------------------

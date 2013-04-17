@@ -75,7 +75,7 @@ classdef goGUIclass < handle
     % =========================================================================
 
         intSettingsDir = './settings/';                 % Settings folder of goGPS, it contains default settings files
-        settingsDir = '../data/settings/';              % Settings folder of goGPS, it contains all the other settings files
+        settingsDir = './settings/';                    % Settings folder of goGPS, it contains all the other settings files
         workingDir = '../data/';                        % Working folder of goGPS, it contains data files/folders
         defaultSettingsFile = 'default_settings.mat';   % Name of the file containing default_settings
         lastSettingsFile = 'last_settings.mat';         % Name of the file containing last settings
@@ -117,6 +117,15 @@ classdef goGUIclass < handle
         % File types
         idRin = 1;
         idBin = 2;
+        
+        % Integer ambiguity resolution method
+        idILS_enum_old = 1;   % ILS method based enumeration in search             (LAMBDA 2.0)
+        idILS_shrink = 2;     % ILS method based on search-and-shrink              (LAMBDA 3.0)
+        idILS_enum = 3;       % ILS method based enumeration in search             (LAMBDA 3.0)
+        idIntRound = 4;       % integer rounding method                            (LAMBDA 3.0)
+        idIntBootstr = 5;     % integer bootstrapping method                       (LAMBDA 3.0)
+        idPAR = 6;            % PAR with the input P0 of user-defined success rate (LAMBDA 3.0)
+        strLAMBDAMethod = {}; % String containing the pop-up menu fields
         
         % Dynamic model
         idCVel = 1;          % Costant velocity
@@ -253,7 +262,7 @@ classdef goGUIclass < handle
             
             obj.strTypeLS{obj.idC_SA} = 'Code stand-alone';
             obj.strTypeLS{obj.idC_DD} = 'Code double difference';
-            obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference with Lambda';
+            obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference (for LAMBDA)';
 			obj.strTypeLS{obj.idCP_Vel} = 'Variometric approach for velocity estimation';
 
             obj.strTypeKF{obj.idC_SA} = 'Code stand-alone';
@@ -261,6 +270,13 @@ classdef goGUIclass < handle
             obj.strTypeKF{obj.idCP_SA} = 'Code and phase stand-alone';
             obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
             %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
+            
+            obj.strLAMBDAMethod{obj.idILS_enum_old} = 'LAMBDA 2.0 - ILS, enumeration';
+            obj.strLAMBDAMethod{obj.idILS_shrink}   = 'LAMBDA 3.0 - ILS, search-and-shrink';
+            obj.strLAMBDAMethod{obj.idILS_enum}     = 'LAMBDA 3.0 - ILS, enumeration';
+            obj.strLAMBDAMethod{obj.idIntRound}     = 'LAMBDA 3.0 - Integer rounding';
+            obj.strLAMBDAMethod{obj.idIntBootstr}   = 'LAMBDA 3.0 - Integer bootstrapping';
+            obj.strLAMBDAMethod{obj.idPAR}          = 'LAMBDA 3.0 - Partial ambiguity resolution';
             
             obj.strDynModel{obj.idCVel} = 'Const. velocity';
             obj.strDynModel{obj.idCAcc} = 'Const. acceleration';
@@ -319,9 +335,21 @@ classdef goGUIclass < handle
             set(obj.goh.code_dd_sa,'String', str);
         end
         
-        % Fill the Dynamic Model pop-up (constant velocity, accelleration...)
+        % Fill the LAMBDA method pop-up (ILS_shrink, ILS_enum, ...)
+        function initLAMBDAMethod(obj, str)
+            % Fill the LAMBDA method pop-up (ILS_shrink, ILS_enum, ...)
+            if nargin < 2
+                str = obj.strLAMBDAMethod;
+            end
+            value = get(obj.goh.lLAMBDAMethod,'Value');
+            value = max(1,min(length(str), value));
+            set(obj.goh.lLAMBDAMethod,'Value', value);
+            set(obj.goh.lLAMBDAMethod,'String', str);
+        end
+        
+        % Fill the Dynamic Model pop-up (constant velocity, acceleration...)
         function initDynModel(obj, str)
-            % Fill the Dynamic Model pop-up (constant velocity, accelleration...)        
+            % Fill the Dynamic Model pop-up (constant velocity, acceleration...)        
             if nargin < 2
                 str = obj.strDynModel;
             end
@@ -483,9 +511,10 @@ classdef goGUIclass < handle
             
             i=i+1; id.pMode         = i;    id2h(i) = obj.goh.uipMode;
             i=i+1; id.pOptions      = i;    id2h(i) = obj.goh.uipOptions;
+            i=i+1; id.pConstellations = i;  id2h(i) = obj.goh.pConstellations;
+            i=i+1; id.pIntAmb       = i;    id2h(i) = obj.goh.pIntAmb;
             i=i+1; id.pIFiles       = i;    id2h(i) = obj.goh.file_type;
             i=i+1; id.pIOFiles      = i;    id2h(i) = obj.goh.uipInOutFiles;
-            i=i+1; id.pConstellations = i;  id2h(i) = obj.goh.pConstellations;
             i=i+1; id.pSettings     = i;    id2h(i) = obj.goh.uipSettings;
             i=i+1; id.pKF           = i;    id2h(i) = obj.goh.uipKF;
             i=i+1; id.pEStD         = i;    id2h(i) = obj.goh.uipEStD;
@@ -533,8 +562,42 @@ classdef goGUIclass < handle
             
             % Group of ids in the panel pOptions
             idG.gPlotProc = [id.cSkyPlot id.cGEarth id.cErrEllipse id.cPlotMaster id.cPlotAmb];
-            idG.pOptions = [id.pOptions id.cConstraint:id.cUse_SBAS]; 
+            idG.pOptions = [id.pOptions id.cConstraint:id.cUse_SBAS];
             
+          %   CONSTELLATIONS
+          % --------------------------------------------------------------- 
+            i=i+1; id.cGPS          = i;    id2h(i) = obj.goh.cGPS;
+            i=i+1; id.cGLONASS      = i;    id2h(i) = obj.goh.cGLONASS;
+            i=i+1; id.cGalileo      = i;    id2h(i) = obj.goh.cGalileo;
+            i=i+1; id.cBeiDou       = i;    id2h(i) = obj.goh.cBeiDou;
+            i=i+1; id.cQZSS         = i;    id2h(i) = obj.goh.cQZSS;
+            i=i+1; id.cSBAS         = i;    id2h(i) = obj.goh.cSBAS;
+            
+            % Group of ids in the panel pConstellations
+            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cUse_SBAS];
+            
+            % Constellation of satellites currently supported
+            idG.pAvailableGNSS = [id.cGPS];
+            
+          %   INTEGER AMBIGUITY RESOLUTION
+          % ---------------------------------------------------------------
+          
+            i=i+1; id.cLAMBDA       = i;    id2h(i) = obj.goh.cLAMBDA;
+            i=i+1; id.tLAMBDAMethod = i;    id2h(i) = obj.goh.tLAMBDAMethod;
+            i=i+1; id.lLAMBDAMethod = i;    id2h(i) = obj.goh.lLAMBDAMethod;
+            i=i+1; id.tP0           = i;    id2h(i) = obj.goh.tP0;
+            i=i+1; id.nP0           = i;    id2h(i) = obj.goh.nP0;
+            i=i+1; id.cP0           = i;    id2h(i) = obj.goh.cP0;
+            i=i+1; id.tMu           = i;    id2h(i) = obj.goh.tMu;
+            i=i+1; id.nMu           = i;    id2h(i) = obj.goh.nMu;
+            i=i+1; id.cMu           = i;    id2h(i) = obj.goh.cMu;
+            
+            idG.gLAMBDAMethod = [id.tLAMBDAMethod id.lLAMBDAMethod];
+            idG.gLAMBDA3   = [id.tP0 id.nP0 id.cP0 id.cMu];
+            idG.gLAMBDAILS = [idG.gLAMBDA3 id.tMu id.nMu];
+            idG.gLAMBDA    = [idG.gLAMBDAMethod idG.gLAMBDAILS];
+            idG.pIntAmb    = [id.pIntAmb id.cLAMBDA idG.gLAMBDA];
+
           %   INPUT/OUTPUT FILE AND FOLDERS
           % --------------------------------------------------------------- 
 
@@ -604,21 +667,6 @@ classdef goGUIclass < handle
             idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fBinGoIn];
             idG.gDirLED =  [id.fDirGoOut];
             idG.gLED = [idG.gFileLED idG.gBinLED idG.gDirLED];
-
-          %   INPUT/OUTPUT FILE AND FOLDERS - CONSTELLATIONS
-          % --------------------------------------------------------------- 
-            i=i+1; id.cGPS          = i;    id2h(i) = obj.goh.cGPS;
-            i=i+1; id.cGLONASS      = i;    id2h(i) = obj.goh.cGLONASS;
-            i=i+1; id.cGalileo      = i;    id2h(i) = obj.goh.cGalileo;
-            i=i+1; id.cBeiDou       = i;    id2h(i) = obj.goh.cBeiDou;
-            i=i+1; id.cQZSS         = i;    id2h(i) = obj.goh.cQZSS;
-            i=i+1; id.cSBAS         = i;    id2h(i) = obj.goh.cSBAS;
-            
-            % Group of ids in the panel pConstellations
-            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cUse_SBAS];
-            
-            % Constellation of satellites actually supported
-            idG.pAvailableGNSS = [id.cGPS];
 
           %   SETTINGS - KALMAN FILTER - STD
           % --------------------------------------------------------------- 
@@ -714,7 +762,7 @@ classdef goGUIclass < handle
             i=i+1; id.tCS           = i;    id2h(i) = obj.goh.text_cs_thresh;
             i=i+1; id.nCS           = i;    id2h(i) = obj.goh.cs_thresh;
             i=i+1; id.uCS           = i;    id2h(i) = obj.goh.text_cs_thresh_unit;
-            
+
             idG.CS = [id.tCS id.nCS id.uCS];
             
             % Min sat number ----------------------------------------------
@@ -922,10 +970,10 @@ classdef goGUIclass < handle
             idG.onPP_LS_C_DD = [idG.onPP_LS id.cPlotProc ...
                                 id.pMSt id.cMPos];
                           
-            % On Post Proc => Least Squares => Code and Phase Double Differencies with Lambda
+            % On Post Proc => Least Squares => Code and Phase Double Differences
             idG.onPP_LS_CP_DD_L = [idG.onPP_LS id.cPlotProc ...
                                    idG.StdCode idG.StdPhase ...
-                                   id.pMSt id.cMPos];
+                                   id.pMSt id.cMPos idG.pIntAmb];
 
             % On Post Proc => Least Squares => Code and Phase Velocity estimation
             idG.onPP_LS_CP_Vel = idG.onPP_LS;
@@ -947,20 +995,20 @@ classdef goGUIclass < handle
             % On Post Proc => On Kalman Filter => Code and Phase Stand Alone
             idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin ...
                                  idG.StdPhase idG.CS ...
-                                 id.cDoppler id.cUse_SBAS];
+                                 id.cDoppler id.cUse_SBAS idG.pIntAmb];
             
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin id.cConstraint ...
                                  idG.StdPhase id.bStdDTM ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
-                                 id.pMSt id.cMPos id.cDoppler];
+                                 id.pMSt id.cMPos id.cDoppler idG.pIntAmb];
 
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             % => Multi Receivers Mode
             idG.onPP_KF_CP_DD_MR = [idG.onPP_KF ...
                                     idG.StdPhase ...
                                     idG.CS idG.StopGoStop idG.pARAA... 
-                                    id.pMSt id.cMPos id.cDoppler];
+                                    id.pMSt id.cMPos id.cDoppler idG.pIntAmb];
 
             % ---------------------------------------------------------------
           
@@ -1034,7 +1082,7 @@ classdef goGUIclass < handle
         end
         
         % Enable / Disable various elements in the interface
-        % te variable newStatus will decide the future status of the
+        % the variable newStatus will decide the future status of the
         % interface (function also known as setGuiElStatus)
         function onoffUIEl(obj)
             % Detect modified state (logical array)
@@ -1252,6 +1300,7 @@ classdef goGUIclass < handle
             obj.initCaptureMode();
             obj.initAlgorithmType();
             obj.initProcessingType();
+            obj.initLAMBDAMethod();
             obj.initDynModel();
         end
         
@@ -1425,7 +1474,7 @@ classdef goGUIclass < handle
                         case obj.idCP_DD_L
                             mode = goGNSS.MODE_PP_LS_CP_DD_L;
 						case obj.idCP_Vel
-                            mode = goGNSS.MODE_PP_LS_CP_VEL
+                            mode = goGNSS.MODE_PP_LS_CP_VEL;
                     end
                 end
                 if obj.isKF()
@@ -1478,12 +1527,12 @@ classdef goGUIclass < handle
         % Get processing type
         function isPT = isProcessingType(obj, idProcessingType)
             isOn = obj.isEnabled(obj.idUI.lProcType);
-            isPT = isOn && obj.isPostProc() &&  (obj.getElVal(obj.idUI.lProcType) == idProcessingType);
+            isPT = isOn && obj.isPostProc() && (obj.getElVal(obj.idUI.lProcType) == idProcessingType);
         end
         
         function isSA = isStandAlone(obj)
             isSA = obj.isProcessingType(obj.idC_SA) || (obj.isLS() && obj.isProcessingType(obj.idCP_Vel)) || (obj.isKF() && obj.isProcessingType(obj.idCP_SA));
-        end        
+        end
 
         %   INTERFACE GETTERS - INPUT FILE TYPE
         % =================================================================
@@ -1499,6 +1548,28 @@ classdef goGUIclass < handle
         % Set a new password
         function pwd = getPassword(obj)
             pwd = obj.getElVal(obj.idUI.sUPass);
+        end
+        
+        % Get LAMBDA version
+        function isLambda2 = isLambda2(obj)
+            isOn = obj.isEnabled(obj.idUI.lLAMBDAMethod);
+            isLambda2 = isOn && (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_enum_old);
+        end
+        function isLambda3Par = isLambda3Par(obj)
+            isOn = obj.isEnabled(obj.idUI.lLAMBDAMethod);
+            isLambda3Par = isOn && (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idPAR);
+        end
+        function isLambdaIls = isLambdaIls(obj)
+            isOn = obj.isEnabled(obj.idUI.lLAMBDAMethod);
+            isLambdaIls = isOn && ((obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_enum_old) || ...
+                                   (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_shrink)   || ...
+                                   (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_enum));
+        end
+        
+        % Get dynamic model
+        function isStatic = isDynModelStatic(obj)
+            isOn = obj.isEnabled(obj.idUI.lDynModel);
+            isStatic = isOn && (obj.getElVal(obj.idUI.lDynModel) == obj.idStatic);
         end
     end
     
@@ -1614,7 +1685,7 @@ classdef goGUIclass < handle
             
             % Plot while processing flag
             isOn = obj.isActive(obj.idUI.cPlotProc);
-            obj.setElStatus([obj.idGroup.gPlotProc], isOn, 0);            
+            obj.setElStatus([obj.idGroup.gPlotProc], isOn, 0);
             
             % If the master is not available disable the flag to plot it 
             if ~obj.isEnabled(obj.idUI.fRinMaster)
@@ -1634,6 +1705,40 @@ classdef goGUIclass < handle
             % NTRIP flag
             isOn = obj.isActive(obj.idUI.cUseNTRIP);
             obj.setElStatus([obj.idGroup.gNTRIP], isOn, 0);
+            
+          %   INTEGER AMBIGUITY RESOLUTION
+          % --------------------------------------------------------------- 
+          
+            % LAMBDA flag
+            isOn = obj.isActive(obj.idUI.cLAMBDA);
+            obj.setElStatus([obj.idGroup.gLAMBDA], isOn, 0);
+
+            % LAMBDA version check
+            if (obj.isLambda2())
+                obj.setElStatus([obj.idGroup.gLAMBDA3], 0, 0);
+            end
+            if (~obj.isLambdaIls())
+                obj.setElStatus([obj.idGroup.gLAMBDAILS], 0, 0);
+                if (obj.isLambda3Par())
+                    obj.setElStatus([obj.idUI.tP0], 1, 0);
+                    obj.setElStatus([obj.idUI.nP0], 1, 0);
+                    set(obj.goh.tP0,'String','Min. success rate (P0):');
+                else
+                    set(obj.goh.tP0,'String','Fixed failure rate (P0):');
+                end
+            end
+
+            % Automatic mu flag
+            isOn = obj.isEnabled(obj.idUI.cMu) && obj.isActive(obj.idUI.cMu);
+            if (isOn)
+                obj.setElStatus([obj.idUI.nMu], ~isOn, 0);
+            end
+            
+            % Default P0 flag
+            isOn = obj.isEnabled(obj.idUI.cP0) && obj.isActive(obj.idUI.cP0);
+            if (isOn)
+                obj.setElStatus([obj.idUI.nP0], ~isOn, 0);
+            end
 
           %   SETTINGS - KALMAN FILTER - STD
           % --------------------------------------------------------------- 
@@ -1672,6 +1777,15 @@ classdef goGUIclass < handle
           % ---------------------------------------------------------------
 
             obj.resetDynModel();
+            
+            % Check if static dynamic model
+            if (obj.isDynModelStatic())
+                obj.setElStatus([obj.idGroup.pKF_ENU], 0, 0);
+            else
+                if (obj.isKF())
+                    obj.setElStatus([obj.idGroup.pKF_ENU], 1, 0);
+                end
+            end
                 
           %   SETTINGS - MASTER STATION
           % ---------------------------------------------------------------
@@ -2229,7 +2343,7 @@ classdef goGUIclass < handle
     % Functions to load save settings from file        
     methods
         function loadState(obj)
-            [filename, pathname] = uigetfile('*.mat', 'Choose file with saved settings','../data/settings');
+            [filename, pathname] = uigetfile('*.mat', 'Choose file with saved settings',obj.settingsDir);
             
             if pathname == 0 %if the user pressed cancelled, then we exit this callback
                 return
@@ -2242,7 +2356,7 @@ classdef goGUIclass < handle
         end
         
         function saveState(obj)
-            [filename,pathname] = uiputfile('*.mat','Save your GUI settings','../data/settings');
+            [filename,pathname] = uiputfile('*.mat','Save your GUI settings',obj.settingsDir);
             
             if pathname == 0 %if the user pressed cancelled, then we exit this callback
                 return
@@ -2297,6 +2411,16 @@ classdef goGUIclass < handle
             else
                 obj.setElVal(obj.idUI.cUse_SBAS, 0, 0);
             end
+            
+            %   INTEGER AMBIGUITY RESOLUTION
+            % ===============================================================
+            
+            obj.setElVal(obj.idUI.cLAMBDA, state.use_lambda, 0);
+            obj.setElVal(obj.idUI.lLAMBDAMethod, state.lambda_method, 0);
+            obj.setElVal(obj.idUI.nP0, state.lambda_P0, 0);
+            obj.setElVal(obj.idUI.cP0, state.lambda_default_P0, 0);
+            obj.setElVal(obj.idUI.nMu, state.lambda_mu, 0);
+            obj.setElVal(obj.idUI.cMu, state.lambda_auto_mu, 0);
             
             %   INPUT/OUTPUT FILE AND FOLDERS
             % ===============================================================
@@ -2435,6 +2559,16 @@ classdef goGUIclass < handle
             state.use_ntrip         = obj.getElVal(obj.idUI.cUseNTRIP);
             state.flag_doppler      = obj.getElVal(obj.idUI.cDoppler);
             state.use_sbas          = obj.getElVal(obj.idUI.cUse_SBAS);
+            
+            %   INTEGER AMBIGUITY RESOLUTION
+            % ===============================================================
+            
+            state.use_lambda        = obj.getElVal(obj.idUI.cLAMBDA);
+            state.lambda_method     = obj.getElVal(obj.idUI.lLAMBDAMethod);
+            state.lambda_P0         = obj.getElVal(obj.idUI.nP0);
+            state.lambda_default_P0 = obj.getElVal(obj.idUI.cP0);
+            state.lambda_mu         = obj.getElVal(obj.idUI.nMu);
+            state.lambda_auto_mu    = obj.getElVal(obj.idUI.cMu);
 
             %   INPUT/OUTPUT FILE AND FOLDERS
             % ===============================================================
@@ -2649,6 +2783,13 @@ classdef goGUIclass < handle
                 end
             end
             
+            if (obj.isEnabled(obj.idUI.cLAMBDA) && obj.isActive(obj.idUI.cLAMBDA) && ~obj.isLambda2) %if LAMBDA3.x is requested
+                if (~exist('LAMBDA.m','file') || ~exist('ratiotab.mat','file'))
+                    msgbox(['LAMBDA 3.x code not found. Please download it from http://gnss.curtin.edu.au/research/lambda.cfm and place it in the working path (e.g. in ./positioning/lambda/lambda_v3). Switching ambiguity resolution method to' obj.strLAMBDAMethod{obj.idILS_enum_old} '...']); ready = 0;
+                    obj.setElVal(obj.idUI.lLAMBDAMethod,1);
+                end
+            end
+            
             if (ready)
                 % If the working folder does not exist
                 if isempty(dir(obj.getSettingsDir()))
@@ -2689,6 +2830,7 @@ classdef goGUIclass < handle
             flag_plotproc = get(obj.goh.plotproc,'Value');
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             flag_SBAS = get(obj.goh.use_SBAS,'Value');
+            flag_IAR = get(obj.goh.cLAMBDA,'Value');
             data_path = goIni.getData('Bin','data_path');
             file_prefix = goIni.getData('Bin','file_prefix');            
             filerootIN = [data_path file_prefix];
@@ -2795,7 +2937,7 @@ classdef goGUIclass < handle
                 end
             end
             
-            funout = cell(24,1);
+            funout = cell(25,1);
             
             funout{1} = mode;
             funout{2} = mode_vinc;
@@ -2813,14 +2955,15 @@ classdef goGUIclass < handle
             funout{14} = flag_stopGOstop;
             funout{15} = flag_SP3;
             funout{16} = flag_SBAS;
-            funout{17} = filerootIN;
-            funout{18} = filerootOUT;
-            funout{19} = filename_R_obs;
-            funout{20} = filename_M_obs;
-            funout{21} = filename_nav;
-            funout{22} = filename_ref;
-            funout{23} = pos_M_man;
-            funout{24} = protocol_idx;
+            funout{17} = flag_IAR;
+            funout{18} = filerootIN;
+            funout{19} = filerootOUT;
+            funout{20} = filename_R_obs;
+            funout{21} = filename_M_obs;
+            funout{22} = filename_nav;
+            funout{23} = filename_ref;
+            funout{24} = pos_M_man;
+            funout{25} = protocol_idx;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -2831,6 +2974,13 @@ classdef goGUIclass < handle
             global nmea_init
             global flag_doppler_cs
             global COMportR
+            global IAR_method P0 mu flag_auto_mu flag_default_P0
+
+            IAR_method = get(obj.goh.lLAMBDAMethod,'Value') - 1;
+            P0 = str2double(get(obj.goh.nP0,'String'));
+            mu = str2double(get(obj.goh.nMu,'String'));
+            flag_auto_mu = get(obj.goh.cMu,'Value') && ~obj.isLambda2;
+            flag_default_P0 = get(obj.goh.cP0,'Value') && ~obj.isLambda2;
             
             contents = cellstr(get(obj.goh.com_select_0,'String'));
             COMportR0 = contents{get(obj.goh.com_select_0,'Value')};
@@ -2880,8 +3030,9 @@ classdef goGUIclass < handle
             end
             goIni.addKey('Generic','cutoff', str2double(get(obj.goh.cut_off,'String')));
             cutoff = str2double(get(obj.goh.cut_off,'String'));
+            goIni.addKey('Generic','snrThr', str2double(get(obj.goh.snr_thres,'String')));
             snr_threshold = str2double(get(obj.goh.snr_thres,'String'));
-            goIni.addKey('Generic','snrThr', str2double(get(obj.goh.cs_thresh,'String')));
+            goIni.addKey('Generic','csThr', str2double(get(obj.goh.cs_thresh,'String')));
             cs_threshold = str2double(get(obj.goh.cs_thresh,'String'));
             if (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_0)
                 weights = 0;
