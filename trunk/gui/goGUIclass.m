@@ -919,7 +919,7 @@ classdef goGUIclass < handle
             idG.onRealTime = [idG.ResetStatus ...
                               id.pMode id.lCaptMode ...
                               id.pIFiles id.rBin ...
-                              id.pIOFiles id.pConstellations idG.pAvailableGNSS idG.gINI idG.GoOut ...
+                              id.pIOFiles id.pConstellations idG.pAvailableGNSS idG.GoOut ...
                               id.pSettings];
                           
             % On Real Time => Navigation Mode            
@@ -2189,10 +2189,14 @@ classdef goGUIclass < handle
             goOk = 0;
             % Performs all the led check before allowing the launch... ehm
             % activation of the Go! button
-            for i = 1:length(obj.idGroup.gLED)
-                goOk = goOk+obj.okGo(obj.idGroup.gLED(i));
+            if obj.isPostProc()
+                for i = 1:length(obj.idGroup.gLED)
+                    goOk = goOk+obj.okGo(obj.idGroup.gLED(i));
+                end
+                goOk = (goOk - length(obj.idGroup.gLED)) == 0;
+            else
+                goOk = 1;
             end
-            goOk = (goOk - length(obj.idGroup.gLED)) == 0;            
             
             % Chek constellations to be used
             % I need at least one of these constellation active
