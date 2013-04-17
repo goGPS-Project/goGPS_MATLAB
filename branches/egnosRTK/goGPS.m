@@ -76,6 +76,7 @@ end
 global_init;
 
 global order o1 o2 o3 h_antenna cutoff weights
+global rover_data
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj goIni;

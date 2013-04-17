@@ -54,6 +54,7 @@ Hui_id     = 'AID-HUI'; % message with ionosphere parameters
 Time_id    = 'NA';      % message with timing
 Raw_id     = 'NA';      % message with observations
 Track_id   = 'NA';      % message with tracking data
+Sbas_id    = 'NAV-SBAS';% message with SBAS data: pr-cor and iono_cor
 
 out(1,1) = {Str_name};
 out(2,1) = {BaudRate};
@@ -66,3 +67,4 @@ out(3,2) = {Hui_id};
 out(4,2) = {Time_id};
 out(5,2) = {Raw_id};
 out(6,2) = {Track_id};
+out(7,2) = {Sbas_id};
