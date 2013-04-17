@@ -50,6 +50,9 @@ r_MT = find(MT == 25 | MT == 24);
 %number of message types
 n25 = length(r_MT);
 
+%number of GPS satellites
+nGPSsat = 32;
+
 %initialization
 flag = NaN(n25,4);
 prn  = NaN(n25,4);
@@ -81,11 +84,11 @@ for i = 1 : n25
 end
 
 %gather the data for all satellites
-dx_E = zeros(n25, 32);
-dy_E = zeros(n25, 32);
-dz_E = zeros(n25, 32);
-doffset_E = zeros(n25, 32);
-iode_E = zeros(n25, 32);
+dx_E = zeros(n25, nGPSsat);
+dy_E = zeros(n25, nGPSsat);
+dz_E = zeros(n25, nGPSsat);
+doffset_E = zeros(n25, nGPSsat);
+iode_E = zeros(n25, nGPSsat);
 
 i_sv = find(~isnan(prn(1,:)));
 for k = 1 : nsv(1)

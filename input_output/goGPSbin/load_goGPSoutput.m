@@ -137,26 +137,27 @@ hour_str = num2str(hour,'%02d');                                    %hour index 
 d = dir([fileroot '_sat_' hour_str '.bin']);                        %file to be read
 while ~isempty(d)
     fprintf(['Reading: ' fileroot '_sat_' hour_str '.bin\n']);
-    num_bytes = d.bytes;                                            %file size (number of bytes)
-    num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / (32*6);                                 %file size (number of packets)
     fid_sat = fopen([fileroot '_sat_' hour_str '.bin'],'r+');       %file opening
+    num_sat = fread(fid_sat,1,'int8');                              %read number of satellites
+    num_bytes = d.bytes-1;                                          %file size (number of bytes)
+    num_words = num_bytes / 8;                                      %file size (number of words)
+    num_packs = num_words / (num_sat*6);                            %file size (number of packets)
     buf_sat = fread(fid_sat,num_words,'double');                    %file reading
     fclose(fid_sat);                                                %file closing
-    azM   = [azM    zeros(32,num_packs)];                           %observations concatenation
-    azR   = [azR    zeros(32,num_packs)];
-    elM   = [elM    zeros(32,num_packs)];
-    elR   = [elR    zeros(32,num_packs)];
-    distM = [distM  zeros(32,num_packs)];
-    distR = [distR  zeros(32,num_packs)];
-    for j = 0 : (32*6) : num_words-1
+    azM   = [azM    zeros(num_sat,num_packs)];                      %observations concatenation
+    azR   = [azR    zeros(num_sat,num_packs)];
+    elM   = [elM    zeros(num_sat,num_packs)];
+    elR   = [elR    zeros(num_sat,num_packs)];
+    distM = [distM  zeros(num_sat,num_packs)];
+    distR = [distR  zeros(num_sat,num_packs)];
+    for j = 0 : (num_sat*6) : num_words-1
         i = i+1;                                                    %epoch counter increase
-        azM(:,i)   = buf_sat(j + [1:32]);                           %observations logging
-        azR(:,i)   = buf_sat(j + [33:64]);
-        elM(:,i)   = buf_sat(j + [65:96]);
-        elR(:,i)   = buf_sat(j + [97:128]);
-        distM(:,i) = buf_sat(j + [129:160]);
-        distR(:,i) = buf_sat(j + [161:192]);
+        azM(:,i)   = buf_sat(j + [1:num_sat]);                      %observations logging
+        azR(:,i)   = buf_sat(j + [1*num_sat+1:2*num_sat]);
+        elM(:,i)   = buf_sat(j + [2*num_sat+1:3*num_sat]);
+        elR(:,i)   = buf_sat(j + [3*num_sat+1:4*num_sat]);
+        distM(:,i) = buf_sat(j + [4*num_sat+1:5*num_sat]);
+        distR(:,i) = buf_sat(j + [5*num_sat+1:6*num_sat]);
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string
@@ -220,23 +221,22 @@ hour_str = num2str(hour,'%02d');                                    %hour index 
 d = dir([fileroot '_conf_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
     fprintf(['Reading: ' fileroot '_conf_' hour_str '.bin\n']);
-    num_bytes = d.bytes;                                            %file size (number of bytes)
-    num_packs = num_words / (32*2+1);                               %file size (number of packets)
     fid_conf = fopen([fileroot '_conf_' hour_str '.bin'],'r+');     %file opening
+    num_sat = fread(fid_conf,1,'int8');                             %read number of satellites
+    num_bytes = d.bytes-1;                                          %file size (number of bytes)
+    num_packs = num_words / (num_sat*2+1);                          %file size (number of packets)
     buf_conf = fread(fid_conf,num_bytes,'int8');                    %file reading
     fclose(fid_conf);                                               %file closing
-    conf_sat = [conf_sat  zeros(32,num_packs)];                     %observations concatenation
-    conf_cs  = [conf_cs   zeros(32,num_packs)];
+    conf_sat = [conf_sat  zeros(num_sat,num_packs)];                %observations concatenation
+    conf_cs  = [conf_cs   zeros(num_sat,num_packs)];
     pivot    = [pivot;    zeros(num_packs,1)];
-    for j = 0 : (32*2+1) : num_bytes-1
+    for j = 0 : (num_sat*2+1) : num_bytes-1
         i = i+1;                                                    %epoch counter increase
-        conf_sat(:,i) = buf_conf(j + [1:32]);                       %observations logging
-        conf_cs(:,i)  = buf_conf(j + [33:64]);
-        pivot(i,1)    = buf_conf(j + 65);
+        conf_sat(:,i) = buf_conf(j + [1:num_sat]);                  %observations logging
+        conf_cs(:,i)  = buf_conf(j + [1*num_sat+1:2*num_sat]);
+        pivot(i,1)    = buf_conf(j + 2*num_sat+1);
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%02d');                                %conversion into a string
     d = dir([fileroot '_conf_' hour_str '.bin']);                   %file to be read
 end
-
-%-------------------------------------------------------------------------------

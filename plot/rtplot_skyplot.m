@@ -1,7 +1,7 @@
-function rtplot_skyplot (t, az, el, obs, pivot)
+function rtplot_skyplot (t, az, el, obs, pivot, Eph, SP3)
 
 % SYNTAX:
-%   rtplot_skyplot (t, az, el, obs, pivot);
+%   rtplot_skyplot (t, az, el, obs, pivot, Eph, SP3);
 %
 % INPUT:
 %   t   = survey time (t=1,2,...)
@@ -12,6 +12,8 @@ function rtplot_skyplot (t, az, el, obs, pivot)
 %           +1 = code & phase
 %           -1 = only code
 %   pivot = pivot satellite
+%   Eph = matrix containing 31 navigation parameters for each satellite
+%   SP3 = structure containing precise ephemeris data
 %
 % DESCRIPTION:
 %   Real time skyplot.
@@ -38,6 +40,18 @@ function rtplot_skyplot (t, az, el, obs, pivot)
 
 global cutoff
 global satid labid pivid
+
+num_sat = length(el);
+
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+    sys = Eph(31,:);
+    prn = Eph(1,:);
+else
+    eph_avail = SP3.avail';
+    sys = SP3.sys';
+    prn = SP3.prn';
+end
 
 %----------------------------------------------------------------------------------------------
 % SKY-PLOT BACKGROUND
@@ -140,25 +154,42 @@ y = rho .* sin(theta);
 % visible satellites
 sat = [];
 
-for i = 1 : 32
+for i = 1 : num_sat
 
     if (el(i) > 0)
 
         sat = [sat; i];
-
+        
         if (satid(i) == 0)
+            
             satid(i) = plot(x(i), y(i), '.');
             set(satid(i), 'MarkerSize', 15);
+            
+            switch sys(i)
+                case 'G' %GPS
+                    set(satid(i), 'Color', 'b');
+                case 'R' %GLONASS
+                    set(satid(i), 'Color', 'g');
+                case 'E' %Galileo
+                    set(satid(i), 'Color', 'y');
+                case 'C' %BeiDou
+                    set(satid(i), 'Color', 'c');
+                case 'J' %QZSS
+                    set(satid(i), 'Color', 'm');
+            end
         else
             set(satid(i), 'XData', x(i), 'YData', y(i));
         end
 
         if (obs(i) == 1)
-            set(satid(i), 'Color', 'b');
+            set(satid(i), 'Marker', '.');
+            set(satid(i), 'MarkerSize', 15);
         elseif (obs(i) == -1)
-            set(satid(i), 'Color', 'g');
+            set(satid(i), 'Marker', 'o');
+            set(satid(i), 'MarkerSize', 6);
         else % if (obs(i) == 0)
-            set(satid(i), 'Color', 'm');
+            set(satid(i), 'Marker', '^');
+            set(satid(i), 'MarkerSize', 6);
         end
 
         if (i == pivot)
@@ -193,7 +224,13 @@ y = y(sat);
 
 % delete previous labels and re-initialize them
 delete(labid(labid > 0));
-labid = zeros(32,1);
+labid = zeros(num_sat,1);
+
+% identify GNSS systems and prepare system IDs and PRNs/slot numbers
+[~, idx1, idx2] = intersect(eph_avail, sat);
+sat = sat(idx2);
+sys = char(sys(idx1));
+prn = prn(idx1);
 
 try
     % if Statistics Toolbox is installed
@@ -220,12 +257,12 @@ for i = 1 : length(sat)
     %[sat(i) sat(d) minD alpha*180/pi]
 
     if (cos(alpha) < 0)
-        labid(sat(i)) = text(x(i)-10*cos(alpha)-6,y(i)-10*sin(alpha),sprintf('%d',sat(i)));
+        labid(sat(i)) = text(x(i)-10*cos(alpha)-6,y(i)-10*sin(alpha),[sys(i) sprintf('%d',prn(i))]);
     else
         if (sat(i) < 10)
-            labid(sat(i)) = text(x(i)-10*cos(alpha),y(i)-10*sin(alpha),sprintf('%d',sat(i)));
+            labid(sat(i)) = text(x(i)-10*cos(alpha),y(i)-10*sin(alpha),[sys(i) sprintf('%d',prn(i))]);
         else
-            labid(sat(i)) = text(x(i)-10*cos(alpha)-2,y(i)-10*sin(alpha),sprintf('%d',sat(i)));
+            labid(sat(i)) = text(x(i)-10*cos(alpha)-2,y(i)-10*sin(alpha),[sys(i) sprintf('%d',prn(i))]);
         end
     end
     %labid(sat(i)) = text(x(i),y(i),num2str(sat(i)));

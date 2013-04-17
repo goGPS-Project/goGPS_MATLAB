@@ -1,16 +1,14 @@
-function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3_time, SP3_coor, SP3_clck, sbas, err_tropo, err_iono, dtR)
+function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, is_GLO] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR)
 
 % SYNTAX:
-%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3_time, SP3_coor, SP3_clck, sbas, err_tropo, err_iono, dtR);
+%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, is_GLO] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR);
 %
 % INPUT:
 %   time_rx     = reception time
 %   pseudorange = observed code pseudoranges
-%   sat         = available satellite PRNs
+%   sat         = available satellite indexes
 %   Eph         = ephemeris
-%   SP3_time    = precise ephemeris time
-%   SP3_coor    = precise ephemeris coordinates
-%   SP3_clck    = precise ephemeris clocks
+%   SP3         = structure containing precise ephemeris data
 %   sbas        = SBAS corrections
 %   err_tropo   = tropospheric delays
 %   err_iono    = ionospheric delays
@@ -23,6 +21,7 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx,
 %   VS_tx   = satellite velocity at transmission time in ECEF(time_tx) (X,Y,Z)
 %   time_tx = transmission time (vector)
 %   no_eph  = satellites with no ephemeris available (vector) (0: available, 1: not available)
+%   is_GLO  = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
 %
 % DESCRIPTION:
 
@@ -46,6 +45,8 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph] = satellite_positions(time_rx,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global Omegae_dot_GPS Omegae_dot_GLO Omegae_dot_GAL Omegae_dot_BDS Omegae_dot_QZS
+
 nsat = length(sat);
 
 time_tx = zeros(nsat,1);
@@ -57,40 +58,62 @@ VS_tx   = zeros(nsat,3);
 %satellites with no ephemeris available
 no_eph  = zeros(nsat,1);
 
+%GLONASS satellites
+is_GLO  = zeros(nsat,1);
+
 for i = 1 : nsat
     
     k = find_eph(Eph, sat(i), time_rx);
     
-    if (isempty(k) & isempty(SP3_time))
+    if (isempty(k) & isempty(SP3))
         no_eph(i) = 1;
         continue
     end
-    
+
     %compute signal transmission time
-    [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3_time, SP3_clck, sbas, err_tropo(i), err_iono(i), dtR);
-    
-    if (dtS(i,1) == 0)
+    [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3, sbas, err_tropo(i), err_iono(i), dtR);
+
+    if (isempty(time_tx(i,1)))
         no_eph(i) = 1;
         continue
     end
     
-    if (isempty(SP3_time))
+    if (isempty(SP3))
         
         %compute satellite position and velocity at transmission time
         [XS_tx(i,:), VS_tx(i,:)] = satellite_orbits(time_tx(i,1), Eph(:,k), sat(i), sbas);
+        
+        %detect satellite constellation
+        sys = Eph(31,k);
     else
         %interpolate SP3 coordinates at transmission time
-        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3_time, SP3_coor(:,sat(i),:));
+        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
 
         %relativistic correction term
         dtrel = relativistic_error_correction(time_tx(i,1), Eph, XS_tx(i,:), VS_tx(i,:));
         time_tx(i,1) = time_tx(i,1) - dtrel;
         
         %second iteration for taking into account the relativistic effect
-        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3_time, SP3_coor(:,sat(i),:));
+        [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
+        
+        %detect satellite constellation
+        sys = SP3.sys(sat(i));
     end
     
     %computation of ECEF satellite position at time_rx
     traveltime = time_rx - time_tx(i,1);
-    XS(i,:) = earth_rotation_correction(traveltime, XS_tx(i,:));
+    switch char(sys)
+        case 'G'
+            Omegae_dot = Omegae_dot_GPS;
+        case 'R'
+            is_GLO(i) = 1;
+            Omegae_dot = Omegae_dot_GLO;
+        case 'E'
+            Omegae_dot = Omegae_dot_GAL;
+        case 'C'
+            Omegae_dot = Omegae_dot_BDS;
+        case 'J'
+            Omegae_dot = Omegae_dot_QZS;
+    end
+    XS(i,:) = earth_rotation_correction(traveltime, XS_tx(i,:), Omegae_dot);
 end

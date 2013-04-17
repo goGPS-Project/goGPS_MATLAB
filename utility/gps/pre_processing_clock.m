@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, nSatTot)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono, nSatTot);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -15,10 +15,9 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time
 %   dop2 = Doppler observation (L2 carrier)
 %   snr1 = signal-to-noise ratio
 %   Eph = matrix containing 31 ephemerides for each satellite
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
+%   SP3 = structure with precise ephemeris and clock
 %   iono = ionosphere parameters (Klobuchar)
+%   nSatTot = maximum number of satellites (given the enabled constellations)
 
 % OUTPUT:
 %   pr1 = processed code observation (L1 carrier)
@@ -84,7 +83,7 @@ for i = 1 : nEpochs
     
     sat0 = find(pr1(:,i) ~= 0);
 
-    Eph_t = rt_find_eph (Eph, time(i));
+    Eph_t = rt_find_eph (Eph, time(i), nSatTot);
     
     %----------------------------------------------------------------------------------------------
     % RECEIVER POSITION AND CLOCK ERROR
@@ -92,7 +91,7 @@ for i = 1 : nEpochs
     
     if (length(sat0) >= 4)
         
-        [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, [], XR0, [], [], sat0, cutoff, snr_threshold, flag_XR, 0);
+        [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, cutoff, snr_threshold, flag_XR, 0);
         
         if (size(sat,1) >= 4)
             

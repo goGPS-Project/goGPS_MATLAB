@@ -1,9 +1,9 @@
 function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
-    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, phase, N_kalman, Cee_N_kalman)
+    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, is_GLO, phase, N_kalman, Cee_N_kalman)
 
 % SYNTAX:
 %   [N_stim_slip, N_stim_born, dt_R] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
-%    elR, sat, sat_slip, sat_born, distR_approx, err_tropo, err_iono, phase, N_kalman, Cee_N_kalman);
+%    elR, sat, sat_slip, sat_born, distR_approx, err_tropo, err_iono, is_GLO, phase, N_kalman, Cee_N_kalman);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -20,6 +20,7 @@ function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS,
 %   distR_approx = approximate range
 %   err_tropo = tropospheric error
 %   err_iono = ionospheric error
+%   is_GLO = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
 %   phase = GPS frequency selector
 %   N_kalman = phase ambiguities estimated by Kalman filter  *** same size as ph ***
 %   Cee_N_kalman = phase ambiguities estimated error  *** same size as ph ***
@@ -111,6 +112,13 @@ A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ...  %column for X 
          A_amb, ...                                          %column for phase ambiguities
          ones(nsat_ph,1)];              %column for receiver clock delay (multiplied by c)
 
+%if mixed observations GLONASS/other, then add a parameter to account for
+% sub-second difference between GLONASS system time and GPS(or other) system time.
+% NOTE: only for GLONASS satellites
+if (any(is_GLO) && any(~is_GLO))
+    A = [A, [is_GLO;is_GLO(index)]];
+end
+
 %known term vector
 b_pr = distR_approx - v_light*dtS + err_tropo + err_iono; %code
 b_ph = distR_approx - v_light*dtS + err_tropo - err_iono; %phase
@@ -126,7 +134,7 @@ Q1 = cofactor_matrix_SA(elR, snr);
 Q2 = Q1(index,index);
 
 Q(1:nsat_pr,1:nsat_pr) = sigmaq_cod1 * Q1;
-if (nargin >= 17)
+if (nargin >= 18)
     %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
     %with respect to input code and phase variances)
     Q(nsat_pr+1:end,nsat_pr+1:end) = (sigmaq_ph * eye(nsat_ph) + lambda^2*Cee_N_kalman) .* Q2;

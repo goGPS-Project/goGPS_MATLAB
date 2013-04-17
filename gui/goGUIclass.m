@@ -574,7 +574,7 @@ classdef goGUIclass < handle
             i=i+1; id.cSBAS         = i;    id2h(i) = obj.goh.cSBAS;
             
             % Group of ids in the panel pConstellations
-            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cUse_SBAS];
+            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cSBAS];
             
             % Constellation of satellites currently supported
             idG.pAvailableGNSS = [id.cGPS];

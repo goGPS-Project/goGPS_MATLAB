@@ -1,11 +1,11 @@
 function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
          ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase, dtMdot, flag_IAR)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, phase, dtMdot, flag_IAR)
 
 % SYNTAX:
 %   [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
 %        ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase, dtMdot, flag_IAR);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, phase, dtMdot, flag_IAR);
 %
 % INPUT:
 %   XR0 = rover approximate position (X,Y,Z)
@@ -26,9 +26,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   Eph = satellites ephemerides
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
+%   SP3 = structure containing precise ephemeris data
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   phase = carrier L1 (phase=1) carrier L2 (phase=2)
 %   dtMdot = master receiver clock drift
@@ -79,13 +77,16 @@ global ratiotest mutest succ_rate
 
 kalman_initialized = 0;
 
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1_R,1);
+
 %topocentric coordinates initialization
-azR = zeros(32,1);
-elR = zeros(32,1);
-distR = zeros(32,1);
-azM = zeros(32,1);
-elM = zeros(32,1);
-distM = zeros(32,1);
+azR = zeros(nSatTot,1);
+elR = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
+azM = zeros(nSatTot,1);
+elM = zeros(nSatTot,1);
+distM = zeros(nSatTot,1);
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -93,9 +94,9 @@ distM = zeros(32,1);
 
 %number of unknown phase ambiguities
 if (length(phase) == 1)
-    nN = 32;
+    nN = nSatTot;
 else
-    nN = 64;
+    nN = nSatTot*2;
 end
 
 %--------------------------------------------------------------------------------------------
@@ -131,7 +132,7 @@ T = [T0      Z_o1_o1 Z_o1_o1 Z_o1_nN;
      Z_nN_o1 Z_nN_o1 Z_nN_o1 N0];
 
 %construction of an identity matrix of 38 variables (6 for position and
-%velocity + 32 or 64 for the satellites number) for the further computations
+%velocity + the number of ambiguities) for the further computations
 I = eye(o3+nN);
 
 %--------------------------------------------------------------------------------------------
@@ -153,6 +154,8 @@ else
                     (ph2_R ~= 0) & (ph2_M ~= 0) );
     end
 end
+sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
+sat = sat(ismember(sat, Eph(30,:)));
 
 %only satellites with code and phase
 %sat_pr = sat;
@@ -183,13 +186,13 @@ if (length(sat_pr) >= 4)
     sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [],  XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [],  XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [],  XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [],  XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [],  XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [],  XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [],  XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [],  XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
     end
     
     %keep only satellites that rover and master have in common
@@ -214,12 +217,12 @@ if (length(sat_pr) >= 4)
     %--------------------------------------------------------------------------------------------
     
     %satellites configuration: code only (-1), both code and phase (+1);
-    conf_sat = zeros(32,1);
+    conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr) = -1;
     conf_sat(sat) = +1;
     
     %cycle-slip configuration (no cycle-slip)
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     %previous pivot
     pivot_old = 0;
@@ -255,10 +258,10 @@ if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 | size(sat,1) <= 4)
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
-    sigma2_N1 = zeros(32,1);
-    sigma2_N2 = zeros(32,1);
+    N1 = zeros(nSatTot,1);
+    N2 = zeros(nSatTot,1);
+    sigma2_N1 = zeros(nSatTot,1);
+    sigma2_N2 = zeros(nSatTot,1);
     
     %computation of the phase double differences in order to estimate N
     if ~isempty(sat)
@@ -284,8 +287,8 @@ else
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
+    N1 = zeros(nSatTot,1);
+    N2 = zeros(nSatTot,1);
     
     %find the indices of the satellites with phase available
     [~, index] = intersect(sat_pr,sat);
@@ -312,7 +315,7 @@ else
     if (length(phase) == 2)
         N = [N1; N2];
         sigma2_N(sat) = diag(cov_N1);
-        sigma2_N(sat+32) = diag(cov_N2);
+        sigma2_N(sat+nSatTot) = diag(cov_N2);
     else
         if (phase == 1)
             N = N1;
@@ -325,7 +328,7 @@ else
 end
 
 %initialization of the initial point with 6(positions and velocities) +
-%32 or 64 (N combinations) variables
+%n (number of ambiguities) variables
 Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N];
 
 %point estimation at step t+1 X Vx Y Vy Z Vz N

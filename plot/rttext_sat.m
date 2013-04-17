@@ -1,7 +1,7 @@
-function rttext_sat (t, az, el, snr, obs, pivot)
+function rttext_sat (t, az, el, snr, obs, pivot, Eph, SP3)
 
 % SYNTAX:
-%   rttext_sat (t, az, el, obs, pivot);
+%   rttext_sat (t, az, el, obs, pivot, Eph, SP3);
 %
 % INPUT:
 %   t   = survey time (t=1,2,...)
@@ -13,6 +13,8 @@ function rttext_sat (t, az, el, snr, obs, pivot)
 %           +1 = code & phase
 %           -1 = only code
 %   pivot = pivot satellite
+%   Eph = matrix containing 31 navigation parameters for each satellite
+%   SP3 = structure containing precise ephemeris data
 %
 % DESCRIPTION:
 %   Real time textual display of satellite data.
@@ -51,7 +53,7 @@ if (t == 1)
     axis off;
     tx = text(0.0,1,'Satellite configuration');
     set(tx,'FontWeight','Bold');
-    text(0.0,0.95,'PRN  ELEV   AZIM     SNR');
+    text(0.0,0.95,'PRN   ELEV   AZIM     SNR');
 end
 
 %----------------------------------------------------------------------------------------------
@@ -60,11 +62,34 @@ end
 
 vert_pos = 0.95;
 
-for i = 1 : 32
+num_sat = numel(el);
+
+sys = zeros(num_sat,1);
+prn = zeros(num_sat,1);
+
+sat = 1:numel(el);
+sat = sat'.*abs(obs);
+
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+    sys_avail = Eph(31,:);
+    prn_avail = Eph(1,:);
+else
+    eph_avail = SP3.avail';
+    sys_avail = SP3.sys';
+    prn_avail = SP3.prn';
+end
+
+[~, idx1, idx2] = intersect(eph_avail, sat);
+
+sys(idx2) = char(sys_avail(idx1));
+prn(idx2) = prn_avail(idx1);
+
+for i = 1 : num_sat
 
     if (el(i) > 0)
 
-        sat_string = [sprintf('%02d',i) '     ' sprintf('%05.2f',el(i)) '    ' sprintf('%06.2f',az(i)) '   ' sprintf('%d',snr(i))];
+        sat_string = [sys(i) sprintf('%02d',prn(i)) '     ' sprintf('%04.1f',el(i)) '    ' sprintf('%05.1f',az(i)) '    ' sprintf('%04.1f',snr(i))];
 
         vert_pos = vert_pos - 0.05;
 
@@ -85,7 +110,7 @@ for i = 1 : 32
         delete(satid(i))
         satid(i) = 0;
 
-        for j = i+1 : 32
+        for j = i+1 : num_sat
             if (satid(j) > 0)
                 pos = get(satid(j),'Position');
                 set(satid(j),'Position',[0 pos(2)+0.05 0]);

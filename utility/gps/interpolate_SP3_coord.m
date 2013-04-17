@@ -1,14 +1,12 @@
-function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3_time, SP3_coor)
+function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
 
 % SYNTAX:
-%   [pos_S, vel_S] = interpolate_SP3_coord(time, SP3_time, SP3_coor);
+%   [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat);
 %
 % INPUT:
 %   time = interpolation time (GPS time)
-%   SP3_time = precise ephemeris epochs (GPS time)
-%   SP3_coor = satellite coordinates  [m]
+%   SP3  = structure containing precise ephemeris data
 %   sat = satellite PRN
-%   tcorr = interpolated SP3 clock correction
 %
 % OUTPUT:
 %   pos_S = interpolated satellite coordinates
@@ -38,6 +36,9 @@ function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3_time, SP3_coor)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+SP3_time  = SP3.time;
+SP3_coord = SP3.coord(:, sat, :);
+
 %degree of interpolation polynomial (Lagrange)
 n = 10;
 
@@ -54,9 +55,9 @@ pos_S = zeros(3,1);
 %extract the SP3 coordinates
 SP3_X = []; SP3_Y = []; SP3_Z = [];
 for i = -n/2 : n/2
-    SP3_X = [SP3_X SP3_coor(1,p+i)];
-    SP3_Y = [SP3_Y SP3_coor(2,p+i)];
-    SP3_Z = [SP3_Z SP3_coor(3,p+i)];
+    SP3_X = [SP3_X SP3_coord(1,p+i)];
+    SP3_Y = [SP3_Y SP3_coord(2,p+i)];
+    SP3_Z = [SP3_Z SP3_coord(3,p+i)];
 end
 
 x = 1 : n+1;

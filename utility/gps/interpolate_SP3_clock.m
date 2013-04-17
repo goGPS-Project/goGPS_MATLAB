@@ -1,14 +1,13 @@
-function [dt_S_SP3] = interpolate_SP3_clock(time, SP3_time, SP3_clck)
+function [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat)
 
 % SYNTAX:
-%   [dt_S_SP3] = interpolate_SP3_clock(time, SP3_time, SP3_clck);
+%   [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat);
 %
 % INPUT:
 %   timeb = beginning of the interpolation timespan (GPS time)
 %   timee = end of the interpolation timespan (GPS time)
-%   SP3_time = precise ephemeris epochs (GPS time)
-%   SP3_clck = satellite clock errors [s]
-%   sat = satellite PRN
+%   SP3   = structure containing precise ephemeris data
+%   sat   = satellite PRN
 %
 % OUTPUT:
 %   dt_S_SP3  = interpolated clock correction
@@ -36,6 +35,9 @@ function [dt_S_SP3] = interpolate_SP3_clock(time, SP3_time, SP3_clck)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+SP3_time = SP3.time;
+SP3_clock = SP3.clock(sat,:);
+
 %number of seconds in a quarter of an hour
 quarter_sec = 900;
 
@@ -46,14 +48,14 @@ b = SP3_time(p) - time;
 
 %extract the SP3 clocks
 if (b>0)
-    SP3_c = [SP3_clck(p-1) SP3_clck(p)];
+    SP3_c = [SP3_clock(p-1) SP3_clock(p)];
     u = 1 - b/quarter_sec;
 else
-    SP3_c = [SP3_clck(p) SP3_clck(p+1)];
+    SP3_c = [SP3_clock(p) SP3_clock(p+1)];
     u = -b/quarter_sec;
 end
 
-dt_S_SP3  = 0;
+dt_S_SP3  = [];
 
 if (isempty(find(SP3_c >= 0.999, 1)))
 

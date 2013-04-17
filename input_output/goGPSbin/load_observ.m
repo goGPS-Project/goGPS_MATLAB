@@ -19,7 +19,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
 %   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
 %   dop1_R   = ROVER-SATELLITE Doppler observations (carrieri L1) 
-%   Eph      = matrix of 29 ephemerides for each satellite
+%   Eph      = matrix of 31 ephemerides for each satellite
 %   iono     = ionosphere parameters
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
@@ -56,6 +56,8 @@ end
 %ROVER observations reading
 [time_GPS, week_R, time_R, null_time_M, pr1_R, null_pr1_M, ph1_R, null_ph1_M, ...
  dop1_R, snr_R, null_snr_M, null_pos_M, Eph_R, iono] = load_goGPSinput (filerootR); %#ok<ASGLU>
+
+num_sat = size(pr1_R,1);
 
 if (nargin == 3)
     waitbar(1,wait_dlg)
@@ -169,24 +171,24 @@ if ~isempty(time_GPS)
 
             time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
             week_R = [week_R(1:pos);  week_R(pos);   week_R(pos+1:end)]; %does not take into account week change (TBD)
-            pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
-            ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
-            dop1_R = [dop1_R(:,1:pos) zeros(32,1)    dop1_R(:,pos+1:end)];
-            snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
+            pr1_R  = [pr1_R(:,1:pos)  zeros(num_sat,1)    pr1_R(:,pos+1:end)];
+            ph1_R  = [ph1_R(:,1:pos)  zeros(num_sat,1)    ph1_R(:,pos+1:end)];
+            dop1_R = [dop1_R(:,1:pos) zeros(num_sat,1)    dop1_R(:,pos+1:end)];
+            snr_R  = [snr_R(:,1:pos)  zeros(num_sat,1)    snr_R(:,pos+1:end)];
             iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
 
-            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(29,32,1), Eph_R(:,:,pos+1:end));
+            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(31,num_sat,1), Eph_R(:,:,pos+1:end));
             
             roundtime_R = roundmod(time_R,interval_R);
         end
     else
         time_R = time_GPS;
         week_R = zeros(1,length(time_GPS));
-        pr1_R  = zeros(32,length(time_GPS));
-        ph1_R  = zeros(32,length(time_GPS));
-        dop1_R = zeros(32,length(time_GPS));
-        snr_R  = zeros(32,length(time_GPS));
-        Eph_R  = zeros(29,32,length(time_GPS));
+        pr1_R  = zeros(num_sat,length(time_GPS));
+        ph1_R  = zeros(num_sat,length(time_GPS));
+        dop1_R = zeros(num_sat,length(time_GPS));
+        snr_R  = zeros(num_sat,length(time_GPS));
+        Eph_R  = zeros(31,num_sat,length(time_GPS));
         iono   = zeros(8,length(time_GPS));
     end
 
@@ -198,22 +200,22 @@ if ~isempty(time_GPS)
             pos = find(roundtime_M == newtime_M(i) - interval);  %position before the "holes"
 
             time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
-            pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
-            ph1_M  = [ph1_M(:,1:pos)  zeros(32,1)    ph1_M(:,pos+1:end)];
-            snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
+            pr1_M  = [pr1_M(:,1:pos)  zeros(num_sat,1)    pr1_M(:,pos+1:end)];
+            ph1_M  = [ph1_M(:,1:pos)  zeros(num_sat,1)    ph1_M(:,pos+1:end)];
+            snr_M  = [snr_M(:,1:pos)  zeros(num_sat,1)    snr_M(:,pos+1:end)];
             pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
 
-            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(29,32,1), Eph_M(:,:,pos+1:end));
+            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(31,num_sat,1), Eph_M(:,:,pos+1:end));
             
             roundtime_M = roundmod(time_M,interval_M);
         end
     else
         time_M = time_GPS;
-        pr1_M  = zeros(32,length(time_GPS));
-        ph1_M  = zeros(32,length(time_GPS));
-        snr_M  = zeros(32,length(time_GPS));
+        pr1_M  = zeros(num_sat,length(time_GPS));
+        ph1_M  = zeros(num_sat,length(time_GPS));
+        snr_M  = zeros(num_sat,length(time_GPS));
         pos_M  = zeros(3,length(time_GPS));
-        Eph_M  = zeros(29,32,length(time_GPS));
+        Eph_M  = zeros(31,num_sat,length(time_GPS));
     end
 
 else

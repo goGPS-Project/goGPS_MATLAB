@@ -1,11 +1,12 @@
-function [Xsat_rot] = earth_rotation_correction(traveltime, Xsat)
+function [Xsat_rot] = earth_rotation_correction(traveltime, Xsat, Omegae_dot)
 
 % SYNTAX:
-%   [Xsat_rot] = earth_rotation_correction(traveltime, Xsat);
+%   [Xsat_rot] = earth_rotation_correction(traveltime, Xsat, Omegae_dot);
 %
 % INPUT:
 %   traveltime = signal travel time
 %   Xsat = satellite position
+%   Omegae_dot = angular velocity of the Earth rotation [rad/s]
 %
 % OUTPUT:
 %   Xsat_rot = corrected satellite position
@@ -21,8 +22,6 @@ function [Xsat_rot] = earth_rotation_correction(traveltime, Xsat)
 %
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
 %----------------------------------------------------------------------------------------------
-
-global Omegae_dot
 
 %Xsat to column
 Xsat = Xsat(:);

@@ -127,7 +127,7 @@ if (~isempty(data_master_all))
         pr2_M   = zeros(32,Ncell);                            %code observations
         ph2_M   = zeros(32,Ncell);                            %phase observations
         snr2_M  = zeros(32,Ncell);                            %signal-to-noise ratio
-        Eph_M = zeros(29,32,Ncell);                           %ephemerides
+        Eph_M = zeros(31,32,Ncell);                           %ephemerides
         pos_M = zeros(3,1);                                   %master station position
         
         if (nargin == 4)
@@ -212,7 +212,7 @@ if (~isempty(data_master_all))
         %manage "nearly null" data
         ph1_M(ph1_M < 1e-100) = 0;
         ph2_M(ph2_M < 1e-100) = 0;
-        
+
         if (~isempty(time_M))
             %date decoding
             date = gps2date(week, time_M);
@@ -226,7 +226,7 @@ if (~isempty(data_master_all))
             
             return
         end
-        
+
         %----------------------------------------------------------------------------------------------
         % OBSERVATION RATE (INTERVAL)
         %----------------------------------------------------------------------------------------------
@@ -402,6 +402,7 @@ if (~isempty(data_master_all))
                     svhealth = Eph_M(27,satEph(j),i);
                     tgd      = Eph_M(28,satEph(j),i);
                     fit_int  = Eph_M(29,satEph(j),i);
+                    system   = Eph_M(31,satEph(j),i); %#ok<NASGU>
                     
                     %time of measurement decoding
                     date = gps2date(week, toc);

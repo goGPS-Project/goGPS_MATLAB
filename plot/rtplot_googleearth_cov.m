@@ -33,10 +33,13 @@ function rtplot_googleearth_cov (t, pos_R, pos_M, covpos_R, date)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a e
+global a_GPS e_GPS
 global conf_sat
 global link_filename kml_filename
 global x_circle
+
+a = a_GPS;
+e = e_GPS;
 
 %rover position coordinates X Y Z
 XR = pos_R(1);

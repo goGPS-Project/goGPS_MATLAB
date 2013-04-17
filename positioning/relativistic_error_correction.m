@@ -25,7 +25,7 @@ function [corr] = relativistic_error_correction(time, Eph, XS, VS)
 
 global v_light
 
-if (sum(Eph(:))~=0)
+if (Eph(4)~=0) %if not using SP3 ephemeris
     roota = Eph(4);
     ecc   = Eph(6);
     

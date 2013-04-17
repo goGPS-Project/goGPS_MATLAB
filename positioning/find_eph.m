@@ -1,11 +1,11 @@
-function icol = find_eph(Eph, sv, time)
+function icol = find_eph(Eph, sat, time)
 
 % SYNTAX:
-%   icol = find_eph(Eph, sv, time);
+%   icol = find_eph(Eph, sat, time);
 %
 % INPUT:
 %   Eph = ephemerides matrix
-%   sv = satellite PRN
+%   sat = satellite index
 %   time = GPS time
 %
 % OUTPUT:
@@ -24,26 +24,51 @@ function icol = find_eph(Eph, sv, time)
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
 %----------------------------------------------------------------------------------------------
 
-isat = find(Eph(1,:) == sv);
+isat = find(Eph(30,:) == sat);
+
 n = size(isat,2);
-if n == 0
+if (n == 0)
     icol = [];
     return
 end
 icol = isat(1);
-% time = check_t(time);
-dtmin = Eph(18,icol)-time;
+
+%consider BeiDou time (BDT) for BeiDou satellites
+if (strcmp(char(Eph(31)),'C'))
+    time = time - 14;
+end
+
+dtmin = Eph(18,icol) - time;
 for t = isat
-   dt = Eph(18,t)-time;
-%    if dt < 0
-      if abs(dt) < abs(dtmin)
-         icol = t;
-         dtmin = dt;
-      end
-%    end
+    dt = Eph(18,t) - time;
+    if (abs(dt) < abs(dtmin))
+        icol = t;
+        dtmin = dt;
+    end
+end
+
+%maximum interval from ephemeris reference time
+fit_interval = Eph(29,icol);
+if (fit_interval ~= 0)
+    dtmax = fit_interval*3600/2;
+else
+    switch (char(Eph(31,icol)))
+        case 'R' %GLONASS
+            dtmax = 900;
+        case 'J' %QZSS
+            dtmax = 3600;
+        otherwise
+            dtmax = 7200;
+    end
+end
+
+if (abs(dtmin) > dtmax)
+    icol = [];
+    return
 end
 
 %check satellite health
-if (Eph(27,icol) ~= 0)
+if (Eph(27,icol) ~= 0 && ~strcmp(char(Eph(31,icol)),'J')) %the second condition is temporary (QZSS health flag is kept on for tests)
     icol = [];
+    return
 end
