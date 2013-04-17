@@ -1,11 +1,11 @@
 function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model ...
          (XM, time_rx, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, order, phase, dtMdot)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, order, phase, dtMdot, flag_IAR)
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model ...
 %        (XM, time_rx, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, order, phase, dtMdot);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, order, phase, dtMdot, flag_IAR);
 %
 % INPUT:
 %   XM = master position (X,Y,Z)
@@ -32,6 +32,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %   order = dynamic model order (1,2,3)
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %   dtMdot = master receiver clock drift
+%   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %
 % OUTPUT:
 %   check_on = boolean variable for satellite addition
@@ -48,6 +49,8 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %                           goGPS v0.3.1 beta
 %
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Andrea Nardo
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -81,6 +84,7 @@ global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
+global ratiotest mutest succ_rate
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -208,7 +212,7 @@ Z_app = XR0(3);
 % CONVERSION FROM CARTESIAN TO GEODETIC COORDINATES
 %----------------------------------------------------------------------------------------
 [phiR_app, lamR_app, hR_app] = cart2geod(X_app, Y_app, Z_app);
-[phiM, lamM, hM] = cart2geod(XM(1), XM(2), XM(3));
+% [phiM, lamM, hM] = cart2geod(XM(1), XM(2), XM(3));
 
 %----------------------------------------------------------------------------------------
 % EXTRACTION OF THE HEIGHT PSEUDO-OBSERVATION FROM THE DTM
@@ -769,6 +773,23 @@ else
     X_t1_t = T*Xhat_t_t;
 
     Cee = T*Cee*T';
+end
+
+%--------------------------------------------------------------------------------------------
+% INTEGER AMBIGUITY SOLVING BY LAMBDA METHOD
+%--------------------------------------------------------------------------------------------
+
+sat_np = sat(sat ~= pivot);
+if (check_pivot)
+    sat_np(sat_np == pivot_old) = [];
+end
+if (flag_IAR && ~isempty(sat_np) && nsat >= min_nsat)
+    %try to solve integer ambiguities
+    [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat_np,o3+sat_np), Cee([1 o1+1 o2+1],o3+sat_np));
+else
+    ratiotest = [ratiotest NaN];
+    mutest    = [mutest NaN];
+    succ_rate = [succ_rate NaN];
 end
 
 %--------------------------------------------------------------------------------------------

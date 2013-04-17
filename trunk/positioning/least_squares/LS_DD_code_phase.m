@@ -1,8 +1,8 @@
-function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase ...
+function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
          (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero)
 
 % SYNTAX:
-%   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase ...
+%   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
 %   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero);
 %
 % INPUT:
@@ -76,15 +76,15 @@ else
 end
 
 if (nargin < 19)
-    flag_Tykhon = 0;    %<--- set 1 to force Tykhonov
+    flag_Tykhon = 0;    %<--- set 1 to force Tykhonov (experimental)
 end
 
 if (nargin < 20)
-    flag_iter = 0;      %<--- set 1 to force iterative least squares
+    flag_iter = 0;      %<--- set 1 to force iterative least squares (experimental)
 end
 
 if (nargin < 21)
-    flag_iter_zero = 0; %<--- set 1 to force zero-initialization for iterative least squares
+    flag_iter_zero = 0; %<--- set 1 to force zero-initialization for iterative least squares (experimental)
 end
 
 %number of observations
@@ -178,7 +178,7 @@ if (~flag_LAMBDA)
         cov_N = [];
     end
     
-else
+else %apply LAMBDA
     
     if (flag_Tykhon)
         %Processing with Tykhonov-Phillips regularization
@@ -229,7 +229,11 @@ else
     end
     
     if (n > m && sigmaq_ph ~= 1e30)
-        [U] = chol(Qxx); %compute cholesky decomp. for identical comp of vcm purpose
+        
+        %covariance matrix
+        Cxx = sigma02_hat * (N^-1);
+        
+        [U] = chol(Cxx); %compute cholesky decomp. for identical comp of vcm purpose
         Cxx = U'*U; %find back the vcm of parameter, now the off diag. comp. are identical :)
         
         %%this part for future statistical test of data reliability :)
@@ -237,50 +241,56 @@ else
         %     Qv_hat= Q - Q_hat;
         %     alpha = 0.05;
         %     [identify,BNR_xhat, BNR_y] = test_statistic(Q_hat, Q, A, alpha, v_hat,Qv_hat)
-        
-        %rover position covariance matrix
-        %     cov_XR = Cxx(1:3,1:3);
+
         Cbb = Cxx(1:3,1:3); %vcm block of baseline component
         Cba = Cxx(1:3,4:end);% correlation of baselines and ambiguities comp.
         Cab = Cxx(4:end,1:3);
         Caa = Cxx(4:end,4:end);%vcm block of ambiguity component
         
-        %ambiguity estimation
-        afl = x_hat(4:end); %extract float ambiguity from float least-squares
-        [afix, sqnorm, Qahat, Z, D, L] = lambda_routine2(afl,Caa); %using LAMBDA routines
+        bhat = x_hat(1:3);
+        ahat = x_hat(4:end);
         
+        [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Cbb, Caa, Cba);
+        
+        XR     = (XR_approx + bcheck);
+        cov_XR = Cbb - (Cba * Caa^-1 * Cab) + (Cba * Caa^-1*Qzhat*(Caa^-1)'*Cab);
+        
+        %ambiguity estimation
+        %afl = x_hat(4:end); %extract float ambiguity from float least-squares
+        %[afix, sqnorm, Qahat, Z, D, L] = lambda_routine2(afl,Caa); %using LAMBDA routines
+
         %Integer ambiguity validation
         %----------------------------
-        O1 = (afl - afix(:,1))' * (Caa)^-1 * (afl - afix(:,1)); %nominator component
-        O2 = (afl - afix(:,2))' * (Caa)^-1 * (afl - afix(:,2)); %denominator component
-        O  = O1 / O2; %ratio test
+        %O1 = (afl - afix(:,1))' * (Caa)^-1 * (afl - afix(:,1)); %nominator component
+        %O2 = (afl - afix(:,2))' * (Caa)^-1 * (afl - afix(:,2)); %denominator component
+        %O  = O1 / O2; %ratio test
         
-        if O <= 0.5%0.787%0.6    %if below threshold, use the LAMBDA result
-            z = afix(:,1);
-            posType = 1; %fixed
-        else                     %if above threshold, reject the LAMBDA result
-            z = afl;
-            posType = 0; %float
-        end
+        %if O <= 0.5%0.787%0.6    %if below threshold, use the LAMBDA result
+        %    z = afix(:,1);
+        %    posType = 1; %fixed
+        %else                     %if above threshold, reject the LAMBDA result
+        %    z = afl;
+        %    posType = 0; %float
+        %end
         
-        if (~flag_Tykhon)
-            bias = check_bias(D); %no bias detected
-        else
-            bias = check_bias(D,bias(4:end)); %use bias component from ambiguity
-        end
-        [up_bound, lo_bound] = success_rate(D,L,bias); %compute success rate of ambiguity
+        %if (~flag_Tykhon)
+        %    bias = zeros(size(afix,1),1); %no bias
+        %else
+        %    bias = bias(4:end); %use bias component from ambiguity
+        %end
+        %[up_bound, lo_bound] = success_rate(D,L,bias); %compute success rate of ambiguity
         
         %Computing definite coordinate
         %-----------------------------
-        bfl    = x_hat(1:3); %float baseline component
-        bdef   = bfl - Cba * Caa^-1 * (afl - z); %compute the conditional baseline component
-        cov_XR = Cbb - (Cba * Caa^-1 * Cab) + (Cba * Caa^-1*Qahat*(Caa^-1)'*Cab); %compute its vcm
-        XR     = (XR_approx + bdef); %define the definitive coordinate
+        %bfl    = x_hat(1:3); %float baseline component
+        %bdef   = bfl - Cba * Caa^-1 * (afl - z); %compute the conditional baseline component
+        %cov_XR = Cbb - (Cba * Caa^-1 * Cab) + (Cba * Caa^-1*Qahat*(Caa^-1)'*Cab); %compute its vcm
+        %XR     = (XR_approx + bdef); %define the definitive coordinate
         %std    = sqrt(diag(cov_XR)); %standard deviation of baseline
         %bl     = norm(XM - XR); %baseline length
         
         %estimated double difference ambiguities (without PIVOT)
-        N_hat_nopivot = z;
+        N_hat_nopivot = acheck;
         
         %add a zero at PIVOT position
         N_hat = zeros(n/2+1,1);
@@ -288,7 +298,7 @@ else
         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
         
         %combined ambiguity covariance matrix
-        cov_N_nopivot = Qahat;
+        cov_N_nopivot = Qzhat;
         
         %add one line and one column (zeros) at PIVOT position
         cov_N = zeros(n/2+1);
@@ -303,10 +313,6 @@ else
         N_hat = zeros(n/2+1,1);
         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-        
-        up_bound = NaN;
-        lo_bound = NaN;
-        posType = 0;
         
         cov_XR = [];
         cov_N = [];

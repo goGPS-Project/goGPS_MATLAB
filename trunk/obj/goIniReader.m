@@ -44,6 +44,7 @@ classdef goIniReader < IniReader
     
     properties (GetAccess = 'private', SetAccess = 'private')
         cutoff = 10;
+        csThr = 3;
         snrThr = 0;
     end
     
@@ -108,10 +109,18 @@ classdef goIniReader < IniReader
         end
         
         function cutoff = getCutoff(obj)
-            % Get the minimum angle of acceptance for a satellit
+            % Get the minimum angle of acceptance for a satellite
             cutoff = obj.getData('Generic','cutoff');
             if (isempty(cutoff))
                 cutoff = obj.cutoff;
+            end            
+        end
+        
+        function csThr = getCsThr(obj)
+            % Get the threshold to identify a cycle slip
+            csThr = obj.getData('Generic','csThr');
+            if (isempty(csThr))
+                csThr = obj.csThr;
             end            
         end
                 

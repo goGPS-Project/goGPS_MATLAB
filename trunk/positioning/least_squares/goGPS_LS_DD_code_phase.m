@@ -1,7 +1,7 @@
-function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase)
+function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase, flag_IAR)
 
 % SYNTAX:
-%   goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase);
+%   goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase, flag_IAR);
 %
 % INPUT:
 %   time_rx = GPS reception time
@@ -18,6 +18,7 @@ function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, 
 %   SP3_clck = precise ephemeris clocks
 %   iono = ionosphere parameters
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %
 % DESCRIPTION:
 %   Computation of the receiver position (X,Y,Z).
@@ -52,7 +53,7 @@ global cutoff snr_threshold cond_num_threshold o1 o2 o3
 global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
-global success
+global ratiotest mutest succ_rate
 
 %number of unknown phase ambiguities
 if (length(phase) == 1)
@@ -63,6 +64,8 @@ end
 
 %covariance matrix initialization
 cov_XR = [];
+cov_N1 = [];
+cov_N2 = [];
 
 %topocentric coordinate initialization
 azR   = zeros(32,1);
@@ -71,10 +74,6 @@ distR = zeros(32,1);
 azM   = zeros(32,1);
 elM   = zeros(32,1);
 distM = zeros(32,1);
-
-up_bound = 0;
-lo_bound = 0;
-posType = 0;
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE SELECTION
@@ -95,8 +94,8 @@ if (size(sat,1) >= 4)
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible
-    N1_hat = zeros(32,1);
-    N2_hat = zeros(32,1);
+    N1 = zeros(32,1);
+    N2 = zeros(32,1);
     Z_om_1 = zeros(o1-1,1);
     sigma2_N = zeros(nN,1);
     
@@ -148,11 +147,17 @@ if (size(sat,1) >= 4)
         
         %loop is needed to improve the atmospheric error correction
         for i = 1 : 3
-            
+
             if (phase == 1)
-                [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, 1);
+                [XR, N1(sat), cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_IAR);
             else
-                [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, 1);
+                [XR, N2(sat), cov_XR, cov_N2, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_IAR);
+            end
+            
+            if (i < 3 && ~isempty(ratiotest))
+                ratiotest(end) = [];
+                mutest(end) = [];
+                succ_rate(end) = [];
             end
             
             [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
@@ -184,21 +189,46 @@ if isempty(cov_XR) %if it was not possible to compute the covariance matrix
 end
 sigma2_XR = diag(cov_XR);
 
+if isempty(cov_N1) %if it was not possible to compute the covariance matrix
+    cov_N1 = sigmaq0_N * eye(length(sat));
+end
+
+if isempty(cov_N2) %if it was not possible to compute the covariance matrix
+    cov_N2 = sigmaq0_N * eye(length(sat));
+end
+
+if (length(phase) == 2)
+    N = [N1; N2];
+    sigma2_N(sat) = diag(cov_N1);
+    %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
+    sigma2_N(sat+nN) = diag(cov_N2);
+    %sigma2_N(sat+nN) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
+else
+    if (phase == 1)
+        N = N1;
+        sigma2_N(sat) = diag(cov_N1);
+        %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
+    else
+        N = N2;
+        sigma2_N(sat) = diag(cov_N2);
+        %sigma2_N(sat) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
+    end
+end
+
+%initialization of the initial point with 6(positions and velocities) +
+%32 or 64 (N combinations) variables
+Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N];
 
 %--------------------------------------------------------------------------------------------
-% GOGPS OUTPUT SAVING
+% INITIAL STATE COVARIANCE MATRIX
 %--------------------------------------------------------------------------------------------
-Xhat_t_t = zeros(o3,1);
-Xhat_t_t(1)    = XR(1);
-Xhat_t_t(o1+1) = XR(2);
-Xhat_t_t(o2+1) = XR(3);
 
-Cee(:,:) = zeros(o3);
+%initial state covariance matrix
+Cee(:,:) = zeros(o3+nN);
 Cee(1,1) = sigma2_XR(1);
 Cee(o1+1,o1+1) = sigma2_XR(2);
 Cee(o2+1,o2+1) = sigma2_XR(3);
-
-success = zeros(3,1);
-success(1) = up_bound;
-success(2) = lo_bound;
-success(3) = posType;
+Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
+Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
+Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
+Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);

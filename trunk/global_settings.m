@@ -192,6 +192,32 @@ o3 = order*3;
 amb_restart_method = 1;
 
 %-------------------------------------------------------------------------------
+% INTEGER AMBIGUITY RESOLUTION
+%-------------------------------------------------------------------------------
+global IAR_method P0 mu flag_auto_mu
+
+%choose Integer Least Squares estimator
+IAR_method = 0; %ILS method with numeration in search (LAMBDA2)
+%IAR_method = 1; %ILS method with shrinking ellipsoid during search (LAMBDA3)
+%IAR_method = 2; %ILS method with numeration in search (LAMBDA3)
+%IAR_method = 3; %integer rounding method (LAMBDA3)
+%IAR_method = 4; %integer bootstrapping method (LAMBDA3)
+%IAR_method = 5; %Partial Ambiguity Resolution (PAR) (LAMBDA3)
+
+%user defined fixed failure rate (for methods 1,2) or
+%minimum required success rate (for method 5)
+P0 = 0.001;
+
+%user defined threshold for ratio test
+mu = 0.5;
+
+%flag for enabling the automatic determination of mu
+flag_auto_mu = 1;
+
+%flag for enabling the default value for P0
+flag_default_P0 = 1;
+
+%-------------------------------------------------------------------------------
 % RECEIVER
 %-------------------------------------------------------------------------------
 
