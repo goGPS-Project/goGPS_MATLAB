@@ -188,6 +188,13 @@ while (pos + 15 <= length(msg))
                                             [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1));
                                         end
                                 end
+                            % NAV (nav messages)
+                            case '01'
+                                switch id
+                                    % SBAS (SBAS sat info)
+                                    case '32', [data(:,i)] = decode_NAV_SBAS(msg(pos:pos+8*LEN-1));
+                                                                                                       
+                                end
                         end
                         
                     else

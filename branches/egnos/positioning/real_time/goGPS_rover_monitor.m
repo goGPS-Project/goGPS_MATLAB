@@ -39,6 +39,7 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 global COMportR
 global rover
 global order
+global rover_data
 
 %------------------------------------------------------
 % read protocol parameters
@@ -392,9 +393,10 @@ dop_R_old = zeros(32,1);
 
 %for SkyTraq
 IOD_time = -1;
-
+contador = 0;
 %infinite loop
 while flag
+    contador = contador+1;
 
     if (flag_stopGOstop)
         % mode management
@@ -609,7 +611,25 @@ while flag
                         type = [type prot_par{r}{2,2} ' '];
                     end
                     nEPH = nEPH + 1;
-
+                    
+                %SBAS message data save (NAV-SBAS)
+                elseif (strcmp(cell_rover{1,i},prot_par{r}{7,2}))
+                  %   time_GPS --> double, [1,1]  --> zeros(1,1)
+                  %   time_M   --> double, [1,1]  --> zeros(1,1)
+                  %   time_R   --> double, [1,1]
+                  %   time_aug --> double, [1,1]
+                  %   pr_cor   --> double, [32,1]
+                  %   iono_cor --> double, [32,1]
+                                  
+                    time_aug = cell_rover{2,i}(1);
+                    pr_cor   = cell_rover{3,i}(:,7);
+                    iono_cor = cell_rover{3,i}(:,9);
+                    keyboard
+                    
+                    if (nSBAS == 0)
+                        type = [type prot_par{r}{7,2} ' '];
+                    end
+                    nSBAS = nSBAS + 1
                 end
 
             end
@@ -636,6 +656,23 @@ while flag
                 sat_pr = find(pr_R ~= 0);       %satellites with code available
                 sat_ph = find(ph_R ~= 0);       %satellites with phase available
                 sat = union(sat_pr,sat_ph);     %satellites with code or phase available
+                
+                % Write data
+                rover_data{1,contador}(1)=contador;
+                rover_data{2,contador}(1)=time_R;
+                rover_data{3,contador}(1)=week_R;
+                rover_data{4,contador}(1:length(sat))=sat;
+                rover_data{5,contador}(1:length(sat))=pr_R(sat);
+                rover_data{5,contador}(1:length(sat))=ph_R(sat);
+                rover_data{5,contador}(1:length(sat))=pr_R(sat);
+                rover_data{6,contador}(1:length(sat))=ph_R(sat);
+                rover_data{7,contador}(1:length(sat))=dop_R(sat);
+                rover_data{8,contador}(1:length(sat))=snr_R(sat);
+                rover_data{9,contador}(1)=time_aug;
+                rover_data{10,contador}(1:length(sat))=pr_cor(sat);
+                rover_data{11,contador}(1:length(sat))=iono_cor(sat);
+                
+%                 keyboard
 
                 if (i < length(time_R)), fprintf(' DELAYED\n'); else fprintf('\n'); end
                 fprintf('Epoch %3d:  GPStime=%d:%.3f (%d satellites)\n', t(r), week_R, time_R, length(sat));
@@ -683,6 +720,26 @@ while flag
                     fprintf('%d ', sat(i));
                 end
                 fprintf('\n');
+            end
+            
+            %visualization (NAV-SBAS information)
+            if (nSBAS > 0)
+                fprintf('\n');
+                fprintf('SBAS Information: ');
+                if (sum([pr_cor iono_cor]) ~= 0)
+                    fprintf('\n');
+                     for j = 1 : length(sat)
+                        if (protocol(r) == 0)
+                            if (sat(j) < 100)
+                                fprintf('   SAT  %02d:  Iono Correction = %5.2f  PR Correction = %5.2f\n', sat(j), iono_cor(sat(j)), pr_cor(sat(j)));
+                            else
+                                fprintf('   SAT %02d:  Iono Correction = %5.2f  PR Correction = %5.2f\n', sat(j), iono_cor(sat(j)), pr_cor(sat(j)));
+                            end
+                        end 
+                     end
+                else
+                    fprintf('not sent\n');
+                end
             end
 
             %poll a new ephemeris message every 10 epochs

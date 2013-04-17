@@ -180,6 +180,76 @@ else
     fprintf(2, 'failed\n');
 end
 
+% enable NAV-SBAS measurements
+fprintf('Enabling NAV-SBAS data output... ');
+
+reply_SBAS = ublox_CFG_SBAS(serialObj, 'default');
+tries = 0;
+
+while (~reply_SBAS)
+    tries = tries + 1;
+    if (tries > 3)
+        break
+    end
+    % close and delete old serial object
+    try
+        fclose(serialObj);
+        delete(serialObj);
+    catch
+        stopasync(serialObj);
+        fclose(serialObj);
+        delete(serialObj);
+    end
+    % create new serial object
+    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
+    set(serialObj,'InputBufferSize',prot_par{3,1});
+    set(serialObj,'FlowControl','hardware');
+    set(serialObj,'RequestToSend','on');
+    fopen(serialObj);
+    reply_SBAS = ublox_CFG_SBAS(serialObj, 'default');
+end
+
+if (reply_SBAS)
+    fprintf('done\n');
+else
+    fprintf(2, 'failed\n');
+end
+
+% enable NAV-SBAS measurements 1 Hz
+fprintf('Enabling NAV-SBAS output 1Hz ... ');
+
+reply_SBAS1Hz = ublox_CFG_MSG(serialObj, 'NAV', 'SBAS', 1);
+tries = 0;
+
+while (~reply_SBAS1Hz)
+    tries = tries + 1;
+    if (tries > 3)
+        break
+    end
+    % close and delete old serial object
+    try
+        fclose(serialObj);
+        delete(serialObj);
+    catch
+        stopasync(serialObj);
+        fclose(serialObj);
+        delete(serialObj);
+    end
+    % create new serial object
+    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
+    set(serialObj,'InputBufferSize',prot_par{3,1});
+    set(serialObj,'FlowControl','hardware');
+    set(serialObj,'RequestToSend','on');
+    fopen(serialObj);
+    reply_RAW = ublox_CFG_MSG(serialObj, 'NAV', 'SBAS', 1);
+end
+
+if (reply_RAW)
+    fprintf('done\n');
+else
+    fprintf(2, 'failed\n');
+end
+
 % enable GGA messages, disable all other NMEA messages
 fprintf('Configuring u-blox receiver NMEA messages:\n');
 
