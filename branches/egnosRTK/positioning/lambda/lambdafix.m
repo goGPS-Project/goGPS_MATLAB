@@ -1,0 +1,129 @@
+function [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
+
+% SYNTAX:
+%   [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba);
+%
+% INPUT:
+%   bhat  = position coordinates (float solution)
+%   ahat  = ambiguities (float solution)
+%   Qbb   = VCV-matrix (position block)
+%   Qahat = VCV-matrix (ambiguity block)
+%   Qba   = VCV-matrix (position-ambiguity covariance block)
+%
+% OUTPUT:
+%   bcheck = output baseline (fixed or float depending on method and ratio test)
+%   acheck = output ambiguities (fixed or float depending on method and ratio test)
+%   Qzhat  = variance-covariance matrix of decorrelated ambiguities
+%
+% DESCRIPTION:
+%   A wrapper for LAMBDA function to be used in goGPS.
+
+%----------------------------------------------------------------------------------------------
+%                           goGPS v0.3.1 beta
+%
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+%
+% Code contributed by Andrea Nardo
+% Modified by Eugenio Realini
+%----------------------------------------------------------------------------------------------
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%----------------------------------------------------------------------------------------------
+
+global ratiotest mutest succ_rate IAR_method P0 mu flag_auto_mu flag_default_P0
+
+if (flag_auto_mu)
+    mu = [];
+end
+
+if (flag_default_P0)
+    if (IAR_method == 5)
+        P0 = 0.995;
+    else
+        P0 = 0.001;
+    end
+end
+
+% perform ambiguity resolution
+if (IAR_method == 0)
+    %ILS enumeration (LAMBDA2)
+    [afixed,sqnorm,Qzhat,Z,D,L] = lambda_routine2(ahat,Qahat);
+    % compute the fixed solution
+    bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
+    acheck = afixed(:,1);
+    % success rate
+    Ps = prod(2*normcdf(0.5./sqrt(D))-1);
+    %[up_bound, lo_bound] = success_rate(D,L,zeros(length(D)));
+    
+elseif (IAR_method == 1 || IAR_method == 2)
+    % ILS shrinking, method 1
+    % ILS enumeration, method 2
+    [afixed,sqnorm,Ps,Qzhat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+    % compute the fixed solution
+    bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
+    acheck = afixed(:,1);
+    
+elseif (IAR_method == 3 || IAR_method == 4)
+    % Integer rounding, method 3
+    % Integer bootstrapping, method 4
+    [afixed,sqnorm,Ps,Qzhat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+    % compute the fixed solution
+    bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
+    acheck = afixed(:,1);
+    
+elseif (IAR_method == 5)
+    % Partial Ambiguity Resolution, method 5
+    [afixed,sqnorm,Ps,Qahat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+    nfx = size(afixed, 1);
+    Z   = Z(:, 1:nfx);
+    % in case of PAR afixed contains the decorrelated ambiguities
+    if nfx > 0
+        Qbz    = Qba*Z;
+        bcheck = bhat - Qbz *cholinv(Z'*Qahat*Z) * (Z'*ahat-afixed);
+        % anyway we store the float ambiguities... (to be improved)
+        acheck = ahat;
+    else
+        % keep float solution
+        bcheck = bhat;
+        acheck = ahat;
+    end
+end
+
+% If IAR_method = 0 or IAR_method = 1 or IAR_method = 2 perform ambiguity validation through ratio test
+if (IAR_method == 0 || IAR_method == 1 || IAR_method == 2)
+    
+    if (flag_auto_mu)
+        if (1-Ps > P0)
+            mu = ratioinv(P0,1-Ps,length(acheck));
+        else
+            mu = 1;
+        end
+    end
+        
+    ratio = sqnorm(1)/sqnorm(2);
+    
+    if ratio > mu
+        % rejection; keep float baseline solution
+        bcheck = bhat;
+        acheck = ahat;
+    end
+    
+    ratiotest = [ratiotest ratio];
+    mutest    = [mutest mu];
+else
+    ratiotest = [ratiotest NaN];
+    mutest    = [mutest NaN];
+end
+
+succ_rate = [succ_rate Ps];
