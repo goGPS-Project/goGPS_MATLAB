@@ -200,7 +200,7 @@ classdef IniReader < handle
                     obj.rawData = obj.rawData{1};
                     
                     if (obj.getVerbosityLev)
-                        obj.opStatus(1);
+                        %obj.opStatus(1);
                         cprintf('The INI file has been read correctly.\n');
                     end
                     
@@ -797,7 +797,7 @@ classdef IniReader < handle
                 colorMode = obj.colorMode;
             end
             if (obj.getVerbosityLev > 0)
-                obj.opStatus(0);
+                %obj.opStatus(0);
                 if (colorMode)
                     cprintf('err', 'warning: ');
                     cprintf('text', [text '\n']);
@@ -813,7 +813,7 @@ classdef IniReader < handle
                 colorMode = obj.colorMode;
             end
             if (obj.getVerbosityLev > 0)
-                obj.opStatus(0);
+                %obj.opStatus(0);
                 if (colorMode)
                     cprintf('err', 'Error: ');
                     cprintf('text', [text '\n']);

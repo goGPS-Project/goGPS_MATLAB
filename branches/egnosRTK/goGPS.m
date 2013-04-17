@@ -1692,7 +1692,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
 % REAL-TIME: ROVER MONITORING
 %----------------------------------------------------------------------------------------------
 
-elseif (mode == goGNSS.MODE_R_MON)
+elseif (mode == goGNSS.MODE_RT_R_MON)
 
     goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop);
 
@@ -1700,7 +1700,7 @@ elseif (mode == goGNSS.MODE_R_MON)
 % REAL-TIME: MASTER MONITORING
 %----------------------------------------------------------------------------------------------
 
-elseif (mode == goGNSS.MODE_M_MON)
+elseif (mode == goGNSS.MODE_RT_M_MON)
 
     goGPS_master_monitor(filerootOUT, flag_NTRIP);
 
@@ -1708,7 +1708,7 @@ elseif (mode == goGNSS.MODE_M_MON)
 % REAL-TIME: ROVER AND MASTER MONITORING
 %----------------------------------------------------------------------------------------------
 
-elseif (mode == goGNSS.MODE_RM_MON)
+elseif (mode == goGNSS.MODE_RT_RM_MON)
 
     goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M);
 

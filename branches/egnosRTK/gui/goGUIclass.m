@@ -2874,10 +2874,12 @@ classdef goGUIclass < handle
             filename_nav = [data_path file_name];
             flag_SP3 = goIni.getData('Navigational','isSP3');
             if isempty(flag_SP3)
-                if (strcmpi(filename_nav(end-3:end),'.sp3'))
-                    flag_SP3 = 1;
-                else
-                    flag_SP3 = 0;
+                if ~isempty(filename_nav)
+                    if (strcmpi(filename_nav(end-3:end),'.sp3'))
+                        flag_SP3 = 1;
+                    else
+                        flag_SP3 = 0;
+                    end
                 end
             end
             data_path = goIni.getData('RefPath','data_path');
@@ -3112,6 +3114,9 @@ classdef goGUIclass < handle
         % the various GNSS
         function saveConstellations(obj)
             global goIni
+            if isempty(goIni)
+                goIni = goIniReader()
+            end
             goIni.addSection('Constellations');
             goIni.addKey('Constellations','GPS',obj.isActive(obj.idUI.cGPS));
             goIni.addKey('Constellations','GLONASS',obj.isActive(obj.idUI.cGLONASS));
