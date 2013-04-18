@@ -88,7 +88,7 @@ end
 %known term vector
 % try
     b = distR_approx_t0' - distR_approx_t1' - v_light*(dtS_t0 - dtS_t1);
-%   %b = b + (err_tropo_t0 - err_tropo_t1) - (err_iono_t0 - err_iono_t1);
+    b = b + (err_tropo_t0 - err_tropo_t1) - (err_iono_t0 - err_iono_t1);
 % catch
 %     distR_approx_t0'; %DEBUG
 % end
