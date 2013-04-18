@@ -38,11 +38,11 @@ classdef goGNSS < handle
     properties (Constant)
         % GENERIC CONSTANTS -----------------------------------------------
         
-        V_LIGHT = 299792458;                  % velocity of light in the void [m/s]       
-                
+        V_LIGHT = 299792458;                  % velocity of light in the void [m/s]
+        
         MAX_SAT = 32                                  % Maximum number of active satellites in a constellation
         
-        % CONSTELLATION REF -----------------------------------------------        
+        % CONSTELLATION REF -----------------------------------------------
         % CRS parameters, according to each GNSS system CRS definition
         % (ICD document in brackets):
         %
@@ -57,7 +57,7 @@ classdef goGNSS < handle
         ELL_A_GAL = 6378137;                          % Galileo (GTRF)   Ellipsoid semi-major axis [m]
         ELL_A_BDS = 6378136;                          % BeiDou (CSG2000) Ellipsoid semi-major axis [m]
         ELL_A_QZS = 6378137;                          % QZSS (WGS-84)    Ellipsoid semi-major axis [m]
-
+        
         ELL_F_GPS = 1/298.257222101;                  % GPS (WGS-84)     Ellipsoid flattening
         ELL_F_GLO = 1/298.257222101;                  % GLONASS (PZ-90)  Ellipsoid flattening
         ELL_F_GAL = 1/298.257222101;                  % Galileo (GTRF)   Ellipsoid flattening
@@ -76,18 +76,18 @@ classdef goGNSS < handle
         ELL_GM_BDS = 3.986004418e14;                  % BeiDou  Gravitational constant * (mass of Earth) [m^3/s^2]
         ELL_GM_QZS = 3.986005e14;                     % QZSS    Gravitational constant * (mass of Earth) [m^3/s^2]
         
-        OMEGAE_DOT_GPS = 7.2921151467e-5;             % GPS     Angular velocity of the Earth rotation [rad/s]        
+        OMEGAE_DOT_GPS = 7.2921151467e-5;             % GPS     Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_GLO = 7.292115e-5;                 % GLONASS Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_GAL = 7.2921151467e-5;             % Galileo Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_BDS = 7.292115e-5;                 % BeiDou  Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_QZS = 7.2921151467e-5;             % QZSS    Angular velocity of the Earth rotation [rad/s]
         
         J2_GLO = 1.0826257e-3;                        % GLONASS second zonal harmonic of the geopotential
-                
+        
         PI_ORBIT = 3.1415926535898;                   % pi value used for orbit computation
         CIRCLE_RAD = 2*goGNSS.PI_ORBIT;               % 2 pi
         
-        % CONSTELLATION SPECIFIC ------------------------------------------        
+        % CONSTELLATION SPECIFIC ------------------------------------------
         
         FG = [1575.420 1227.600]*1e6;                 % GPS carriers frequencies [Hz]
         LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;        % GPS carriers wavelengths [m]
@@ -155,53 +155,116 @@ classdef goGNSS < handle
         function obj = goGNSS()
         end
     end
-
+    
     %   COMPATIBILITY FUNCTION (STATIC)
     % -------------------------------------------------------------------------
     % function to keep compatibility with the past
     methods (Static, Access = 'public')
         function f1 = F1()
-        % GPS carriers frequencies F1
+            % GPS carriers frequencies F1
             f1 = goGNSS.FG(1);
-        end        
+        end
         function f1 = F2()
-        % GPS carriers frequencies F2
+            % GPS carriers frequencies F2
             f1 = goGNSS.FG(2);
         end
         
         function lambda1 = LAMBDA1()
-        % GPS carriers frequency 1 [Hz]
+            % GPS carriers frequency 1 [Hz]
             lambda1 = goGNSS.LAMBDAG(1);
-        end        
+        end
         function lambda2 = LAMBDA2()
-        % GPS carriers frequency 2 [Hz]
-            lambda2 = goGNSS.LAMBDAG(2);        
-
-        end        
+            % GPS carriers frequency 2 [Hz]
+            lambda2 = goGNSS.LAMBDAG(2);
+            
+        end
     end
     
     %   MODE FUNCTION (STATIC)
     % -------------------------------------------------------------------------
     % function to detect a certain kind of processing
-    methods (Static, Access = 'public') 
+    methods (Static, Access = 'public')
         function isPostProcessing = isPP(mode)
-        % return wheather or not the mode given in use is a Post Processing mode
+            % return wheather or not the mode given in use is a Post Processing mode
             isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
         end
         
         function isRealTime = isRT(mode)
-        % return wheather or not the mode given in use is a Real Time mode
+            % return wheather or not the mode given in use is a Real Time mode
             isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));
         end
         
         function isDoubleDifferences = isDD(mode)
-        % return wheather or not the mode given in use is a Double Difference mode
+            % return wheather or not the mode given in use is a Double Difference mode
             isDoubleDifferences = sum(intersect(mode, goGNSS.GMODE_DD));
         end
         
         function isStandAlone = isSA(mode)
-        % return wheather or not the mode given in use is a Stand Alone mode
+            % return wheather or not the mode given in use is a Stand Alone mode
             isStandAlone = sum(intersect(mode, goGNSS.GMODE_SA));
+        end
+    end
+    
+    
+    %   CONSTELLATION FUNCTION (STATIC)
+    % -------------------------------------------------------------------------
+    methods (Static, Access = 'public')
+        
+        function [constellations] = initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
+            
+            % SYNTAX:
+            %   [constellations] = initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+            %
+            % INPUT:
+            %   GPS_flag = boolean flag for enabling/disabling GPS usage
+            %   GLO_flag = boolean flag for enabling/disabling GLONASS usage
+            %   GAL_flag = boolean flag for enabling/disabling Galileo usage
+            %   BDS_flag = boolean flag for enabling/disabling BeiDou usage
+            %   QZS_flag = boolean flag for enabling/disabling QZSS usage
+            %   SBS_flag = boolean flag for enabling/disabling SBAS usage (for ranging)
+            %
+            % OUTPUT:
+            %   constellations = struct with multi-constellation settings
+            %
+            % DESCRIPTION:
+            %   Multi-constellation settings and initialization.
+            
+            GPS_PRN = [1:32];
+            GLO_PRN = [1:24];
+            GAL_PRN = [1:30];
+            BDS_PRN = [1:37];
+            QZS_PRN = [193:196];
+            SBS_PRN = 0; %SBAS ranging not supported yet
+            
+            constellations.GPS     = struct('numSat', numel(GPS_PRN), 'enabled', GPS_flag, 'indexes', 0, 'PRN', GPS_PRN);
+            constellations.GLONASS = struct('numSat', numel(GLO_PRN), 'enabled', GLO_flag, 'indexes', 0, 'PRN', GLO_PRN);
+            constellations.Galileo = struct('numSat', numel(GAL_PRN), 'enabled', GAL_flag, 'indexes', 0, 'PRN', GAL_PRN);
+            constellations.BeiDou  = struct('numSat', numel(BDS_PRN), 'enabled', BDS_flag, 'indexes', 0, 'PRN', BDS_PRN);
+            constellations.QZSS    = struct('numSat', numel(QZS_PRN), 'enabled', QZS_flag, 'indexes', 0, 'PRN', QZS_PRN);
+            constellations.SBAS    = struct('numSat', numel(SBS_PRN), 'enabled', 0,        'indexes', 0, 'PRN', SBS_PRN); %SBAS ranging not supported yet
+            
+            nSatTot = 0; %total number of satellites used given the enabled constellations
+            q = 0;       %counter for enabled constellations
+            
+            systems = fieldnames(constellations);
+            constellations.indexes = [];
+            constellations.PRN = [];
+            for i = 1 : numel(systems)
+                if(constellations.(systems{i}).enabled)
+                    nSatTot = nSatTot + constellations.(systems{i}).numSat;
+                    q = q + 1;
+                    if (q == 1)
+                        indexes_tmp = [1 : constellations.(systems{i}).numSat];
+                    else
+                        indexes_tmp = [indexes_tmp(end) + 1 : indexes_tmp(end) + constellations.(systems{i}).numSat];
+                    end
+                    constellations.(systems{i}).indexes = indexes_tmp;
+                    constellations.indexes = [constellations.indexes, indexes_tmp];
+                    constellations.PRN = [constellations.PRN, constellations.(systems{i}).PRN];
+                end
+            end
+            
+            constellations.nEnabledSat = nSatTot;
         end
     end
     
@@ -211,7 +274,7 @@ classdef goGNSS < handle
         
         function [XR, dtR] = getBancroftPos(XS, dtS, prR)
             % get a bancroft solution from one receiver
-
+            
             matB = [XS(:,:), prR(:) + goGNSS.V_LIGHT * dtS(:)]; % Bancroft matrix
             b = goGNSS.bancroft(matB);
             XR = b(1:3);
