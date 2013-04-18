@@ -200,8 +200,12 @@ classdef IniReader < handle
                     obj.rawData = obj.rawData{1};
                     
                     if (obj.getVerbosityLev)
-                        obj.opStatus(1);
-                        cprintf('The INI file has been read correctly.\n');
+                        obj.opStatus(1, obj.colorMode);
+                        if obj.colorMode
+                            cprintf('The INI file has been read correctly.\n');
+                        else
+                            fprintf('The INI file has been read correctly.\n');
+                        end
                     end
                     
                     obj.cleanRaw();      % Strip comments and spaces
@@ -797,7 +801,7 @@ classdef IniReader < handle
                 colorMode = obj.colorMode;
             end
             if (obj.getVerbosityLev > 0)
-                obj.opStatus(0);
+                obj.opStatus(0, colorMode);
                 if (colorMode)
                     cprintf('err', 'warning: ');
                     cprintf('text', [text '\n']);
@@ -813,7 +817,7 @@ classdef IniReader < handle
                 colorMode = obj.colorMode;
             end
             if (obj.getVerbosityLev > 0)
-                obj.opStatus(0);
+                obj.opStatus(0, colorMode);
                 if (colorMode)
                     cprintf('err', 'Error: ');
                     cprintf('text', [text '\n']);
@@ -895,17 +899,30 @@ classdef IniReader < handle
 %    DISPLAY UTILITIES
 % =========================================================================
 
-    methods(Static, Access = 'private')
+    methods(Static, Access = 'public')
         
         % Display a flag of operation status
-        function opStatus(statusOk)
-            cprintf('blue',' [ ');
-            if (statusOk)
-                cprintf('green','ok');
-            else
-                cprintf('red','!!');
+        function opStatus(statusOk, colormode)
+            if (nargin == 1)
+                colormode = true;
             end
-            cprintf('blue',' ] ');
+            if colormode
+                cprintf('blue',' [ ');
+                if (statusOk)
+                    cprintf('green','ok');
+                else
+                    cprintf('red','!!');
+                end
+                cprintf('blue',' ] ');
+            else
+                fprintf(' [ ');
+                if (statusOk)
+                    fprintf('ok');
+                else
+                    fprintf('!!');
+                end
+                fprintf(' ] ');
+            end
         end        
     end
 end
