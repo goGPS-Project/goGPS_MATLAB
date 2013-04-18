@@ -38,21 +38,59 @@ classdef goGNSS < handle
     properties (Constant)
         % GENERIC CONSTANTS -----------------------------------------------
         
-        V_LIGHT = 299792458;                  % velocity of light in the void [m/s]
+        V_LIGHT = 299792458;                  % velocity of light in the void [m/s]       
+                
+        MAX_SAT = 32                                  % Maximum number of active satellites in a constellation
         
-        ELL_A = 6378137;                      % Ellipsoid semi-major axis [m]
-        ELL_F = 1/298.257222101;              % Ellipsoid flattening
-        ELL_E = sqrt(1-(1-goGNSS.ELL_F)^2);   % Eccentricity
+        % CONSTELLATION REF -----------------------------------------------        
+        % CRS parameters, according to each GNSS system CRS definition
+        % (ICD document in brackets):
+        %
+        % *_GPS --> WGS-84  (IS-GPS200E)
+        % *_GLO --> PZ-90   (GLONASS-ICD 5.1)
+        % *_GAL --> GTRF    (Galileo-ICD 1.1)
+        % *_BDS --> CSG2000 (BeiDou-ICD 1.0)
+        % *_QZS --> WGS-84  (IS-QZSS 1.5D)
         
-        OMEGAE_DOT = 7.2921151467e-5;         % Angular velocity of the Earth rotation [rad/s]
-        GM = 3.986004418e14;                  % Gravitational constant * (mass of Earth) [m^3/s^2]
+        ELL_A_GPS = 6378137;                          % GPS (WGS-84)     Ellipsoid semi-major axis [m]
+        ELL_A_GLO = 6378136;                          % GLONASS (PZ-90)  Ellipsoid semi-major axis [m]
+        ELL_A_GAL = 6378137;                          % Galileo (GTRF)   Ellipsoid semi-major axis [m]
+        ELL_A_BDS = 6378136;                          % BeiDou (CSG2000) Ellipsoid semi-major axis [m]
+        ELL_A_QZS = 6378137;                          % QZSS (WGS-84)    Ellipsoid semi-major axis [m]
+
+        ELL_F_GPS = 1/298.257222101;                  % GPS (WGS-84)     Ellipsoid flattening
+        ELL_F_GLO = 1/298.257222101;                  % GLONASS (PZ-90)  Ellipsoid flattening
+        ELL_F_GAL = 1/298.257222101;                  % Galileo (GTRF)   Ellipsoid flattening
+        ELL_F_BDS = 1/298.257222101;                  % BeiDou (CSG2000) Ellipsoid flattening
+        ELL_F_QZS = 1/298.257222101;                  % QZSS (WGS-84)    Ellipsoid flattening
         
-        MAX_SAT      = 32                     % Maximum number of active satellites in a constellation
+        ELL_E_GPS = sqrt(1-(1-goGNSS.ELL_F_GPS)^2);   % GPS (WGS-84)     Eccentricity
+        ELL_E_GLO = sqrt(1-(1-goGNSS.ELL_F_GLO)^2);   % GLONASS (PZ-90)  Eccentricity
+        ELL_E_GAL = sqrt(1-(1-goGNSS.ELL_F_GAL)^2);   % Galileo (GTRF)   Eccentricity
+        ELL_E_BDS = sqrt(1-(1-goGNSS.ELL_F_BDS)^2);   % BeiDou (CSG2000) Eccentricity
+        ELL_E_QZS = sqrt(1-(1-goGNSS.ELL_F_QZS)^2);   % QZSS (WGS-84)    Eccentricity
         
-        % CONSTELLATION SPECIFIC ------------------------------------------
+        ELL_GM_GPS = 3.986005e14;                     % GPS     Gravitational constant * (mass of Earth) [m^3/s^2]
+        ELL_GM_GLO = 3.9860044e14;                    % GLONASS Gravitational constant * (mass of Earth) [m^3/s^2]
+        ELL_GM_GAL = 3.986004418e14;                  % Galileo Gravitational constant * (mass of Earth) [m^3/s^2]
+        ELL_GM_BDS = 3.986004418e14;                  % BeiDou  Gravitational constant * (mass of Earth) [m^3/s^2]
+        ELL_GM_QZS = 3.986005e14;                     % QZSS    Gravitational constant * (mass of Earth) [m^3/s^2]
         
-        FG = [1575.420 1227.600]*1e6;         % GPS carriers frequencies [Hz]
-        LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;% GPS carriers wavelengths [m]
+        OMEGAE_DOT_GPS = 7.2921151467e-5;             % GPS     Angular velocity of the Earth rotation [rad/s]        
+        OMEGAE_DOT_GLO = 7.292115e-5;                 % GLONASS Angular velocity of the Earth rotation [rad/s]
+        OMEGAE_DOT_GAL = 7.2921151467e-5;             % Galileo Angular velocity of the Earth rotation [rad/s]
+        OMEGAE_DOT_BDS = 7.292115e-5;                 % BeiDou  Angular velocity of the Earth rotation [rad/s]
+        OMEGAE_DOT_QZS = 7.2921151467e-5;             % QZSS    Angular velocity of the Earth rotation [rad/s]
+        
+        J2_GLO = 1.0826257e-3;                        % GLONASS second zonal harmonic of the geopotential
+                
+        PI_ORBIT = 3.1415926535898;                   % pi value used for orbit computation
+        CIRCLE_RAD = 2*goGNSS.PI_ORBIT;               % 2 pi
+        
+        % CONSTELLATION SPECIFIC ------------------------------------------        
+        
+        FG = [1575.420 1227.600]*1e6;                 % GPS carriers frequencies [Hz]
+        LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;        % GPS carriers wavelengths [m]
         
         % CONSTELLATIONS IDs ----------------------------------------------
         
@@ -134,8 +172,7 @@ classdef goGNSS < handle
         function lambda1 = LAMBDA1()
         % GPS carriers frequency 1 [Hz]
             lambda1 = goGNSS.LAMBDAG(1);
-        end
-        
+        end        
         function lambda2 = LAMBDA2()
         % GPS carriers frequency 2 [Hz]
             lambda2 = goGNSS.LAMBDAG(2);        

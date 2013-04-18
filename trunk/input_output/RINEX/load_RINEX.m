@@ -85,6 +85,7 @@ end
 if (isempty(constellations)) %then use only GPS as default
     [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
 end
+tic;
 
 %number of satellite slots for enabled constellations
 nSatTot = constellations.nEnabledSat;
@@ -581,3 +582,5 @@ end
 %GPS week number
 week_R = date2gps(date_R);
 week_M = date2gps(date_M);
+fprintf('The RINEX file has been read!\n');
+toc
