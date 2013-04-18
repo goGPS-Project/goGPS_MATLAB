@@ -111,11 +111,11 @@ while (eof==0)
             %remove 'blank spaces' and unwanted characters at the end of the string
             lin = RemoveUnwantedTrailingSpaces(lin);
             
-            %add the second line in case there are more than 12 satellites
-            if (num_sat > 12)
-                %lin_add = fgetl(fid);
-                %lin_add = ExtractSubstring(lin_add, 33, 68);
+            %read additional lines, depending on the number of satellites
+            nlines = ceil(num_sat/12);
+            for n = 1 : nlines - 1
                 lin = [lin ExtractSubstring(fgetl(fid), 33, 68)];
+                lin = RemoveUnwantedTrailingSpaces(lin);
             end
             
             pos = 1;
