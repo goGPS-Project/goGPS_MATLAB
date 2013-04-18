@@ -58,23 +58,6 @@ mode_user = 1;  % user interface type
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
-%load multi-constellation settings and initialize 'constellations' struct
-GPS_flag = 1;
-GLO_flag = 0;
-GAL_flag = 0;
-BDS_flag = 0;
-QZS_flag = 0;
-SBS_flag = 0;
-[constellations] = multi_constellation_settings(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
-nSatTot = constellations.nEnabledSat;
-if (nSatTot == 0)
-    fprintf('No constellations selected, setting default: GPS-only processing\n');
-    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
-end
-
-%initialization of global variables/constants
-global_init;
-
 global order o1 o2 o3 h_antenna cutoff weights
 
 % Set global variable for goGPS obj mode
@@ -167,6 +150,23 @@ end
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
+
+%load multi-constellation settings and initialize 'constellations' struct
+GPS_flag = goIni.getData('Constellations','GPS');
+GLO_flag = goIni.getData('Constellations','GLONASS');
+GAL_flag = goIni.getData('Constellations','Galileo');
+BDS_flag = goIni.getData('Constellations','BeiDou');
+QZS_flag = goIni.getData('Constellations','QZSS');
+SBS_flag = goIni.getData('Constellations','SBAS');
+[constellations] = multi_constellation_settings(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+nSatTot = constellations.nEnabledSat;
+if (nSatTot == 0)
+    fprintf('No constellations selected, setting default: GPS-only processing\n');
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
+
+%initialization of global variables/constants
+global_init;
 
 % start evaluating computation time
 tic
@@ -788,8 +788,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     for tExt = 1:stepUpdate:(length(time_GPS)-(time_step))
         for t = tExt:min(tExt+stepUpdate-1,length(time_GPS)-(time_step))
             if (mode_data == 0)
-                Eph_t = rt_find_eph (Eph, time_GPS(t));
-                Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step));
+                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+                Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step), nSatTot);
             else
                 Eph_t = Eph(:,:,t+time_step);
                 Eph_t1 = Eph(:,:,t+time_step);
@@ -2370,7 +2370,7 @@ end
 % REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
 %----------------------------------------------------------------------------------------------
 
-if (mode ~= goGNSS.MODE_PP_LS_CP_VEL)    
+if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode))    
     figure
     epochs = (time_GPS-time_GPS(1))/interval;
     ax(1) = subplot(3,1,1); hold on; grid on
