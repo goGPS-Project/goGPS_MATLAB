@@ -1721,6 +1721,7 @@ classdef goGUIclass < handle
                 if (obj.isLambda3Par())
                     obj.setElStatus([obj.idUI.tP0], 1, 0);
                     obj.setElStatus([obj.idUI.nP0], 1, 0);
+                    obj.setElStatus([obj.idUI.cP0], 1, 0);
                 end
             end
             

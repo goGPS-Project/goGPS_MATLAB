@@ -364,9 +364,9 @@ end
 % LAMBDA
 %-------------------------------------------------------------------------------
 
-global ratiotest mutest succ_rate
+global ratiotest mutest succ_rate fixed_solution
 
 ratiotest = [];
 mutest = [];
 succ_rate = [];
-
+fixed_solution = [];

@@ -803,6 +803,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
                 vel_pos(ind,:)=Xhat_t_t;
                 Cee_dummy = Cee;
                 %         fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n', Xhat_t_t );
+                if (t == 1)
+                    fwrite(fid_sat, nSatTot, 'int8');
+                    fwrite(fid_conf, nSatTot, 'int8');
+                end
                 fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
                 fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
@@ -1220,15 +1224,19 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
     for t = 1 : length(time_GPS)
 
         if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t));
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
         else
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3_time, SP3_coor, SP3_clck, iono, 1, flag_IAR);
-
+        goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, 1, flag_IAR);
+        
         if ~isempty(Xhat_t_t) & ~isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)])
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+            if (t == 1)
+                fwrite(fid_sat, nSatTot, 'int8');
+                fwrite(fid_conf, nSatTot, 'int8');
+            end
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
@@ -1750,8 +1758,8 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     pos_KAL = zeros(3,nObs);
     pos_REF = zeros(3,nObs);
     stat_SC = zeros(2,nObs);
-    if (~isempty(ratiotest) && any(~isnan(ratiotest)))
-        fixed_amb = ratiotest <= mutest;
+    if (any(fixed_solution))
+        fixed_amb = fixed_solution;
     else
         fixed_amb = zeros(1,nObs);
         succ_rate = zeros(1,nObs);
