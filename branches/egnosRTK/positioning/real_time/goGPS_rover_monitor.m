@@ -394,8 +394,11 @@ dop_R_old = zeros(32,1);
 %for SkyTraq
 IOD_time = -1;
 
+contador = 0;
+
 %infinite loop
 while flag
+
 
     if (flag_stopGOstop)
         % mode management
@@ -450,6 +453,7 @@ while flag
             nHUI = 0;
             nTRACK  = 0;
             nTIM = 0;
+            nSBAS = 0;
 
             for i = 1 : size(cell_rover,2)
 
@@ -471,6 +475,7 @@ while flag
                     pr_R   = cell_rover{3,i}(:,2);
                     dop_R  = cell_rover{3,i}(:,3);
                     snr_R  = cell_rover{3,i}(:,6);
+                    contador = contador+1;  %************************************** Remove
 
                     %u-blox specific fields
                     if (protocol(r) == 0)
@@ -623,7 +628,7 @@ while flag
                     time_aug = cell_rover{2,i}(1);
                     pr_cor   = cell_rover{3,i}(:,7);
                     iono_cor = cell_rover{3,i}(:,9);
-                    keyboard
+%                     keyboard
                     
                     if (nSBAS == 0)
                         type = [type prot_par{r}{7,2} ' '];
