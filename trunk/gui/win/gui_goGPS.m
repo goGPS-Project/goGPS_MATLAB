@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 19-Apr-2013 12:12:09
+% Last Modified by GUIDE v2.5 19-Apr-2013 20:03:23
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -1489,17 +1489,7 @@ function cLAMBDA_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of cLAMBDA
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cLAMBDA);
-
-% --- Executes on button press in cMu.
-function cMu_Callback(hObject, eventdata, handles)
-% hObject    handle to cMu (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hint: get(hObject,'Value') returns toggle state of cMu
-global goGUI;
-    goGUI.syncFromGUI(goGUI.idUI.cMu);
-    
+ 
 % --- Executes on selection change in lLAMBDAMethod.
 function lLAMBDAMethod_Callback(hObject, eventdata, handles)
 % hObject    handle to lLAMBDAMethod (see GCBO)
