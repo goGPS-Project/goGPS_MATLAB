@@ -362,9 +362,9 @@ classdef IniReader < handle
         % Get data --------------------------------------------------------        
         function data = getData(obj, section, key)
             % Get the value of a specified key
-            if (~obj.getReadStatus())
-                obj.printWarning('File not yet read!\n');
-                obj.readFile();
+            if (~obj.getReadStatus() && isempty(obj.section))
+               obj.printWarning('File not yet read!\n');
+               obj.readFile();
             end
             
             data = [];
@@ -454,6 +454,13 @@ classdef IniReader < handle
             end
         end
         
+        % Add a data to the object giving key and section -----------------
+        function addData(obj, section, key, data)
+            % Add a data to the object
+            obj.addSection(section)
+            obj.addKey(section, key, data)
+        end
+
         % Remove a section from the object IniReader ----------------------
         function rmSection(obj, section)
             % Remove a section from the object IniReader
@@ -611,7 +618,7 @@ classdef IniReader < handle
                 end                
             end
             
-            if (~obj.getReadStatus())
+            if (~obj.getReadStatus() && isempty(obj.section))
                 obj.printWarning('File not yet read!\n');
                 obj.readFile();
             end

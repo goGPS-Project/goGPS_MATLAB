@@ -1,4 +1,4 @@
-function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop)
+function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop, rate)
 
 % SYNTAX:
 %   goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop);
@@ -8,6 +8,7 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 %   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq)
 %   flag_var_dyn_model = enable / disable variable dynamic model
 %   flag_stopGOstop    = enable / disable stop-go-stop procedure for direction estimation
+%   rate = measurement rate to be set (default = 1 Hz)
 %
 % DESCRIPTION:
 %   Monitor of receiver operations: stream reading, data visualization 
@@ -39,6 +40,10 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 global COMportR
 global rover
 global order
+
+if nargin == 4
+    rate = 1;
+end
 
 %------------------------------------------------------
 % read protocol parameters
@@ -162,7 +167,7 @@ for r = 1 : nrec
         % only one connection can be opened in writing mode
         fopen(rover{r});
 
-        [rover{r}, reply_save] = configure_ublox(rover{r}, COMportR{r}, prot_par{r}, 1);
+        [rover{r}, reply_save] = configure_ublox(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
@@ -177,7 +182,7 @@ for r = 1 : nrec
         % only one connection can be opened in writing mode
         fopen(rover{r});
         
-        [rover{r}] = configure_fastrax(rover{r}, COMportR{r}, prot_par{r}, 1);
+        [rover{r}] = configure_fastrax(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
@@ -192,7 +197,7 @@ for r = 1 : nrec
         % only one connection can be opened in writing mode
         fopen(rover{r});
 
-        [rover{r}] = configure_skytraq(rover{r}, COMportR{r}, prot_par{r}, 1);
+        [rover{r}] = configure_skytraq(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
@@ -370,7 +375,7 @@ end
 flag = 1;
 setappdata(gcf, 'run', flag);
 
-if (flag_var_dyn_model) & (~flag_stopGOstop)
+if (flag_var_dyn_model) && (~flag_stopGOstop)
     if order == 1
         set(h1, 'SelectedObject', u1)
     elseif order == 2
@@ -422,7 +427,7 @@ while flag
         rover_2 = get(rover{r},'BytesAvailable');
 
         %test if the package writing is finished
-        if (rover_1 == rover_2) & (rover_1 ~= 0)
+        if (rover_1 == rover_2) && (rover_1 ~= 0)
 
             data_rover = fread(rover{r},rover_1,'uint8');     %serial port reading
             fwrite(fid_rover{r},data_rover,'uint8');          %transmitted stream save
@@ -518,12 +523,12 @@ while flag
 
                     %if all the visible satellites ephemerides have been transmitted
                     %and the total number of satellites is >= 4
-                    if (ismember(satObs,satEph)) & (length(satObs) >= 4)
+                    if (sum(ismember(satObs,satEph)))>1 && (length(satObs) >= 4)
 
                         %data save
                         fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                         fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
-                        if (flag_var_dyn_model) | (flag_stopGOstop)
+                        if (flag_var_dyn_model) || (flag_stopGOstop)
                             fwrite(fid_dyn{r}, order, 'int8');
                         end
                     end
@@ -573,12 +578,12 @@ while flag
                         
                         %if all the visible satellites ephemerides have been transmitted
                         %and the total number of satellites is >= 4
-                        if (ismember(satObs,satEph)) & (length(satObs) >= 4)
+                        if (ismember(satObs,satEph)) && (length(satObs) >= 4)
                             
                             %data save
                             fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                             fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
-                            if (flag_var_dyn_model) | (flag_stopGOstop)
+                            if (flag_var_dyn_model) || (flag_stopGOstop)
                                 fwrite(fid_dyn{r}, order, 'int8');
                             end
                         end
@@ -601,7 +606,7 @@ while flag
                     %satellite number
                     sat = cell_rover{2,i}(1);
 
-                    if (~isempty(sat) & sat > 0)
+                    if (~isempty(sat) && sat > 0)
                         Eph{r}(:, sat) = cell_rover{2,i}(:);
                     end
 
@@ -723,7 +728,7 @@ while flag
     flag = getappdata(gcf, 'run');
     drawnow
     
-    if (flag_var_dyn_model) & (~flag_stopGOstop)
+    if (flag_var_dyn_model) && (~flag_stopGOstop)
         % check the changing of kalman filter model
         if get(h1, 'SelectedObject') == u1
             order = 1;
@@ -793,7 +798,7 @@ for r = 1 : nrec
     fclose(fid_obs{r});
     fclose(fid_eph{r});
     fclose(fid_nmea{r});
-    if (flag_var_dyn_model) | (flag_stopGOstop)
+    if (flag_var_dyn_model) || (flag_stopGOstop)
         fclose(fid_dyn{r});
     end
 end

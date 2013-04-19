@@ -28,68 +28,68 @@
 % CONSTANTS
 %-------------------------------------------------------------------------------
 
-global v_light
-global f1 f2
-global lambda1 lambda2
-global a_GPS a_GLO f_GPS e_GPS
-global GM_GPS GM_GLO GM_GAL GM_BDS GM_QZS
-global Omegae_dot_GPS Omegae_dot_GLO Omegae_dot_GAL Omegae_dot_BDS Omegae_dot_QZS
-global J2_GLO
-global circle_rad
+%global v_light
+%global f1 f2
+%global lambda1 lambda2
+%global a_GPS a_GLO f_GPS e_GPS
+%global GM_GPS GM_GLO GM_GAL GM_BDS GM_QZS
+%global Omegae_dot_GPS Omegae_dot_GLO Omegae_dot_GAL Omegae_dot_BDS Omegae_dot_QZS
+%global J2_GLO
+%global circle_rad
 
-%velocity of light in the void
-v_light = 299792458; % [m/s]
+% %velocity of light in the void
+% v_light = 299792458; % [m/s]
+% 
+% %GPS carriers frequencies
+% f1 = 1575420000; % [1/s]
+% f2 = 1227600000; % [1/s]
+% 
+% %GPS carriers wavelengths
+% lambda1 = v_light / f1; % [m]
+% lambda2 = v_light / f2; % [m]
+% 
+% %CRS parameters, according to each GNSS system CRS definition
+% % (ICD document in brackets):
+% %
+% % *_GPS --> WGS-84  (IS-GPS200E)
+% % *_GLO --> PZ-90   (GLONASS-ICD 5.1)
+% % *_GAL --> GTRF    (Galileo-ICD 1.1)
+% % *_BDS --> CSG2000 (BeiDou-ICD 1.0)
+% % *_QZS --> WGS-84  (IS-QZSS 1.5D)
+% 
+% %ellipsoid semi-major axis [m]
+% a_GPS = 6378137;
+% a_GLO = 6378136;
+% % a_GAL = 6378137;
+% % a_BDS = 6378137;
+% % a_QZS = 6378137;
+% 
+% %ellipsoid flattening
+% f_GPS = 1/298.257223563;
+% 
+% %eccentricity
+% e_GPS = sqrt(1-(1-f_GPS)^2);
+% 
+% %gravitational constant (mass of Earth) [m^3/s^2]
+% GM_GPS = 3.986005e14;    
+% GM_GLO = 3.9860044e14;
+% GM_GAL = 3.986004418e14; 
+% GM_BDS = 3.986004418e14;
+% GM_QZS = 3.986005e14;
+% 
+% %angular velocity of the Earth rotation [rad/s]
+% Omegae_dot_GPS = 7.2921151467e-5;
+% Omegae_dot_GLO = 7.292115e-5;
+% Omegae_dot_GAL = 7.2921151467e-5;
+% Omegae_dot_BDS = 7.292115e-5;
+% Omegae_dot_QZS = 7.2921151467e-5;
+% 
+% %second zonal harmonic of the geopotential
+% J2_GLO = 1.0826257e-3;
 
-%GPS carriers frequencies
-f1 = 1575420000; % [1/s]
-f2 = 1227600000; % [1/s]
-
-%GPS carriers wavelengths
-lambda1 = v_light / f1; % [m]
-lambda2 = v_light / f2; % [m]
-
-%CRS parameters, according to each GNSS system CRS definition
-% (ICD document in brackets):
-%
-% *_GPS --> WGS-84  (IS-GPS200E)
-% *_GLO --> PZ-90   (GLONASS-ICD 5.1)
-% *_GAL --> GTRF    (Galileo-ICD 1.1)
-% *_BDS --> CSG2000 (BeiDou-ICD 1.0)
-% *_QZS --> WGS-84  (IS-QZSS 1.5D)
-
-%ellipsoid semi-major axis [m]
-a_GPS = 6378137;
-a_GLO = 6378136;
-% a_GAL = 6378137;
-% a_BDS = 6378137;
-% a_QZS = 6378137;
-
-%ellipsoid flattening
-f_GPS = 1/298.257223563;
-
-%eccentricity
-e_GPS = sqrt(1-(1-f_GPS)^2);
-
-%gravitational constant (mass of Earth) [m^3/s^2]
-GM_GPS = 3.986005e14;    
-GM_GLO = 3.9860044e14;
-GM_GAL = 3.986004418e14; 
-GM_BDS = 3.986004418e14;
-GM_QZS = 3.986005e14;
-
-%angular velocity of the Earth rotation [rad/s]
-Omegae_dot_GPS = 7.2921151467e-5;
-Omegae_dot_GLO = 7.292115e-5;
-Omegae_dot_GAL = 7.2921151467e-5;
-Omegae_dot_BDS = 7.292115e-5;
-Omegae_dot_QZS = 7.2921151467e-5;
-
-%second zonal harmonic of the geopotential
-J2_GLO = 1.0826257e-3;
-
-%pi value used for orbit computation
-pi_orbit   = 3.1415926535898;
-circle_rad = 2*pi_orbit;
+% %pi value used for orbit computation
+% pi_orbit   = 3.1415926535898;
+% circle_rad = 2*pi_orbit;
 
 %-------------------------------------------------------------------------------
 % SATELLITE CONFIGURATION
