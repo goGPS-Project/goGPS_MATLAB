@@ -211,7 +211,8 @@ end
 for r = 1 : nrec
     fopen(rover{r});
 end
-
+pause(0.1);
+ 
 %------------------------------------------------------
 % absolute time startup
 %------------------------------------------------------
@@ -240,8 +241,9 @@ rover_1 = zeros(nrec,1);
 rover_2 = zeros(nrec,1);
 
 %starting epoch determination
-while (sum(test) > 0)
-
+nTry = 0;
+while (sum(test) > 0) && (nTry < 100)
+    nTry = nTry + 1;
     %starting time
     current_time = toc;
 
@@ -249,7 +251,7 @@ while (sum(test) > 0)
 
         %serial port checking
         rover_1(r) = get(rover{r},'BytesAvailable');
-        pause(0.05);
+        pause(0.1);
         rover_2(r) = get(rover{r},'BytesAvailable');
 
         %test condition
@@ -258,6 +260,14 @@ while (sum(test) > 0)
         %visualization
         fprintf([prot_par{r}{1,1} '(' num2str(r) ')' ': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1(r), rover_2(r));
     end
+end
+
+if nTry >=100
+    fprintf('ERROR: No byte received, closing connections!\n');
+    for r = 1 : nrec
+        fclose(rover{r});
+    end
+    return
 end
 
 %clear serial ports (data not decoded)
@@ -279,7 +289,9 @@ rover_1 = zeros(nrec,1);
 rover_2 = zeros(nrec,1);
 
 %starting epoch determination
-while (sum(test) > 0)
+nTry = 0;
+while (sum(test) > 0) && (nTry < 100)
+    nTry = nTry + 1;
 
     %starting time
     current_time = toc;
@@ -297,6 +309,14 @@ while (sum(test) > 0)
         %visualization
         fprintf([prot_par{r}{1,1} '(' num2str(r) ')' ': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1(r), rover_2(r));
     end
+end
+
+if nTry >=100
+    fprintf('ERROR: No byte received, closing connections!\n');
+    for r = 1 : nrec
+        fclose(rover{r});
+    end
+    return
 end
 
 %clear the serial port (data not decoded)
