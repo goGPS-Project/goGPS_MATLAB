@@ -383,7 +383,7 @@ if (~isempty(data_rover_all))
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
-                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], [], [], iono(:,i), [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
+                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
             end
             i = i + 1;
         end
