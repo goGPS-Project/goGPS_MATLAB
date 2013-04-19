@@ -158,7 +158,7 @@ GAL_flag = goIni.getData('Constellations','Galileo');
 BDS_flag = goIni.getData('Constellations','BeiDou');
 QZS_flag = goIni.getData('Constellations','QZSS');
 SBS_flag = goIni.getData('Constellations','SBAS');
-[constellations] = multi_constellation_settings(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+[constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
