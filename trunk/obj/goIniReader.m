@@ -71,6 +71,20 @@ classdef goIniReader < IniReader
             % Get the number of receiver in the INI
             nR = obj.getData('Receivers','nRec');
         end
+        
+        function rate = getCaptureRate(obj)
+            % Get the sampling rate (Hz) to be used in monitor mode
+            rate = obj.getData('Monitor', 'rate');
+            if isempty(rate)
+                rate = 1;
+            end
+        end
+        
+        function setCaptureRate(obj, rate)
+            % Set the sampling rate (Hz) to be used in monitor mode
+            rate = str2double(rate(1:2));
+            obj.addData('Monitor', 'rate', rate);
+        end
                 
         function [dataPath fileName nR] = getRecFiles(obj)
             % Get the dataPath containing the files, file names and number of available receivers

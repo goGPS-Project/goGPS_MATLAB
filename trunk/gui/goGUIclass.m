@@ -836,7 +836,8 @@ classdef goGUIclass < handle
             
             i=i+1; id.tnPorts       = i;    id2h(i) = obj.goh.text_num_receivers;
             i=i+1; id.lnPorts       = i;    id2h(i) = obj.goh.num_receivers;
-            
+            i=i+1; id.lRate         = i;    id2h(i) = obj.goh.pumCaptureRate;            
+                    
             idG.nPorts = [id.tnPorts id.lnPorts];
             
             i=i+1; id.lPort0        = i;    id2h(i) = obj.goh.com_select_0;
@@ -932,7 +933,8 @@ classdef goGUIclass < handle
                             idG.pMSt idG.pMS id.pPorts idG.lPort0];
           
             % On Real Time => Rover Monitor
-            idG.onRT_RMon = [idG.onRealTime idG.pAvailableGNSSPhase ...
+            idG.onRT_RMon = [idG.onRealTime id.lRate idG.pAvailableGNSSPhase ...
+                             idG.pDynModel ...
                              id.pOptions id.cUse_SBAS ...
                              id.pPorts idG.nPorts idG.lPort0];
 
@@ -943,6 +945,7 @@ classdef goGUIclass < handle
 
             % On Real Time => Master + Rover Monitor
             idG.onRT_RMMon = [idG.onRealTime idG.pAvailableGNSSPhase ...
+                              idG.pDynModel ...
                               id.pOptions id.cUseNTRIP id.cUse_SBAS ...
                               id.pPorts idG.nPorts idG.lPort0...
                               idG.pMS_NTRIP];
@@ -1960,6 +1963,7 @@ classdef goGUIclass < handle
                 obj.showPassword();
             end
 
+            
           %   BUTTONS
           % ---------------------------------------------------------------
                         
@@ -2506,6 +2510,9 @@ classdef goGUIclass < handle
             %   SETTINGS - PORTS
             % ===============================================================
             
+            if (isfield(state,'captureRate'))
+                obj.setElVal(obj.idUI.lRate, state.captureRate, 0);
+            end
             [s0 s1 s2 s3] = obj.getPortValues(state.com_select_0, state.com_select_1, state.com_select_2, state.com_select_3);
             
             obj.setElVal(obj.idUI.lnPorts, state.num_receivers, 0);
@@ -2648,6 +2655,7 @@ classdef goGUIclass < handle
             %   SETTINGS - PORTS
             % ===============================================================
             
+            state.captureRate       = get(obj.goh.pumCaptureRate,'Value');
             state.num_receivers     = obj.getElVal(obj.idUI.lnPorts);
             contents = cellstr(get(obj.goh.com_select_0,'String'));
             state.com_select_0 = contents{get(obj.goh.com_select_0,'Value')};
@@ -2900,6 +2908,8 @@ classdef goGUIclass < handle
                 filename_nav = '';
                 filename_ref = '';
                 flag_SP3 = 0;
+                rates = get(obj.goh.pumCaptureRate,'String');                
+                goIni.setCaptureRate(rates{get(obj.goh.pumCaptureRate,'Value')});
             end
             
             contents = cellstr(get(obj.goh.crs,'String'));
