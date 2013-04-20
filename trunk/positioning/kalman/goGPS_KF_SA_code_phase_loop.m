@@ -63,7 +63,7 @@ global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
-global ratiotest mutest succ_rate
+global ratiotest mutest succ_rate fixed_solution
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -614,6 +614,7 @@ else
     ratiotest = [ratiotest NaN];
     mutest    = [mutest NaN];
     succ_rate = [succ_rate NaN];
+    fixed_solution = [fixed_solution 0];
 end
 
 %--------------------------------------------------------------------------------------------
