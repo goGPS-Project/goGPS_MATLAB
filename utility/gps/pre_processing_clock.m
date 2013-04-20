@@ -162,7 +162,7 @@ time_desync = time_ref - time;
 %reference time "correction"
 time_ref(index_e) = time(index_e) + dtR(index_e) + time_desync(index_e);
 
-for s = 1 : 32
+for s = 1 : nSatTot
 
     if (any(pr1(s,:)))
 
