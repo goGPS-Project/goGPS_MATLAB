@@ -219,11 +219,13 @@ if goGNSS.isPP(mode) % post-processing
         
         if goGNSS.isSA(mode) % absolute positioning
 
+%[pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M,     dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M,     snr2_R, snr2_M, time_GPS, time_R, time_M, week_R, week_M,     date_R, date_M, pos_R, pos_M, Eph, iono, interval] =     goGNSS.loadRINEX(filename_nav, filename_R_obs, [], constellations, flag_SP3);
+%[pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M,     dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M,     snr2_R, snr2_M, time_GPS, time_R, time_M, week_R, week_M,     date_R, date_M, pos_R, pos_M, Eph, iono, interval] =     load_RINEX(filename_nav, filename_R_obs, [], constellations, flag_SP3);
             [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
                 dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
                 snr2_R, snr2_M, time_GPS, time_R, time_M, week_R, week_M, ...
                 date_R, date_M, pos_R, pos_M, Eph, iono, interval] = ...
-                load_RINEX(filename_nav, filename_R_obs, [], constellations, flag_SP3);
+                goGNSS.loadRINEX(filename_nav, filename_R_obs, [], constellations, flag_SP3);
             
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
@@ -235,7 +237,7 @@ if goGNSS.isPP(mode) % post-processing
                 dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
                 snr2_R, snr2_M, time_GPS, time_R, time_M, week_R, week_M, ...
                 date_R, date_M, pos_R, pos_M, Eph, iono, interval] = ...
-                load_RINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3);
+                goGNSS.loadRINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3);
             
             %pre-processing
             fprintf('Pre-processing rover observations...\n');

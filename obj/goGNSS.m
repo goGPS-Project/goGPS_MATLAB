@@ -280,6 +280,529 @@ classdef goGNSS < handle
             XR = b(1:3);
             dtR = b(4)/goGNSS.V_LIGHT;
         end
+        
+        function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
+                dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
+                snr2_R, snr2_M, time, time_R, time_M, week_R, week_M, ...
+                date_R, date_M, pos_R, pos_M, Eph, iono, interval] = ...
+                loadRINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3, wait_dlg)
+            
+            % Check the input arguments
+            if (nargin < 6)
+                wait_dlg_PresenceFlag = false;
+            else
+                wait_dlg_PresenceFlag = true;
+            end
+            if (isempty(filename_M_obs))
+                filename_M_obs_PresenceFlag = false;
+            else
+                filename_M_obs_PresenceFlag = true;
+            end
+            if (isempty(constellations)) %then use only GPS as default
+                [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+            end
+            tic;
+            
+            %number of satellite slots for enabled constellations
+            nSatTot = constellations.nEnabledSat;
+            
+            %fraction of INTERVAL (epoch-to-epoch timespan, as specified in the header)
+            %that is allowed as maximum difference between rover and master timings
+            %during synchronization
+            max_desync_frac = 0.1;
+            
+            %read navigation files
+            if (~flag_SP3)
+                if (wait_dlg_PresenceFlag)
+                    waitbar(0.5,wait_dlg,'Reading navigation files...')
+                end
+                
+                Eph_G = []; iono_G = zeros(8,1);
+                Eph_R = []; iono_R = zeros(8,1);
+                Eph_E = []; iono_E = zeros(8,1);
+                Eph_C = []; iono_C = zeros(8,1);
+                Eph_J = []; iono_J = zeros(8,1);
+                
+                if (strcmpi(filename_nav(end),'p'))
+                    flag_mixed = 1;
+                else
+                    flag_mixed = 0;
+                end
+                
+                if (constellations.GPS.enabled || flag_mixed)
+                    if (exist(filename_nav,'file'))
+                        %parse RINEX navigation file (GPS) NOTE: filename expected to
+                        %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
+                        [Eph_G, iono_G] = RINEX_get_nav(filename_nav, constellations);
+                    else
+                        fprintf('Warning: GPS navigation file not found. Disabling GPS positioning. \n');
+                        constellations.GPS.enabled = 0;
+                    end
+                end
+                
+                if (constellations.GLONASS.enabled)
+                    if (exist([filename_nav(1:end-1) 'g'],'file'))
+                        %parse RINEX navigation file (GLONASS)
+                        [Eph_R, iono_R] = RINEX_get_nav([filename_nav(1:end-1) 'g'], constellations);
+                    elseif (~flag_mixed)
+                        fprintf('Warning: GLONASS navigation file not found. Disabling GLONASS positioning. \n');
+                        constellations.GLONASS.enabled = 0;
+                    end
+                end
+                
+                if (constellations.Galileo.enabled)
+                    if (exist([filename_nav(1:end-1) 'l'],'file'))
+                        %parse RINEX navigation file (Galileo)
+                        [Eph_E, iono_E] = RINEX_get_nav([filename_nav(1:end-1) 'l'], constellations);
+                    elseif (~flag_mixed)
+                        fprintf('Warning: Galileo navigation file not found. Disabling Galileo positioning. \n');
+                        constellations.Galileo.enabled = 0;
+                    end
+                end
+                
+                if (constellations.BeiDou.enabled)
+                    if (exist([filename_nav(1:end-1) 'b'],'file'))
+                        parse RINEX navigation file (BeiDou)
+                        [Eph_C, iono_C] = RINEX_get_nav([filename_nav(1:end-1) 'b'], constellations);
+                    elseif (~flag_mixed)
+                        fprintf('Warning: BeiDou navigation file not found. Disabling BeiDou positioning. \n');
+                        constellations.BeiDou.enabled = 0;
+                    end
+                end
+                
+                if (constellations.QZSS.enabled)
+                    if (exist([filename_nav(1:end-1) 'q'],'file'))
+                        %parse RINEX navigation file (QZSS)
+                        [Eph_J, iono_J] = RINEX_get_nav([filename_nav(1:end-1) 'q'], constellations);
+                    elseif (~flag_mixed)
+                        fprintf('Warning: QZSS navigation file not found. Disabling QZSS positioning. \n');
+                        constellations.QZSS.enabled = 0;
+                    end
+                end
+                
+                Eph = [Eph_G Eph_R Eph_E Eph_C Eph_J];
+                
+                if (any(iono_G))
+                    iono = iono_G;
+                elseif (any(iono_R))
+                    iono = iono_R;
+                elseif (any(iono_E))
+                    iono = iono_E;
+                elseif (any(iono_C))
+                    iono = iono_C;
+                elseif (any(iono_J))
+                    iono = iono_J;
+                else
+                    iono = zeros(8,1);
+                    fprintf('Warning: ionosphere parameters not found in navigation file(s).\n');
+                end
+                
+                if (wait_dlg_PresenceFlag)
+                    waitbar(1,wait_dlg)
+                end
+            else
+                Eph = zeros(31,nSatTot);
+                iono = zeros(8,1);
+            end
+            
+            %-------------------------------------------------------------------------------
+            
+            %open RINEX observation file (ROVER)
+            FR_oss = fopen(filename_R_obs,'r');
+            txtRin = textscan(FR_oss,'%s','Delimiter','\n','whitespace','');
+            txtRin = txtRin{1};
+            fclose(FR_oss);
+            
+            if (filename_M_obs_PresenceFlag)
+                %open RINEX observation file (MASTER)
+                FM_oss = fopen(filename_M_obs,'r');
+            end
+            
+            %-------------------------------------------------------------------------------
+            
+            if (wait_dlg_PresenceFlag)
+                waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
+            end
+            
+            %parse RINEX header
+            [obs_typ_R, pos_R, info_base_R, interval_R, sysId, line] = goGNSS.RinParseHDR(txtRin);
+            
+            %check RINEX version
+            if (isempty(sysId))
+                RINEX_version = 2;
+            else
+                RINEX_version = 3;
+            end
+            
+            %check the availability of basic data to parse the RINEX file (ROVER)
+            if (info_base_R == 0)
+                error('Basic data is missing in the ROVER RINEX header')
+            end
+            
+            %find observation type columns
+            [obs_col_R, nObsTypes_R] = goGNSS.obs_type_find(obs_typ_R, sysId);
+            
+            %number of lines to be read for each epoch (only for RINEX v2.xx)
+            if (RINEX_version == 2)
+                nLinesToRead_R = ceil(nObsTypes_R/5);  %maximum of 5 obs per line
+            end
+            
+            if (filename_M_obs_PresenceFlag)
+                [obs_typ_M, pos_M, info_base_M, interval_M, sysId] = RINEX_parse_hdr(FM_oss);
+                
+                %check the availability of basic data to parse the RINEX file (MASTER)
+                if (info_base_M == 0)
+                    error('Basic data is missing in the ROVER RINEX header')
+                end
+                
+                %find observation type columns
+                [obs_col_M, nObsTypes_M] = obs_type_find(obs_typ_M, sysId);
+                
+                %number of lines to be read for each epoch (only for RINEX v2.xx)
+                if (~isstruct(nObsTypes_M))
+                    nLinesToRead_M = ceil(nObsTypes_M/5);  %maximum of 5 obs per line
+                end
+            else
+                pos_M = zeros(3,1);
+                interval_M = [];
+            end
+            
+            if (wait_dlg_PresenceFlag)
+                waitbar(1,wait_dlg)
+            end
+            
+            interval = min([interval_R, interval_M]);
+            
+            %-------------------------------------------------------------------------------
+            
+            nEpochs = 10800;
+            
+            %variable initialization (GPS)
+            time_R = zeros(nEpochs,1);
+            time_M = zeros(nEpochs,1);
+            pr1_R = zeros(nSatTot,nEpochs);
+            pr2_R = zeros(nSatTot,nEpochs);
+            ph1_R = zeros(nSatTot,nEpochs);
+            ph2_R = zeros(nSatTot,nEpochs);
+            dop1_R = zeros(nSatTot,nEpochs);
+            dop2_R = zeros(nSatTot,nEpochs);
+            snr1_R = zeros(nSatTot,nEpochs);
+            snr2_R = zeros(nSatTot,nEpochs);
+            pr1_M = zeros(nSatTot,nEpochs);
+            pr2_M = zeros(nSatTot,nEpochs);
+            ph1_M = zeros(nSatTot,nEpochs);
+            ph2_M = zeros(nSatTot,nEpochs);
+            snr1_M = zeros(nSatTot,nEpochs);
+            snr2_M = zeros(nSatTot,nEpochs);
+            dop1_M = zeros(nSatTot,nEpochs);
+            dop2_M = zeros(nSatTot,nEpochs);
+            date_R = zeros(nEpochs,6);
+            date_M = zeros(nEpochs,6);
+            
+            %read data for the first epoch (ROVER)
+            [time_R(1), epoch_R, num_sat_R, sat_R, sat_types_R, line] = goGNSS.RinGetEpoch(txtRin, line);
+            
+            %-------------------------------------------------------------------------------
+            
+            if (filename_M_obs_PresenceFlag)
+                %read data for the first epoch (MASTER)
+                [time_M(1), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+            end
+            %-------------------------------------------------------------------------------
+            
+            if (wait_dlg_PresenceFlag)
+                waitbar(0.5,wait_dlg,'Parsing RINEX headers...')
+            end
+            
+            if (filename_M_obs_PresenceFlag)
+                while ((time_M(1) - time_R(1)) < 0 && abs(time_M(1) - time_R(1)) >= max_desync_frac*interval)
+                    
+                    %number of lines to be skipped
+                    if (RINEX_version == 2)
+                        nSkipLines = num_sat_M*nLinesToRead_M;
+                    else
+                        nSkipLines = num_sat_M;
+                    end
+                    
+                    %skip observations
+                    for s = 1 : nSkipLines
+                        fgetl(FM_oss);
+                    end
+                    
+                    %read data for the current epoch (MASTER)
+                    [time_M(1), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+                end
+                
+                while ((time_R(1) - time_M(1)) < 0 && abs(time_R(1) - time_M(1)) >= max_desync_frac*interval)
+                    
+                    %number of lines to be skipped
+                    if (RINEX_version == 2)
+                        nSkipLines = num_sat_R*nLinesToRead_R;
+                    else
+                        nSkipLines = num_sat_R;
+                    end
+                    
+                    %skip observations
+                    for s = 1 : nSkipLines
+                        fgetl(FR_oss);
+                    end
+                    
+                    %read data for the current epoch (ROVER)
+                    [time_R(1), epoch_R, num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
+                end
+            end
+            
+            %read first batch of observations
+            %ROVER
+            [obs_R, line] = goGNSS.RinGetObs(txtRin, line, num_sat_R, sat_R, sat_types_R, obs_col_R, nObsTypes_R, constellations);
+            
+            %read ROVER observations
+            if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
+                pr1_R(:,1) = obs_R.P1;
+            else
+                pr1_R(:,1) = obs_R.C1;
+            end
+            pr2_R(:,1) = obs_R.P2;
+            ph1_R(:,1) = obs_R.L1;
+            ph2_R(:,1) = obs_R.L2;
+            dop1_R(:,1) = obs_R.D1;
+            dop2_R(:,1) = obs_R.D2;
+            snr1_R(:,1) = obs_R.S1;
+            snr2_R(:,1) = obs_R.S2;
+            
+            if (filename_M_obs_PresenceFlag)
+                %MASTER
+                obs_M = RINEX_get_obs(FM_oss, num_sat_M, sat_M, sat_types_M, obs_col_M, nObsTypes_M, constellations);
+                
+                %read MASTER observations
+                if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
+                    pr1_M(:,1) = obs_M.P1;
+                else
+                    pr1_M(:,1) = obs_M.C1;
+                end
+                pr2_M(:,1) = obs_M.P2;
+                ph1_M(:,1) = obs_M.L1;
+                ph2_M(:,1) = obs_M.L2;
+                dop1_M(:,1) = obs_M.D1;
+                dop2_M(:,1) = obs_M.D2;
+                snr1_M(:,1) = obs_M.S1;
+                snr2_M(:,1) = obs_M.S2;
+            end
+            
+            if (wait_dlg_PresenceFlag)
+                waitbar(1,wait_dlg)
+            end
+            
+            %-------------------------------------------------------------------------------
+            
+            %define the reference time
+            time(1,1) = roundmod(time_R(1),interval);
+            date_R(1,:) = epoch_R(1,:);
+            if (filename_M_obs_PresenceFlag)
+                date_M(1,:) = epoch_M(1,:);
+            end
+            
+            if (wait_dlg_PresenceFlag)
+                waitbar(0.5,wait_dlg,'Reading RINEX observations...')
+            end
+            
+            k = 2;
+            while (line < length(txtRin))
+                
+                if (abs((time_R(k-1) - time(k-1))) < max_desync_frac*interval)
+                    %read data for the current epoch (ROVER)
+                    [time_R(k), epoch_R, num_sat_R, sat_R, sat_types_R, line] = goGNSS.RinGetEpoch(txtRin, line);
+                else
+                    time_R(k) = time_R(k-1);
+                    if (time_R(k-1) ~= 0)
+                        fprintf('Missing epoch %f (ROVER)\n', time(k-1));
+                    end
+                    time_R(k-1) = 0;
+                end
+                
+                if (filename_M_obs_PresenceFlag)
+                    if (abs((time_M(k-1) - time(k-1))) < max_desync_frac*interval)
+                        %read data for the current epoch (MASTER)
+                        [time_M(k), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+                    else
+                        time_M(k) = time_M(k-1);
+                        if (time_M(k-1) ~= 0)
+                            fprintf('Missing epoch %f (MASTER)\n', time(k-1));
+                        end
+                        time_M(k-1) = 0;
+                    end
+                end
+                
+                if (k > nEpochs)
+                    %variable initialization (GPS)
+                    pr1_R(:,k) = zeros(nSatTot,1);
+                    pr2_R(:,k) = zeros(nSatTot,1);
+                    ph1_R(:,k) = zeros(nSatTot,1);
+                    ph2_R(:,k) = zeros(nSatTot,1);
+                    dop1_R(:,k) = zeros(nSatTot,1);
+                    dop2_R(:,k) = zeros(nSatTot,1);
+                    snr1_R(:,k) = zeros(nSatTot,1);
+                    snr2_R(:,k) = zeros(nSatTot,1);
+                    pr1_M(:,k) = zeros(nSatTot,1);
+                    pr2_M(:,k) = zeros(nSatTot,1);
+                    ph1_M(:,k) = zeros(nSatTot,1);
+                    ph2_M(:,k) = zeros(nSatTot,1);
+                    snr1_M(:,k) = zeros(nSatTot,1);
+                    snr2_M(:,k) = zeros(nSatTot,1);
+                    dop1_M(:,k) = zeros(nSatTot,1);
+                    dop2_M(:,k) = zeros(nSatTot,1);
+                    
+                    nEpochs = nEpochs  + 1;
+                end
+                
+                date_R(k,:) = epoch_R(1,:);
+                if (filename_M_obs_PresenceFlag)
+                    date_M(k,:) = epoch_M(1,:);
+                end
+                
+                time(k,1) = time(k-1,1) + interval;
+                
+                if (abs(time_R(k)-time(k)) < max_desync_frac*interval)
+                    
+                    %read ROVER observations
+                    [obs_R line] = goGNSS.RinGetObs(txtRin, line, num_sat_R, sat_R, sat_types_R, obs_col_R, nObsTypes_R, constellations);
+                    
+                    %read ROVER observations
+                    if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
+                        pr1_R(:,k) = obs_R.P1;
+                    else
+                        pr1_R(:,k) = obs_R.C1;
+                    end
+                    pr2_R(:,k) = obs_R.P2;
+                    ph1_R(:,k) = obs_R.L1;
+                    ph2_R(:,k) = obs_R.L2;
+                    dop1_R(:,k) = obs_R.D1;
+                    dop2_R(:,k) = obs_R.D2;
+                    snr1_R(:,k) = obs_R.S1;
+                    snr2_R(:,k) = obs_R.S2;
+                    %     else
+                    %         %number of lines to be skipped
+                    %         if (RINEX_version == 2)
+                    %             nSkipLines = num_sat_R*nLinesToRead_R;
+                    %         else
+                    %             nSkipLines = num_sat_R;
+                    %         end
+                    %
+                    %         %skip observations
+                    %         for s = 1 : nSkipLines
+                    %             fgetl(FR_oss);
+                    %         end
+                end
+                
+                if (filename_M_obs_PresenceFlag)
+                    
+                    if (abs(time_M(k) - time(k)) < max_desync_frac*interval)
+                        
+                        %read MASTER observations
+                        obs_M = RINEX_get_obs(FM_oss, num_sat_M, sat_M, sat_types_M, obs_col_M, nObsTypes_M, constellations);
+                        
+                        %read MASTER observations
+                        if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
+                            pr1_M(:,k) = obs_M.P1;
+                        else
+                            pr1_M(:,k) = obs_M.C1;
+                        end
+                        pr2_M(:,k) = obs_M.P2;
+                        ph1_M(:,k) = obs_M.L1;
+                        ph2_M(:,k) = obs_M.L2;
+                        dop1_M(:,k) = obs_M.D1;
+                        dop2_M(:,k) = obs_M.D2;
+                        snr1_M(:,k) = obs_M.S1;
+                        snr2_M(:,k) = obs_M.S2;
+                        %         else
+                        %             %number of lines to be skipped
+                        %             if (RINEX_version == 2)
+                        %                 nSkipLines = num_sat_M*nLinesToRead_M;
+                        %             else
+                        %                 nSkipLines = num_sat_M;
+                        %             end
+                        %
+                        %             %skip observations
+                        %             for s = 1 : nSkipLines
+                        %                 fgetl(FM_oss);
+                        %             end
+                    end
+                end
+                
+                k = k + 1;
+            end
+            
+            %remove empty slots
+            time_R(k:nEpochs) = [];
+            time_M(k:nEpochs) = [];
+            pr1_R(:,k:nEpochs) = [];
+            pr2_R(:,k:nEpochs) = [];
+            ph1_R(:,k:nEpochs) = [];
+            ph2_R(:,k:nEpochs) = [];
+            dop1_R(:,k:nEpochs) = [];
+            dop2_R(:,k:nEpochs) = [];
+            snr1_R(:,k:nEpochs) = [];
+            snr2_R(:,k:nEpochs) = [];
+            pr1_M(:,k:nEpochs) = [];
+            pr2_M(:,k:nEpochs) = [];
+            ph1_M(:,k:nEpochs) = [];
+            ph2_M(:,k:nEpochs) = [];
+            snr1_M(:,k:nEpochs) = [];
+            snr2_M(:,k:nEpochs) = [];
+            dop1_M(:,k:nEpochs) = [];
+            dop2_M(:,k:nEpochs) = [];
+            date_R(k:nEpochs,:) = [];
+            date_M(k:nEpochs,:) = [];
+            
+            %remove rover tail
+            if (filename_M_obs_PresenceFlag)
+                flag_tail = 1;
+                while (flag_tail)
+                    if (time_M(end) == 0)
+                        date_R(end,:) = [];
+                        date_M(end,:) = [];
+                        time(end) = [];
+                        time_R(end) = [];
+                        time_M(end) = [];
+                        pr1_R(:,end) = [];
+                        pr2_R(:,end) = [];
+                        ph1_R(:,end) = [];
+                        ph2_R(:,end) = [];
+                        dop1_R(:,end) = [];
+                        dop2_R(:,end) = [];
+                        snr1_R(:,end) = [];
+                        snr2_R(:,end) = [];
+                        pr1_M(:,end) = [];
+                        pr2_M(:,end) = [];
+                        ph1_M(:,end) = [];
+                        ph2_M(:,end) = [];
+                        snr1_M(:,end) = [];
+                        snr2_M(:,end) = [];
+                        dop1_M(:,end) = [];
+                        dop2_M(:,end) = [];
+                    else
+                        flag_tail = 0;
+                    end
+                end
+            end
+            
+            if (wait_dlg_PresenceFlag)
+                waitbar(1,wait_dlg)
+            end
+            
+            %-------------------------------------------------------------------------------
+            
+            %close RINEX files
+            if (filename_M_obs_PresenceFlag)
+                fclose(FM_oss);
+            end
+            
+            %GPS week number
+            week_R = date2gps(date_R);
+            week_M = date2gps(date_M);
+            fprintf('The RINEX file has been read!\n');
+            toc
+        end
     end
     
     methods (Static, Access = 'private')
@@ -373,6 +896,659 @@ classdef goGNSS < handle
                     pos = possible_pos(:,1);
                 end
             end;
+        end
+        
+        function [Obs_types, pos_M, ifound_types, interval, sysId, l] = RinParseHDR(txtRin)
+            ifound_types = 0;
+            Obs_types = cell(0,0);
+            sysId = cell(0,0);
+            pos_M = [];
+            interval = 1; %default to 1 second (1 Hz observations)
+            
+            %parse first line
+            l=1; line = txtRin{l};
+            
+            %constellation counter for RINEX v3.xx
+            c = 1;
+            
+            %check if the end of the header or the end of the file has been reached
+            while isempty(strfind(line,'END OF HEADER')) && ischar(line)
+                %NOTE1: findstr is obsolete, so strfind is used
+                %NOTE2: ischar is better than checking if line is the number -1.
+                
+                answer = strfind(line,'# / TYPES OF OBSERV'); %RINEX v2.xx
+                if ~isempty(answer)
+                    Obs_types{1} = [];
+                    nObs = sscanf(line(1:6),'%d');
+                    nLinObs = ceil(nObs/9);
+                    for i = 1 : nLinObs
+                        if (i > 1)
+                            line = fgetl(file);
+                        end
+                        n = min(nObs,9);
+                        for k = 1 : n
+                            ot = sscanf(line(k*6+1:k*6+6),'%s');
+                            Obs_types{1} = [Obs_types{1} ot];
+                        end
+                        nObs = nObs - 9;
+                    end
+                    
+                    ifound_types = 1;
+                end
+                
+                answer = strfind(line,'SYS / # / OBS TYPES'); %RINEX v3.xx
+                if ~isempty(answer)
+                    sysId{c} = sscanf(line(1),'%s');
+                    nObs = sscanf(line(2:6),'%d');
+                    Obs_types.(sysId{c}) = [];
+                    nLinObs = ceil(nObs/13);
+                    for i = 1 : nLinObs
+                        if (i > 1)
+                            line = fgetl(file);
+                        end
+                        n = min(nObs,13);
+                        for k = 0 : n-1
+                            ot = sscanf(line(6+k*4+1:6+k*4+4),'%s');
+                            Obs_types.(sysId{c}) = [Obs_types.(sysId{c}) ot];
+                        end
+                        nObs = nObs - 13;
+                    end
+                    
+                    c = c + 1;
+                    ifound_types = 1;
+                end
+                
+                answer = strfind(line,'APPROX POSITION XYZ');
+                if ~isempty(answer)
+                    X = sscanf(line(1:14),'%f');
+                    Y = sscanf(line(15:28),'%f');
+                    Z = sscanf(line(29:42),'%f');
+                    pos_M = [X; Y; Z];
+                end
+                answer = strfind(line,'INTERVAL');
+                if ~isempty(answer)
+                    interval = sscanf(line(1:10),'%f');
+                end
+                
+                %parse next line
+                l = l +1; line = txtRin{l};
+            end
+        end
+        
+        function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
+            
+            if (isempty(sysId)) %RINEX v2.xx
+                
+                nObs_types = size(Obs_types{1},2)/2;
+                
+                %search L1 column
+                s1 = strfind(Obs_types{1}, 'L1'); %findstr is obsolete, so strfind is used
+                s2 = strfind(Obs_types{1}, 'LA');
+                s = [s1 s2];
+                col_L1 = (s+1)/2;
+                
+                %search L2 column
+                s1 = strfind(Obs_types{1}, 'L2');
+                s2 = strfind(Obs_types{1}, 'LC');
+                s = [s1 s2];
+                col_L2 = (s+1)/2;
+                
+                %search C1 column
+                s1 = strfind(Obs_types{1}, 'C1');
+                s2 = strfind(Obs_types{1}, 'CA');
+                s = [s1 s2];
+                col_C1 = (s+1)/2;
+                
+                %search P1 column
+                s1 = strfind(Obs_types{1}, 'P1');
+                s2 = strfind(Obs_types{1}, 'CA'); %QZSS does not use P1
+                s = [s1 s2];
+                col_P1 = (s+1)/2;
+                
+                %if RINEX v2.12 and GPS/GLONASS P1 observations are not available
+                if (length(col_P1) ~= 2 && ~isempty(s2))
+                    %keep QZSS CA observations as C1
+                    col_P1 = [];
+                end
+                
+                %search P2 column
+                s1 = strfind(Obs_types{1}, 'P2');
+                s2 = strfind(Obs_types{1}, 'CC');
+                s = [s1 s2];
+                col_P2 = (s+1)/2;
+                
+                %search S1 column
+                s1 = strfind(Obs_types{1}, 'S1');
+                s2 = strfind(Obs_types{1}, 'SA');
+                s = [s1 s2];
+                col_S1 = (s+1)/2;
+                
+                %search S2 column
+                s1 = strfind(Obs_types{1}, 'S2');
+                s2 = strfind(Obs_types{1}, 'SC');
+                s = [s1 s2];
+                col_S2 = (s+1)/2;
+                
+                %search D1 column
+                s1 = strfind(Obs_types{1}, 'D1');
+                s2 = strfind(Obs_types{1}, 'DA');
+                s = [s1 s2];
+                col_D1 = (s+1)/2;
+                
+                %search D2 column
+                s1 = strfind(Obs_types{1}, 'D2');
+                s2 = strfind(Obs_types{1}, 'DC');
+                s = [s1 s2];
+                col_D2 = (s+1)/2;
+                
+                Obs_columns.L1 = col_L1;
+                Obs_columns.L2 = col_L2;
+                Obs_columns.C1 = col_C1;
+                Obs_columns.P1 = col_P1;
+                Obs_columns.P2 = col_P2;
+                Obs_columns.S1 = col_S1;
+                Obs_columns.S2 = col_S2;
+                Obs_columns.D1 = col_D1;
+                Obs_columns.D2 = col_D2;
+                
+            else %RINEX v3.xx
+                for c = 1 : length(sysId)
+                    
+                    nObs_types.(sysId{c}) = size(Obs_types.(sysId{c}),2)/3;
+                    
+                    switch sysId{c}
+                        case 'G' %GPS
+                            idL1 = 'L1C';
+                            idL2 = 'L2W';
+                            idC1 = 'C1C';
+                            idP1 = 'C1P';
+                            idP2 = 'C2W';
+                            idS1 = 'S1C';
+                            idS2 = 'S2W';
+                            idD1 = 'D1C';
+                            idD2 = 'D2W';
+                        case 'R' %GLONASS
+                            idL1 = 'L1C';
+                            idL2 = 'L2P';
+                            idC1 = 'C1C';
+                            idP1 = 'C1P';
+                            idP2 = 'C2P';
+                            idS1 = 'S1C';
+                            idS2 = 'S2P';
+                            idD1 = 'D1C';
+                            idD2 = 'D2P';
+                        case 'E' %Galileo
+                            idL1 = 'L1X';
+                            idL2 = 'L5X';
+                            idC1 = 'C1X';
+                            idP1 = '...'; % <-- ?
+                            idP2 = 'C5X';
+                            idS1 = 'S1X';
+                            idS2 = 'S5X';
+                            idD1 = 'D1X';
+                            idD2 = 'D5X';
+                        case 'C' %Compass/Beidou
+                            idL1 = 'L2I';
+                            idL2 = 'L7I';
+                            idC1 = 'C2I';
+                            idP1 = '...'; % <-- ?
+                            idP2 = 'C7I';
+                            idS1 = 'S2I';
+                            idS2 = 'S7I';
+                            idD1 = 'D2I';
+                            idD2 = 'D7I';
+                        case 'Q' %QZSS
+                            idL1 = 'L1C';
+                            idL2 = 'L2C';
+                            idC1 = 'C1C';
+                            idP1 = '...'; %QZSS does not use P1
+                            idP2 = 'C2C';
+                            idS1 = 'S1C';
+                            idS2 = 'S2C';
+                            idD1 = 'D1C';
+                            idD2 = 'D2C';
+                    end
+                    
+                    %search L1 column
+                    s = strfind(Obs_types.(sysId{c}), idL1);
+                    col_L1 = (s+2)/3;
+                    
+                    %search L2 column
+                    s = strfind(Obs_types.(sysId{c}), idL2);
+                    col_L2 = (s+2)/3;
+                    
+                    %search C1 column
+                    s = strfind(Obs_types.(sysId{c}), idC1);
+                    col_C1 = (s+2)/3;
+                    
+                    %search P1 column
+                    s = strfind(Obs_types.(sysId{c}), idP1);
+                    col_P1 = (s+2)/3;
+                    
+                    %search P2 column
+                    s = strfind(Obs_types.(sysId{c}), idP2);
+                    col_P2 = (s+2)/3;
+                    
+                    %search S1 column
+                    s = strfind(Obs_types.(sysId{c}), idS1);
+                    col_S1 = (s+2)/3;
+                    
+                    %search S2 column
+                    s = strfind(Obs_types.(sysId{c}), idS2);
+                    col_S2 = (s+2)/3;
+                    
+                    %search D1 column
+                    s = strfind(Obs_types.(sysId{c}), idD1);
+                    col_D1 = (s+2)/3;
+                    
+                    %search D2 column
+                    s = strfind(Obs_types.(sysId{c}), idD2);
+                    col_D2 = (s+2)/3;
+                    
+                    Obs_columns.(sysId{c}).L1 = col_L1;
+                    Obs_columns.(sysId{c}).L2 = col_L2;
+                    Obs_columns.(sysId{c}).C1 = col_C1;
+                    Obs_columns.(sysId{c}).P1 = col_P1;
+                    Obs_columns.(sysId{c}).P2 = col_P2;
+                    Obs_columns.(sysId{c}).S1 = col_S1;
+                    Obs_columns.(sysId{c}).S2 = col_S2;
+                    Obs_columns.(sysId{c}).D1 = col_D1;
+                    Obs_columns.(sysId{c}).D2 = col_D2;
+                end
+            end
+        end
+        
+        function [time, datee, num_sat, sat, sat_types, line] = RinGetEpoch(txtRin, line)
+            %variable initialization
+            time = 0;
+            sat = [];
+            sat_types = [];
+            num_sat = 0;
+            datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
+            if (nargout > 3)
+                datee_RequestedInOutputFlag = true;
+            else
+                datee_RequestedInOutputFlag = false;
+            end% if
+            eoEpoch = 0;
+            
+            %search data
+            while (eoEpoch==0)
+                %read the string
+                line = line+1; lin = txtRin{line};
+                %answer = findstr(lin,'COMMENT'); Note   findstr will be removed in a future release. Use strfind instead.
+                keywords = {'COMMENT', 'MARKER NAME', 'MARKER NUMBER', 'APPROX POSITION XYZ', 'ANTENNA: DELTA H/E/N'};
+                answer = [];
+                s = 1;
+                while (s <= length(keywords) && isempty(answer))
+                    answer = strfind(lin,keywords{s});
+                    s = s + 1;
+                end
+                %if it is a line that should be skipped read the following one
+                while (~isempty(answer) && (line<length(txtRin)))
+                    line = line+1; lin = txtRin{line};
+                    %check again
+                    answer = [];
+                    s = 1;
+                    while (s <= length(keywords) && isempty(answer))
+                        answer = strfind(lin,keywords{s});
+                        s = s + 1;
+                    end
+                end
+                %check if the end of file is reached
+                if (line==length(txtRin));
+                    return
+                end
+                
+                %check RINEX version
+                if (~strcmp(lin(1),'>')) %RINEX v2.xx
+                    %check if it is a string that should be analyzed
+                    if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
+                        
+                        %save time information
+                        data   = textscan(lin(1:26),'%f%f%f%f%f%f');
+                        year   = data{1};
+                        month  = data{2};
+                        day    = data{3};
+                        hour   = data{4};
+                        minute = data{5};
+                        second = data{6};
+                        
+                        %computation of the GPS time in weeks and seconds of week
+                        year = four_digit_year(year);
+                        [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
+                        
+                        %number of visible satellites
+                        [num_sat] = sscanf(lin(30:32),'%d');
+                        
+                        %keep just the satellite data
+                        lin = ExtractSubstring(lin, 33, 68);
+                        
+                        %remove 'blank spaces' and unwanted characters at the end of the string
+                        lin = RemoveUnwantedTrailingSpaces(lin);
+                        
+                        %read additional lines, depending on the number of satellites
+                        nlines = ceil(num_sat/12);
+                        for n = 1 : nlines - 1
+                            line = line+1;
+                            lin = [lin ExtractSubstring(txtRin{line}, 33, 68)];
+                            lin = RemoveUnwantedTrailingSpaces(lin);
+                        end
+                        
+                        pos = 1;
+                        sat = zeros(num_sat,1);
+                        sat_types = char(32*uint8(ones(num_sat,1))');
+                        for i = 1 : num_sat
+                            %check if GPS satellites are labeled 'G' or not labeled
+                            if (strcmp(lin(pos),' '))
+                                type = 'G';
+                            else
+                                type = lin(pos);
+                            end
+                            % sat_types = [sat_types; type];
+                            sat_types(i) = type;
+                            % sat(i) = sscanf(lin(pos+1:pos+2),'%d');
+                            sat(i) = mod((lin(pos+1)-48)*10+(lin(pos+2)-48),160);
+                            pos = pos + 3;
+                        end
+                        
+                        eoEpoch = 1;
+                    end
+                    
+                else %RINEX v3.xx
+                    
+                    %check if it is a string that should be analyzed
+                    if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
+                        
+                        %save time information
+                        data   = textscan(lin(2:29),'%f%f%f%f%f%f');
+                        year   = data{1};
+                        month  = data{2};
+                        day    = data{3};
+                        hour   = data{4};
+                        minute = data{5};
+                        second = data{6};
+                        
+                        %computation of the GPS time in weeks and seconds of week
+                        [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
+                        
+                        %number of visible satellites
+                        [num_sat] = sscanf(lin(33:35),'%d');
+                        
+                        eoEpoch = 1;
+                    end
+                end
+            end
+            
+            if datee_RequestedInOutputFlag
+                datee = [year month day hour minute second];
+            end %if
+        end
+        
+        function [obs_struct, line] = RinGetObs(txtRin, line, nSat, sat, sat_types, obs_col, nObsTypes, constellations)
+            %total number of satellites (according to enabled constellations)
+            nSatTot = constellations.nEnabledSat;
+            
+            %array to contain the starting index for each constellation in the total array (with length = nSatTot)
+            sat_types_id = zeros(size(sat_types));
+            
+            %starting index in the total array for the various constellations
+            idGPS = constellations.GPS.indexes(1);
+            idGLONASS = constellations.GLONASS.indexes(1);
+            idGalileo = constellations.Galileo.indexes(1);
+            idBeiDou = constellations.BeiDou.indexes(1);
+            idQZSS = constellations.QZSS.indexes(1);
+            idSBAS = constellations.SBAS.indexes(1);
+            
+            %output observations structure initialization
+            obs_struct = struct('L1', zeros(nSatTot,1), 'L2', zeros(nSatTot,1), ...
+                'C1', zeros(nSatTot,1), ...
+                'P1', zeros(nSatTot,1), 'P2', zeros(nSatTot,1), ...
+                'S1', zeros(nSatTot,1), 'S2', zeros(nSatTot,1), ...
+                'D1', zeros(nSatTot,1), 'D2', zeros(nSatTot,1));
+            
+            obs_tmp = struct('TMP1', zeros(nSatTot,1), 'TMP2', zeros(nSatTot,1));
+            
+            if (~isempty(sat_types)) %RINEX v2.xx
+                
+                %convert constellations letter to starting index in the total array
+                sat_types_id(sat_types == 'G') = idGPS*constellations.GPS.enabled;
+                sat_types_id(sat_types == 'R') = idGLONASS*constellations.GLONASS.enabled;
+                sat_types_id(sat_types == 'E') = idGalileo*constellations.Galileo.enabled;
+                sat_types_id(sat_types == 'C') = idBeiDou*constellations.BeiDou.enabled;
+                sat_types_id(sat_types == 'J') = idQZSS*constellations.QZSS.enabled;
+                sat_types_id(sat_types == 'S') = idSBAS*constellations.SBAS.enabled;
+                
+                %observation types
+                nLinesToRead = ceil(nObsTypes/5);  % I read a maximum of 5 obs per line => this is the number of lines to read
+                nObsToRead = nLinesToRead * 5;     % Each line contains 5 observations
+                
+                %data read and assignment
+                lin = char(32*uint8(ones(16*nObsToRead,1))'); % preallocate the line to read
+                
+                % Mask to filter all the possible observations (max 15)
+                mask = false(16,nObsToRead);
+                mask(2:14,:) = true;
+                % preallocate a matrix of 15 strings (of length 14 characters)
+                % notice that each observation element has a max length of 13 char,
+                % the first character is added as a padding to separate the strings for
+                % the command sscanf that now can be launched once for each satellite
+                strObs = char(ones(14,nObsToRead)*32);
+                
+                for s = 1 : nSat
+                    
+                    %DEBUG
+                    if (sat(s) > 32)
+                        sat(s) = 32; %this happens only with SBAS; it's already fixed in the multi-constellation version
+                    end
+                    
+                    lin = char(lin*0+32); % clear line -> fill with spaces
+                    
+                    if (sat_types_id(s) ~= 0)
+                        % read all the lines containing the observations needed
+                        for l = 1 : (nLinesToRead)
+                            line = line+1; linTmp = txtRin{line};
+                            linLengthTmp = length(linTmp);
+                            lin((80*(l-1))+(1:linLengthTmp)) = linTmp;  %each line has a maximum lenght of 80 characters
+                        end
+                        linLength = 80*(nLinesToRead-1)+linLengthTmp;
+                        
+                        % convert the lines read from the RINEX file to a single matrix
+                        % containing all the observations
+                        strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead));
+                        fltObs = sscanf(strObs, '%f'); % read all the observations in the string
+                        obsId = 0; % index of the current observation
+                        % start parsing the observation string
+                        for k = 1 : min(nObsTypes, floor(linLength/16))
+                            % check if the element is empty
+                            %if (~strcmp(strObs(:,k)','              ')) % if the current val is not missing (full of spaces)
+                            if (sum(strObs(:,k))~=448) % if the current val is not missing (full of spaces)
+                                obsId = obsId+1;
+                                %obs = sscanf(lin(mask(:,k)), '%f');
+                                obs = fltObs(obsId);
+                                
+                                %check and assign the observation type
+                                if (any(~(k-obs_col.L1)))
+                                    obs_struct.L1(sat_types_id(s)+sat(s)-1) = obs;
+                                    if (linLength>=16*k)
+                                        %convert signal-to-noise ratio
+                                        % faster conversion of a single ASCII character into an int
+                                        snr = mod((lin(16*k)-48),16);
+                                        obs_tmp.TMP1(sat_types_id(s)+sat(s)-1) = 6 * snr;
+                                    end
+                                elseif (any(~(k-obs_col.L2)))
+                                    obs_struct.L2(sat_types_id(s)+sat(s)-1) = obs;
+                                    if (linLength>=16*k)
+                                        %convert signal-to-noise ratio
+                                        % faster conversion of a single ASCII character into an int
+                                        snr = mod((lin(16*k)-48),16);
+                                        obs_tmp.TMP2(sat_types_id(s)+sat(s)-1) = 6 * snr;
+                                    end
+                                elseif (any(~(k-obs_col.C1)))
+                                    obs_struct.C1(sat_types_id(s)+sat(s)-1) = obs;
+                                elseif (any(~(k-obs_col.P1)))
+                                    obs_struct.P1(sat_types_id(s)+sat(s)-1) = obs;
+                                elseif (any(~(k-obs_col.P2)))
+                                    obs_struct.P2(sat_types_id(s)+sat(s)-1) = obs;
+                                elseif (any(~(k-obs_col.D1)))
+                                    obs_struct.D1(sat_types_id(s)+sat(s)-1) = obs;
+                                elseif (any(~(k-obs_col.D2)))
+                                    obs_struct.D2(sat_types_id(s)+sat(s)-1) = obs;
+                                elseif (any(~(k-obs_col.S1)))
+                                    obs_struct.S1(sat_types_id(s)+sat(s)-1) = obs;
+                                elseif (any(~(k-obs_col.S2)))
+                                    obs_struct.S2(sat_types_id(s)+sat(s)-1) = obs;
+                                end
+                            end
+                        end
+                        if (~obs_struct.S1(sat_types_id(s)+sat(s)-1))
+                            obs_struct.S1(sat_types_id(s)+sat(s)-1) = obs_tmp.TMP1(sat_types_id(s)+sat(s)-1);
+                        end
+                        if (~obs_struct.S2(sat_types_id(s)+sat(s)-1))
+                            obs_struct.S2(sat_types_id(s)+sat(s)-1) = obs_tmp.TMP2(sat_types_id(s)+sat(s)-1);
+                        end
+                    else
+                        %skip all the observation lines for the unused satellite
+                        for l = 1 : (nLinesToRead)
+                            line = line+1; linTmp = txtRin{line};
+                        end
+                    end
+                end
+                
+            else %RINEX v3.xx
+                
+                for s = 1 : nSat
+                    
+                    %read the line for satellite 's'
+                    line = line+1; linTmp = txtRin{line};
+                    
+                    %read the constellation ID
+                    sysId = linTmp(1);
+                    
+                    %read the satellite PRN/slot number
+                    satId = str2num(linTmp(2:3));
+                    
+                    %number of observations to be read on this line
+                    nObsToRead = nObsTypes.(sysId);
+                    
+                    %data read and assignment
+                    lin = char(32*uint8(ones(16*nObsToRead,1))'); % preallocate the line to read
+                    
+                    %keep only the part of 'lin' containing the observations
+                    linTmp = linTmp(4:end);
+                    linLengthTmp = length(linTmp);
+                    
+                    %fill in the 'lin' variable with the actual line read (may be shorter than expected)
+                    lin(1:linLengthTmp) = linTmp;
+                    linLength = length(lin);
+                    
+                    %compute the index in the total array and check if the current
+                    %constellation is required (if not, skip the line)
+                    switch (sysId)
+                        case 'G'
+                            if (constellations.GPS.enabled)
+                                index = idGPS + satId - 1;
+                            else
+                                continue
+                            end
+                        case 'R'
+                            if (constellations.GLONASS.enabled)
+                                index = idGLONASS + satId - 1;
+                            else
+                                continue
+                            end
+                        case 'E'
+                            if (constellations.Galileo.enabled)
+                                index = idGalileo + satId - 1;
+                            else
+                                continue
+                            end
+                        case 'C'
+                            if (constellations.BeiDou.enabled)
+                                index = idBeiDou + satId - 1;
+                            else
+                                continue
+                            end
+                        case 'J'
+                            if (constellations.QZSS.enabled)
+                                index = idQZSS + satId - 1;
+                            else
+                                continue
+                            end
+                        case 'S'
+                            if (constellations.SBAS.enabled)
+                                index = idSBAS + satId - 1;
+                            else
+                                continue
+                            end
+                    end
+                    
+                    % Mask to filter all the possible observations
+                    mask = false(16,nObsToRead);
+                    mask(2:14,:) = true;
+                    % preallocate a matrix of n strings (of length 14 characters)
+                    % notice that each observation element has a max length of 13 char,
+                    % the first character is added as a padding to separate the strings for
+                    % the command sscanf that now can be launched once for each satellite
+                    strObs = char(ones(14,nObsToRead)*32);
+                    
+                    % convert the lines read from the RINEX file to a single matrix
+                    % containing all the observations
+                    strObs(1:13,:) = (reshape(lin(mask(:)),13,nObsToRead));
+                    fltObs = sscanf(strObs, '%f'); % read all the observations in the string
+                    obsId = 0; % index of the current observation
+                    % start parsing the observation string
+                    for k = 1 :  min(nObsToRead, floor(linLength/16))
+                        % check if the element is empty
+                        if (~strcmp(strObs(:,k)','              ')) % if the current val is not missing (full of spaces)
+                            obsId = obsId+1;
+                            %obs = sscanf(lin(mask(:,k)), '%f');
+                            obs = fltObs(obsId);
+                            
+                            %check and assign the observation type
+                            if (any(~(k-obs_col.(sysId).L1)))
+                                obs_struct.L1(index) = obs;
+                                if (linLength>=16*k)
+                                    %convert signal-to-noise ratio
+                                    % faster conversion of a single ASCII character into an int
+                                    snr = mod((lin(16*k)-48),16);
+                                    obs_tmp.TMP1(index) = 6 * snr;
+                                end
+                            elseif (any(~(k-obs_col.(sysId).L2)))
+                                obs_struct.L2(index) = obs;
+                                if (linLength>=16*k)
+                                    %convert signal-to-noise ratio
+                                    % faster conversion of a single ASCII character into an int
+                                    snr = mod((lin(16*k)-48),16);
+                                    obs_tmp.TMP2(index) = 6 * snr;
+                                end
+                            elseif (any(~(k-obs_col.(sysId).C1)))
+                                obs_struct.C1(index) = obs;
+                            elseif (any(~(k-obs_col.(sysId).P1)))
+                                obs_struct.P1(index) = obs;
+                            elseif (any(~(k-obs_col.(sysId).P2)))
+                                obs_struct.P2(index) = obs;
+                            elseif (any(~(k-obs_col.(sysId).D1)))
+                                obs_struct.D1(index) = obs;
+                            elseif (any(~(k-obs_col.(sysId).D2)))
+                                obs_struct.D2(index) = obs;
+                            elseif (any(~(k-obs_col.(sysId).S1)))
+                                obs_struct.S1(index) = obs;
+                            elseif (any(~(k-obs_col.(sysId).S2)))
+                                obs_struct.S2(index) = obs;
+                            end
+                        end
+                    end
+                    if (~obs_struct.S1(index))
+                        obs_struct.S1(index) = obs_tmp.TMP1(index);
+                    end
+                    if (~obs_struct.S2(index))
+                        obs_struct.S2(index) = obs_tmp.TMP2(index);
+                    end
+                end
+            end
+            
+            clear obs_tmp
         end
     end
     
