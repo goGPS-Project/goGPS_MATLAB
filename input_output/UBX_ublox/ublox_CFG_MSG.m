@@ -76,17 +76,14 @@ reply_1 = get(serialObj,'BytesAvailable');
 if (reply_1 ~= 0)
     %clear the serial port (data not decoded)
     reply = fread(serialObj, reply_1, 'uint8'); %#ok<NASGU>
-    pause(0.01);
 end
 
 % send message
 % try
     fwrite(serialObj, codeDEC, 'uint8', 'async');
-    pause(0.01);
 % catch
 %     stopasync(serialObj);
 %     fwrite(serialObj, codeDEC, 'uint8', 'async');
 % end
 
 [out] = ublox_check_ACK(serialObj, ID1, ID2);
-pause(0.01);

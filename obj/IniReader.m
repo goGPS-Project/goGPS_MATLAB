@@ -360,7 +360,11 @@ classdef IniReader < handle
         end
         
         % Get data --------------------------------------------------------        
-        function data = getData(obj, section, key)
+        function data = getData(obj, section, key, printErrors)
+            if nargin == 3
+                printErrors = 0;
+            end
+            
             % Get the value of a specified key
             if (~obj.getReadStatus() && isempty(obj.section))
                obj.printWarning('File not yet read!\n');
@@ -409,7 +413,7 @@ classdef IniReader < handle
                 end
             end
             
-            if (isempty(data))
+            if (isempty(data) && printErrors)
                 obj.printError(['Key "' key '" not found!\n']);
                 data = [];
             end

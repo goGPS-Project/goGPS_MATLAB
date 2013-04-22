@@ -23,8 +23,6 @@ function [corr] = relativistic_error_correction(time, Eph, XS, VS)
 %
 %----------------------------------------------------------------------------------------------
 
-global v_light
-
 if (Eph(4)~=0) %if not using SP3 ephemeris
     roota = Eph(4);
     ecc   = Eph(6);
@@ -32,5 +30,5 @@ if (Eph(4)~=0) %if not using SP3 ephemeris
     Ek = ecc_anomaly(time, Eph);
     corr = -4.442807633e-10 * ecc * roota * sin(Ek);
 else
-    corr = -2*dot(XS,VS)/(v_light^2);
+    corr = -2*dot(XS,VS)/(goGNSS.V_LIGHT^2);
 end

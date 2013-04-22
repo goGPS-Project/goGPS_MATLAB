@@ -143,7 +143,7 @@ for r = 1 : nrec
     end
 
     % serial object creation
-    rover{r} = serial (COMportR{r},'BaudRate',prot_par{r}{2,1});
+    rover{r} = serial(COMportR{r},'BaudRate',prot_par{r}{2,1});
     set(rover{r},'InputBufferSize',prot_par{r}{3,1});
     if (protocol(r) == 0)
         set(rover{r},'FlowControl','hardware');
@@ -643,9 +643,9 @@ while flag
                 n = size(nmea_sentences,1);
                 for i = 1 : n
                     fprintf(fid_nmea{r}, '%s', char(nmea_sentences(i,1)));
+                    % fprintf('%s', char(nmea_sentences(i,1)));
                 end
-
-                type = [type 'NMEA '];
+                type = [type 'NMEA '];                    
             end
 
             %----------------------------------

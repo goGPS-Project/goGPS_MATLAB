@@ -42,7 +42,7 @@ Str_name = 'UBX';
 BaudRate = 57600;
 
 % Buffer size - USB
-Buffer_size = 16384;
+Buffer_size = 2^12;
 
 % Minimun number of bytes used to synchronize data
 Min_bytes = 0;

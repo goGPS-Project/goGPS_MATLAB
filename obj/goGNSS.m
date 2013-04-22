@@ -70,11 +70,11 @@ classdef goGNSS < handle
         ELL_E_BDS = sqrt(1-(1-goGNSS.ELL_F_BDS)^2);   % BeiDou (CSG2000) Eccentricity
         ELL_E_QZS = sqrt(1-(1-goGNSS.ELL_F_QZS)^2);   % QZSS (WGS-84)    Eccentricity
         
-        ELL_GM_GPS = 3.986005e14;                     % GPS     Gravitational constant * (mass of Earth) [m^3/s^2]
-        ELL_GM_GLO = 3.9860044e14;                    % GLONASS Gravitational constant * (mass of Earth) [m^3/s^2]
-        ELL_GM_GAL = 3.986004418e14;                  % Galileo Gravitational constant * (mass of Earth) [m^3/s^2]
-        ELL_GM_BDS = 3.986004418e14;                  % BeiDou  Gravitational constant * (mass of Earth) [m^3/s^2]
-        ELL_GM_QZS = 3.986005e14;                     % QZSS    Gravitational constant * (mass of Earth) [m^3/s^2]
+        GM_GPS = 3.986005e14;                     % GPS     Gravitational constant * (mass of Earth) [m^3/s^2]
+        GM_GLO = 3.9860044e14;                    % GLONASS Gravitational constant * (mass of Earth) [m^3/s^2]
+        GM_GAL = 3.986004418e14;                  % Galileo Gravitational constant * (mass of Earth) [m^3/s^2]
+        GM_BDS = 3.986004418e14;                  % BeiDou  Gravitational constant * (mass of Earth) [m^3/s^2]
+        GM_QZS = 3.986005e14;                     % QZSS    Gravitational constant * (mass of Earth) [m^3/s^2]
         
         OMEGAE_DOT_GPS = 7.2921151467e-5;             % GPS     Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_GLO = 7.292115e-5;                 % GLONASS Angular velocity of the Earth rotation [rad/s]
