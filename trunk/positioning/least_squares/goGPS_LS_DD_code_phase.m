@@ -88,14 +88,12 @@ else
     end
 end
 
+N1 = zeros(32,1);
+N2 = zeros(32,1);
+Z_om_1 = zeros(o1-1,1);
+sigma2_N = zeros(nN,1);
+
 if (size(sat,1) >= 4)
-    
-    %ambiguity initialization: initialized value
-    %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
-    Z_om_1 = zeros(o1-1,1);
-    sigma2_N = zeros(nN,1);
     
     if (phase == 1)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [],  [], sat,   cutoff, snr_threshold, 2, 0); %#ok<NASGU,ASGLU>
@@ -167,10 +165,40 @@ if (size(sat,1) >= 4)
             err_tropo_R = tropo_error_correction(elR(elR ~= 0), hR);
             err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR ~= 0), elR(elR ~= 0), time_rx, iono, []);
         end
+        
+        if isempty(cov_N1) %if it was not possible to compute the covariance matrix
+            cov_N1 = sigmaq0_N * eye(length(sat));
+        end
+        
+        if isempty(cov_N2) %if it was not possible to compute the covariance matrix
+            cov_N2 = sigmaq0_N * eye(length(sat));
+        end
+        
+        if (length(phase) == 2)
+            N = [N1; N2];
+            sigma2_N(sat) = diag(cov_N1);
+            %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
+            sigma2_N(sat+nN) = diag(cov_N2);
+            %sigma2_N(sat+nN) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
+        else
+            if (phase == 1)
+                N = N1;
+                sigma2_N(sat) = diag(cov_N1);
+                %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
+            else
+                N = N2;
+                sigma2_N(sat) = diag(cov_N2);
+                %sigma2_N(sat) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
+            end
+        end
     else
         if (~isempty(Xhat_t_t))
             XR = Xhat_t_t([1,o1+1,o2+1]);
+            N  = Xhat_t_t(o3+1:end);
             pivot = 0;
+
+            fixed_solution = [fixed_solution 0];
+            succ_rate = [succ_rate NaN];
         else
             return
         end
@@ -179,7 +207,11 @@ if (size(sat,1) >= 4)
 else
     if (~isempty(Xhat_t_t))
         XR = Xhat_t_t([1,o1+1,o2+1]);
+        N  = Xhat_t_t(o3+1:end);
         pivot = 0;
+
+        fixed_solution = [fixed_solution 0];
+        succ_rate = [succ_rate NaN];
     else
         return
     end
@@ -189,32 +221,6 @@ if isempty(cov_XR) %if it was not possible to compute the covariance matrix
     cov_XR = sigmaq0 * eye(3);
 end
 sigma2_XR = diag(cov_XR);
-
-if isempty(cov_N1) %if it was not possible to compute the covariance matrix
-    cov_N1 = sigmaq0_N * eye(length(sat));
-end
-
-if isempty(cov_N2) %if it was not possible to compute the covariance matrix
-    cov_N2 = sigmaq0_N * eye(length(sat));
-end
-
-if (length(phase) == 2)
-    N = [N1; N2];
-    sigma2_N(sat) = diag(cov_N1);
-    %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
-    sigma2_N(sat+nN) = diag(cov_N2);
-    %sigma2_N(sat+nN) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
-else
-    if (phase == 1)
-        N = N1;
-        sigma2_N(sat) = diag(cov_N1);
-        %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
-    else
-        N = N2;
-        sigma2_N(sat) = diag(cov_N2);
-        %sigma2_N(sat) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
-    end
-end
 
 %initialization of the initial point with 6(positions and velocities) +
 %32 or 64 (N combinations) variables
