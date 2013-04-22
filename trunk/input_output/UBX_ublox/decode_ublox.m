@@ -73,7 +73,7 @@ nmea_counter = 1;
 nmea_string = '';
 
 % find the index of the first message, if any
-if (~isempty(pos_UBX) & ~isempty(pos_NMEA))
+if (~isempty(pos_UBX) && ~isempty(pos_NMEA))
 
     if (pos_UBX(1) < pos_NMEA(1))
         pos = pos_UBX(1);

@@ -387,10 +387,22 @@ classdef goGUIclass < handle
             if nargin < 2
                 str = obj.strPorts;
             end
+            % Set list box with the number of receivers
             value = get(obj.goh.num_receivers,'Value');
             value = min(1,max(length(str), value));
             set(obj.goh.num_receivers,'Value', value);
 
+            % Close old connections that are still open:
+            try
+                oldConnections = instrfind('Type', 'serial');
+                if ~(isempty(oldConnections))
+                    fclose(oldConnections);
+                end
+            catch e
+                fprintf('There has been a problem with old serial connections: %s\n', e.message);
+            end
+
+            % Detect available ports
             try
                 serialInfo = instrhwinfo('serial');
                 num_ports = size(serialInfo.AvailableSerialPorts,1);
@@ -2024,7 +2036,10 @@ classdef goGUIclass < handle
                         if obj.isPostProc()
                             % If needed init INI reader
                             if isempty(goIni)
-                                goIni = goIniReader('', 0);
+                                goIni = goIniReader('', 0);                                
+                            end
+                            if (~goIni.getReadStatus())
+                                goIni.readFile();
                             end
                             % If I have to update the ini file
                             goIni.update(filename, force);

@@ -28,8 +28,6 @@ function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas,
 %
 %----------------------------------------------------------------------------------------------
 
-global v_light
-
 %SBAS clock offsets
 if (~isempty(sbas))
     dtsbas = sbas.doffset(sat);
@@ -37,7 +35,7 @@ else
     dtsbas = zeros(1,length(sat));
 end
 
-time_tx_RAW = time_rx - (range - err_tropo - err_iono) / v_light + dtR;
+time_tx_RAW = time_rx - (range - err_tropo - err_iono) / goGNSS.V_LIGHT + dtR;
 
 % tcorr0 = 0;
 % tcorr = sat_clock_error_correction(time_tx_RAW, Eph);

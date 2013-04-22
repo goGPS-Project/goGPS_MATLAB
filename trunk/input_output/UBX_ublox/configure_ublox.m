@@ -58,7 +58,7 @@ while (~reply_SAVE)
         delete(serialObj);
     end
     % create new serial object
-    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
+    serialObj = serial(COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
     set(serialObj,'FlowControl','hardware');
     set(serialObj,'RequestToSend','on');
