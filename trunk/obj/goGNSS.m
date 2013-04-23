@@ -281,6 +281,26 @@ classdef goGNSS < handle
             dtR = b(4)/goGNSS.V_LIGHT;
         end
         
+        function RinReader(fileNameObs, constellations)
+            if (isempty(constellations)) %then use only GPS as default
+                [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+            end
+            tic;            
+            %number of satellite slots for enabled constellations
+            nSatTot = constellations.nEnabledSat;
+
+            %open RINEX observation file (ROVER)
+            fid = fopen(fileNameObs,'r');
+            txtRin = textscan(fid,'%s','Delimiter','\n','whitespace','');
+            fclose(fid);
+            txtRin = txtRin{1};
+            
+            %parse RINEX header
+            [version obsTypes knownPos flagFoundTypes interval sysId line] = goGNSS.RinParseHDR(txtRin);
+            [obsCols, nType] = obs_type_find(obsTypes, sysId);
+            
+        end
+        
         function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
                 dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
                 snr2_R, snr2_M, time, time_R, time_M, week_R, week_M, ...
@@ -299,7 +319,7 @@ classdef goGNSS < handle
                 filename_M_obs_PresenceFlag = true;
             end
             if (isempty(constellations)) %then use only GPS as default
-                [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+                [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
             end
             tic;
             
@@ -425,7 +445,7 @@ classdef goGNSS < handle
             end
             
             %parse RINEX header
-            [obs_typ_R, pos_R, info_base_R, interval_R, sysId, line] = goGNSS.RinParseHDR(txtRin);
+            [RINEX_version obs_typ_R, pos_R, info_base_R, interval_R, sysId, line] = goGNSS.RinParseHDR(txtRin);
             
             %check RINEX version
             if (isempty(sysId))
@@ -898,112 +918,118 @@ classdef goGNSS < handle
             end;
         end
         
-        function [Obs_types, pos_M, ifound_types, interval, sysId, l] = RinParseHDR(txtRin)
-            ifound_types = 0;
-            Obs_types = cell(0,0);
+        function [version, obsTypes, knownPos, flagFoundTypes, interval, sysId, curLine] = RinParseHDR(txtRin)
+            flagFoundTypes = 0;
+            obsTypes = cell(0,0);
             sysId = cell(0,0);
-            pos_M = [];
+            knownPos = [];
             interval = 1; %default to 1 second (1 Hz observations)
+            version = 2;
             
             %parse first line
-            l=1; line = txtRin{l};
+            curLine = 1; txtLine = txtRin{curLine};
             
             %constellation counter for RINEX v3.xx
             c = 1;
             
             %check if the end of the header or the end of the file has been reached
-            while isempty(strfind(line,'END OF HEADER')) && ischar(line)
+            while isempty(strfind(txtLine,'END OF HEADER'))
                 %NOTE1: findstr is obsolete, so strfind is used
-                %NOTE2: ischar is better than checking if line is the number -1.
                 
-                answer = strfind(line,'# / TYPES OF OBSERV'); %RINEX v2.xx
+                answer = strfind(txtLine,'RINEX VERSION'); %RINEX v2.xx
                 if ~isempty(answer)
-                    Obs_types{1} = [];
-                    nObs = sscanf(line(1:6),'%d');
+                    version = floor(sscanf(txtLine(1:15),'%f'));
+                end    
+                
+                answer = strfind(txtLine,'# / TYPES OF OBSERV'); %RINEX v2.xx
+                if ~isempty(answer)
+                    obsTypes{1} = [];
+                    nObs = sscanf(txtLine(1:6),'%d');
                     nLinObs = ceil(nObs/9);
                     for i = 1 : nLinObs
                         if (i > 1)
-                            line = fgetl(file);
+                            curLine = 1; txtLine = txtRin{curLine};
                         end
                         n = min(nObs,9);
                         for k = 1 : n
-                            ot = sscanf(line(k*6+1:k*6+6),'%s');
-                            Obs_types{1} = [Obs_types{1} ot];
+                            ot = sscanf(txtLine(k*6+1:k*6+6),'%s');
+                            obsTypes{1} = [obsTypes{1} ot];
                         end
                         nObs = nObs - 9;
                     end
                     
-                    ifound_types = 1;
+                    flagFoundTypes = 1;
                 end
                 
-                answer = strfind(line,'SYS / # / OBS TYPES'); %RINEX v3.xx
+                answer = strfind(txtLine,'SYS / # / OBS TYPES'); %RINEX v3.xx
                 if ~isempty(answer)
-                    sysId{c} = sscanf(line(1),'%s');
-                    nObs = sscanf(line(2:6),'%d');
-                    Obs_types.(sysId{c}) = [];
+                    sysId{c} = sscanf(txtLine(1),'%s');
+                    nObs = sscanf(txtLine(2:6),'%d');
+                    obsTypes.(sysId{c}) = [];
                     nLinObs = ceil(nObs/13);
                     for i = 1 : nLinObs
                         if (i > 1)
-                            line = fgetl(file);
+                            curLine = 1; txtLine = txtRin{curLine};
                         end
                         n = min(nObs,13);
                         for k = 0 : n-1
-                            ot = sscanf(line(6+k*4+1:6+k*4+4),'%s');
-                            Obs_types.(sysId{c}) = [Obs_types.(sysId{c}) ot];
+                            ot = sscanf(txtLine(6+k*4+1:6+k*4+4),'%s');
+                            obsTypes.(sysId{c}) = [obsTypes.(sysId{c}) ot];
                         end
                         nObs = nObs - 13;
                     end
                     
                     c = c + 1;
-                    ifound_types = 1;
+                    flagFoundTypes = 1;
                 end
                 
-                answer = strfind(line,'APPROX POSITION XYZ');
+                answer = strfind(txtLine,'APPROX POSITION XYZ');
                 if ~isempty(answer)
-                    X = sscanf(line(1:14),'%f');
-                    Y = sscanf(line(15:28),'%f');
-                    Z = sscanf(line(29:42),'%f');
-                    pos_M = [X; Y; Z];
+                    X = sscanf(txtLine(1:14),'%f');
+                    Y = sscanf(txtLine(15:28),'%f');
+                    Z = sscanf(txtLine(29:42),'%f');
+                    knownPos = [X; Y; Z];
                 end
-                answer = strfind(line,'INTERVAL');
+                answer = strfind(txtLine,'INTERVAL');
                 if ~isempty(answer)
-                    interval = sscanf(line(1:10),'%f');
+                    interval = sscanf(txtLine(1:10),'%f');
                 end
                 
                 %parse next line
-                l = l +1; line = txtRin{l};
+                curLine = curLine +1; curLine = txtRin{curLine};
+            end
+            
+            %check RINEX version
+            if (~isempty(sysId) && (version == 2))
+                version = 3;
             end
         end
         
-        function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
+        function [obsCols, nType] = obs_type_find(obsTypes, sysId)
             
-            if (isempty(sysId)) %RINEX v2.xx
+            if (isempty(sysId)) %RINEX v2.xx does not have sysId
                 
-                nObs_types = size(Obs_types{1},2)/2;
+                nType = size(obsTypes{1},2)/2;
                 
                 %search L1 column
-                s1 = strfind(Obs_types{1}, 'L1'); %findstr is obsolete, so strfind is used
-                s2 = strfind(Obs_types{1}, 'LA');
-                s = [s1 s2];
-                col_L1 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'L1'); %findstr is obsolete, so strfind is used
+                s2 = strfind(obsTypes{1}, 'LA');
+                col_L1 = [s1 s2];
                 
                 %search L2 column
-                s1 = strfind(Obs_types{1}, 'L2');
-                s2 = strfind(Obs_types{1}, 'LC');
-                s = [s1 s2];
-                col_L2 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'L2');
+                s2 = strfind(obsTypes{1}, 'LC');
+                col_L2 = [s1 s2];
                 
                 %search C1 column
-                s1 = strfind(Obs_types{1}, 'C1');
-                s2 = strfind(Obs_types{1}, 'CA');
-                s = [s1 s2];
-                col_C1 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'C1');
+                s2 = strfind(obsTypes{1}, 'CA');
+                col_C1 = [s1 s2];
                 
                 %search P1 column
-                s1 = strfind(Obs_types{1}, 'P1');
-                s2 = strfind(Obs_types{1}, 'CA'); %QZSS does not use P1
-                s = [s1 s2];
-                col_P1 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'P1');
+                s2 = strfind(obsTypes{1}, 'CA'); %QZSS does not use P1
+                col_P1 = [s1 s2];
                 
                 %if RINEX v2.12 and GPS/GLONASS P1 observations are not available
                 if (length(col_P1) ~= 2 && ~isempty(s2))
@@ -1012,49 +1038,44 @@ classdef goGNSS < handle
                 end
                 
                 %search P2 column
-                s1 = strfind(Obs_types{1}, 'P2');
-                s2 = strfind(Obs_types{1}, 'CC');
-                s = [s1 s2];
-                col_P2 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'P2');
+                s2 = strfind(obsTypes{1}, 'CC');
+                col_P2 = [s1 s2];
                 
                 %search S1 column
-                s1 = strfind(Obs_types{1}, 'S1');
-                s2 = strfind(Obs_types{1}, 'SA');
-                s = [s1 s2];
-                col_S1 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'S1');
+                s2 = strfind(obsTypes{1}, 'SA');
+                col_S1 = [s1 s2];
                 
                 %search S2 column
-                s1 = strfind(Obs_types{1}, 'S2');
-                s2 = strfind(Obs_types{1}, 'SC');
-                s = [s1 s2];
-                col_S2 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'S2');
+                s2 = strfind(obsTypes{1}, 'SC');
+                col_S2 = [s1 s2];
                 
                 %search D1 column
-                s1 = strfind(Obs_types{1}, 'D1');
-                s2 = strfind(Obs_types{1}, 'DA');
-                s = [s1 s2];
-                col_D1 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'D1');
+                s2 = strfind(obsTypes{1}, 'DA');
+                col_D1 = [s1 s2];
                 
                 %search D2 column
-                s1 = strfind(Obs_types{1}, 'D2');
-                s2 = strfind(Obs_types{1}, 'DC');
-                s = [s1 s2];
-                col_D2 = (s+1)/2;
+                s1 = strfind(obsTypes{1}, 'D2');
+                s2 = strfind(obsTypes{1}, 'DC');
+                col_D2 = [s1 s2];
                 
-                Obs_columns.L1 = col_L1;
-                Obs_columns.L2 = col_L2;
-                Obs_columns.C1 = col_C1;
-                Obs_columns.P1 = col_P1;
-                Obs_columns.P2 = col_P2;
-                Obs_columns.S1 = col_S1;
-                Obs_columns.S2 = col_S2;
-                Obs_columns.D1 = col_D1;
-                Obs_columns.D2 = col_D2;
+                obsCols.L1 = (col_L1+1)/2;
+                obsCols.L2 = (col_L2+1)/2;
+                obsCols.C1 = (col_C1+1)/2;
+                obsCols.P1 = (col_P1+1)/2;
+                obsCols.P2 = (col_P2+1)/2;
+                obsCols.S1 = (col_S1+1)/2;
+                obsCols.S2 = (col_S2+1)/2;
+                obsCols.D1 = (col_D1+1)/2;
+                obsCols.D2 = (col_D2+1)/2;
                 
             else %RINEX v3.xx
                 for c = 1 : length(sysId)
                     
-                    nObs_types.(sysId{c}) = size(Obs_types.(sysId{c}),2)/3;
+                    nType.(sysId{c}) = size(obsTypes.(sysId{c}),2)/3;
                     
                     switch sysId{c}
                         case 'G' %GPS
@@ -1109,51 +1130,26 @@ classdef goGNSS < handle
                             idD2 = 'D2C';
                     end
                     
-                    %search L1 column
-                    s = strfind(Obs_types.(sysId{c}), idL1);
-                    col_L1 = (s+2)/3;
-                    
-                    %search L2 column
-                    s = strfind(Obs_types.(sysId{c}), idL2);
-                    col_L2 = (s+2)/3;
-                    
-                    %search C1 column
-                    s = strfind(Obs_types.(sysId{c}), idC1);
-                    col_C1 = (s+2)/3;
-                    
-                    %search P1 column
-                    s = strfind(Obs_types.(sysId{c}), idP1);
-                    col_P1 = (s+2)/3;
-                    
-                    %search P2 column
-                    s = strfind(Obs_types.(sysId{c}), idP2);
-                    col_P2 = (s+2)/3;
-                    
-                    %search S1 column
-                    s = strfind(Obs_types.(sysId{c}), idS1);
-                    col_S1 = (s+2)/3;
-                    
-                    %search S2 column
-                    s = strfind(Obs_types.(sysId{c}), idS2);
-                    col_S2 = (s+2)/3;
-                    
-                    %search D1 column
-                    s = strfind(Obs_types.(sysId{c}), idD1);
-                    col_D1 = (s+2)/3;
-                    
-                    %search D2 column
-                    s = strfind(Obs_types.(sysId{c}), idD2);
-                    col_D2 = (s+2)/3;
-                    
-                    Obs_columns.(sysId{c}).L1 = col_L1;
-                    Obs_columns.(sysId{c}).L2 = col_L2;
-                    Obs_columns.(sysId{c}).C1 = col_C1;
-                    Obs_columns.(sysId{c}).P1 = col_P1;
-                    Obs_columns.(sysId{c}).P2 = col_P2;
-                    Obs_columns.(sysId{c}).S1 = col_S1;
-                    Obs_columns.(sysId{c}).S2 = col_S2;
-                    Obs_columns.(sysId{c}).D1 = col_D1;
-                    Obs_columns.(sysId{c}).D2 = col_D2;
+                    %search L1, L2, C1, P1, P2, S1, S2, D1, D2 columns
+                    col_L1 = strfind(obsTypes.(sysId{c}), idL1);
+                    col_L2 = strfind(obsTypes.(sysId{c}), idL2);
+                    col_C1 = strfind(obsTypes.(sysId{c}), idC1);
+                    col_P1 = strfind(obsTypes.(sysId{c}), idP1);
+                    col_P2 = strfind(obsTypes.(sysId{c}), idP2);
+                    col_S1 = strfind(obsTypes.(sysId{c}), idS1);
+                    col_S2 = strfind(obsTypes.(sysId{c}), idS2);
+                    col_D1 = strfind(obsTypes.(sysId{c}), idD1);
+                    col_D2 = strfind(obsTypes.(sysId{c}), idD2);
+
+                    obsCols.(sysId{c}).L1 = (col_L1+2)/3;
+                    obsCols.(sysId{c}).L2 = (col_L2+2)/3;
+                    obsCols.(sysId{c}).C1 = (col_C1+2)/3;
+                    obsCols.(sysId{c}).P1 = (col_P1+2)/3;
+                    obsCols.(sysId{c}).P2 = (col_P2+2)/3;
+                    obsCols.(sysId{c}).S1 = (col_S1+2)/3;
+                    obsCols.(sysId{c}).S2 = (col_S2+2)/3;
+                    obsCols.(sysId{c}).D1 = (col_D1+2)/3;
+                    obsCols.(sysId{c}).D2 = (col_D2+2)/3;
                 end
             end
         end
