@@ -996,7 +996,7 @@ classdef goGNSS < handle
                 end
                 
                 %parse next line
-                curLine = curLine +1; curLine = txtRin{curLine};
+                curLine = curLine +1; txtLine = txtRin{curLine};
             end
             
             %check RINEX version

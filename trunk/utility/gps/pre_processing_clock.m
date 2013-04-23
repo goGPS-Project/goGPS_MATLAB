@@ -91,7 +91,11 @@ for i = 1 : nEpochs
     
     if (length(sat0) >= 4)
         
-        [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, cutoff, snr_threshold, flag_XR, 0);
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, cutoff, snr_threshold, flag_XR, 0);
+        
+        if (~isempty(dtR_tmp))
+            dtR(i) = dtR_tmp;
+        end
         
         if (size(sat,1) >= 4)
             
