@@ -1,4 +1,4 @@
-function goGPS_LS_SA_goD(time_rx_t0,time_rx_t1,pr1_t0,pr1_t1,pr2_t0, pr2_t1, ph1_t0,ph1_t1, ph2_t0,ph2_t1, snr_t0,snr_t1, Eph_t0, Eph_t1, SP3_time_t0,SP3_time_t1, SP3_coor_t0,SP3_coor_t1, SP3_clck_t0,SP3_clck_t1, iono, sbas, phase,time_step)
+function goGPS_LS_SA_variometric(time_rx_t0,time_rx_t1,pr1_t0,pr1_t1,pr2_t0, pr2_t1, ph1_t0,ph1_t1, ph2_t0,ph2_t1, snr_t0,snr_t1, Eph_t0, Eph_t1, SP3_time_t0,SP3_time_t1, SP3_coor_t0,SP3_coor_t1, SP3_clck_t0,SP3_clck_t1, iono, sbas, phase,time_step)
          
 % SYNTAX:
 %   goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase);
@@ -159,10 +159,18 @@ if (size(sat,1) >= 4)
         elR_t1(sat_pr) = elR(sat_pr);
         azR_t1(sat_pr) = azR(sat_pr);
         distR_t1(sat_pr) = distR(sat_pr);
-        
     end
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
+    [~, idx_ok] = intersect(sat_pr, sat);
+    XS_t0 = XS_t0(idx_ok,:);
+    XS_t1 = XS_t1(idx_ok,:);
+    dtS_t0 = dtS_t0(idx_ok);
+    dtS_t1 = dtS_t1(idx_ok);
+    err_tropo_t0 = err_tropo_t0(idx_ok);
+    err_tropo_t1 = err_tropo_t1(idx_ok);
+    err_iono_t0 = err_iono_t0(idx_ok);
+    err_iono_t1 = err_iono_t1(idx_ok);
     
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
