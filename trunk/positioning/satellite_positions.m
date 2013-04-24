@@ -105,6 +105,7 @@ for i = 1 : nsat
             Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
         case 'R'
             Omegae_dot = goGNSS.OMEGAE_DOT_GLO;
+            is_GLO(i) = 1;
         case 'E'
             Omegae_dot = goGNSS.OMEGAE_DOT_GAL;
         case 'C'
