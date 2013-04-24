@@ -751,8 +751,9 @@ classdef goGUIclass < handle
             i=i+1; id.rW1           = i;    id2h(i) = obj.goh.weight_1;
             i=i+1; id.rW2           = i;    id2h(i) = obj.goh.weight_2;
             i=i+1; id.rW3           = i;    id2h(i) = obj.goh.weight_3;
+            i=i+1; id.rW4           = i;    id2h(i) = obj.goh.weight_4;
             
-            idG.pW = [id.pW id.rW0 id.rW1 id.rW2 id.rW3];
+            idG.pW = [id.pW id.rW0 id.rW1 id.rW2 id.rW3 id.rW4];
             
           %   SETTINGS - KALMAN FILTER
           % --------------------------------------------------------------- 
@@ -2500,6 +2501,12 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.rW1, state.weight_1, 0);
             obj.setElVal(obj.idUI.rW2, state.weight_2, 0);
             obj.setElVal(obj.idUI.rW3, state.weight_3, 0);
+            % Temporary check during development
+            if (isfield(state,'weight_4')) %since v0.3.2beta -> backward compatibility
+                obj.setElVal(obj.idUI.rW4, state.weight_4, 0);
+            else
+                obj.setElVal(obj.idUI.rW4, 0, 0);
+            end
                         
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
@@ -2646,6 +2653,7 @@ classdef goGUIclass < handle
             state.weight_1          = obj.getElVal(obj.idUI.rW1);
             state.weight_2          = obj.getElVal(obj.idUI.rW2);
             state.weight_3          = obj.getElVal(obj.idUI.rW3);
+            state.weight_4          = obj.getElVal(obj.idUI.rW4);
 
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
@@ -3093,6 +3101,8 @@ classdef goGUIclass < handle
                 weights = 2;
             elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_3)
                 weights = 3;
+            elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_4)
+                weights = 4;
             end
             snr_a = 30;
             snr_0 = 10;

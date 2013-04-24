@@ -97,6 +97,7 @@ circle_rad = 2*pi_orbit;
 
 global azR elR distR
 global azM elM distM
+global elea
 
 %azimuth, elevation and distance of satellites with respect to the ROVER
 azR = [];
@@ -107,6 +108,8 @@ distR = [];
 azM = [];
 elM = [];
 distM = [];
+
+elea  = 10; % default value for the exponential elevation weight function
 
 %-------------------------------------------------------------------------------
 % DILUTION OF PRECISION
