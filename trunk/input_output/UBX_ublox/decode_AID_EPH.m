@@ -160,5 +160,6 @@ if (IODC == IODE2) & (IODC == IODE3)
     data{2}(27) = svhealth;
     data{2}(28) = tgd;
     data{2}(29) = fit_int;
-    data{2}(30) = PRN; %assume only GPS (not multi-constellation)
+    data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
+    data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
 end

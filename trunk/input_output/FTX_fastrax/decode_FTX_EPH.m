@@ -234,7 +234,8 @@ if (IODC == IODE) && (IODC == IODE)
     data{2}(27) = Health;
     data{2}(28) = GroupDelay;
     data{2}(29) = FitPeriod;
-    data{2}(30) = PRN; %assume only GPS (not multi-constellation)
+    data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
+    data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
 end
 
 % Check, no PRN --> delete header to improve performance

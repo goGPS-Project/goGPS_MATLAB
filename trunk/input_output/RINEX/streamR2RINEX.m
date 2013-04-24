@@ -581,7 +581,6 @@ if (~isempty(data_rover_all))
                 %time of measurement decoding
                 date = gps2date(week_R(i), toc);
                 date(1) = two_digit_year(date(1));
-                date(1) = two_digit_year(date(1));
                 
                 lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
                     satEph(j),date(1), date(2), date(3), date(4), date(5), date(6), ...

@@ -203,5 +203,6 @@ if (DF085 == DF071)
     data{2}(27) = DF102;
     data{2}(28) = DF101;
     data{2}(29) = DF137;
-    data{2}(30) = DF009; %assume only GPS (not multi-constellation)
+    data{2}(30) = DF009;     %assume only GPS (not multi-constellation)
+    data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
 end
