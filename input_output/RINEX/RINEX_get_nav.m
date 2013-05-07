@@ -319,8 +319,8 @@ while (~feof(fid))
         E      = str2num(lin4(o+[61:79])); %age of oper. information  (days)
         
         %frequencies on L1 and L2
-        freq_L1 = freq_num * 0.5625 + 1602.0;
-        freq_L2 = freq_num * 0.4375 + 1246.0;
+        %freq_L1 = freq_num * 0.5625 + 1602.0;
+        %freq_L2 = freq_num * 0.4375 + 1246.0;
         
         %convert GLONASS (UTC) date to GPS date
         date_GLO = datenum([year month day hour minute second]);
@@ -344,8 +344,8 @@ while (~feof(fid))
         Eph(12,i) = Ya*1e3; %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time [m/s^2]
         Eph(13,i) = Za*1e3; %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time [m/s^2]
         Eph(14,i) = E;
-        Eph(15,i) = freq_L1;
-        Eph(16,i) = freq_L2;
+        Eph(15,i) = freq_num;
+        Eph(16,i) = 0;
         Eph(17,i) = 0;
         Eph(18,i) = toe;
         Eph(19,i) = 0;
