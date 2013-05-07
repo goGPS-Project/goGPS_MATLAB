@@ -130,7 +130,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 %check if there is any discontinuity in the clock drift
-clock_thresh = 1e-4;
+clock_thresh = 1e-5;
 disc = find(abs(dtRdot-mean(dtRdot)) > clock_thresh);
 
 %remove discontinuities from the clock drift
@@ -159,7 +159,7 @@ end
 %  jumps, phase wihtout)
 
 %jump detection threshold
-j_thres = clock_thresh*v_light;
+j_thres = (clock_thresh*10)*v_light;
 
 %flags
 flag_jumps_pr1 = 0;
@@ -173,35 +173,41 @@ for i = 1 : length(disc)
         
         %check code on L1
         if (pr1(s,disc(i):disc(i)+1) ~= 0)
-            if (diff(pr1(s,disc(i):disc(i)+1)) > j_thres)
+            if (abs(diff(pr1(s,disc(i):disc(i)+1))) > j_thres)
                 flag_jumps_pr1 = 1;
-                continue
             end
         end
         
         %check code on L2
         if (pr2(s,disc(i):disc(i)+1) ~= 0)
-            if (diff(pr2(s,disc(i):disc(i)+1)) > j_thres)
+            if (abs(diff(pr2(s,disc(i):disc(i)+1))) > j_thres)
                 flag_jumps_pr2 = 1;
-                continue
             end
         end
         
         %check phase on L1
         if (ph1(s,disc(i):disc(i)+1) ~= 0)
-            if (diff(ph1(s,disc(i):disc(i)+1))*lambda(s,1) > j_thres)
+            if (abs(diff(ph1(s,disc(i):disc(i)+1)))*lambda(s,1) > j_thres)
                 flag_jumps_ph1 = 1;
-                continue
             end
         end
         
         %check phase on L2
         if (ph2(s,disc(i):disc(i)+1) ~= 0)
-            if (diff(ph2(s,disc(i):disc(i)+1))*lambda(s,2) > j_thres)
+            if (abs(diff(ph2(s,disc(i):disc(i)+1)))*lambda(s,2) > j_thres)
                 flag_jumps_ph2 = 1;
-                continue
             end
         end
+        
+        %no need to go through all satellites
+        if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
+            break
+        end
+    end
+    
+    %no need to go through all discontinuities
+    if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
+        break
     end
 end
 
