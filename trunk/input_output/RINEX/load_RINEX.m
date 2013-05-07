@@ -256,7 +256,7 @@ interval = min([interval_R, interval_M]);
 
 %-------------------------------------------------------------------------------
 
-nEpochs = 10800;
+nEpochs = 86400;
 
 %variable initialization (GPS)
 time_R = zeros(nEpochs,1);
@@ -582,5 +582,6 @@ end
 %GPS week number
 week_R = date2gps(date_R);
 week_M = date2gps(date_M);
-fprintf('The RINEX file has been read!\n');
+
+fprintf('The RINEX file has been read.\n');
 toc
