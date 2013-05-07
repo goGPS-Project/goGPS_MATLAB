@@ -113,34 +113,34 @@ if (flag_XR == 0)
         
         index_GLO = find(is_GLO);
         index = setdiff(index,index_GLO);
-        
-        if (sum(~is_GLO) < 4) %if mixed observations without GLONASS are not enough, return
-            %empty variables
-            XR   = [];
-            dtR  = [];
-            az   = [];
-            el   = [];
-            dist = [];
-            sat  = [];
-            err_tropo = [];
-            err_iono  = [];
-            
-            if (flag_XR == 2)
-                cov_XR = zeros(3,3);
-            else
-                cov_XR = [];
-            end
-            var_dtR = [];
-            
-            PDOP = -9999;
-            HDOP = -9999;
-            VDOP = -9999;
-            cond_num = [];
-            
-            return
-        end
     end
     
+    if (length(index) < 4) %if available observations are not enough, return
+        %empty variables
+        XR   = [];
+        dtR  = [];
+        az   = [];
+        el   = [];
+        dist = [];
+        sat  = [];
+        err_tropo = [];
+        err_iono  = [];
+        
+        if (flag_XR == 2)
+            cov_XR = zeros(3,3);
+        else
+            cov_XR = [];
+        end
+        var_dtR = [];
+        
+        PDOP = -9999;
+        HDOP = -9999;
+        VDOP = -9999;
+        cond_num = [];
+        
+        return
+    end
+
     %NOTE: satellite selection may enhance the solution
     B = [XS(index,:), pseudorange(index) + v_light * dtS(index)]; %Bancroft matrix
     x = bancroft(B);                                         %estimated parameters
