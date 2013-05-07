@@ -1046,7 +1046,9 @@ while flag
                 %time from the ephemerides reference epoch
                 if (conf_eph(i) == 0)
                     toe = Eph(18,s);
-                    tk = check_t(time_GPS-toe);
+                    week_toe = Eph(24,s);
+                    time_eph = weektow2time(week_toe, toe);
+                    tk = check_t(time_GPS-time_eph);
                 end
 
                 %if ephemeris i is not present OR ephemeris i is too old

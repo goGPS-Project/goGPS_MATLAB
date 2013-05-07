@@ -38,9 +38,18 @@ if (strcmp(char(Eph(31)),'C'))
     time = time - 14;
 end
 
-dtmin = Eph(18,icol) - time;
+toe = Eph(18,icol);
+week_toe = Eph(24,icol);
+time_eph = weektow2time(week_toe, toe);
+
+dtmin = time_eph - time;
 for t = isat
-    dt = Eph(18,t) - time;
+    
+    toe = Eph(18,t);
+    week_toe = Eph(24,t);
+    time_eph = weektow2time(week_toe, toe);
+    
+    dt = time_eph - time;
     if (abs(dt) < abs(dtmin))
         icol = t;
         dtmin = dt;

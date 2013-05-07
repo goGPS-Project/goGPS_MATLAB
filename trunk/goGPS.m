@@ -1833,13 +1833,16 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     N = [];
     h_ortho(1:nObs) = -9999;
     
+    %time formatting
+    [tow] = weektime2tow(week_R, time_GPS);
+    
     %date formatting
-    date = gps2date(week_R, time_GPS);
+    date = gps2date(week_R, tow);
     date(:,1) = two_digit_year(date(:,1));
 
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
-    fprintf(fid_out, '    Date        GPS time         GPS TOW        Latitude       Longitude     h (ellips.)          ECEF X          ECEF Y          ECEF Z       UTM North        UTM East         h(AMSL)        UTM zone            HDOP           KHDOP     Local North      Local East         Local H   Ambiguity fix  Success rate\n');
+    fprintf(fid_out, '    Date        GPS time        GPS week         GPS tow        Latitude       Longitude     h (ellips.)          ECEF X          ECEF Y          ECEF Z       UTM North        UTM East         h(AMSL)        UTM zone            HDOP           KHDOP     Local North      Local East         Local H   Ambiguity fix  Success rate\n');
     for i = 1 : nObs
         if (geoid.ncols ~= 0)
             %geoid ondulation interpolation
@@ -1849,7 +1852,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), time_GPS(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
+        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16d% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
     end
     fclose(fid_out);
 end
@@ -2419,7 +2422,7 @@ if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode))
     pos = find(pivot == 0);
     plot(ax(1), epochs(pos), EAST(pos),'.y')
     plot(ax(2), epochs(pos), NORTH(pos),'.y')
-    plot(ax(3), epochs(pos), UP_KAL(pos),'.y')
+    plot(ax(3), epochs(pos), h_KAL(pos),'.y')
     
     linkaxes(ax,'x')
 end

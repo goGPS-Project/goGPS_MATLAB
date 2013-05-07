@@ -327,7 +327,7 @@ while (~feof(fid))
         date_GPS = utc2gps(date_GLO);
         
         %convert GPS date to seconds of week (used as GLONASS time-of-ephemeris)
-        [~, toe] = date2gps(datevec(date_GPS));
+        [week_toe, toe] = date2gps(datevec(date_GPS));
         
         %save ephemerides (position, velocity and acceleration vectors in ECEF system PZ-90.02)
         Eph(1,i)  = svprn;
@@ -353,7 +353,7 @@ while (~feof(fid))
         Eph(21,i) = 0;
         Eph(22,i) = 0;
         Eph(23,i) = 0;
-        Eph(24,i) = 0;
+        Eph(24,i) = week_toe;
         Eph(25,i) = 0;
         Eph(26,i) = 0;
         Eph(27,i) = Bn; %health flag
