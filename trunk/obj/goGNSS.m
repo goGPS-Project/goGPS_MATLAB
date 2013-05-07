@@ -89,8 +89,56 @@ classdef goGNSS < handle
         
         % CONSTELLATION SPECIFIC ------------------------------------------
         
-        FG = [1575.420 1227.600]*1e6;                 % GPS carriers frequencies [Hz]
-        LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;        % GPS carriers wavelengths [m]
+        FL1 = 1575.420;  % GPS [MHz]
+        FL2 = 1227.600;  %
+        FL5 = 1176.450;  %
+        
+        FR1_base  = 1602.000;  % GLONASS [MHz]
+        FR2_base  = 1246.000;  %
+        FR1_delta = 0.5625;    %
+        FR2_delta = 0.4375;    %
+        FR_channels = 6:-1:-7;
+        
+        FE1  = goGNSS.FL1;     % Galileo [MHz]
+        FE5a = goGNSS.FL5;     %
+        FE5b = 1207.140;       %
+        FE5  = 1191.795;       %
+        FE6  = 1278.750;       %
+        
+        FC1  = 1589.740;       % BeiDou [MHz]
+        FC2  = 1561.098;       %
+        FC5b = goGNSS.FE5b;    %
+        FC6  = 1268.520;       %
+        
+        FJ1 = goGNSS.FL1;      % QZSS [MHz]
+        FJ2 = goGNSS.FL2;      %
+        FJ5 = goGNSS.FL5;      %
+        FJ6 = goGNSS.FE6;      %
+        
+        FS1 = goGNSS.FL1;      % SBAS [MHz]
+        FS5 = goGNSS.FL5;      %
+        
+        FG = [goGNSS.FL1 goGNSS.FL2 goGNSS.FL5]*1e6;        % GPS carriers frequencies [Hz]
+        LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;              % GPS carriers wavelengths [m]
+        
+        FR_base  = [goGNSS.FR1_base goGNSS.FR2_base];       % GLONASS carriers base frequencies [Hz]
+        FR_delta = [goGNSS.FR1_delta goGNSS.FR2_delta];     % GLONASS carriers delta frequencies [Hz/n]
+        FR1 = goGNSS.FR_channels' .* goGNSS.FR_delta(1) + goGNSS.FR_base(1);
+        FR2 = goGNSS.FR_channels' .* goGNSS.FR_delta(2) + goGNSS.FR_base(2);
+        FR = [goGNSS.FR1 goGNSS.FR2]*1e6;                   % GLONASS carriers frequencies [Hz]
+        LAMBDAR = goGNSS.V_LIGHT ./ goGNSS.FR;              % GLONASS carriers wavelengths [m]
+        
+        FE = [goGNSS.FE1 goGNSS.FE5a goGNSS.FE5b goGNSS.FE5 goGNSS.FE6]*1e6; % Galileo carriers frequencies [Hz]
+        LAMBDAE = goGNSS.V_LIGHT ./ goGNSS.FE;                               % Galileo carriers wavelengths [m]
+        
+        FC = [goGNSS.FC1 goGNSS.FC2 goGNSS.FC5b goGNSS.FC6]*1e6; % BeiDou carriers frequencies [Hz]
+        LAMBDAC = goGNSS.V_LIGHT ./ goGNSS.FC;                   % BeiDou carriers wavelengths [m]
+        
+        FJ = [goGNSS.FJ1 goGNSS.FJ2 goGNSS.FJ5 goGNSS.FJ6]*1e6;  % QZSS carriers frequencies [Hz]
+        LAMBDAJ = goGNSS.V_LIGHT ./ goGNSS.FJ;                   % QZSS carriers wavelengths [m]
+        
+        FS = [goGNSS.FS1 goGNSS.FS5]*1e6;                        % SBAS carriers frequencies [Hz]
+        LAMBDAS = goGNSS.V_LIGHT ./ goGNSS.FS;                   % SBAS carriers wavelengths [m]
         
         % CONSTELLATIONS IDs ----------------------------------------------
         
@@ -265,6 +313,59 @@ classdef goGNSS < handle
             end
             
             constellations.nEnabledSat = nSatTot;
+        end
+        
+        function [lambda] = getGNSSWavelengths(Eph, nSatTot)
+            lambda = zeros(nSatTot,2);
+            for s = 1 : nSatTot
+                pos = find(Eph(30,:) == s,1);
+                if (~isempty(pos))
+                    switch char(Eph(31,pos))
+                        case 'G'
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GPS, 1);
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GPS, 2);
+                        case 'R'
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 1, Eph(15,pos));
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 2, Eph(15,pos));
+                        case 'E'
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GALILEO, 1);
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GALILEO, 2);
+                        case 'C'
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 1);
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 2);
+                        case 'J'
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_QZSS, 1);
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_QZSS, 2);
+                        otherwise
+                            fprintf('Something went wrong in goGNSS.getGNSSWavelengths()\nUnrecongized Satellite system.\n');
+                    end
+                end
+            end
+        end
+        
+        function [lambda] = getWavelength(idCostellation, freq, GLOFreqNum)
+            switch idCostellation
+                case goGNSS.ID_GPS
+                    lambda = goGNSS.LAMBDAG(freq);
+                case goGNSS.ID_GLONASS
+                    pos = goGNSS.FR_channels == GLOFreqNum;
+                    lambda = goGNSS.LAMBDAR(pos, freq);
+                case goGNSS.ID_GALILEO
+                    lambda = goGNSS.LAMBDAE(freq);
+                case goGNSS.ID_BEIDOU
+                    lambda = goGNSS.LAMBDAC(freq);
+                case goGNSS.ID_QZSS
+                    lambda = goGNSS.LAMBDAJ(freq);
+                case goGNSS.ID_SBAS
+                    lambda = goGNSS.LAMBDAS(freq);
+            end
+        end
+        
+        function [GLOFreqNum] = getGLOFreqNum(satNum, Eph)
+            pos1 = find(Eph(30,:) == satNum,1);
+            pos2 = find(strcmp(char(Eph(31,:)),'R'));
+            pos = interesct(pos1, pos2);
+            GLOFreqNum = Eph(15,pos);
         end
     end
     

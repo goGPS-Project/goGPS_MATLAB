@@ -32,9 +32,9 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time
 %    the receiver clock error.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.1.3 alpha
+%                           goGPS v0.3.1 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -62,6 +62,12 @@ dtR = zeros(nEpochs,1);
 
 %receiver clock drift
 dtRdot = zeros(nEpochs-1,1);
+
+%-------------------------------------------------------------
+% Retrieve multi-constellation wavelengths
+%-------------------------------------------------------------
+
+lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
 
 %------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
@@ -148,6 +154,57 @@ if (max(abs(dtR)) < 1e-6)
     return
 end
 
+%check which observations must be corrected for receiver clock offsets
+% (some receivers have inconsistent observations, e.g. code with clock
+%  jumps, phase wihtout)
+
+%jump detection threshold
+j_thres = clock_thresh*v_light;
+
+%flags
+flag_jumps_pr1 = 0;
+flag_jumps_pr2 = 0;
+flag_jumps_ph1 = 0;
+flag_jumps_ph2 = 0;
+
+for i = 1 : length(disc)
+    
+    for s = 1 : nSatTot
+        
+        %check code on L1
+        if (pr1(s,disc(i):disc(i)+1) ~= 0)
+            if (diff(pr1(s,disc(i):disc(i)+1)) > j_thres)
+                flag_jumps_pr1 = 1;
+                continue
+            end
+        end
+        
+        %check code on L2
+        if (pr2(s,disc(i):disc(i)+1) ~= 0)
+            if (diff(pr2(s,disc(i):disc(i)+1)) > j_thres)
+                flag_jumps_pr2 = 1;
+                continue
+            end
+        end
+        
+        %check phase on L1
+        if (ph1(s,disc(i):disc(i)+1) ~= 0)
+            if (diff(ph1(s,disc(i):disc(i)+1))*lambda(s,1) > j_thres)
+                flag_jumps_ph1 = 1;
+                continue
+            end
+        end
+        
+        %check phase on L2
+        if (ph2(s,disc(i):disc(i)+1) ~= 0)
+            if (diff(ph2(s,disc(i):disc(i)+1))*lambda(s,2) > j_thres)
+                flag_jumps_ph2 = 1;
+                continue
+            end
+        end
+    end
+end
+
 %----------------------------------------------------------------------------------------------
 % OBSERVATION CORRECTION FOR CLOCK ERROR
 %----------------------------------------------------------------------------------------------
@@ -173,9 +230,11 @@ for s = 1 : nSatTot
         index_s = find(pr1(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
+        if (flag_jumps_pr1)
+            pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
+        end
 %         if (any(dop1(s,index)))
-%             pr1(s,index) = pr1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index))*lambda1;
+%             pr1(s,index) = pr1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index))*lambda(s,1);
 %         else
             pr1(s,index) = interp1(time(index), pr1(s,index), time_ref(index), 'spline');
 %         end
@@ -186,9 +245,11 @@ for s = 1 : nSatTot
         index_s = find(pr2(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
+        if (flag_jumps_pr2)
+            pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
+        end
 %         if (any(dop2(s,index)))
-%             pr2(s,index) = pr2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index))*lambda2;
+%             pr2(s,index) = pr2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index))*lambda(s,2);
 %         else
             pr2(s,index) = interp1(time(index), pr2(s,index), time_ref(index), 'spline');
 %         end
@@ -199,7 +260,9 @@ for s = 1 : nSatTot
         index_s = find(ph1(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda1;
+        if (flag_jumps_ph1)
+            ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
+        end
 %         if (any(dop1(s,index)))
 %             ph1(s,index) = ph1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index));
 %         else
@@ -212,7 +275,9 @@ for s = 1 : nSatTot
         index_s = find(ph2(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda2;
+        if (flag_jumps_ph2)
+            ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
+        end
 %         if (any(dop2(s,index)))
 %             ph2(s,index) = ph2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index));
 %         else
