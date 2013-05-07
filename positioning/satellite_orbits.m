@@ -64,6 +64,9 @@ if (~strcmp(char(Eph(31)),'R'))
     Omega0    = Eph(16);
     Omega_dot = Eph(17);
     toe       = Eph(18);
+    week_toe  = Eph(24);
+    
+    time_eph = weektow2time(week_toe, toe);
     
     %SBAS satellite coordinate corrections
     if (~isempty(sbas))
@@ -83,8 +86,8 @@ if (~strcmp(char(Eph(31)),'R'))
     %eccentric anomaly
     [Ek, n] = ecc_anomaly(t, Eph);
     
-    A = roota*roota;        %semi-major axis
-    tk = check_t(t - toe);  %time from the ephemeris reference epoch
+    A = roota*roota;             %semi-major axis
+    tk = check_t(t - time_eph);  %time from the ephemeris reference epoch
     
     fk = atan2(sqrt(1-ecc^2)*sin(Ek), cos(Ek) - ecc);    %true anomaly
     phik = fk + omega;                           %argument of latitude
@@ -179,7 +182,10 @@ if (~strcmp(char(Eph(31)),'R'))
     
 else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
     
-    toe = Eph(18); %ephemeris reference time
+    toe = Eph(18);      %ephemeris reference time
+    week_toe = Eph(24);
+    
+    time_eph = weektow2time(week_toe, toe);
 
     X   = Eph(5);  %satellite X coordinate at ephemeris reference time
     Y   = Eph(6);  %satellite Y coordinate at ephemeris reference time
@@ -198,7 +204,7 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
     int_step = 60; %[s]
     
     %time from the ephemeris reference epoch
-    tk = check_t(t - toe);
+    tk = check_t(t - time_eph);
     
     %number of iterations on "full" steps
     n = floor(abs(tk/int_step));

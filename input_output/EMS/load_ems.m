@@ -1,12 +1,12 @@
-function [sbas] = load_ems(data_dir_ems, week_R, time_R)
+function [sbas] = load_ems(data_dir_ems, gps_week, time_R)
 
 % SYNTAX:
-%   [sbas] = load_ems(data_dir_ems, week_R, time_R);
+%   [sbas] = load_ems(data_dir_ems, gps_week, time_R);
 %
 % INPUT:
 %   data_dir_ems = path to the directory containing EMS files [string]
-%   week_R = reference vector of GPS week numbers
-%   time_R = reference vector of GPS time of week
+%   gps_week = reference vector of GPS week numbers
+%   time_R = reference vector of GPS time
 %
 % OUTPUT:
 %   sbas = struct containing SBAS data
@@ -51,6 +51,9 @@ msg    = [];
 
 %output initialization
 sbas = [];
+
+%convert GPS time to time-of-week
+gps_tow = weektime2tow(gps_week, time_R);
 
 %directory containing EMS files
 data_dir = dir(data_dir_ems);
@@ -182,7 +185,7 @@ clear check_mt crc parity mt_ok t_abs yy ii
 [igp, ivd_E, lat_igp, lon_igp, GPS_time_ic] = load_ic(iodi_mask, band_mask, igp_mask, MT, msg, time_E); 
 
 %check that there are sufficient EMS data matching the survey timespan
-[ems_data_available] = check_ems_availability(GPS_time_fc, GPS_time_ltc, GPS_time_ic, week_R, time_R);
+[ems_data_available] = check_ems_availability(GPS_time_fc, GPS_time_ltc, GPS_time_ic, gps_week, gps_tow);
 
 %if EMS data are not sufficient, return for standard (i.e. not SBAS-corrected) positioning
 if (~ems_data_available)
@@ -190,13 +193,13 @@ if (~ems_data_available)
 end
 
 %matrix synchronization
-[E_prc] = sync_ER(prc_E, GPS_time_fc, week_R, time_R);
-[E_dx]  = sync_ER(dx_E, GPS_time_ltc, week_R, time_R);
-[E_dy]  = sync_ER(dy_E, GPS_time_ltc, week_R, time_R);
-[E_dz]  = sync_ER(dz_E, GPS_time_ltc, week_R, time_R);
-[E_doffset] = sync_ER(doffset_E, GPS_time_ltc, week_R, time_R);
-[E_iode] = sync_ER(iode_E, GPS_time_ltc, week_R, time_R);
-[E_ivd]  = sync_ER(ivd_E, GPS_time_ic, week_R, time_R);
+[E_prc] = sync_ER(prc_E, GPS_time_fc, gps_week, gps_tow);
+[E_dx]  = sync_ER(dx_E, GPS_time_ltc, gps_week, gps_tow);
+[E_dy]  = sync_ER(dy_E, GPS_time_ltc, gps_week, gps_tow);
+[E_dz]  = sync_ER(dz_E, GPS_time_ltc, gps_week, gps_tow);
+[E_doffset] = sync_ER(doffset_E, GPS_time_ltc, gps_week, gps_tow);
+[E_iode] = sync_ER(iode_E, GPS_time_ltc, gps_week, gps_tow);
+[E_ivd]  = sync_ER(ivd_E, GPS_time_ic, gps_week, gps_tow);
 
 %collect all the SBAS data in a structure
 sbas.prc = E_prc;

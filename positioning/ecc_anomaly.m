@@ -39,17 +39,20 @@ switch char(Eph(31))
 end
 
 %get ephemerides
-M0     = Eph(3);
-roota  = Eph(4);
-deltan = Eph(5);
-ecc    = Eph(6);
-toe    = Eph(18);
+M0       = Eph(3);
+roota    = Eph(4);
+deltan   = Eph(5);
+ecc      = Eph(6);
+toe      = Eph(18);
+week_toe = Eph(24);
 
-A  = roota*roota;           %semi-major axis
-tk = check_t(time - toe);   %time from the ephemerides reference epoch
-n0 = sqrt(GM/A^3);          %computed mean motion [rad/sec]
-n  = n0 + deltan;           %corrected mean motion [rad/sec]
-Mk = M0 + n*tk;             %mean anomaly
+time_eph = weektow2time(week_toe, toe);
+
+A  = roota*roota;              %semi-major axis
+tk = check_t(time - time_eph); %time from the ephemerides reference epoch
+n0 = sqrt(GM/A^3);             %computed mean motion [rad/sec]
+n  = n0 + deltan;              %corrected mean motion [rad/sec]
+Mk = M0 + n*tk;                %mean anomaly
 Mk = rem(Mk+goGNSS.CIRCLE_RAD,goGNSS.CIRCLE_RAD);
 Ek = Mk;
 

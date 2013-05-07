@@ -123,15 +123,16 @@ end
         ro = phi + 0.064*cos((lambda-1.617)*pi);
         
         t = lambda*43200 + time_rx;
+        t = mod(t,86400);
         
-        for i = 1 : length(time_rx)
-            while (t(i) >= 86400)
-                t(i) = t(i)-86400;
-            end
-            while (t(i) < 0)
-                t(i) = t(i)+86400;
-            end
-        end
+        % for i = 1 : length(time_rx)
+        %    while (t(i) >= 86400)
+        %        t(i) = t(i)-86400;
+        %    end
+        %    while (t(i) < 0)
+        %        t(i) = t(i)+86400;
+        %    end
+        %end
         
         % index = find(t >= 86400);
         % while ~isempty(index)
