@@ -158,7 +158,7 @@ if (~isempty(data_rover_all))
     dop1_R = zeros(32,Ncell);                             %doppler measurements
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     lock_R = zeros(32,Ncell);                             %loss of lock indicator
-    Eph_R  = zeros(31,32,Ncell);                          %broadcast ephemerides
+    Eph_R  = zeros(33,32,Ncell);                          %broadcast ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);

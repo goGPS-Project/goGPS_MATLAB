@@ -19,7 +19,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
 %   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
 %   dop1_R   = ROVER-SATELLITE Doppler observations (carrieri L1) 
-%   Eph      = matrix of 31 ephemerides for each satellite
+%   Eph      = matrix of 33 ephemerides for each satellite
 %   iono     = ionosphere parameters
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
@@ -177,7 +177,7 @@ if ~isempty(time_GPS)
             snr_R  = [snr_R(:,1:pos)  zeros(num_sat,1)    snr_R(:,pos+1:end)];
             iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
 
-            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(31,num_sat,1), Eph_R(:,:,pos+1:end));
+            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(33,num_sat,1), Eph_R(:,:,pos+1:end));
             
             roundtime_R = roundmod(time_R,interval_R);
         end
@@ -188,7 +188,7 @@ if ~isempty(time_GPS)
         ph1_R  = zeros(num_sat,length(time_GPS));
         dop1_R = zeros(num_sat,length(time_GPS));
         snr_R  = zeros(num_sat,length(time_GPS));
-        Eph_R  = zeros(31,num_sat,length(time_GPS));
+        Eph_R  = zeros(33,num_sat,length(time_GPS));
         iono   = zeros(8,length(time_GPS));
     end
 
@@ -205,7 +205,7 @@ if ~isempty(time_GPS)
             snr_M  = [snr_M(:,1:pos)  zeros(num_sat,1)    snr_M(:,pos+1:end)];
             pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
 
-            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(31,num_sat,1), Eph_M(:,:,pos+1:end));
+            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(33,num_sat,1), Eph_M(:,:,pos+1:end));
             
             roundtime_M = roundmod(time_M,interval_M);
         end
@@ -215,7 +215,7 @@ if ~isempty(time_GPS)
         ph1_M  = zeros(num_sat,length(time_GPS));
         snr_M  = zeros(num_sat,length(time_GPS));
         pos_M  = zeros(3,length(time_GPS));
-        Eph_M  = zeros(31,num_sat,length(time_GPS));
+        Eph_M  = zeros(33,num_sat,length(time_GPS));
     end
 
 else

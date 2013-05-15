@@ -43,10 +43,7 @@ M0       = Eph(3);
 roota    = Eph(4);
 deltan   = Eph(5);
 ecc      = Eph(6);
-toe      = Eph(18);
-week_toe = Eph(24);
-
-time_eph = weektow2time(week_toe, toe);
+time_eph = Eph(32);
 
 A  = roota*roota;              %semi-major axis
 tk = check_t(time - time_eph); %time from the ephemerides reference epoch

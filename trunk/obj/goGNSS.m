@@ -522,7 +522,7 @@ classdef goGNSS < handle
                     waitbar(1,wait_dlg)
                 end
             else
-                Eph = zeros(31,nSatTot);
+                Eph = zeros(33,nSatTot);
                 iono = zeros(8,1);
             end
             

@@ -72,7 +72,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(31,1);
+data{2} = zeros(33,1);
 
 %message number
 DF002 = fbin2dec(msg(pos:pos+11)); pos = pos + 12;
@@ -205,4 +205,6 @@ if (DF085 == DF071)
     data{2}(29) = DF137;
     data{2}(30) = DF009;     %assume only GPS (not multi-constellation)
     data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+    data{2}(32) = weektow2time(DF076, DF093);
+    data{2}(33) = weektow2time(DF076, DF081);
 end

@@ -92,7 +92,7 @@ ph1_M  = zeros(num_sat,epochs);
 dop1_M = zeros(num_sat,epochs);
 snr_M  = zeros(num_sat,epochs);
 pos_M  = zeros(3,epochs);
-Eph_M  = zeros(31,num_sat,epochs);
+Eph_M  = zeros(33,num_sat,epochs);
 iono   = zeros(8,epochs);
 
 if (~isempty(dir(filename_M_obs)))
@@ -267,7 +267,7 @@ end
 if (nargin >= 6)
     waitbar(0,wait_dlg,'Reconstruct complete ephemerides set...')
 end
-Eph = zeros(31,num_sat,epochs);
+Eph = zeros(33,num_sat,epochs);
 for i = 1 : epochs
     Eph(:,:,i) = rt_find_eph(Eph_tmp, time_GPS(i));
     if (nargin >= 6)

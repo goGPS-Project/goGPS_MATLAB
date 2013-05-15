@@ -115,7 +115,7 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  time_GPS --> double, [1,1]
-%  Eph      --> double, [31,32]
+%  Eph      --> double, [33,32]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %Kalman filter output data
@@ -271,7 +271,7 @@ fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 %pseudoranges
 pr_R = zeros(32,1);
 %ephemerides
-Eph = zeros(31,32);
+Eph = zeros(33,32);
 %satellites with observations available
 satObs = [];
 nsatObs_old = [];
@@ -1045,9 +1045,7 @@ while flag
 
                 %time from the ephemerides reference epoch
                 if (conf_eph(i) == 0)
-                    toe = Eph(18,s);
-                    week_toe = Eph(24,s);
-                    time_eph = weektow2time(week_toe, toe);
+                    time_eph = Eph(32,s);
                     tk = check_t(time_GPS-time_eph);
                 end
 

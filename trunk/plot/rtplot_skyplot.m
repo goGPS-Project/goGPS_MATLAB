@@ -12,7 +12,7 @@ function rtplot_skyplot (t, az, el, obs, pivot, Eph, SP3)
 %           +1 = code & phase
 %           -1 = only code
 %   pivot = pivot satellite
-%   Eph = matrix containing 31 navigation parameters for each satellite
+%   Eph = matrix containing 33 navigation parameters for each satellite
 %   SP3 = structure containing precise ephemeris data
 %
 % DESCRIPTION:
