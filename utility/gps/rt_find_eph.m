@@ -34,7 +34,7 @@ function [Eph_t] = rt_find_eph(Eph_in, time, nsat)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-empty_col = zeros(31,1);
+empty_col = zeros(33,1);
 
 for sv = 1 : nsat
     icol = find_eph(Eph_in, sv, time);

@@ -1,7 +1,7 @@
 function [sow] = weektime2tow(week, time)
 
 % SYNTAX:
-%   [time] = weektow2time(week, sow);
+%   [sow] = weektime2tow(week, sow);
 %
 % INPUT:
 %   week = GPS week

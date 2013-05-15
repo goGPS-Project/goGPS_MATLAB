@@ -5,7 +5,7 @@ function rtplot_snr(snr, Eph, SP3)
 %
 % INPUT:
 %   snr = signal-to-noise ratio
-%   Eph = matrix containing 31 navigation parameters for each satellite
+%   Eph = matrix containing 33 navigation parameters for each satellite
 %   SP3 = structure containing precise ephemeris data
 %
 % DESCRIPTION:

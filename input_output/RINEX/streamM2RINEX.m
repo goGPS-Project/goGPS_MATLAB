@@ -127,7 +127,7 @@ if (~isempty(data_master_all))
         pr2_M   = zeros(32,Ncell);                            %code observations
         ph2_M   = zeros(32,Ncell);                            %phase observations
         snr2_M  = zeros(32,Ncell);                            %signal-to-noise ratio
-        Eph_M = zeros(31,32,Ncell);                           %ephemerides
+        Eph_M = zeros(33,32,Ncell);                           %ephemerides
         pos_M = zeros(3,1);                                   %master station position
         
         if (nargin == 4)

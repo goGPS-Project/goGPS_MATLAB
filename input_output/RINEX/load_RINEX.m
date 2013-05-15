@@ -43,7 +43,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   date = date (year,month,day,hour,minute,second)
 %   pos_R = rover approximate position
 %   pos_M = master station position
-%   Eph = matrix containing 31 navigation parameters for each satellite
+%   Eph = matrix containing 33 navigation parameters for each satellite
 %   iono = vector containing ionosphere parameters
 %
 % DESCRIPTION:
@@ -185,7 +185,7 @@ if (~flag_SP3)
         waitbar(1,wait_dlg)
     end
 else
-    Eph = zeros(31,nSatTot);
+    Eph = zeros(33,nSatTot);
     iono = zeros(8,1);
 end
 

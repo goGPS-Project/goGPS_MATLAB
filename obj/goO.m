@@ -407,7 +407,7 @@ classdef goO < handle
                 end
             else
                 fprintf('Loading SP3 files')
-                Eph = zeros(31,nSatTot);
+                Eph = zeros(33,nSatTot);
                 iono = zeros(8,1);
             end
             obs.eph = Eph;

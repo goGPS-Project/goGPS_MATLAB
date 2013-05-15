@@ -64,9 +64,7 @@ if (~strcmp(char(Eph(31)),'R'))
     Omega0    = Eph(16);
     Omega_dot = Eph(17);
     toe       = Eph(18);
-    week_toe  = Eph(24);
-    
-    time_eph = weektow2time(week_toe, toe);
+    time_eph  = Eph(32);
     
     %SBAS satellite coordinate corrections
     if (~isempty(sbas))
@@ -181,11 +179,8 @@ if (~strcmp(char(Eph(31)),'R'))
     end
     
 else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
-    
-    toe = Eph(18);      %ephemeris reference time
-    week_toe = Eph(24);
-    
-    time_eph = weektow2time(week_toe, toe);
+
+    time_eph = Eph(32); %ephemeris reference time
 
     X   = Eph(5);  %satellite X coordinate at ephemeris reference time
     Y   = Eph(6);  %satellite Y coordinate at ephemeris reference time

@@ -69,7 +69,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(31,1);
+data{2} = zeros(33,1);
 
 %output data save
 data{1} = 'GPS_EPH';
@@ -170,6 +170,8 @@ if (IODC == IODE2) & (IODC == IODE3)
     data{2}(29) = fit_int;
     data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
     data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+    data{2}(32) = weektow2time(weekno, toe);
+    data{2}(33) = weektow2time(weekno, toc);
 end
 
 % Check, no data --> delete header to improve performance

@@ -8,7 +8,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 %   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
 %
 % OUTPUT:
-%   Eph = matrix containing 31 navigation parameters for each satellite
+%   Eph = matrix containing 33 navigation parameters for each satellite
 %   iono = matrix containing ionosphere parameters
 %
 % DESCRIPTION:
@@ -291,10 +291,12 @@ while (~feof(fid))
         Eph(29,i) = fit_int;
         Eph(30,i) = (sys_index-1) + svprn; %satellite index (consistent with other observation arrays)
         Eph(31,i) = int8(sys_id);
+        Eph(32,i) = weektow2time(weekno, toe);
+        Eph(33,i) = weektow2time(weekno, toc);
         
         %if IODC and IODE do not match, issue a warning
         if (iodc ~= IODE && ~strcmp(sys_id, 'C'))
-            fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %02d, time %dh %dm %.1fs)\n',svprn,hour,minute,second);
+            fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %1s%02d, time %dh %dm %.1fs)\n',sys_id,svprn,hour,minute,second);
         end
         
     %if GLONASS
@@ -361,5 +363,7 @@ while (~feof(fid))
         Eph(29,i) = 0;
         Eph(30,i) = (sys_index-1) + svprn;
         Eph(31,i) = int8(sys_id);
+        Eph(32,i) = weektow2time(week_toe, toe);
+        Eph(33,i) = 0;
     end
 end

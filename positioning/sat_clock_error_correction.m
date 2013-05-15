@@ -26,12 +26,9 @@ if (strcmp(char(Eph(31)),'R'))
 
     TauN     = Eph(2);
     GammaN   = Eph(3);
-    toe      = Eph(18);
-    week_toe = Eph(24);
+    ref_toe  = Eph(32);
     
-    time_eph = weektow2time(week_toe, toe);
-    
-    dt = check_t(time - time_eph);
+    dt = check_t(time - ref_toe);
     corr = -TauN + GammaN*dt;
     
 else %if GPS/Galileo/QZSS/BeiDou
@@ -39,16 +36,13 @@ else %if GPS/Galileo/QZSS/BeiDou
     af2 = Eph(2);
     af0 = Eph(19);
     af1 = Eph(20);
-    toc = Eph(21);
-    week_toc = Eph(24);
-    
-    time_eph = weektow2time(week_toc, toc);
+    ref_toc = Eph(33);
     
     %consider BeiDou time (BDT) for BeiDou satellites
     if (strcmp(char(Eph(31)),'C'))
         time = time - 14;
     end
     
-    dt = check_t(time - time_eph);
+    dt = check_t(time - ref_toc);
     corr = (af2 * dt + af1) * dt + af0;
 end
