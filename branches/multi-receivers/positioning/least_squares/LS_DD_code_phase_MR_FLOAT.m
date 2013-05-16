@@ -1,4 +1,4 @@
-function [Xb, N_hat, cov_Xb, cov_N, cov_ATT, attitude, XR, PDOP, HDOP, VDOP, posType] = LS_DD_code_phase_MR_FIX ...
+function [Xb, N_hat, cov_Xb, cov_N, cov_ATT, attitude, XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR_FLOAT ...
     (Xb_approx, XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, attitude, geometry, flag_Tykhon,F_Ai, F_PR_DD, F_s_X,threshold)
 
 % SYNTAX:
@@ -164,194 +164,24 @@ x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%Xb=Xb_approx+x_hat(1:3);
-
-
+Xb=Xb_approx+x_hat(1:3);
 N_hat=x_hat(7:end);
+attitude=attitude+x_hat(4:6);
 
-
-
-cov_XR=[];
-cov_N=[];
-PDOP=[];
-HDOP=[];
-VDOP=[];
-up_bound=[];
-lo_bound=[];
-posType=[];
-
-
-
-
-
-
-if (flag_Tykhon)
-    %Processing with Tykhonov-Phillips regularization
-    [x_hat, bias, lbd] = tykhonov_regularization(x_hat, y0, b, A, Q);
-    
-    %computation of the condition number on the eigenvalues of N
-    N_min_eig = min(eig(N + lbd*eye(m)));
-    N_max_eig = max(eig(N + lbd*eye(m)));
-    cond_num = ceil(log10(N_max_eig / N_min_eig));
-else
-    %computation of the condition number on the eigenvalues of N
-    N_min_eig = min(eig(N));
-    N_max_eig = max(eig(N));
-    cond_num = ceil(log10(N_max_eig / N_min_eig));
-end
-
-%covariance matrix of the estimation error
-if (n > m)
-    if (~flag_Tykhon)
-        Qxx = (N^-1);   %vcm of parameter computed from inverse of normal matrix
-    else
-        Qxx = ((N + lbd*eye(m))^-1)*N*((N + lbd*eye(m))^-1); %vcm of parameter
-    end
-    [U] = chol(Qxx);    %compute cholesky decomp. for identical comp of vcm purpose
-    Cxx = U'*U; %find back the vcm of parameter, now the off diag. comp. are identical :)
-    
-    
-    cov_Xb = Cxx(1:3,1:3); %rover position covariance matrix
-    cov_ATT = Cxx(4:6,4:6);
-    cov_N = Cxx(7:end,7:end);
-    
-    
-    
-    %%this part for future statistical test of data reliability :)
-    %     Q_hat = A*Cxx*A';
-    %     Qv_hat= Q - Q_hat;
-    %     alpha = 0.05;
-    %     [identify,BNR_xhat, BNR_y] = test_statistic(Q_hat, Q, A, alpha, v_hat,Qv_hat)
-    
-    %rover position covariance matrix
-    cov_XR = Cxx(1:3,1:3);
-    Cbb = Cxx(1:3,1:3); %vcm block of baseline component
-    Cba = Cxx(1:3,7:end);% correlation of baselines and ambiguities comp.
-    Cab = Cxx(7:end,1:3);
-    Caa = Cxx(7:end,7:end);%vcm block of ambiguity component
-    
-    Catat=Cxx(4:6,4:6);
-    Cata=Cxx(4:6,7:end);
-    Caat=Cxx(7:end,4:6);
-    
-
-    %%%%%%
-    %% NEW
-    %%%%%%
-    global succ_rate IAR_method ratiotest P0 flag_auto_mu flag_default_P0 mutest mu
-    IAR_method = 5;
-    ratiotest=0.7;
-    P0=0.995;
-    flag_auto_mu = 0;
-    flag_default_P0 = 0;
-
-    [bdef, z] = lambdafix(x_hat(1:3), N_hat, Cbb, Caa, Cba);
-
-    
-    if sum(z-fix(z))==0
-        posType = 1;
-    else
-        posType = 0;
-    end
-    
-    up_bound=0;
-    lo_bound=0;
-    
-    afl = x_hat(7:end);
-    at_def= x_hat(4:6) - Cata * Caa^-1 * (afl -z);
-
-    attitude     = (attitude + at_def); %define the definitive attitude
-    %std    = sqrt(diag(cov_XR)); %standard deviation of baseline
-    %bl     = norm(XM - XR); %baseline length
-    %
-    %estimated double difference ambiguities (without PIVOT)
-    N_hat = z;
-    
-    %     %add a zero at PIVOT position
-    %     N_hat = zeros(n/2+1,1);
-    %     N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-    %     N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-    %
-    %combined ambiguity covariance matrix
-    cov_N = Caa;
-    cov_ATT= Catat;
-        
-     Xb     = (Xb_approx + bdef); %define the definitive coordinate
-    %%%%%%%%%%
-    %% END NEW
-    %%%%%%%%%%
-    
-%%    
-%     %%%%%%%
-%     % OLD
-%     %%%%%%%
-%     
-%     %ambiguity estimation   
-%     afl = x_hat(7:end); %extract float ambiguity from float least-squares
-%     [afix, sqnorm, Qahat, Z, D, L] = lambda_routine2(afl,Caa); %using LAMBDA routines
-%     
-%     %Integer ambiguity validation
-%     %----------------------------
-%     O1 = (afl - afix(:,1))' * (Caa)^-1 * (afl - afix(:,1)); %nominator component
-%     O2 = (afl - afix(:,2))' * (Caa)^-1 * (afl - afix(:,2)); %denominator component
-%     O  = O1 / O2; %ratio test
-%     
-%     if O <= threshold;%0.787%0.6%0.5    %if below threshold, use the LAMBDA result
-%         z = afix(:,1);
-%         posType = 1; %fixed
-%     else                     %if above threshold, reject the LAMBDA result
-%         z = afl;
-%         posType = 0; %float
-%     end
-%     
-%     if (~flag_Tykhon)
-%         bias = check_bias(D); %no bias detected
-%     else
-%         bias = check_bias(D,bias(4:end)); %use bias component from ambiguity
-%     end
-%     [up_bound, lo_bound] = success_rate(D,L,bias); %compute success rate of ambiguity
-%     
-%     %Computing definite coordinate
-%     %-----------------------------
-%     bfl    = x_hat(1:3); %float baseline component
-%     bdef   = bfl - Cba * Caa^-1 * (afl - z); %compute the conditional baseline component
-%     cov_XR = Cbb - (Cba * Caa^-1 * Cab) + (Cba * Caa^-1*Qahat*(Caa^-1)'*Cab); %compute its vcm
-%     Xb     = (Xb_approx + bdef); %define the definitive coordinate
-%     
-%     at_def= x_hat(4:6) - Cata * Caa^-1 * (afl -z);
-%     cov_ATT= Catat -(Cata* Caa^-2 *Caat) +(Cata* Caa^-1*Qahat*(Caa^-1)'*Caat);
-%     attitude     = (attitude + at_def); %define the definitive attitude
-%     %std    = sqrt(diag(cov_XR)); %standard deviation of baseline
-%     %bl     = norm(XM - XR); %baseline length
-%     %
-%     %estimated double difference ambiguities (without PIVOT)
-%     N_hat = z;
-%     
-%     %     %add a zero at PIVOT position
-%     %     N_hat = zeros(n/2+1,1);
-%     %     N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-%     %     N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-%     %
-%     %combined ambiguity covariance matrix
-%     cov_N = Qahat;
-
-%%%%%%%%%%
-% END OLD
-%%%%%%%%%%
-%%
-    
-else
-    cov_Xb = [];
-    cov_N = [];
-    Xb=Xb_approx+x_hat(1:3);
-    attitude=attitude+x_hat(4:6);
-end
 
 [phi_b, lam_b, h_b] = cart2geod(Xb(1), Xb(2), Xb(3));
-
 for i=1:nRec
     XR(1:3,1,i)=F_s_X(Xb(1),Xb(2),Xb(3),lam_b,phi_b,attitude(2),attitude(1),geometry(1,i),geometry(2,i),attitude(3),geometry(3,i));
 end
+
+Qxx = (N^-1);  
+[U] = chol(Qxx);    %compute cholesky decomp. for identical comp of vcm purpose
+Cxx = U'*U; %find back the vcm of parameter, now the off diag. comp. are identical :)
+
+
+cov_Xb = Cxx(1:3,1:3); %rover position covariance matrix
+cov_ATT = Cxx(4:6,4:6);
+cov_N = Cxx(7:end,7:end);
 
 
 %DOP computation
@@ -367,24 +197,3 @@ end
 
 
 
-
-%     %add one line and one column (zeros) at PIVOT position
-%     cov_N = zeros(n/2+1);
-%     cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
-%     cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
-%
-% else
-%     cov_XR = [];
-%
-%     cov_N = [];
-% end
-
-% %DOP computation
-% if (nargout > 4)
-%     cov_XYZ = (A(1:n/2,1:3)'*A(1:n/2,1:3))^-1;
-%     cov_ENU = global2localCov(cov_XYZ, XR);
-%
-%     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
-%     HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
-%     VDOP = sqrt(cov_ENU(3,3));
-% end

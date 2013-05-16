@@ -407,10 +407,15 @@ classdef goKalmanFilter1 < handle
                 cos(s_lam_b) -sin(s_phi_b)*sin(s_lam_b)  cos(s_phi_b)*sin(s_lam_b); ...
                 0 cos(s_phi_b) sin(s_phi_b)];
             
+%             % rotation from instrumental to local
+%             s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_roll)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
+%                 sin(s_roll)*cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw)+cos(s_roll)*cos(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
+%                 -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
+            
             % rotation from instrumental to local
-            s_Rli=[cos(s_roll)*cos(s_pitch) -sin(s_roll)*cos(s_yaw)+cos(s_roll)*sin(s_pitch)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
-                sin(s_roll)*cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw)+cos(s_roll)*cos(s_yaw) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw); ...
-                -sin(s_pitch) cos(s_pitch)*sin(s_yaw) cos(s_pitch)*cos(s_yaw)];
+            s_Rli=[cos(s_yaw)*cos(s_pitch) sin(s_roll)*sin(s_pitch)*cos(s_yaw)-cos(s_roll)*sin(s_yaw) sin(s_roll)*sin(s_yaw)+cos(s_roll)*sin(s_pitch)*cos(s_yaw); ...
+                sin(s_yaw)*cos(s_pitch) sin(s_roll)*sin(s_pitch)*sin(s_yaw)+cos(s_roll)*cos(s_yaw) sin(s_pitch)*cos(s_roll)*sin(s_yaw)-sin(s_roll)*cos(s_yaw); ...
+                -sin(s_pitch) cos(s_pitch)*sin(s_roll) cos(s_roll)*cos(s_pitch)];
             
             s_X=[s_Xb; s_Yb; s_Zb]+s_Rgl*s_Rli*[s_x;s_y;s_z];
             
@@ -617,74 +622,133 @@ classdef goKalmanFilter1 < handle
                         xloc_b_apriori(1:3,i) = global2localPos(obj.XR(1:3,i), Xb_apriori);
                     end
                     
-                    
+ 
                    
-                    [R,T,Yf,Err] = rot3dfit(xloc_b_apriori',xR');
-                    %[R,T,Yf,Err] = rot3dfit(xR',xloc_b_apriori')
-                    
-%                     A=[];
-%                     y0=xloc_b_apriori(:);
-%                     %y0(3:3:end)=xR(3,:); % discardheight
-%                      for i=1:nRec
-%                       A=[A;xR(1,i) xR(2,i) xR(3,i) 0 0 0 0 0 0;0 0 0 xR(1,i) xR(2,i) xR(3,i) 0 0 0 ;0 0 0 0 0 0 xR(1,i) xR(2,i) xR(3,i)];
-%                     end
-%                     diagQ=repmat([1 1 10000],1,nRec);
-%                     Q=diag(diagQ);
-%                     euler_parameters=inv(A'*inv(Q)*A)*A'*inv(Q)*y0;
-%                     euler_parameters=reshape(euler_parameters,3,3);
-%                     euler_parameters=euler_parameters';
-
-                    euler_parameters=R;
-%                     pitch(1)=mod(atan2(-euler_parameters(3,1),sqrt(euler_parameters(3,2)^2+euler_parameters(3,3)^2)),2*pi);
-%                     pitch(2)=mod(atan2(-euler_parameters(3,1),-sqrt(euler_parameters(3,2)^2+euler_parameters(3,3)^2)),2*pi);
-%                 
-%                     % remove implssible case (assuming pitch can't be
-%                     % greater than 90 deg!
-%                     pitch=pitch(find(abs(pitch)==min(abs(pitch))));
-%                     roll=mod(atan2(euler_parameters(3,2)/cos(pitch),euler_parameters(3,3)/cos(pitch)),2*pi);
-%                     yaw=mod(atan2(euler_parameters(2,1)/cos(pitch),euler_parameters(1,1)/cos(pitch)),2*pi);
-                    
-
-
-                    roll=mod(atan2(euler_parameters(3,2),euler_parameters(3,3)),pi);
+                     [R,T,Yf,Err] = rot3dfit(xloc_b_apriori',xR');
+                     euler_parameters=R;
+%                     %[R,T,Yf,Err] = rot3dfit(xR',xloc_b_apriori')
+%                     
+% %                     A=[];
+% %                     y0=xloc_b_apriori(:);
+% %                     %y0(3:3:end)=xR(3,:); % discardheight
+% %                      for i=1:nRec
+% %                       A=[A;xR(1,i) xR(2,i) xR(3,i) 0 0 0 0 0 0;0 0 0 xR(1,i) xR(2,i) xR(3,i) 0 0 0 ;0 0 0 0 0 0 xR(1,i) xR(2,i) xR(3,i)];
+% %                     end
+% %                     diagQ=repmat([1 1 10000],1,nRec);
+% %                     Q=diag(diagQ);
+% %                     euler_parameters=inv(A'*inv(Q)*A)*A'*inv(Q)*y0;
+% %                     euler_parameters=reshape(euler_parameters,3,3);
+% %                     euler_parameters=euler_parameters';
+% 
+%                     euler_parameters=R;
+% %                     pitch(1)=mod(atan2(-euler_parameters(3,1),sqrt(euler_parameters(3,2)^2+euler_parameters(3,3)^2)),2*pi);
+% %                     pitch(2)=mod(atan2(-euler_parameters(3,1),-sqrt(euler_parameters(3,2)^2+euler_parameters(3,3)^2)),2*pi);
+% %                 
+% %                     % remove implssible case (assuming pitch can't be
+% %                     % greater than 90 deg!
+% %                     pitch=pitch(find(abs(pitch)==min(abs(pitch))));
+% %                     roll=mod(atan2(euler_parameters(3,2)/cos(pitch),euler_parameters(3,3)/cos(pitch)),2*pi);
+% %                     yaw=mod(atan2(euler_parameters(2,1)/cos(pitch),euler_parameters(1,1)/cos(pitch)),2*pi);
+%                     
+% 
+%                       roll=mod(atan2(euler_parameters(3,2),euler_parameters(3,3)),1);  
+                    %roll=mod(atan2(euler_parameters(3,2),euler_parameters(3,3)),pi);
+                    roll=atan2(euler_parameters(3,2),euler_parameters(3,3));
                     if roll > pi/2
-                        roll = roll -pi;
+                        roll = roll - pi;
                     end
                     if roll <-pi/2
                         roll = roll + pi;
                     end
-                    yaw=mod(atan2(-cos(roll)*euler_parameters(1,2)+sin(roll)*euler_parameters(1,3),cos(roll)*euler_parameters(2,2)-sin(roll)*euler_parameters(2,3)),2*pi);
-                     if yaw > pi
-                        yaw = yaw -2*pi;
-                    end
-                    if yaw <-pi
-                        yaw = yaw + 2*pi;
-                    end                  
+
+                    %yaw=mod(atan2(-cos(roll)*euler_parameters(1,2)+sin(roll)*euler_parameters(1,3),cos(roll)*euler_parameters(2,2)-sin(roll)*euler_parameters(2,3)),1);
+
+%                    yaw=mod(atan2(-cos(roll)*euler_parameters(1,2)+sin(roll)*euler_parameters(1,3),cos(roll)*euler_parameters(2,2)-sin(roll)*euler_parameters(2,3)),2*pi);
+                    yaw=atan2(-cos(roll)*euler_parameters(1,2)+sin(roll)*euler_parameters(1,3),cos(roll)*euler_parameters(2,2)-sin(roll)*euler_parameters(2,3));
+
+                    %                      if yaw > pi
+%                         yaw = yaw -2*pi;
+%                     end
+%                     if yaw <-pi
+%                         yaw = yaw + 2*pi;
+%                     end                  
                       
-                    pitch=mod(atan2(-euler_parameters(3,1),sin(roll)*euler_parameters(3,2)+cos(roll)*euler_parameters(3,3)),pi);
-                     if pitch > pi/2
-                        pitch = pitch -pi;
-                    end
-                    if pitch <-pi/2
-                        pitch = pitch + pi;
-                    end                  
-                      
-                    
-                    
+                    %  pitch=mod(atan2(-euler_parameters(3,1),sin(roll)*euler_parameters(3,2)+cos(roll)*euler_parameters(3,3)),1);  
+%                    pitch=mod(atan2(-euler_parameters(3,1),sin(roll)*euler_parameters(3,2)+cos(roll)*euler_parameters(3,3)),pi);
+                    pitch=atan2(-euler_parameters(3,1),sin(roll)*euler_parameters(3,2)+cos(roll)*euler_parameters(3,3));
+%                      if pitch > pi/2
+%                         pitch = pitch -pi;
+%                     end
+%                     if pitch <-pi/2
+%                         pitch = pitch + pi;
+%                     end
+
+
+                       
+%                     pitch=-asin(euler_parameters(3,1));
+%                     roll=asin(euler_parameters(3,2))/cos(pitch);
+%                     yaw=asin(euler_parameters(2,1))/cos(pitch);
                     
 
                     
-                    roll/pi*180
-                    pitch/pi*180
-                    yaw/pi*180
+
                     
+                    
+                    
+%                     %% only planimetry
+%                     y0=[];
+%                     A=[];
+%                     for i=1:nRec
+%                        y0=[y0; xR(1,i); xR(2,i);0];
+%                        A=[A;xloc_b_apriori(1,i) xloc_b_apriori(2,i) 0 0 0; 0 0 xloc_b_apriori(1,i) xloc_b_apriori(2,i) 0; 0 0 0 0 1];
+%                     end
+%                     EP_hat=inv(A'*A)*A'*y0;
+%                     euler_parameters=[EP_hat(1) EP_hat(2) 0; EP_hat(3) EP_hat(4) 0; 0 0 1];
+%                     
+%                     roll=mod(atan2(euler_parameters(3,2),euler_parameters(3,3)),pi);
+%                     if roll > pi/2
+%                         roll = roll -pi;
+%                     end
+%                     if roll <-pi/2
+%                         roll = roll + pi;
+%                     end
+% 
+%                     %yaw=mod(atan2(-cos(roll)*euler_parameters(1,2)+sin(roll)*euler_parameters(1,3),cos(roll)*euler_parameters(2,2)-sin(roll)*euler_parameters(2,3)),1);
+% 
+%                     yaw=mod(atan2(-cos(roll)*euler_parameters(1,2)+sin(roll)*euler_parameters(1,3),cos(roll)*euler_parameters(2,2)-sin(roll)*euler_parameters(2,3)),2*pi);
+%                      if yaw > pi
+%                         yaw = yaw -2*pi;
+%                     end
+%                     if yaw <-pi
+%                         yaw = yaw + 2*pi;
+%                     end                  
+%                       
+%                     %  pitch=mod(atan2(-euler_parameters(3,1),sin(roll)*euler_parameters(3,2)+cos(roll)*euler_parameters(3,3)),1);  
+%                     pitch=mod(atan2(-euler_parameters(3,1),sin(roll)*euler_parameters(3,2)+cos(roll)*euler_parameters(3,3)),pi);
+%                      if pitch > pi/2
+%                         pitch = pitch -pi;
+%                     end
+%                     if pitch <-pi/2
+%                         pitch = pitch + pi;
+%                     end                  
+                    
+                    
+                    %%
+
+                     roll/pi*180
+                     pitch/pi*180
+                     yaw/pi*180
+                    
+                    
+                    attitude_approx=[roll pitch yaw]';
+%                     
                 %%
-                
+               % [yaw_deg,roll_deg,pitch_deg]=AD_LSQ(xloc_b_apriori',xR');
 
                     % leftin zeros the apriori attitude
-                    attitude_approx=[0 0 0]';
-                    
-                    attitude_approx=[roll, pitch, yaw]';
+%                     attitude_approx=[0 0 0]';
+%                    attitude_approx=[roll,pitch,yaw]';
+%                     attitude_approx=[roll_deg/180*pi, pitch_deg/180*pi, yaw_deg/180*pi]';
                     
 %                     % instrumental RS coordinates
 %                     % ---------------------------
@@ -725,23 +789,70 @@ classdef goKalmanFilter1 < handle
                     pivot_r = sat(pivot_index);
                     
                     
-                    
-                    
-                    
+                                       
                     index_sat_without_pivot=sat;
                     index_sat_without_pivot(pivot_index)=[];
-                    
-                    if (size(sat,1) >= 4) % & cond_num < cond_num_threshold)
+                     if (size(sat,1) >= 4) % & cond_num < cond_num_threshold)
                         phase_1=1;
                         
                         %loop is needed to improve the atmospheric error correction
-                        threshold=[0.5 0.6 0.8];
-                        for i = 1 : 3
-                            %if (phase == 1)
-                            [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP, posType] = LS_DD_code_phase_MR_FIX(Xb_apriori, obj.XR, pos_M(:,1), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,1), snr_M(sat,1), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X, threshold(i));
+                        threshold=[0.0 0.0 0.8];
+                        threshold=[0.0 0.0 0.0 0 0];
+                        for i = 1 : 2
+%                             %if (phase == 1)
+%                             [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP, posType] = LS_DD_code_phase_MR_FIX(Xb_apriori, obj.XR, pos_M(:,1), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,1), snr_M(sat,1), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X, threshold(i));
+                            [Xb_apriori, N1_hat, cov_Xb, cov_N1, cov_ATT, attitude_approx, obj.XR, PDOP, HDOP, VDOP] = LS_DD_code_phase_MR_FLOAT(Xb_apriori, obj.XR, pos_M(:,1), XS(sat,:), pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat,1), snr_M(sat,1), obj.satCoordR.el(sat,:), obj.satCoordM.el(sat,1), err_tropo(sat,2:nRec+1), err_iono(sat,2:nRec+1), err_tropo(sat,1), err_iono(sat,1), pivot_index, phase_1, attitude_approx, xR, 0, F_Ai, F_PR_DD, F_s_X, threshold(i));
+
                             %else
                             %    [XR, N1_hat, cov_XR, cov_N1, PDOP, HDOP, VDOP, up_bound, lo_bound, posType] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase);
                             %end
+                            
+                            
+                            %%
+%                             Xb_apriori                            
+%                             obj.XR
+%                             attitude_approx./pi*180
+                            % local coordinates of receivers with repect to
+                            % barycenter
+                            %xloc_b_apriori=zeros(3,nRec);                            
+                            for i=1:nRec
+                                xloc_b_apriori(1:3,i)
+                                xloc_b_apriori(1:3,i) = global2localPos(obj.XR(1:3,i), Xb_apriori);
+                            end                            
+                            
+%                             [R,T,Yf,Err] = rot3dfit(xloc_b_apriori',xR');
+%                             euler_parameters=R;
+%                             
+%                             roll=mod(atan2(euler_parameters(3,2),euler_parameters(3,3)),pi);
+% %                             if roll > pi/2
+% %                                 roll = roll -pi;
+% %                             end
+% %                             if roll <-pi/2
+% %                                 roll = roll + pi;
+% %                             end
+%                             
+%                             yaw=mod(atan2(-cos(roll)*euler_parameters(1,2)+sin(roll)*euler_parameters(1,3),cos(roll)*euler_parameters(2,2)-sin(roll)*euler_parameters(2,3)),2*pi);
+% %                             if yaw > pi/2
+% %                                 yaw = yaw -pi;
+% %                             end
+% %                             if yaw <-pi/2
+% %                                 yaw = yaw + pi;
+% %                             end
+% %                             
+%                             pitch=mod(atan2(-euler_parameters(3,1),sin(roll)*euler_parameters(3,2)+cos(roll)*euler_parameters(3,3)),pi);
+% %                             if pitch > pi/2
+% %                                 pitch = pitch -pi;
+% %                             end
+% %                             if pitch <-pi/2
+% %                                 pitch = pitch + pi;
+% %                             end
+% %                             
+%                             
+%                             attitude_approx=[roll pitch yaw]';
+%                             attitude_approx./pi*180
+                                                        
+                            %%
+                            
                             
                             % compute elevation and atmospheric corrections from XR_DD coordinates
                             for r=1:nRec
@@ -758,7 +869,7 @@ classdef goKalmanFilter1 < handle
                                 err_iono(isnan(distM),r+1)=NaN;
                             end
                         end
-                        
+                        posType=0;
                         
                     else
                     end
@@ -836,9 +947,42 @@ classdef goKalmanFilter1 < handle
                        fig2=figure;
                        fig3=figure;
                        
-                       [EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(4398302.8204, 704154.7988, 4550158.1558);
+                       %[EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(4398302.8204, 704154.7988, 4550158.1558);
+                       [EAST_xb_0, NORTH_xb_0, h_xb_0, ~]  = cart2plan(x_tot(t,1), y_tot(t,1), z_tot(t,1));
                        
                    end
+                   
+                   
+                  
+
+                    roll_tot(t,1)=mod(roll_tot(t,1),pi);
+                    if roll_tot(t,1) > pi/2
+                        roll_tot(t,1) = roll_tot(t,1) -pi;
+                    end
+                    if roll_tot(t,1) <-pi/2
+                        roll_tot(t,1) = roll_tot(t,1) + pi;
+                    end
+                    
+                    
+                    yaw_tot(t,1)=mod(yaw_tot(t,1),2*pi);
+                    if yaw_tot(t,1) > pi
+                        yaw_tot(t,1) = yaw_tot(t,1) -2*pi;
+                    end
+                    if yaw_tot(t,1) <-pi
+                        yaw_tot(t,1) = yaw_tot(t,1) + 2*pi;
+                    end
+                    
+                    pitch_tot(t,1)=mod(pitch_tot(t,1),pi);
+                    if pitch_tot(t,1) > pi/2
+                        pitch_tot(t,1) = pitch_tot(t,1) -pi;
+                    end
+                    if pitch_tot(t,1) <-pi/2
+                        pitch_tot(t,1) = pitch_tot(t,1) + pi;
+                    end
+                    
+
+                   
+                   
                    
                    [EAST_xb, NORTH_xb, h_xb, ~]  = cart2plan(x_tot(t,1), y_tot(t,1), z_tot(t,1));
                    if t>1
@@ -910,10 +1054,11 @@ classdef goKalmanFilter1 < handle
                        plot(EAST_xb-EAST_xb_0,NORTH_xb-NORTH_xb_0,'.b');
                    end
                    end
+                   posType=0;
                    fprintf(fout1,'%10d\t%13.4f\t%13.4f\t%13.4f\t%7.3f\t%7.3f\t%7.3f\t%d\t%7.2f\n',t, obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5),obj.Xhat_t_t(7)/pi*180,obj.Xhat_t_t(8)/pi*180,obj.Xhat_t_t(9)/pi*180,posType,O);
                    
                    drawnow;
-                   fprintf('\t=%10d ... X: %13.4f ... Y: %13.4f ... Z= %13.4f .. %7.2f\n',t, obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5),O);
+                   fprintf('\t=%10f.1 ... X: %13.4f ... Y: %13.4f ... Z= %13.4f .. %7.2f\n',time_GPS(t), obj.Xhat_t_t(1), obj.Xhat_t_t(3), obj.Xhat_t_t(5),O);
                    
                    
                    

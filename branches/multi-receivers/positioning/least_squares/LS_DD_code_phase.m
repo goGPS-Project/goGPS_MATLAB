@@ -186,12 +186,13 @@ if (n > m)
     end
     
     if (~flag_Tykhon)
-        bias = check_bias(D); %no bias detected
+        %bias = check_bias(D); %no bias detected
     else
-        bias = check_bias(D,bias(4:end)); %use bias component from ambiguity
+        %bias = check_bias(D,bias(4:end)); %use bias component from ambiguity
     end
-    [up_bound, lo_bound] = success_rate(D,L,bias); %compute success rate of ambiguity
-    
+    %[up_bound, lo_bound] = success_rate(D,L,bias); %compute success rate of ambiguity
+    up_bound=[];
+    lo_bound=[];
     %Computing definite coordinate
     %-----------------------------
     bfl    = x_hat(1:3); %float baseline component
