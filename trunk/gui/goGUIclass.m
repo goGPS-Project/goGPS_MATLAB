@@ -3151,7 +3151,7 @@ classdef goGUIclass < handle
             master_ip = get(obj.goh.IP_address,'String');
             master_port = str2double(get(obj.goh.port,'String'));
             ntrip_user = get(obj.goh.username,'String');
-            ntrip_pw = get(obj.goh.password,'Userdata');
+            ntrip_pw = obj.getPassword();
             ntrip_mountpoint = get(obj.goh.mountpoint,'String');
             phiApp = str2double(get(obj.goh.approx_lat,'String'));
             lamApp = str2double(get(obj.goh.approx_lon,'String'));

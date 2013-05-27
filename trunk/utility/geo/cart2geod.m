@@ -36,10 +36,10 @@ function [phi, lam, h] = cart2geod(X, Y, Z)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a_GPS e_GPS
+%global a_GPS e_GPS
 
-a = a_GPS;
-e = e_GPS;
+a = goGNSS.ELL_A_GPS;
+e = goGNSS.ELL_E_GPS;
 
 %radius computation
 r = sqrt(X.^2 + Y.^2 + Z.^2);

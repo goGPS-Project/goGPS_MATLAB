@@ -62,7 +62,7 @@ phi = abs(phi*180/pi);
 N = [];
 N_unit = [];
 
-if (geoid.ncols ~= 0)
+if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
     %geoid ondulation interpolation
     N = grid_bilin_interp(lam, phi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
     %orthometric height
