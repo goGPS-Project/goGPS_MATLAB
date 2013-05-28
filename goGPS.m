@@ -229,7 +229,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
-            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
 
         else %relative positioning
 
@@ -241,9 +241,9 @@ if goGNSS.isPP(mode) % post-processing
             
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
-            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot] = pre_processing_clock(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_R, dop2_R, snr1_M, Eph, SP3, iono, nSatTot);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_R, dop2_R, snr1_M, Eph, SP3, iono, nSatTot);
         end
 
 %         %read surveying mode
@@ -259,7 +259,7 @@ if goGNSS.isPP(mode) % post-processing
         date  = date_R;
 
         if (~flag_SP3)
-            %remove satellites without ephemerides (GPS)
+            %remove satellites without ephemerides
             delsat = setdiff(1:nSatTot,unique(Eph(30,:)));
             pr1_R(delsat,:) = 0;
             pr1_M(delsat,:) = 0;
@@ -276,8 +276,46 @@ if goGNSS.isPP(mode) % post-processing
             snr_R(delsat,:) = 0;
             snr_M(delsat,:) = 0;
         end
+        
+        %remove flagged satellites (rover)
+        if (exist('bad_sats_R','var') && any(bad_sats_R))
+            pos = find(bad_sats_R);
+            pr1_R(pos,:) = 0;
+            pr1_M(pos,:) = 0;
+            pr2_R(pos,:) = 0;
+            pr2_M(pos,:) = 0;
+            ph1_R(pos,:) = 0;
+            ph1_M(pos,:) = 0;
+            ph2_R(pos,:) = 0;
+            ph2_M(pos,:) = 0;
+            dop1_R(pos,:) = 0;
+            dop1_M(pos,:) = 0;
+            dop2_R(pos,:) = 0;
+            dop2_M(pos,:) = 0;
+            snr_R(pos,:) = 0;
+            snr_M(pos,:) = 0;
+        end
+        
+        %remove flagged satellites (master)
+        if (exist('bad_sats_M','var') && any(bad_sats_M))
+            pos = find(bad_sats_M);
+            pr1_R(pos,:) = 0;
+            pr1_M(pos,:) = 0;
+            pr2_R(pos,:) = 0;
+            pr2_M(pos,:) = 0;
+            ph1_R(pos,:) = 0;
+            ph1_M(pos,:) = 0;
+            ph2_R(pos,:) = 0;
+            ph2_M(pos,:) = 0;
+            dop1_R(pos,:) = 0;
+            dop1_M(pos,:) = 0;
+            dop2_R(pos,:) = 0;
+            dop2_M(pos,:) = 0;
+            snr_R(pos,:) = 0;
+            snr_M(pos,:) = 0;
+        end
 
-        %%reverse the path (GPS)
+        %%reverse the path
         %pr1_R = pr1_R(:,end:-1:1);
         %pr1_M = pr1_M(:,end:-1:1);
         %ph1_R = ph1_R(:,end:-1:1);
@@ -510,6 +548,9 @@ if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
     flag_var_dyn_model = 0;
 end
 
+%boolean vector for removing unused epochs in LS processing
+unused_epochs = zeros(size(time_GPS));
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE
 %----------------------------------------------------------------------------------------------
@@ -571,6 +612,8 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
                 plot_t = plot_t + 1;
                 pause(0.01);
             end
+        else
+            unused_epochs(t) = 1;
         end
         
         if ((t == 1) & (~flag_plotproc))
@@ -754,6 +797,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
                     fprintf('Processing...\n');
                 end
             end
+        else
+            unused_epochs(t) = 1;
         end
     end
 
@@ -830,6 +875,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
                 %    plot_t = plot_t + 1;
                 %    %pause(0.01);
                 %end
+            else
+                unused_epochs(t) = 1;
             end
         end
         goWB.goTime(tExt/stepUpdate);
@@ -1082,6 +1129,8 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
                 plot_t = plot_t + 1;
                 pause(0.01);
             end
+        else
+            unused_epochs(t) = 1;
         end
       
         if ((t == 1) & (~flag_plotproc))
@@ -1261,6 +1310,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
                 plot_t = plot_t + 1;
                 pause(0.01);
             end
+        else
+            unused_epochs(t) = 1;
         end
       
         if ((t == 1) & (~flag_plotproc))
@@ -1728,6 +1779,10 @@ elseif (mode == goGNSS.MODE_RT_NAV)
 
     goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
 end
+
+%remove unused epochs from time_GPS (for LS modes)
+time_GPS(unused_epochs == 1) = [];
+week_R(unused_epochs == 1) = [];
 
 %----------------------------------------------------------------------------------------------
 % INPUT/OUTPUT DATA FILE READING
