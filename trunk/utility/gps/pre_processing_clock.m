@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, nSatTot)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, nSatTot)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono, nSatTot);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono, nSatTot);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -26,6 +26,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time
 %   ph2 = processed phase observation (L2 carrier)
 %   dtR = receiver clock error
 %   dtRdot receiver clock drift
+%   bad_sats = vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
 %
 % DESCRIPTION:
 %   Pre-processing of code and phase observations to correct them for
@@ -51,7 +52,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot] = pre_processing_clock(time_ref, time
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light f1 f2 lambda1 lambda2
+global v_light %f1 f2 lambda1 lambda2
 global cutoff snr_threshold
 
 %number of epochs
@@ -62,6 +63,9 @@ dtR = zeros(nEpochs,1);
 
 %receiver clock drift
 dtRdot = zeros(nEpochs-1,1);
+
+%vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
+bad_sats = zeros(nSatTot,1);
 
 %-------------------------------------------------------------
 % Retrieve multi-constellation wavelengths
@@ -236,14 +240,19 @@ for s = 1 : nSatTot
         index_s = find(pr1(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        if (flag_jumps_pr1)
-            pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
-        end
-%         if (any(dop1(s,index)))
-%             pr1(s,index) = pr1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index))*lambda(s,1);
-%         else
+        if (length(index) > 1)
+            
+            if (flag_jumps_pr1)
+                pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
+            end
+            % if (any(dop1(s,index)))
+            %     pr1(s,index) = pr1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index))*lambda(s,1);
+            % else
             pr1(s,index) = interp1(time(index), pr1(s,index), time_ref(index), 'spline');
-%         end
+            % end
+        else
+            bad_sats(s) = 1;
+        end
     end
     
     if (any(pr2(s,:)))
@@ -251,14 +260,19 @@ for s = 1 : nSatTot
         index_s = find(pr2(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        if (flag_jumps_pr2)
-            pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
-        end
-%         if (any(dop2(s,index)))
-%             pr2(s,index) = pr2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index))*lambda(s,2);
-%         else
+        if (length(index) > 1)
+            
+            if (flag_jumps_pr2)
+                pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
+            end
+            % if (any(dop2(s,index)))
+            %     pr2(s,index) = pr2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index))*lambda(s,2);
+            % else
             pr2(s,index) = interp1(time(index), pr2(s,index), time_ref(index), 'spline');
-%         end
+            % end
+        else
+            bad_sats(s) = 1;
+        end
     end
     
     if (any(ph1(s,:)))
@@ -266,14 +280,23 @@ for s = 1 : nSatTot
         index_s = find(ph1(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        if (flag_jumps_ph1)
-            ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
-        end
-%         if (any(dop1(s,index)))
-%             ph1(s,index) = ph1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index));
-%         else
+        if (length(index) > 1)
+            
+            if (flag_jumps_ph1)
+                ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
+            end
+            % if (any(dop1(s,index)))
+            %     ph1(s,index) = ph1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index));
+            % else
             ph1(s,index) = interp1(time(index), ph1(s,index), time_ref(index), 'spline');
-%         end
+            % end
+        else
+            bad_sats(s) = 1;
+        end
+        
+    elseif (any(pr1(s,:)))
+        
+        bad_sats(s) = 1;
     end
     
     if (any(ph2(s,:)))
@@ -281,13 +304,22 @@ for s = 1 : nSatTot
         index_s = find(ph2(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        if (flag_jumps_ph2)
-            ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
-        end
-%         if (any(dop2(s,index)))
-%             ph2(s,index) = ph2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index));
-%         else
+        if (length(index) > 1)
+            
+            if (flag_jumps_ph2)
+                ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
+            end
+            % if (any(dop2(s,index)))
+            %     ph2(s,index) = ph2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index));
+            % else
             ph2(s,index) = interp1(time(index), ph2(s,index), time_ref(index), 'spline');
-%         end
+            % end
+        else
+            bad_sats(s) = 1;
+        end
+        
+    elseif (any(pr2(s,:)))
+        
+        bad_sats(s) = 1;
     end
 end
