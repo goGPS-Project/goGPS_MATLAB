@@ -1329,7 +1329,7 @@ classdef goGUIclass < handle
                         
             %obj.id2handle((obj.id2handle==obj.goh.password)) = hPwd;
             %delete(obj.goh.password); % I should delete this but it'll generate some problems
-            
+            set(obj.goh.password,'Visible','off');
             obj.goh.jPassword.jpwd = jPwd;
             obj.goh.jPassword.hpwd = hPwd;
             obj.echoChar = obj.goh.jPassword.jpwd.getEchoChar;
