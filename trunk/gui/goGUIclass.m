@@ -70,6 +70,7 @@ classdef goGUIclass < handle
         newVal = {};        % contains the value of the element of the interface that require to be channged
         
         initialized = 0;
+        echoChar = '*';
         
     %  INTERFACE STATUS - PATH
     % =========================================================================
@@ -188,7 +189,7 @@ classdef goGUIclass < handle
             obj.interfaceOS = typeOS;
             
             obj.init(handles);
-        end
+        end        
         
         function isOS = typeOS(obj, typeOS)
             isOS = obj.interfaceOS == typeOS;
@@ -496,8 +497,8 @@ classdef goGUIclass < handle
         function initUIids(obj)
             
             % Rough pre-allocation
-            id2h = zeros(160);	% rough estimation of the handle array size
-            					% at the end of the function it will contain the exact size
+            id2h = zeros(177,1);	% rough estimation of the handle array size
+                                    % at the end of the function it will contain the exact size
 
             % Id naming convections:
             %  p    panels
@@ -514,7 +515,7 @@ classdef goGUIclass < handle
           % --------------------------------------------------------------- 
             
             i=1;   id.Fig           = i;    id2h(i) = obj.goh.main_panel;
-
+            
             i=i+1; id.tTitle        = i;    id2h(i) = obj.goh.txtTitle;
             i=i+1; id.tDesc         = i;    id2h(i) = obj.goh.txtDescription;
             
@@ -890,7 +891,8 @@ classdef goGUIclass < handle
             i=i+1; id.tUName        = i;    id2h(i) = obj.goh.text_username;
             i=i+1; id.sUName        = i;    id2h(i) = obj.goh.username;
             i=i+1; id.tUPass        = i;    id2h(i) = obj.goh.text_password;
-            i=i+1; id.sUPass        = i;    id2h(i) = obj.goh.password;
+            i=i+1; id.sUPass        = i;    id2h(i) = obj.goh.password; %
+            % Moved in first position => it's a JAVA component
             i=i+1; id.bUPass        = i;    id2h(i) = obj.goh.show_password;
 
             idG.gNTRIP = id.tMnt:id.bUPass;
@@ -1257,6 +1259,10 @@ classdef goGUIclass < handle
 
             % Read interface status (initialize structures
             obj.getAllElStatus();            
+
+            % Create the password field
+            obj.initPasswordField('password');
+            drawnow;
             
             % If the working folder does not exist
             if isempty(dir(obj.getSettingsDir()))
@@ -1272,7 +1278,7 @@ classdef goGUIclass < handle
             
             obj.goWB.goMsg('Loading GUI manager object...');
             obj.goWB.titleUpdate('Import Settings');
-
+            
             % Fill pop up menus
             obj.initPopUp(); % Popup are also modified / reloaded in importStateMatlab
             
@@ -1300,7 +1306,37 @@ classdef goGUIclass < handle
 
             obj.initialized = 1;
         end
-                
+
+        % Add an undocumented password box
+        function initPasswordField(obj, pwd)
+            % Undocumented password box for a better management of a password field
+            % Create the widget containing the text
+            jPwdINI = javax.swing.JPasswordField;
+            jPwdINI.setText(pwd);
+            % Substitute the eINI edit box with the Java Scroll Pane
+            set(obj.goh.uipSettings, 'Units', 'pixels');
+            set(obj.goh.uipMS_NTRIP, 'Units', 'pixels');
+            set(obj.goh.password, 'Units', 'pixels');
+            pos = get(obj.goh.password,'Position');
+            posOff = get(obj.goh.uipSettings,'Position');
+            pos(1:2) = pos(1:2) + posOff(1:2);
+            posOff = get(obj.goh.uipMS_NTRIP,'Position');
+            pos(1:2) = pos(1:2) + posOff(1:2);
+            pos(1) = pos(1) + 4;
+            pos(3) = pos(3) - 4;
+            
+            [jPwd, hPwd] = javacomponent(jPwdINI, pos, obj.goh.main_panel);
+                        
+            %obj.id2handle((obj.id2handle==obj.goh.password)) = hPwd;
+            %delete(obj.goh.password); % I should delete this but it'll generate some problems
+            
+            obj.goh.jPassword.jpwd = jPwd;
+            obj.goh.jPassword.hpwd = hPwd;
+            obj.echoChar = obj.goh.jPassword.jpwd.getEchoChar;
+            
+            obj.setPassword(get(obj.goh.password,'String'));
+        end
+        
         % Set new enable / disable status
         % Show all the new values stored in the internal state on the GUI
         % Get new values from the GUI
@@ -1562,7 +1598,11 @@ classdef goGUIclass < handle
         
         % Set a new password
         function pwd = getPassword(obj)
-            pwd = obj.getElVal(obj.idUI.sUPass);
+            if isfield(obj.goh,'jPassword')
+                pwd = obj.goh.jPassword.jpwd.getPassword();
+            else
+                pwd = '';
+            end
         end
         
         % Get LAMBDA version
@@ -1621,43 +1661,40 @@ classdef goGUIclass < handle
         
         % Set a new password
         function setPassword(obj, password)
-            if (obj.isInitialized())
-                obj.setElVal(obj.idUI.sUPass, password);
+            
+            if isfield(obj.goh,'jPassword')
+                obj.goh.jPassword.jpwd.setText(password);
+            elseif (obj.isInitialized())
+                set(obj.goh.password,'String',password);
             end
         end
                 
         % Modify the password
         function modifyPassword(obj, newkey, newchar)
-            password = obj.getPassword();
-            switch newkey
-                case 'backspace'
-                    password = password(1:end-1); % Delete the last character in the password
-                case 'delete'
-                    password = password(2:end); % Delete the first character in the password
-                otherwise
-                    % If pressed key produces a printable character
-                    if (uint8(newchar) > 32)
-                        password = [password newchar]; % Add the typed character to the password
-                        pause(0.001)%to avoid unwanted character output before the cursor
-                    end
-            end
-            
-            obj.setPassword(password); % Store the password in its current state
+%             password = obj.getPassword();
+%             switch newkey
+%                 case 'backspace'
+%                     password = password(1:end-1); % Delete the last character in the password
+%                 case 'delete'
+%                     password = password(2:end); % Delete the first character in the password
+%                 otherwise
+%                     % If pressed key produces a printable character
+%                     if (uint8(newchar) > 32)
+%                         password = [password newchar]; % Add the typed character to the password
+%                         pause(0.001)%to avoid unwanted character output before the cursor
+%                     end
+%             end
+%             
+%             obj.setPassword(password); % Store the password in its current state
         end
         
         % Show the password in the password field
         function showPassword(obj)
-            pwd = obj.getPassword();
-            
-            if obj.isActive(obj.idUI.bUPass)
-                set(obj.goh.password,'String',pwd);
-            else
-                SizePass = size(pwd); % Find the number of asterisks
-                if SizePass(2) > 0
-                    asterisk(1,1:SizePass(2)) = '*'; % Create a string of asterisks the same size as the password
-                    set(obj.goh.password,'String',asterisk) % Set the text in the password edit box to the asterisk string
+            if isfield(obj.goh,'jPassword')
+                if obj.isActive(obj.idUI.bUPass)
+                    obj.goh.jPassword.jpwd.setEchoChar(char(0));
                 else
-                    set(obj.goh.password,'String','')
+                    obj.goh.jPassword.jpwd.setEchoChar(obj.echoChar);
                 end
             end
         end
@@ -2700,7 +2737,7 @@ classdef goGUIclass < handle
             state.port              = obj.getElVal(obj.idUI.sIPport);
             state.mountpoint        = obj.getElVal(obj.idUI.sMnt);
             state.username          = obj.getElVal(obj.idUI.sUName);
-            state.password          = obj.getElVal(obj.idUI.sUPass);
+            state.password          = obj.getPassword();
             state.approx_lat        = obj.getElVal(obj.idUI.nVLat);
             state.approx_lon        = obj.getElVal(obj.idUI.nVLon);
             state.approx_h          = obj.getElVal(obj.idUI.nVH);

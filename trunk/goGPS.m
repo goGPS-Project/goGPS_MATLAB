@@ -549,7 +549,10 @@ if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
 end
 
 %boolean vector for removing unused epochs in LS processing
-unused_epochs = zeros(size(time_GPS));
+
+if (goGNSS.isPP(mode))
+    unused_epochs = zeros(size(time_GPS));
+end
 
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE
@@ -1780,9 +1783,10 @@ elseif (mode == goGNSS.MODE_RT_NAV)
     goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
 end
 
-%remove unused epochs from time_GPS (for LS modes)
-time_GPS(unused_epochs == 1) = [];
-week_R(unused_epochs == 1) = [];
+if (goGNSS.isPP(mode)) %remove unused epochs from time_GPS (for LS modes)
+    time_GPS(unused_epochs == 1) = [];
+    week_R(unused_epochs == 1) = [];
+end
 
 %----------------------------------------------------------------------------------------------
 % INPUT/OUTPUT DATA FILE READING
