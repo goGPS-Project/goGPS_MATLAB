@@ -49,8 +49,9 @@ function [data] = decode_1003(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%carriers wavelenght
-global lambda1 lambda2
+%retrieve GPS L1/L2 wavelengths
+lambda(1) = goGNSS.getWavelength(goGNSS.ID_GPS, 1);
+lambda(2) = goGNSS.getWavelength(goGNSS.ID_GPS, 2);
 
 %message pointer initialization
 pos = 1;
@@ -136,11 +137,11 @@ for i = 1 : NSV
         %output data save
         data{3}(SV,1)  = DF010;
         data{3}(SV,2)  = (DF011 * 0.02);
-        data{3}(SV,3)  = (data{3}(SV,2) + (DF012*0.0005)) / lambda1;
+        data{3}(SV,3)  = (data{3}(SV,2) + (DF012*0.0005)) / lambda(1);
         data{3}(SV,4)  = DF013;
         data{3}(SV,5)  = DF016;
         data{3}(SV,6)  = (data{3}(SV,2) + (DF017 * 0.02));
-        data{3}(SV,7)  = (data{3}(SV,2) + (DF018*0.0005)) / lambda2;
+        data{3}(SV,7)  = (data{3}(SV,2) + (DF018*0.0005)) / lambda(2);
         data{3}(SV,8)  = DF019;
 
     else %SBAS satellites

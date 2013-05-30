@@ -110,7 +110,7 @@ if (size(sat,1) >= min_nsat)
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
 
-    %if less than 4 satellites are available after the cutoffs, or if the 
+    %if less than min_nsat satellites are available after the cutoffs, or if the 
     % condition number in the least squares exceeds the threshold
     if (size(sat,1) < min_nsat | cond_num > cond_num_threshold)
         

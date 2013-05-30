@@ -1,7 +1,7 @@
-function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S, vel_S, time, rec_clock_drift, sat, Eph)
+function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S, vel_S, time, rec_clock_drift, sat, Eph, lambda)
 
 % SYNTAX:
-%   [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S, vel_S, time, rec_clock_drift, sat, Eph);
+%   [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S, vel_S, time, rec_clock_drift, sat, Eph, lambda);
 %
 % INPUT:
 %   pos_R = approximate rover position
@@ -12,6 +12,7 @@ function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S
 %   sat = satellite id number
 %   rec_clock_drift = receiver clock drift
 %   Eph = satellite ephemerides matrix
+%   lambda = vector containing GNSS wavelengths for the selected satellite
 %
 % OUTPUT:
 %   doppler_app1 = approximate doppler shift on L1
@@ -40,7 +41,7 @@ function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global lambda1 lambda2 v_light
+global v_light
 
 LOS  = pos_S - pos_R;             %receiver-satellite line-of-sight vector
 LOSu = LOS / norm(LOS);           %receiver-satellite line-of-sight unit vector [= LOS / sqrt(LOS(1)^2 + LOS(2)^2 + LOS(3)^2)]
@@ -53,6 +54,6 @@ toc   = Eph(21,k);
 if (strcmp(char(Eph(31)),'C')); time = time - 14; end %consider BeiDou time (BDT) for BeiDou satellites
 dt = check_t(time - toc);
 sat_clock_drift = af1 + 2*af2*dt; %satellite clock drift
-doppler_app1 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda1;
-doppler_app2 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda2;
+doppler_app1 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda(1);
+doppler_app2 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda(2);
 

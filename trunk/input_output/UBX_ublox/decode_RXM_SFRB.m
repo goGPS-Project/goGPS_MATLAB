@@ -200,7 +200,7 @@ if (PRN <= 32)
         data{3}(29) = fit_int;
         data{3}(30) = PRN; %assume only GPS (not multi-constellation)
         data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
-        data{2}(32) = weektow2time(weekno, toe);
-        data{2}(33) = weektow2time(weekno, toc);
+        data{2}(32) = weektow2time(weekno, toe, 'G');
+        data{2}(33) = weektow2time(weekno, toc, 'G');
     end
 end

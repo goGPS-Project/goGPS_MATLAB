@@ -821,7 +821,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
     
-    nN = 32;
+    nN = nSatTot;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -857,7 +857,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
                     fwrite(fid_sat, nSatTot, 'int8');
                     fwrite(fid_conf, nSatTot, 'int8');
                 end
-                fwrite(fid_sat, [zeros(32,1); azR; zeros(32,1); elR; zeros(32,1); distR], 'double');
+                fwrite(fid_sat, [zeros(nSatTot,1); azR; zeros(nSatTot,1); elR; zeros(nSatTot,1); distR], 'double');
                 fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                 
@@ -907,7 +907,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             goDX(jumps(epo)+1:jumps(epo+1)-1)= lastX;
             goDY(jumps(epo)+1:jumps(epo+1)-1)= lastY;
             goDZ(jumps(epo)+1:jumps(epo+1)-1)= lastZ;
-        else
+        elseif (jumps(epo) ~= 0)
             mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
             mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
             mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
@@ -1263,7 +1263,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
     fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 
-    nN = 32;
+    nN = nSatTot;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -1305,10 +1305,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
-                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
-                    rtplot_snr (snr_R(:,t));
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,t), Eph_t, SP3);
                 else
-                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
@@ -2447,6 +2447,7 @@ end
 if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode))    
     figure
     epochs = (time_GPS-time_GPS(1))/interval;
+    ax = zeros(3,1);
     ax(1) = subplot(3,1,1); hold on; grid on
     ax(2) = subplot(3,1,2); hold on; grid on
     ax(3) = subplot(3,1,3); hold on; grid on

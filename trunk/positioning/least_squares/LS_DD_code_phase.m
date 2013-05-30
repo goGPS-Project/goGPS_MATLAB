@@ -1,9 +1,9 @@
 function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
-         (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero)
+         (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero)
 
 % SYNTAX:
 %   [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
-%   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero);
+%   (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero);
 %
 % INPUT:
 %   XR_approx   = receiver approximate position (X,Y,Z)
@@ -22,7 +22,7 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
 %   err_iono_R  = ionospheric error
 %   err_iono_M  = ionospheric error
 %   pivot_index = index identifying the pivot satellite
-%   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   lambda      = vector containing GNSS wavelengths for available satellites
 %   flag_LAMBDA    = flag to enable/disable ambiguity resolution by LAMBDA 
 %   flag_Tykhon    = flag to enable/disable Tykhonov-Phillips regularization (experimental)
 %   flag_iter      = flag to enable/disable iterative least squares (experimental)
@@ -63,17 +63,8 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%[trunk] Added the iterative least squares method as an option for the LS DD code phase with LAMBDA function; both this and the regularization are still experimental so they must be enabled by hand in the code
-
 %variable initialization
-global lambda1 lambda2
 global sigmaq_cod1 sigmaq_ph
-
-if (phase == 1)
-    lambda = lambda1;
-else
-    lambda = lambda2;
-end
 
 if (nargin < 19)
     flag_Tykhon = 0;    %<--- set 1 to force Tykhonov (experimental)
@@ -109,7 +100,7 @@ A = [((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_inde
 A = [A; ((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
         ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
         ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index)), ... %column for Z coordinate
-        -lambda * eye(n/2)]; %column for phase ambiguities
+        diag(-lambda) .* eye(n/2)]; %column for phase ambiguities
 
 %known term vector
 b    =     (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
@@ -120,7 +111,7 @@ b = [b_pr; b_ph];
 
 %observation vector
 y0_pr =         (pr_R - pr_M) - (pr_R(pivot_index) - pr_M(pivot_index));
-y0_ph = lambda*((ph_R - ph_M) - (ph_R(pivot_index) - ph_M(pivot_index)));
+y0_ph = lambda.*((ph_R - ph_M) - (ph_R(pivot_index) - ph_M(pivot_index)));
 y0 = [y0_pr; y0_ph];
 
 %remove pivot-pivot lines

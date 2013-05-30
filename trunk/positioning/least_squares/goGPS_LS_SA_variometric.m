@@ -1,5 +1,5 @@
 function goGPS_LS_SA_variometric(time_rx_t0,time_rx_t1,pr1_t0,pr1_t1,pr2_t0, pr2_t1, ph1_t0,ph1_t1, ph2_t0,ph2_t1, snr_t0,snr_t1, Eph_t0, Eph_t1, SP3_time_t0,SP3_time_t1, SP3_coor_t0,SP3_coor_t1, SP3_clck_t0,SP3_clck_t1, iono, sbas, phase,time_step)
-         
+
 % SYNTAX:
 %   goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase);
 %
@@ -52,10 +52,16 @@ global PDOP HDOP VDOP
 %covariance matrix initialization
 cov_XR = [];
 
+%total number of satellite slots (depending on the constellations enabled)
+nSatTot = size(pr1_t0,1);
+
 %topocentric coordinate initialization
-azR   = zeros(32,1);
-elR   = zeros(32,1);
-distR = zeros(32,1);
+azR   = zeros(nSatTot,1);
+elR   = zeros(nSatTot,1);
+distR = zeros(nSatTot,1);
+
+%retrieve multi-constellation wavelengths
+lambda = goGNSS.getGNSSWavelengths(Eph_t0, nSatTot);
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -63,9 +69,9 @@ distR = zeros(32,1);
 
 %number of unknown phase ambiguities
 if (length(phase) == 1)
-    nN = 32;
+    nN = nSatTot;
 else
-    nN = 64;
+    nN = 2*nSatTot;
 end
 
 %--------------------------------------------------------------------------------------------
@@ -120,7 +126,9 @@ sigma2_N = zeros(nN,1);
 
 SP3 = [];    % this var should be filled with SP3 data
 
-if (size(sat,1) >= 4)
+min_nsat = 4;
+
+if (size(sat,1) >= min_nsat)
     
     sat_pr_old = sat_pr;
     
@@ -177,12 +185,12 @@ if (size(sat,1) >= 4)
     %--------------------------------------------------------------------------------------------
     
     %satellite configuration
-    conf_sat = zeros(32,1);
+    conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr,1) = -1;
     conf_sat(sat,1) = +1;
     
     %no cycle-slips when working with code only
-    conf_cs = zeros(32,1);
+    conf_cs = zeros(nSatTot,1);
     
     %previous pivot
     pivot_old = 0;
@@ -193,7 +201,7 @@ if (size(sat,1) >= 4)
     
     %if less than 4 satellites are available after the cutoffs, or if the
     % condition number in the least squares exceeds the threshold
-    if (size(sat,1) < 4 || cond_num > cond_num_threshold)
+    if (size(sat,1) < min_nsat || cond_num > cond_num_threshold)
         
         % if (~isempty(Xhat_t_t))
         %     XR_t0 = Xhat_t_t([1,o1+1,o2+1]);
@@ -206,6 +214,15 @@ if (size(sat,1) >= 4)
         %end
     end
 else
+    
+    if (isempty(conf_sat))
+        %satellite configuration
+        conf_sat = zeros(nSatTot,1);
+        
+        %no cycle-slips when working with code only
+        conf_cs = zeros(nSatTot,1);
+    end
+    
     % if (~isempty(Xhat_t_t))
     %     XR_t0 = Xhat_t_t([1,o1+1,o2+1]);
     %     pivot = 0;
@@ -216,14 +233,14 @@ else
 end
 
 
-if isempty(cov_XR) %if it was not possible to compute the covariance matrix
-    cov_XR = sigmaq0 * eye(3);
-end
-sigma2_XR = diag(cov_XR);
+% if isempty(cov_XR) %if it was not possible to compute the covariance matrix
+%     cov_XR = sigmaq0 * eye(3);
+% end
+% sigma2_XR = diag(cov_XR);
 
 %variometric approach
 if ~isempty(sat)
-    [XR, dtR, cov_XR, var_dtR,  PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_t0, XR_t1, XS_t0, XS_t1, ph1_t0(sat), ph1_t1(sat), (snr_t0(sat) + snr_t1(sat))./2, (elR_t0(sat) + elR_t1(sat))./2, distR_t0(sat), distR_t1(sat), sat, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, 1); %#ok<ASGLU>
+    [XR, dtR, cov_XR, var_dtR,  PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_t0, XR_t1, XS_t0, XS_t1, ph1_t0(sat), ph1_t1(sat), (snr_t0(sat) + snr_t1(sat))./2, (elR_t0(sat) + elR_t1(sat))./2, distR_t0(sat), distR_t1(sat), sat, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, lambda(sat,1)); %#ok<ASGLU>
 end
 
 if isempty(cov_XR) %if it was not possible to compute the covariance matrix
@@ -232,7 +249,7 @@ end
 sigma2_XR = diag(cov_XR);
 
 %initialization of the initial point with 6(positions and velocities) +
-%32 or 64 (N combinations) variables
+%nSatTot or 2*nSatTot (N combinations) variables
 Xhat_t_t = [XR(1);sigma2_XR(1);  XR(2);sigma2_XR(2);  XR(3);sigma2_XR(3); (XR_t0(1)+XR_t1(1))./2;(XR_t0(2)+XR_t1(2))./2;(XR_t0(3)+XR_t1(3))./2 ];
 
 %--------------------------------------------------------------------------------------------

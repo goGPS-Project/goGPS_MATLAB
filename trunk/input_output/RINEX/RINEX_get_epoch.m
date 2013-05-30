@@ -101,7 +101,7 @@ while (eof==0)
             %computation of the GPS time in weeks and seconds of week
             year = four_digit_year(year);
             [week, tow] = date2gps([year, month, day, hour, minute, second]);
-            [time] = weektow2time(week, tow);
+            [time] = weektow2time(week, tow, 'G');
             
             %number of visible satellites
             [num_sat] = sscanf(lin(30:32),'%d');
@@ -155,7 +155,7 @@ while (eof==0)
             
             %computation of the GPS time in weeks and seconds of week
             [week, tow] = date2gps([year, month, day, hour, minute, second]);
-            [time] = weektow2time(week, tow);
+            [time] = weektow2time(week, tow, 'G');
             
             %number of visible satellites
             [num_sat] = sscanf(lin(33:35),'%d');

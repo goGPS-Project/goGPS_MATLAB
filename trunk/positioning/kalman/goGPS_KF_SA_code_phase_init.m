@@ -70,6 +70,9 @@ azM = zeros(nSatTot,1);
 elM = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
 
+%retrieve multi-constellation wavelengths
+lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
 %--------------------------------------------------------------------------------------------
@@ -236,8 +239,8 @@ if (length(sat) < min_nsat)
     
     %computation of the phase double differences in order to estimate N
     if ~isempty(sat)
-        [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), 1);
-        [N2(sat), sigma2_N2(sat)] = amb_estimate_observ_SA(pr2(sat), ph2(sat), 2);
+        [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), lambda(sat,1));
+        [N2(sat), sigma2_N2(sat)] = amb_estimate_observ_SA(pr2(sat), ph2(sat), lambda(sat,2));
     end
 
     if (length(phase) == 2)
@@ -263,8 +266,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, 1); %#ok<ASGLU>
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, 2);
+        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, lambda(sat_pr,1)); %#ok<ASGLU>
+        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, lambda(sat_pr,2));
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix

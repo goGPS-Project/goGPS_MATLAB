@@ -1,7 +1,7 @@
-function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(XR_approx, XS, distR_approx, dtR, dtS, err_tropo, err_iono)
+function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(XR_approx, XS, distR_approx, dtR, dtS, err_tropo, err_iono, lambda)
 
 % SYNTAX:
-%   [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(XR_approx, XS, distR_approx, dtR, dtS, err_tropo, err_iono);
+%   [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(XR_approx, XS, distR_approx, dtR, dtS, err_tropo, err_iono, lambda);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -11,6 +11,7 @@ function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(X
 %   dtS = satellite clock error
 %   err_tropo = tropospheric error
 %   err_iono = ionospheric error
+%   lambda = matrix containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   A = parameters obtained from the linearization of the observation equation,
@@ -46,7 +47,9 @@ function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(X
 
 %variable initialization
 global v_light
-global lambda1 lambda2
+
+lambda1 = lambda(:,1);
+lambda2 = lambda(:,2);
 
 %design matrix
 A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
@@ -55,5 +58,5 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
 
 prstim_pr1 = distR_approx + v_light*(dtR - dtS) + err_tropo + err_iono;
 prstim_ph1 = distR_approx + v_light*(dtR - dtS) + err_tropo - err_iono;
-prstim_pr2 = distR_approx + v_light*(dtR - dtS) + err_tropo + (lambda2/lambda1)^2 * err_iono;
-prstim_ph2 = distR_approx + v_light*(dtR - dtS) + err_tropo - (lambda2/lambda1)^2 * err_iono;
+prstim_pr2 = distR_approx + v_light*(dtR - dtS) + err_tropo + (lambda2./lambda1).^2 .* err_iono;
+prstim_ph2 = distR_approx + v_light*(dtR - dtS) + err_tropo - (lambda2./lambda1).^2 .* err_iono;
