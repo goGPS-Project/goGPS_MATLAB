@@ -170,8 +170,8 @@ if (IODC == IODE2) & (IODC == IODE3)
     data{2}(29) = fit_int;
     data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
     data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
-    data{2}(32) = weektow2time(weekno, toe);
-    data{2}(33) = weektow2time(weekno, toc);
+    data{2}(32) = weektow2time(weekno, toe, 'G');
+    data{2}(33) = weektow2time(weekno, toc, 'G');
 end
 
 % Check, no data --> delete header to improve performance

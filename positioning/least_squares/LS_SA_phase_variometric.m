@@ -1,7 +1,7 @@
-function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, phase)
+function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, lambda)
                                                                                        
 % SYNTAX:
-%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, phase);
+%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, lambda);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -16,7 +16,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(
 %   dtS          = satellite clock error (vector)
 %   err_tropo    = tropospheric error
 %   err_iono     = ionospheric error
-%   phase        = L1 carrier (phase=1), L2 carrier (phase=2)
+%   lambda       = vector containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   pos_R = estimated position (X,Y,Z)
@@ -53,14 +53,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(
 
 %variable initialization
 global v_light
-global lambda1 lambda2
 global sigmaq_ph
-
-if (phase == 1)
-    lambda = lambda1;
-else
-    lambda = lambda2;
-end
 
 %number of observations
 nsat_ph = length(sat_ph);
@@ -97,7 +90,7 @@ end
 % end
    
 %observation vector
-y0 = lambda*(ph_t0 - ph_t1);
+y0 = lambda.*(ph_t0 - ph_t1);
 
 %observation noise covariance matrix
 Q1 = cofactor_matrix_SA(elR, snr);

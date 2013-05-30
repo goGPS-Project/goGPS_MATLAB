@@ -44,8 +44,8 @@ function [data] = decode_1002(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%L1 carrier wavelenght
-global lambda1
+%retrieve GPS L1 wavelength
+lambda = goGNSS.getWavelength(goGNSS.ID_GPS, 1);
 
 %message pointer initialization
 pos = 1;
@@ -123,7 +123,7 @@ for i = 1 : NSV
         %data output save
         data{3}(SV,1) = DF010;
         data{3}(SV,2) = (DF011 * 0.02) + (DF014 * 299792.458);
-        data{3}(SV,3) = (data{3}(SV,2) + (DF012*0.0005)) / lambda1;
+        data{3}(SV,3) = (data{3}(SV,2) + (DF012*0.0005)) / lambda;
         data{3}(SV,4) = DF013;
         data{3}(SV,5) = DF015 * 0.25;
 

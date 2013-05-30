@@ -291,8 +291,8 @@ while (~feof(fid))
         Eph(29,i) = fit_int;
         Eph(30,i) = (sys_index-1) + svprn; %satellite index (consistent with other observation arrays)
         Eph(31,i) = int8(sys_id);
-        Eph(32,i) = weektow2time(weekno, toe);
-        Eph(33,i) = weektow2time(weekno, toc);
+        Eph(32,i) = weektow2time(weekno, toe, sys_id);
+        Eph(33,i) = weektow2time(weekno, toc, sys_id);
         
         %if IODC and IODE do not match, issue a warning
         if (iodc ~= IODE && ~strcmp(sys_id, 'C'))
@@ -363,7 +363,7 @@ while (~feof(fid))
         Eph(29,i) = 0;
         Eph(30,i) = (sys_index-1) + svprn;
         Eph(31,i) = int8(sys_id);
-        Eph(32,i) = weektow2time(week_toe, toe);
+        Eph(32,i) = weektow2time(week_toe, toe, sys_id);
         Eph(33,i) = 0;
     end
 end

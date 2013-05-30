@@ -591,7 +591,7 @@ classdef goGUIclass < handle
             
             % Constellation of satellites currently supported
             idG.pAvailableGNSSCode = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
-            idG.pAvailableGNSSPhase = [id.cGPS];
+            idG.pAvailableGNSSPhase = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
             
           %   INTEGER AMBIGUITY RESOLUTION
           % ---------------------------------------------------------------
@@ -2891,7 +2891,7 @@ classdef goGUIclass < handle
             
             obj.saveConstellations();
             mode = obj.getgoGPSMode();
-            mode_vinc = get(obj.goh.constraint,'Value');
+            mode_vinc = get(obj.goh.constraint,'Value') * obj.isActive(obj.idUI.cConstraint);
             if (get(obj.goh.file_type, 'SelectedObject') == obj.goh.rinex_files)
                 mode_data = 0;
             else %goGPS data
@@ -2959,8 +2959,8 @@ classdef goGUIclass < handle
                     end
                 end
                 data_path = goIni.getData('RefPath','data_path');
-                file_prefix = goIni.getData('RefPath','file_prefix');
-                filename_ref = [data_path file_prefix];
+                file_name = goIni.getData('RefPath','file_name');
+                filename_ref = [data_path file_name];
             else
                 filerootIN = '';
                 filename_R_obs = '';

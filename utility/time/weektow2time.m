@@ -1,18 +1,19 @@
-function [time] = weektow2time(week, sow)
+function [time] = weektow2time(week, sow, sys)
 
 % SYNTAX:
-%   [time] = weektow2time(week, sow);
+%   [time] = weektow2time(week, sow, sys);
 %
 % INPUT:
-%   week = GPS week
-%   sow  = GPS seconds-of-week
+%   week = GNSS week
+%   sow  = GNSS seconds-of-week
+%   sys  = GNSS system identifier
 %
 % OUTPUT:
 %   time = GPS time (continuous since 6-1-1980)
 %
 % DESCRIPTION:
-%   Conversion from GPS time in week, seconds-of-week format to GPS time in
-%   continuous format (similar to datenum).
+%   Conversion from GNSS time in week, seconds-of-week format to GPS time
+%   in continuous format (similar to datenum).
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.3.1 beta
@@ -34,4 +35,9 @@ function [time] = weektow2time(week, sow)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-time = week*7*86400 + sow;
+if (~strcmp(sys, 'C'))
+    time = week*7*86400 + sow;
+else
+    GPS_BDS_week = 1356; %GPS week number on 1st January 2006 (start of BeiDou time)
+    time = (GPS_BDS_week + week)*7*86400 + sow;
+end

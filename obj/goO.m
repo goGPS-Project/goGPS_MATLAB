@@ -96,7 +96,7 @@ classdef goO < handle
             timeGPS = datenum(dateR(1,:),dateR(2,:),dateR(3,:),dateR(4,:),dateR(5,:),dateR(6,:))' - datenum(1980,1,6,0,0,0);
             % In the future I just want to keep timeGPS
             [week, tow] = date2gps([dateR(1,:)',dateR(2,:)',dateR(3,:)',dateR(4,:)',dateR(5,:)',dateR(6,:)']);
-            [time] = weektow2time(week, tow);
+            [time] = weektow2time(week, tow, 'G');
             
             % Compute empirical interval
             intervalEmp = datevec(median(diff(timeGPS))); intervalEmp = intervalEmp(6) + intervalEmp(5)*60 +  intervalEmp(4)*3600;

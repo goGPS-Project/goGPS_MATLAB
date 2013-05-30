@@ -68,8 +68,6 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 % KALMAN FILTER PARAMETERS
 %--------------------------------------------------------------------------------------------
 
-global lambda1 lambda2
-
 global sigmaq_vE sigmaq_vN sigmaq_vU sigmaq0_N
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold o1 o2 o3 nN
@@ -103,6 +101,10 @@ elR = zeros(nSatTot,1);
 elM = zeros(nSatTot,1);
 distR = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
+
+%retrieve multi-constellation wavelengths
+lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+L2IonoFactor = (lambda(:,2)./lambda(:,1)).^2;
 
 %----------------------------------------------------------------------------------------
 % MODEL ERROR COVARIANCE MATRIX
@@ -250,6 +252,8 @@ if (nsat >= min_nsat)
     err_iono_R  = err_iono_R (iR);
     err_tropo_M = err_tropo_M(iM);
     err_iono_M  = err_iono_M (iM);
+    L2IonoFactor_R = L2IonoFactor(sat_pr_R(iR));
+    L2IonoFactor_M = L2IonoFactor(sat_pr_M(iM));
     
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_nocutoff, sat_pr);
@@ -257,7 +261,7 @@ if (nsat >= min_nsat)
     
     for i = 1:size(sat_pr)
         if (nargin > 22 & ~isempty(dtMdot) & dop1_M(sat_pr(i)) == 0 & sum(sum(Eph)) ~= 0)
-            [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph);
+            [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph, lambda(sat_pr(i),:));
         end
     end
     
@@ -354,10 +358,10 @@ if (nsat >= min_nsat)
                     sat_slip2 = [];
                     sat_slip = [];
                     if (length(phase) == 2)
-                        [N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_tmp, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
-                        [N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot_tmp, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
-                        %[N1_slip, N1_born] = ambiguity_init(XR0, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_R(sat_pr), err_tropo_M(sat_pr), err_iono_R(sat_pr), err_iono_M(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr)); %#ok<ASGLU>
-                        %[N2_slip, N2_born] = ambiguity_init(XR0, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_R(sat_pr), err_tropo_M(sat_pr), (lambda2/lambda1)^2 * err_iono_R(sat_pr), (lambda2/lambda1)^2 * err_iono_M(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr)); %#ok<ASGLU>
+                        [N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_tmp, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
+                        [N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, L2IonoFactor_R .* err_iono_R, L2IonoFactor_M .* err_iono_M, pivot_tmp, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
+                        %[N1_slip, N1_born] = ambiguity_init(XR0, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_R(sat_pr), err_tropo_M(sat_pr), err_iono_R(sat_pr), err_iono_M(sat_pr), pivot_tmp, lambda(sat_pr,1), X_t1_t(o3+sat_pr)); %#ok<ASGLU>
+                        %[N2_slip, N2_born] = ambiguity_init(XR0, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_R(sat_pr), err_tropo_M(sat_pr), L2IonoFactor_R .* err_iono_R(sat_pr), L2IonoFactor_M .* err_iono_M(sat_pr), pivot_tmp, lambda(sat_pr,2), X_t1_t(o3+sat_pr)); %#ok<ASGLU>
                         
                         X_t1_t(o3+sat_born,1) = N1_born;
                         X_t1_t(o3+nSatTot+sat_born,1) = N2_born;
@@ -367,11 +371,11 @@ if (nsat >= min_nsat)
                         Cvv(o3+nSatTot+sat_born,o3+nSatTot+sat_born) = sigmaq0_N * eye(size(sat_born,1));
                     else
                         if (phase == 1)
-                            [N_slip, N_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_tmp, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
-                            %[N_slip, N_born] = ambiguity_init(XR0, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_R(sat_pr), err_tropo_M(sat_pr), err_iono_R(sat_pr), err_iono_M(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr)); %#ok<ASGLU>
+                            [N_slip, N_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_tmp, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
+                            %[N_slip, N_born] = ambiguity_init(XR0, posS(:,sat_pr), pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_R(sat_pr), err_tropo_M(sat_pr), err_iono_R(sat_pr), err_iono_M(sat_pr), pivot_tmp, lambda(sat_pr,1), X_t1_t(o3+sat_pr)); %#ok<ASGLU>
                         else
-                            [N_slip, N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot_tmp, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
-                            %[N_slip, N_born] = ambiguity_init(XR0, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_R(sat_pr), err_tropo_M(sat_pr), (lambda2/lambda1)^2 * err_iono_R(sat_pr), (lambda2/lambda1)^2 * err_iono_M(sat_pr), pivot_tmp, phase, X_t1_t(o3+sat_pr)); %#ok<ASGLU>
+                            [N_slip, N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, L2IonoFactor_R .* err_iono_R, L2IonoFactor_M .* err_iono_M, pivot_tmp, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr)); %#ok<ASGLU>
+                            %[N_slip, N_born] = ambiguity_init(XR0, posS(:,sat_pr), pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, prRS_app(sat_pr), prMS_app(sat_pr), err_tropo_R(sat_pr), err_tropo_M(sat_pr), L2IonoFactor_R .* err_iono_R(sat_pr), L2IonoFactor_M .* err_iono_M(sat_pr), pivot_tmp, lambda(sat_pr,2), X_t1_t(o3+sat_pr)); %#ok<ASGLU>
                         end
                         
                         X_t1_t(o3+sat_born,1) = N_born;
@@ -431,17 +435,17 @@ if (nsat >= min_nsat)
             %Test presence/absence of a cycle-slip at the current epoch.
             %The state of the system is not changed yet
             if (length(phase) == 2)
-                [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
-                [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
+                [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 
                 if (check_cs1 | check_cs2)
                     check_cs = 1;
                 end
             else
                 if (phase == 1)
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, 1); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 else
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, 2); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 end
             end
         else
@@ -459,10 +463,10 @@ if (nsat >= min_nsat)
         
         if (check_on | check_cs)
             if (length(phase) == 2)
-                [N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-                [N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-                %[N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
-                %[N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
+                [N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+                [N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, L2IonoFactor_R .* err_iono_R, L2IonoFactor_M .* err_iono_M, pivot, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+                %[N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr));
+                %[N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_Rsat(sat_pr), pr2_Msat(sat_pr), ph2_Rsat(sat_pr), ph2_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, L2IonoFactor_R .* err_iono_R, L2IonoFactor_M .* err_iono_M, pivot, lambda(sat_pr,2), X_t1_t(o3+sat_pr));
                 
                 if (check_on)
                     X_t1_t(o3+sat_born,1) = N1_born;
@@ -486,11 +490,11 @@ if (nsat >= min_nsat)
                 end
             else
                 if (phase == 1)
-                    [N_slip, N_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-                    %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
+                    [N_slip, N_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+                    %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr));
                 else
-                    [N_slip, N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, (lambda2/lambda1)^2 * err_iono_R, (lambda2/lambda1)^2 * err_iono_M, pivot, phase, X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
-                    %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, X_t1_t(o3+sat_pr));
+                    [N_slip, N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, L2IonoFactor_R .* err_iono_R, L2IonoFactor_M .* err_iono_M, pivot, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
+                    %[N_slip, N_born] = ambiguity_init(XR0, XS, pr1_Rsat(sat_pr), pr1_Msat(sat_pr), ph1_Rsat(sat_pr), ph1_Msat(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda(sat_pr,2), X_t1_t(o3+sat_pr));
                 end
                 
                 if (check_on)
@@ -515,7 +519,7 @@ if (nsat >= min_nsat)
         p = find(ismember(setdiff(sat_pr,pivot),setdiff(sat,pivot))==1);
    
         %function that calculates the Kalman filter parameters
-        [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman(XR0, XS, pr1_R(sat_pr), ph1_R(sat_pr), pr1_M(sat_pr), ph1_M(sat_pr), pr2_R(sat_pr), ph2_R(sat_pr), pr2_M(sat_pr), ph2_M(sat_pr), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, distR(sat_pr), distM(sat_pr), sat_pr, pivot);
+        [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman(XR0, XS, pr1_R(sat_pr), ph1_R(sat_pr), pr1_M(sat_pr), ph1_M(sat_pr), pr2_R(sat_pr), ph2_R(sat_pr), pr2_M(sat_pr), ph2_M(sat_pr), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, distR(sat_pr), distM(sat_pr), sat_pr, pivot, lambda(sat_pr,:));
 
         %zeroes vector useful in matrix definitions
         Z_1_nN = zeros(1,nN);
@@ -542,8 +546,8 @@ if (nsat >= min_nsat)
         v = 1;
         for u = 1 : n+1 % with the pivot
             if (sat_pr(u) ~= pivot)
-                L_pha1(v,sat_pr(u)) = -(lambda1);
-                L_pha2(v,sat_pr(u)) = -(lambda2);
+                L_pha1(v,sat_pr(u)) = -(lambda(sat_pr(u),1));
+                L_pha2(v,sat_pr(u)) = -(lambda(sat_pr(u),2));
                 v = v+1;
             end
         end
