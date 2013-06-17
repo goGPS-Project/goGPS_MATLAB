@@ -693,3 +693,17 @@ if (~Eph_M)
 else
     Eph = Eph_M;
 end
+
+%compute absolute timings
+[time_GPS] = weektow2time(week_R, time_GPS, 'G');
+[time_R]   = weektow2time(week_R, time_R, 'G');
+[time_M]   = weektow2time(week_R, time_M, 'G');
+
+%correct the absolute timing of binary-decoded ephemeris (i.e. use GPS week number from RAW binary messages)
+for s = 1 : size(Eph,2)
+    avail = Eph(32,s,:) ~= 0;
+%     if (max(abs(Eph(32,s,avail)-time_GPS(1))) > 1e7)
+        Eph(32,s,avail) = weektow2time(week_R(avail), squeeze(Eph(18,s,avail)), char(Eph(31,s,avail)));
+        Eph(33,s,avail) = weektow2time(week_R(avail), squeeze(Eph(21,s,avail)), char(Eph(31,s,avail)));
+%     end
+end
