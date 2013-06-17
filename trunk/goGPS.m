@@ -579,6 +579,10 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
     check_cs = 0;
     
     plot_t = 1;
+    
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
 
     for t = 1 : length(time_GPS)
 
@@ -606,6 +610,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
+                if (t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -629,7 +634,11 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
         if ((t == 1) & (~flag_plotproc))
             fprintf('Processing...\n');
         end
+        
+        goWB.goTime(t);
     end
+    
+    goWB.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -703,6 +712,10 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
     else
         fprintf('Processing...\n');
     end
+    
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
 
     for t = 2 : length(time_GPS)
 
@@ -722,6 +735,7 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
+            if (t == 2), goWB.shiftDown(); end
             if (flag_cov == 0)
                 if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -737,7 +751,11 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
             end
             pause(0.01);
         end
+        
+        goWB.goTime(t);
     end
+
+    goWB.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -762,6 +780,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
     check_cs = 0;
     
     plot_t = 1;
+    
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
 
     for t = 1 : length(time_GPS)
 
@@ -787,6 +809,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
+                if (t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -810,7 +833,11 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
         else
             unused_epochs(t) = 1;
         end
+        
+        goWB.goTime(t);
     end
+
+    goWB.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1034,6 +1061,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
     else
         fprintf('Processing...\n');
     end
+    
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
 
     for t = 2 : length(time_GPS)
 
@@ -1053,6 +1084,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
+            if (t == 2), goWB.shiftDown(); end
             if (flag_cov == 0)
                 if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
@@ -1073,7 +1105,11 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
                 pause(0.01);
             end
         end
+        
+        goWB.goTime(t);
     end
+    
+    goWB.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1098,6 +1134,10 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
     check_cs = 0;
     
     plot_t = 1;
+    
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
 
     for t = 1 : length(time_GPS)
 
@@ -1123,6 +1163,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
+                if (t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -1146,7 +1187,11 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
         if ((t == 1) & (~flag_plotproc))
             fprintf('Processing...\n');
         end
+        
+        goWB.goTime(t);
     end
+    
+    goWB.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1219,6 +1264,10 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         fprintf('Processing...\n');
     end
 
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
+    
     for t = 2 : length(time_GPS)
 
         if (mode_data == 0)
@@ -1237,6 +1286,7 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
+            if (t == 2), goWB.shiftDown(); end
             if (flag_cov == 0)
                 if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -1252,7 +1302,11 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
             end
             pause(0.01);
         end
+        
+        goWB.goTime(t);
     end
+    
+    goWB.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1401,6 +1455,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
         else
             fprintf('Processing...\n');
         end
+        
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
 
         for t = 2 : length(time_GPS)
 
@@ -1418,6 +1476,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
             if (flag_plotproc)
+                if (t == 2), goWB.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
                     rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
@@ -1438,7 +1497,11 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
                     pause(0.01);
                 end
             end
+            
+            goWB.goTime(t);
         end
+        
+        goWB.close();
 
         fclose(fid_kal);
         fclose(fid_sat);
@@ -1536,6 +1599,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
             fprintf('Processing...\n');
         end
         
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+        
         for t = 2 : length(time_GPS)
             
             if (mode_data == 0)
@@ -1599,6 +1666,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
+                if (t == 2), goWB.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
                     if (flag_stopGOstop == 1)
@@ -1627,7 +1695,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
                     pause(0.01);
                 end
             end
+            goWB.goTime(t);
         end
+        
+        goWB.close();
         
         if (flag_stopGOstop == 1)
             %azimuth computation
@@ -1719,6 +1790,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
     else
         fprintf('Processing...\n');
     end
+    
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
 
     for t = 2 : length(time_GPS)
 
@@ -1736,6 +1811,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
+            if (t == 2), goWB.shiftDown(); end
             if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date(t,:)), end;
             rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
             if (flag_amb == 1)
@@ -1751,7 +1827,11 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
                 pause(0.01);
             end
         end
+        
+        goWB.goTime(t);
     end
+    
+    goWB.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
