@@ -163,6 +163,7 @@ nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    nSatTot = constellations.nEnabledSat;
 end
 
 %initialization of global variables/constants
@@ -203,10 +204,11 @@ end
 %----------------------------------------------------------------------------------------------
 
 if goGNSS.isPP(mode) % post-processing
+    
+    SP3 = [];
 
     if (mode_data == 0)
-        
-        SP3 = [];
+
         if (flag_SP3)
             %display message
             fprintf('Reading SP3 file...\n');
@@ -229,7 +231,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
-            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
 
         else %relative positioning
 
@@ -241,9 +243,9 @@ if goGNSS.isPP(mode) % post-processing
             
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
-            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, pos_R, pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_R, dop2_R, snr1_M, Eph, SP3, iono, nSatTot);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, nSatTot);
         end
 
 %         %read surveying mode
@@ -339,7 +341,13 @@ if goGNSS.isPP(mode) % post-processing
         %read data from goGPS saved files
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
             pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
-        
+
+        %pre-processing
+        fprintf('Pre-processing rover observations...\n');
+        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, size(pr1_R,1));
+        fprintf('Pre-processing master observations...\n');
+        [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, size(pr1_M,1));
+
         %interval between epochs
         interval = median(time_GPS(2:end) - time_GPS(1:end-1));
 
@@ -421,7 +429,7 @@ if goGNSS.isPP(mode) % post-processing
         loss_M = loss_M(tMin:tMax);
         date = date(tMin:tMax,:);
     end
-    
+
     %if absolute post-processing positioning
     if goGNSS.isSA(mode) % absolute positioning
 
@@ -549,7 +557,6 @@ if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
 end
 
 %boolean vector for removing unused epochs in LS processing
-
 if (goGNSS.isPP(mode))
     unused_epochs = zeros(size(time_GPS));
 end
@@ -2533,6 +2540,19 @@ if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)))
     plot3(EAST, NORTH, h_KAL, '.r');
     xlabel('EAST [m]'); ylabel('NORTH [m]'); zlabel('h [m]'); grid on
 end
+
+% %----------------------------------------------------------------------------------------------
+% % REPRESENTATION OF THE 2D TRAJECTORY on Google Maps
+% %----------------------------------------------------------------------------------------------
+% 
+% %if any positioning was done (either post-processing or real-time, not constrained)
+% if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(lam_KAL)))
+%     %2D plot
+%     figure
+%     plot(lam_KAL, phi_KAL, '.r');
+%     xlabel('lon [deg]'); ylabel('lat [deg]');
+%     plot_google_map('MapType','hybrid');
+% end
 
 %----------------------------------------------------------------------------------------------
 % REPRESENTATION OF THE VISIBLE SATELLITES CONFIGURATION

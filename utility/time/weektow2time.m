@@ -35,9 +35,10 @@ function [time] = weektow2time(week, sow, sys)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-if (~strcmp(sys, 'C'))
-    time = week*7*86400 + sow;
-else
+time = week*7*86400 + sow;
+
+BDS_mask = (sys == 'C');
+if (any(BDS_mask))
     GPS_BDS_week = 1356; %GPS week number on 1st January 2006 (start of BeiDou time)
-    time = (GPS_BDS_week + week)*7*86400 + sow;
+    time(BDS_mask) = (GPS_BDS_week + week(BDS_mask))*7*86400 + sow(BDS_mask);
 end

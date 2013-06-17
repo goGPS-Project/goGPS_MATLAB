@@ -162,6 +162,6 @@ if (IODC == IODE2) & (IODC == IODE3)
     data{2}(29) = fit_int;
     data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
     data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
-    data{2}(32) = weektow2time(weekno, toe, 'G');
-    data{2}(33) = weektow2time(weekno, toc, 'G');
+    data{2}(32) = weektow2time(weekno, toe, 'G'); %wrong: weekno is mod(1024)... taken care of by the caller
+    data{2}(33) = weektow2time(weekno, toc, 'G'); %wrong: weekno is mod(1024)... taken care of by the caller
 end
