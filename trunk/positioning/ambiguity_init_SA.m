@@ -54,9 +54,10 @@ function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light
 global sigmaq_cod1 sigmaq_ph
 % global clock_delay_thresh
+
+v_light = goGNSS.V_LIGHT;
 
 %remove zeros
 index_zero_pr = (pr == 0);

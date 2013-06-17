@@ -28,9 +28,9 @@
 % CONSTANTS
 %-------------------------------------------------------------------------------
 
-global v_light
-global f1 f2
-global lambda1 lambda2
+% global v_light
+% global f1 f2
+% global lambda1 lambda2
 global a_GPS a_GLO f_GPS e_GPS
 global GM_GPS GM_GLO GM_GAL GM_BDS GM_QZS
 global Omegae_dot_GPS Omegae_dot_GLO Omegae_dot_GAL Omegae_dot_BDS Omegae_dot_QZS
@@ -38,15 +38,15 @@ global J2_GLO
 global circle_rad
 
 %velocity of light in the void
-v_light = 299792458; % [m/s]
+% v_light = 299792458; % [m/s]
 
 %GPS carriers frequencies
-f1 = 1575420000; % [1/s]
-f2 = 1227600000; % [1/s]
+% f1 = 1575420000; % [1/s]
+% f2 = 1227600000; % [1/s]
 
 %GPS carriers wavelengths
-lambda1 = v_light / f1; % [m]
-lambda2 = v_light / f2; % [m]
+% lambda1 = v_light / f1; % [m]
+% lambda2 = v_light / f2; % [m]
 
 %CRS parameters, according to each GNSS system CRS definition
 % (ICD document in brackets):

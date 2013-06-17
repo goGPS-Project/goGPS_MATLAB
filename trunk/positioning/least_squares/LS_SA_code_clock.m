@@ -41,7 +41,7 @@ function [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tro
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light
+v_light = goGNSS.V_LIGHT;
 
 %number of observations
 n = length(pr_R);

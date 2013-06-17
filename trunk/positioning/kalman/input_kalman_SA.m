@@ -46,7 +46,7 @@ function [A, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(X
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-global v_light
+v_light = goGNSS.V_LIGHT;
 
 lambda1 = lambda(:,1);
 lambda2 = lambda(:,2);

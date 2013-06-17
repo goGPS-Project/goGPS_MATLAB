@@ -44,7 +44,7 @@ function [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, s
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light
+v_light = goGNSS.V_LIGHT;
 
 %initialization
 corr = zeros(size(el));

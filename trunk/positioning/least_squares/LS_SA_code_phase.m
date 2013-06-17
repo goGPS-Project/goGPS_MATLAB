@@ -53,8 +53,9 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-global v_light
 global sigmaq_cod1 sigmaq_ph
+
+v_light = goGNSS.V_LIGHT;
 
 %data indexes
 [~, index] = intersect(sat_pr,sat_ph); %sat_ph is a subset of sat_pr

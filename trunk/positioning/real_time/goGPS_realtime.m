@@ -59,7 +59,6 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%global lambda1
 global o1 o2 nN order
 global COMportR master_ip master_port server_delay
 global nmea_init nmea_update_rate hui_poll_rate

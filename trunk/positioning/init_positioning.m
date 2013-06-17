@@ -71,7 +71,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light
+v_light = goGNSS.V_LIGHT;
 
 %----------------------------------------------------------------------------------------------
 % FIRST ESTIMATE OF SATELLITE POSITIONS
