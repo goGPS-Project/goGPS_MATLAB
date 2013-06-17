@@ -41,7 +41,7 @@ function [doppler_app1, doppler_app2] = doppler_shift_approx(pos_R, vel_R, pos_S
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light
+v_light = goGNSS.V_LIGHT;
 
 LOS  = pos_S - pos_R;             %receiver-satellite line-of-sight vector
 LOSu = LOS / norm(LOS);           %receiver-satellite line-of-sight unit vector [= LOS / sqrt(LOS(1)^2 + LOS(2)^2 + LOS(3)^2)]

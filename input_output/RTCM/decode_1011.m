@@ -51,9 +51,6 @@ function [data] = decode_1011(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%light velocity
-global v_light
-
 %message pointer initialization
 pos = 1;
 
@@ -114,7 +111,7 @@ for i = 1 : NSV
         %GLONASS L1 pseudorange
         DF041 = fbin2dec(msg(pos:pos+24)) * 0.02; pos = pos + 25;
 
-        %GLONASS L1 PhaseRange ï¿½ L1 Pseudorange
+        %GLONASS L1 PhaseRange ?½ L1 Pseudorange
         DF042 = twos_complement(msg(pos:pos+19)) * 0.0005;  pos = pos + 20;
 
         %GLONASS L1 Lock Time Indicator
@@ -128,7 +125,7 @@ for i = 1 : NSV
         %GLONASS L2-L1 Pseudorange Difference
         DF047 = twos_complement(msg(pos:pos+13)) * 0.02; pos = pos + 14;
 
-        %GLONASS L2 PhaseRange ï¿½ L1 Pseudorange (m)
+        %GLONASS L2 PhaseRange ?½ L1 Pseudorange (m)
         DF048 = twos_complement(msg(pos:pos+19)) * 0.0005; pos = pos + 20;
 
         %GLONASS L2 Lock Time Indicator
@@ -143,11 +140,11 @@ for i = 1 : NSV
         %output data save
         data{3}(SV,1)  = DF039;
         data{3}(SV,2)  = DF041;
-        data{3}(SV,3)  = (data{3}(SV,2) + DF042) * data{3}(SV,9) * 1e6 / v_light;
+        data{3}(SV,3)  = (data{3}(SV,2) + DF042) * data{3}(SV,9) * 1e6 / goGNSS.V_LIGHT;
         data{3}(SV,4)  = DF043;
         data{3}(SV,5)  = DF046;
         data{3}(SV,6)  = (data{3}(SV,2) + DF047);
-        data{3}(SV,7)  = (data{3}(SV,2) + DF048) * data{3}(SV,10) * 1e6 / v_light;
+        data{3}(SV,7)  = (data{3}(SV,2) + DF048) * data{3}(SV,10) * 1e6 / goGNSS.V_LIGHT;
         data{3}(SV,8)  = DF049;
 
     else %SBAS satellites

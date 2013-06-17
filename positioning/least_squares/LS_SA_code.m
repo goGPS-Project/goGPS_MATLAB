@@ -49,7 +49,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light
+v_light = goGNSS.V_LIGHT;
 
 %number of observations
 n = length(pr_R);

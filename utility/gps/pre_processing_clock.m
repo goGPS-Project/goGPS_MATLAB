@@ -52,8 +52,9 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light %f1 f2 lambda1 lambda2
 global cutoff snr_threshold
+
+v_light = goGNSS.V_LIGHT;
 
 %number of epochs
 nEpochs = length(time);

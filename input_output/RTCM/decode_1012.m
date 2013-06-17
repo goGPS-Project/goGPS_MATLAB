@@ -51,9 +51,6 @@ function [data] = decode_1012(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%light velocity
-global v_light
-
 %message pointer initialization
 pos = 1;
 
@@ -162,12 +159,12 @@ for i = 1 : NSV
         %output data save
         data{3}(SV,1)  = DF039;
         data{3}(SV,2)  = (DF041 * 0.02) + (DF044 * 599584.92);
-        data{3}(SV,3)  = (data{3}(SV,2) + (DF042 * 0.0005)) * data{3}(SV,11) * 1e6 / v_light;
+        data{3}(SV,3)  = (data{3}(SV,2) + (DF042 * 0.0005)) * data{3}(SV,11) * 1e6 / goGNSS.V_LIGHT;
         data{3}(SV,4)  = DF043;
         data{3}(SV,5)  = DF045 * 0.25;
         data{3}(SV,6)  = DF046;
         data{3}(SV,7)  = (data{3}(SV,2) + (DF047 * 0.02));
-        data{3}(SV,8)  = (data{3}(SV,2) + (DF048 * 0.0005)) * data{3}(SV,12) * 1e6 / v_light;
+        data{3}(SV,8)  = (data{3}(SV,2) + (DF048 * 0.0005)) * data{3}(SV,12) * 1e6 / goGNSS.V_LIGHT;
         data{3}(SV,9)  = DF049;
         data{3}(SV,10) = DF050 * 0.25;
 
