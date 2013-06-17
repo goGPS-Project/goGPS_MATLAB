@@ -3489,7 +3489,7 @@ classdef goGUIclass < handle
             if (filename ~= 0)
                 pos = find(filename == '_');
                 filename = filename(1:pos(end-1)-1);
-                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                str = sprintf('data_path = "%s"\nfile_prefix = "%s"', pathname, filename);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
