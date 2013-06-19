@@ -122,7 +122,7 @@ while (~feof(fid))
     %character offset (to deal with various RINEX versions)
     sys_id   = lin1(1);
     sys_uint = uint8(sys_id);
-    if (strcmp(sys_id,'G') || strcmp(sys_id,'R') || strcmp(sys_id,'E')|| strcmp(sys_id,'C')  || strcmp(sys_id,'J'))
+    if (strcmp(sys_id,'G') || strcmp(sys_id,'R') || strcmp(sys_id,'E') || strcmp(sys_id,'C') || strcmp(sys_id,'J') || strcmp(sys_id,'S'))
         o = 1;                 %RINEX v2.12(not GPS) or v3.xx
         if (strcmp(sys_id,'G'))
             sys_index = constellations.GPS.indexes(1);
@@ -134,6 +134,8 @@ while (~feof(fid))
             sys_index = constellations.BeiDou.indexes(1);
         elseif (strcmp(sys_id,'J'))
             sys_index = constellations.QZSS.indexes(1);
+        elseif (strcmp(sys_id,'S'))
+            %sys_index = constellations.SBAS.indexes(1);
         end
     elseif (sys_uint == 32 || (sys_uint >= 48 && sys_uint <= 57)) %if blank space or number
         if (strcmpi(file_nav(end),'g'))
@@ -160,8 +162,8 @@ while (~feof(fid))
         lin4 = fgetl(fid);
     end
     
-    %if not a GLONASS entry, read also the next 4 lines
-    if (~strcmp(sys_id, 'R'))
+    %if not a GLONASS or SBAS entry, read also the next 4 lines
+    if (~strcmp(sys_id, 'R') && ~strcmp(sys_id, 'S'))
         while isempty(lin5)
             lin5 = fgetl(fid);
         end
@@ -189,6 +191,8 @@ while (~feof(fid))
             if (~constellations.BeiDou.enabled), continue, end
         case 'J'
             if (~constellations.QZSS.enabled), continue, end
+        case 'S'
+            if (~constellations.SBAS.enabled), continue, end
     end
 
     svprn  = str2num(lin1(o+[1:2])); %When input is a scalar, str2double is better than str2num. But str2double does not support 'D'
@@ -295,7 +299,7 @@ while (~feof(fid))
         Eph(33,i) = weektow2time(weekno, toc, sys_id);
         
         %if IODC and IODE do not match, issue a warning
-        if (iodc ~= IODE && ~strcmp(sys_id, 'C'))
+        if (iodc ~= IODE && ~strcmp(sys_id, 'C') && ~strcmp(sys_id, 'E'))
             fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %1s%02d, time %dh %dm %.1fs)\n',sys_id,svprn,hour,minute,second);
         end
         
