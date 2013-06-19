@@ -229,9 +229,15 @@ if goGNSS.isPP(mode) % post-processing
                 date_R, date_M, pos_R, pos_M, Eph, iono, interval] = ...
                 load_RINEX(filename_nav, filename_R_obs, [], constellations, flag_SP3);
             
+            %goWaitBar
+            goWB = goWaitBar(length(time_GPS));
+            goWB.titleUpdate('Pre-processing rover...');
+            
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
-            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot, goWB);
+            
+            goWB.close();
 
         else %relative positioning
 
@@ -241,11 +247,20 @@ if goGNSS.isPP(mode) % post-processing
                 date_R, date_M, pos_R, pos_M, Eph, iono, interval] = ...
                 load_RINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3);
             
+            %goWaitBar
+            goWB = goWaitBar(length(time_GPS));
+            goWB.titleUpdate('Pre-processing rover...');
+            
             %pre-processing
             fprintf('Pre-processing rover observations...\n');
-            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot);
+            [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot, goWB);
+            
+            goWB.titleUpdate('Pre-processing master...');
+            
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, nSatTot);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, nSatTot, goWB);
+            
+            goWB.close();
         end
 
 %         %read surveying mode
@@ -342,12 +357,21 @@ if goGNSS.isPP(mode) % post-processing
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
             pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
 
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Pre-processing rover...');
+
         %pre-processing
         fprintf('Pre-processing rover observations...\n');
-        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, size(pr1_R,1));
-        fprintf('Pre-processing master observations...\n');
-        [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, size(pr1_M,1));
+        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, size(pr1_R,1), goWB);
 
+        goWB.titleUpdate('Pre-processing master...');
+
+        fprintf('Pre-processing master observations...\n');
+        [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, size(pr1_M,1), goWB);
+
+        goWB.close();
+        
         %interval between epochs
         interval = median(time_GPS(2:end) - time_GPS(1:end-1));
 
