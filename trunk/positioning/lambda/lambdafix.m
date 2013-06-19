@@ -24,7 +24,7 @@ function [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 % Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Andrea Nardo
-% Modified by Eugenio Realini
+% Portions of code contributed by Eugenio Realini and Hendy F. Suhandri
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -58,6 +58,8 @@ end
 % perform ambiguity resolution
 if (IAR_method == 0)
     %ILS enumeration (LAMBDA2)
+    [U] = chol(Qahat); %compute cholesky decomposition
+    Qahat = U'*U; %find back the vcm, now the off diag. comp. are identical
     [afixed,sqnorm,Qzhat,Z,D,L] = lambda_routine2(ahat,Qahat);
     % compute the fixed solution
     bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));

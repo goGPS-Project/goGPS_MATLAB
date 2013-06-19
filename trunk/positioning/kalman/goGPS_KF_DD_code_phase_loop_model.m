@@ -786,9 +786,16 @@ end
 %--------------------------------------------------------------------------------------------
 
 sat_np = sat(sat ~= pivot);
-if (check_pivot)
-    sat_np(sat_np == pivot_old) = [];
+
+pos_amb_zero = find(Xhat_t_t(o3+sat_np) == 0);
+pos_cov_zero = find(sum(abs(Cee(o3+sat_np,o3+sat_np)),1) == 0);
+if (~isempty(pos_amb_zero))
+    sat_np(pos_amb_zero) = [];
 end
+if (~isempty(pos_cov_zero))
+    sat_np(pos_cov_zero) = [];
+end
+
 if (flag_IAR && ~isempty(sat_np) && nsat >= min_nsat)
     %try to solve integer ambiguities
     [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat_np,o3+sat_np), Cee([1 o1+1 o2+1],o3+sat_np));
