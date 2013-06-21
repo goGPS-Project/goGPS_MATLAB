@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, nSatTot)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, nSatTot, waitbar_handle)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono, nSatTot);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono, nSatTot, waitbar_handle);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -18,6 +18,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time
 %   SP3 = structure with precise ephemeris and clock
 %   iono = ionosphere parameters (Klobuchar)
 %   nSatTot = maximum number of satellites (given the enabled constellations)
+%   waitbar_handle = handle to the waitbar object
 
 % OUTPUT:
 %   pr1 = processed code observation (L1 carrier)
@@ -128,6 +129,8 @@ for i = 1 : nEpochs
             dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
         end
     end
+    
+    waitbar_handle.goTime(i);
 end
 
 %----------------------------------------------------------------------------------------------
