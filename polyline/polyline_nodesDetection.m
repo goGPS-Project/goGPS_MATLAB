@@ -46,7 +46,7 @@ function [nodes, utm_zone] = polyline_nodesDetection (filename, dN1, dN2, angle_
 
 fid = fopen(filename,'rt');      % open file
 fgets(fid);                      % jump the header
-data = fscanf(fid,'%d/%d/%d %d:%d:%f %f %f %f %f %f %f %f %4c %f %f %f %f %f',[22 inf])';
+data = fscanf(fid,'%d/%d/%d %d:%d:%f %d %f %f %f %f %f %f %f %f %f %f %4c %f %f %f %f %f %d %f',[28 inf])';
 fclose(fid);
 clear filename
 
@@ -54,9 +54,9 @@ clear filename
 % assigning the data
 %-----------------------------------------------------------
 
-x0 = data(:,12);       % x coordinates
-y0 = data(:,11);       % y coordinates
-utm_zone = char([data(:,14) data(:,15) data(:,16) data(:,17)]); % UTM zones
+x0 = data(:,16);       % x coordinates
+y0 = data(:,15);       % y coordinates
+utm_zone = char([data(:,18) data(:,19) data(:,20) data(:,21)]); % UTM zones
 clear data
 
 %-----------------------------------------------------------

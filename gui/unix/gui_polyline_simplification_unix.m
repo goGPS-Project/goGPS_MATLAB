@@ -78,9 +78,12 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+%last settings file path
+file_path = './settings/last_settings_polyline.mat';
+
 %load last used settings, if any
-if exist('../data/settings/last_settings_polyline.mat','file')
-    loadState(handles, '../data/settings/last_settings_polyline.mat');
+if exist(file_path,'file')
+    loadState(handles, file_path);
 end
 
 %pixels
@@ -229,8 +232,11 @@ else
     end
 end
 
+%last settings file path
+file_path = './settings/last_settings_polyline.mat';
+
 %save settings
-saveState(handles,'../data/settings/last_settings_polyline.mat');
+saveState(handles, file_path);
 
 % close(wait_dlg)
 
