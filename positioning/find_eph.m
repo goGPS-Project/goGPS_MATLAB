@@ -71,7 +71,8 @@ if (abs(dtmin) > dtmax)
 end
 
 %check satellite health
-if (Eph(27,icol) ~= 0 && ~strcmp(char(Eph(31,icol)),'J')) %the second condition is temporary (QZSS health flag is kept on for tests)
+%the second and third conditions are temporary (QZSS and Galileo health flag is kept on for tests)
+if (Eph(27,icol) ~= 0 && ~strcmp(char(Eph(31,icol)),'J') && ~strcmp(char(Eph(31,icol)),'E'))
     icol = [];
     return
 end
