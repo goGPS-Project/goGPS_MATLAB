@@ -44,6 +44,8 @@ global HDOP
 global nmea_init nmea_update_rate
 global master rover
 
+num_sat = 32;
+
 %------------------------------------------------------
 % read protocol parameters
 %------------------------------------------------------
@@ -69,13 +71,13 @@ fid_rover = fopen([filerootOUT '_rover_00.bin'],'w+');
 %  time_GPS --> double, [1,1]
 %  time_M   --> double, [1,1]
 %  time_R   --> double, [1,1]
-%  pr_M     --> double, [32,1]
-%  pr_R     --> double, [32,1]
-%  ph_M     --> double, [32,1]
-%  ph_R     --> double, [32,1]
-%  dop_R    --> double, [32,1]
-%  snr_M    --> double, [32,1]
-%  snr_R    --> double, [32,1]
+%  pr_M     --> double, [num_sat,1]
+%  pr_R     --> double, [num_sat,1]
+%  ph_M     --> double, [num_sat,1]
+%  ph_R     --> double, [num_sat,1]
+%  dop_R    --> double, [num_sat,1]
+%  snr_M    --> double, [num_sat,1]
+%  snr_R    --> double, [num_sat,1]
 %  XM       --> double, [1,1]
 %  YM       --> double, [1,1]
 %  ZM       --> double, [1,1]
@@ -83,8 +85,12 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  time_GPS --> double, [1,1]
-%  Eph      --> double, [33,32]
+%  Eph      --> double, [33,num_sat]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+
+%write number of satellites
+fwrite(fid_obs, num_sat, 'int8');
+fwrite(fid_eph, num_sat, 'int8');
 
 if (flag_var_dyn_model) | (flag_stopGOstop)
     %dynamical model
@@ -107,7 +113,7 @@ hour = 0;
 %------------------------------------------------------
 
 %number of unknown phase ambiguities
-nN = 32;
+nN = num_sat;
 
 %ionosphere parameters
 iono = zeros(8,1);
@@ -201,9 +207,9 @@ fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
 fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 
 %pseudoranges
-pr_R = zeros(32,1);
+pr_R = zeros(num_sat,1);
 %ephemerides
-Eph = zeros(33,32);
+Eph = zeros(33,num_sat);
 %satellites with observations available
 satObs = [];
 nsatObs_old = [];
@@ -299,6 +305,9 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
 
             if (~isempty(sat) & sat > 0)
                 Eph(:, sat) = cell_rover{2,i}(:);
+                weekno = Eph(24,sat);
+                Eph(32,sat) = weektime2tow(weekno,Eph(32,sat));
+                Eph(33,sat) = weektime2tow(weekno,Eph(33,sat));
             end
 
             
@@ -315,7 +324,7 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
     satEph = find(sum(abs(Eph))~=0);
 
     %delete data if ephemerides are not available
-    delsat = setdiff(1:32,satEph);
+    delsat = setdiff(1:num_sat,satEph);
     pr_R(delsat)  = 0;
 
     %satellites with observations available
@@ -329,7 +338,12 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
 end
 
 %initial positioning
-pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], [], [], iono, [], [], [], [], satObs, 10, 0, 0, 0);
+pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, 10, 0, 0, 0);
+
+if (isempty(pos_R))
+    fprintf('It was not possible to estimate an approximate position.\n');
+    return
+end
 
 fprintf('ROVER approximate position computed using %d satellites\n', sum(pr_R ~= 0));
 
@@ -469,13 +483,13 @@ tick_R = zeros(B,1);      % empty/full rover buffer
 time_M = zeros(B,1);      % master time buffer
 time_R = zeros(B,1);      % rover time buffer
 week_R = zeros(B,1);      % rover week buffer
-pr_M   = zeros(32,B);     % master code buffer
-pr_R   = zeros(32,B);     % rover code buffer
-ph_M   = zeros(32,B);     % master phase buffer
-ph_R   = zeros(32,B);     % rover phase buffer
-dop_R  = zeros(32,B);     % rover Doppler buffer
-snr_M  = zeros(32,B);     % master SNR buffer
-snr_R  = zeros(32,B);     % rover SNR buffer
+pr_M   = zeros(num_sat,B);     % master code buffer
+pr_R   = zeros(num_sat,B);     % rover code buffer
+ph_M   = zeros(num_sat,B);     % master phase buffer
+ph_R   = zeros(num_sat,B);     % rover phase buffer
+dop_R  = zeros(num_sat,B);     % rover Doppler buffer
+snr_M  = zeros(num_sat,B);     % master SNR buffer
+snr_R  = zeros(num_sat,B);     % rover SNR buffer
 if (flag_ms_pos)
     pos_M  = zeros(3, B);        % master station coordinates read from RTCM
 else
@@ -687,10 +701,10 @@ while flag
         tick_R(1:dtime)  = zeros(dtime,1);
         time_R(1:dtime)  = zeros(dtime,1);
         week_R(1:dtime)  = zeros(dtime,1);
-        pr_R(:,1:dtime)  = zeros(32,dtime);
-        ph_R(:,1:dtime)  = zeros(32,dtime);
-        dop_R(:,1:dtime) = zeros(32,dtime);
-        snr_R(:,1:dtime) = zeros(32,dtime);
+        pr_R(:,1:dtime)  = zeros(num_sat,dtime);
+        ph_R(:,1:dtime)  = zeros(num_sat,dtime);
+        dop_R(:,1:dtime) = zeros(num_sat,dtime);
+        snr_R(:,1:dtime) = zeros(num_sat,dtime);
 
     else
 
@@ -698,10 +712,10 @@ while flag
         tick_R = zeros(B,1);
         time_R = zeros(B,1);
         week_R = zeros(B,1);
-        pr_R   = zeros(32,B);
-        ph_R   = zeros(32,B);
-        dop_R  = zeros(32,B);
-        snr_R  = zeros(32,B);
+        pr_R   = zeros(num_sat,B);
+        ph_R   = zeros(num_sat,B);
+        dop_R  = zeros(num_sat,B);
+        snr_R  = zeros(num_sat,B);
 
     end
 
@@ -839,6 +853,9 @@ while flag
 
                 if (~isempty(sat) & sat > 0)
                     Eph(:, sat) = cell_rover{2,i}(:);
+                    weekno = Eph(24,sat);
+                    Eph(32,sat) = weektime2tow(weekno,Eph(32,sat));
+                    Eph(33,sat) = weektime2tow(weekno,Eph(33,sat));
                 end
 
                 if (nEPH == 0)
@@ -917,7 +934,7 @@ while flag
         i = min(b,B);
 
         %delete data if ephemerides are not available
-        delsat = setdiff(1:32,satEph);
+        delsat = setdiff(1:num_sat,satEph);
         pr_R(delsat,i)  = 0;
         
         %satellites with observations available
@@ -925,7 +942,7 @@ while flag
 
         %position update
         if length(satObs) >= 4
-             pos_t = init_positioning(time_GPS, pr_R(satObs,i), zeros(length(satObs),1), Eph, [], [], [], iono, [], [], [], [], satObs, 10, 0, 0, 0);
+             pos_t = init_positioning(time_GPS, pr_R(satObs,i), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, 10, 0, 0, 0);
         end
 
         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], length(satObs), time_R(b), HDOP));
@@ -939,7 +956,7 @@ while flag
 
     if (~isempty(sat) & index > 0)
         %satellites with observations available for ephemerides polling
-        conf_sat_eph = zeros(32,1);
+        conf_sat_eph = zeros(num_sat,1);
         conf_sat_eph(sat_pr) = 1;
 
         %ephemerides update cycle
@@ -953,7 +970,7 @@ while flag
         check = 0;
         i = 1;
 
-        while ((check == 0) & (i<=32))
+        while ((check == 0) & (i<=num_sat))
 
             s = sat_index(i);
 
@@ -962,7 +979,7 @@ while flag
 
                 %time from the ephemerides reference epoch
                 if (conf_eph(i) == 0)
-                    time_eph = Eph(32,s);
+                    time_eph = Eph(num_sat,s);
                     tk = check_t(time_GPS-time_eph);
                 end
 
@@ -1073,9 +1090,9 @@ while flag
         %current cell to zero
         tick_M(1:dtime)  = zeros(dtime,1);
         time_M(1:dtime)  = zeros(dtime,1);
-        pr_M(:,1:dtime)  = zeros(32,dtime);
-        ph_M(:,1:dtime)  = zeros(32,dtime);
-        snr_M(:,1:dtime) = zeros(32,dtime);
+        pr_M(:,1:dtime)  = zeros(num_sat,dtime);
+        ph_M(:,1:dtime)  = zeros(num_sat,dtime);
+        snr_M(:,1:dtime) = zeros(num_sat,dtime);
         %pos_M current cell keeps the latest value(s), until it is updated
         % by a new RTCM message (3, 1005 or 1006)
         pos = find(sum(pos_M(:,1+dtime:end)) ~= 0);
@@ -1090,9 +1107,9 @@ while flag
         %buffer to zero
         tick_M = zeros(B,1);
         time_M = zeros(B,1);
-        pr_M   = zeros(32,B);
-        ph_M   = zeros(32,B);
-        snr_M  = zeros(32,B);
+        pr_M   = zeros(num_sat,B);
+        ph_M   = zeros(num_sat,B);
+        snr_M  = zeros(num_sat,B);
         if (flag_ms_pos)
             % master station coordinates read from RTCM
             pos_M  = zeros(3, B);
@@ -1373,7 +1390,7 @@ while flag
         
         %delete data if ephemerides are not available
         %the buffer is activated only after the Kalman filter initialization
-        delsat = setdiff(1:32,satEph);
+        delsat = setdiff(1:num_sat,satEph);
         pr_R(delsat,1)  = 0;
         pr_M(delsat,1)  = 0;
         ph_R(delsat,1)  = 0;
@@ -1452,7 +1469,7 @@ while flag
         while (b > B)
             
             %input data save
-            fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
+            fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(num_sat,1); zeros(num_sat,1); zeros(num_sat,1); zeros(num_sat,1); zeros(num_sat,1); zeros(num_sat,1); zeros(num_sat,1); zeros(3,1); zeros(8,1)], 'double');
             fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
             if (flag_var_dyn_model) | (flag_stopGOstop)
                 fwrite(fid_dyn, order, 'int8');
@@ -1478,7 +1495,7 @@ while flag
                 satEph = find(sum(abs(Eph))~=0);
                 
                 %delete data if ephemerides are not available
-                delsat = setdiff(1:32,satEph);
+                delsat = setdiff(1:num_sat,satEph);
                 pr_R(delsat,b)  = 0;
                 pr_M(delsat,b)  = 0;
                 ph_R(delsat,b)  = 0;
@@ -1517,7 +1534,7 @@ while flag
                 satEph = find(sum(abs(Eph))~=0);
                 
                 %delete data if ephemerides are not available
-                delsat = setdiff(1:32,satEph);
+                delsat = setdiff(1:num_sat,satEph);
                 pr_R(delsat,b)  = 0;
                 pr_M(delsat,b)  = 0;
                 ph_R(delsat,b)  = 0;
@@ -1605,7 +1622,7 @@ while flag
                     satEph = find(sum(abs(Eph))~=0);
                     
                     %delete data if ephemerides are not available (b=B)
-                    delsat = setdiff(1:32,satEph);
+                    delsat = setdiff(1:num_sat,satEph);
                     pr_R(delsat,b)  = 0;
                     pr_M(delsat,b)  = 0;
                     ph_R(delsat,b)  = 0;
@@ -1643,7 +1660,7 @@ while flag
                 satEph = find(sum(abs(Eph))~=0);
                 
                 %delete data if ephemerides are not available
-                delsat = setdiff(1:32,satEph);
+                delsat = setdiff(1:num_sat,satEph);
                 pr_R(delsat,b)  = 0;
                 pr_M(delsat,b)  = 0;
                 ph_R(delsat,b)  = 0;

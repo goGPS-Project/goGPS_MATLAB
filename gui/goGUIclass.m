@@ -3172,7 +3172,7 @@ classdef goGUIclass < handle
             o2 = order*2;
             o3 = order*3;
             h_antenna = str2double(get(obj.goh.antenna_h,'String'));
-            if (obj.isPostProc) % I need these informations only in Post Processing
+%             if (obj.isPostProc) % I need these informations only in Post Processing
                 dtm_dir = goIni.getData('DTM','data_path');
                 try
                     load([dtm_dir '/tiles/tile_header'], 'tile_header');
@@ -3184,7 +3184,7 @@ classdef goGUIclass < handle
                     tile_header.nodata = 0;
                     tile_georef = zeros(1,1,4);
                 end
-            end
+%             end
             master_ip = get(obj.goh.IP_address,'String');
             master_port = str2double(get(obj.goh.port,'String'));
             ntrip_user = get(obj.goh.username,'String');

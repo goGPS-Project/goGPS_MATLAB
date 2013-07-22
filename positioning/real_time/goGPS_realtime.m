@@ -117,6 +117,10 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 %  Eph      --> double, [33,32]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
+%write number of satellites
+fwrite(fid_obs, nGPSsat, 'int8');
+fwrite(fid_eph, nGPSsat, 'int8');
+
 %Kalman filter output data
 %free motion
 %  Xhat_t_t --> double, [o3+nN,1]
@@ -368,6 +372,9 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
 
             if (~isempty(sat) & sat > 0)
                 Eph(:, sat) = cell_rover{2,i}(:);
+                weekno = Eph(24,sat);
+                Eph(32,sat) = weektime2tow(weekno,Eph(32,sat));
+                Eph(33,sat) = weektime2tow(weekno,Eph(33,sat));
             end
 
             
@@ -399,6 +406,11 @@ end
 
 %initial positioning
 pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, 10, 0, 0, 0);
+
+if (isempty(pos_R))
+    fprintf('It was not possible to estimate an approximate position.\n');
+    return
+end
 
 fprintf('ROVER approximate position computed using %d satellites\n', sum(pr_R ~= 0));
 
@@ -950,6 +962,9 @@ while flag
 
                 if (~isempty(sat) & sat > 0)
                     Eph(:, sat) = cell_rover{2,i}(:);
+                    weekno = Eph(24,sat);
+                    Eph(32,sat) = weektime2tow(weekno,Eph(32,sat));
+                    Eph(33,sat) = weektime2tow(weekno,Eph(33,sat));
                 end
 
                 if (nEPH == 0)
@@ -1477,7 +1492,7 @@ while flag
             %station position is available
             if (ismember(satObs,satEph)) & (length(satObs) >= 4) & (sum(abs(pos_M(:,1))) ~= 0)
                 %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
-                
+
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
@@ -1492,12 +1507,12 @@ while flag
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
-                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, 1);
+                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, 1, [], 0);
                     else
-                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, order, 1);
+                        kalman_initialized = goGPS_KF_DD_code_phase_init_model(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, order, 1, [], 0);
                     end
                 else
-                    kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, 1, ref_path);
+                    kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, 1, ref_path, []);
                 end
                 
                 if (kalman_initialized)
@@ -1648,9 +1663,9 @@ while flag
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, 1); %#ok<NASGU,ASGLU>
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, 1, [], 0); %#ok<NASGU,ASGLU>
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, order, 1); %#ok<NASGU,ASGLU>
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, order, 1, [], 0); %#ok<NASGU,ASGLU>
                     end
                 else
                     [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, 1, ref_path); %#ok<NASGU,ASGLU>
@@ -1801,9 +1816,9 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, [], 0);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1, [], 0);
                         end
                     else
                         [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
@@ -1954,9 +1969,9 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, [], 0);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1, [], 0);
                         end
                     else
                         [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
@@ -2156,9 +2171,9 @@ while flag
                         %Kalman filter
                         if (mode_vinc == 0)
                             if (~flag_var_dyn_model)
-                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1);
+                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, [], 0);
                             else
-                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1);
+                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1, [], 0);
                             end
                         else
                             [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
@@ -2308,9 +2323,9 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, [], 0);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1, [], 0);
                         end
                     else
                         [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
