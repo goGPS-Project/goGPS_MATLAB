@@ -1,5 +1,5 @@
-function varargout = gui_goGPS_unix(varargin)
-% GUI_GOGPS_UNIX M-file for gui_goGPS_unix.fig
+function varargout = gui_goGPS_unix_mac(varargin)
+% GUI_GOGPS_UNIX M-file for gui_goGPS_unix_mac.fig
 %      GUI_GOGPS_UNIX, by itself, creates a new GUI_GOGPS_UNIX or raises the existing
 %      singleton*.
 %
@@ -20,7 +20,7 @@ function varargout = gui_goGPS_unix(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help gui_goGPS_unix
+% Edit the above text to modify the response to help gui_goGPS_unix_mac
 
 % Last Modified by GUIDE v2.5 19-Apr-2013 12:12:09
 
@@ -66,18 +66,18 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before gui_goGPS_unix is made visible.
+% --- Executes just before gui_goGPS_unix_mac is made visible.
 function gui_goGPS_unix_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to gui_goGPS_unix (see VARARGIN)
+% varargin   command line arguments to gui_goGPS_unix_mac (see VARARGIN)
 clearvars -global goGUI
 global goGUI
 goGUI = goGUIclass(handles, goGUIclass.isUnix);
 
-% UIWAIT makes gui_goGPS_unix wait for user response (see UIRESUME)
+% UIWAIT makes gui_goGPS_unix_mac wait for user response (see UIRESUME)
 uiwait(hObject);
 
 
