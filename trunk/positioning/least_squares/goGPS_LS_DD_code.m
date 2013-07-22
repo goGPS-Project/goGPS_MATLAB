@@ -23,9 +23,9 @@ function goGPS_LS_DD_code(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M,
 %   on code observations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

@@ -42,9 +42,9 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %   Addition and loss of satellites, cycle slips e pivot changes are considered.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

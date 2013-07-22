@@ -16,9 +16,9 @@ function [out] = update_settings(settings_dir_path, field, value)
 %   Utility to update goGPS settings file.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

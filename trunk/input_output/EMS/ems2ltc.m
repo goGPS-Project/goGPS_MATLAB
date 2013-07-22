@@ -23,9 +23,9 @@ function [MT, flag, prn, IODe, delta_x, delta_y, delta_z, delta_offset] = ems2lt
 %   Extract the long term corrections from MT 24 and 25.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 %----------------------------------------------------------------------------------------------

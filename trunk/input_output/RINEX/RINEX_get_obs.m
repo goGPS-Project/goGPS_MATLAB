@@ -19,9 +19,9 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col,
 %   Acquisition of RINEX observation data (code, phase and signal-to-noise ratio).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Damiano Triglione (2012)
 % Portions of code contributed by Andrea Gatti (2013)

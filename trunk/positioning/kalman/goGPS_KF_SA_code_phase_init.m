@@ -27,9 +27,9 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %   Standalone phase and code Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Andrea Nardo
 %----------------------------------------------------------------------------------------------

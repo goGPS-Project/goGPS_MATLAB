@@ -19,9 +19,9 @@ function [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 %   A wrapper for LAMBDA function to be used in goGPS.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Andrea Nardo
 % Portions of code contributed by Eugenio Realini and Hendy F. Suhandri

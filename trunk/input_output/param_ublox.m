@@ -10,9 +10,9 @@ function [out] = param_ublox
 %   Read u-blox receiver informations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------

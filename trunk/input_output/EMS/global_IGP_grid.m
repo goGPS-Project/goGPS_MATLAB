@@ -15,9 +15,9 @@ function [grid_igp] = global_IGP_grid
 %         i.e. those that cover Europe
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 %----------------------------------------------------------------------------------------------
