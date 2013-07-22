@@ -15,9 +15,9 @@ function [iodp_mask, prn_mask] = ems2prnmask(msg)
 %   Decode the PRN mask from EGNOS MT 1.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 %----------------------------------------------------------------------------------------------

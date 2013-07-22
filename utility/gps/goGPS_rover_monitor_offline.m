@@ -17,9 +17,9 @@ function goGPS_rover_monitor_offline(fileIN, filerootOUT, protocol, flag_var_dyn
 %   also including different protocols.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------

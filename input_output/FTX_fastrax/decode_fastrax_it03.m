@@ -15,9 +15,9 @@ function [data] = decode_fastrax_it03(msg, wait_dlg)
 %   Fastrax_it03 messages decoding (also in sequence).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1
+%                           goGPS v0.4.0
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------

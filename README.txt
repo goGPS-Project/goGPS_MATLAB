@@ -9,15 +9,16 @@
 *          d8888P                                                 *
 \*****************************************************************/
 
-   v0.3.1beta
+   v0.4.0beta
 
 1. Introduction
    ============
-   goGPS is a software package designed to perform GPS navigation
+   goGPS is a software package designed to perform GPS positioning
    with low cost receivers, either in post-processing or real-time.
    It is developed in MATLAB and it is aimed at providing a tool
-   useful for studying GPS navigation, implementing and testing new
-   algorithms and interacting in general with GPS-related aspects.
+   useful for studying GPS positioning, implementing and testing
+   new algorithms and interacting in general with GPS-related
+   aspects.
 
 2. Requirements
    ============
@@ -45,13 +46,7 @@
      format through NTRIP protocol (at least '1002' or '1004'
      messages)
 
-   NOTE 1: plotting on Google Earth requires it to be installed;
-           if plotting error ellipses on Google Earth produces odd
-           output on Windows, please switch Google Earth rendering
-           engine to DirectX.
-		   
-   NOTE 2: if you experience problems using the graphical user
-           interface under UNIX systems (Linux or Mac), please try
-           disabling the UNIX GUI (comment lines 70 and 75-80 in 
-           goGPS.m), leaving only the WINDOWS GUI enabled.
-           GUIs can be modified using the MATLAB GUIDE tool.
+   NOTE: plotting on Google Earth requires it to be installed;
+         if plotting error ellipses on Google Earth produces odd
+         output on Windows, please switch Google Earth rendering
+         engine to DirectX.

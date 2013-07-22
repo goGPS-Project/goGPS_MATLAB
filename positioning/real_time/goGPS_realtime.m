@@ -38,9 +38,9 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
 %   positioning, plotting, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------

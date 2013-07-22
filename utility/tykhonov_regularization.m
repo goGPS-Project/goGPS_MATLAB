@@ -19,9 +19,9 @@ function [x_hat, bias, lbd] = tykhonov_regularization(x, y0, b, A, Q)
 %   Tykhonov-Phillips regularization applied to least-squares.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Hendy F. Suhandri
 %----------------------------------------------------------------------------------------------

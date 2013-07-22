@@ -35,9 +35,9 @@ function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS,
 %   receiver clock error using a least-squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.0 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
