@@ -134,6 +134,10 @@ if ~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootM '_obs_*'])) ...
     fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
     fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
     
+    %write number of satellites
+    fwrite(fid_obs, num_sat, 'int8');
+    fwrite(fid_eph, num_sat, 'int8');
+    
     %"file hour" variable
     hour = 0;
     
