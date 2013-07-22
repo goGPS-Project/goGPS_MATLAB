@@ -998,12 +998,12 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f \n',velpos(epo,:));
     end
     
-    figure
-    plot(xENU(:,1))
-    hold on
-    plot(xENU(:,2),'r')
-    plot(xENU(:,3),'g')
-    title('Displacement (blue=E; red=N; green=U)')
+%     figure
+%     plot(xENU(:,1))
+%     hold on
+%     plot(xENU(:,2),'r')
+%     plot(xENU(:,3),'g')
+%     title('Displacement (blue=E; red=N; green=U)')
     
     figure
     plot(vENU(:,1))
