@@ -148,7 +148,7 @@ classdef goIniReader < IniReader
         
         function timeStep = getTimeStep(obj)
             % Get time increment (e.g. v = obs(t+timeStep)-obs(t)
-            timeStep = obj.getData('goD','timeStep');
+            timeStep = obj.getData('Variometric','timeStep');
             if (isempty(timeStep))
                 timeStep = 1;
             end    

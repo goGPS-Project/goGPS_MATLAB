@@ -1749,7 +1749,7 @@ classdef goGUIclass < handle
                 obj.setElStatus([obj.idUI.cPlotAmb], 0, 0);
             end
 
-            % Only for or goD google Earth plot is disabled
+            % Only for the variometric approach google Earth plot is disabled
             if obj.isLS() && obj.isProcessingType(obj.idCP_Vel)
                 obj.setElStatus([obj.idUI.cGEarth], 0, 0);
             end
