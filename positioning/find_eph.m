@@ -16,7 +16,7 @@ function icol = find_eph(Eph, sat, time)
 %   (with respect to the specified GPS time) in the ephemerides matrix.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre and C.C. Goad 11-26-96

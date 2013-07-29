@@ -19,7 +19,7 @@ function [Obs_types, pos_M, ifound_types, interval, sysId] = RINEX_parse_hdr(fil
 %   RINEX observation file header analysis.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 09-23-97

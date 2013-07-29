@@ -21,7 +21,7 @@ function [band, block, ivd, givei, igp] = ems2idc(msg, iodi_mask, band_mask, igp
 %   Find the ionospheric vertical delays.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

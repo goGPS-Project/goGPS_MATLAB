@@ -13,7 +13,7 @@ function [year_out] = two_digit_year(year_in)
 %   Conversion of four-digit year values to two-digit year values.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

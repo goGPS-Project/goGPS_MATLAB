@@ -16,7 +16,7 @@ function [time] = weektow2time(week, sow, sys)
 %   in continuous format (similar to datenum).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

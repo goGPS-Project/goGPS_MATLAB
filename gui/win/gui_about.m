@@ -25,7 +25,7 @@ function varargout = gui_about(varargin)
 % Last Modified by GUIDE v2.5 20-Oct-2010 19:36:52
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

@@ -14,7 +14,7 @@ function [X_out] = etrf2000itrf2008(X_in, date)
 %   ETRF2000 to ITRF2008 coordinate converter.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

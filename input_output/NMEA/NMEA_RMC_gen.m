@@ -14,7 +14,7 @@ function nmeastring = NMEA_RMC_gen(pos_R, date)
 %   Returns a $GPRMC sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
