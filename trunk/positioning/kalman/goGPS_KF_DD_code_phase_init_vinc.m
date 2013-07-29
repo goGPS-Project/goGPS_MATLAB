@@ -40,7 +40,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init_vinc(XR0, XM, time_r
 %   initial position (X,Y,Z). Constrained path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

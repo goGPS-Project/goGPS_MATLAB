@@ -12,7 +12,7 @@ function dtm_bulk_load(dtm_dir_path, tile_size)
 %   passed in input, saves them in .MAT binary format and splits them in tiles.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

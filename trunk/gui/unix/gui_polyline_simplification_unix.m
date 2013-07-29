@@ -25,7 +25,7 @@ function varargout = gui_polyline_simplification_unix(varargin)
 % Last Modified by GUIDE v2.5 14-Oct-2010 18:35:11
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

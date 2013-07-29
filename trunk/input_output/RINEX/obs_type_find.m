@@ -33,7 +33,7 @@ function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
 %   measurements (D1, D2).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)

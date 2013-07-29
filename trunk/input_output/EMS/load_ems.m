@@ -15,7 +15,7 @@ function [sbas] = load_ems(data_dir_ems, gps_week, time_R)
 %   Tool for loading EMS files and reading SBAS data.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

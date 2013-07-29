@@ -23,7 +23,7 @@ function goGPS_LS_SA_variometric(time_rx_t0,time_rx_t1,pr1_t0,pr1_t1,pr2_t0, pr2
 %   Standalone code and phase positioning by least squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

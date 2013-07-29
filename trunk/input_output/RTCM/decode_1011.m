@@ -30,7 +30,7 @@ function [data] = decode_1011(msg)
 %   RTCM format 1011 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

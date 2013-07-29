@@ -13,7 +13,7 @@ function KML_link_write (filename, lam, phi, h)
 %   Write a link to a KML file (Goole Earth).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

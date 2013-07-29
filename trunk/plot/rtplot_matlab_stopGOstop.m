@@ -20,7 +20,7 @@ function rtplot_matlab_stopGOstop (t, pos_R, pos_M, P1, P2, origin, ref, matrix,
 %   a reference path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

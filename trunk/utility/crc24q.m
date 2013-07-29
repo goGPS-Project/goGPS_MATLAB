@@ -13,7 +13,7 @@ function [parity] = crc24q(msg)
 %   Applies CRC-24Q QualComm algorithm.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
