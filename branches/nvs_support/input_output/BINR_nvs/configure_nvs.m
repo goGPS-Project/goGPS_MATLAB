@@ -41,7 +41,7 @@ if (nargin < 4)
 end
 
 % enable binary data output
-fprintf('Enabling NVS receiver binary data output (NMEA output is automatically disabled)... ');
+fprintf('Enabling NVS receiver binary data output (NMEA output is automatically disabled)');
 
 reply_BIN = nvs_message_format(serialObj, 'BIN', prot_par{2,1});
 tries = 0;
@@ -68,40 +68,40 @@ while (~reply_BIN)
 end
 
 if (reply_BIN)
-    fprintf('done\n');
+    fprintf(' done\n');
 else
-    fprintf(2, 'failed\n');
+    fprintf(2, ' failed\n');
 end
 
-% % set output rate (and raw measurement output)
-% fprintf('Enabling raw data output at %dHz measurement rate... ', rate);
-% 
-% reply_RATE = skytraq_binary_output_rate(serialObj, rate);
-% tries = 0;
-% 
-% while (~reply_RATE)
-%     tries = tries + 1;
-%     if (tries > 3)
-%         break
-%     end
-%     % close and delete old serial object
-%     try
-%         fclose(serialObj);
-%         delete(serialObj);
-%     catch
-%         stopasync(serialObj);
-%         fclose(serialObj);
-%         delete(serialObj);
-%     end
-%     % create new serial object
-%     serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
-%     set(serialObj,'InputBufferSize',prot_par{3,1});
-%     fopen(serialObj);
-%     reply_RATE = skytraq_binary_output_rate(serialObj, rate);
-% end
-% 
-% if (reply_RATE)
-%     fprintf('done\n');
-% else
-%     fprintf(2, 'failed\n');
-% end
+% set output rate (and raw measurement output)
+fprintf('Enabling raw data output at %dHz measurement rate', rate);
+
+reply_RATE = nvs_raw_output_rate(serialObj, rate);
+tries = 0;
+
+while (~reply_RATE)
+    tries = tries + 1;
+    if (tries > 3)
+        break
+    end
+    % close and delete old serial object
+    try
+        fclose(serialObj);
+        delete(serialObj);
+    catch
+        stopasync(serialObj);
+        fclose(serialObj);
+        delete(serialObj);
+    end
+    % create new serial object
+    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
+    set(serialObj,'InputBufferSize',prot_par{3,1});
+    fopen(serialObj);
+    reply_RATE = nvs_raw_output_rate(serialObj, rate);
+end
+
+if (reply_RATE)
+    fprintf(' done\n');
+else
+    fprintf(2, ' failed\n');
+end

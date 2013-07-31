@@ -43,14 +43,15 @@ if (nargin < 3)
     baudrate = 115200;
 end
 
-%BINR data
+%BINR format
 DLE = '10'; %beginning of message
 ETX = '03'; %end of message
 BINR_0Bh = '0B';
+BINR_50h = '50';
 
 %standard values for checking replies
 check_NMEA = uint8('PORZA')';
-check_BINR = hex2dec(['10';'50']);
+check_BINR = hex2dec([DLE; BINR_50h]);
 
 %check the status of the current port (i.e. whether it's sending NMEA or BINR)
 nmeastring = '$CCGPQ,PORZA';
@@ -76,10 +77,10 @@ for i = 1 : 2
     
     fwrite(serialObj, codeDEC, 'uint8', 'async');
 
-    reply = get_reply(serialObj);
+    out = nvs_check_reply(serialObj, check);
 
     %check reply
-    if (~isempty(strfind(reply',check')))
+    if (out == 1)
         if (i == 1)
             flag_nmea = 1;
         else %i = 2
@@ -131,56 +132,14 @@ flushinput(serialObj);
 %     fwrite(serialObj, codeDEC, 'uint8', 'async');
 % end
 
-[reply] = get_reply(serialObj);
+[out] = nvs_check_reply(serialObj, check);
 
 %check reply
-if (~isempty(strfind(reply',check')))
-    out = 1;
+if (out == 1)
     switch (format)
         case 'NMEA'
             set(serialObj,'Parity','none');
         otherwise %BINR
             set(serialObj,'Parity','odd');
     end
-else
-    out = 0;
-end
-
-end
-
-%--------------------------------------------------------------------------
-
-function [reply] = get_reply(serialObj)
-
-reply = [];
-
-%time acquisition
-start_time = toc;
-
-%maximum waiting time
-dtMax = 12;
-
-reply_1 = 0;
-reply_2 = 0;
-
-while (reply_1 ~= reply_2) || (reply_1 == 0)
-    
-    %time acquisition
-    current_time = toc;
-    
-    %check if maximum waiting time is expired
-    if (current_time - start_time > dtMax)
-        return
-    end
-    
-    % serial port checking
-    reply_1 = get(serialObj, 'BytesAvailable');
-    pause(3);
-    reply_2 = get(serialObj, 'BytesAvailable');
-    
-    fprintf('.')
-end
-
-reply = fread(serialObj, reply_1, 'uint8');
-
 end
