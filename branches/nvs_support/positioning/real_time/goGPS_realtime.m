@@ -11,7 +11,7 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
 %
 % INPUT:
 %   filerootOUT = output file prefix
-%   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq)
+%   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq, 3:NVS)
 %   mode_vinc   = constraint flag
 %   flag_ms     = plot master station flag
 %   flag_ge     =  google earth flag
@@ -84,6 +84,8 @@ elseif (protocol == 1)
     prot_par = param_fastrax;
 elseif (protocol == 2)
     prot_par = param_skytraq;
+elseif (protocol == 3)
+    prot_par = param_nvs;
 end
 
 %------------------------------------------------------
@@ -219,6 +221,11 @@ elseif (protocol == 2)
 
     % skytraq configuration
     [rover] = configure_skytraq(rover, COMportR, prot_par, 1);
+    
+elseif (protocol == 3)
+
+    % nvs configuration
+    [rover] = configure_nvs(rover, COMportR, prot_par, 1);
 end
 
 %------------------------------------------------------
@@ -335,6 +342,8 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
         [cell_rover] = decode_fastrax_it03(data_rover);
     elseif (protocol == 2)
         [cell_rover] = decode_skytraq(data_rover);
+    elseif (protocol == 3)
+        [cell_rover] = decode_nvs(data_rover);
     end
 	
 	%for SkyTraq
@@ -460,6 +469,8 @@ while (~sync_rover)
         [cell_rover] = decode_fastrax_it03(data_rover);
     elseif (protocol == 2)
         [cell_rover] = decode_skytraq(data_rover);
+    elseif (protocol == 3)
+        [cell_rover] = decode_nvs(data_rover);
     end
     
     for i = 1 : size(cell_rover,2)
@@ -851,6 +862,9 @@ while flag
             nmea_sentences = [];
         elseif (protocol == 2)
             [cell_rover] = decode_skytraq(data_rover);
+            nmea_sentences = [];
+        elseif (protocol == 3)
+            [cell_rover] = decode_nvs(data_rover);
             nmea_sentences = [];
         end
 

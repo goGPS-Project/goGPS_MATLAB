@@ -6,7 +6,7 @@ function goGPS_rover_monitor_offline(fileIN, filerootOUT, protocol, flag_var_dyn
 % INPUT:
 %   fileIN = input file (binary stream)
 %   filerootOUT = output file prefix
-%   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq)
+%   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq, 3:NVS)
 %   flag_var_dyn_model = enable / disable variable dynamic model
 %   flag_stopGOstop    = enable / disable stop-go-stop procedure for direction estimation
 %   flag_simul         = enable / disable real-time simulation (disable for faster decoding)
@@ -58,6 +58,8 @@ for r = 1 : nrec
         prot_par{r} = param_fastrax;
     elseif (protocol(r) == 2)
         prot_par{r} = param_skytraq;
+    elseif (protocol(r) == 3)
+        prot_par{r} = param_nvs;
     end
 end
 
@@ -387,6 +389,10 @@ while flag
                 nmea_sentences = [];
             elseif (protocol(r) == 2)
                 [cell_rover] = decode_skytraq(data_rover);
+                nmea_sentences = [];
+            elseif (protocol(r) == 3)
+                %[cell_rover] = decode_nvs(data_rover);
+                cell_rover = [];
                 nmea_sentences = [];
             end
 

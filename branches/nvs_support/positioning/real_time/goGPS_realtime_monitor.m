@@ -5,7 +5,7 @@ function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, 
 %
 % INPUT:
 %   filerootOUT = output file prefix
-%   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq)
+%   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq, 3:NVS)
 %   flag_NTRIP = use/don't use NTRIP flag
 %   flag_ms_pos = use/don't use RTCM master position
 %   flag_var_dyn_model = enable/disable variable dynamic model
@@ -55,6 +55,8 @@ elseif (protocol == 1)
     prot_par = param_fastrax;
 elseif (protocol == 2)
     prot_par = param_skytraq;
+elseif (protocol == 3)
+    prot_par = param_nvs;
 end
 
 %------------------------------------------------------
@@ -153,6 +155,11 @@ elseif (protocol == 2)
 
     % skytraq configuration
     [rover] = configure_skytraq(rover, COMportR, prot_par, 1);
+    
+elseif (protocol == 3)
+
+    % nvs configuration
+    [rover] = configure_nvs(rover, COMportR, prot_par, 1);
 end
 
 %------------------------------------------------------
@@ -269,6 +276,9 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
         [cell_rover] = decode_fastrax_it03(data_rover);
     elseif (protocol == 2)
         [cell_rover] = decode_skytraq(data_rover);
+    elseif (protocol == 3)
+        %[cell_rover] = decode_nvs(data_rover);
+        cell_rover = [];
     end
     
     %for SkyTraq
@@ -393,6 +403,9 @@ while (~sync_rover)
         [cell_rover] = decode_fastrax_it03(data_rover);
     elseif (protocol == 2)
         [cell_rover] = decode_skytraq(data_rover);
+    elseif (protocol == 3)
+        %[cell_rover] = decode_nvs(data_rover);
+        cell_rover = [];
     end
     
     for i = 1 : size(cell_rover,2)
@@ -741,6 +754,10 @@ while flag
             nmea_sentences = [];
         elseif (protocol == 2)
             [cell_rover] = decode_skytraq(data_rover);
+            nmea_sentences = [];
+        elseif (protocol == 3)
+            %[cell_rover] = decode_nvs(data_rover);
+            cell_rover = [];
             nmea_sentences = [];
         end
 

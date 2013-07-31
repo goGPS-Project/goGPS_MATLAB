@@ -2998,6 +2998,8 @@ classdef goGUIclass < handle
                     protocol_idx(1) = 1;
                 elseif (strcmp(contentsProt{get(obj.goh.protocol_select_0,'Value')},'SkyTraq'))
                     protocol_idx(1) = 2;
+                elseif (strcmp(contentsProt{get(obj.goh.protocol_select_0,'Value')},'BINR (NVS)'))
+                    protocol_idx(1) = 3;
                 end
                 
                 if num_rec >= 2
@@ -3008,6 +3010,8 @@ classdef goGUIclass < handle
                         protocol_idx(2) = 1;
                     elseif (strcmp(contentsProt{get(obj.goh.protocol_select_1,'Value')},'SkyTraq'))
                         protocol_idx(2) = 2;
+                    elseif (strcmp(contentsProt{get(obj.goh.protocol_select_0,'Value')},'BINR (NVS)'))
+                        protocol_idx(1) = 3;
                     end
                     
                     if num_rec >= 3
@@ -3018,6 +3022,8 @@ classdef goGUIclass < handle
                             protocol_idx(3) = 1;
                         elseif (strcmp(contentsProt{get(obj.goh.protocol_select_2,'Value')},'SkyTraq'))
                             protocol_idx(3) = 2;
+                        elseif (strcmp(contentsProt{get(obj.goh.protocol_select_0,'Value')},'BINR (NVS)'))
+                            protocol_idx(1) = 3;
                         end
                         
                         if num_rec >= 4
@@ -3028,6 +3034,8 @@ classdef goGUIclass < handle
                                 protocol_idx(4) = 1;
                             elseif (strcmp(contentsProt{get(obj.goh.protocol_select_3,'Value')},'SkyTraq'))
                                 protocol_idx(4) = 2;
+                            elseif (strcmp(contentsProt{get(obj.goh.protocol_select_0,'Value')},'BINR (NVS)'))
+                                protocol_idx(1) = 3;
                             end
                         end
                     end

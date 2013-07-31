@@ -5,7 +5,7 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 %
 % INPUT:
 %   filerootOUT = output file prefix
-%   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq)
+%   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq, 3:NVS)
 %   flag_var_dyn_model = enable / disable variable dynamic model
 %   flag_stopGOstop    = enable / disable stop-go-stop procedure for direction estimation
 %   rate = measurement rate to be set (default = 1 Hz)
@@ -61,6 +61,8 @@ for r = 1 : nrec
         prot_par{r} = param_fastrax;
     elseif (protocol(r) == 2)
         prot_par{r} = param_skytraq;
+    elseif (protocol(r) == 3)
+        prot_par{r} = param_nvs;
     end
 end
 
@@ -204,6 +206,21 @@ for r = 1 : nrec
         fopen(rover{r});
 
         [rover{r}] = configure_skytraq(rover{r}, COMportR{r}, prot_par{r}, rate);
+
+        % temporary connection closure (for other receiver setup)
+        fclose(rover{r});
+
+    % nvs configuration
+    elseif (protocol(r) == 3)
+
+        %visualization
+        fprintf('\n');
+        fprintf('CONFIGURATION (nvs n.%d)\n',r);
+        
+        % only one connection can be opened in writing mode
+        fopen(rover{r});
+
+        [rover{r}] = configure_nvs(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
@@ -468,6 +485,10 @@ while flag
                 nmea_sentences = [];
             elseif (protocol(r) == 2)
                 [cell_rover] = decode_skytraq(data_rover);
+                nmea_sentences = [];
+            elseif (protocol(r) == 3)
+                %[cell_rover] = decode_nvs(data_rover);
+                cell_rover = [];
                 nmea_sentences = [];
             end
 
