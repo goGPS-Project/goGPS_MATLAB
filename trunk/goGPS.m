@@ -260,6 +260,10 @@ if goGNSS.isPP(mode) % post-processing
             fprintf('Pre-processing rover observations...\n');
             [pr1_R, ph1_R, pr2_R, ph2_R, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, Eph, SP3, iono, nSatTot, goWB);
             
+            goWB.close();
+            
+            %goWaitBar
+            goWB = goWaitBar(length(time_GPS));
             goWB.titleUpdate('Pre-processing master...');
             
             fprintf('Pre-processing master observations...\n');
