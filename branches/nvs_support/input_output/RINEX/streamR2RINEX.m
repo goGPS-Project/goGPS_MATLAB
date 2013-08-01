@@ -114,8 +114,14 @@ if (~isempty(data_rover_all))
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
     pos_FTX = findstr(data_rover_all, codeBIN); % message initial index
+    
+    header1 = '03';      % NVS footer (hexadecimal value)
+    header2 = '10';      % NVS header (hexadecimal value)
+    codeHEX = [header1 header2];                % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
+    pos_NVS = findstr(data_rover_all, codeBIN); % message initial index
 
-    if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)))
+    if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)) && (length(pos_UBX) > length(pos_NVS)))
         
         receiver = 'u-blox';
         
@@ -125,7 +131,7 @@ if (~isempty(data_rover_all))
         else
             [cell_rover] = decode_ublox(data_rover_all);
         end
-    elseif ((length(pos_STQ) > length(pos_UBX)) && (length(pos_STQ) > length(pos_FTX)))
+    elseif ((length(pos_STQ) > length(pos_UBX)) && (length(pos_STQ) > length(pos_FTX)) && (length(pos_STQ) > length(pos_NVS)))
         
         receiver = 'SkyTraq';
         
@@ -135,7 +141,7 @@ if (~isempty(data_rover_all))
         else
             [cell_rover] = decode_skytraq(data_rover_all);
         end
-    elseif ((length(pos_FTX) > length(pos_UBX)) && (length(pos_FTX) > length(pos_STQ)))
+    elseif ((length(pos_FTX) > length(pos_UBX)) && (length(pos_FTX) > length(pos_STQ)) && (length(pos_FTX) > length(pos_NVS)))
 
         receiver = 'fastrax';
         
@@ -145,7 +151,17 @@ if (~isempty(data_rover_all))
         else
             [cell_rover] = decode_fastrax_it03(data_rover_all);
         end
-    
+    elseif ((length(pos_NVS) > length(pos_UBX)) && (length(pos_NVS) > length(pos_STQ)) && (length(pos_NVS) > length(pos_FTX)))
+
+        receiver = 'NVS';
+        
+        %NVS format decoding
+        if (nargin == 3)
+%             [cell_rover] = decode_nvs(data_rover_all, wait_dlg);
+        else
+%             [cell_rover] = decode_nvs(data_rover_all);
+        end
+        cell_rover = [];
     end
     clear data_rover_all
     
