@@ -96,6 +96,7 @@ while (~reply_RATE)
     % create new serial object
     serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
+    set(serialObj,'Parity','odd');
     fopen(serialObj);
     reply_RATE = nvs_raw_output_rate(serialObj, rate);
 end
