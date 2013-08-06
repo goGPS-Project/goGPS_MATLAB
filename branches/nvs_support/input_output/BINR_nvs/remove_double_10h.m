@@ -1,20 +1,23 @@
-function [out] = param_nvs
+function [out] = remove_double_10h(msg)
 
 % SYNTAX:
-%   [out] = param_nvs
+%   [out] = remove_double_10h(data_in);
+%
+% INPUT:
+%   msg = BINR binary message that may contain double 10h values
 %
 % OUTPUT:
-%   out = data vector
+%   out = BINR binary message with double 10h values compressed into one
 %
 % DESCRIPTION:
-%   Read NVS receiver informations.
+%   NVS BINR message data repeats 10h values twice, to distinguish them
+%   from header/footer bytes. This function compresses them back to a
+%   single value.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
-%
-% Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -31,38 +34,12 @@ function [out] = param_nvs
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% inizialization
-out = cell(6,2);
-
-% String Name
-Str_name = 'BINR';
-%Str_name = 'u-blox';
-
-% BaudRate - Serial
-BaudRate = 115200;
-
-% Buffer size - USB
-Buffer_size = 2^12;
-
-% Minimun number of bytes used to synchronize data
-Min_bytes = 0;
-
-% String name in decoding phase (NA = Not Available)
-TimeRaw_id = 'F5h'; % message with both timing and observations
-Eph_id     = 'F7h'; % message with ephemeris
-Hui_id     = '4Ah'; % message with ionosphere parameters
-Time_id    = 'NA';      % message with timing
-Raw_id     = 'NA';      % message with observations
-Track_id   = 'NA';      % message with tracking data
-
-out(1,1) = {Str_name};
-out(2,1) = {BaudRate};
-out(3,1) = {Buffer_size};
-out(4,1) = {Min_bytes};
-
-out(1,2) = {TimeRaw_id};
-out(2,2) = {Eph_id};
-out(3,2) = {Hui_id};
-out(4,2) = {Time_id};
-out(5,2) = {Raw_id};
-out(6,2) = {Track_id};
+%check the presence of <DLE><DLE>; in case remove the first
+j = 1;
+while (j < length(msg))
+    if (msg(j) == 16 && msg(j+1) == 16)
+        msg(j) = [];
+    end
+    j = j + 1;
+end
+out = msg;

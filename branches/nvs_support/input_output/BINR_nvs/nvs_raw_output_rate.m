@@ -39,7 +39,7 @@ DLE = '10'; %beginning of message
 ETX = '03'; %end of message
 BINR_F4h = 'F4';
 BINR_70h = '70';
-rateHEX = dec2hex(rate/0.1,2); %rate (s) / 100 ms
+rateHEX = dec2hex((1/rate)/0.1,2); %number of intervals of 100 ms
 
 codeHEX = [DLE; BINR_F4h; rateHEX; DLE; ETX];
 codeDEC = hex2dec(codeHEX);

@@ -464,16 +464,22 @@ while flag
 
     for r = 1 : nrec
 
+        if (protocol(r) == 3)
+            delay = 0.07;
+        else
+            delay = 0.05;
+        end
         %serial port checking
         rover_1 = get(rover{r},'BytesAvailable');
-        pause(0.05);
+        pause(delay);
         rover_2 = get(rover{r},'BytesAvailable');
 
         %test if the package writing is finished
         if (rover_1 == rover_2) && (rover_1 ~= 0)
-
-            data_rover = fread(rover{r},rover_1,'uint8');     %serial port reading
-            fwrite(fid_rover{r},data_rover,'uint8');          %transmitted stream save
+            
+            data_rover = fread(rover{r},rover_1,'uint8');  %serial port reading
+            fwrite(fid_rover{r},data_rover,'uint8');       %transmitted stream save
+            if (protocol(r) == 3), data_rover = remove_double_10h(data_rover); end
             data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
             data_rover = data_rover';                      %transpose (8bit x N matrix)
             data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
@@ -487,8 +493,7 @@ while flag
                 [cell_rover] = decode_skytraq(data_rover);
                 nmea_sentences = [];
             elseif (protocol(r) == 3)
-                %[cell_rover] = decode_nvs(data_rover);
-                cell_rover = [];
+                [cell_rover] = decode_nvs(data_rover);
                 nmea_sentences = [];
             end
 
@@ -513,7 +518,7 @@ while flag
 
                     type = [type prot_par{r}{6,2} ' '];
 
-                %Timing/raw message data save (RXM-RAW | PSEUDO)
+                %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{1,2}))
 
                     time_R = cell_rover{2,i}(1);
@@ -550,6 +555,12 @@ while flag
                         else
                             ph_R = zeros(num_sat,1);
                         end
+                        nRAW = nRAW + 1;
+                    end
+                    
+                    %NVS specific fields
+                    if (protocol(r) == 3)
+                        rdf_R = cell_rover{3,i}(:,5); %#ok<NASGU>
                         nRAW = nRAW + 1;
                     end
 
@@ -636,18 +647,27 @@ while flag
                         end
                     end
 
-                %Hui message data save (AID-HUI)
+                %Hui message data save (AID-HUI | 4Ah)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{3,2}))
-
-                    %ionosphere parameters
-                    iono{r}(:, 1) = cell_rover{3,i}(9:16);
+                    
+                    %u-blox fields
+                    if (protocol(r) == 0)
+                        %ionosphere parameters
+                        iono{r}(:, 1) = cell_rover{3,i}(9:16);
+                    end
+                    
+                    %NVS fields
+                    if (protocol(r) == 3)
+                        %ionosphere parameters
+                        iono{r}(:, 1) = cell_rover{2,i}(1:8);
+                    end
 
                     if (nHUI == 0)
                         type = [type prot_par{r}{3,2} ' '];
                     end
                     nHUI = nHUI + 1;
 
-                %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
+                %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{2,2}))
 
                     %satellite number
@@ -705,11 +725,14 @@ while flag
                     elseif (protocol(r) == 2)
                         fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
                             sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
+                    elseif (protocol(r) == 3)
+                        fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
+                            sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
                     end
                 end
             end
 
-            %visualization (AID-HUI information)
+            %visualization (AID-HUI | 4A information)
             if (nHUI > 0)
                 fprintf('Ionosphere parameters: ');
                 if (sum(iono{r}) ~= 0)
@@ -727,7 +750,7 @@ while flag
                 end
             end
 
-            %visualization (AID-EPH | FTX-EPH | GPS_EPH information)
+            %visualization (AID-EPH | FTX-EPH | GPS_EPH | F7 information)
             if (nEPH > 0)
                 sat = find(sum(abs(Eph{r}))>0);
                 fprintf('Eph: ');
