@@ -221,6 +221,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
             
         %AID-EPH message data save
@@ -233,6 +236,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
             
         %AID-HUI message data save
@@ -282,6 +288,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
 
         %%%%%%%%%%%%%%%%%%%%%% FTX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
@@ -329,6 +338,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
 
         end
