@@ -155,16 +155,34 @@ if (~isempty(data_rover_all))
 
         receiver = 'NVS';
         
+        %compress <DLE><DLE> to <DLE>
+        if (nargin == 3)
+            waitbar(0,wait_dlg,'Removing duplicate 10h bytes from BINR data...')
+        end
+        data_rover_all = reshape(data_rover_all,8,[]);
+        data_rover_all = data_rover_all';
+        data_rover_all = fbin2dec(data_rover_all);
+        if (nargin == 3)
+            data_rover_all = remove_double_10h(data_rover_all, wait_dlg);
+        else
+            data_rover_all = remove_double_10h(data_rover_all);
+        end
+        data_rover_all = dec2bin(data_rover_all,8);             %conversion in binary number (N x 8bits matrix)
+        data_rover_all = data_rover_all';                       %transposed (8bits x N matrix)
+        data_rover_all = data_rover_all(:)';                    %conversion into a string (8N bits vector)
+        if (nargin == 3)
+            waitbar(1,wait_dlg)
+        end
+
         %NVS format decoding
         if (nargin == 3)
-%             [cell_rover] = decode_nvs(data_rover_all, wait_dlg);
+            [cell_rover] = decode_nvs(data_rover_all, wait_dlg);
         else
-%             [cell_rover] = decode_nvs(data_rover_all);
+            [cell_rover] = decode_nvs(data_rover_all);
         end
-        cell_rover = [];
     end
     clear data_rover_all
-    
+
     %initialization (to make writing faster)
     Ncell  = size(cell_rover,2);                          %number of read UBX messages
     time_R = zeros(Ncell,1);                              %GPS time of week
@@ -179,7 +197,6 @@ if (~isempty(data_rover_all))
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
     phase_TRACK = zeros(32,Ncell);                        %phase observations - TRACK
-
     
     if (nargin == 3)
         waitbar(0,wait_dlg,'Reading rover data...')
@@ -237,6 +254,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
             
         %AID-EPH message data save
@@ -249,6 +269,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
             
         %AID-HUI message data save
@@ -298,6 +321,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
 
         %%%%%%%%%%%%%%%%%%%%%% FTX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
@@ -345,7 +371,64 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
+            
+        %%%%%%%%%%%%%%%%%%%%%% NVS messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        elseif (strcmp(cell_rover{1,j},'F5h'))            %F5h message data
+            time_R(i)   = cell_rover{2,j}(1);
+            week_R(i)   = cell_rover{2,j}(2)+1024;
+            ph1_R(:,i)  = cell_rover{3,j}(:,1);
+            pr1_R(:,i)  = cell_rover{3,j}(:,2);
+            dop1_R(:,i) = cell_rover{3,j}(:,3);
+            snr_R(:,i)  = cell_rover{3,j}(:,6);
+            
+            %manage "nearly null" data
+            ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
+            
+            %keep just "on top of second" measurements
+            %if (time_R(i)- floor(time_R(i)) == 0)
+            i = i + 1;
+            %end
+            
+        %62h message data save
+        elseif (strcmp(cell_rover{1,j},'62h'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            toe = cell_rover{2,j}(18);                   %time of ephemeris
+            
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
+            end
+
+        %F7h message data save
+        elseif (strcmp(cell_rover{1,j},'F7h'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            toe = cell_rover{2,j}(18);                   %time of ephemeris
+            
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
+            end
+            
+        %4Ah message data save
+        elseif (strcmp(cell_rover{1,j},'4Ah'))
+
+            %ionosphere parameters
+            iono(:, i) = cell_rover{2,j}(1:8);
 
         end
     end
@@ -380,7 +463,7 @@ if (~isempty(data_rover_all))
     %----------------------------------------------------------------------------------------------
     % APPROXIMATE POSITION
     %----------------------------------------------------------------------------------------------
-    
+ 
     pos_R = zeros(3,1);
     
     %if ephemerides are available

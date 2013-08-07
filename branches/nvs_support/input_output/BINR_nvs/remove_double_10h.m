@@ -1,10 +1,11 @@
-function [out] = remove_double_10h(msg)
+function [out] = remove_double_10h(msg, wait_dlg)
 
 % SYNTAX:
-%   [out] = remove_double_10h(data_in);
+%   [out] = remove_double_10h(data_in, wait_dlg);
 %
 % INPUT:
 %   msg = BINR binary message that may contain double 10h values
+%   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
 %   out = BINR binary message with double 10h values compressed into one
@@ -34,12 +35,37 @@ function [out] = remove_double_10h(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+if (nargin < 2)
+    fprintf('Removing duplicate 10h bytes from BINR data...\n');
+end
+
+%find all <DLE> bytes
+pos = find(msg == 16);
+
 %check the presence of <DLE><DLE>; in case remove the first
 j = 1;
-while (j < length(msg))
-    if (msg(j) == 16 && msg(j+1) == 16)
-        msg(j) = [];
+while (j <= length(pos))
+    
+    if (nargin == 2)
+        waitbar(j/length(pos),wait_dlg)
+    end
+    
+    if (msg(pos(j)+1) ~= 16)
+        %if it's a single <DLE>, leave it be
+        pos(j) = [];
+        j = j - 1;
+    else
+        %count how many <DLE> are there
+        k = 1;
+        while(msg(pos(j)+k) == 16)
+            k = k + 1;
+        end
+        rmv = j:2:j+k-1;
+        len_rmv = length(rmv);
+        pos(rmv) = [];
+        j = j + floor(len_rmv/2);
     end
     j = j + 1;
 end
+msg(pos) = [];
 out = msg;

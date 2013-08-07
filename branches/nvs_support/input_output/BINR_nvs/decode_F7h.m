@@ -113,6 +113,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
     esp  = fbin2dec(delta_n(2:9));
     mant = fbin2dec(delta_n(10:32)) / 2^23;
     delta_n = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    delta_n = delta_n*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
     % M0      
@@ -185,6 +186,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
     esp  = fbin2dec(toe(2:12));
     mant = fbin2dec(toe(13:64)) / 2^52;
     toe = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    toe = toe*1e-3; %from ms to s
   
     %------------------------------------------------
     % Cic   
@@ -269,6 +271,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
     esp  = fbin2dec(omegadot(2:12));
     mant = fbin2dec(omegadot(13:64)) / 2^52;
     omegadot = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    omegadot = omegadot*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
     % IDOT     
@@ -281,6 +284,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
     esp  = fbin2dec(IDOT(2:12));
     mant = fbin2dec(IDOT(13:64)) / 2^52;
     IDOT = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    IDOT = IDOT*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
     % tgd   
@@ -292,7 +296,8 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
     sign = str2num(tgd(1));
     esp  = fbin2dec(tgd(2:9));
     mant = fbin2dec(tgd(10:32)) / 2^23;
-    tgd = (-1)^sign * (2^(esp - 127)) * (1 + mant); 
+    tgd = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    tgd = tgd*1e-3; %from ms to s
    
     %------------------------------------------------
     % toc
@@ -305,6 +310,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
     esp  = fbin2dec(toc(2:12));
     mant = fbin2dec(toc(13:64)) / 2^52;
     toc = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    toc = toc*1e-3; %from ms to s
     
     %------------------------------------------------
     % af2
@@ -317,6 +323,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
     esp  = fbin2dec(af2(2:9));
     mant = fbin2dec(af2(10:32)) / 2^23;
     af2 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    af2 = af2*1e3; %from ms/ms^2 to s/s^2
     
     %------------------------------------------------
     % af1
@@ -341,9 +348,10 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
     esp  = fbin2dec(af0(2:9));
     mant = fbin2dec(af0(10:32)) / 2^23;
     af0 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    af0 = af0*1e-3; %from ms to s
     
     %------------------------------------------------
-    % URA(svaccur) 
+    % URA (svaccur) 
     svaccur_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     svaccur_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
     svaccur = svaccur_1 + (svaccur_2 * 2^8);                 % little endian
