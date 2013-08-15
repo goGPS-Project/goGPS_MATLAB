@@ -38,7 +38,37 @@ function [data] = decode_F7h(msg)
 %          2.27)GPS svhealth; -- not available
 %          2.28)GPS tgd;
 %          2.29)GPS fit_int; -- not available
-%          2.30)multi-constellation satellite index (here only GPS is assumed)
+%          2.30)multi-constellation satellite index
+%          3.1) GLONASS PRN
+%          3.2) GLONASS tn(tb) [s]
+%          3.3) GLONASS gamma_n(tb)
+%          3.4) GLONASS tb [s]
+%          3.5) GLONASS X [m]
+%          3.6) GLONASS Y [m]
+%          3.7) GLONASS Z [m]
+%          3.8) GLONASS Vx [m/s]
+%          3.9) GLONASS Vy [m/s]
+%          3.10)GLONASS Vz [m/s]
+%          3.11)GLONASS Ax [m/s^2]
+%          3.12)GLONASS Ay [m/s^2]
+%          3.13)GLONASS Az [m/s^2]
+%          3.14)GLONASS En
+%          3.15)GLONASS Carrier number
+%          3.16) -- empty
+%          3.17) -- empty
+%          3.18)GLONASS toe (expressed in GPS time)
+%          3.19) -- empty
+%          3.20) -- empty
+%          3.21) -- empty
+%          3.22) -- empty
+%          3.23) -- empty
+%          3.24)GLONASS week (expressed in GPS time)
+%          3.25) -- empty
+%          3.26) -- empty
+%          3.27)GLONASS svhealth; -- not available
+%          3.28) -- empty
+%          3.29) -- empty
+%          2.30)multi-constellation satellite index
 %
 % DESCRIPTION:
 %   BINR F7h binary message decoding.
@@ -72,6 +102,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(33,1);
+data{3} = zeros(33,1);
 
 %output data save
 data{1} = 'F7h';
@@ -423,7 +454,207 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
 
 elseif (type == 2 && length(msg(pos:end)) >= 728)
     
-    %disp('GLONAS PRN');
-    %disp(PRN); 
+    %disp('GLONASS PRN');
+    %disp(PRN);
     
+    %------------------------------------------------
+    % Carrier Number
+    Carrier_num = msg(pos:pos+7); pos = pos + 8;
+    Carrier_num = fliplr(reshape(Carrier_num,8,[]));  % byte order inversion (little endian)
+    Carrier_num = Carrier_num(:)';
+    Carrier_num = fbin2dec((Carrier_num(1:8)));
+    
+    %------------------------------------------------
+    %X, m
+    Xm = msg(pos:pos+63); pos = pos + 64;
+    Xm = fliplr(reshape(Xm,8,[]));                    % byte order inversion (little endian)
+    Xm = Xm(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Xm(1));
+    esp  = fbin2dec(Xm(2:12));
+    mant = fbin2dec(Xm(13:64)) / 2^52;
+    Xm = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    
+    %------------------------------------------------
+    %Y, m
+    Ym = msg(pos:pos+63); pos = pos + 64;
+    Ym = fliplr(reshape(Ym,8,[]));                    % byte order inversion (little endian)
+    Ym = Ym(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Ym(1));
+    esp  = fbin2dec(Ym(2:12));
+    mant = fbin2dec(Ym(13:64)) / 2^52;
+    Ym = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+
+    %------------------------------------------------
+    %Z, m
+    Zm = msg(pos:pos+63); pos = pos + 64;
+    Zm = fliplr(reshape(Zm,8,[]));                    % byte order inversion (little endian)
+    Zm = Zm(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Zm(1));
+    esp  = fbin2dec(Zm(2:12));
+    mant = fbin2dec(Zm(13:64)) / 2^52;
+    Zm = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    
+    %------------------------------------------------
+    %Vx, m/s
+    Vx = msg(pos:pos+63); pos = pos + 64;
+    Vx = fliplr(reshape(Vx,8,[]));                  % byte order inversion (little endian)
+    Vx = Vx(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Vx(1));
+    esp  = fbin2dec(Vx(2:12));
+    mant = fbin2dec(Vx(13:64)) / 2^52;
+    Vx = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    Vx = Vx*1e3; %from m/ms to m/s
+    
+    %------------------------------------------------
+    %Vy, m/s
+    Vy = msg(pos:pos+63); pos = pos + 64;
+    Vy = fliplr(reshape(Vy,8,[]));                  % byte order inversion (little endian)
+    Vy = Vy(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Vy(1));
+    esp  = fbin2dec(Vy(2:12));
+    mant = fbin2dec(Vy(13:64)) / 2^52;
+    Vy = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    Vy = Vy*1e3; %from m/ms to m/s
+    
+    %------------------------------------------------
+    %Vz, m/s
+    Vz = msg(pos:pos+63); pos = pos + 64;
+    Vz = fliplr(reshape(Vz,8,[]));                  % byte order inversion (little endian)
+    Vz = Vz(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Vz(1));
+    esp  = fbin2dec(Vz(2:12));
+    mant = fbin2dec(Vz(13:64)) / 2^52;
+    Vz = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    Vz = Vz*1e3; %from m/ms to m/s
+    
+    %------------------------------------------------
+    %Ax, m/s^2
+    Ax = msg(pos:pos+63); pos = pos + 64;
+    Ax = fliplr(reshape(Ax,8,[]));                  % byte order inversion (little endian)
+    Ax = Ax(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Ax(1));
+    esp  = fbin2dec(Ax(2:12));
+    mant = fbin2dec(Ax(13:64)) / 2^52;
+    Ax = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    Ax = Ax*1e6; %from m/ms^2 to m/s^2
+    
+    %------------------------------------------------
+    %Ay, m/s^2
+    Ay = msg(pos:pos+63); pos = pos + 64;
+    Ay = fliplr(reshape(Ay,8,[]));                  % byte order inversion (little endian)
+    Ay = Ay(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Ay(1));
+    esp  = fbin2dec(Ay(2:12));
+    mant = fbin2dec(Ay(13:64)) / 2^52;
+    Ay = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    Ay = Ay*1e6; %from m/ms^2 to m/s^2
+    
+    %------------------------------------------------
+    %Az, m/s^2
+    Az = msg(pos:pos+63); pos = pos + 64;
+    Az = fliplr(reshape(Az,8,[]));                  % byte order inversion (little endian)
+    Az = Az(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(Az(1));
+    esp  = fbin2dec(Az(2:12));
+    mant = fbin2dec(Az(13:64)) / 2^52;
+    Az = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    Az = Az*1e6; %from m/ms^2 to m/s^2
+    
+    %------------------------------------------------
+    %tb, s
+    tb = msg(pos:pos+63); pos = pos + 64;
+    tb = fliplr(reshape(tb,8,[]));                  % byte order inversion (little endian)
+    tb = tb(:)';
+    
+    % floating point value decoding (double floating point)
+    sign = str2num(tb(1));
+    esp  = fbin2dec(tb(2:12));
+    mant = fbin2dec(tb(13:64)) / 2^52;
+    tb = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    tb = tb*1e-3; %from ms to s
+    
+    %------------------------------------------------
+    %gamma n(tb)
+    gamma_n = msg(pos:pos+31); pos = pos + 32;
+    gamma_n = fliplr(reshape(gamma_n,8,[]));        % byte order inversion (little endian)
+    gamma_n = gamma_n(:)';
+
+    % floating point value decoding (single floating point)
+    sign = str2num(gamma_n(1));
+    esp  = fbin2dec(gamma_n(2:9));
+    mant = fbin2dec(gamma_n(10:32)) / 2^23;
+    gamma_n = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    
+    %------------------------------------------------
+    %tn(tb), s
+    tn = msg(pos:pos+31); pos = pos + 32;
+    tn = fliplr(reshape(tn,8,[]));                  % byte order inversion (little endian)
+    tn = tn(:)';
+
+    % floating point value decoding (single floating point)
+    sign = str2num(tn(1));
+    esp  = fbin2dec(tn(2:9));
+    mant = fbin2dec(tn(10:32)) / 2^23;
+    tn = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    tn = tn*1e-3; %from ms to s
+    
+    %------------------------------------------------
+    %En
+    En_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+    En_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+    En = En_1 + (En_2 * 2^8);                       % little endian
+    
+    %------------------------------------------------
+    
+    data{3}(1) = PRN;
+    data{3}(2) = tn;      %TauN
+    data{3}(3) = gamma_n; %GammaN
+    data{3}(4) = tb;      %tk
+    data{3}(5) = Xm;
+    data{3}(6) = Ym;
+    data{3}(7) = Zm;
+    data{3}(8) = Vx;
+    data{3}(9) = Vy;
+    data{3}(10) = Vz;
+    data{3}(11) = Ax;
+    data{3}(12) = Ay;
+    data{3}(13) = Az;
+    data{3}(14) = En;      %E
+    data{3}(15) = Carrier_num;
+    data{3}(16) = 0;
+    data{3}(17) = 0;
+    data{3}(18) = 0; %<--- toe (TODO)
+    data{3}(19) = 0;
+    data{3}(20) = 0;
+    data{3}(21) = 0;
+    data{3}(22) = 0;
+    data{3}(23) = 0;
+    data{3}(24) = 0; %<--- week (TODO)
+    data{3}(25) = 0;
+    data{3}(26) = 0;
+    data{3}(27) = 0; %<--- health (TODO)
+    data{3}(28) = 0;
+    data{3}(29) = 0;
+    data{3}(30) = 0; %<--- multi-constellation index (TODO)
+    data{3}(31) = 0; %<--- system id (TODO)
+    data{3}(32) = 0; %<--- continuous toe (TODO)
+    data{3}(33) = 0;
 end
