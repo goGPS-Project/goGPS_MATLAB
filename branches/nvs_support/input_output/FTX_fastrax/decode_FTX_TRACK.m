@@ -1,10 +1,12 @@
-function [data] = decode_FTX_TRACK(msg)
+function [data] = decode_FTX_TRACK(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_FTX_TRACK(msg)
+%   [data] = decode_FTX_TRACK(msg, constellations)
 %
 % INPUT:
 %   msg = message transmitted by the Fastrax_IT03 receiver (string)
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the TRACK packet information
@@ -52,6 +54,10 @@ function [data] = decode_FTX_TRACK(msg)
 %----------------------------------------------------------------------------------------------
 
 debug = 0;
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
 
 % first message initial index
 pos = 1;
@@ -135,22 +141,24 @@ for j = 1 : NumChan
     % TRACK.TrackCh[n].TrackCode.dwCodeNCOFreq 	DWORD 	Code NCO replica frequency from loop filter
     [CodeNCOFreq, pos]    = FTX_TypeConv('DWORD', msg, pos);
     
-    % exclude EGNOS satellites (SV = 121, 122, etc.)
-    if (PRN <= 32)
-        data{3}(PRN, 1) = PRN;
-        data{3}(PRN, 2) = ChIdx;
-        data{3}(PRN, 3) = Lock;
-        data{3}(PRN, 4) = Power;
-        data{3}(PRN, 5) = CarrCount;
-        data{3}(PRN, 6) = CarrPhase;
-        data{3}(PRN, 7) = CarrFreq;
-        data{3}(PRN, 8) = PrnTow;
-        data{3}(PRN, 9) = ChipPhase;
-        data{3}(PRN,10) = ChipCount;
-        data{3}(PRN,11) = EpochCount;
-        data{3}(PRN,12) = CyclesSLTOW;
-        data{3}(PRN,13) = Reserved1;
-        data{3}(PRN,14) = CodeNCOFreq;        
+    % assign constellation-specific indexes
+    idx = [];
+    if (SV <= 32)
+        idx = constellations.GPS.indexes(SV);
     end
     
+    data{3}(idx, 1) = PRN;
+    data{3}(idx, 2) = ChIdx;
+    data{3}(idx, 3) = Lock;
+    data{3}(idx, 4) = Power;
+    data{3}(idx, 5) = CarrCount;
+    data{3}(idx, 6) = CarrPhase;
+    data{3}(idx, 7) = CarrFreq;
+    data{3}(idx, 8) = PrnTow;
+    data{3}(idx, 9) = ChipPhase;
+    data{3}(idx,10) = ChipCount;
+    data{3}(idx,11) = EpochCount;
+    data{3}(idx,12) = CyclesSLTOW;
+    data{3}(idx,13) = Reserved1;
+    data{3}(idx,14) = CodeNCOFreq;
 end

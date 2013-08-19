@@ -41,11 +41,17 @@ global COMportR
 global rover
 global order
 
-if nargin == 4
+if (nargin == 4)
     rate = 1;
 end
 
-num_sat = 32;
+%------------------------------------------------------
+% multi-constellation
+%------------------------------------------------------
+
+%enable all supported constellations
+[constellations] = goGNSS.initConstellation(1, 1, 1, 1, 1, 1);
+num_sat = constellations.nEnabledSat;
 
 %------------------------------------------------------
 % read protocol parameters
@@ -485,15 +491,15 @@ while flag
             data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
 
             if (protocol(r) == 0)
-                [cell_rover, nmea_sentences] = decode_ublox(data_rover);
+                [cell_rover, nmea_sentences] = decode_ublox(data_rover, constellations);
             elseif (protocol(r) == 1)
-                [cell_rover] = decode_fastrax_it03(data_rover);
+                [cell_rover] = decode_fastrax_it03(data_rover, constellations);
                 nmea_sentences = [];
             elseif (protocol(r) == 2)
-                [cell_rover] = decode_skytraq(data_rover);
+                [cell_rover] = decode_skytraq(data_rover, constellations);
                 nmea_sentences = [];
             elseif (protocol(r) == 3)
-                [cell_rover] = decode_nvs(data_rover);
+                [cell_rover] = decode_nvs(data_rover, constellations);
                 nmea_sentences = [];
             end
 
@@ -526,6 +532,7 @@ while flag
                     ph_R   = cell_rover{3,i}(:,1);
                     pr_R   = cell_rover{3,i}(:,2);
                     dop_R  = cell_rover{3,i}(:,3);
+                    sid_R  = cell_rover{3,i}(:,4);
                     snr_R  = cell_rover{3,i}(:,6);
 
                     %u-blox specific fields
@@ -614,6 +621,7 @@ while flag
                         ph_R = cell_rover{3,i}(:,4);
                         snr_R = cell_rover{3,i}(:,2);
                         dop_R = cell_rover{3,i}(:,5);
+                        sid_R = cell_rover{3,i}(:,1);
 
                         %manage "nearly null" data
                         pr_R(abs(pr_R) < 1e-100) = 0;
@@ -712,22 +720,35 @@ while flag
                 if (i < length(time_R)), fprintf(' DELAYED\n'); else fprintf('\n'); end
                 fprintf('Epoch %3d:  GPStime=%d:%.3f (%d satellites)\n', t(r), week_R, time_R, length(sat));
                 for j = 1 : length(sat)
+                    
+                    if (intersect(sat(j),constellations.GPS.indexes))
+                        sys = 'G';
+                    elseif (intersect(sat(j),constellations.GLONASS.indexes))
+                        sys = 'R';
+                    elseif (intersect(sat(j),constellations.Galileo.indexes))
+                        sys = 'E';
+                    elseif (intersect(sat(j),constellations.BeiDou.indexes))
+                        sys = 'C';
+                    elseif (intersect(sat(j),constellations.QZSS.indexes))
+                        sys = 'J';
+                    end
+
                     if (protocol(r) == 0)
-                        fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
-                            sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
+                        fprintf('   SAT %s%02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
+                            sys, sid_R(sat(j)), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
                     elseif (protocol(r) == 1)
                         % fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
                         %     sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)),
                         %     qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
-                        fprintf('   SAT %02d:  P1=%11.2f  L1=%13.4f  D1=%7.1f  SNR=%2d  FLAG=%5d  CORR=%5d  LDO=%5d  ECnt=%6d Delta=%8.4f\n', ...
-                            sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)), ObsFlags_R(sat(j)), Corr_R(sat(j)), LDO_R(sat(j)), ...
+                        fprintf('   SAT %s%02d:  P1=%11.2f  L1=%13.4f  D1=%7.1f  SNR=%2d  FLAG=%5d  CORR=%5d  LDO=%5d  ECnt=%6d Delta=%8.4f\n', ...
+                            sys, sid_R(sat(j)), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)), ObsFlags_R(sat(j)), Corr_R(sat(j)), LDO_R(sat(j)), ...
                             EpochCount(sat(j)), delta(sat(j)));
                     elseif (protocol(r) == 2)
-                        fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
-                            sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
+                        fprintf('   SAT %s%02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
+                            sys, sid_R(sat(j)), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
                     elseif (protocol(r) == 3)
-                        fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
-                            sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
+                        fprintf('   SAT %s%02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
+                            sys, sid_R(sat(j)), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
                     end
                 end
             end

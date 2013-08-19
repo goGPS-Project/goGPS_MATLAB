@@ -1,10 +1,12 @@
-function [data, nmea_sentences] = decode_ublox(msg, wait_dlg)
+function [data, nmea_sentences] = decode_ublox(msg, constellations, wait_dlg)
 
 % SYNTAX:
-%   [data, nmea_sentences] = decode_ublox(msg, wait_dlg);
+%   [data, nmea_sentences] = decode_ublox(msg, constellations, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received by the u-blox receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -36,6 +38,10 @@ function [data, nmea_sentences] = decode_ublox(msg, wait_dlg)
 %----------------------------------------------------------------------------------------------
 
 warning off
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
 
 %----------------------------------------------------------------------------------------------
 % UBX MESSAGE HEADER
@@ -98,13 +104,13 @@ end
 % counter initialization
 i = 0;
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0,wait_dlg,'Decoding rover stream...')
 end
 
 while (pos + 15 <= length(msg))
 
-    if (nargin == 2)
+    if (nargin == 3)
         waitbar(pos/length(msg),wait_dlg)
     end
 
@@ -164,7 +170,7 @@ while (pos + 15 <= length(msg))
                             case '02'
                                 switch id
                                     % RAW (raw measurement)
-                                    case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
+                                    case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1), constellations);
                                         
                                     % SFRB (subframe buffer)
                                     %case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));

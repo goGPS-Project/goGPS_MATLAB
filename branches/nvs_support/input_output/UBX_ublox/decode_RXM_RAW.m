@@ -1,10 +1,12 @@
-function [data] = decode_RXM_RAW(msg)
+function [data] = decode_RXM_RAW(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_RXM_RAW(msg)
+%   [data] = decode_RXM_RAW(msg, constellations)
 %
 % INPUT:
 %   msg = message transmitted by the u-blox receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the RXM-RAW packet information
@@ -44,6 +46,10 @@ function [data] = decode_RXM_RAW(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
+
 % first message initial index
 pos = 1;
 
@@ -51,7 +57,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(4,1);
-data{3} = zeros(32,7);
+data{3} = zeros(constellations.nEnabledSat,7);
 
 %output data save
 data{1} = 'RXM-RAW';
@@ -131,41 +137,40 @@ for j = 1 : NSV
     D1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
-
+    
     % satellite number decoding
     SV = fbin2dec(msg(pos:pos+7));
     pos = pos + 8;
+    
+    % quality index decoding
+    MQI = fbin2dec(msg(pos:pos+7));
+    pos = pos + 8;
+    
+    % signal-to-noise ratio decoding (in dBHz)
+    CNO = fbin2dec(msg(pos:pos+7));
+    pos = pos + 8;
+    
+    % signal loss index decoding
+    LLI = fbin2dec(msg(pos:pos+7));
+    pos = pos + 8;
 
-    % exclude EGNOS satellites (SV = 121, 122, etc.)
+    % assign constellation-specific indexes
+    idx = [];
     if (SV <= 32)
-
-        % phase, code and doppler measure save
-        CPM = L1;
-        PRM = C1;
-        DOM = D1;
-
-        % quality index decoding
-        MQI = fbin2dec(msg(pos:pos+7));
-        pos = pos + 8;
-
-        % signal-to-noise ratio decoding (in dBHz)
-        CNO = fbin2dec(msg(pos:pos+7));
-        pos = pos + 8;
-
-        % signal loss index decoding
-        LLI = fbin2dec(msg(pos:pos+7));
-        pos = pos + 8;
-
-        %data output save
-        data{3}(SV,1) = CPM;
-        data{3}(SV,2) = PRM;
-        data{3}(SV,3) = DOM;
-        data{3}(SV,4) = SV;
-        data{3}(SV,5) = MQI;
-        data{3}(SV,6) = CNO;
-        data{3}(SV,7) = LLI;
-
-    else
-        pos = pos+24;
+        idx = constellations.GPS.indexes(SV);
     end
+        
+    % phase, code and doppler measure save
+    CPM = L1;
+    PRM = C1;
+    DOM = D1;
+    
+    % data output save
+    data{3}(idx,1) = CPM;
+    data{3}(idx,2) = PRM;
+    data{3}(idx,3) = DOM;
+    data{3}(idx,4) = SV;
+    data{3}(idx,5) = MQI;
+    data{3}(idx,6) = CNO;
+    data{3}(idx,7) = LLI;
 end

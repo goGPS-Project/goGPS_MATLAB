@@ -1,10 +1,12 @@
-function [data] = decode_skytraq(msg, wait_dlg)
+function [data] = decode_skytraq(msg, constellations, wait_dlg)
 
 % SYNTAX:
-%   [data] = decode_skytraq(msg, wait_dlg);
+%   [data] = decode_skytraq(msg, constellations, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received by the SkyTraq receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -35,6 +37,10 @@ function [data] = decode_skytraq(msg, wait_dlg)
 %----------------------------------------------------------------------------------------------
 
 warning off
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE HEADER
@@ -94,13 +100,13 @@ end
 % counter initialization
 i = 0;
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0,wait_dlg,'Decoding rover stream...')
 end
 
 while (pos + 15 <= length(msg))
 
-    if (nargin == 2)
+    if (nargin == 3)
         waitbar(pos/length(msg),wait_dlg)
     end
 
@@ -150,7 +156,7 @@ while (pos + 15 <= length(msg))
                             case 'DC', [data(:,i)] = decode_skytraq_MEAS_TIME(msg(pos+8:pos+8*LEN-1));
 
                             % RAW_MEAS (Raw channel measurements)
-                            case 'DD', [data(:,i)] = decode_skytraq_RAW_MEAS(msg(pos+8:pos+8*LEN-1));
+                            case 'DD', [data(:,i)] = decode_skytraq_RAW_MEAS(msg(pos+8:pos+8*LEN-1), constellations);
                                 
                             % GPS_EPH (GPS ephemeris data)
                             case 'B1', [data(:,i)] = decode_skytraq_GPS_EPH(msg(pos+8:pos+8*LEN-1));

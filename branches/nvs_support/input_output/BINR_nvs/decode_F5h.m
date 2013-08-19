@@ -1,10 +1,12 @@
-function [data] = decode_F5h(msg)
+function [data] = decode_F5h(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_F5h(msg)
+%   [data] = decode_F5h(msg, constellations)
 %
 % INPUT:
 %   msg = message transmitted by the NVS receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the RXM-RAW packet information
@@ -44,6 +46,10 @@ function [data] = decode_F5h(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 1, 0, 0, 0, 0);
+end
+
 %first message initial index
 pos = 1;
 
@@ -51,7 +57,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(3,1);
-data{3} = zeros(33,6); %temporarily 33 cell slots for storing also QZSS PRN 193 (Michibiki)
+data{3} = zeros(constellations.nEnabledSat,6);
 
 %output data save
 data{1} = 'F5h';
@@ -132,7 +138,7 @@ for j = 1 : NSV
     %------------------------------------------------
     
     %satellite PRN
-    SV = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
+    SID = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
     
     %------------------------------------------------
     
@@ -202,20 +208,42 @@ for j = 1 : NSV
     %reserved
     pos = pos + 8;
     
-    %exclude non-GPS satellites (temporarily include QZS-1 as SV 33)
-    if (signal_type == 2)
+    %assign constellation-specific indexes
+    idx = [];
+    if (signal_type == 1 && constellations.GLONASS.enabled)
         
-        %phase, code and doppler measure save
-        CPM = L1;
-        PRM = C1*goGNSS.V_LIGHT*1e-3; %in meters
-        DOM = D1;
+        idx = constellations.GLONASS.indexes(SID);
         
-        %data output save
-        data{3}(SV,1) = CPM;
-        data{3}(SV,2) = PRM;
-        data{3}(SV,3) = DOM;
-        data{3}(SV,4) = SV;
-        data{3}(SV,5) = RDF;
-        data{3}(SV,6) = CNO;
+    elseif (signal_type == 2 && constellations.GPS.enabled && SID <= 32)
+        
+        idx = constellations.GPS.indexes(SID);
+        
+    elseif (signal_type == 2 && constellations.QZSS.enabled && SID == 33)
+        
+        SID = SID-32;
+        idx = constellations.QZSS.indexes(SID);
     end
+    
+    %phase, code and doppler measure save
+    CPM = L1;
+    PRM = C1*goGNSS.V_LIGHT*1e-3; %in meters
+    DOM = D1;
+    
+    if (~isempty(idx))
+        %data output save
+        data{3}(idx,1) = CPM;
+        data{3}(idx,2) = PRM;
+        data{3}(idx,3) = DOM;
+        data{3}(idx,4) = SID;
+        data{3}(idx,5) = RDF;
+        data{3}(idx,6) = CNO;
+    end
+end
+
+if (any(data{3}(:,2) < -10e-6) || any(data{3}(:,2) > 60e6))
+    %discard everything if there is at least one anomalous pseudorange
+    data = cell(3,1);
+    data{1} = 0;
+    data{2} = zeros(3,1);
+    data{3} = zeros(constellations.nEnabledSat,6);
 end

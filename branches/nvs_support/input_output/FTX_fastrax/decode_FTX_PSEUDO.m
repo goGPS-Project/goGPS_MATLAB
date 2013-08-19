@@ -1,10 +1,12 @@
-function [data] = decode_FTX_PSEUDO(msg)
+function [data] = decode_FTX_PSEUDO(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_FTX_PSEUDO(msg)
+%   [data] = decode_FTX_PSEUDO(msg, constellations)
 %
 % INPUT:
 %   msg = message transmitted by the Fastrax_IT03 receiver (string)
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the PSEUDO packet information
@@ -51,6 +53,10 @@ function [data] = decode_FTX_PSEUDO(msg)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
 
 %retrieve GPS L1 wavelength
 lambda = goGNSS.getWavelength(goGNSS.ID_GPS, 1);
@@ -160,8 +166,7 @@ for j = 1 : NumObs
         
     % NOT IMPLEMENTED - PSEUDO.Obs[n].dwReserved4 	DWORD 	Reserved for future use.
     pos = pos +32;
-    
-    
+
     % FLAG CONTROL - ObsFlags - view end of file
     ObsFlagsBin = dec2bin(ObsFlags);
     [temp,zeros_idx] = find(ObsFlagsBin == '0');
@@ -193,28 +198,26 @@ for j = 1 : NumObs
     % PSEUDO_OBS_PLL 	0x8000U 	The doppler measurement has been obtained with the phase locked loop (PLL).
     % PSEUDO_OBS_MEAS_OK 	( PSEUDO_OBS_ELEV_OK | PSEUDO_OBS_SNR_OK | PSEUDO_OBS_PRN_OK | PSEUDO_OBS_NO_CROSS_CORR | PSEUDO_OBS_SV_HEALTHY | PSEUDO_OBS_DATA_EXISTS | PSEUDO_OBS_DATA_GOOD | PSEUDO_OBS_PSEUDORANGE_OK ) 	A common mask that can be used to determine if the pseudorange measurement is valid for navigation.
     % PSEUDO_OBS_DOPPLER_MEAS_OK 	( PSEUDO_OBS_ELEV_OK | PSEUDO_OBS_SNR_OK | PSEUDO_OBS_PRN_OK | PSEUDO_OBS_NO_CROSS_CORR | PSEUDO_OBS_SV_HEALTHY | PSEUDO_OBS_DATA_EXISTS | PSEUDO_OBS_DATA_GOOD | PSEUDO_OBS_DOPPLER_OK ) 	A common mask that can be used to determine if the pseudorange measurement is valid for navigation.
-    
-    
-    
-    % exclude SBAS satellites (SV = 121, 122, etc.)
-    % exclude satelites with wrong data
-    if ((PRN <= 32) && (SNR > 0))
-        
-        %data output save
-        data{3}(PRN, 1) = CarrierPhase;
-        data{3}(PRN, 2) = PseudoRange;
-        data{3}(PRN, 3) = Doppler;
-        data{3}(PRN, 4) = PRN;
-        data{3}(PRN, 5) = ObsFlags;
-        data{3}(PRN, 6) = SNR;
-        data{3}(PRN, 7) = Corrections;
-        data{3}(PRN, 8) = LoopDopplerOffset;
-        data{3}(PRN, 9) = RangeErrEstim;
-        data{3}(PRN,10) = RateErrEstim;
-        data{3}(PRN,11) = EpochCount;
-        
-    end
 
+    % assign constellation-specific indexes
+    % exclude satelites with wrong data
+    idx = [];
+    if (SV <= 32 && (SNR > 0))
+        idx = constellations.GPS.indexes(SV);
+    end
+    
+    %data output save
+    data{3}(idx, 1) = CarrierPhase;
+    data{3}(idx, 2) = PseudoRange;
+    data{3}(idx, 3) = Doppler;
+    data{3}(idx, 4) = PRN;
+    data{3}(idx, 5) = ObsFlags;
+    data{3}(idx, 6) = SNR;
+    data{3}(idx, 7) = Corrections;
+    data{3}(idx, 8) = LoopDopplerOffset;
+    data{3}(idx, 9) = RangeErrEstim;
+    data{3}(idx,10) = RateErrEstim;
+    data{3}(idx,11) = EpochCount;
 end
 
 end

@@ -1,10 +1,12 @@
-function [data] = decode_nvs(msg, wait_dlg)
+function [data] = decode_nvs(msg, constellations, wait_dlg)
 
 % SYNTAX:
-%   [data] = decode_nvs(msg, wait_dlg);
+%   [data] = decode_nvs(msg, constellations, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received by the NVS receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -37,6 +39,10 @@ function [data] = decode_nvs(msg, wait_dlg)
 %----------------------------------------------------------------------------------------------
 
 warning off
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 1, 0, 0, 0, 0);
+end
 
 % output variable initialization
 data = cell(0);
@@ -94,13 +100,13 @@ end
 % counter initialization
 i = 1;
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0,wait_dlg,'Decoding rover stream...')
 end
 
 while (pos + 7 < length(msg) && i <= length(pos_FTR))
     
-    if (nargin == 2)
+    if (nargin == 3)
         waitbar(pos/length(msg),wait_dlg)
     end
     
@@ -122,7 +128,7 @@ while (pos + 7 < length(msg) && i <= length(pos_FTR))
         
         switch id
             % RAW (raw measurement)
-            case 'F5', [data(:,i)] = decode_F5h(msg(pos:data_msg_end));
+            case 'F5', [data(:,i)] = decode_F5h(msg(pos:data_msg_end), constellations);
                 
             % HUI (sat. Health / UTC / Ionosphere)
             case '4A', [data(:,i)] = decode_4Ah(msg(pos:data_msg_end));
