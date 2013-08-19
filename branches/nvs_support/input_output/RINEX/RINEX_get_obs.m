@@ -10,7 +10,7 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col,
 %   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
 %   obs_col = structure defining in which columns each observation type is to be found
 %   nObsTypes = number of available observations
-%   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
+%   constellations = struct with multi-constellation settings (see goGNSS.initConstellation)
 %
 % OUTPUT:
 %   obs_struct = struct with observations of enabled constellations
