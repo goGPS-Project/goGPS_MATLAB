@@ -51,7 +51,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(3,1);
-data{3} = zeros(32,6);
+data{3} = zeros(33,6); %temporarily 33 cell slots for storing also QZSS PRN 193 (Michibiki)
 
 %output data save
 data{1} = 'F5h';
@@ -202,7 +202,7 @@ for j = 1 : NSV
     %reserved
     pos = pos + 8;
     
-    %exclude non-GPS satellites
+    %exclude non-GPS satellites (temporarily include QZS-1 as SV 33)
     if (signal_type == 2)
         
         %phase, code and doppler measure save

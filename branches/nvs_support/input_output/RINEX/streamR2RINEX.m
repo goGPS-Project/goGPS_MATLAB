@@ -381,10 +381,10 @@ if (~isempty(data_rover_all))
         elseif (strcmp(cell_rover{1,j},'F5h'))            %F5h message data
             time_R(i)   = cell_rover{2,j}(1);
             week_R(i)   = cell_rover{2,j}(2)+1024;
-            ph1_R(:,i)  = cell_rover{3,j}(:,1);
-            pr1_R(:,i)  = cell_rover{3,j}(:,2);
-            dop1_R(:,i) = cell_rover{3,j}(:,3);
-            snr_R(:,i)  = cell_rover{3,j}(:,6);
+            ph1_R(:,i)  = cell_rover{3,j}(1:32,1); %temporarily exclude SV 33 (QZS-1)
+            pr1_R(:,i)  = cell_rover{3,j}(1:32,2);
+            dop1_R(:,i) = cell_rover{3,j}(1:32,3);
+            snr_R(:,i)  = cell_rover{3,j}(1:32,6);
             
             %manage "nearly null" data
             ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
