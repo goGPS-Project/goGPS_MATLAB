@@ -40,7 +40,7 @@ out = 0;
 start_time = toc;
 
 %maximum waiting time
-dtMax = 10;
+dtMax = 1;
 dt = 0.1;
 t = 1;
 

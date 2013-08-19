@@ -70,11 +70,15 @@ for i = 1 : 2
     else
         codeDEC = codeDEC_BINR;
         check   = check_BINR;
-        set(serialObj,'Parity','odd');
+        try
+            set(serialObj,'Parity','odd');
+        catch
+            stopasync(serialObj);
+            set(serialObj,'Parity','odd');
+        end
     end
 
     flushinput(serialObj);
-    
     fwrite(serialObj, codeDEC, 'uint8', 'async');
 
     out = nvs_check_reply(serialObj, check);

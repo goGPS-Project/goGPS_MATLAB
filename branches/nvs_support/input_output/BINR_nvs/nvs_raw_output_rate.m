@@ -6,7 +6,7 @@ function [out] = nvs_raw_output_rate(serialObj, rate)
 % INPUT:
 %   serialObj = serial Object identifier
 %   rate = raw measurement output rate
-%          (supported output rate configurations 1 / 2 / 4 / 5 / 10 Hz)
+%          (supported output rate configurations 1 / 2 / 5 / 10 Hz)
 %
 % OUTPUT:
 %   out = receiver reply
@@ -33,6 +33,45 @@ function [out] = nvs_raw_output_rate(serialObj, rate)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+% NAVIGATION RATE
+%--------------------------------------------------------------------------
+
+%BINR format
+DLE = '10'; %beginning of message
+ETX = '03'; %end of message
+DType = '02'; %data type (2 == navigation rate)
+BINR_D7h = 'D7';
+BINR_E7h = 'E7';
+rateHEX = dec2hex(rate,2); %in Hz
+
+codeHEX = [DLE; BINR_D7h; DType; rateHEX; DLE; ETX];
+codeDEC = hex2dec(codeHEX);
+
+% %serial port checking
+% reply_1 = get(serialObj, 'BytesAvailable');
+%
+% if (reply_1 ~= 0)
+%     %clear the serial port (data not decoded)
+%     reply = fread(serialObj, reply_1, 'uint8');
+% end
+
+% send message
+% try
+    fwrite(serialObj, codeDEC, 'uint8', 'async');
+% catch
+%     stopasync(serialObj);
+%     fwrite(serialObj, codeDEC, 'uint8', 'async');
+% end
+
+check = hex2dec([DLE; BINR_E7h]);
+
+[out1] = nvs_check_reply(serialObj, check);
+
+%--------------------------------------------------------------------------
+% RAW DATA RATE
+%--------------------------------------------------------------------------
 
 %BINR format
 DLE = '10'; %beginning of message
@@ -62,4 +101,12 @@ codeDEC = hex2dec(codeHEX);
 
 check = hex2dec([DLE; BINR_70h]);
 
-[out] = nvs_check_reply(serialObj, check);
+[out2] = nvs_check_reply(serialObj, check);
+
+%--------------------------------------------------------------------------
+
+if (out1 && out2)
+    out = 1;
+else
+    out = 0;
+end
