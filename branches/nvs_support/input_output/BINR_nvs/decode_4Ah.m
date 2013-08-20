@@ -184,11 +184,15 @@ beta3 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
 %------------------------------------------------
 
-data{2}(1) = alpha0;
-data{2}(2) = alpha1;
-data{2}(3) = alpha2;
-data{2}(4) = alpha3;
-data{2}(5) = beta0;
-data{2}(6) = beta1;
-data{2}(7) = beta2;
-data{2}(8) = beta3;
+param = [alpha0 alpha1 alpha2 alpha3 beta0 beta1 beta2 beta3];
+
+if (any(param-param(1)))
+    data{2}(1) = alpha0;
+    data{2}(2) = alpha1;
+    data{2}(3) = alpha2;
+    data{2}(4) = alpha3;
+    data{2}(5) = beta0;
+    data{2}(6) = beta1;
+    data{2}(7) = beta2;
+    data{2}(8) = beta3;
+end
