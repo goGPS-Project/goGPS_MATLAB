@@ -140,7 +140,7 @@ while (pos + 15 <= length(msg))
 
                         % EPH (ephemerides)
                         case 10, 
-                            [data(:,i)] = decode_FTX_EPH(msg(pos:pos+((2*LEN)*8)-1));
+                            [data(:,i)] = decode_FTX_EPH(msg(pos:pos+((2*LEN)*8)-1), constellations);
 
                     end
 

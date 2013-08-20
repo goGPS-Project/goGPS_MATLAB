@@ -173,12 +173,12 @@ while (pos + 15 <= length(msg))
                                     case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1), constellations);
                                         
                                     % SFRB (subframe buffer)
-                                    %case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
+                                    %case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1), constellations);
                                         
                                     % EPH (*OBSOLETE* ephemeris)
                                     case '31'
                                        if (LEN == 104) %(ephemeris available)
-                                           [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
+                                           [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1), constellations);
                                        end
                                 end
                                 
@@ -191,7 +191,7 @@ while (pos + 15 <= length(msg))
                                     % EPH (ephemeris)
                                     case '31'
                                         if (LEN == 104) %(ephemeris available)
-                                            [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1));
+                                            [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1), constellations);
                                         end
                                 end
                         end

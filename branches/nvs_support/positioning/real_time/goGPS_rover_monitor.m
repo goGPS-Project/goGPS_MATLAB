@@ -678,11 +678,11 @@ while flag
                 %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{2,2}))
 
-                    %satellite number
-                    sat = cell_rover{2,i}(1);
+                    %satellite index
+                    idx = cell_rover{2,i}(30);
 
-                    if (~isempty(sat) && sat > 0)
-                        Eph{r}(:, sat) = cell_rover{2,i}(:);
+                    if (~isempty(idx) && idx > 0)
+                        Eph{r}(:, idx) = cell_rover{2,i}(:);
                     end
 
                     if (nEPH == 0)
@@ -774,9 +774,11 @@ while flag
             %visualization (AID-EPH | FTX-EPH | GPS_EPH | F7 information)
             if (nEPH > 0)
                 sat = find(sum(abs(Eph{r}))>0);
+                sid = Eph{r}(1,sat);
+                sys = Eph{r}(31,sat);
                 fprintf('Eph: ');
                 for i = 1 : length(sat)
-                    fprintf('%d ', sat(i));
+                    fprintf('%s%d ', char(sys(i)), sid(i));
                 end
                 fprintf('\n');
             end

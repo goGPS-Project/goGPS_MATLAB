@@ -132,7 +132,7 @@ data{2}(3) = NSV;
 %read the measurements of every satellite
 for j = 1 : NSV
     
-    %signal type 01=GLONASS, 02=GPS, 04=SBAS
+    %signal type 01=GLONASS, 02=GPS, 03=Galileo, 04=SBAS
     signal_type = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
     
     %------------------------------------------------
@@ -224,7 +224,6 @@ for j = 1 : NSV
         idx = constellations.QZSS.indexes(SID);
         
     elseif (signal_type == 3 && constellations.Galileo.enabled)
-        
         idx = constellations.Galileo.indexes(SID);
     end
     

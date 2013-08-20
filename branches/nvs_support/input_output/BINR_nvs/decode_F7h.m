@@ -1,13 +1,16 @@
-function [data] = decode_F7h(msg)
+function [data] = decode_F7h(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_F7h(msg);
+%   [data] = decode_F7h(msg, constellations);
 %
 % INPUT:
 %   msg = message transmitted by the NVS receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
-%   data = cell-array that contains the AID-EPH packet information
+%   data = cell-array that contains the ephemeris
+%          --- GPS:
 %          1.1) message id (F7h)
 %          2.1) GPS satellite id
 %          2.2) GPS af2
@@ -39,35 +42,36 @@ function [data] = decode_F7h(msg)
 %          2.28)GPS tgd;
 %          2.29)GPS fit_int; -- not available
 %          2.30)multi-constellation satellite index
-%          3.1) GLONASS PRN
-%          3.2) GLONASS tn(tb) [s]
-%          3.3) GLONASS gamma_n(tb)
-%          3.4) GLONASS tb [s]
-%          3.5) GLONASS X [m]
-%          3.6) GLONASS Y [m]
-%          3.7) GLONASS Z [m]
-%          3.8) GLONASS Vx [m/s]
-%          3.9) GLONASS Vy [m/s]
-%          3.10)GLONASS Vz [m/s]
-%          3.11)GLONASS Ax [m/s^2]
-%          3.12)GLONASS Ay [m/s^2]
-%          3.13)GLONASS Az [m/s^2]
-%          3.14)GLONASS En
-%          3.15)GLONASS Carrier number
-%          3.16) -- empty
-%          3.17) -- empty
-%          3.18)GLONASS toe (expressed in GPS time)
-%          3.19) -- empty
-%          3.20) -- empty
-%          3.21) -- empty
-%          3.22) -- empty
-%          3.23) -- empty
-%          3.24)GLONASS week (expressed in GPS time)
-%          3.25) -- empty
-%          3.26) -- empty
-%          3.27)GLONASS svhealth; -- not available
-%          3.28) -- empty
-%          3.29) -- empty
+%          --- GLONASS:
+%          2.1) GLONASS PRN
+%          2.2) GLONASS tn(tb) [s]
+%          2.3) GLONASS gamma_n(tb)
+%          2.4) GLONASS tb [s]
+%          2.5) GLONASS X [m]
+%          2.6) GLONASS Y [m]
+%          2.7) GLONASS Z [m]
+%          2.8) GLONASS Vx [m/s]
+%          2.9) GLONASS Vy [m/s]
+%          2.10)GLONASS Vz [m/s]
+%          2.11)GLONASS Ax [m/s^2]
+%          2.12)GLONASS Ay [m/s^2]
+%          2.13)GLONASS Az [m/s^2]
+%          2.14)GLONASS En
+%          2.15)GLONASS Carrier number
+%          2.16) -- empty
+%          2.17) -- empty
+%          2.18)GLONASS toe (expressed in GPS time)
+%          2.19) -- empty
+%          2.20) -- empty
+%          2.21) -- empty
+%          2.22) -- empty
+%          2.23) -- empty
+%          2.24)GLONASS week (expressed in GPS time)
+%          2.25) -- empty
+%          2.26) -- empty
+%          2.27)GLONASS svhealth; -- not available
+%          2.28) -- empty
+%          2.29) -- empty
 %          2.30)multi-constellation satellite index
 %
 % DESCRIPTION:
@@ -95,6 +99,10 @@ function [data] = decode_F7h(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 1, 0, 0, 0, 0);
+end
+
 % first message initial index
 pos = 1;
 
@@ -102,7 +110,6 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(33,1);
-data{3} = zeros(33,1);
 
 %output data save
 data{1} = 'F7h';
@@ -119,7 +126,8 @@ PRN = fliplr(reshape(PRN,8,[]));                  % byte order inversion (little
 PRN = PRN(:)';
 PRN = fbin2dec((PRN(1:8)));
 
-if (type == 1 && length(msg(pos:end)) >= 1088)
+%GPS
+if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 
     %------------------------------------------------
     % Crs   
@@ -446,13 +454,13 @@ if (type == 1 && length(msg(pos:end)) >= 1088)
         data{2}(25) = L2flag;
         data{2}(26) = svaccur;
         data{2}(28) = tgd;
-        data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
-        data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+        data{2}(30) = constellations.GPS.indexes(PRN);
+        data{2}(31) = int8('G');
         data{2}(32) = weektow2time(weekno, toe, 'G'); %wrong: weekno is mod(1024)... taken care of by the caller
         data{2}(33) = weektow2time(weekno, toc, 'G'); %wrong: weekno is mod(1024)... taken care of by the caller
     end
 
-elseif (type == 2 && length(msg(pos:end)) >= 728)
+elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabled)
     
     %disp('GLONASS PRN');
     %disp(PRN);
@@ -624,37 +632,37 @@ elseif (type == 2 && length(msg(pos:end)) >= 728)
     
     %------------------------------------------------
     
-    data{3}(1) = PRN;
-    data{3}(2) = tn;      %TauN
-    data{3}(3) = gamma_n; %GammaN
-    data{3}(4) = tb;      %tk
-    data{3}(5) = Xm;
-    data{3}(6) = Ym;
-    data{3}(7) = Zm;
-    data{3}(8) = Vx;
-    data{3}(9) = Vy;
-    data{3}(10) = Vz;
-    data{3}(11) = Ax;
-    data{3}(12) = Ay;
-    data{3}(13) = Az;
-    data{3}(14) = En;      %E
-    data{3}(15) = Carrier_num;
-    data{3}(16) = 0;
-    data{3}(17) = 0;
-    data{3}(18) = 0; %<--- toe (TODO)
-    data{3}(19) = 0;
-    data{3}(20) = 0;
-    data{3}(21) = 0;
-    data{3}(22) = 0;
-    data{3}(23) = 0;
-    data{3}(24) = 0; %<--- week (TODO)
-    data{3}(25) = 0;
-    data{3}(26) = 0;
-    data{3}(27) = 0; %<--- health (TODO)
-    data{3}(28) = 0;
-    data{3}(29) = 0;
-    data{3}(30) = 0; %<--- multi-constellation index (TODO)
-    data{3}(31) = 0; %<--- system id (TODO)
-    data{3}(32) = 0; %<--- continuous toe (TODO)
-    data{3}(33) = 0;
+    data{2}(1) = PRN;
+    data{2}(2) = tn;      %TauN
+    data{2}(3) = gamma_n; %GammaN
+    data{2}(4) = tb;      %tk
+    data{2}(5) = Xm;
+    data{2}(6) = Ym;
+    data{2}(7) = Zm;
+    data{2}(8) = Vx;
+    data{2}(9) = Vy;
+    data{2}(10) = Vz;
+    data{2}(11) = Ax;
+    data{2}(12) = Ay;
+    data{2}(13) = Az;
+    data{2}(14) = En;      %E
+    data{2}(15) = Carrier_num;
+    data{2}(16) = 0;
+    data{2}(17) = 0;
+    data{2}(18) = 0; %<--- toe (TODO)
+    data{2}(19) = 0;
+    data{2}(20) = 0;
+    data{2}(21) = 0;
+    data{2}(22) = 0;
+    data{2}(23) = 0;
+    data{2}(24) = 0; %<--- week (TODO)
+    data{2}(25) = 0;
+    data{2}(26) = 0;
+    data{2}(27) = 0; %<--- health (TODO)
+    data{2}(28) = 0;
+    data{2}(29) = 0;
+    data{2}(30) = constellations.GLONASS.indexes(PRN);
+    data{2}(31) = int8('R');
+    data{2}(32) = 0; %<--- continuous toe (TODO)
+    data{2}(33) = 0;
 end

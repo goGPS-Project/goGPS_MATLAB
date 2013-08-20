@@ -68,7 +68,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(8,1);
-data{3} = zeros(32,11);
+data{3} = zeros(constellations.nEnabledSat,11);
 
 %output data save
 data{1} = 'PSEUDO';

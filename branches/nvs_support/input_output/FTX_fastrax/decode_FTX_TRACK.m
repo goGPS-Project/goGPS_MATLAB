@@ -66,7 +66,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(3,1);
-data{3} = zeros(32,14);
+data{3} = zeros(constellations.nEnabledSat,14);
 
 % output header
 data{1} = 'TRACK';

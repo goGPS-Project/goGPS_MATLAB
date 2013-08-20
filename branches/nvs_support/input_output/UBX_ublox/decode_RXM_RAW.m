@@ -156,7 +156,7 @@ for j = 1 : NSV
 
     % assign constellation-specific indexes
     idx = [];
-    if (SV <= 32)
+    if (SV <= 32 && constellations.GPS.enabled)
         idx = constellations.GPS.indexes(SV);
     end
         

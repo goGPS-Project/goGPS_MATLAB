@@ -134,7 +134,7 @@ while (pos + 7 < length(msg) && i <= length(pos_FTR))
             case '4A', [data(:,i)] = decode_4Ah(msg(pos:data_msg_end));
                 
             % EPH (ephemeris)
-            case 'F7', [data(:,i)] = decode_F7h(msg(pos:data_msg_end));
+            case 'F7', [data(:,i)] = decode_F7h(msg(pos:data_msg_end), constellations);
         end
         
         % skip the message body

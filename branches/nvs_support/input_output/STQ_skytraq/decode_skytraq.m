@@ -159,7 +159,7 @@ while (pos + 15 <= length(msg))
                             case 'DD', [data(:,i)] = decode_skytraq_RAW_MEAS(msg(pos+8:pos+8*LEN-1), constellations);
                                 
                             % GPS_EPH (GPS ephemeris data)
-                            case 'B1', [data(:,i)] = decode_skytraq_GPS_EPH(msg(pos+8:pos+8*LEN-1));
+                            case 'B1', [data(:,i)] = decode_skytraq_GPS_EPH(msg(pos+8:pos+8*LEN-1), constellations);
                         end
                     else
                         %fprintf('Checksum error!\n');
