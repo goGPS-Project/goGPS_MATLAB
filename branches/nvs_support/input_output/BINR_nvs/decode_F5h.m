@@ -222,6 +222,10 @@ for j = 1 : NSV
         
         SID = SID-32;
         idx = constellations.QZSS.indexes(SID);
+        
+    elseif (signal_type == 3 && constellations.Galileo.enabled)
+        
+        idx = constellations.Galileo.indexes(SID);
     end
     
     %phase, code and doppler measure save
