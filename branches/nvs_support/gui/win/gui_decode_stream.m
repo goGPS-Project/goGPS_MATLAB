@@ -22,7 +22,7 @@ function varargout = gui_decode_stream(varargin)
 
 % Edit the above text to modify the response to help gui_decode_stream
 
-% Last Modified by GUIDE v2.5 28-Jun-2010 15:18:49
+% Last Modified by GUIDE v2.5 21-Aug-2013 15:35:00
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.1 beta
@@ -264,20 +264,28 @@ end
 
 wait_dlg = waitbar(0,'Please wait...');
 
+%multi-constellation options
+constellations = goGNSS.initConstellation(get(handles.cGPS, 'Value'), get(handles.cGLONASS, 'Value'), ...
+                                          get(handles.cGalileo, 'Value'),get(handles.cBeiDou, 'Value'), ...
+                                          get(handles.cQZSS, 'Value'), get(handles.cSBAS, 'Value'));
+
 %check if RINEX or goGPS data is requested
 if (get(handles.output_type, 'SelectedObject') == handles.out_gogps_binary)
-    streams2goGPSbin(filerootIN, filerootOUT, wait_dlg);
+    streams2goGPSbin(filerootIN, filerootOUT, constellations, wait_dlg);
 elseif (get(handles.output_type, 'SelectedObject') == handles.out_rinex)
     week = 0;
+    %check RINEX version
+    contents = cellstr(get(handles.rinex_version,'String'));
+    rin_ver = contents{get(handles.rinex_version,'Value')};
     if (get(handles.flag_rover_stream,'Value'))
-        week = streamR2RINEX(filerootIN, [filerootOUT '_rover'], wait_dlg);
+        week = streamR2RINEX(filerootIN, [filerootOUT '_rover'], rin_ver, constellations, wait_dlg);
     end
     
     if (get(handles.flag_master_stream,'Value')) & (~flag_no_master)
         if (~week)
             week = gui_GPS_week;
         end
-        streamM2RINEX(filerootIN, [filerootOUT '_master'], week, wait_dlg);
+        streamM2RINEX(filerootIN, [filerootOUT '_master'], week, rin_ver, constellations, wait_dlg);
     end
 end
 
@@ -304,6 +312,9 @@ function output_type_SelectionChangeFcn(hObject, eventdata, handles)
 if (hObject == handles.out_rinex)
     set(handles.flag_rover_stream, 'Enable', 'on');
     set(handles.flag_master_stream, 'Enable', 'on');
+    set(handles.rinex_version, 'Enable', 'on');
+    set(handles.text_rinex_version, 'Enable', 'on');
+    rinex_version_Callback(handles.rinex_version, eventdata, handles)
     %if the output folder is the default one
     if (strcmp(get(handles.data_out_folder, 'String'), '../data/data_goGPS'))
         set(handles.data_out_folder, 'String', '../data/data_RINEX');
@@ -311,8 +322,101 @@ if (hObject == handles.out_rinex)
 else
     set(handles.flag_rover_stream, 'Enable', 'off');
     set(handles.flag_master_stream, 'Enable', 'off');
+    set(handles.rinex_version, 'Enable', 'off');
+    set(handles.text_rinex_version, 'Enable', 'off');
+    set(handles.cGPS, 'Enable', 'on');
+    set(handles.cGLONASS, 'Enable', 'on');
+    set(handles.cGalileo, 'Enable', 'on');
+    set(handles.cBeiDou, 'Enable', 'on');
+    set(handles.cQZSS, 'Enable', 'on');
     %if the output folder is the default one
     if (strcmp(get(handles.data_out_folder, 'String'), '../data/data_RINEX'))
         set(handles.data_out_folder, 'String', '../data/data_goGPS');
     end
+end
+
+
+% --- Executes on button press in cGPS.
+function cGPS_Callback(hObject, eventdata, handles)
+% hObject    handle to cGPS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cGPS
+
+
+% --- Executes on button press in cGLONASS.
+function cGLONASS_Callback(hObject, eventdata, handles)
+% hObject    handle to cGLONASS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cGLONASS
+
+
+% --- Executes on button press in cGalileo.
+function cGalileo_Callback(hObject, eventdata, handles)
+% hObject    handle to cGalileo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cGalileo
+
+
+% --- Executes on button press in cBeiDou.
+function cBeiDou_Callback(hObject, eventdata, handles)
+% hObject    handle to cBeiDou (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cBeiDou
+
+
+% --- Executes on button press in cQZSS.
+function cQZSS_Callback(hObject, eventdata, handles)
+% hObject    handle to cQZSS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cQZSS
+
+
+% --- Executes on button press in cSBAS.
+function cSBAS_Callback(hObject, eventdata, handles)
+% hObject    handle to cSBAS (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cSBAS
+
+
+% --- Executes on selection change in rinex_version.
+function rinex_version_Callback(hObject, eventdata, handles)
+% hObject    handle to rinex_version (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns rinex_version contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from rinex_version
+contents = cellstr(get(hObject,'String'));
+if (strcmp(contents{get(hObject,'Value')},'2.11'))
+    set(handles.cGalileo, 'Enable', 'off');
+    set(handles.cBeiDou, 'Enable', 'off');
+    set(handles.cQZSS, 'Enable', 'off');
+else
+    set(handles.cGalileo, 'Enable', 'on');
+    set(handles.cBeiDou, 'Enable', 'on');
+    set(handles.cQZSS, 'Enable', 'on');
+end
+
+% --- Executes during object creation, after setting all properties.
+function rinex_version_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to rinex_version (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end

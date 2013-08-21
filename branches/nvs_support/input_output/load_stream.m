@@ -1,12 +1,14 @@
 function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
-          iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream (fileroot, wait_dlg)
+          iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream (fileroot, constellations, wait_dlg)
 
 % SYNTAX:
 %   [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
-%    iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream (fileroot, wait_dlg);
+%    iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream (fileroot, constellations, wait_dlg);
 %
 % INPUT:
 %   fileroot = name of the file to be read
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -54,9 +56,16 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+nSatTot = constellations.nEnabledSat;
+if (nSatTot == 0)
+    fprintf('No constellations selected, setting default: GPS-only\n');
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    nSatTot = constellations.nEnabledSat;
+end
+
 nmea_sentences = cell(0);
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0.5,wait_dlg,'Reading rover stream files...')
 end
 
@@ -66,7 +75,7 @@ hour = 0;                                                            %hour index
 hour_str = num2str(hour,'%02d');                                     %hour index (string)
 d = dir([fileroot '_rover_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
-    if (nargin == 1)
+    if (nargin == 2)
         fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
     end
     num_bytes = d.bytes;                                             %file size (number of bytes)
@@ -86,7 +95,7 @@ if (strcmpi(fileroot(end-2:end),'ubx') | strcmpi(fileroot(end-2:end),'stq'))
     %ROVER stream reading (non-goGPS binary format)
     d = dir(fileroot);                                                   %file to be read
     if ~isempty(d)
-        if (nargin == 1)
+        if (nargin == 2)
             fprintf(['Reading: ' fileroot '\n']);
         end
         num_bytes = d.bytes;                                             %file size (number of bytes)
@@ -99,7 +108,7 @@ if (strcmpi(fileroot(end-2:end),'ubx') | strcmpi(fileroot(end-2:end),'stq'))
     end
 end
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(1,wait_dlg)
 end
 
@@ -110,7 +119,7 @@ if ~isempty(data_rover_all)
     cell_rover = [];
     
     %display
-    if (nargin == 1)
+    if (nargin == 2)
         fprintf('Decoding rover stream\n');
     end
     
@@ -142,53 +151,71 @@ if ~isempty(data_rover_all)
     if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)) && (length(pos_UBX) > length(pos_NVS)))
 
         %UBX format decoding
-        if (nargin == 2)
-            [cell_rover, nmea_sentences] = decode_ublox(data_rover_all, wait_dlg);
+        if (nargin == 3)
+            [cell_rover, nmea_sentences] = decode_ublox(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover, nmea_sentences] = decode_ublox(data_rover_all);
+            [cell_rover, nmea_sentences] = decode_ublox(data_rover_all, constellations);
         end
     elseif ((length(pos_STQ) > length(pos_UBX)) && (length(pos_STQ) > length(pos_FTX)) && (length(pos_STQ) > length(pos_NVS)))
 
         %SkyTraq format decoding
-        if (nargin == 2)
-            [cell_rover] = decode_skytraq(data_rover_all, wait_dlg);
+        if (nargin == 3)
+            [cell_rover] = decode_skytraq(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_skytraq(data_rover_all);
+            [cell_rover] = decode_skytraq(data_rover_all, constellations);
         end
     elseif ((length(pos_FTX) > length(pos_UBX)) && (length(pos_FTX) > length(pos_STQ)) && (length(pos_FTX) > length(pos_NVS)))
 
         %Fastrax format decoding
-        if (nargin == 2)
-            [cell_rover] = decode_fastrax_it03(data_rover_all, wait_dlg);
+        if (nargin == 3)
+            [cell_rover] = decode_fastrax_it03(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_fastrax_it03(data_rover_all);
+            [cell_rover] = decode_fastrax_it03(data_rover_all, constellations);
         end
     elseif ((length(pos_NVS) > length(pos_UBX)) && (length(pos_NVS) > length(pos_STQ)) && (length(pos_NVS) > length(pos_FTX)))
 
-        %NVS format decoding
-        if (nargin == 2)
-%             [cell_rover] = decode_nvs(data_rover_all, wait_dlg);
-        else
-%             [cell_rover] = decode_nvs(data_rover_all);
+        %compress <DLE><DLE> to <DLE>
+        if (nargin == 3)
+            waitbar(0,wait_dlg,'Removing duplicate 10h bytes from BINR data...')
         end
-        cell_rover = [];
+        data_rover_all = reshape(data_rover_all,8,[]);
+        data_rover_all = data_rover_all';
+        data_rover_all = fbin2dec(data_rover_all);
+        if (nargin == 3)
+            data_rover_all = remove_double_10h(data_rover_all, wait_dlg);
+        else
+            data_rover_all = remove_double_10h(data_rover_all);
+        end
+        data_rover_all = dec2bin(data_rover_all,8);             %conversion in binary number (N x 8bits matrix)
+        data_rover_all = data_rover_all';                       %transposed (8bits x N matrix)
+        data_rover_all = data_rover_all(:)';                    %conversion into a string (8N bits vector)
+        if (nargin == 3)
+            waitbar(1,wait_dlg)
+        end
+        
+        %NVS format decoding
+        if (nargin == 3)
+            [cell_rover] = decode_nvs(data_rover_all, constellations, wait_dlg);
+        else
+            [cell_rover] = decode_nvs(data_rover_all, constellations);
+        end
     end
 
     %initialization (to make the writing faster)
     Ncell  = size(cell_rover,2);                          %number of read UBX messages
     time_R = zeros(Ncell,1);                              %GPS time of week
     week_R = zeros(Ncell,1);                              %GPS week
-    pr1_R  = zeros(32,Ncell);                             %code observations
-    dop1_R = zeros(32,Ncell);                             %doppler measurements
-    ph1_R  = zeros(32,Ncell);                             %phase observations
-    snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
-    Eph_R  = zeros(33,32,Ncell);                          %ephemerides
+    pr1_R  = zeros(nSatTot,Ncell);                        %code observations
+    dop1_R = zeros(nSatTot,Ncell);                        %doppler measurements
+    ph1_R  = zeros(nSatTot,Ncell);                        %phase observations
+    snr_R  = zeros(nSatTot,Ncell);                        %signal-to-noise ratio
+    Eph_R  = zeros(33,nSatTot,Ncell);                     %ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
-    phase_TRACK = zeros(32,Ncell);                        %phase observations - TRACK
+    phase_TRACK = zeros(nSatTot,Ncell);                   %phase observations - TRACK
 
-    if (nargin == 2)
+    if (nargin == 3)
         waitbar(0,wait_dlg,'Reading rover data...')
     end
     
@@ -203,7 +230,7 @@ if ~isempty(data_rover_all)
 
     i = 1;
     for j = 1 : Ncell
-        if (nargin == 2)
+        if (nargin == 3)
             waitbar(j/Ncell,wait_dlg)
         end
     
@@ -347,6 +374,59 @@ if ~isempty(data_rover_all)
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
             end
 
+        %%%%%%%%%%%%%%%%%%%%%% NVS messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        elseif (strcmp(cell_rover{1,j},'F5h'))            %F5h message data
+            time_R(i)   = cell_rover{2,j}(1);
+            week_R(i)   = cell_rover{2,j}(2)+1024;
+            ph1_R(:,i)  = cell_rover{3,j}(:,1);
+            pr1_R(:,i)  = cell_rover{3,j}(:,2);
+            dop1_R(:,i) = cell_rover{3,j}(:,3);
+            snr_R(:,i)  = cell_rover{3,j}(:,6);
+            
+            %manage "nearly null" data
+            ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
+            
+            %keep just "on top of second" measurements
+            %if (time_R(i)- floor(time_R(i)) == 0)
+            i = i + 1;
+            %end
+            
+        %62h message data save
+        elseif (strcmp(cell_rover{1,j},'62h'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            toe = cell_rover{2,j}(18);                   %time of ephemeris
+            
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
+            end
+
+        %F7h message data save
+        elseif (strcmp(cell_rover{1,j},'F7h'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(1);
+            toe = cell_rover{2,j}(18);                   %time of ephemeris
+            
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
+            end
+            
+        %4Ah message data save
+        elseif (strcmp(cell_rover{1,j},'4Ah'))
+
+            %ionosphere parameters
+            iono(:, i) = cell_rover{2,j}(1:8);
+
         end
     end
 
@@ -361,7 +441,7 @@ if ~isempty(data_rover_all)
 
 else
     %displaying
-    if (nargin == 2)
+    if (nargin == 3)
         msgbox('No rover data acquired.');
     else
         fprintf('No rover data acquired! \n');
@@ -380,7 +460,7 @@ end
 
 %-------------------------------------------------------------------------------
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0.5,wait_dlg,'Reading master stream files...')
 end
 
@@ -390,7 +470,7 @@ hour = 0;                                                            %hour index
 hour_str = num2str(hour,'%02d');                                     %hour index (string)
 d = dir([fileroot '_master_' hour_str '.bin']);                      %file to be read
 while ~isempty(d)
-    if (nargin == 1)
+    if (nargin == 2)
         fprintf(['Reading: ' fileroot '_master_' hour_str '.bin\n']);
     end
     num_bytes = d.bytes;                                             %file size (number of bytes)
@@ -410,7 +490,7 @@ if (strcmpi(fileroot(end-3:end),'rtcm'))
     %MASTER stream reading (non-goGPS binary format)
     d = dir(fileroot);                                                   %file to be read
     if ~isempty(d)
-        if (nargin == 1)
+        if (nargin == 2)
             fprintf(['Reading: ' fileroot '\n']);
         end
         num_bytes = d.bytes;                                             %file size (number of bytes)
@@ -423,7 +503,7 @@ if (strcmpi(fileroot(end-3:end),'rtcm'))
     end
 end
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(1,wait_dlg)
 end
 
@@ -432,7 +512,7 @@ end
 if ~isempty(data_master_all)
 
     %display
-    if (nargin == 1)
+    if (nargin == 2)
         fprintf('Decoding master stream\n');
     end
 
@@ -453,7 +533,7 @@ if ~isempty(data_master_all)
     if(is_rtcm2)
         [cell_master] = decode_rtcm2(sixofeight);
     else
-        if (nargin == 2)
+        if (nargin == 3)
             [cell_master] = decode_rtcm3(data_master_all, wait_dlg);
         else
             [cell_master] = decode_rtcm3(data_master_all);
@@ -463,19 +543,19 @@ if ~isempty(data_master_all)
     %initialization (to make the writing faster)
     Ncell  = size(cell_master,2);                         %number of read RTCM packets
     time_M = zeros(Ncell,1);                              %GPS time
-    pr1_M  = zeros(32,Ncell);                             %code observations
-    ph1_M  = zeros(32,Ncell);                             %phase observations
-    snr_M  = zeros(32,Ncell);                             %signal-to-noise ratio
+    pr1_M  = zeros(nSatTot,Ncell);                        %code observations
+    ph1_M  = zeros(nSatTot,Ncell);                        %phase observations
+    snr_M  = zeros(nSatTot,Ncell);                        %signal-to-noise ratio
     pos_M  = zeros(3,Ncell);                              %master station position
-    Eph_M  = zeros(33,32,Ncell);                          %ephemerides
+    Eph_M  = zeros(33,nSatTot,Ncell);                     %ephemerides
 
-    if (nargin == 2)
+    if (nargin == 3)
         waitbar(0,wait_dlg,'Reading master data...')
     end
 
     i = 1;
     for j = 1 : Ncell
-        if (nargin == 2)
+        if (nargin == 3)
             waitbar(j/Ncell,wait_dlg)
         end
         if (cell_master{1,j} == 3)
@@ -536,7 +616,7 @@ if ~isempty(data_master_all)
 
 else
     %displaying
-    if (nargin == 2)
+    if (nargin == 3)
         msgbox('No master data acquired.');
     else
         fprintf('No master data acquired! \n');
@@ -552,7 +632,7 @@ end
 
 %-------------------------------------------------------------------------------
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0.33,wait_dlg,'Synchronizing data...')
 end
 
@@ -619,7 +699,7 @@ end
 
 %-------------------------------------------------------------------------------
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0.66,wait_dlg)
 end
 
@@ -642,26 +722,26 @@ if ~isempty(time_GPS)
 
             pos = find(roundtime_R == newtime_R(i) - interval);  %position before the "holes"
 
-            time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
-            week_R = [week_R(1:pos);  week_R(pos);   week_R(pos+1:end)]; %does not take into account week change (TBD)
-            pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
-            ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
-            dop1_R = [dop1_R(:,1:pos) zeros(32,1)    dop1_R(:,pos+1:end)];
-            snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
-            iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
+            time_R = [time_R(1:pos);  newtime_R(i);    time_R(pos+1:end)];
+            week_R = [week_R(1:pos);  week_R(pos);     week_R(pos+1:end)]; %does not take into account week change (TBD)
+            pr1_R  = [pr1_R(:,1:pos)  zeros(nSatTot,1) pr1_R(:,pos+1:end)];
+            ph1_R  = [ph1_R(:,1:pos)  zeros(nSatTot,1) ph1_R(:,pos+1:end)];
+            dop1_R = [dop1_R(:,1:pos) zeros(nSatTot,1) dop1_R(:,pos+1:end)];
+            snr_R  = [snr_R(:,1:pos)  zeros(nSatTot,1) snr_R(:,pos+1:end)];
+            iono   = [iono(:,1:pos)   zeros(8,1)       iono(:,pos+1:end)];
 
-            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(33,32,1), Eph_R(:,:,pos+1:end));
+            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(33,nSatTot,1), Eph_R(:,:,pos+1:end));
             
             roundtime_R = roundmod(time_R,interval_R);
         end
     else
         time_R = time_GPS;
         week_R = zeros(1,length(time_GPS));
-        pr1_R  = zeros(32,length(time_GPS));
-        ph1_R  = zeros(32,length(time_GPS));
-        dop1_R = zeros(32,length(time_GPS));
-        snr_R  = zeros(32,length(time_GPS));
-        Eph_R  = zeros(33,32,length(time_GPS));
+        pr1_R  = zeros(nSatTot,length(time_GPS));
+        ph1_R  = zeros(nSatTot,length(time_GPS));
+        dop1_R = zeros(nSatTot,length(time_GPS));
+        snr_R  = zeros(nSatTot,length(time_GPS));
+        Eph_R  = zeros(33,nSatTot,length(time_GPS));
         iono   = zeros(8,length(time_GPS));
     end
 
@@ -673,23 +753,23 @@ if ~isempty(time_GPS)
 
             pos = find(roundtime_M == newtime_M(i) - interval);  %position before the "holes"
 
-            time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
-            pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
-            ph1_M  = [ph1_M(:,1:pos)  zeros(32,1)    ph1_M(:,pos+1:end)];
-            snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
-            pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
+            time_M = [time_M(1:pos);  newtime_M(i);    time_M(pos+1:end)];
+            pr1_M  = [pr1_M(:,1:pos)  zeros(nSatTot,1) pr1_M(:,pos+1:end)];
+            ph1_M  = [ph1_M(:,1:pos)  zeros(nSatTot,1) ph1_M(:,pos+1:end)];
+            snr_M  = [snr_M(:,1:pos)  zeros(nSatTot,1) snr_M(:,pos+1:end)];
+            pos_M  = [pos_M(:,1:pos)  zeros(3,1)       pos_M(:,pos+1:end)];
 
-            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(33,32,1), Eph_M(:,:,pos+1:end));
+            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(33,nSatTot,1), Eph_M(:,:,pos+1:end));
             
             roundtime_M = roundmod(time_M,interval_M);
         end
     else
         time_M = time_GPS;
-        pr1_M  = zeros(32,length(time_GPS));
-        ph1_M  = zeros(32,length(time_GPS));
-        snr_M  = zeros(32,length(time_GPS));
+        pr1_M  = zeros(nSatTot,length(time_GPS));
+        ph1_M  = zeros(nSatTot,length(time_GPS));
+        snr_M  = zeros(nSatTot,length(time_GPS));
         pos_M  = zeros(3,length(time_GPS));
-        Eph_M  = zeros(33,32,length(time_GPS));
+        Eph_M  = zeros(33,nSatTot,length(time_GPS));
     end
 
 else
@@ -697,7 +777,7 @@ else
     loss_M = [];          %losses of signal (MASTER)
 end
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(1,wait_dlg)
 end
 

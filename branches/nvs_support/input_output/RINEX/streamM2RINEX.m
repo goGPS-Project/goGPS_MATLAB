@@ -1,4 +1,4 @@
-function streamM2RINEX(fileroot, filename, week, wait_dlg)
+function streamM2RINEX(fileroot, filename, week, rin_ver, constellations, wait_dlg)
 
 % SYNTAX:
 %   streamM2RINEX(fileroot, filename, week, wait_dlg);
@@ -6,6 +6,10 @@ function streamM2RINEX(fileroot, filename, week, wait_dlg)
 % INPUT:
 %   fileroot = input file root (master data, binary stream)
 %   filename = output file name (master data, RINEX format)
+%   week = GPS week
+%   rin_ver  = requested RINEX version ('2.11' or '3.01')
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -33,7 +37,7 @@ function streamM2RINEX(fileroot, filename, week, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-if (nargin == 4)
+if (nargin == 6)
     waitbar(0.5,wait_dlg,'Reading master stream files...')
 end
 
@@ -43,7 +47,7 @@ hour = 0;                                                            %hour index
 hour_str = num2str(hour,'%02d');                                     %hour index (string)
 d = dir([fileroot '_master_' hour_str '.bin']);                      %file to be read
 while ~isempty(d)
-    if (nargin == 3)
+    if (nargin == 5)
         fprintf(['Reading: ' fileroot '_master_' hour_str '.bin\n']);
     end
     num_bytes = d.bytes;                                             %file size (number of bytes)
@@ -77,7 +81,7 @@ end
 clear hour hour_str d
 clear data_master fid_master
 
-if (nargin == 4)
+if (nargin == 6)
     waitbar(1,wait_dlg)
 end
 
@@ -86,7 +90,7 @@ end
 if (~isempty(data_master_all))
     
     %displaying
-    if (nargin == 3)
+    if (nargin == 5)
         fprintf('Decoding master data \n');
     end
     
@@ -108,7 +112,7 @@ if (~isempty(data_master_all))
         error('RTCM2.x conversion not supported yet!');
         %     [cell_master] = decode_rtcm2(sixofeight);
     else
-        if (nargin == 4)
+        if (nargin == 6)
             [cell_master] = decode_rtcm3(data_master_all, wait_dlg);
         else
             [cell_master] = decode_rtcm3(data_master_all);
@@ -130,7 +134,7 @@ if (~isempty(data_master_all))
         Eph_M = zeros(33,32,Ncell);                           %ephemerides
         pos_M = zeros(3,1);                                   %master station position
         
-        if (nargin == 4)
+        if (nargin == 6)
             waitbar(0,wait_dlg,'Reading master data...')
         end
         
@@ -138,7 +142,7 @@ if (~isempty(data_master_all))
         
         i = 1;
         for j = 1 : Ncell
-            if (nargin == 4)
+            if (nargin == 6)
                 waitbar(j/Ncell,wait_dlg)
             end
             
@@ -218,7 +222,7 @@ if (~isempty(data_master_all))
             date = gps2date(week, time_M);
         else
             %displaying
-            if (nargin == 4)
+            if (nargin == 6)
                 msgbox('No raw data acquired.');
             else
                 fprintf('No raw data acquired.\n');
@@ -238,7 +242,7 @@ if (~isempty(data_master_all))
         %----------------------------------------------------------------------------------------------
         
         %displaying
-        if (nargin == 3)
+        if (nargin == 5)
             fprintf(['Writing: ' filename '.obs\n']);
         end
         
@@ -277,7 +281,7 @@ if (~isempty(data_master_all))
         %number of records
         N = length(time_M);
         
-        if (nargin == 4)
+        if (nargin == 6)
             waitbar(0,wait_dlg,'Writing master observation file...')
         end
         
@@ -285,7 +289,7 @@ if (~isempty(data_master_all))
         
         %write data
         for i = 1 : N
-            if (nargin == 4)
+            if (nargin == 6)
                 waitbar(i/N,wait_dlg)
             end
             
@@ -351,7 +355,7 @@ if (~isempty(data_master_all))
         if (~isempty(find(Eph_M(1,:,:) ~= 0, 1)))
             
             %displaying
-            if (nargin == 3)
+            if (nargin == 5)
                 fprintf(['Writing: ' filename '.nav\n']);
             end
             
@@ -363,12 +367,12 @@ if (~isempty(data_master_all))
             fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
             fprintf(fid_nav,'                                                            END OF HEADER       \n');
             
-            if (nargin == 4)
+            if (nargin == 6)
                 waitbar(0,wait_dlg,'Writing master navigation file...')
             end
             
             for i = 1 : N
-                if (nargin == 4)
+                if (nargin == 6)
                     waitbar(i/N,wait_dlg)
                 end
                 
@@ -448,7 +452,7 @@ if (~isempty(data_master_all))
         end
     else
         %displaying
-        if (nargin == 4)
+        if (nargin == 6)
             msgbox('No master data acquired.');
         else
             fprintf('No master data acquired! \n');
@@ -457,7 +461,7 @@ if (~isempty(data_master_all))
     
 else
     %displaying
-    if (nargin == 4)
+    if (nargin == 6)
         msgbox('No master data acquired.');
     else
         fprintf('No master data acquired.\n');

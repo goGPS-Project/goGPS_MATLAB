@@ -1,11 +1,14 @@
-function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
+function [week] = streamR2RINEX(fileroot, filename, rin_ver, constellations, wait_dlg)
 
 % SYNTAX:
-%   [week] = streamR2RINEX(fileroot, filename, wait_dlg);
+%   [week] = streamR2RINEX(fileroot, filename, rin_ver, constellations, wait_dlg);
 %
 % INPUT:
 %   fileroot = input file root (rover data, binary stream)
 %   filename = output file name (rover data, RINEX format)
+%   rin_ver  = requested RINEX version ('2.11' or '3.01')
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -39,7 +42,7 @@ function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
 global weights;
 week = 0;
 
-if (nargin == 3)
+if (nargin == 5)
     waitbar(0.5,wait_dlg,'Reading rover stream files...')
 end
 
@@ -49,7 +52,7 @@ hour = 0;                                                            %hour index
 hour_str = num2str(hour,'%02d');                                     %hour index (string)
 d = dir([fileroot '_rover_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
-    if (nargin == 2)
+    if (nargin == 4)
         fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
     end
     num_bytes = d.bytes;                                             %file size (number of bytes)
@@ -83,7 +86,7 @@ end
 clear hour hour_str d
 clear data_rover fid_rover
 
-if (nargin == 3)
+if (nargin == 5)
     waitbar(1,wait_dlg)
 end
 
@@ -92,7 +95,7 @@ end
 if (~isempty(data_rover_all))
     
     %displaying
-    if (nargin == 2)
+    if (nargin == 4)
         fprintf('Decoding rover data \n');
     end
     
@@ -126,43 +129,43 @@ if (~isempty(data_rover_all))
         receiver = 'u-blox';
         
         %UBX format decoding
-        if (nargin == 3)
-            [cell_rover] = decode_ublox(data_rover_all, wait_dlg);
+        if (nargin == 5)
+            [cell_rover] = decode_ublox(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_ublox(data_rover_all);
+            [cell_rover] = decode_ublox(data_rover_all, constellations);
         end
     elseif ((length(pos_STQ) > length(pos_UBX)) && (length(pos_STQ) > length(pos_FTX)) && (length(pos_STQ) > length(pos_NVS)))
         
         receiver = 'SkyTraq';
         
         %SkyTraq format decoding
-        if (nargin == 3)
-            [cell_rover] = decode_skytraq(data_rover_all, wait_dlg);
+        if (nargin == 5)
+            [cell_rover] = decode_skytraq(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_skytraq(data_rover_all);
+            [cell_rover] = decode_skytraq(data_rover_all, constellations);
         end
     elseif ((length(pos_FTX) > length(pos_UBX)) && (length(pos_FTX) > length(pos_STQ)) && (length(pos_FTX) > length(pos_NVS)))
 
         receiver = 'fastrax';
         
         %Fastrax format decoding
-        if (nargin == 3)
-            [cell_rover] = decode_fastrax_it03(data_rover_all, wait_dlg);
+        if (nargin == 5)
+            [cell_rover] = decode_fastrax_it03(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_fastrax_it03(data_rover_all);
+            [cell_rover] = decode_fastrax_it03(data_rover_all, constellations);
         end
     elseif ((length(pos_NVS) > length(pos_UBX)) && (length(pos_NVS) > length(pos_STQ)) && (length(pos_NVS) > length(pos_FTX)))
 
         receiver = 'NVS';
         
         %compress <DLE><DLE> to <DLE>
-        if (nargin == 3)
+        if (nargin == 5)
             waitbar(0,wait_dlg,'Removing duplicate 10h bytes from BINR data...')
         end
         data_rover_all = reshape(data_rover_all,8,[]);
         data_rover_all = data_rover_all';
         data_rover_all = fbin2dec(data_rover_all);
-        if (nargin == 3)
+        if (nargin == 5)
             data_rover_all = remove_double_10h(data_rover_all, wait_dlg);
         else
             data_rover_all = remove_double_10h(data_rover_all);
@@ -170,15 +173,15 @@ if (~isempty(data_rover_all))
         data_rover_all = dec2bin(data_rover_all,8);             %conversion in binary number (N x 8bits matrix)
         data_rover_all = data_rover_all';                       %transposed (8bits x N matrix)
         data_rover_all = data_rover_all(:)';                    %conversion into a string (8N bits vector)
-        if (nargin == 3)
+        if (nargin == 5)
             waitbar(1,wait_dlg)
         end
 
         %NVS format decoding
-        if (nargin == 3)
-            [cell_rover] = decode_nvs(data_rover_all, wait_dlg);
+        if (nargin == 5)
+            [cell_rover] = decode_nvs(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_nvs(data_rover_all);
+            [cell_rover] = decode_nvs(data_rover_all, constellations);
         end
     end
     clear data_rover_all
@@ -198,7 +201,7 @@ if (~isempty(data_rover_all))
     tick_PSEUDO = zeros(Ncell,1);
     phase_TRACK = zeros(32,Ncell);                        %phase observations - TRACK
     
-    if (nargin == 3)
+    if (nargin == 5)
         waitbar(0,wait_dlg,'Reading rover data...')
     end
     
@@ -213,7 +216,7 @@ if (~isempty(data_rover_all))
     
     i = 1;
     for j = 1 : Ncell
-        if (nargin == 3)
+        if (nargin == 5)
             waitbar(j/Ncell,wait_dlg)
         end
         
@@ -451,7 +454,7 @@ if (~isempty(data_rover_all))
         date = gps2date(week_R, time_R);
     else
         %displaying
-        if (nargin == 3)
+        if (nargin == 5)
             msgbox('No raw data acquired.');
         else
             fprintf('No raw data acquired.\n');
@@ -499,7 +502,7 @@ if (~isempty(data_rover_all))
     %----------------------------------------------------------------------------------------------
     
     %displaying
-    if (nargin == 2)
+    if (nargin == 4)
         fprintf(['Writing: ' filename '.obs\n']);
     end
     
@@ -533,7 +536,7 @@ if (~isempty(data_rover_all))
     %number of records
     N = length(time_R);
     
-    if (nargin == 3)
+    if (nargin == 5)
         waitbar(0,wait_dlg,'Writing rover observation file...')
     end
     
@@ -541,7 +544,7 @@ if (~isempty(data_rover_all))
     
     %write data
     for i = 1 : N
-        if (nargin == 3)
+        if (nargin == 5)
             waitbar(i/N,wait_dlg)
         end
 
@@ -592,7 +595,7 @@ if (~isempty(data_rover_all))
     if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
         
         %displaying
-        if (nargin == 2)
+        if (nargin == 4)
             fprintf(['Writing: ' filename '.nav\n']);
         end
         
@@ -636,12 +639,12 @@ if (~isempty(data_rover_all))
         end
         fprintf(fid_nav,'                                                            END OF HEADER       \n');
         
-        if (nargin == 3)
+        if (nargin == 5)
             waitbar(0,wait_dlg,'Writing rover navigation file...')
         end
         
         for i = 1 : N
-            if (nargin == 3)
+            if (nargin == 5)
                 waitbar(i/N,wait_dlg)
             end
             
@@ -727,7 +730,7 @@ if (~isempty(data_rover_all))
     end
 else
     %displaying
-    if (nargin == 3)
+    if (nargin == 5)
         msgbox('No rover data acquired.');
     else
         fprintf('No rover data acquired.\n');

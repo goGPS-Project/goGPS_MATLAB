@@ -1,19 +1,20 @@
-function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
+function streams2goGPSbin(filerootIN, filerootOUT, constellations, wait_dlg)
 
 % SYNTAX:
-%   streams2goGPSbin(filerootIN, filerootOUT, wait_dlg);
+%   streams2goGPSbin(filerootIN, filerootOUT, constellations, wait_dlg);
 %
 % INPUT:
 %   filerootIN  = input file root
 %   filerootOUT = output file root
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
 %
 % DESCRIPTION:
-%   File conversion from rover and master streams (UBX binary) and
-%   (RTCM 3.x) respectively to goGPS binary format (*_obs_* and *_eph_*
-%   files).
+%   File conversion from rover and master streams to goGPS binary format
+%   (*_obs_* and *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.1 beta
@@ -35,29 +36,20 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%load multi-constellation settings and initialize 'constellations' struct
-global goIni;
-GPS_flag = goIni.getData('Constellations','GPS');
-GLO_flag = goIni.getData('Constellations','GLONASS');
-GAL_flag = goIni.getData('Constellations','Galileo');
-BDS_flag = goIni.getData('Constellations','BeiDou');
-QZS_flag = goIni.getData('Constellations','QZSS');
-SBS_flag = goIni.getData('Constellations','SBAS');
-[constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
-    fprintf('No constellations selected, setting default: GPS-only processing\n');
+    fprintf('No constellations selected, setting default: GPS-only\n');
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
     nSatTot = constellations.nEnabledSat;
 end
 
 %ROVER and MASTER stream reading
-if (nargin == 3)
+if (nargin == 4)
     [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
-        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN, wait_dlg); %#ok<*ASGLU>
+        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN, constellations, wait_dlg); %#ok<*ASGLU>
 else
     [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, pos_M, Eph, ...
-        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN);
+        iono, loss_R, loss_M, data_rover_all, data_master_all, nmea_sentences] = load_stream(filerootIN, constellations);
 end
 
 EphAvailable = [];
@@ -119,7 +111,7 @@ if (~isempty(Eph))
             snr_M(delsat,i)  = 0;
         end
     else
-        if (nargin == 3)
+        if (nargin == 4)
             msgbox('Warning: this dataset does not contain ephemerides!');
         else
             fprintf('Warning: this dataset does not contain ephemerides!\n');
@@ -172,14 +164,14 @@ end
 %"file hour" variable
 hour = 0;
 
-if (nargin == 3)
+if (nargin == 4)
     waitbar(0,wait_dlg,'Writing goGPS binary data...')
 end
 
 %write output files
 for t = 1 : length(time_GPS)
     
-    if (nargin == 3)
+    if (nargin == 4)
         waitbar(t/length(time_GPS),wait_dlg)
     end
     
