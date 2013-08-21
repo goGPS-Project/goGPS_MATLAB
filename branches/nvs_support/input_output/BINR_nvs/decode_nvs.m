@@ -89,8 +89,9 @@ i = 1;
 while (i <= length(pos_FTR) && pos_FTR(i)+23 <= length(msg))
     if (~strcmp(msg(pos_FTR(i)+16:pos_FTR(i)+23),codeBIN_HDR))
         pos_FTR(i) = [];
+    else
+        i = i + 1;
     end
-    i = i + 1;
 end
 
 %----------------------------------------------------------------------------------------------

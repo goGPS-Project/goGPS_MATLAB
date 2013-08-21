@@ -721,15 +721,15 @@ while flag
                 fprintf('Epoch %3d:  GPStime=%d:%.3f (%d satellites)\n', t(r), week_R, time_R, length(sat));
                 for j = 1 : length(sat)
                     
-                    if (intersect(sat(j),constellations.GPS.indexes))
+                    if (ismember(sat(j),constellations.GPS.indexes))
                         sys = 'G';
-                    elseif (intersect(sat(j),constellations.GLONASS.indexes))
+                    elseif (ismember(sat(j),constellations.GLONASS.indexes))
                         sys = 'R';
-                    elseif (intersect(sat(j),constellations.Galileo.indexes))
+                    elseif (ismember(sat(j),constellations.Galileo.indexes))
                         sys = 'E';
-                    elseif (intersect(sat(j),constellations.BeiDou.indexes))
+                    elseif (ismember(sat(j),constellations.BeiDou.indexes))
                         sys = 'C';
-                    elseif (intersect(sat(j),constellations.QZSS.indexes))
+                    elseif (ismember(sat(j),constellations.QZSS.indexes))
                         sys = 'J';
                     end
 

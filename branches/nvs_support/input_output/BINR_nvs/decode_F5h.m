@@ -132,7 +132,7 @@ data{2}(3) = NSV;
 %read the measurements of every satellite
 for j = 1 : NSV
     
-    %signal type 01=GLONASS, 02=GPS, 03=Galileo, 04=SBAS
+    %signal type 01=GLONASS, 02=GPS/QZSS, 04=SBAS, 08=Galileo
     signal_type = fbin2dec(msg(pos:pos+7)); pos = pos + 8;
     
     %------------------------------------------------
@@ -223,7 +223,8 @@ for j = 1 : NSV
         SID = SID-32;
         idx = constellations.QZSS.indexes(SID);
         
-    elseif (signal_type == 3 && constellations.Galileo.enabled)
+    elseif (signal_type == 8 && constellations.Galileo.enabled)
+        
         idx = constellations.Galileo.indexes(SID);
     end
     
@@ -243,10 +244,10 @@ for j = 1 : NSV
     end
 end
 
-if (any(data{3}(:,2) < -10e-6) || any(data{3}(:,2) > 60e6))
-    %discard everything if there is at least one anomalous pseudorange
-    data = cell(3,1);
-    data{1} = 0;
-    data{2} = zeros(3,1);
-    data{3} = zeros(constellations.nEnabledSat,6);
-end
+% if (any(data{3}(:,2) < -10e-6) || any(data{3}(:,2) > 60e6))
+%     %discard everything if there is at least one anomalous pseudorange
+%     data = cell(3,1);
+%     data{1} = 0;
+%     data{2} = zeros(3,1);
+%     data{3} = zeros(constellations.nEnabledSat,6);
+% end
