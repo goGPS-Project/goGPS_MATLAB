@@ -175,9 +175,6 @@ if ~isempty(data_rover_all)
     elseif ((length(pos_NVS) > length(pos_UBX)) && (length(pos_NVS) > length(pos_STQ)) && (length(pos_NVS) > length(pos_FTX)))
 
         %compress <DLE><DLE> to <DLE>
-        if (nargin == 3)
-            waitbar(0,wait_dlg,'Removing duplicate 10h bytes from BINR data...')
-        end
         data_rover_all = reshape(data_rover_all,8,[]);
         data_rover_all = data_rover_all';
         data_rover_all = fbin2dec(data_rover_all);
@@ -189,9 +186,6 @@ if ~isempty(data_rover_all)
         data_rover_all = dec2bin(data_rover_all,8);             %conversion in binary number (N x 8bits matrix)
         data_rover_all = data_rover_all';                       %transposed (8bits x N matrix)
         data_rover_all = data_rover_all(:)';                    %conversion into a string (8N bits vector)
-        if (nargin == 3)
-            waitbar(1,wait_dlg)
-        end
         
         %NVS format decoding
         if (nargin == 3)

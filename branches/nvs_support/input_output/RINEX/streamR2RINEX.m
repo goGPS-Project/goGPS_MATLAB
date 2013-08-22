@@ -1,12 +1,12 @@
-function [week] = streamR2RINEX(fileroot, filename, rin_ver, constellations, wait_dlg)
+function [week] = streamR2RINEX(fileroot, filename, rinex_metadata, constellations, wait_dlg)
 
 % SYNTAX:
-%   [week] = streamR2RINEX(fileroot, filename, rin_ver, constellations, wait_dlg);
+%   [week] = streamR2RINEX(fileroot, filename, rinex_metadata, constellations, wait_dlg);
 %
 % INPUT:
 %   fileroot = input file root (rover data, binary stream)
 %   filename = output file name (rover data, RINEX format)
-%   rin_ver  = requested RINEX version ('2.11' or '3.01')
+%   rinex_metadata = struct with RINEX metadata
 %   constellations = struct with multi-constellation settings
 %                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
@@ -41,6 +41,20 @@ function [week] = streamR2RINEX(fileroot, filename, rin_ver, constellations, wai
 
 global weights;
 week = 0;
+
+nSatTot = constellations.nEnabledSat;
+if (nSatTot == 0)
+    fprintf('No constellations selected, setting default: GPS-only\n');
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    nSatTot = constellations.nEnabledSat;
+end
+
+%check requested RINEX version
+if (strcmp(rinex_metadata.version(1),'3'))
+    rin_ver_id = 3;
+else
+    rin_ver_id = 2;
+end
 
 if (nargin == 5)
     waitbar(0.5,wait_dlg,'Reading rover stream files...')
@@ -159,9 +173,6 @@ if (~isempty(data_rover_all))
         receiver = 'NVS';
         
         %compress <DLE><DLE> to <DLE>
-        if (nargin == 5)
-            waitbar(0,wait_dlg,'Removing duplicate 10h bytes from BINR data...')
-        end
         data_rover_all = reshape(data_rover_all,8,[]);
         data_rover_all = data_rover_all';
         data_rover_all = fbin2dec(data_rover_all);
@@ -173,9 +184,6 @@ if (~isempty(data_rover_all))
         data_rover_all = dec2bin(data_rover_all,8);             %conversion in binary number (N x 8bits matrix)
         data_rover_all = data_rover_all';                       %transposed (8bits x N matrix)
         data_rover_all = data_rover_all(:)';                    %conversion into a string (8N bits vector)
-        if (nargin == 5)
-            waitbar(1,wait_dlg)
-        end
 
         %NVS format decoding
         if (nargin == 5)
@@ -190,16 +198,16 @@ if (~isempty(data_rover_all))
     Ncell  = size(cell_rover,2);                          %number of read UBX messages
     time_R = zeros(Ncell,1);                              %GPS time of week
     week_R = zeros(Ncell,1);                              %GPS week
-    ph1_R  = zeros(32,Ncell);                             %phase observations
-    pr1_R  = zeros(32,Ncell);                             %code observations
-    dop1_R = zeros(32,Ncell);                             %doppler measurements
-    snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
-    lock_R = zeros(32,Ncell);                             %loss of lock indicator
-    Eph_R  = zeros(33,32,Ncell);                          %broadcast ephemerides
+    ph1_R  = zeros(nSatTot,Ncell);                        %phase observations
+    pr1_R  = zeros(nSatTot,Ncell);                        %code observations
+    dop1_R = zeros(nSatTot,Ncell);                        %doppler measurements
+    snr_R  = zeros(nSatTot,Ncell);                        %signal-to-noise ratio
+    lock_R = zeros(nSatTot,Ncell);                        %loss of lock indicator
+    Eph_R  = zeros(33,nSatTot,Ncell);                     %broadcast ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
-    phase_TRACK = zeros(32,Ncell);                        %phase observations - TRACK
+    phase_TRACK = zeros(nSatTot,Ncell);                   %phase observations - TRACK
     
     if (nargin == 5)
         waitbar(0,wait_dlg,'Reading rover data...')
@@ -384,10 +392,10 @@ if (~isempty(data_rover_all))
         elseif (strcmp(cell_rover{1,j},'F5h'))            %F5h message data
             time_R(i)   = cell_rover{2,j}(1);
             week_R(i)   = cell_rover{2,j}(2)+1024;
-            ph1_R(:,i)  = cell_rover{3,j}(1:32,1); %temporarily exclude SV 33 (QZS-1)
-            pr1_R(:,i)  = cell_rover{3,j}(1:32,2);
-            dop1_R(:,i) = cell_rover{3,j}(1:32,3);
-            snr_R(:,i)  = cell_rover{3,j}(1:32,6);
+            ph1_R(:,i)  = cell_rover{3,j}(:,1);
+            pr1_R(:,i)  = cell_rover{3,j}(:,2);
+            dop1_R(:,i) = cell_rover{3,j}(:,3);
+            snr_R(:,i)  = cell_rover{3,j}(:,6);
             
             %manage "nearly null" data
             ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
@@ -498,6 +506,53 @@ if (~isempty(data_rover_all))
     interval = median(time_R(2:end) - time_R(1:end-1));
     
     %----------------------------------------------------------------------------------------------
+    % MULTI-CONSTELLATION SETTINGS
+    %----------------------------------------------------------------------------------------------
+    
+    GPSenabled = constellations.GPS.enabled;
+    GLOenabled = constellations.GLONASS.enabled;
+    GALenabled = constellations.Galileo.enabled;
+    BDSenabled = constellations.BeiDou.enabled;
+    QZSenabled = constellations.QZSS.enabled;
+    SBSenabled = constellations.SBAS.enabled;
+    
+    if (GPSenabled), GPSavailable = any(any(pr1_R(constellations.GPS.indexes,:))); else GPSavailable = 0; end
+    if (GLOenabled), GLOavailable = any(any(pr1_R(constellations.GLONASS.indexes,:))); else GLOavailable = 0; end
+    if (GALenabled), GALavailable = any(any(pr1_R(constellations.Galileo.indexes,:))); else GALavailable = 0; end
+    if (BDSenabled), BDSavailable = any(any(pr1_R(constellations.BeiDou.indexes,:))); else BDSavailable = 0; end
+    if (QZSenabled), QZSavailable = any(any(pr1_R(constellations.QZSS.indexes,:))); else QZSavailable = 0; end
+    if (SBSenabled), SBSavailable = any(any(pr1_R(constellations.SBAS.indexes,:))); else SBSavailable = 0; end
+    
+    i = 1;
+    if (GPSenabled && ~GPSavailable), warning_msg{i} = 'GPS observations not available'; i = i + 1; end
+    if (GLOenabled && ~GLOavailable), warning_msg{i} = 'GLONASS observations not available'; i = i + 1; end
+    if (GALenabled && ~GALavailable), warning_msg{i} = 'Galileo observations not available'; i = i + 1; end
+    if (BDSenabled && ~BDSavailable), warning_msg{i} = 'BeiDou observations not available'; i = i + 1; end
+    if (QZSenabled && ~QZSavailable), warning_msg{i} = 'QZSS observations not available'; i = i + 1; end
+    if (SBSenabled && ~SBSavailable), warning_msg{i} = 'SBAS observations not available'; i = i + 1; end
+    
+    if (i > 1)
+        if (nargin == 5)
+            msgbox(warning_msg);
+        else
+            for j = 1 : (i-1); fprintf(['WARNING: ' warning_msg{j} '.\n']); end
+        end
+    end
+    
+    GPSactive = (GPSenabled && GPSavailable);
+    GLOactive = (GLOenabled && GLOavailable);
+    GALactive = (GALenabled && GALavailable);
+    BDSactive = (BDSenabled && BDSavailable);
+    QZSactive = (QZSenabled && QZSavailable);
+    SBSactive = (SBSenabled && SBSavailable);
+    
+    SYSactive = [GPSactive, GLOactive, GALactive, ...
+                 BDSactive, QZSactive, SBSactive];
+
+    mixed_sys  = (sum(SYSactive) >= 2);
+    single_sys = (sum(SYSactive) == 1);
+    
+    %----------------------------------------------------------------------------------------------
     % RINEX OBSERVATION FILE
     %----------------------------------------------------------------------------------------------
     
@@ -509,26 +564,76 @@ if (~isempty(data_rover_all))
     %create RINEX observation file
     fid_obs = fopen([filename '.obs'],'wt');
     
+    %file type
+    if (mixed_sys)
+        file_type = 'M (MIXED)';
+    elseif(single_sys && GPSactive)
+        file_type = 'G (GPS)';
+    elseif(single_sys && GLOactive)
+        file_type = 'R (GLONASS)';
+    elseif(single_sys && GALactive)
+        file_type = 'E (GALILEO)';
+    elseif(single_sys && SBSactive)
+        file_type = 'S (SBAS PAYLOAD)';
+    end
+    
+    %current date and time in UTC
+    date_str_UTC = local_time_to_utc(now, 30);
+    [date_str_UTC, time_str_UTC] = strtok(date_str_UTC,'T');
+    time_str_UTC = time_str_UTC(2:end-1);
+    
+    %maximum filename length for RUN BY field
+    rb_len = min(20,length(rinex_metadata.agency));
+    
     %maximum filename length for MARKER NAME field
-    pos = find(filename == '/');
-    if (isempty(pos)), pos = 0; end
-    marker_name = filename(pos(end)+1:end);
-    mn_len = min(60,length(marker_name));
+    mn_len = min(60,length(rinex_metadata.marker_name));
+    
+    %maximum filename length for OBSERVER field
+    ob_len = min(20,length(rinex_metadata.observer));
+    
+    %maximum filename length for AGENCY field
+    oa_len = min(40,length(rinex_metadata.observer_agency));
+    
+    %system id
+    sys = [];
+    band = [];
+    attrib = [];
+    if (GPSactive), sys = [sys 'G']; band = [band '1']; attrib = [attrib 'C']; end
+    if (GLOactive), sys = [sys 'R']; band = [band '1']; attrib = [attrib 'C']; end
+    if (GALactive), sys = [sys 'E']; band = [band '1']; attrib = [attrib 'X']; end
+    if (BDSactive), sys = [sys 'C']; band = [band '2']; attrib = [attrib 'I']; end
+    if (QZSactive), sys = [sys 'J']; band = [band '1']; attrib = [attrib 'C']; end
+    if (SBSactive), sys = [sys 'S']; band = [band '1']; attrib = [attrib 'C']; end
 
     %write header
-    fprintf(fid_obs,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
-    fprintf(fid_obs,'goGPS                                                       PGM / RUN BY / DATE \n');
-    fprintf(fid_obs,'%-60sMARKER NAME         \n',marker_name(1:mn_len));
-    fprintf(fid_obs,'                                                            OBSERVER / AGENCY   \n');
+    fprintf(fid_obs,'%9.2f           OBSERVATION DATA    %-19s RINEX VERSION / TYPE\n', str2num(rinex_metadata.version), file_type);
+    fprintf(fid_obs,'%-20s%-20s%-20sPGM / RUN BY / DATE \n', 'goGPS', rinex_metadata.agency(1:rb_len), [date_str_UTC ' ' time_str_UTC ' UTC']);
+    fprintf(fid_obs,'%-60sMARKER NAME         \n',rinex_metadata.marker_name(1:mn_len));
+    if (rin_ver_id == 3)
+        fprintf(fid_obs,'%-20s                                        MARKER TYPE         \n', rinex_metadata.marker_type);
+    end
+    fprintf(fid_obs,'%-20s%-40sOBSERVER / AGENCY   \n', rinex_metadata.observer(1:ob_len), rinex_metadata.observer_agency(1:oa_len));
     fprintf(fid_obs,'                    %-20s                    REC # / TYPE / VERS \n', receiver);
     fprintf(fid_obs,'                                                            ANT # / TYPE        \n');
     fprintf(fid_obs,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', pos_R(1), pos_R(2), pos_R(3));
     fprintf(fid_obs,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
     fprintf(fid_obs,'     2     0                                                WAVELENGTH FACT L1/2\n');
-    fprintf(fid_obs,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
+    if (rin_ver_id == 2)
+        fprintf(fid_obs,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
+    else
+        for s = 1 : length(sys)
+            fprintf(fid_obs,'%-1s    4 C%c%c L%c%c S%c%c D%c%c                                      SYS / # / OBS TYPES \n',sys(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s));
+        end
+        fprintf(fid_obs,'DBHZ                                                        SIGNAL STRENGTH UNIT\n');
+    end
     fprintf(fid_obs,'%10.3f                                                  INTERVAL            \n', interval);
     fprintf(fid_obs,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
         date(1,1), date(1,2), date(1,3), date(1,4), date(1,5), date(1,6));
+    if (rin_ver_id == 3)
+        for s = 1 : length(sys)
+            fprintf(fid_obs,'%c                                                           SYS / PHASE SHIFTS  \n',sys(s));
+        end
+    end
     fprintf(fid_obs,'                                                            END OF HEADER       \n');
     
     %-------------------------------------------------------------------------------
@@ -542,7 +647,7 @@ if (~isempty(data_rover_all))
     
     date(:,1) = two_digit_year(date(:,1));
     
-    %write data
+    %cycle through epochs
     for i = 1 : N
         if (nargin == 5)
             waitbar(i/N,wait_dlg)
@@ -550,36 +655,62 @@ if (~isempty(data_rover_all))
 
         sat = find(pr1_R(:,i) ~= 0);
         n = length(sat);
+        
+        %assign system and PRN code to each satellite
+        [sys, prn] = find_sat_system(sat, constellations);
 
         %if no observations are available, do not write anything
         if (n > 0)
-            fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
-                date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
-            if (n>12)
-                for j = 1 : 12
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
-                fprintf(fid_obs,'\n');
-                fprintf(fid_obs,'%32s','');
-                for j = 13 : n
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
-            else
-                for j = 1 : n
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
-            end
-            fprintf(fid_obs,'\n');
-            for j = 1 : n
-                fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                if (abs(ph1_R(sat(j),i)) > 1e-100)
-                    fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+            %RINEX v2.xx
+            if (rin_ver_id == 2)
+                %epoch record
+                fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
+                    date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
+                if (n>12)
+                    for j = 1 : 12
+                        fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                    end
+                    fprintf(fid_obs,'\n');
+                    fprintf(fid_obs,'%32s','');
+                    for j = 13 : n
+                        fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                    end
                 else
-                    fprintf(fid_obs,'                ');
+                    for j = 1 : n
+                        fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                    end
                 end
-                fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                fprintf(fid_obs,'%14.3f %1d',dop1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
                 fprintf(fid_obs,'\n');
+                %observation record(s)
+                for j = 1 : n
+                    fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    if (abs(ph1_R(sat(j),i)) > 1e-100)
+                        fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    else
+                        fprintf(fid_obs,'                ');
+                    end
+                    fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    fprintf(fid_obs,'%14.3f %1d',dop1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    fprintf(fid_obs,'\n');
+                end
+            %RINEX v3.xx    
+            else
+                %epoch record
+                fprintf(fid_obs,'>%4d %2d %2d %2d %2d %10.7f  0 %2d\n', ...
+                    date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
+                %observation record(s)
+                for j = 1 : n
+                    fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                    fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    if (abs(ph1_R(sat(j),i)) > 1e-100)
+                        fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    else
+                        fprintf(fid_obs,'                ');
+                    end
+                    fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    fprintf(fid_obs,'%14.3f %1d',dop1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    fprintf(fid_obs,'\n');
+                end
             end
         end
     end

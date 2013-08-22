@@ -22,7 +22,7 @@ function varargout = gui_decode_stream(varargin)
 
 % Edit the above text to modify the response to help gui_decode_stream
 
-% Last Modified by GUIDE v2.5 21-Aug-2013 15:35:00
+% Last Modified by GUIDE v2.5 22-Aug-2013 17:15:47
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.1 beta
@@ -274,18 +274,25 @@ if (get(handles.output_type, 'SelectedObject') == handles.out_gogps_binary)
     streams2goGPSbin(filerootIN, filerootOUT, constellations, wait_dlg);
 elseif (get(handles.output_type, 'SelectedObject') == handles.out_rinex)
     week = 0;
-    %check RINEX version
-    contents = cellstr(get(handles.rinex_version,'String'));
-    rin_ver = contents{get(handles.rinex_version,'Value')};
+    %get RINEX information
+    contents_version = cellstr(get(handles.rinex_version,'String'));
+    contents_marker_type = cellstr(get(handles.marker_type,'String'));
+    rin_ver = contents_version{get(handles.rinex_version,'Value')};
+    rinex_metadata.version = rin_ver(2:end);
+    rinex_metadata.marker_name = get(handles.marker_name,'String');
+    rinex_metadata.marker_type = contents_marker_type{get(handles.marker_type,'Value')};
+    rinex_metadata.agency = get(handles.agency,'String');
+    rinex_metadata.observer = get(handles.observer,'String');
+    rinex_metadata.observer_agency = get(handles.observer_agency,'String');
     if (get(handles.flag_rover_stream,'Value'))
-        week = streamR2RINEX(filerootIN, [filerootOUT '_rover'], rin_ver, constellations, wait_dlg);
+        week = streamR2RINEX(filerootIN, [filerootOUT '_rover'], rinex_metadata, constellations, wait_dlg);
     end
     
     if (get(handles.flag_master_stream,'Value')) & (~flag_no_master)
         if (~week)
             week = gui_GPS_week;
         end
-        streamM2RINEX(filerootIN, [filerootOUT '_master'], week, rin_ver, constellations, wait_dlg);
+        streamM2RINEX(filerootIN, [filerootOUT '_master'], week, rinex_metadata, constellations, wait_dlg);
     end
 end
 
@@ -313,7 +320,16 @@ if (hObject == handles.out_rinex)
     set(handles.flag_rover_stream, 'Enable', 'on');
     set(handles.flag_master_stream, 'Enable', 'on');
     set(handles.rinex_version, 'Enable', 'on');
-    set(handles.text_rinex_version, 'Enable', 'on');
+    set(handles.marker_name, 'Enable', 'on');
+    set(handles.text_marker_name, 'Enable', 'on');
+    set(handles.marker_type, 'Enable', 'on');
+    set(handles.text_marker_type, 'Enable', 'on');
+    set(handles.agency, 'Enable', 'on');
+    set(handles.text_agency, 'Enable', 'on');
+    set(handles.observer, 'Enable', 'on');
+    set(handles.text_observer, 'Enable', 'on');
+    set(handles.observer_agency, 'Enable', 'on');
+    set(handles.text_observer_agency, 'Enable', 'on');
     rinex_version_Callback(handles.rinex_version, eventdata, handles)
     %if the output folder is the default one
     if (strcmp(get(handles.data_out_folder, 'String'), '../data/data_goGPS'))
@@ -323,7 +339,16 @@ else
     set(handles.flag_rover_stream, 'Enable', 'off');
     set(handles.flag_master_stream, 'Enable', 'off');
     set(handles.rinex_version, 'Enable', 'off');
-    set(handles.text_rinex_version, 'Enable', 'off');
+    set(handles.marker_name, 'Enable', 'off');
+    set(handles.text_marker_name, 'Enable', 'off');
+    set(handles.marker_type, 'Enable', 'off');
+    set(handles.text_marker_type, 'Enable', 'off');
+    set(handles.agency, 'Enable', 'off');
+    set(handles.text_agency, 'Enable', 'off');
+    set(handles.observer, 'Enable', 'off');
+    set(handles.text_observer, 'Enable', 'off');
+    set(handles.observer_agency, 'Enable', 'off');
+    set(handles.text_observer_agency, 'Enable', 'off');
     set(handles.cGPS, 'Enable', 'on');
     set(handles.cGLONASS, 'Enable', 'on');
     set(handles.cGalileo, 'Enable', 'on');
@@ -399,19 +424,136 @@ function rinex_version_Callback(hObject, eventdata, handles)
 % Hints: contents = cellstr(get(hObject,'String')) returns rinex_version contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from rinex_version
 contents = cellstr(get(hObject,'String'));
-if (strcmp(contents{get(hObject,'Value')},'2.11'))
-    set(handles.cGalileo, 'Enable', 'off');
+if (strcmp(contents{get(hObject,'Value')},'v2.11'))
     set(handles.cBeiDou, 'Enable', 'off');
     set(handles.cQZSS, 'Enable', 'off');
+    set(handles.marker_type, 'Enable', 'off');
+    set(handles.text_marker_type, 'Enable', 'off');
 else
-    set(handles.cGalileo, 'Enable', 'on');
     set(handles.cBeiDou, 'Enable', 'on');
     set(handles.cQZSS, 'Enable', 'on');
+    set(handles.marker_type, 'Enable', 'on');
+    set(handles.text_marker_type, 'Enable', 'on');
 end
 
 % --- Executes during object creation, after setting all properties.
 function rinex_version_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to rinex_version (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function marker_name_Callback(hObject, eventdata, handles)
+% hObject    handle to marker_name (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of marker_name as text
+%        str2double(get(hObject,'String')) returns contents of marker_name as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function marker_name_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to marker_name (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function agency_Callback(hObject, eventdata, handles)
+% hObject    handle to agency (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of agency as text
+%        str2double(get(hObject,'String')) returns contents of agency as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function agency_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to agency (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function observer_Callback(hObject, eventdata, handles)
+% hObject    handle to observer (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of observer as text
+%        str2double(get(hObject,'String')) returns contents of observer as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function observer_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to observer (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+
+function observer_agency_Callback(hObject, eventdata, handles)
+% hObject    handle to observer_agency (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of observer_agency as text
+%        str2double(get(hObject,'String')) returns contents of observer_agency as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function observer_agency_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to observer_agency (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in marker_type.
+function marker_type_Callback(hObject, eventdata, handles)
+% hObject    handle to marker_type (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns marker_type contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from marker_type
+
+
+% --- Executes during object creation, after setting all properties.
+function marker_type_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to marker_type (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 

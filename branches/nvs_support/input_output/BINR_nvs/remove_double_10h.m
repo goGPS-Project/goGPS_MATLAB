@@ -36,7 +36,9 @@ function [out] = remove_double_10h(msg, wait_dlg)
 %----------------------------------------------------------------------------------------------
 
 if (nargin < 2)
-    fprintf('Removing duplicate 10h bytes from BINR data...\n');
+    fprintf('Removing double 10h bytes from BINR data...\n');
+else
+    waitbar(0,wait_dlg,'Removing double 10h bytes from BINR data...')
 end
 
 %find all <DLE> bytes
@@ -55,7 +57,7 @@ while (j <= length(pos))
         pos(j) = [];
         j = j - 1;
     else
-        %count how many <DLE> are there
+        %count the number of consecutive <DLE>s
         k = 1;
         while(msg(pos(j)+k) == 16)
             k = k + 1;
@@ -69,3 +71,7 @@ while (j <= length(pos))
 end
 msg(pos) = [];
 out = msg;
+
+if (nargin == 2)
+    waitbar(1,wait_dlg);
+end
