@@ -52,22 +52,27 @@ while (j <= length(pos))
         waitbar(j/length(pos),wait_dlg)
     end
     
-    if (msg(pos(j)+1) ~= 16)
-        %if it's a single <DLE>, leave it be
-        pos(j) = [];
-        j = j - 1;
-    else
-        %count the number of consecutive <DLE>s
-        k = 1;
-        while(msg(pos(j)+k) == 16)
-            k = k + 1;
+    if (length(msg) >= pos(j)+1)
+        if (msg(pos(j)+1) ~= 16)
+            %if it's a single <DLE>, leave it be
+            pos(j) = [];
+            j = j - 1;
+        else
+            %count the number of consecutive <DLE>s
+            k = 1;
+            while(msg(pos(j)+k) == 16)
+                k = k + 1;
+            end
+            rmv = j:2:j+k-1;
+            len_rmv = length(rmv);
+            pos(rmv) = [];
+            j = j + len_rmv - 1;
         end
-        rmv = j:2:j+k-1;
-        len_rmv = length(rmv);
-        pos(rmv) = [];
-        j = j + floor(len_rmv/2);
+        j = j + 1;
+    else
+        pos(j) = [];
+        break
     end
-    j = j + 1;
 end
 msg(pos) = [];
 out = msg;
