@@ -1872,7 +1872,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == goGNSS.MODE_RT_R_MON)
-    goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop, goIni.getCaptureRate());
+    goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop, goIni.getCaptureRate(), constellations);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: MASTER MONITORING

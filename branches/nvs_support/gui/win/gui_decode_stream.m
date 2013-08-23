@@ -95,10 +95,33 @@ position(2) = (screenSize(4)-position(4))/2;
 set(hObject, 'Position', position);
 if (~isempty(varargin))
     set(handles.data_stream,'String',varargin{1});
-    temp = varargin{1};
-    temp = temp( max(strfind(temp, '/'))+1:end );
-    set(handles.data_out_name,'String',temp);
-    clear temp
+    if (numel(varargin) > 1)
+        temp = varargin{2};
+        temp = temp(max(strfind(temp, '/'))+1:end);
+        set(handles.data_out_name,'String',temp);
+        clear temp
+    end
+    if (numel(varargin) > 2)
+        constellations = varargin{3};
+        set(handles.cGPS, 'Value', constellations.GPS.enabled);
+        set(handles.cGLONASS, 'Value', constellations.GLONASS.enabled);
+        set(handles.cGalileo, 'Value', constellations.Galileo.enabled);
+        set(handles.cBeiDou, 'Value', constellations.BeiDou.enabled);
+        set(handles.cQZSS, 'Value', constellations.QZSS.enabled);
+        set(handles.cSBAS, 'Value', constellations.SBAS.enabled);
+        
+        %set RINEX output
+        set(handles.out_gogps_binary, 'Value', 0);
+        set(handles.out_rinex, 'Value', 1);
+        eventdata.EventName = 'SelectionChanged';
+        eventdata.OldValue = handles.out_gogps_binary;
+        eventdata.NewValue = handles.out_rinex;
+        output_type_SelectionChangeFcn(handles.out_rinex, eventdata, handles);
+        if (constellations.BeiDou.enabled || constellations.QZSS.enabled)
+            set(handles.rinex_version, 'Value', 2); %set RINEX v3.xx
+            rinex_version_Callback(handles.rinex_version, eventdata, handles);
+        end
+    end
 end
 
 % --- Outputs from this function are returned to the command line.
@@ -281,6 +304,7 @@ elseif (get(handles.output_type, 'SelectedObject') == handles.out_rinex)
     rinex_metadata.version = rin_ver(2:end);
     rinex_metadata.marker_name = get(handles.marker_name,'String');
     rinex_metadata.marker_type = contents_marker_type{get(handles.marker_type,'Value')};
+    rinex_metadata.marker_type(rinex_metadata.marker_type == '*') = [];
     rinex_metadata.agency = get(handles.agency,'String');
     rinex_metadata.observer = get(handles.observer,'String');
     rinex_metadata.observer_agency = get(handles.observer_agency,'String');

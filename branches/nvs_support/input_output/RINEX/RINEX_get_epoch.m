@@ -142,7 +142,7 @@ while (eof==0)
     else %RINEX v3.xx
         
         %check if it is a string that should be analyzed
-        if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
+        if (strcmp(lin(32),'0') || strcmp(lin(32),'1') || strcmp(lin(32),'2'))
             
             %save time information
             data   = textscan(lin(2:29),'%f%f%f%f%f%f');

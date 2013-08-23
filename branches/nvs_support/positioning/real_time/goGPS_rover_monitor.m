@@ -1,7 +1,7 @@
-function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop, rate)
+function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop, rate, constellations)
 
 % SYNTAX:
-%   goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop);
+%   goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop, rate, constellations);
 %
 % INPUT:
 %   filerootOUT = output file prefix
@@ -9,6 +9,8 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 %   flag_var_dyn_model = enable / disable variable dynamic model
 %   flag_stopGOstop    = enable / disable stop-go-stop procedure for direction estimation
 %   rate = measurement rate to be set (default = 1 Hz)
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % DESCRIPTION:
 %   Monitor of receiver operations: stream reading, data visualization 
@@ -45,12 +47,6 @@ if (nargin == 4)
     rate = 1;
 end
 
-%------------------------------------------------------
-% multi-constellation
-%------------------------------------------------------
-
-%enable all supported constellations
-[constellations] = goGNSS.initConstellation(1, 1, 1, 1, 1, 1);
 num_sat = constellations.nEnabledSat;
 
 %------------------------------------------------------
@@ -483,6 +479,10 @@ while flag
         %test if the package writing is finished
         if (rover_1 == rover_2) && (rover_1 ~= 0)
             
+            %visualization
+            fprintf('\n');
+            fprintf('---------------------------------------------------\n')
+            
             data_rover = fread(rover{r},rover_1,'uint8');  %serial port reading
             fwrite(fid_rover{r},data_rover,'uint8');       %transmitted stream save
             if (protocol(r) == 3), data_rover = remove_double_10h(data_rover); end
@@ -704,8 +704,6 @@ while flag
             %----------------------------------
 
             %visualization
-            fprintf('\n');
-            fprintf('---------------------------------------------------\n')
             fprintf([prot_par{r}{1,1} '(' num2str(r) ')' ': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time-start_time, rover_1, rover_2);
             fprintf('MSG types: %s\n', type);
 
@@ -910,6 +908,10 @@ switch selection,
         
         for r = 1 : nrec
             recname = [prot_par{r}{1,1} num2str(r)];
-            streamR2RINEX([filerootOUT '_' recname],[filerootOUT '_' recname '_rover']);
+            if (~isunix)
+                gui_decode_stream([filerootOUT '_' recname '_rover_00.bin'], [filerootOUT '_' recname], constellations);
+            else
+                gui_decode_stream_unix([filerootOUT '_' recname '_rover_00.bin'], [filerootOUT '_' recname], constellations);
+            end
         end
 end
