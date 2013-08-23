@@ -194,9 +194,9 @@ for j = 1 : NSV
     
     %floating point value decoding (single floating point)
     sign = fbin2dec(D1field(1));
-    esp  = fbin2dec(D1field(2:9));
-    mant = fbin2dec(D1field(10:32)) / 2^23;
-    D1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    esp  = fbin2dec(D1field(2:12));
+    mant = fbin2dec(D1field(13:64)) / 2^52;
+    D1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     
     %------------------------------------------------
     
