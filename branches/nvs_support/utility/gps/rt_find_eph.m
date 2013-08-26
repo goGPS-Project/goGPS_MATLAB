@@ -35,6 +35,7 @@ function [Eph_t] = rt_find_eph(Eph_in, time, nsat)
 %----------------------------------------------------------------------------------------------
 
 empty_col = zeros(33,1);
+Eph_t     = zeros(33,nsat);
 
 for sv = 1 : nsat
     icol = find_eph(Eph_in, sv, time);

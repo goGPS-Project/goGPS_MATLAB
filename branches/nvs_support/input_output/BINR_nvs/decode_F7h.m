@@ -120,7 +120,7 @@ type = fliplr(reshape(type,8,[]));                % byte order inversion (little
 type = type(:)';
 type = fbin2dec((type(1:8)));
 
-%satellite PRN (4 bytes)
+%satellite PRN (1 byte)
 PRN = msg(pos:pos+7); pos = pos + 8;
 PRN = fliplr(reshape(PRN,8,[]));                  % byte order inversion (little endian)
 PRN = PRN(:)';
@@ -467,10 +467,7 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     
     %------------------------------------------------
     % Carrier Number
-    Carrier_num = msg(pos:pos+7); pos = pos + 8;
-    Carrier_num = fliplr(reshape(Carrier_num,8,[]));  % byte order inversion (little endian)
-    Carrier_num = Carrier_num(:)';
-    Carrier_num = fbin2dec((Carrier_num(1:8)));
+    Carrier_num = twos_complement(msg(pos:pos+7)); pos = pos + 8;
     
     %------------------------------------------------
     %X, m
@@ -631,11 +628,13 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     En = En_1 + (En_2 * 2^8);                       % little endian
     
     %------------------------------------------------
+    tk = tb - 10800; %tb is a time interval within the current day (UTC + 3 hours)
     
+    %------------------------------------------------
     data{2}(1) = PRN;
     data{2}(2) = tn;      %TauN
     data{2}(3) = gamma_n; %GammaN
-    data{2}(4) = tb;      %tk
+    data{2}(4) = tk;
     data{2}(5) = Xm;
     data{2}(6) = Ym;
     data{2}(7) = Zm;
@@ -647,22 +646,22 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     data{2}(13) = Az;
     data{2}(14) = En;      %E
     data{2}(15) = Carrier_num;
-    data{2}(16) = 0;
+    data{2}(16) = tb;
     data{2}(17) = 0;
-    data{2}(18) = 0; %<--- toe (TODO)
+    data{2}(18) = NaN; %toe not available, taken care of by the caller
     data{2}(19) = 0;
     data{2}(20) = 0;
     data{2}(21) = 0;
     data{2}(22) = 0;
     data{2}(23) = 0;
-    data{2}(24) = 0; %<--- week (TODO)
+    data{2}(24) = 0; %weekno not available, taken care of by the caller
     data{2}(25) = 0;
     data{2}(26) = 0;
-    data{2}(27) = 0; %<--- health (TODO)
+    data{2}(27) = 0; %sv health not available
     data{2}(28) = 0;
     data{2}(29) = 0;
     data{2}(30) = constellations.GLONASS.indexes(PRN);
     data{2}(31) = int8('R');
-    data{2}(32) = 0; %<--- continuous toe (TODO)
+    data{2}(32) = 0; %continuous toe taken care of by the caller
     data{2}(33) = 0;
 end
