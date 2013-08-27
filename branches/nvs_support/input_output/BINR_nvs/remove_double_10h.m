@@ -62,6 +62,9 @@ while (j <= length(pos))
             k = 1;
             while(msg(pos(j)+k) == 16)
                 k = k + 1;
+                if (length(msg) < pos(j)+k)
+                    break
+                end
             end
             rmv = j:2:j+k-1;
             len_rmv = length(rmv);
