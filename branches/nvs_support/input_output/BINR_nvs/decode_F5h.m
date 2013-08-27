@@ -64,6 +64,11 @@ data{1} = 'F5h';
 
 %------------------------------------------------
 
+%check the minimum allowed length of the message
+if (length(msg) < 216)
+    return
+end
+
 %calculate the number of visible satellites
 NSV = (length(msg) - 216)/240; % 27*8 bits = 216, 30*8 bits = 240
 
