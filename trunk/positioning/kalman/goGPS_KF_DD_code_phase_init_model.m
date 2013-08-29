@@ -1,11 +1,11 @@
 function [kalman_initialized] = goGPS_KF_DD_code_phase_init_model(XR0, XM, time_rx, pr1_R, pr1_M, ...
          ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, order, phase, dtMdot, flag_IAR)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, order, phase, dtMdot, flag_IAR)
 
 % SYNTAX:
 %   [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
 %        ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, order, phase, dtMdot, flag_IAR);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, order, phase, dtMdot, flag_IAR);
 %
 % INPUT:
 %   XR0 = rover approximate position (X,Y,Z)
@@ -28,6 +28,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init_model(XR0, XM, time_
 %   Eph = satellites ephemerides
 %   SP3 = structure containing precise ephemeris data
 %   iono =  ionospheric parameters (vector of zeroes if not available)
+%   lambda = wavelength matrix (depending on the enabled constellations)
 %   order = dynamic model order (1,2,3)
 %   phase = carrier L1 (phase=1) carrier L2 (phase=2)
 %   dtMdot = master receiver clock drift
@@ -89,8 +90,8 @@ azM = zeros(nSatTot,1);
 elM = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
 
-%retrieve multi-constellation wavelengths
-lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+%compute inter-frequency factors (for the ionospheric delay)
+ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DOUBLE FREQUENCY
@@ -196,22 +197,30 @@ if (length(sat_pr) >= 4)
     
     sat_pr_old = sat_pr;
     
-    if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+    if (phase(1) == 1)
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        
+        err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
+        err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   cutoff, snr_threshold,       2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, cutoff, snr_threshold, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        
+        err_iono1_M = err_iono2_M ./ ionoFactor(sat_pr_M,2);
+        err_iono1_R = err_iono2_R ./ ionoFactor(sat_pr_R,2);
     end
     
     %keep only satellites that rover and master have in common
     [sat_pr, iR, iM] = intersect(sat_pr_R, sat_pr_M);
     err_tropo_R = err_tropo_R(iR);
-    err_iono_R  = err_iono_R (iR);
     err_tropo_M = err_tropo_M(iM);
-    err_iono_M  = err_iono_M (iM);
+    err_iono1_R = err_iono1_R(iR);
+    err_iono1_M = err_iono1_M(iM);
+    err_iono2_R = err_iono2_R(iR);
+    err_iono2_M = err_iono2_M(iM);
     
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
@@ -306,8 +315,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [     XR, N1(sat),      cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS(index,:), pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono_R(index), err_tropo_M(index), err_iono_M(index), pivot_index, lambda(sat,1), 0);
-        [null_XR, N2(sat), null_cov_XR, cov_N2] = LS_DD_code_phase(XR, XM, XS(index,:), pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono_R(index), err_tropo_M(index), err_iono_M(index), pivot_index, lambda(sat,2), 0); %#ok<ASGLU>
+        [     XR, N1(sat),      cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS(index,:), pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono1_R(index), err_tropo_M(index), err_iono1_M(index), pivot_index, lambda(sat,1), 0);
+        [null_XR, N2(sat), null_cov_XR, cov_N2] =                   LS_DD_code_phase(XR, XM, XS(index,:), pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono2_R(index), err_tropo_M(index), err_iono2_M(index), pivot_index, lambda(sat,2), 0); %#ok<ASGLU>
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix

@@ -339,8 +339,10 @@ obs_R = RINEX_get_obs(FR_oss, num_sat_R, sat_R, sat_types_R, obs_col_R, nObsType
 
 %read ROVER observations
 if (sum(obs_R.P1 ~= 0) == sum(obs_R.C1 ~= 0))
+    fprintf('Rover: using P1 code observations.\n');
     pr1_R(:,1) = obs_R.P1;
 else
+    fprintf('Rover: using C1 code observations.\n');
     pr1_R(:,1) = obs_R.C1;
 end
 pr2_R(:,1) = obs_R.P2;
@@ -357,8 +359,10 @@ if (filename_M_obs_PresenceFlag)
     
     %read MASTER observations
     if (sum(obs_M.P1 ~= 0) == sum(obs_M.C1 ~= 0))
+        fprintf('Master: using P1 code observations.\n');
         pr1_M(:,1) = obs_M.P1;
     else
+        fprintf('Master: using C1 code observations.\n');
         pr1_M(:,1) = obs_M.C1;
     end
     pr2_M(:,1) = obs_M.P2;

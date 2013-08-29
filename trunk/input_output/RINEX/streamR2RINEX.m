@@ -379,6 +379,9 @@ if (~isempty(data_rover_all))
     
     pos_R = zeros(3,1);
     
+    %retrieve multi-constellation wavelengths
+    lambda = goGNSS.getGNSSWavelengths(Eph_R, size(pr1_R,1));
+    
     %if ephemerides are available
     if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
         cutoff = 15;
@@ -395,7 +398,7 @@ if (~isempty(data_rover_all))
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
-                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
+                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, lambda(satAvail,:), cutoff, snr_threshold, 1, 0, 0);
             end
             i = i + 1;
         end

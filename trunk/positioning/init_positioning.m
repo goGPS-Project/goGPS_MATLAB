@@ -1,7 +1,7 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, cutoff_el, cutoff_snr, flag_XR, flag_XS)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS)
 
 % SYNTAX:
-%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, cutoff_el, cutoff_snr, flag_XR, flag_XS);
+%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -16,8 +16,10 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   XS0         = satellite positions (=[] if not available)
 %   dtS0        = satellite clocks (=[] if not available)
 %   sat0        = available satellite PRNs
+%   lambda      = wavelength matrix (depending on the enabled constellations)
 %   cutoff_el   = elevation cutoff
 %   cutoff_snr  = signal-to-noise ratio cutoff
+%   phase       = L1 carrier (phase=1), L2 carrier (phase=2)
 %   flag_XR     = 0: unknown
 %                 1: approximated
 %                 2: fixed
@@ -72,6 +74,9 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %----------------------------------------------------------------------------------------------
 
 v_light = goGNSS.V_LIGHT;
+
+%compute inter-frequency factors (for the ionospheric delay)
+ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
 %----------------------------------------------------------------------------------------------
 % FIRST ESTIMATE OF SATELLITE POSITIONS
@@ -172,6 +177,7 @@ dist = dist(index);
 XS   = XS(index,:);
 dtS  = dtS(index);
 is_GLO = is_GLO(index);
+ionoFactor = ionoFactor(index,:);
 nsat = size(pseudorange,1);
 if (flag_XS == 1)
     XS0  = XS0(index,:);
@@ -232,6 +238,9 @@ if (nsat >= nsat_required)
 
         %computation of ionospheric errors
         err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);
+        
+        %correct the ionospheric errors for different frequencies
+        err_iono = ionoFactor(:,phase).*err_iono;
 
         if (flag_XR < 2) %if unknown or approximate receiver position
             [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, is_GLO);
