@@ -114,28 +114,32 @@ if (~isempty(data_rover_all))
     end
     
     %detect binary format
-    header1 = 'B5';      % UBX header (hexadecimal value)
-    header2 = '62';      % UBX header (hexadecimal value)
-    codeHEX = [header1 header2];                % initial hexadecimal stream
+    pattern1 = 'B5';      % UBX pattern (hexadecimal value)
+    pattern2 = '62';      % UBX pattern (hexadecimal value)
+    codeHEX = [pattern1 pattern2];              % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
     pos_UBX = findstr(data_rover_all, codeBIN); % message initial index
 
-    header1 = 'A0';      % SkyTraq header (hexadecimal value)
-    header2 = 'A1';      % SkyTraq header (hexadecimal value)
-    codeHEX = [header1 header2];                % initial hexadecimal stream
-    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_STQ = findstr(data_rover_all, codeBIN); % message initial index
+    pattern1 = '0D';      % SkyTraq pattern (hexadecimal value)
+    pattern2 = '0A';      % SkyTraq pattern (hexadecimal value)
+    pattern3 = 'A0';      % SkyTraq pattern (hexadecimal value)
+    pattern4 = 'A1';      % SkyTraq pattern (hexadecimal value)
+    codeHEX = [pattern1 pattern2 pattern3 pattern4]; % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),32);          % initial binary stream
+    pos_STQ = findstr(data_rover_all, codeBIN);      % message initial index
 
-    header1 = '3C';      % Fastrax header (hexadecimal value)
-    header2 = '21';      % Fastrax header (hexadecimal value)
-    codeHEX = [header1 header2];                % initial hexadecimal stream
-    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
+    pattern1 = '3E';      % Fastrax pattern (hexadecimal value)
+    pattern2 = '3C';      % Fastrax pattern (hexadecimal value)
+    pattern3 = '21';      % Fastrax pattern (hexadecimal value)
+    codeHEX = [pattern1 pattern2 pattern3];     % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),24);     % initial binary stream
     pos_FTX = findstr(data_rover_all, codeBIN); % message initial index
     
-    header1 = '03';      % NVS footer (hexadecimal value)
-    header2 = '10';      % NVS header (hexadecimal value)
-    codeHEX = [header1 header2];                % initial hexadecimal stream
-    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
+    pattern1 = '10';      % NVS pattern (hexadecimal value)
+    pattern2 = '03';      % NVS pattern (hexadecimal value)
+    pattern3 = '10';      % NVS pattern (hexadecimal value)
+    codeHEX = [pattern1 pattern2 pattern3];     % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),24);     % initial binary stream
     pos_NVS = findstr(data_rover_all, codeBIN); % message initial index
 
     if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)) && (length(pos_UBX) > length(pos_NVS)))
