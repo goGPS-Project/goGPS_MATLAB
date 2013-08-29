@@ -35,14 +35,14 @@
 classdef goGNSS < handle
     
     % Constant values
-    % => to discriminate them from function (in autocompletition) they are
+    % => to discriminate them from function (in autocompletion) they are
     % written in capital letters
     properties (Constant)
         % GENERIC CONSTANTS -----------------------------------------------
         
         V_LIGHT = 299792458;                  % velocity of light in the void [m/s]
         
-        MAX_SAT = 32                                  % Maximum number of active satellites in a constellation
+        MAX_SAT = 32                          % Maximum number of active satellites in a constellation
         
         % CONSTELLATION REF -----------------------------------------------
         % CRS parameters, according to each GNSS system CRS definition
@@ -368,6 +368,10 @@ classdef goGNSS < handle
             pos2 = find(strcmp(char(Eph(31,:)),'R'));
             pos = interesct(pos1, pos2);
             GLOFreqNum = Eph(15,pos);
+        end
+        
+        function [IonoFactor] = getInterFreqIonoFactor(lambda)
+            IonoFactor = (lambda(:,:)./goGNSS.LAMBDAG(1)).^2;
         end
     end
     

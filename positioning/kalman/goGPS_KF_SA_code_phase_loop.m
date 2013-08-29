@@ -1,7 +1,7 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, phase, flag_IAR)
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, phase, flag_IAR)
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, phase, flag_IAR);
+%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, phase, flag_IAR);
 %
 % INPUT:
 %   time_rx = GPS time
@@ -16,6 +16,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_l
 %   SP3 = structure containing precise ephemeris data
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   sbas = SBAS corrections
+%   lambda = wavelength matrix (depending on the enabled constellations)
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %
@@ -84,9 +85,8 @@ elM = zeros(nSatTot,1);
 distR = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
 
-%retrieve multi-constellation wavelengths
-lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
-L2IonoFactor = (lambda(:,2)./lambda(:,1)).^2;
+%compute inter-frequency factors (for the ionospheric delay)
+ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
 %----------------------------------------------------------------------------------------
 % MODEL ERROR COVARIANCE MATRIX
@@ -227,13 +227,15 @@ if (nsat >= min_nsat)
     
     sat_pr_old = sat_pr;
     
-    if (phase == 1)
-        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
+    if (phase(1) == 1)
+        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<NASGU,ASGLU>
+        
+        err_iono2 = err_iono1 .* ionoFactor(sat_pr,2);
     else
-        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, cutoff, snr_threshold, flag_XR, 0); %#ok<NASGU,ASGLU>
+        [~, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono2, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<NASGU,ASGLU>
+        
+        err_iono1 = err_iono2 ./ ionoFactor(sat_pr,2);
     end
-    
-    L2IonoFactor = L2IonoFactor(sat_pr);
     
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
@@ -333,17 +335,17 @@ if (nsat >= min_nsat)
             %Test presence/absence of a cycle-slip at the current epoch.
             %The state of the system is not changed yet
             if (length(phase) == 2)
-                [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), pr1(sat), ph1(sat), err_iono(phase_index), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
-                [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), pr2(sat), ph2(sat), L2IonoFactor(phase_index) .* err_iono(phase_index), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
+                [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           pr1(sat), ph1(sat), err_iono1(phase_index), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
+                [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), pr2(sat), ph2(sat), err_iono2(phase_index), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 
                 if (check_cs1 | check_cs2)
                     check_cs = 1;
                 end
             else
                 if (phase == 1)
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), pr1(sat), ph1(sat), err_iono(phase_index), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           pr1(sat), ph1(sat), err_iono1(phase_index), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 else
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), pr2(sat), ph2(sat), L2IonoFactor(phase_index) .* err_iono(phase_index), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), pr2(sat), ph2(sat), err_iono2(phase_index), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 end
             end
         else
@@ -360,8 +362,8 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         
         if (length(phase) == 2)
-            [N1_slip, N1_born, dtR1] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono, is_GLO, lambda(sat_pr,1), X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
-            [N2_slip, N2_born, dtR2] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, distR(sat_pr), err_tropo, L2IonoFactor .* err_iono, is_GLO, lambda(sat_pr,2), X_t1_t(o3+sat), Cee(o3+sat, o3+sat)); %#ok<NASGU>
+            [N1_slip, N1_born, dtR1] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono1, is_GLO, lambda(sat_pr,1), X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
+            [N2_slip, N2_born, dtR2] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono2, is_GLO, lambda(sat_pr,2), X_t1_t(o3+sat), Cee(o3+sat, o3+sat)); %#ok<NASGU>
             
             %choose one of the two estimates
             dtR = dtR1;
@@ -388,9 +390,9 @@ if (nsat >= min_nsat)
             end
         else
             if (phase == 1)
-                [N_slip, N_born, dtR] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono, is_GLO, lambda(sat_pr,1), X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
+                [N_slip, N_born, dtR] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono1, is_GLO, lambda(sat_pr,1), X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
             else
-                [N_slip, N_born, dtR] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat_slip, sat_born, distR(sat_pr), err_tropo, L2IonoFactor .* err_iono, is_GLO, lambda(sat_pr,2), X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
+                [N_slip, N_born, dtR] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono2, is_GLO, lambda(sat_pr,2), X_t1_t(o3+sat), Cee(o3+sat, o3+sat));
             end
             
             if (check_on)
@@ -415,7 +417,7 @@ if (nsat >= min_nsat)
         p = find(ismember(sat_pr,sat)==1);
         
         %function that calculates the Kalman filter parameters
-        [alpha, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(XR0, XS, distR(sat_pr), dtR, dtS, err_tropo, err_iono, lambda(sat_pr,:));
+        [alpha, prstim_pr1, prstim_ph1, prstim_pr2, prstim_ph2] = input_kalman_SA(XR0, XS, distR(sat_pr), dtR, dtS, err_tropo, err_iono1, err_iono2);
         
         %zeroes vector useful in matrix definitions
         Z_1_nN = zeros(1,nN);
