@@ -861,7 +861,11 @@ if (~isempty(data_rover_all))
                     linesE = [];
                     
                     %if GPS
-                    if (strcmp(ext(f),'n') && strcmp(char(Eph_R(31,idxEph(j),i)),'G'))
+                    if ((strcmp(ext(f),'n') &&  strcmp(char(Eph_R(31,idxEph(j),i)),'G')) || ...
+                        (strcmp(ext(f),'p') && (strcmp(char(Eph_R(31,idxEph(j),i)),'G')  || ...
+                                                strcmp(char(Eph_R(31,idxEph(j),i)),'E')  || ...
+                                                strcmp(char(Eph_R(31,idxEph(j),i)),'C')  || ...
+                                                strcmp(char(Eph_R(31,idxEph(j),i)),'J'))))
 
                         prn      = Eph_R(1,idxEph(j),i);
                         af2      = Eph_R(2,idxEph(j),i);
@@ -912,7 +916,7 @@ if (~isempty(data_rover_all))
                             linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
                         %if RINEX v3.xx
                         else
-                            lineE(1,:) = sprintf('%c%2d %04d %2d %2d %2d %2d %2d% 18.12E% 18.12E% 18.12E\n', ...
+                            lineE(1,:) = sprintf('%c%02d %04d %2d %2d %2d %2d %2d% 18.12E% 18.12E% 18.12E\n', ...
                                 char(sys), prn, date_toc(1), date_toc(2), date_toc(3), date_toc(4), date_toc(5), date_toc(6), af0, af1, af2);
                             linesE(1,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', IODE , crs, deltan, M0);
                             linesE(2,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
@@ -923,7 +927,7 @@ if (~isempty(data_rover_all))
                             linesE(7,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
                         end
                     %if GLONASS
-                    elseif (strcmp(ext(f),'g') && strcmp(char(Eph_R(31,idxEph(j),i)),'R'))
+                    elseif ((strcmp(ext(f),'g') || strcmp(ext(f),'p')) && strcmp(char(Eph_R(31,idxEph(j),i)),'R'))
                         prn      = Eph_R(1,idxEph(j),i);
                         TauN     = Eph_R(2,idxEph(j),i);
                         GammaN   = Eph_R(3,idxEph(j),i);
@@ -941,6 +945,7 @@ if (~isempty(data_rover_all))
                         freq_num = Eph_R(15,idxEph(j),i);
                         tb       = Eph_R(16,idxEph(j),i); %#ok<NASGU>
                         Bn       = Eph_R(27,idxEph(j),i);
+                        sys      = Eph_R(31,idxEph(j),i);
                         
                         %time of measurement decoding and
                         %conversion from GPS date to GLONASS (UTC) date
@@ -962,7 +967,7 @@ if (~isempty(data_rover_all))
                             linesE(3,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', Z, Zv, single(Za), E);
                         %if RINEX v3.xx
                         else
-                            lineE(1,:) = sprintf('%c%2d %04d %2d %2d %2d %2d %2d% 18.12E% 18.12E% 18.12E\n', ...
+                            lineE(1,:) = sprintf('%c%02d %04d %2d %2d %2d %2d %2d% 18.12E% 18.12E% 18.12E\n', ...
                                 char(sys), prn, date_GLO(1), date_GLO(2), date_GLO(3), date_GLO(4), date_GLO(5), date_GLO(6), -TauN, GammaN, tk);
                             linesE(1,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', X, Xv, single(Xa), Bn);
                             linesE(2,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', Y, Yv, single(Ya), freq_num);
