@@ -37,6 +37,9 @@ if (nargin == 4)
     waitbar(0.5,wait_dlg,'Reading master stream files...')
 end
 
+%check if the system uses 3-digit exponential notation
+three_digit_exp = (length(sprintf('%1.1E',1)) == 8);
+
 %MASTER stream reading
 data_master_all = [];                                                %overall stream
 hour = 0;                                                            %hour index (integer)
@@ -419,9 +422,9 @@ if (~isempty(data_master_all))
                     linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
                     linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0); %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
                     
-                    %if running on Windows, convert three-digits exponential notation
+                    %if needed, convert three-digits exponential notation
                     %to two-digits; in any case, replace 'E' with 'D' and print the string
-                    if (~isunix)
+                    if (three_digit_exp)
                         lineD = strrep(lineE(1,:),'E+0','D+');
                         lineD = strrep(lineD,'E-0','D-');
                         fprintf(fid_nav,'%s',lineD);
