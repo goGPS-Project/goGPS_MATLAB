@@ -43,6 +43,9 @@ if (nargin == 3)
     waitbar(0.5,wait_dlg,'Reading rover stream files...')
 end
 
+%check if the system uses 3-digit exponential notation
+three_digit_exp = (length(sprintf('%1.1E',1)) == 8);
+
 %ROVER stream reading
 data_rover_all = [];                                                 %overall stream
 hour = 0;                                                            %hour index (integer)
@@ -525,16 +528,16 @@ if (~isempty(data_rover_all))
         fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
         fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
         if (~isempty(pos))
-            if (~isunix)
+            if (three_digit_exp)
                 line_alphaE = sprintf('  %13.4E%13.4E%13.4E%13.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
                 line_betaE  = sprintf('  %13.4E%13.4E%13.4E%13.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
             else
                 line_alphaE = sprintf('  %12.4E%12.4E%12.4E%12.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
                 line_betaE  = sprintf('  %12.4E%12.4E%12.4E%12.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
             end
-            %if running on Windows, convert three-digits exponential notation
+            %if needed, convert three-digits exponential notation
             %to two-digits; in any case, replace 'E' with 'D' and print the string
-            if (~isunix)
+            if (three_digit_exp)
                 line_alphaD = strrep(line_alphaE(1,:),'E+0','D+');
                 line_alphaD = strrep(line_alphaD,'E-0','D-');
                 fprintf(fid_nav,'%s',line_alphaD);
@@ -608,9 +611,9 @@ if (~isempty(data_rover_all))
                 linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
                 linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
                 
-                %if running on Windows, convert three-digits exponential notation
+                %if needed, convert three-digits exponential notation
                 %to two-digits; in any case, replace 'E' with 'D' and print the string
-                if (~isunix)
+                if (three_digit_exp)
                     lineD = strrep(lineE(1,:),'E+0','D+');
                     lineD = strrep(lineD,'E-0','D-');
                     fprintf(fid_nav,'%s',lineD);
