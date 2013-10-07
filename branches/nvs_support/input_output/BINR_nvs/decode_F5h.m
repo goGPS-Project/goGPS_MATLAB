@@ -249,10 +249,18 @@ for j = 1 : NSV
     end
 end
 
-% if (any(data{3}(:,2) < -10e-6) || any(data{3}(:,2) > 60e6))
-%     %discard everything if there is at least one anomalous pseudorange
-%     data = cell(3,1);
-%     data{1} = 0;
-%     data{2} = zeros(3,1);
-%     data{3} = zeros(constellations.nEnabledSat,6);
-% end
+if (any(data{3}(:,2) < 0) || any(data{3}(:,2) > 60e6))
+
+    %discard everything if there is at least one anomalous pseudorange
+    % (i.e. if pseudorange ambiguity not solved yet)
+    data = cell(3,1);
+    data{1} = 0;
+    data{2} = zeros(3,1);
+    data{3} = zeros(constellations.nEnabledSat,6);
+
+%     %discard satellites with anomalous pseudoranges
+%     pos1 = find(data{3}(:,2) < 0);
+%     pos2 = find(data{3}(:,2) > 60e6);
+%     pos  = union(pos1,pos2);
+%     data{3}(pos,:) = zeros(length(pos),6);
+end
