@@ -757,9 +757,9 @@ while flag
                 end
             end
 
-            %visualization (AID-EPH | FTX-EPH | GPS_EPH | F7 information)
+            %visualization (AID-EPH | FTX-EPH | GPS_EPH | F7h information)
             if (nEPH > 0)
-                sat = find(sum(abs(Eph{r}))>0);
+                sat = find(Eph{r}(1,:));
                 sid = Eph{r}(1,sat);
                 sys = Eph{r}(31,sat);
                 fprintf('Eph: ');
