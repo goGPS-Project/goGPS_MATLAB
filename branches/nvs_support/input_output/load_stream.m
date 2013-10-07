@@ -532,9 +532,9 @@ if ~isempty(data_master_all)
         [cell_master] = decode_rtcm2(sixofeight);
     else
         if (nargin == 3)
-            [cell_master] = decode_rtcm3(data_master_all, wait_dlg);
+            [cell_master] = decode_rtcm3(data_master_all, constellations, wait_dlg);
         else
-            [cell_master] = decode_rtcm3(data_master_all);
+            [cell_master] = decode_rtcm3(data_master_all, constellations);
         end
     end
 
@@ -560,11 +560,13 @@ if ~isempty(data_master_all)
         elseif (cell_master{1,j} == 18)
         elseif (cell_master{1,j} == 19)
         elseif (cell_master{1,j} == 1002) | (cell_master{1,j} == 1004) %RTCM 1002 or 1004 message
+            
+            idx = constellations.GPS.indexes;
 
             time_M(i)  = cell_master{2,j}(2);             %GPS time logging
-            pr1_M(:,i) = cell_master{3,j}(:,2);           %code observations logging
-            ph1_M(:,i) = cell_master{3,j}(:,3);           %phase observations logging
-            snr_M(:,i) = cell_master{3,j}(:,5);           %signal-to-noise ratio logging
+            pr1_M(idx,i) = cell_master{3,j}(idx,2);       %code observations logging
+            ph1_M(idx,i) = cell_master{3,j}(idx,3);       %phase observations logging
+            snr_M(idx,i) = cell_master{3,j}(idx,5);       %signal-to-noise ratio logging
 
             i = i+1;                                      %epoch counter increase
 
@@ -582,23 +584,41 @@ if ~isempty(data_master_all)
             if (i == 2) & (pos_M(:,1) == 0)
                 pos_M(:,i-1) = pos_M(:,i);
             end
-
+            
         elseif (cell_master{1,j} == 1006)                 %RTCM 1006 message
-
+            
             coordX_M = cell_master{2,j}(8);
             coordY_M = cell_master{2,j}(9);
             coordZ_M = cell_master{2,j}(10);
-
+            
             pos_M(:,i) = [coordX_M; coordY_M; coordZ_M];
             
             if (i == 2) & (pos_M(:,1) == 0)
                 pos_M(:,i-1) = pos_M(:,i);
             end
-
+            
+        elseif (cell_master{1,j} == 1010) | (cell_master{1,j} == 1012) %RTCM 1010 or 1012 message
+            
+            if (constellations.GLONASS.enabled)
+                idx = constellations.GLONASS.indexes;
+                
+                %time_M(i)  = cell_master{2,j}(2);             %GLONASS time logging
+                pr1_M(idx,i) = cell_master{3,j}(idx,2);       %code observations logging
+                ph1_M(idx,i) = cell_master{3,j}(idx,3);       %phase observations logging
+                snr_M(idx,i) = cell_master{3,j}(idx,5);       %signal-to-noise ratio logging
+            end
+            
         elseif (cell_master{1,j} == 1019)                 %RTCM 1019 message
-
-            sat = cell_master{2,j}(1);                    %satellite number
-            Eph_M(:,sat,i) = cell_master{2,j}(:);         %single satellite ephemerides logging
+            
+            sat = cell_master{2,j}(30);                   %satellite number
+            Eph_M(:,sat,i) = cell_master{2,j}(:);         %single satellite ephemerides logging (GPS)
+            
+        elseif (cell_master{1,j} == 1020)                 %RTCM 1020 message
+            
+            if (constellations.GLONASS.enabled)
+                sat = cell_master{2,j}(30);                   %satellite number
+                Eph_M(:,sat,i) = cell_master{2,j}(:);         %single satellite ephemerides logging (GLO)
+            end
         end
     end
 

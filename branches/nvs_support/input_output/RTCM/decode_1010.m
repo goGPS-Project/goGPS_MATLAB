@@ -1,10 +1,12 @@
-function [data] = decode_1010(msg)
+function [data] = decode_1010(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_1010(msg)
+%   [data] = decode_1010(msg, constellations)
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the 1010 packet information
@@ -52,7 +54,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(6,1);
-data{3} = zeros(32,12);
+data{3} = zeros(constellations.nEnabledSat,12);
 
 %message number = 1010
 DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
@@ -120,21 +122,26 @@ for i = 1 : NSV
         DF045 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
         %---------------------------------------------------------
-
-        %carrier L1 frequency [MHz]
-        data{3}(SV,6) = (DF040 - 7) * 0.5625 + 1602.0;
-
-        %debugging
-        %v_light / (data{3}(SV,6) * 1e6)
-
-        %---------------------------------------------------------
-
-        %output data save
-        data{3}(SV,1)  = DF039;
-        data{3}(SV,2)  = (DF041 * 0.02) + (DF044 * 599584.92);
-        data{3}(SV,3)  = (data{3}(SV,2) + (DF042 * 0.0005)) * data{3}(SV,6) * 1e6 / goGNSS.V_LIGHT;
-        data{3}(SV,4)  = DF043;
-        data{3}(SV,5)  = DF045 * 0.25;
+        
+        % assign constellation-specific indexes
+        if (constellations.GLONASS.enabled)
+            idx = constellations.GLONASS.indexes(SV);
+            
+            %carrier L1 frequency [MHz]
+            data{3}(idx,6) = (DF040 - 7) * 0.5625 + 1602.0;
+            
+            %debugging
+            %v_light / (data{3}(SV,6) * 1e6)
+            
+            %---------------------------------------------------------
+            
+            %output data save
+            data{3}(idx,1)  = DF039;
+            data{3}(idx,2)  = (DF041 * 0.02)  + (DF044 * 599584.92);
+            data{3}(idx,3)  = (data{3}(idx,2) + (DF042 * 0.0005)) * data{3}(idx,6) * 1e6 / goGNSS.V_LIGHT;
+            data{3}(idx,4)  = DF043;
+            data{3}(idx,5)  = DF045 * 0.25;
+        end
 
     else %SBAS satellites
 
