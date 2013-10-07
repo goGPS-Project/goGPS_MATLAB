@@ -414,7 +414,7 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
 end
 
 %initial positioning
-pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, 10, 0, 0, 0);
+pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], 10, 0, 0, 0);
 
 if (isempty(pos_R))
     fprintf('It was not possible to estimate an approximate position.\n');

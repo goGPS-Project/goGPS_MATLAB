@@ -62,7 +62,7 @@ if (~isempty(find(Eph(30,:,:) ~= 0, 1)))
         satAvail = intersect(satObs,satEph)';
 
         if (length(satAvail) >=4)
-            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), [], iono, [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
+            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), [], iono, [], [], [], [], satAvail, [], cutoff, snr_threshold, 0, 0);
         end
         
         i = i + 1;

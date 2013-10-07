@@ -1,7 +1,7 @@
-function [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, is_GLO)
+function [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys)
 
 % SYNTAX:
-%   [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, is_GLO);
+%   [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys);
 %
 % INPUT:
 %   pr_R  = code observations (vector)
@@ -11,7 +11,7 @@ function [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tro
 %   dtS   = satellite clock error (vector)
 %   err_tropo_RS = tropospheric error (vector)
 %   err_iono_RS  = ionospheric error (vector)
-%   is_GLO = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
+%   sys          = array with different values for different systems
 %
 % OUTPUT:
 %   dtR = receiver clock error (scalar)
@@ -49,19 +49,20 @@ n = length(pr_R);
 %number of unknown parameters
 m = 1;
 
-% %approximate receiver-satellite distance
-% XR_mat = XR(:,ones(n,1))';
-% distR = sqrt(sum((XS-XR_mat).^2 ,2));
-
 %design matrix
 A = ones(n,1);
 
-%if mixed observations GLONASS/other, then add a parameter to account for
-% sub-second difference between GLONASS system time and GPS(or other) system time.
-% NOTE: only for GLONASS satellites
-if (any(is_GLO) && any(~is_GLO))
-    m = m + 1;
-    A = [A, is_GLO];
+%if multi-system observations, then estimate an inter-system bias parameter for each additional system
+uni_sys = unique(sys);
+num_sys = length(uni_sys);
+ISB = zeros(n,1);
+if (num_sys > 1)
+    m = m + num_sys - 1;
+    for s = 2 : num_sys
+        ISB(sys == uni_sys(s)) = 1;
+        A = [A, ISB];
+        ISB = zeros(n,1);
+    end
 end
 
 %known term vector

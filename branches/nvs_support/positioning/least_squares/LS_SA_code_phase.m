@@ -1,7 +1,7 @@
-function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, is_GLO, lambda)
+function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, sys, lambda)
 
 % SYNTAX:
-%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, is_GLO, lambda);
+%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, sys, lambda);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -16,7 +16,7 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %   dtS          = satellite clock error (vector)
 %   err_tropo    = tropospheric error
 %   err_iono     = ionospheric error
-%   is_GLO       = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
+%   sys          = array with different values for different systems
 %   lambda       = vector containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
@@ -86,12 +86,17 @@ A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ... %column for X c
          diag(-lambda) .* eye(nsat_ph), ...                      %column for phase ambiguities
          ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
      
-%if mixed observations GLONASS/other, then add a parameter to account for
-% sub-second difference between GLONASS system time and GPS(or other) system time.
-% NOTE: only for GLONASS satellites
-if (any(is_GLO) && any(~is_GLO))
-    m = m + 1;
-    A = [A, [is_GLO;is_GLO(index)]];
+%if multi-system observations, then estimate an inter-system bias parameter for each additional system
+uni_sys = unique(sys);
+num_sys = length(uni_sys);
+ISB = zeros(n,1);
+if (num_sys > 1)
+    m = m + num_sys - 1;
+    for s = 2 : num_sys
+        ISB(sys == uni_sys(s)) = 1;
+        A = [A, ISB];
+        ISB = zeros(n,1);
+    end
 end
 
 %known term vector

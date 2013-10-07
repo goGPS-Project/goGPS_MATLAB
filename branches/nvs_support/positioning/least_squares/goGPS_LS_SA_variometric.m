@@ -133,20 +133,20 @@ if (size(sat,1) >= min_nsat)
     sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [XR_t0, dtR_t0, XS_t0, dtS_t0, XS_tx_t0, VS_tx_t0, time_tx_t0, err_tropo_t0, err_iono_t0, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR_t0, var_dtR_t, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t0, pr1_t0(sat_pr), snr_t0(sat_pr), Eph_t0, SP3, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR_t0, dtR_t0, XS_t0, dtS_t0, XS_tx_t0, VS_tx_t0, time_tx_t0, err_tropo_t0, err_iono_t0, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR_t0, var_dtR_t, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t0, pr1_t0(sat_pr), snr_t0(sat_pr), Eph_t0, SP3, iono, sbas, [], [], [], sat_pr, [], cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
         elR_t0(sat_pr) = elR(sat_pr);
         azR_t0(sat_pr) = azR(sat_pr);
         distR_t0(sat_pr) = distR(sat_pr);
         sat_pr_t0 = sat_pr;
         sat_pr = sat_pr_old;
         
-        [XR_t1, dtR_t1, XS_t1, dtS_t1, XS_tx_t1, VS_tx_t1, time_tx_t1, err_tropo_t1, err_iono_t1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR_t1, var_dtR_t1, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t1, pr1_t1(sat_pr), snr_t1(sat_pr), Eph_t1, SP3, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR_t1, dtR_t1, XS_t1, dtS_t1, XS_tx_t1, VS_tx_t1, time_tx_t1, err_tropo_t1, err_iono_t1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR_t1, var_dtR_t1, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t1, pr1_t1(sat_pr), snr_t1(sat_pr), Eph_t1, SP3, iono, sbas, [], [], [], sat_pr, [], cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
         elR_t1(sat_pr) = elR(sat_pr);
         azR_t1(sat_pr) = azR(sat_pr);
         distR_t1(sat_pr) = distR(sat_pr);
         sat_pr_t1 = sat_pr;
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, [], cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
     end
     
     
@@ -158,12 +158,12 @@ if (size(sat,1) >= min_nsat)
             Xhat_t_t = [0;9999;  0;9999; 0;9999; 0;0;0];
             return
         end
-        [XR_t0, dtR_t0, XS_t0, dtS_t0, XS_tx_t0, VS_tx_t0, time_tx_t0, err_tropo_t0, err_iono_t0, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR_t0, var_dtR_t, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t0, pr1_t0(sat_pr), snr_t0(sat_pr), Eph_t0, SP3, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR_t0, dtR_t0, XS_t0, dtS_t0, XS_tx_t0, VS_tx_t0, time_tx_t0, err_tropo_t0, err_iono_t0, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR_t0, var_dtR_t, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t0, pr1_t0(sat_pr), snr_t0(sat_pr), Eph_t0, SP3, iono, sbas, [], [], [], sat_pr, [], cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
         elR_t0(sat_pr) = elR(sat_pr);
         azR_t0(sat_pr) = azR(sat_pr);
         distR_t0(sat_pr) = distR(sat_pr);
         
-        [XR_t1, dtR_t1, XS_t1, dtS_t1, XS_tx_t1, VS_tx_t1, time_tx_t1, err_tropo_t1, err_iono_t1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), cov_XR_t1, var_dtR_t1, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t1, pr1_t1(sat_pr), snr_t1(sat_pr), Eph_t1, SP3, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR_t1, dtR_t1, XS_t1, dtS_t1, XS_tx_t1, VS_tx_t1, time_tx_t1, err_tropo_t1, err_iono_t1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR_t1, var_dtR_t1, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx_t1, pr1_t1(sat_pr), snr_t1(sat_pr), Eph_t1, SP3, iono, sbas, [], [], [], sat_pr, [], cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
         elR_t1(sat_pr) = elR(sat_pr);
         azR_t1(sat_pr) = azR(sat_pr);
         distR_t1(sat_pr) = distR(sat_pr);
