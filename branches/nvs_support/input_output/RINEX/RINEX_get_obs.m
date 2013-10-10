@@ -116,7 +116,7 @@ if (~isempty(sat_types)) %RINEX v2.xx
             fltObs = sscanf(strObs, '%f'); % read all the observations in the string
             obsId = 0; % index of the current observation
             % start parsing the observation string
-            for k = 1 : min(nObsTypes, floor(linLength/16))
+            for k = 1 : min(nObsTypes, ceil(linLength/16))
                 % check if the element is empty
                 if (~strcmp(strObs(:,k)','              ')) % if the current val is not missing (full of spaces)
                     obsId = obsId+1;
