@@ -503,7 +503,7 @@ if (~isempty(data_master_all))
         
         %cycle through epochs
         for i = 1 : N
-            if (nargin == 5)
+            if (nargin == 6)
                 waitbar(i/N,wait_dlg)
             end
             
@@ -654,47 +654,10 @@ if (~isempty(data_master_all))
                     fprintf(fid_nav,'%9.2f           N: GNSS NAV DATA    %-19s RINEX VERSION / TYPE\n', str2num(rinex_metadata.version), sat_sys{f});
                 end
                 fprintf(fid_nav,'%-20s%-20s%-20sPGM / RUN BY / DATE \n', 'goGPS', rinex_metadata.agency(1:rb_len), [date_str_UTC ' ' time_str_UTC ' UTC']);
-                
-                %find first non-zero ionosphere parameters
-                pos = find(iono(1,:) ~= 0);
-                if (~isempty(pos))
-                    iono = iono(:,pos(1));
-                end
-                
-                if (~isempty(pos))
-                    if (~isunix)
-                        line_alphaE = sprintf('%13.4E%13.4E%13.4E%13.4E', iono(1), iono(2), iono(3), iono(4));
-                        line_betaE  = sprintf('%13.4E%13.4E%13.4E%13.4E', iono(5), iono(6), iono(7), iono(8));
-                    else
-                        line_alphaE = sprintf('%12.4E%12.4E%12.4E%12.4E', iono(1), iono(2), iono(3), iono(4));
-                        line_betaE  = sprintf('%12.4E%12.4E%12.4E%12.4E', iono(5), iono(6), iono(7), iono(8));
-                    end
-                    %if running on Windows, convert three-digits exponential notation
-                    %to two-digits; in any case, replace 'E' with 'D' and print the string
-                    if (~isunix)
-                        line_alphaD = strrep(line_alphaE(1,:),'E+0','D+');
-                        line_alphaD = strrep(line_alphaD,'E-0','D-');
-                        line_betaD = strrep(line_betaE(1,:),'E+0','D+');
-                        line_betaD = strrep(line_betaD,'E-0','D-');
-                    else
-                        line_alphaD = strrep(line_alphaE(1,:),'E+','D+');
-                        line_alphaD = strrep(line_alphaD,'E-','D-');
-                        line_betaD = strrep(line_betaE(1,:),'E+','D+');
-                        line_betaD = strrep(line_betaD,'E-','D-');
-                    end
-                    
-                    if (rin_ver_id == 2)
-                        fprintf(fid_nav,'  %s          ION ALPHA           \n',line_alphaD);
-                        fprintf(fid_nav,'  %s          ION BETA            \n',line_betaD);
-                    else
-                        fprintf(fid_nav,'GPSA %s       IONOSPHERIC CORR    \n',line_alphaD);
-                        fprintf(fid_nav,'GPSB %s       IONOSPHERIC CORR    \n',line_betaD);
-                    end
-                end
                 fprintf(fid_nav,'                                                            END OF HEADER       \n');
                 
                 for i = 1 : N
-                    if (nargin == 5)
+                    if (nargin == 6)
                         waitbar(i/N,wait_dlg)
                     end
                     
@@ -705,12 +668,12 @@ if (~isempty(data_master_all))
                         lineE = [];
                         linesE = [];
                         
-                        %if GPS
+                        %if GPS/Galileo/BeiDou/QZSS
                         if ((strcmp(ext(f),'n') &&  strcmp(char(Eph_M(31,idxEph(j),i)),'G')) || ...
-                                (strcmp(ext(f),'p') && (strcmp(char(Eph_M(31,idxEph(j),i)),'G')  || ...
-                                strcmp(char(Eph_M(31,idxEph(j),i)),'E')  || ...
-                                strcmp(char(Eph_M(31,idxEph(j),i)),'C')  || ...
-                                strcmp(char(Eph_M(31,idxEph(j),i)),'J'))))
+                            (strcmp(ext(f),'p') && (strcmp(char(Eph_M(31,idxEph(j),i)),'G')  || ...
+                             strcmp(char(Eph_M(31,idxEph(j),i)),'E')  || ...
+                             strcmp(char(Eph_M(31,idxEph(j),i)),'C')  || ...
+                             strcmp(char(Eph_M(31,idxEph(j),i)),'J'))))
                             
                             prn      = Eph_M(1,idxEph(j),i);
                             af2      = Eph_M(2,idxEph(j),i);
@@ -744,7 +707,7 @@ if (~isempty(data_master_all))
                             sys      = Eph_M(31,idxEph(j),i);
                             
                             %time of measurement decoding
-                            date_toc = gps2date(week_M(i), toc);
+                            date_toc = gps2date(week, toc);
                             
                             if (rin_ver_id == 2)
                                 
@@ -756,7 +719,7 @@ if (~isempty(data_master_all))
                                 linesE(2,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
                                 linesE(3,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toe, cic, Omega0, cis);
                                 linesE(4,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', i0, crc, omega, Omegadot);
-                                linesE(5,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week_M(i), L2flag);
+                                linesE(5,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week, L2flag);
                                 linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
                                 linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
                             %if RINEX v3.xx
@@ -767,7 +730,7 @@ if (~isempty(data_master_all))
                                 linesE(2,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
                                 linesE(3,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', toe, cic, Omega0, cis);
                                 linesE(4,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', i0, crc, omega, Omegadot);
-                                linesE(5,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week_M(i), L2flag);
+                                linesE(5,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week, L2flag);
                                 linesE(6,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
                                 linesE(7,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
                             end
@@ -794,7 +757,7 @@ if (~isempty(data_master_all))
                             
                             %time of measurement decoding and
                             %conversion from GPS date to GLONASS (UTC) date
-                            %date_GPS = gps2date(week_M(i), time_M(i));
+                            %date_GPS = gps2date(week, time_M(i));
                             date_GPS = date(i,:);
                             date_GLO = datevec(gps2utc(datenum(date_GPS)));
                             %sec_of_day = date_GLO(3)*3600 + date_GLO(2)*60 + date_GLO(1);

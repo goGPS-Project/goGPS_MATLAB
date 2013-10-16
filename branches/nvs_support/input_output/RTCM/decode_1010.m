@@ -56,6 +56,10 @@ data{1} = 0;
 data{2} = zeros(6,1);
 data{3} = zeros(constellations.nEnabledSat,12);
 
+if (~constellations.GLONASS.enabled)
+    return
+end
+
 %message number = 1010
 DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 

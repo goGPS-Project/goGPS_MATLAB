@@ -81,6 +81,10 @@ data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(33,1);
 
+if (~constellations.GLONASS.enabled)
+    return
+end
+
 %message number = 1020
 DF002 = fbin2dec(msg(pos:pos+11)); pos = pos + 12;
 
