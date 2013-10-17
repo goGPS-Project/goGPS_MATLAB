@@ -2560,7 +2560,7 @@ end
 % REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
 %----------------------------------------------------------------------------------------------
 
-if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode))    
+if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))    
     figure
     epochs = (time_GPS-time_GPS(1))/interval;
     ax = zeros(3,1);
@@ -3129,6 +3129,14 @@ if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(ref_path)) && (~isempty(EA
     fprintf('Std3D:  %7.4f m\n',std(dist3D,1));
     fprintf('RMS3D:  %7.4f m\n',sqrt(std(dist3D)^2+mean(dist3D)^2));
     fprintf('--------------------------------\n\n');
+end
+
+%----------------------------------------------------------------------------------------------
+
+if (isempty(time_GPS))
+    fprintf('\n');
+    fprintf('Warning: no epochs were available/usable for processing. The result files will be empty.\n');
+    fprintf('\n');
 end
 
 %----------------------------------------------------------------------------------------------

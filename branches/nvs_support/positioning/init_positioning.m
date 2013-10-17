@@ -141,11 +141,7 @@ if (flag_XR == 0)
     %iterative least-squares from the center of the Earth (i.e. [0; 0; 0])
     XR0 = zeros(3,1);
     for i = 1 : 3
-        try
         [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));
-        catch
-            pause
-        end
         XR0 = XR;
     end
 else
