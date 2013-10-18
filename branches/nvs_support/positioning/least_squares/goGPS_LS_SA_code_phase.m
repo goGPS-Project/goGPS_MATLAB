@@ -127,7 +127,7 @@ if (size(sat,1) >= min_nsat)
     
     %if multi-system observations, then an additional parameter to estimate the inter-system bias
     %for each additional system is needed
-    uni_sys = unique(sys);
+    uni_sys = unique(sys(sys ~= 0));
     num_sys = length(uni_sys);
     min_nsat = 3 + num_sys;
     

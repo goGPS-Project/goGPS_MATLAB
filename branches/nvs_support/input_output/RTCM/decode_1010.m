@@ -66,7 +66,7 @@ DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 %reference station id
 DF003 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
 
-%TOD = time of day in milliseconds
+%TOD = time of day in milliseconds (UTC time + 3 hours)
 DF034 = fbin2dec(msg(pos:pos+26));  pos = pos + 27;
 
 %other synchronous RTCM messages flag (YES=1, NO=0)
@@ -153,5 +153,4 @@ for i = 1 : NSV
         pos = pos + 73;
 
     end
-
 end

@@ -45,7 +45,7 @@ BaudRate = 115200;
 Buffer_size = 2^12;
 
 % Minimun number of bytes used to synchronize data
-Min_bytes = 0;
+Min_bytes = 200;
 
 % String name in decoding phase (NA = Not Available)
 TimeRaw_id = 'F5h'; % message with both timing and observations

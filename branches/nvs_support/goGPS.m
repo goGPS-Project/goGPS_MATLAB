@@ -1888,7 +1888,7 @@ elseif (mode == goGNSS.MODE_RT_M_MON)
 
 elseif (mode == goGNSS.MODE_RT_RM_MON)
 
-    goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M);
+    goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M, constellations);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
@@ -3133,7 +3133,7 @@ end
 
 %----------------------------------------------------------------------------------------------
 
-if (isempty(time_GPS))
+if (exist('time_GPS', 'var') && isempty(time_GPS))
     fprintf('\n');
     fprintf('Warning: no epochs were available/usable for processing. The result files will be empty.\n');
     fprintf('\n');

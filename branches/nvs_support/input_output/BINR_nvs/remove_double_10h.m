@@ -36,7 +36,7 @@ function [out] = remove_double_10h(msg, wait_dlg)
 %----------------------------------------------------------------------------------------------
 
 if (nargin < 2)
-    fprintf('Removing double 10h bytes from BINR data...\n');
+    %fprintf('Removing double 10h bytes from BINR data...\n');
 else
     waitbar(0,wait_dlg,'Removing double 10h bytes from BINR data...')
 end

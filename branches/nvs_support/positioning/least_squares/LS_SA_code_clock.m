@@ -53,7 +53,7 @@ m = 1;
 A = ones(n,1);
 
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
-uni_sys = unique(sys);
+uni_sys = unique(sys(sys ~= 0));
 num_sys = length(uni_sys);
 ISB = zeros(n,1);
 if (num_sys > 1)

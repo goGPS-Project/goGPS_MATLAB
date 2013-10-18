@@ -99,7 +99,7 @@ else
 end
 
 %if multi-system observations, then an inter-system bias parameter for each additional system must be estimated
-num_sys  = length(unique(sys));
+num_sys  = length(unique(sys(sys ~= 0)));
 min_nsat = 3 + num_sys;
 
 %----------------------------------------------------------------------------------------------
@@ -111,7 +111,7 @@ if (flag_XR == 0)
     index = find(no_eph == 0);
     
     nsat_avail = length(index);
-    
+
     if (nsat_avail < min_nsat) %if available observations are not enough, return
         %empty variables
         XR   = [];
@@ -142,7 +142,6 @@ if (flag_XR == 0)
     XR0 = zeros(3,1);
     for i = 1 : 3
         [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));
-        XR0 = XR;
     end
 else
     XR = XR0; %known receiver coordinates
@@ -180,11 +179,11 @@ end
 %--------------------------------------------------------------------------------------------
 
 %if multi-system observations, then an inter-system bias parameter for each additional system must be estimated
-num_sys  = length(unique(sys));
+num_sys  = length(unique(sys(sys ~= 0)));
 min_nsat = 3 + num_sys;
 
 %there are not enough satellites to improve the receiver position
-if ((flag_XR == 1) & (nsat < min_nsat))
+if ((flag_XR == 1) && (nsat < min_nsat))
     flag_XR = 2;
 end
 
@@ -209,7 +208,7 @@ if (nsat >= nsat_required)
     %threshold = sum of the coordinate variation over all satellites [m]
     threshold = 0.01;
 
-    while ((sqrt(sum((XS(:)-XSold(:)).^2)) > threshold) & (n_iter < n_iter_max))
+    while ((sqrt(sum((XS(:)-XSold(:)).^2)) > threshold) && (n_iter < n_iter_max))
 
         XSold = XS;             %save old version of satellite positions
         n_iter = n_iter+1;      %increase iteration counter

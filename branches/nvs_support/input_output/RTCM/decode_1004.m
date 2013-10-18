@@ -173,5 +173,4 @@ for i = 1 : NSV
         pos = pos + 119;
 
     end
-
 end
