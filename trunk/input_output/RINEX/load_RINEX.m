@@ -281,13 +281,13 @@ date_R = zeros(nEpochs,6);
 date_M = zeros(nEpochs,6);
 
 %read data for the first epoch (ROVER)
-[time_R(1), epoch_R, num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
+[time_R(1), date_R(1,:), num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
 
 %-------------------------------------------------------------------------------
 
 if (filename_M_obs_PresenceFlag)
     %read data for the first epoch (MASTER)
-    [time_M(1), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+    [time_M(1), date_M(1,:), num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
 end
 %-------------------------------------------------------------------------------
 
@@ -311,7 +311,7 @@ if (filename_M_obs_PresenceFlag)
         end
         
         %read data for the current epoch (MASTER)
-        [time_M(1), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+        [time_M(1), date_M(1,:), num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
     end
     
     while ((time_R(1) - time_M(1)) < 0 && abs(time_R(1) - time_M(1)) >= max_desync_frac*interval)
@@ -329,7 +329,7 @@ if (filename_M_obs_PresenceFlag)
         end
         
         %read data for the current epoch (ROVER)
-        [time_R(1), epoch_R, num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
+        [time_R(1), date_R(1,:), num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
     end
 end
 
@@ -382,39 +382,55 @@ end
 
 %define the reference time
 time(1,1) = roundmod(time_R(1),interval);
-date_R(1,:) = epoch_R(1,:);
-if (filename_M_obs_PresenceFlag)
-    date_M(1,:) = epoch_M(1,:);
-end
 
 if (wait_dlg_PresenceFlag)
     waitbar(0.5,wait_dlg,'Reading RINEX observations...')
 end
 
 k = 2;
+n_mis_epo_R = 0;
+n_mis_epo_M = 0;
 while (~feof(FR_oss))
 
     if (abs((time_R(k-1) - time(k-1))) < max_desync_frac*interval)
-        %read data for the current epoch (ROVER)
-        [time_R(k), epoch_R, num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
-    else
-        time_R(k) = time_R(k-1);
-        if (time_R(k-1) ~= 0)
-            fprintf('Missing epoch %f (ROVER)\n', time(k-1));
+        %display previously missing epochs, if any
+        if (n_mis_epo_R > 0)
+            for n = n_mis_epo_R : -1 : 1
+                mis_epo = datevec(datenum(date_R(k-1,:))-datenum([0 0 0 0 0 n*interval]));
+                fprintf('Missing epoch %d/%02d/%02d %02d:%02d:%02.3f (ROVER)\n', mis_epo);
+            end
         end
+
+        n_mis_epo_R = 0;
+        %read data for the current epoch (ROVER)
+        [time_R(k), date_R(k,:), num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
+    else
+        n_mis_epo_R = n_mis_epo_R + 1;
+        time_R(k) = time_R(k-1);
+        date_R(k,:) = date_R(k-1,:);
         time_R(k-1) = 0;
+        date_R(k-1,:) = [0 0 0 0 0 0];
     end
 
     if (filename_M_obs_PresenceFlag)
         if (abs((time_M(k-1) - time(k-1))) < max_desync_frac*interval)
-            %read data for the current epoch (MASTER)
-            [time_M(k), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
-        else
-            time_M(k) = time_M(k-1);
-            if (time_M(k-1) ~= 0)
-                fprintf('Missing epoch %f (MASTER)\n', time(k-1));
+            %display previously missing epochs, if any
+            if (n_mis_epo_M > 0)
+                for n = n_mis_epo_M : -1 : 1
+                    mis_epo = datevec(datenum(date_M(k-1,:))-datenum([0 0 0 0 0 n*interval]));
+                    fprintf('Missing epoch %d/%02d/%02d %02d:%02d:%02.3f (MASTER)\n', mis_epo);
+                end
             end
+            
+            n_mis_epo_M = 0;
+            %read data for the current epoch (MASTER)
+            [time_M(k), date_M(k,:), num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+        else
+            n_mis_epo_M = n_mis_epo_M + 1;
+            time_M(k) = time_M(k-1);
+            date_M(k,:) = date_M(k-1,:);
             time_M(k-1) = 0;
+            date_M(k-1,:) = [0 0 0 0 0 0];
         end
     end
 
@@ -438,11 +454,6 @@ while (~feof(FR_oss))
         dop2_M(:,k) = zeros(nSatTot,1);
 
         nEpochs = nEpochs  + 1;
-    end
-    
-    date_R(k,:) = epoch_R(1,:);
-    if (filename_M_obs_PresenceFlag)
-        date_M(k,:) = epoch_M(1,:);
     end
 
     time(k,1) = time(k-1,1) + interval;
