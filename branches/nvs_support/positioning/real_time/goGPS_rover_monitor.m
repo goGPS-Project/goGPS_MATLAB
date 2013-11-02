@@ -896,22 +896,23 @@ close(f1);
 % RINEX conversion
 %------------------------------------------------------
 
-%dialog
-selection = questdlg('Do you want to decode the binary streams and create RINEX files?',...
-    'Request Function',...
-    'Yes','No','Yes');
-switch selection,
-    case 'Yes',
-        %visualization
-        fprintf('\n');
-        fprintf('RINEX CONVERSION\n');
-        
-        for r = 1 : nrec
+if (nrec == 1)
+    %dialog
+    selection = questdlg('Do you want to decode the binary streams and create RINEX files?',...
+        'Request Function',...
+        'Yes','No','Yes');
+    switch selection,
+        case 'Yes',
+            %visualization
+            fprintf('\n');
+            fprintf('RINEX CONVERSION\n');
+            
+            r = nrec;
             recname = [prot_par{r}{1,1} num2str(r)];
             if (~isunix)
                 gui_decode_stream([filerootOUT '_' recname '_rover_00.bin'], [filerootOUT '_' recname], constellations);
             else
                 gui_decode_stream_unix([filerootOUT '_' recname '_rover_00.bin'], [filerootOUT '_' recname], constellations);
             end
-        end
+    end
 end
