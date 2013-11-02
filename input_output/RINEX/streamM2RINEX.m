@@ -464,9 +464,9 @@ if (~isempty(data_master_all))
         else
             %displaying
             if (nargin == 4)
-                msgbox('No navigation data acquired.');
+                msgbox('Master: no navigation data acquired.');
             else
-                fprintf('No navigation data acquired! \n');
+                fprintf('Master: no navigation data acquired! \n');
             end
         end
     else

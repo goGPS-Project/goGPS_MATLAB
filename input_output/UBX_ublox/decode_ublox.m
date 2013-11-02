@@ -35,8 +35,6 @@ function [data, nmea_sentences] = decode_ublox(msg, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-warning off
-
 %----------------------------------------------------------------------------------------------
 % UBX MESSAGE HEADER
 %----------------------------------------------------------------------------------------------
@@ -127,18 +125,29 @@ while (pos + 15 <= length(msg))
             id = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             id = dec2hex(id,2);
 
+            %to detect truncated messages (sometimes the LEN field is
+            %truncated as well)
+            pos_nxt = pos_UBX(find(pos_UBX>pos,1));
+            pos_rem = pos_nxt-pos;
+            
             % payload length (2 bytes)
             LEN1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN = LEN1 + (LEN2 * 2^8);      % little endian
+            
+            %skip truncated messages
+            if (LEN > pos_rem)
+                pos = pos_nxt;
+                continue
+            end
 
             if (LEN ~= 0)
                 if (pos + 8*LEN + 15 <= length(msg))
                     
                     % checksum
                     CK_A = 0; CK_B = 0;
-                    Nslices = (8*LEN + 31) / 8 + 1;    %pre-allocate to
-                    slices = cell(1,Nslices);          %increase speed
+                    Nslices = floor((8*LEN + 31) / 8 + 1);    %pre-allocate to
+                    slices = cell(1,Nslices);                 %increase speed
                     k = 1;
                     for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
                         slices{k} = msg(j:j+7);
@@ -155,7 +164,7 @@ while (pos + 15 <= length(msg))
                     CK_B_rec = fbin2dec(msg(pos + 8*LEN + 8:pos + 8*LEN + 15));
 
                     % if checksum matches
-                    if (CK_A == CK_A_rec) & (CK_B == CK_B_rec)
+                    if (CK_A == CK_A_rec) && (CK_B == CK_B_rec)
 
                         % message identification
                         switch class
@@ -208,7 +217,7 @@ while (pos + 15 <= length(msg))
         end
 
     % check if a NMEA sentence is starting
-    elseif (pos + 23 <= length(msg)) & (strcmp(msg(pos:pos+23),codeBIN_NMEA))
+    elseif (pos + 23 <= length(msg)) && (strcmp(msg(pos:pos+23),codeBIN_NMEA))
         
         % search for <CR><LF>
         % The maximum number of characters for a valid NMEA 0183 sentence
@@ -245,14 +254,7 @@ while (pos + 15 <= length(msg))
 
     % check if there are other packages
     else
-
-        % find the index of the first UBX message, if any
-        pos_UBX = findstr(msg(pos:end),codeBIN);
-        if ~isempty(pos_UBX)
-            pos = pos + pos_UBX(1) - 1;
-        else
-            break
-        end
+        pos = pos_UBX(find(pos_UBX>pos,1));
+        if (isempty(pos)), break, end;
     end
-
 end

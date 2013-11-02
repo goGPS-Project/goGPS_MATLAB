@@ -22,10 +22,8 @@ function [pos] = bancroft(B_pass)
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
 %----------------------------------------------------------------------------------------------
 
-global Omegae_dot_GPS
-
 v_light = goGNSS.V_LIGHT;
-Omegae_dot = Omegae_dot_GPS;
+Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
 
 pos = zeros(4,1);
 
