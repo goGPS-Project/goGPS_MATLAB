@@ -125,8 +125,8 @@ while (pos + 15 <= length(msg))
             id = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             id = dec2hex(id,2);
 
-            %to detect truncated messages (sometimes the LEN field is
-            %truncated as well)
+            %to detect truncated messages (before computing LEN, because
+            %sometimes the LEN field is truncated as well)
             pos_nxt = pos_UBX(find(pos_UBX>pos,1));
             pos_rem = pos_nxt-pos;
             
@@ -134,12 +134,6 @@ while (pos + 15 <= length(msg))
             LEN1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN = LEN1 + (LEN2 * 2^8);      % little endian
-            
-            %skip truncated messages
-            if (LEN > pos_rem)
-                pos = pos_nxt;
-                continue
-            end
 
             if (LEN ~= 0)
                 if (pos + 8*LEN + 15 <= length(msg))
@@ -200,7 +194,15 @@ while (pos + 15 <= length(msg))
                         end
                         
                     else
-                        %fprintf('Checksum error!\n');
+                        warning('UBXDecoder:ChecksumError','checksum error (class: 0x%s, id: 0x%s))\n',class,id);
+                        
+                        %skip truncated messages
+                        % +4 to include the two length bytes and the two checksum bytes
+                        if (~isempty(pos_rem) && ~mod(pos_rem,8) && 8*(LEN+4) > pos_rem)
+                            warning('UBXDecoder:TruncatedMessage','truncated UBX message detected and skipped (class: 0x%s, id: 0x%s))\n',class,id);
+                            pos = pos_nxt;
+                            continue
+                        end
                     end
                     
                     % skip the message body
