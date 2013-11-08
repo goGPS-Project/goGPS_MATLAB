@@ -39,7 +39,7 @@ header1 = 'B5';                            % header (hexadecimal value)
 header2 = '62';                            % header (hexadecimal value)
 
 ID1 = '06';                                % CFG (hexadecimal value)
-ID2 = '08';                                % MSG (hexadecimal value)
+ID2 = '08';                                % RATE (hexadecimal value)
 
 codeHEX = [header1; header2; ID1; ID2];    % initial hexadecimal poll message
 codeDEC = hex2dec(codeHEX);                % conversion to decimal
