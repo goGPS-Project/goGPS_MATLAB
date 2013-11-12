@@ -42,8 +42,7 @@ c = 1;
 
 %check if the end of the header or the end of the file has been reached
 while isempty(strfind(line,'END OF HEADER')) && ischar(line)
-    %NOTE1: findstr is obsolete, so strfind is used
-    %NOTE2: ischar is better than checking if line is the number -1.
+    %NOTE: ischar is better than checking if line is the number -1.
     
     answer = strfind(line,'# / TYPES OF OBSERV'); %RINEX v2.xx
     if ~isempty(answer)

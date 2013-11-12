@@ -29,12 +29,11 @@
 
 % clear all the variables in the workspace
 clear all
-%
+
 %NOTE: using only clearvars causes crashes, e.g. when launching two
 %constrained positioning processes in a row (not clear why...)
-%
-%clearvars
-%clearvars -global goGUI goIni goObj
+% clearvars
+% clearvars -global goGUI goIni goObj
 
 % close all windows
 close all

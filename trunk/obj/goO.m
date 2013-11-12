@@ -434,8 +434,7 @@ classdef goO < handle
             
             %check if the end of the header or the end of the file has been reached
             while isempty(strfind(lin,'END OF HEADER'))
-                %NOTE1: findstr is obsolete, so strfind is used
-                
+
                 answer = strfind(lin,'RINEX VERSION'); %RINEX v2.xx
                 if ~isempty(answer)
                     version = floor(sscanf(lin(1:15),'%f'));
@@ -512,7 +511,7 @@ classdef goO < handle
                 nTypes = size(obsTypes{1},2)/2;
                 
                 %search L1 column
-                s1 = strfind(obsTypes{1}, 'L1'); %findstr is obsolete, so strfind is used
+                s1 = strfind(obsTypes{1}, 'L1');
                 s2 = strfind(obsTypes{1}, 'LA');
                 col_L1 = [s1 s2];
                 

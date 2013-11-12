@@ -45,7 +45,7 @@ header2 = '62';      % header (hexadecimal value)
 codeHEX = [header1 header2];              % initial hexadecimal stream
 codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
 
-pos_UBX = findstr(msg, codeBIN);          % message initial index
+pos_UBX = strfind(msg, codeBIN);          % message initial index
 
 %----------------------------------------------------------------------------------------------
 % NMEA MESSAGE HEADER
@@ -58,7 +58,7 @@ headerNMEA3 = '50';                      % NMEA header (P)
 codeHEX_NMEA = [headerNMEA1 headerNMEA2 headerNMEA3];      % initial hexadecimal stream
 codeBIN_NMEA = dec2bin(hex2dec(codeHEX_NMEA),24);          % initial binary stream
 
-pos_NMEA = findstr(msg, codeBIN_NMEA);   % NMEA message initial index
+pos_NMEA = strfind(msg, codeBIN_NMEA);   % NMEA message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE STARTING POINT
@@ -141,15 +141,15 @@ while (pos + 15 <= length(msg))
                     % checksum
                     CK_A = 0; CK_B = 0;
                     Nslices = floor((8*LEN + 31) / 8 + 1);    %pre-allocate to
-                    slices = cell(1,Nslices);                 %increase speed
+                    slices = cell(Nslices,1);                 %increase speed
                     k = 1;
                     for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
-                        slices{k} = msg(j:j+7);
+                        slices{k,1} = msg(j:j+7);
                         k = k + 1;
                     end
                     slices = fbin2dec(slices);         %call 'fbin2dec' only once (to optimize speed)
                     for r = 1 : k-1
-                        CK_A = CK_A + slices(r);
+                        CK_A = CK_A + slices(r,1);
                         CK_B = CK_B + CK_A;
                     end
                     CK_A = mod(CK_A,256);
@@ -228,9 +228,9 @@ while (pos + 15 <= length(msg))
         % Thus the search for the end delimiter is restricted within
         % 100*8 = 800 bits or the end of the message whichever comes first.
         if ((length(msg)-pos)<799)
-            pos_ENDNMEA = findstr(msg(pos:end),[dec2bin(13,8) dec2bin(10,8)]);
+            pos_ENDNMEA = strfind(msg(pos:end),[dec2bin(13,8) dec2bin(10,8)]);
         else
-            pos_ENDNMEA = findstr(msg(pos:pos+799),[dec2bin(13,8) dec2bin(10,8)]);
+            pos_ENDNMEA = strfind(msg(pos:pos+799),[dec2bin(13,8) dec2bin(10,8)]);
         end
         
         if ~isempty(pos_ENDNMEA)

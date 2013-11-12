@@ -46,7 +46,7 @@ header2 = '21';      % header (hexadecimal value) - 33 (decimal value) - ascii '
 codeHEX = [header1 header2];              % initial hexadecimal stream
 codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
 
-pos_FTX = findstr(msg, codeBIN);          % message initial index
+pos_FTX = strfind(msg, codeBIN);          % message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE STARTING POINT
@@ -167,7 +167,7 @@ while (pos + 15 <= length(msg))
     else
 
         % find the index of the first FTX message, if any
-        pos_FTX = findstr(msg(pos:end),codeBIN);
+        pos_FTX = strfind(msg(pos:end),codeBIN);
         if ~isempty(pos_FTX)
             pos = pos + pos_FTX(1) - 1;
         else
