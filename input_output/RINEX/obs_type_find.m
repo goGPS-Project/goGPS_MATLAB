@@ -60,7 +60,7 @@ if (isempty(sysId)) %RINEX v2.xx
     nObs_types = size(Obs_types{1},2)/2;
 
     %search L1 column
-    s1 = strfind(Obs_types{1}, 'L1'); %findstr is obsolete, so strfind is used
+    s1 = strfind(Obs_types{1}, 'L1');
     s2 = strfind(Obs_types{1}, 'LA');
     s = [s1 s2];
     col_L1 = (s+1)/2;

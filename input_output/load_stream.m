@@ -119,19 +119,19 @@ if ~isempty(data_rover_all)
     header2 = '62';      % UBX header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_UBX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_UBX = strfind(data_rover_all, codeBIN); % message initial index
 
     header1 = 'A0';      % SkyTraq header (hexadecimal value)
     header2 = 'A1';      % SkyTraq header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_STQ = findstr(data_rover_all, codeBIN); % message initial index
+    pos_STQ = strfind(data_rover_all, codeBIN); % message initial index
     
     header1 = '3C';      % Fastrax header (hexadecimal value)
     header2 = '21';      % Fastrax header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_FTX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_FTX = strfind(data_rover_all, codeBIN); % message initial index
 
     if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)))
 
