@@ -60,6 +60,9 @@ if (nargin == 5)
     waitbar(0.5,wait_dlg,'Reading rover stream files...')
 end
 
+%check if the system uses 3-digit exponential notation
+three_digit_exp = (length(sprintf('%1.1E',1)) == 8);
+
 %ROVER stream reading
 data_rover_all = [];                                                 %overall stream
 hour = 0;                                                            %hour index (integer)
@@ -118,7 +121,7 @@ if (~isempty(data_rover_all))
     pattern2 = '62';      % UBX pattern (hexadecimal value)
     codeHEX = [pattern1 pattern2];              % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_UBX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_UBX = strfind(data_rover_all, codeBIN); % message initial index
 
     pattern1 = '0D';      % SkyTraq pattern (hexadecimal value)
     pattern2 = '0A';      % SkyTraq pattern (hexadecimal value)
@@ -126,14 +129,14 @@ if (~isempty(data_rover_all))
     pattern4 = 'A1';      % SkyTraq pattern (hexadecimal value)
     codeHEX = [pattern1 pattern2 pattern3 pattern4]; % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),32);          % initial binary stream
-    pos_STQ = findstr(data_rover_all, codeBIN);      % message initial index
+    pos_STQ = strfind(data_rover_all, codeBIN);      % message initial index
 
     pattern1 = '3E';      % Fastrax pattern (hexadecimal value)
     pattern2 = '3C';      % Fastrax pattern (hexadecimal value)
     pattern3 = '21';      % Fastrax pattern (hexadecimal value)
     codeHEX = [pattern1 pattern2 pattern3];     % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),24);     % initial binary stream
-    pos_FTX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_FTX = strfind(data_rover_all, codeBIN); % message initial index
     
     pattern1 = '10';      % NVS pattern (hexadecimal value)
     pattern2 = '03';      % NVS pattern (hexadecimal value)
@@ -461,7 +464,7 @@ if (~isempty(data_rover_all))
     Eph_R(:,:,i:end) = [];
     iono(:,i:end)    = [];
 
-    if (~isempty(time_R))
+    if (any(time_R))
         %date decoding
         date = gps2date(week_R, time_R);
     else
@@ -481,6 +484,9 @@ if (~isempty(data_rover_all))
  
     pos_R = zeros(3,1);
     
+    %retrieve multi-constellation wavelengths
+    lambda = goGNSS.getGNSSWavelengths(Eph_R, size(pr1_R,1));
+    
     %if ephemerides are available
     if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
         cutoff = 15;
@@ -497,7 +503,7 @@ if (~isempty(data_rover_all))
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
-                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, [], cutoff, snr_threshold, 0, 0);
+                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, [], lambda(satAvail,:), cutoff, snr_threshold, 1, 0, 0);
             end
             i = i + 1;
         end
@@ -771,7 +777,7 @@ if (~isempty(data_rover_all))
         
         %displaying
         if (nargin == 4)
-            fprintf(['Writing rover navigation file...\n']);
+            fprintf('Writing rover navigation file...\n');
         end
         
         if (nargin == 5)
@@ -817,16 +823,16 @@ if (~isempty(data_rover_all))
             end
             
             if (~isempty(pos))
-                if (~isunix)
+                if (three_digit_exp)
                     line_alphaE = sprintf('%13.4E%13.4E%13.4E%13.4E', iono(1), iono(2), iono(3), iono(4));
                     line_betaE  = sprintf('%13.4E%13.4E%13.4E%13.4E', iono(5), iono(6), iono(7), iono(8));
                 else
                     line_alphaE = sprintf('%12.4E%12.4E%12.4E%12.4E', iono(1), iono(2), iono(3), iono(4));
                     line_betaE  = sprintf('%12.4E%12.4E%12.4E%12.4E', iono(5), iono(6), iono(7), iono(8));
                 end
-                %if running on Windows, convert three-digits exponential notation
+                %if needed, convert three-digits exponential notation
                 %to two-digits; in any case, replace 'E' with 'D' and print the string
-                if (~isunix)
+                if (three_digit_exp)
                     line_alphaD = strrep(line_alphaE(1,:),'E+0','D+');
                     line_alphaD = strrep(line_alphaD,'E-0','D-');
                     line_betaD = strrep(line_betaE(1,:),'E+0','D+');
@@ -976,24 +982,24 @@ if (~isempty(data_rover_all))
                     end
                     
                     if (~isempty(lineE))
-                        %if running on Windows, convert three-digits exponential notation
+                        %if needed, convert three-digits exponential notation
                         %to two-digits; in any case, replace 'E' with 'D' and print the string
                         n = size(linesE,1);
-                        if (~isunix)
-                            lineD = strrep(lineE(1,:),'E+0','D+');
+                        if (three_digit_exp)
+                            lineD = strrep(char(lineE(1,:)),'E+0','D+');
                             lineD = strrep(lineD,'E-0','D-');
                             fprintf(fid_nav,'%s',lineD);
                             for k = 1 : n
-                                lineD = strrep(linesE(k,:),'E+0','D+');
+                                lineD = strrep(char(linesE(k,:)),'E+0','D+');
                                 lineD = strrep(lineD,'E-0','D-');
                                 fprintf(fid_nav,'%s',lineD);
                             end
                         else
-                            lineD = strrep(lineE(1,:),'E+','D+');
+                            lineD = strrep(char(lineE(1,:)),'E+','D+');
                             lineD = strrep(lineD,'E-','D-');
                             fprintf(fid_nav,'%s',lineD);
                             for k = 1 : n
-                                lineD = strrep(linesE(k,:),'E+','D+');
+                                lineD = strrep(char(linesE(k,:)),'E+','D+');
                                 lineD = strrep(lineD,'E-','D-');
                                 fprintf(fid_nav,'%s',lineD);
                             end

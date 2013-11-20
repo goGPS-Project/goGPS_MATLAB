@@ -59,7 +59,7 @@ end% if
 while (eof==0)
     %read the string
     lin = fgets(fid);
-    %answer = findstr(lin,'COMMENT'); Note   findstr will be removed in a future release. Use strfind instead.
+    %answer = strfind(lin,'COMMENT');
     keywords = {'COMMENT', 'MARKER NAME', 'MARKER NUMBER', 'APPROX POSITION XYZ', 'ANTENNA: DELTA H/E/N'};
     answer = [];
     s = 1;

@@ -128,7 +128,7 @@ if ~isempty(data_rover_all)
     pattern2 = '62';      % UBX pattern (hexadecimal value)
     codeHEX = [pattern1 pattern2];              % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_UBX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_UBX = strfind(data_rover_all, codeBIN); % message initial index
 
     pattern1 = '0D';      % SkyTraq pattern (hexadecimal value)
     pattern2 = '0A';      % SkyTraq pattern (hexadecimal value)
@@ -136,21 +136,21 @@ if ~isempty(data_rover_all)
     pattern4 = 'A1';      % SkyTraq pattern (hexadecimal value)
     codeHEX = [pattern1 pattern2 pattern3 pattern4]; % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),32);          % initial binary stream
-    pos_STQ = findstr(data_rover_all, codeBIN);      % message initial index
+    pos_STQ = strfind(data_rover_all, codeBIN);      % message initial index
 
     pattern1 = '3E';      % Fastrax pattern (hexadecimal value)
     pattern2 = '3C';      % Fastrax pattern (hexadecimal value)
     pattern3 = '21';      % Fastrax pattern (hexadecimal value)
     codeHEX = [pattern1 pattern2 pattern3];     % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),24);     % initial binary stream
-    pos_FTX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_FTX = strfind(data_rover_all, codeBIN); % message initial index
     
     pattern1 = '10';      % NVS pattern (hexadecimal value)
     pattern2 = '03';      % NVS pattern (hexadecimal value)
     pattern3 = '10';      % NVS pattern (hexadecimal value)
     codeHEX = [pattern1 pattern2 pattern3];     % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),24);     % initial binary stream
-    pos_NVS = findstr(data_rover_all, codeBIN); % message initial index
+    pos_NVS = strfind(data_rover_all, codeBIN); % message initial index
 
     if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)) && (length(pos_UBX) > length(pos_NVS)))
 

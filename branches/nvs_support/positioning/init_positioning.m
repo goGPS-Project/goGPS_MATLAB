@@ -1,7 +1,7 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, cutoff_el, cutoff_snr, flag_XR, flag_XS)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS)
 
 % SYNTAX:
-%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, cutoff_el, cutoff_snr, flag_XR, flag_XS);
+%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -17,8 +17,10 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   dtS0        = satellite clocks (=[] if not available)
 %   sat0        = available satellite PRNs
 %   sys0        = array with different values for different systems (used if flag_XS == 1)
+%   lambda      = wavelength matrix (depending on the enabled constellations)
 %   cutoff_el   = elevation cutoff
 %   cutoff_snr  = signal-to-noise ratio cutoff
+%   phase       = L1 carrier (phase=1), L2 carrier (phase=2)
 %   flag_XR     = 0: unknown
 %                 1: approximated
 %                 2: fixed
@@ -72,6 +74,9 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+%compute inter-frequency factors (for the ionospheric delay)
+ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
+
 %----------------------------------------------------------------------------------------------
 % FIRST ESTIMATE OF SATELLITE POSITIONS
 %----------------------------------------------------------------------------------------------
@@ -112,8 +117,7 @@ if (flag_XR == 0)
     
     nsat_avail = length(index);
 
-    if (nsat_avail < min_nsat) %if available observations are not enough, return
-        %empty variables
+    if (nsat_avail < min_nsat) %if available observations are not enough, return empty variables
         XR   = [];
         dtR  = [];
         az   = [];
@@ -142,6 +146,7 @@ if (flag_XR == 0)
     XR0 = zeros(3,1);
     for i = 1 : 3
         [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));
+        XR0 = XR;
     end
 else
     XR = XR0; %known receiver coordinates
@@ -169,6 +174,7 @@ dist = dist(index);
 XS   = XS(index,:);
 dtS  = dtS(index);
 sys  = sys(index);
+ionoFactor = ionoFactor(index,:);
 nsat = size(pseudorange,1);
 if (flag_XS == 1)
     XS0  = XS0(index,:);
@@ -225,6 +231,9 @@ if (nsat >= nsat_required)
 
         %computation of ionospheric errors
         err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);
+        
+        %correct the ionospheric errors for different frequencies
+        err_iono = ionoFactor(:,phase).*err_iono;
 
         if (flag_XR < 2) %if unknown or approximate receiver position
             [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys);

@@ -2990,6 +2990,7 @@ classdef goGUIclass < handle
             
             contents = cellstr(get(obj.goh.num_receivers,'String'));
             num_rec = str2double(contents{get(obj.goh.num_receivers,'Value')});
+            protocol_idx = nan(4,1);
             
             if num_rec >= 1
                 contentsProt = cellstr(get(obj.goh.protocol_select_0,'String'));
@@ -3042,6 +3043,7 @@ classdef goGUIclass < handle
                     end
                 end
             end
+            protocol_idx = protocol_idx(~isnan(protocol_idx));
             
             funout = cell(25,1);
             

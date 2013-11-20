@@ -73,7 +73,7 @@ if (flag_var_dyn_model) & (~flag_stopGOstop)
 end
 
 %number of satellites (only GPS for real-time processing)
-nGPSsat = 32;
+nSatTot = 32;
 
 %------------------------------------------------------
 % read protocol parameters
@@ -120,8 +120,8 @@ fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %write number of satellites
-fwrite(fid_obs, nGPSsat, 'int8');
-fwrite(fid_eph, nGPSsat, 'int8');
+fwrite(fid_obs, nSatTot, 'int8');
+fwrite(fid_eph, nSatTot, 'int8');
 
 %Kalman filter output data
 %free motion
@@ -141,7 +141,7 @@ fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
 %  distM --> double, [32,1]
 %  distR --> double, [32,1]
 fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-fwrite(fid_sat, nGPSsat, 'int8');
+fwrite(fid_sat, nSatTot, 'int8');
 
 %dilution of precision
 %  PDOP     --> double, [1,1]
@@ -168,7 +168,7 @@ end
 %  conf_cs  --> int8, [32,1]
 %  pivot    --> int8, [1,1]
 fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
-fwrite(fid_conf, nGPSsat, 'int8');
+fwrite(fid_conf, nSatTot, 'int8');
 
 %nmea sentences 
 fid_nmea = fopen([filerootOUT '_', prot_par{1,1},'_NMEA.txt'],'wt');
@@ -413,8 +413,11 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
     end
 end
 
+%retrieve multi-constellation wavelengths
+lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+
 %initial positioning
-pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], 10, 0, 0, 0);
+pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), 10, 0, 1, 0, 0);
 
 if (isempty(pos_R))
     fprintf('It was not possible to estimate an approximate position.\n');
@@ -760,8 +763,8 @@ while flag
         end
         fid_conf   = fopen([filerootOUT '_conf_'   hour_str '.bin'],'w+');
         
-        fwrite(fid_sat,  nGPSsat, 'int8');
-        fwrite(fid_conf, nGPSsat, 'int8');
+        fwrite(fid_sat,  nSatTot, 'int8');
+        fwrite(fid_conf, nSatTot, 'int8');
     end
 
     %-------------------------------------

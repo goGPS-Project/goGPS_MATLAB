@@ -72,7 +72,7 @@ for i = 1 : length(serialInfo.AvailableSerialPorts)
     codeHEX = [header1 header2 Class MsgId];
     codeBIN = dec2bin(hex2dec(codeHEX),32);
 
-    pos = findstr(replyBIN, codeBIN);
+    pos = strfind(replyBIN, codeBIN);
 
     if (~isempty(pos))
         LEN = fbin2dec(replyBIN(pos(1)+32:pos(1)+39)) + (fbin2dec(replyBIN(pos(1)+40:pos(1)+47)) * 2^8);

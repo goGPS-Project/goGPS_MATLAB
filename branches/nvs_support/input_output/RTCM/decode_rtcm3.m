@@ -51,7 +51,7 @@ preamble = '11010011';      % FIXED transport layer header (8 bit)
 
 %codeBIN = [preamble reserved];      % binary initial stream
 
-pos_all = findstr(msg, preamble);    % message initial index
+pos_all = strfind(msg, preamble);    % message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE IDENTIFICATION

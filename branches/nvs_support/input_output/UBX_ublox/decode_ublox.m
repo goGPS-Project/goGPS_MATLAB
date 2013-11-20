@@ -37,8 +37,6 @@ function [data, nmea_sentences] = decode_ublox(msg, constellations, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-warning off
-
 if (nargin < 2 || isempty(constellations))
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
@@ -53,7 +51,7 @@ header2 = '62';      % header (hexadecimal value)
 codeHEX = [header1 header2];              % initial hexadecimal stream
 codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
 
-pos_UBX = findstr(msg, codeBIN);          % message initial index
+pos_UBX = strfind(msg, codeBIN);          % message initial index
 
 %----------------------------------------------------------------------------------------------
 % NMEA MESSAGE HEADER
@@ -66,7 +64,7 @@ headerNMEA3 = '50';                      % NMEA header (P)
 codeHEX_NMEA = [headerNMEA1 headerNMEA2 headerNMEA3];      % initial hexadecimal stream
 codeBIN_NMEA = dec2bin(hex2dec(codeHEX_NMEA),24);          % initial binary stream
 
-pos_NMEA = findstr(msg, codeBIN_NMEA);   % NMEA message initial index
+pos_NMEA = strfind(msg, codeBIN_NMEA);   % NMEA message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE STARTING POINT
@@ -133,6 +131,11 @@ while (pos + 15 <= length(msg))
             id = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             id = dec2hex(id,2);
 
+            %to detect truncated messages (before computing LEN, because
+            %sometimes the LEN field is truncated as well)
+            pos_nxt = pos_UBX(find(pos_UBX>pos,1));
+            pos_rem = pos_nxt-pos;
+            
             % payload length (2 bytes)
             LEN1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
             LEN2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
@@ -143,16 +146,16 @@ while (pos + 15 <= length(msg))
                     
                     % checksum
                     CK_A = 0; CK_B = 0;
-                    Nslices = (8*LEN + 31) / 8 + 1;    %pre-allocate to
-                    slices = cell(1,Nslices);          %increase speed
+                    Nslices = floor((8*LEN + 31) / 8 + 1);    %pre-allocate to
+                    slices = cell(Nslices,1);                 %increase speed
                     k = 1;
                     for j = (pos - 32) : 8 : (pos + 8*LEN - 1)
-                        slices{k} = msg(j:j+7);
+                        slices{k,1} = msg(j:j+7);
                         k = k + 1;
                     end
                     slices = fbin2dec(slices);         %call 'fbin2dec' only once (to optimize speed)
                     for r = 1 : k-1
-                        CK_A = CK_A + slices(r);
+                        CK_A = CK_A + slices(r,1);
                         CK_B = CK_B + CK_A;
                     end
                     CK_A = mod(CK_A,256);
@@ -161,7 +164,7 @@ while (pos + 15 <= length(msg))
                     CK_B_rec = fbin2dec(msg(pos + 8*LEN + 8:pos + 8*LEN + 15));
 
                     % if checksum matches
-                    if (CK_A == CK_A_rec) & (CK_B == CK_B_rec)
+                    if (CK_A == CK_A_rec) && (CK_B == CK_B_rec)
 
                         % message identification
                         switch class
@@ -197,7 +200,15 @@ while (pos + 15 <= length(msg))
                         end
                         
                     else
-                        %fprintf('Checksum error!\n');
+                        warning('UBXDecoder:ChecksumError','checksum error (class: 0x%s, id: 0x%s))\n',class,id);
+                        
+                        %skip truncated messages
+                        % +4 to include the two length bytes and the two checksum bytes
+                        if (~isempty(pos_rem) && ~mod(pos_rem,8) && 8*(LEN+4) > pos_rem)
+                            warning('UBXDecoder:TruncatedMessage','truncated UBX message detected and skipped (class: 0x%s, id: 0x%s))\n',class,id);
+                            pos = pos_nxt;
+                            continue
+                        end
                     end
                     
                     % skip the message body
@@ -214,7 +225,7 @@ while (pos + 15 <= length(msg))
         end
 
     % check if a NMEA sentence is starting
-    elseif (pos + 23 <= length(msg)) & (strcmp(msg(pos:pos+23),codeBIN_NMEA))
+    elseif (pos + 23 <= length(msg)) && (strcmp(msg(pos:pos+23),codeBIN_NMEA))
         
         % search for <CR><LF>
         % The maximum number of characters for a valid NMEA 0183 sentence
@@ -223,9 +234,9 @@ while (pos + 15 <= length(msg))
         % Thus the search for the end delimiter is restricted within
         % 100*8 = 800 bits or the end of the message whichever comes first.
         if ((length(msg)-pos)<799)
-            pos_ENDNMEA = findstr(msg(pos:end),[dec2bin(13,8) dec2bin(10,8)]);
+            pos_ENDNMEA = strfind(msg(pos:end),[dec2bin(13,8) dec2bin(10,8)]);
         else
-            pos_ENDNMEA = findstr(msg(pos:pos+799),[dec2bin(13,8) dec2bin(10,8)]);
+            pos_ENDNMEA = strfind(msg(pos:pos+799),[dec2bin(13,8) dec2bin(10,8)]);
         end
         
         if ~isempty(pos_ENDNMEA)
@@ -251,14 +262,7 @@ while (pos + 15 <= length(msg))
 
     % check if there are other packages
     else
-
-        % find the index of the first UBX message, if any
-        pos_UBX = findstr(msg(pos:end),codeBIN);
-        if ~isempty(pos_UBX)
-            pos = pos + pos_UBX(1) - 1;
-        else
-            break
-        end
+        pos = pos_UBX(find(pos_UBX>pos,1));
+        if (isempty(pos)), break, end;
     end
-
 end

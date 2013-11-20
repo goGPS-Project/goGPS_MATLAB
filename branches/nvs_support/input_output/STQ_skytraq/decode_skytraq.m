@@ -36,8 +36,6 @@ function [data] = decode_skytraq(msg, constellations, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-warning off
-
 if (nargin < 2 || isempty(constellations))
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
@@ -52,7 +50,7 @@ header2 = 'A1';      % header (hexadecimal value)
 codeHEX = [header1 header2];              % initial hexadecimal stream
 codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
 
-pos_HDR = findstr(msg, codeBIN);          % message initial index
+pos_HDR = strfind(msg, codeBIN);          % message initial index
 
 %----------------------------------------------------------------------------------------------
 % NMEA MESSAGE HEADER
@@ -65,7 +63,7 @@ headerNMEA3 = '50';                      % NMEA header (P)
 codeHEX_NMEA = [headerNMEA1 headerNMEA2 headerNMEA3];      % initial hexadecimal stream
 codeBIN_NMEA = dec2bin(hex2dec(codeHEX_NMEA),24);          % initial binary stream
 
-pos_NMEA = findstr(msg, codeBIN_NMEA);   % NMEA message initial index
+pos_NMEA = strfind(msg, codeBIN_NMEA);   % NMEA message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE STARTING POINT
@@ -75,7 +73,7 @@ pos_NMEA = findstr(msg, codeBIN_NMEA);   % NMEA message initial index
 data = cell(0);
 
 % find the index of the first message, if any
-if (~isempty(pos_HDR) & ~isempty(pos_NMEA))
+if (~isempty(pos_HDR) && ~isempty(pos_NMEA))
 
     if (pos_HDR(1) < pos_NMEA(1))
         pos = pos_HDR(1);
@@ -182,7 +180,7 @@ while (pos + 15 <= length(msg))
     else
 
         % find the index of the first message, if any
-        pos_HDR = findstr(msg(pos:end),codeBIN);
+        pos_HDR = strfind(msg(pos:end),codeBIN);
         if ~isempty(pos_HDR)
             pos = pos + pos_HDR(1) - 1;
         else

@@ -55,6 +55,9 @@ if (nargin == 6)
     waitbar(0.5,wait_dlg,'Reading master stream files...')
 end
 
+%check if the system uses 3-digit exponential notation
+three_digit_exp = (length(sprintf('%1.1E',1)) == 8);
+
 %MASTER stream reading
 data_master_all = [];                                                %overall stream
 hour = 0;                                                            %hour index (integer)
@@ -155,6 +158,8 @@ if (~isempty(data_master_all))
         flag_L2 = 0;
         
         i = 1;
+        toe_old = -1;
+        flag_no_obs = 1;
         for j = 1 : Ncell
             if (nargin == 6)
                 waitbar(j/Ncell,wait_dlg)
@@ -163,6 +168,7 @@ if (~isempty(data_master_all))
             if (cell_master{1,j} == 1002)                     %RTCM 1002 message
                 
                 idx = constellations.GPS.indexes;
+                flag_no_obs = 1;
                 
                 time_M(i)     = cell_master{2,j}(2);          %GPS time logging
                 pr1_M(idx,i)  = cell_master{3,j}(idx,2);      %code observations logging
@@ -180,6 +186,7 @@ if (~isempty(data_master_all))
             elseif (cell_master{1,j} == 1004)                 %RTCM 1004 message
                 
                 idx = constellations.GPS.indexes;
+                flag_no_obs = 1;
                 
                 time_M(i)     = cell_master{2,j}(2);          %GPS time logging
                 pr1_M(idx,i)  = cell_master{3,j}(idx,2);      %code observations logging (L1)
@@ -254,6 +261,13 @@ if (~isempty(data_master_all))
                 sat = cell_master{2,j}(30);                   %satellite number
                 toe = cell_master{2,j}(18);                   %time of ephemeris
                 
+                %update the epoch counter (in case no observation messages
+                %are available)
+                if (flag_no_obs && (toe ~= toe_old))
+                    toe_old = toe;
+                    i = i + 1;
+                end
+                
                 %if the ephemerides are not already available
                 if (isempty(find(Eph_M(18,sat,:) ==  toe, 1)))
                     Eph_M(:,sat,i) = cell_master{2,j}(:);     %single satellite ephemerides logging
@@ -286,8 +300,8 @@ if (~isempty(data_master_all))
         %manage "nearly null" data
         ph1_M(ph1_M < 1e-100) = 0;
         ph2_M(ph2_M < 1e-100) = 0;
-
-        if (~isempty(time_M))
+        
+        if (any(time_M))
             %date decoding
             date = gps2date(week, time_M);
         else
@@ -614,6 +628,8 @@ if (~isempty(data_master_all))
         %if ephemerides are available
         if (~isempty(find(Eph_M(1,:,:) ~= 0, 1)))
             
+            N = size(Eph_M, 3);
+            
             %displaying
             if (nargin == 5)
                 fprintf(['Writing rover navigation file...\n']);
@@ -814,20 +830,19 @@ if (~isempty(data_master_all))
                 fclose(fid_nav);
             end
         end
-    else
-        %displaying
-        if (nargin == 6)
-            msgbox('No master data acquired.');
         else
-            fprintf('No master data acquired! \n');
-        end
+            %displaying
+            if (nargin == 6)
+                msgbox('Master: no navigation data acquired.');
+            else
+                fprintf('Master: no navigation data acquired! \n');
+            end
     end
-    
 else
     %displaying
     if (nargin == 6)
         msgbox('No master data acquired.');
     else
-        fprintf('No master data acquired.\n');
+        fprintf('No master data acquired! \n');
     end
 end

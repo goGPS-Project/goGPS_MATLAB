@@ -53,7 +53,7 @@ snr = snr(idx2);
 sys = char(sys(idx1));
 prn = prn(idx1);
 
-sysprn = mat2cell([sys' num2str(prn')]);
+sysprn = {[sys' num2str(prn')]};
 
 if ~isempty(sat)
     barh(1:1:size(sat),snr)

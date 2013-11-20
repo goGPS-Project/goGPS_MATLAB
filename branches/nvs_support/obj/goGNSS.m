@@ -35,14 +35,14 @@
 classdef goGNSS < handle
     
     % Constant values
-    % => to discriminate them from function (in autocompletition) they are
+    % => to discriminate them from function (in autocompletion) they are
     % written in capital letters
     properties (Constant)
         % GENERIC CONSTANTS -----------------------------------------------
         
         V_LIGHT = 299792458;                  % velocity of light in the void [m/s]
         
-        MAX_SAT = 32                                  % Maximum number of active satellites in a constellation
+        MAX_SAT = 32                          % Maximum number of active satellites in a constellation
         
         % CONSTELLATION REF -----------------------------------------------
         % CRS parameters, according to each GNSS system CRS definition
@@ -368,6 +368,10 @@ classdef goGNSS < handle
             pos2 = find(strcmp(char(Eph(31,:)),'R'));
             pos = interesct(pos1, pos2);
             GLOFreqNum = Eph(15,pos);
+        end
+        
+        function [IonoFactor] = getInterFreqIonoFactor(lambda)
+            IonoFactor = (lambda(:,:)./goGNSS.LAMBDAG(1)).^2;
         end
     end
     
@@ -1037,7 +1041,6 @@ classdef goGNSS < handle
             
             %check if the end of the header or the end of the file has been reached
             while isempty(strfind(txtLine,'END OF HEADER'))
-                %NOTE1: findstr is obsolete, so strfind is used
                 
                 answer = strfind(txtLine,'RINEX VERSION'); %RINEX v2.xx
                 if ~isempty(answer)
@@ -1115,7 +1118,7 @@ classdef goGNSS < handle
                 nType = size(obsTypes{1},2)/2;
                 
                 %search L1 column
-                s1 = strfind(obsTypes{1}, 'L1'); %findstr is obsolete, so strfind is used
+                s1 = strfind(obsTypes{1}, 'L1');
                 s2 = strfind(obsTypes{1}, 'LA');
                 col_L1 = [s1 s2];
                 
@@ -1275,7 +1278,7 @@ classdef goGNSS < handle
             while (eoEpoch==0)
                 %read the string
                 line = line+1; lin = txtRin{line};
-                %answer = findstr(lin,'COMMENT'); Note   findstr will be removed in a future release. Use strfind instead.
+                %answer = strfind(lin,'COMMENT');
                 keywords = {'COMMENT', 'MARKER NAME', 'MARKER NUMBER', 'APPROX POSITION XYZ', 'ANTENNA: DELTA H/E/N'};
                 answer = [];
                 s = 1;

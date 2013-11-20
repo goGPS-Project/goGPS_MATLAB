@@ -82,7 +82,7 @@ end
     function [delay] = klobuchar_model(lat, lon, az, el, time_rx, ionoparams)
         
         %initialization
-        delay = zeros(size(el),1);
+        delay = zeros(size(el));
         
         %-------------------------------------------------------------------------------
         % KLOBUCHAR MODEL
@@ -165,7 +165,7 @@ end
     function [delay] = sbas_iono_interp(lat, lon, az, el, sbas)
         
         %initialization
-        delay = NaN(size(el),1);
+        delay = NaN(size(el));
         
         %-------------------------------------------------------------------------------
         % SBAS IONOSPHERE INTERPOLATION

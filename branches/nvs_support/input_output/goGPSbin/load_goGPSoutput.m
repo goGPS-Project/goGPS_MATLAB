@@ -224,7 +224,7 @@ while ~isempty(d)
     fid_conf = fopen([fileroot '_conf_' hour_str '.bin'],'r+');     %file opening
     num_sat = fread(fid_conf,1,'int8');                             %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
-    num_packs = num_words / (num_sat*2+1);                          %file size (number of packets)
+    num_packs = num_bytes / (num_sat*2+1);                          %file size (number of packets)
     buf_conf = fread(fid_conf,num_bytes,'int8');                    %file reading
     fclose(fid_conf);                                               %file closing
     conf_sat = [conf_sat  zeros(num_sat,num_packs)];                %observations concatenation

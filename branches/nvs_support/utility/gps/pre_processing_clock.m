@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, nSatTot, waitbar_handle)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3_time, SP3_coor, SP3_clck, iono, nSatTot, waitbar_handle);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -17,6 +17,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time
 %   Eph = matrix containing 33 ephemerides for each satellite
 %   SP3 = structure with precise ephemeris and clock
 %   iono = ionosphere parameters (Klobuchar)
+%   lambda  = wavelength matrix (depending on the enabled constellations)
 %   nSatTot = maximum number of satellites (given the enabled constellations)
 %   waitbar_handle = handle to the waitbar object
 
@@ -70,12 +71,6 @@ dtRdot = zeros(nEpochs-1,1);
 bad_sats = zeros(nSatTot,1);
 
 %--------------------------------------------------------------------------------------------
-% Retrieve multi-constellation wavelengths
-%--------------------------------------------------------------------------------------------
-
-lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
-
-%--------------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
 %--------------------------------------------------------------------------------------------
 
@@ -103,7 +98,7 @@ for i = 1 : nEpochs
     
     if (length(sat0) >= 4)
         
-        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], cutoff, snr_threshold, flag_XR, 0);
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0);
         
         if (~isempty(dtR_tmp))
             dtR(i) = dtR_tmp;

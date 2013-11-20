@@ -1,7 +1,7 @@
-function [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, A0] = input_kalman_vinc(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, distR_approx, distM, sat, pivot, lambda)
+function [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, A0] = input_kalman_vinc(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR_approx, distM, sat, pivot, lambda)
 
 % SYNTAX:
-%   [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, A0] = input_kalman_vinc(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, distR_approx, distM, sat, pivot, lambda);
+%   [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, A0] = input_kalman_vinc(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR_approx, distM, sat, pivot, lambda);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -15,10 +15,11 @@ function [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, p
 %   pr2_M = MASTER-SATELLITE code pseudorange (carrier L2)
 %   ph2_M = MASTER-SATELLITE phase observations (carrier L2)
 %   err_tropo_R = ROVER-SATELLITE tropospheric error
-%   err_iono_R  = ROVER-SATELLITE ionospheric error
+%   err_iono1_R  = ROVER-SATELLITE ionospheric error (carrier L1)
+%   err_iono2_R  = ROVER-SATELLITE ionospheric error (carrier L2)
 %   err_tropo_M = MASTER-SATELLITE tropospheric error
-%   err_iono_M  = MASTER-SATELLITE ionospheric error
-%   distR_approx = ROVER-SATELLITE approximate range
+%   err_iono1_M  = MASTER-SATELLITE ionospheric error (carrier L1)
+%   err_iono2_R  = ROVER-SATELLITE ionospheric error (carrier L2)
 %   distM = MASTER-SATELLITE range
 %   sat = configuration of visible satellites
 %   pivot = pivot satellite
@@ -93,10 +94,10 @@ probs_ph2  = (lambda2 .* ph2_R - lambda2 .* ph2_M) - (lambda2(pivot_index) * ph2
 %approximate pseudoranges
 prapp_pr  =            (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
 prapp_pr  = prapp_pr + (err_tropo_R - err_tropo_M) - (err_tropo_R(pivot_index)  - err_tropo_M(pivot_index)); %tropospheric error DD
-prapp_pr1 = prapp_pr + (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (L1 code)
-prapp_ph1 = prapp_pr - (err_iono_R  - err_iono_M)  + (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (L1 phase)
-prapp_pr2 = prapp_pr + (lambda2./lambda1).^2 .* ((err_iono_R - err_iono_M) - (err_iono_R(pivot_index) - err_iono_M(pivot_index)));  %ionoshperic error DD (L2 code)
-prapp_ph2 = prapp_pr - (lambda2./lambda1).^2 .* ((err_iono_R - err_iono_M) - (err_iono_R(pivot_index) - err_iono_M(pivot_index)));  %ionoshperic error DD (L2 phase)
+prapp_pr1 = prapp_pr + (err_iono1_R - err_iono1_M) - (err_iono1_R(pivot_index)  - err_iono1_M(pivot_index)); %ionoshperic error DD (L1 code)
+prapp_ph1 = prapp_pr - (err_iono1_R - err_iono1_M) + (err_iono1_R(pivot_index)  - err_iono1_M(pivot_index)); %ionoshperic error DD (L1 phase)
+prapp_pr2 = prapp_pr + (err_iono2_R - err_iono2_M) - (err_iono2_R(pivot_index)  - err_iono2_M(pivot_index)); %ionoshperic error DD (L2 code)
+prapp_ph2 = prapp_pr - (err_iono2_R - err_iono2_M) + (err_iono2_R(pivot_index)  - err_iono2_M(pivot_index)); %ionoshperic error DD (L2 phase)
 
 %remove pivot-pivot lines
 A0(pivot_index, :)     = [];
