@@ -1,45 +1,70 @@
-% function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
-%          (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero)
-
-
+function [R, N_hat, cov_R, cov_N] = LS_DD_multibaseline(Ant, F, XS, XM, ...
+              XR1_approx, XR2_approx, XR3_approx, XR4_approx, pr_R1, pr_R2, ...
+              pr_R3, pr_R4, ph_R1, ph_R2, ph_R3, ph_R4, pr_M, ph_M, snr_R1, ...
+              snr_M, elR1, elM, err_tropo_R1, err_tropo_R2, err_tropo_R3, ...
+              err_tropo_R4, err_iono_R1, err_iono_R2, err_iono_R3, err_iono_R4, ...
+              err_tropo_M, err_iono_M, pivot_index, lambda)
+%
+% function [R, N_hat, cov_R, cov_N] = LS_DD_multibaseline(Ant, F, XS, XM, ...
+%               XR1_approx, XR2_approx, XR3_approx, XR4_approx, pr_R1, pr_R2, ...
+%               pr_R3, pr_R4, ph_R1, ph_R2, ph_R3, ph_R4, pr_M, ph_M, snr_R1, ...
+%               snr_M, elR1, elM, err_tropo_R1, err_tropo_R2, err_tropo_R3, ...
+%               err_tropo_R4, err_iono_R1, err_iono_R2, err_iono_R3, err_iono_R4, ...
+%               err_tropo_M, err_iono_M, pivot_index, lambda)
+%
 % INPUT:
-%   XR_approx   = receiver approximate position (X,Y,Z)
-%   XM          = master station position (X,Y,Z)
-%   XS          = satellite position (X,Y,Z)
-%   pr_R        = receiver code observations
-%   ph_R        = receiver phase observations
-%   pr_M        = master code observations
-%   pr_M        = master phase observations
-%   snr_R       = receiversignal-to-noise ratio
-%   snr_M       = mastersignal-to-noise ratio
-%   elR         = satellite elevation (vector)
-%   elM         = satellite elevation (vector)
-%   err_tropo_R = tropospheric error
-%   err_tropo_M = tropospheric error
-%   err_iono_R  = ionospheric error
-%   err_iono_M  = ionospheric error
-%   pivot_index = index identifying the pivot satellite
-%   lambda      = vector containing GNSS wavelengths for available satellites
+%   Ant          = number of antenna
+%   F            = matrix of antennae in body coord. frame
+%   XS           = satellite position (X,Y,Z)
+%   XM           = master station position (X,Y,Z)
+%   XR1_approx   = rover-1 approximate position (X,Y,Z)
+%   XR2_approx   = rover-2 approximate position (X,Y,Z)
+%   XR3_approx   = rover-3 approximate position (X,Y,Z)
+%   XR4_approx   = rover-4 approximate position (X,Y,Z)
+%   pr_R1        = rover-1 code observations
+%   pr_R2        = rover-2 code observations
+%   pr_R3        = rover-3 code observations
+%   pr_R4        = rover-4 code observations
+%   ph_R1        = rover-1 phase observations
+%   ph_R2        = rover-2 phase observations
+%   ph_R3        = rover-3 phase observations
+%   ph_R4        = rover-4 phase observations
+%   pr_M         = master code observations?
+%   ph_M         = master phase observations
+%   snr_R1       = rover-1 signal-to-noise ratio
+%   snr_M        = mastersignal-to-noise ratio
+%   elR1         = rover-1 satellite elevation (vector)
+%   elM          = master satellite elevation (vector)
+%   err_tropo_R1 = rover-1 tropospheric error
+%   err_tropo_R2 = rover-2 tropospheric error
+%   err_tropo_R3 = rover-3 tropospheric error
+%   err_tropo_R4 = rover-4 tropospheric error
+%   err_iono_R1  = rover-1 ionospheric error
+%   err_iono_R2  = rover-2 ionospheric error
+%   err_iono_R3  = rover-3 ionospheric error
+%   err_iono_R4  = rover-4 ionospheric error
+%   err_tropo_M  = tropospheric error
+%   err_iono_M   = ionospheric error
+%   pivot_index  = index identifying the pivot satellite
+%   lambda       = vector containing GNSS wavelengths for available satellites
 
 % OUTPUT:
-%   XR = estimated position (X,Y,Z)
-%   N_hat = linear combination of ambiguity estimate
-%   cov_XR = covariance matrix of estimation errors (rover position)
-%   cov_N = covariance matrix of estimation errors (combined ambiguity values)
-%   PDOP = position dilution of precision
-%   HDOP = horizontal dilution of precision
-%   VDOP = vertical dilution of precision
+%   R            = 9-DCM components
+%   N_hat        = linear combination of ambiguity estimate
+%   cov_XR       = covariance matrix of estimation errors (9-DCM components)
+%   cov_N        = covariance matrix of estimation errors (combined ambiguity values)
+
 %
 % DESCRIPTION:
-%   Least squares solution using code and phase double differences.
-%   Epoch-by-epoch solution, optionally with Tykhonov-Phillips regularization.
+%   Multibaseline least squares solution using code and phase double differences.
+%   Epoch-by-epoch solution
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
-% Portions of code contributed by Hendy F. Suhandri
+% Modified for fixed-multibaseline purpose by Hendy F. Suhandri
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -59,256 +84,185 @@
 % %variable initialization
 % global sigmaq_cod1 sigmaq_ph
 
-%number of baseline
-n = ant-1;      %ant = number of antennae, should be integrated with input from GUI 
+%number of baseline (n)
+n = Ant-1; %---> INPUT: ant = numbers of antenna      
 
-%number of double difference observations taken from all baselines
-m = 2*(length(pr_M) - 1)*n;
+%number of DD-obs. in one baseline (m)
+m = 2*(length(pr_M)); %--->INPUT: pr_M = numb. of CA obs. in Master
 
-%number of unknown parameters ()
-%p = 0; is span of matrix F, (F=matrix baselines in body system)
-if n == 1;
-    p = 1;
+%number of unknown parameters (u)
+ %q is span of matrix F, (F=matrix baselines in body syst.)
+if n < 1;
+    error('no baseline!')
+elseif n == 1;
+    q = 1;
 elseif n == 2;
-    p = 2;
+    q = 2;
 else n > 2;
-    p = 3;
-end     
+    q = 3;
+end
+q
 
-u = 3*p + (n/2 - 1);
+u = 3*q + (m/2 - 1)*n
 
-% %approximate receiver-satellite distance
-% XR_mat = XR_approx(:,ones(n/2,1))';
-% XM_mat = XM(:,ones(n/2,1))';
-% distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
-% distM = sqrt(sum((XS-XM_mat).^2 ,2));
-% 
-% %design matrix (code)
-% A = [((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
-%      ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
-%      ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index)), ... %column for Z coordinate
-%      zeros(n/2,n/2)]; %column for phase ambiguities   (here zero)
-% 
-% %design matrix (phase)
-% A = [A; ((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
-%         ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
-%         ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index)), ... %column for Z coordinate
-%         diag(-lambda) .* eye(n/2)]; %column for phase ambiguities
-% 
-% %known term vector
-% b    =     (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
-% b    = b + (err_tropo_R - err_tropo_M) - (err_tropo_R(pivot_index)  - err_tropo_M(pivot_index)); %tropospheric error DD
-% b_pr = b + (err_iono_R  - err_iono_M)  - (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (code)
-% b_ph = b - (err_iono_R  - err_iono_M)  + (err_iono_R(pivot_index)   - err_iono_M(pivot_index));  %ionoshperic error DD (phase)
-% b = [b_pr; b_ph];
-% 
-% %observation vector
-% y0_pr =         (pr_R - pr_M) - (pr_R(pivot_index) - pr_M(pivot_index));
-% y0_ph = lambda.*((ph_R - ph_M) - (ph_R(pivot_index) - ph_M(pivot_index)));
-% y0 = [y0_pr; y0_ph];
-% 
-% %remove pivot-pivot lines
-% A( [pivot_index, pivot_index+n/2], :) = [];
-% A(            :, pivot_index+3)       = [];
-% b( [pivot_index, pivot_index+n/2])    = [];
-% y0([pivot_index, pivot_index+n/2])    = [];
-% n = n - 2;
-% 
-% %observation noise covariance matrix
-% Q = zeros(n);
-% Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
-% Q(1:n/2,1:n/2) = sigmaq_cod1 * Q1;
-% Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q1;
-% 
-% %normal matrix
-% N = (A'*(Q^-1)*A);
-% 
-% %least squares solution
-% x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
-% 
-% %estimation of the variance of the observation error
-% y_hat = A*x_hat + b;
-% v_hat = y0 - y_hat;
-% sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
-% 
-% if (~flag_LAMBDA)
-%     %apply least squares solution
-%     XR = XR_approx + x_hat(1:3);
-%     
-%     %estimated double difference ambiguities (without PIVOT)
-%     N_hat_nopivot = x_hat(4:end);
-%     
-%     %add a zero at PIVOT position
-%     N_hat = zeros(n/2+1,1);
-%     N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-%     N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-%     
-%     %covariance matrix of the estimation error
-%     if (n > m)
-%         Cxx = sigma02_hat * (N^-1);
-%         
-%         %rover position covariance matrix
-%         cov_XR = Cxx(1:3,1:3);
-%         
-%         %combined ambiguity covariance matrix
-%         cov_N_nopivot = Cxx(4:end,4:end);
-%         
-%         %add one line and one column (zeros) at PIVOT position
-%         cov_N = zeros(n/2+1);
-%         cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
-%         cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
-%     else
-%         cov_XR = [];
-%         cov_N = [];
-%     end
-%     
-% else %apply LAMBDA
-%     
-%     if (flag_Tykhon)
-%         %Processing with Tykhonov-Phillips regularization
-%         [x_hat, bias, lbd] = tykhonov_regularization(x_hat, y0, b, A, Q);
-%         
-%         %computation of the condition number on the eigenvalues of N
-%         N_min_eig = min(eig(N + lbd*eye(m)));
-%         N_max_eig = max(eig(N + lbd*eye(m)));
-%         cond_num = ceil(log10(N_max_eig / N_min_eig));
-%     else
-%         %computation of the condition number on the eigenvalues of N
-%         N_min_eig = min(eig(N));
-%         N_max_eig = max(eig(N));
-%         cond_num = ceil(log10(N_max_eig / N_min_eig));
-%     end
-%     
-%     if (~flag_Tykhon)
-%         Qxx = (N^-1); %vcm of parameter computed from inverse of normal matrix
-%     else
-%         Qxx = ((N + lbd*eye(m))^-1)*N*((N + lbd*eye(m))^-1); %vcm of parameter
-%     end
-%     
-%     if (flag_iter)
-%         
-%         if (flag_iter_zero)
-%             %force initial value to zeros (otherwise use x_hat and Qxx from previous steps)
-%             x_hat = zeros(m,1);
-%             Qxx   = eye(m);
-%         end
-%         
-%         %iterative least squares (float) solution
-%         M = ((A'*Q^-1*A) + eye(m))^-1; %normal matrix for iterative LS
-%         U = A'*Q^-1*(y0-b); %part A'*P*Y of normal equation
-%         dummy = zeros(m);
-%         x_n = ones(m,1);
-%         tol = 1e-4; %threshold of iterative process
-%         cnt = 1;
-%         
-%         while (norm(x_n) > tol)
-%             x_old = x_hat;
-%             dummy = dummy + M^(cnt); %compute iterative normal matrix
-%             x_hat = (dummy)*U + M^(cnt)*x_hat; %estimate parameter
-%             Qxx   = (dummy)*A'*Q^-1*A*(dummy)' + M^(cnt)*Qxx*M^(cnt)'; %estimate vcm of parameter
-%             
-%             x_n = x_hat - x_old;
-%             cnt = cnt + 1;
-%         end
-%     end
-%     
-%     if (n > m && sigmaq_ph ~= 1e30)
-%         
-%         %covariance matrix
-%         Cxx = sigma02_hat * (N^-1);
-%         
-%         [U] = chol(Cxx); %compute cholesky decomp. for identical comp of vcm purpose
-%         Cxx = U'*U; %find back the vcm of parameter, now the off diag. comp. are identical :)
-%         
-%         %%this part for future statistical test of data reliability :)
-%         %     Q_hat = A*Cxx*A';
-%         %     Qv_hat= Q - Q_hat;
-%         %     alpha = 0.05;
-%         %     [identify,BNR_xhat, BNR_y] = test_statistic(Q_hat, Q, A, alpha, v_hat,Qv_hat)
-% 
-%         Cbb = Cxx(1:3,1:3); %vcm block of baseline component
-%         Cba = Cxx(1:3,4:end);% correlation of baselines and ambiguities comp.
-%         Cab = Cxx(4:end,1:3);
-%         Caa = Cxx(4:end,4:end);%vcm block of ambiguity component
-%         
-%         bhat = x_hat(1:3);
-%         ahat = x_hat(4:end);
-%         
-%         [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Cbb, Caa, Cba);
-%         
-%         XR     = (XR_approx + bcheck);
-%         cov_XR = Cbb - (Cba * Caa^-1 * Cab) + (Cba * Caa^-1*Qzhat*(Caa^-1)'*Cab);
-%         
-%         %ambiguity estimation
-%         %afl = x_hat(4:end); %extract float ambiguity from float least-squares
-%         %[afix, sqnorm, Qahat, Z, D, L] = lambda_routine2(afl,Caa); %using LAMBDA routines
-% 
-%         %Integer ambiguity validation
-%         %----------------------------
-%         %O1 = (afl - afix(:,1))' * (Caa)^-1 * (afl - afix(:,1)); %nominator component
-%         %O2 = (afl - afix(:,2))' * (Caa)^-1 * (afl - afix(:,2)); %denominator component
-%         %O  = O1 / O2; %ratio test
-%         
-%         %if O <= 0.5%0.787%0.6    %if below threshold, use the LAMBDA result
-%         %    z = afix(:,1);
-%         %    posType = 1; %fixed
-%         %else                     %if above threshold, reject the LAMBDA result
-%         %    z = afl;
-%         %    posType = 0; %float
-%         %end
-%         
-%         %if (~flag_Tykhon)
-%         %    bias = zeros(size(afix,1),1); %no bias
-%         %else
-%         %    bias = bias(4:end); %use bias component from ambiguity
-%         %end
-%         %[up_bound, lo_bound] = success_rate(D,L,bias); %compute success rate of ambiguity
-%         
-%         %Computing definite coordinate
-%         %-----------------------------
-%         %bfl    = x_hat(1:3); %float baseline component
-%         %bdef   = bfl - Cba * Caa^-1 * (afl - z); %compute the conditional baseline component
-%         %cov_XR = Cbb - (Cba * Caa^-1 * Cab) + (Cba * Caa^-1*Qahat*(Caa^-1)'*Cab); %compute its vcm
-%         %XR     = (XR_approx + bdef); %define the definitive coordinate
-%         %std    = sqrt(diag(cov_XR)); %standard deviation of baseline
-%         %bl     = norm(XM - XR); %baseline length
-%         
-%         %estimated double difference ambiguities (without PIVOT)
-%         N_hat_nopivot = acheck;
-%         
-%         %add a zero at PIVOT position
-%         N_hat = zeros(n/2+1,1);
-%         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-%         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-%         
-%         %combined ambiguity covariance matrix
-%         cov_N_nopivot = Qzhat;
-%         
-%         %add one line and one column (zeros) at PIVOT position
-%         cov_N = zeros(n/2+1);
-%         cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
-%         cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
-%         
-%     else
-%         XR = XR_approx + x_hat(1:3);
-%         N_hat_nopivot = x_hat(4:end);
-%         
-%         %add a zero at PIVOT position
-%         N_hat = zeros(n/2+1,1);
-%         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-%         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-%         
-%         cov_XR = [];
-%         cov_N = [];
-%     end
-% end
-% 
-% %DOP computation
-% if (nargout > 4)
-%     cov_XYZ = (A(1:n/2,1:3)'*A(1:n/2,1:3))^-1;
-%     cov_ENU = global2localCov(cov_XYZ, XR);
-%     
-%     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
-%     HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
-%     VDOP = sqrt(cov_ENU(3,3));
-% end
+
+%approximate receiver-satellite distance
+XM_mat  = XM(:,ones(m/2,1))';
+distM = sqrt(sum((XS-XM_mat).^2 ,2));
+XR1_mat = XR1_approx(:,ones(m/2,1))';
+XR2_mat = XR2_approx(:,ones(m/2,1))';
+XR3_mat = XR3_approx(:,ones(m/2,1))';
+XR4_mat = XR4_approx(:,ones(m/2,1))';
+distR1_approx = sqrt(sum((XS-XR1_mat).^2 ,2));
+distR2_approx = sqrt(sum((XS-XR1_mat).^2 ,2));
+distR3_approx = sqrt(sum((XS-XR1_mat).^2 ,2));
+distR4_approx = sqrt(sum((XS-XR1_mat).^2 ,2));
+
+%collecting all approximate and observation value vectors
+pr_R         = [pr_R1, pr_R2, pr_R3, pr_R4];
+ph_R         = [ph_R1, ph_R2, ph_R3, ph_R4];
+distR_approx = [distR1_approx1, distR2_approx, distR3_approx, distR4_approx];
+err_tropo_R  = [err_tropo_R1, err_tropo_R2, err_tropo_R3, err_tropo_R4];
+err_iono_R   = [err_iono_R1, err_iono_R2, err_iono_R3, err_iono_R4];
+
+
+%line-of-sign matrix (code)
+G = [((XR1_approx(1) - XS(:,1)) ./ distR1_approx) - ((XR1_approx(1) - XS(pivot_index,1)) / distR1_approx(pivot_index)), ... %column for X coordinate
+     ((XR1_approx(2) - XS(:,2)) ./ distR1_approx) - ((XR1_approx(2) - XS(pivot_index,2)) / distR1_approx(pivot_index)), ... %column for Y coordinate
+     ((XR1_approx(3) - XS(:,3)) ./ distR1_approx) - ((XR1_approx(3) - XS(pivot_index,3)) / distR1_approx(pivot_index))];    %column for Z coordinate]; 
+
+%line-of-sign matrix (phase)
+G = [G; ((XR1_approx(1) - XS(:,1)) ./ distR1_approx) - ((XR1_approx(1) - XS(pivot_index,1)) / distR1_approx(pivot_index)), ... %column for X coordinate
+        ((XR1_approx(2) - XS(:,2)) ./ distR1_approx) - ((XR1_approx(2) - XS(pivot_index,2)) / distR1_approx(pivot_index)), ... %column for Y coordinate
+        ((XR1_approx(3) - XS(:,3)) ./ distR1_approx) - ((XR1_approx(3) - XS(pivot_index,3)) / distR1_approx(pivot_index))];    %column for Z coordinate
+
+%wavelength matrix (code & carrier)
+A = [zeros(m/2,m/2); diag(-lambda) .* eye(m/2)];
+
+%known term vector Rover 1
+b   =     (distR_approx - repmat(distM,1,4)) - (distR_approx(pivot_index) - repmat(distM(pivot_index),1,4));       %approximate pseudorange DD
+b   = b + (err_tropo_R - repmat(err_tropo_M,1,4)) - (err_tropo_R(pivot_index) - repmat(err_tropo_M(pivot_index),1,4)); %tropospheric error DD
+b_pr= b + (err_iono_R  - repmat(err_iono_M,1,4))  - (err_iono_R(pivot_index) - repmat(err_iono_M(pivot_index),1,4));  %ionoshperic error DD (code)
+b_ph= b - (err_iono_R  - repmat(err_iono_M,1,4))  + (err_iono_R(pivot_index) - repmat(err_iono_M(pivot_index),1,4));  %ionoshperic error DD (phase)
+
+b = cat(1,b_pr, b_ph);
+
+%observation vector
+y0_pr =         (pr_R - repmat(pr_M,1,4)) - (pr_R(pivot_index) - repmat(pr_M(pivot_index),1,4));
+y0_ph = lambda.*((ph_R - repmat(ph_M,1,4)) - (ph_R(pivot_index) - repmat(ph_M(pivot_index),1,4)));
+y0 = cat(1,y0_pr, y0_ph);
+
+%"observations minus known terms"
+y = (y0 - b);
+
+%remove pivot-pivot lines
+A( [pivot_index, pivot_index+m/2], :)  = [];
+G(            :, pivot_index+3)        = [];
+b( [pivot_index, pivot_index+m/2]) = [];
+y0([pivot_index, pivot_index+m/2]) = [];
+m = (m - 2);
+ 
+%observation noise covariance matrix
+Q  = zeros(m);
+Q1 = cofactor_matrix(elR1, elM, snr_R1, snr_M, pivot_index);
+Q(1:m/2,1:m/2) = sigmaq_cod1 * Q1;
+Q(m/2+1:end,m/2+1:end) = sigmaq_ph * Q1;
+
+P  = 0.5*(eye(n)+ones(n));
+Qy = kron(P,Q);
+
+%antenna baselines in body coord. frame
+for k = 1 : length(F(1,:))
+    for i = 1 : length(F(:,1))
+        if (F(i,k) ~= 0)
+            Fn(i,k) = F(i,k);
+        end
+    end
+end
+Fn;
+
+%attitude-based float solution
+Gp = (eye(m) - A*((A'*(Q^-1)*A)^-1)*A'*(Q^-1))*G;
+Pfn= Fn'*((Fn*(P^-1)*Fn')^-1)*Fn*(P^-1);
+Pg = G*((G'*(Q^-1)*A)^-1)*A'*(Q^-1);
+% Ap = (eye(m) - G*((G'*(Q^-1)*G)^-1)*G'*(Q^-1))*A;
+
+Rfloat    = ((Gp'*(Q^-1)*Gp)^-1)*Gp'*(Q^-1)*y*(P^-1)*Fn'*((Fn*(P^-1)*Fn')^-1);
+vecZfloat = (kron(eye(n),((A'*(Q^-1)*A)^-1)*A'*(Q^-1)))*(y(:) - (kron(Fn',G))*Rfloat(:));
+
+QvecR = kron((Fn*(P^-1)*Fn')^-1,(Gp*(Q^-1)*Gp)^-1);
+%QZrR  = kron(-F'*(F*(P^-1)*F)^-1,((A'*(Q^-1)*A)^-1)*A'*(Q^-1)*G*((Gp'*(Q^-1)*Gp)^-1));
+%QRZr  = QZrR';
+QvecZ = ((kron(P^-1,A'*(Q^-1)))*(eye(m*n)-kron(Pfn,Pg))*(kron(eye(n),A)))^-1; 
+ 
+if (~flag_LAMBDA)
+    %apply least squares solution
+    R = Rfloat;
+    
+    %estimated double difference ambiguities (without PIVOT)
+    N_hat_nopivot = vecZfloat;
+    
+    %add a zero at PIVOT position
+    N_hat = zeros((m/2)*n+1,1);
+    N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
+    N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
+    
+    %covariance matrix of the estimation error
+    if (m*n > u)
+        
+        %rover position covariance matrix
+        cov_R = QvecR;
+        
+        %combined ambiguity covariance matrix
+        cov_N_nopivot = QvecZ;
+        
+        %add one line and one column (zeros) at PIVOT position
+        cov_N = zeros((m/2)*n+1);
+        cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
+        cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
+    else
+        cov_R = [];
+        cov_N = [];
+    end
+    
+else %apply LAMBDA
+        
+    if (m*n > u && sigmaq_ph ~= 1e30)
+                        
+        [vecZcheck, QvecZhat] = lambdafix(vecZfloat, QvecZ);
+        
+        R     = ((G'*(Q^-1)*G)^-1)*G'*(Q^-1)*(y-A*vecZcheck)*(P^-1)*Fn'*((Fn*(P^-1)*Fn')^-1);
+        cov_R = kron((Fn*(P^-1)*Fn')^-1,(G'*(Q^-1)*G)^-1); % = QRR - QRZr*(QZrZr^-1)*QZrR;
+        
+        
+        %estimated double difference ambiguities (without PIVOT)
+        N_hat_nopivot = vecZcheck;
+        
+        %add a zero at PIVOT position
+        N_hat = zeros(m*n/2+1,1);
+        N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
+        N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
+        
+        %combined ambiguity covariance matrix
+        cov_N_nopivot = QvecZhat;
+        
+        %add one line and one column (zeros) at PIVOT position
+        cov_N = zeros(n/2+1);
+        cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
+        cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
+        
+    else
+        R = Rfloat;
+        N_hat_nopivot = vecZfloat;
+        
+        %add a zero at PIVOT position
+        N_hat = zeros((m/2)*n+1,1);
+        N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
+        N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
+        
+        cov_R = [];
+        cov_N = [];
+    end
+end
+ 
+
