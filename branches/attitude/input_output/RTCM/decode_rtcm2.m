@@ -44,8 +44,8 @@ preamble_inv = '10011001';       %inverted RTCM2 preamble
 check = ['0' preamble];          %preamble is good only if preceding bit is '0'
 check_inv = ['1' preamble_inv];  %inverted preamble is good only if preceding bit is '1'
 
-pos_preamble = findstr(msg, check) + 1;
-pos_preamble_inv = findstr(msg, check_inv) + 1;
+pos_preamble = strfind(msg, check) + 1;
+pos_preamble_inv = strfind(msg, check_inv) + 1;
 
 %----------------------------------------------------------------------------------------------
 % FIRST MESSAGE SYNCHRONIZATION AND DECODING

@@ -1041,7 +1041,6 @@ classdef goGNSS < handle
             
             %check if the end of the header or the end of the file has been reached
             while isempty(strfind(txtLine,'END OF HEADER'))
-                %NOTE1: findstr is obsolete, so strfind is used
                 
                 answer = strfind(txtLine,'RINEX VERSION'); %RINEX v2.xx
                 if ~isempty(answer)
@@ -1119,7 +1118,7 @@ classdef goGNSS < handle
                 nType = size(obsTypes{1},2)/2;
                 
                 %search L1 column
-                s1 = strfind(obsTypes{1}, 'L1'); %findstr is obsolete, so strfind is used
+                s1 = strfind(obsTypes{1}, 'L1');
                 s2 = strfind(obsTypes{1}, 'LA');
                 col_L1 = [s1 s2];
                 
@@ -1279,7 +1278,7 @@ classdef goGNSS < handle
             while (eoEpoch==0)
                 %read the string
                 line = line+1; lin = txtRin{line};
-                %answer = findstr(lin,'COMMENT'); Note   findstr will be removed in a future release. Use strfind instead.
+                %answer = strfind(lin,'COMMENT');
                 keywords = {'COMMENT', 'MARKER NAME', 'MARKER NUMBER', 'APPROX POSITION XYZ', 'ANTENNA: DELTA H/E/N'};
                 answer = [];
                 s = 1;

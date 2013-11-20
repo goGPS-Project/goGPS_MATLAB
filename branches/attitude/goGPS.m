@@ -29,12 +29,11 @@
 
 % clear all the variables in the workspace
 clear all
-%
+
 %NOTE: using only clearvars causes crashes, e.g. when launching two
 %constrained positioning processes in a row (not clear why...)
-%
-%clearvars
-%clearvars -global goGUI goIni goObj
+% clearvars
+% clearvars -global goGUI goIni goObj
 
 % close all windows
 close all
@@ -2837,7 +2836,7 @@ end
 %     index = find(conf_sat(i,:) == 1)';
 %     if ~isempty(index)
 %         figure
-%         plot(index,lambda1*ph1_R(i,index)-pr1_R(i,index),'b.-'); grid on;
+%         plot(index,goGNSS.LAMBDA1*ph1_R(i,index)-pr1_R(i,index),'b.-'); grid on;
 %         title(['ROVER: lambda1*L1-P1 for SATELLITE ',num2str(i)]);
 %     end
 % end
@@ -2847,7 +2846,7 @@ end
 %     index = find(conf_sat(i,:) == 1)';
 %     if ~isempty(index)
 %         figure
-%         plot(index,lambda1*ph1_M(i,index)-pr1_M(i,index),'b.-'); grid on;
+%         plot(index,goGNSS.LAMBDA1*ph1_M(i,index)-pr1_M(i,index),'b.-'); grid on;
 %         title(['MASTER: lambda1*L1-P1 for SATELLITE ',num2str(i)]);
 %     end
 % end

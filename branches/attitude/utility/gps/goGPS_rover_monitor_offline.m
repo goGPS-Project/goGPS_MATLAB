@@ -165,7 +165,7 @@ for r = 1 : nrec
     codeHEX = [header1 header2 header3 header4];  % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),num_sat);       % initial binary stream
 
-    pos_UBX{r} = findstr(data_rover{r}, codeBIN); % message initial index
+    pos_UBX{r} = strfind(data_rover{r}, codeBIN); % message initial index
     pos_UBX{r} = [0 pos_UBX{r}];
 
 %     % find a serial port object.
