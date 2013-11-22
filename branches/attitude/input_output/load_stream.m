@@ -63,7 +63,7 @@ end
 %ROVER stream reading
 data_rover_all = [];                                                 %overall stream
 hour = 0;                                                            %hour index (integer)
-hour_str = num2str(hour,'%02d');                                     %hour index (string)
+hour_str = num2str(hour,'%03d');                                     %hour index (string)
 d = dir([fileroot '_rover_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
     if (nargin == 1)
@@ -78,7 +78,7 @@ while ~isempty(d)
     fclose(fid_rover);                                               %file closing
     data_rover_all = [data_rover_all data_rover];                    %stream concatenation
     hour = hour+1;                                                   %hour increase
-    hour_str = num2str(hour,'%02d');
+    hour_str = num2str(hour,'%03d');
     d = dir([fileroot '_rover_' hour_str '.bin']);                   %file to be read
 end
 
@@ -373,7 +373,7 @@ end
 %MASTER stream reading
 data_master_all = [];                                                %overall stream
 hour = 0;                                                            %hour index (integer)
-hour_str = num2str(hour,'%02d');                                     %hour index (string)
+hour_str = num2str(hour,'%03d');                                     %hour index (string)
 d = dir([fileroot '_master_' hour_str '.bin']);                      %file to be read
 while ~isempty(d)
     if (nargin == 1)
@@ -388,7 +388,7 @@ while ~isempty(d)
     fclose(fid_master);                                              %file closing
     data_master_all = [data_master_all data_master];                 %stream concatenation
     hour = hour+1;                                                   %hour increase
-    hour_str = num2str(hour,'%02d');
+    hour_str = num2str(hour,'%03d');
     d = dir([fileroot '_master_' hour_str '.bin']);                  %file to be read
 end
 

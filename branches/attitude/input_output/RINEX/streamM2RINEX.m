@@ -43,7 +43,7 @@ three_digit_exp = (length(sprintf('%1.1E',1)) == 8);
 %MASTER stream reading
 data_master_all = [];                                                %overall stream
 hour = 0;                                                            %hour index (integer)
-hour_str = num2str(hour,'%02d');                                     %hour index (string)
+hour_str = num2str(hour,'%03d');                                     %hour index (string)
 d = dir([fileroot '_master_' hour_str '.bin']);                      %file to be read
 while ~isempty(d)
     if (nargin == 3)
@@ -58,7 +58,7 @@ while ~isempty(d)
     fclose(fid_master);                                              %file closing
     data_master_all = [data_master_all data_master];                 %stream concatenation
     hour = hour+1;                                                   %hour increase
-    hour_str = num2str(hour,'%02d');
+    hour_str = num2str(hour,'%03d');
     d = dir([fileroot '_master_' hour_str '.bin']);                  %file to be read
 end
 
