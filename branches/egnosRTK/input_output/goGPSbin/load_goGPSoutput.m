@@ -69,7 +69,7 @@ Cee = [];                          %estimation error covariance matrix
 if (mode == 14 & mode_vinc == 1)
     i = 0;                                                              %epoch counter
     hour = 0;                                                           %hour index (integer)
-    hour_str = num2str(hour,'%02d');                                    %hour index (string)
+    hour_str = num2str(hour,'%03d');                                    %hour index (string)
     d = dir([fileroot '_kal_' hour_str '.bin']);                        %file to be read
     while ~isempty(d)
         fprintf(['Reading: ' fileroot '_kal_' hour_str '.bin\n']);
@@ -90,13 +90,13 @@ if (mode == 14 & mode_vinc == 1)
             Cee(:,:,i) = reshape(buf_kal(j + [o1+nN+4:dim_packs]), o1+nN, o1+nN);
         end
         hour = hour+1;                                                  %hour increase
-        hour_str = num2str(hour,'%02d');                                %conversion into a string
+        hour_str = num2str(hour,'%03d');                                %conversion into a string
         d = dir([fileroot '_kal_' hour_str '.bin']);                    %file to be read
     end
 else
     i = 0;                                                              %epoch counter
     hour = 0;                                                           %hour index (integer)
-    hour_str = num2str(hour,'%02d');                                    %hour index (string)
+    hour_str = num2str(hour,'%03d');                                    %hour index (string)
     d = dir([fileroot '_kal_' hour_str '.bin']);                        %file to be read
     while ~isempty(d)
         fprintf(['Reading: ' fileroot '_kal_' hour_str '.bin\n']);
@@ -115,7 +115,7 @@ else
             Cee(:,:,i) = reshape(buf_kal(j + [o3+nN+1:dim_packs]), o3+nN, o3+nN);
         end
         hour = hour+1;                                                  %hour increase
-        hour_str = num2str(hour,'%02d');                                %conversion into a string
+        hour_str = num2str(hour,'%03d');                                %conversion into a string
         d = dir([fileroot '_kal_' hour_str '.bin']);                    %file to be read
     end
 end
@@ -133,7 +133,7 @@ distR = [];                          %satellite - ROVER distance
 %observations reading
 i = 0;                                                              %epoch counter
 hour = 0;                                                           %hour index (integer)
-hour_str = num2str(hour,'%02d');                                    %hour index (string)
+hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([fileroot '_sat_' hour_str '.bin']);                        %file to be read
 while ~isempty(d)
     fprintf(['Reading: ' fileroot '_sat_' hour_str '.bin\n']);
@@ -160,7 +160,7 @@ while ~isempty(d)
         distR(:,i) = buf_sat(j + [5*num_sat+1:6*num_sat]);
     end
     hour = hour+1;                                                  %hour increase
-    hour_str = num2str(hour,'%02d');                                %conversion into a string
+    hour_str = num2str(hour,'%03d');                                %conversion into a string
     d = dir([fileroot '_sat_' hour_str '.bin']);                    %file to be read
 end
 
@@ -177,7 +177,7 @@ KVDOP = [];                          %Kalman filter VDOP
 %observations reading
 i = 0;                                                              %epoch counter
 hour = 0;                                                           %hour index (integer)
-hour_str = num2str(hour,'%02d');                                    %hour index (string)
+hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([fileroot '_dop_' hour_str '.bin']);                        %file to be read
 while ~isempty(d)
     fprintf(['Reading: ' fileroot '_dop_' hour_str '.bin\n']);
@@ -203,7 +203,7 @@ while ~isempty(d)
         KVDOP(i,1)  = buf_dop(j + 6);                               %observations logging
     end
     hour = hour+1;                                                  %hour increase
-    hour_str = num2str(hour,'%02d');                                %conversion into a string
+    hour_str = num2str(hour,'%03d');                                %conversion into a string
     d = dir([fileroot '_dop_' hour_str '.bin']);                    %file to be read
 end
 
@@ -217,7 +217,7 @@ pivot = [];                             %pivot satellite
 %observations reading
 i = 0;                                                              %epoch counter
 hour = 0;                                                           %hour index (integer)
-hour_str = num2str(hour,'%02d');                                    %hour index (string)
+hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([fileroot '_conf_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
     fprintf(['Reading: ' fileroot '_conf_' hour_str '.bin\n']);
@@ -237,6 +237,6 @@ while ~isempty(d)
         pivot(i,1)    = buf_conf(j + 2*num_sat+1);
     end
     hour = hour+1;                                                  %hour increase
-    hour_str = num2str(hour,'%02d');                                %conversion into a string
+    hour_str = num2str(hour,'%03d');                                %conversion into a string
     d = dir([fileroot '_conf_' hour_str '.bin']);                   %file to be read
 end

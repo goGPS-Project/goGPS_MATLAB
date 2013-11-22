@@ -40,15 +40,27 @@ global server_delay
 %------------------------------------------------------
 
 num_sat = 32;
-
 Eph = zeros(33,num_sat);
+
+%counter for creating hourly files
+hour = 0;
+
+%do not overwrite existing files
+i = 1;
+j = length(filerootOUT);
+while (~isempty(dir([filerootOUT '_obs*.bin'])) || ...
+        ~isempty(dir([filerootOUT '_eph*.bin'])) )
+    
+    filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
+    i = i + 1;
+end
 
 %------------------------------------------------------
 % data file creation
 %------------------------------------------------------
 
 %master binary stream (uint8)
-fid_master = fopen([filerootOUT '_master_00.bin'],'w+');
+fid_master = fopen([filerootOUT '_master_000.bin'],'w+');
 
 %input observations
 %  time_GPS --> double, [1,1]   --> zeros(1,1)
@@ -60,12 +72,12 @@ fid_master = fopen([filerootOUT '_master_00.bin'],'w+');
 %  ph_R     --> double, [num_sat,1]  --> zeros(num_sat,1)
 %  snr_M    --> double, [num_sat,1]
 %  snr_R    --> double, [num_sat,1]  --> zeros(num_sat,1)
-fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
+fid_obs = fopen([filerootOUT '_obs_000.bin'],'w+');
 
 %input ephemerides
 %  timeGPS  --> double, [1,1]   --> zeros(1,1)
 %  Eph      --> double, [33,num_sat]
-fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+fid_eph = fopen([filerootOUT '_eph_000.bin'],'w+');
 
 %write number of satellites
 fwrite(fid_obs, num_sat, 'int8');
@@ -159,9 +171,30 @@ nmea_sent = 0;
 
 %infinite loop
 while flag
-
+    
     %time reading
     current_time = toc;
+    
+    %-------------------------------------
+    % hourly files
+    %-------------------------------------
+    if (floor(current_time/3600) > hour)
+        
+        hour = floor(current_time/3600);
+        hour_str = num2str(hour,'%03d');
+        
+        fclose(fid_master);
+        fclose(fid_obs);
+        fclose(fid_eph);
+        
+        fid_master = fopen([filerootOUT '_master_'  hour_str '.bin'],'w+');
+        fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
+        fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+        
+        %write number of satellites
+        fwrite(fid_obs, num_sat, 'int8');
+        fwrite(fid_eph, num_sat, 'int8');
+    end
 
     %TCP/IP port checking
     master_1 = get(master,'BytesAvailable');

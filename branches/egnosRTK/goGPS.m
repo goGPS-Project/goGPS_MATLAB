@@ -285,7 +285,7 @@ if goGNSS.isPP(mode) % post-processing
 
 %         %read surveying mode
 %         if (flag_stopGOstop == 0)
-%             fid_dyn = fopen([filerootIN '_dyn_00.bin'],'r+'); 
+%             fid_dyn = fopen([filerootIN '_dyn_000.bin'],'r+'); 
 %             order = double(fread(fid_dyn,length(time_GPS),'uint8'));
 %             fclose(fid_dyn);
 %         end
@@ -405,7 +405,7 @@ if goGNSS.isPP(mode) % post-processing
 
         %read surveying mode
 %         if (flag_stopGOstop == 0)
-%             fid_dyn = fopen([filerootIN '_dyn_00.bin'],'r+'); 
+%             fid_dyn = fopen([filerootIN '_dyn_000.bin'],'r+'); 
 %             order = double(fread(fid_dyn,length(time_GPS),'uint8'));
 %             fclose(fid_dyn);
 %         end
@@ -601,7 +601,7 @@ else %real-time
 end
 
 %check if the dataset was surveyed with a variable dynamic model
-d = dir([filerootIN '_dyn_00.bin']);
+d = dir([filerootIN '_dyn_000.bin']);
 if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
     disp('Warning: dataset was not surveyed with a variable dynamic model:');
     disp(' Switching off variable dynamic model mode...');
@@ -619,10 +619,10 @@ end
 
 if (mode == goGNSS.MODE_PP_LS_C_SA)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 
     nN = nSatTot;
     check_on = 0;
@@ -703,10 +703,10 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
 
 elseif (mode == goGNSS.MODE_PP_KF_C_SA)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 
     nN = nSatTot;
     check_on = 0;
@@ -820,10 +820,10 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
 
 elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 
     nN = nSatTot;
     check_on = 0;
@@ -902,10 +902,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
     
 elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     
-    fid_kal = fopen([filerootOUT '_kal_00.txt'],'w');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.txt'],'w');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
     
     nN = nSatTot;
     check_on = 0;
@@ -1062,10 +1062,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
 
 elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
     
     kalman_initialized = 0;
     while (~kalman_initialized)
@@ -1180,10 +1180,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
 
 elseif (mode == goGNSS.MODE_PP_LS_C_DD)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 
     nN = nSatTot;
     check_on = 0;
@@ -1262,10 +1262,10 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
 
 elseif (mode == goGNSS.MODE_PP_KF_C_DD)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 
     nN = nSatTot;
     check_on = 0;
@@ -1377,10 +1377,10 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
 
 elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 
     nN = nSatTot;
     check_on = 0;
@@ -1458,10 +1458,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
 
     if (flag_var_dyn_model == 0)
 
-        fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-        fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-        fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-        fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+        fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+        fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+        fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+        fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 
         kalman_initialized = 0;
         while (~kalman_initialized)
@@ -1568,11 +1568,11 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
 
     else
         
-        fid_dyn = fopen([filerootIN '_dyn_00.bin'],'r+');
-        fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-        fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-        fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-        fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+        fid_dyn = fopen([filerootIN '_dyn_000.bin'],'r+');
+        fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+        fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+        fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+        fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
         
         kalman_initialized = 0;
         while (~kalman_initialized)
@@ -1794,10 +1794,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
 
 elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
 
-    fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
-    fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
-    fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
-    fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
     
     %repeat more than once the reference loop
     %(this constrained mode works only for circuits)
