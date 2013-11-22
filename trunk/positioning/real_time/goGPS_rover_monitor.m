@@ -47,6 +47,9 @@ end
 
 num_sat = 32;
 
+%counter for creating hourly files
+hour = 0;
+
 %------------------------------------------------------
 % read protocol parameters
 %------------------------------------------------------
@@ -61,6 +64,19 @@ for r = 1 : nrec
         prot_par{r} = param_fastrax;
     elseif (protocol(r) == 2)
         prot_par{r} = param_skytraq;
+    end
+end
+
+for r = 1 : nrec
+
+    %do not overwrite existing files
+    i = 1;
+    j = length(filerootOUT);
+    while (~isempty(dir([filerootOUT '_*_obs*.bin'])) || ...
+            ~isempty(dir([filerootOUT '_*_eph*.bin'])) )
+
+        filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
+        i = i + 1;
     end
 end
 
@@ -94,7 +110,7 @@ for r = 1 : nrec
     recname = [prot_par{r}{1,1} num2str(r)];
 
     % rover binary stream (uint8)
-    fid_rover{r} = fopen([filerootOUT '_' recname '_rover_00.bin'],'w+');
+    fid_rover{r} = fopen([filerootOUT '_' recname '_rover_000.bin'],'w+');
 
     % input observations
     %   time_GPS --> double, [1,1]  --> zeros(1,1)
@@ -106,18 +122,18 @@ for r = 1 : nrec
     %   ph_R     --> double, [num_sat,1]
     %   snr_M    --> double, [num_sat,1] --> zeros(num_sat,1)
     %   snr_R    --> double, [num_sat,1]
-    fid_obs{r} = fopen([filerootOUT '_' recname '_obs_00.bin'],'w+');
+    fid_obs{r} = fopen([filerootOUT '_' recname '_obs_000.bin'],'w+');
 
     % input ephemerides
     %   timeGPS  --> double, [1,1]  --> zeros(1,1)
     %   Eph      --> double, [33,num_sat]
-    fid_eph{r} = fopen([filerootOUT '_' recname '_eph_00.bin'],'w+');
+    fid_eph{r} = fopen([filerootOUT '_' recname '_eph_000.bin'],'w+');
     
     %write number of satellites
     fwrite(fid_obs{r}, num_sat, 'int8');
     fwrite(fid_eph{r}, num_sat, 'int8');
     
-    if (flag_var_dyn_model) | (flag_stopGOstop)
+    if (flag_var_dyn_model) || (flag_stopGOstop)
         %dynamical model
         %  order      --> int8,   [1,1]
         %  sigmaq_vE  --> double, [1,1] - not used
@@ -125,7 +141,7 @@ for r = 1 : nrec
         %  sigmaq_vU  --> double, [1,1] - not used
         %  sigmaq0    --> double, [1,1] - not used
         %  sigmaq0_N  --> double, [1,1] - not used
-        fid_dyn{r} = fopen([filerootOUT '_' recname '_dyn_00.bin'],'w+');
+        fid_dyn{r} = fopen([filerootOUT '_' recname '_dyn_000.bin'],'w+'); %#ok<AGROW>
     end
     
     % nmea sentences
@@ -149,7 +165,7 @@ for r = 1 : nrec
     end
 
     % serial object creation
-    rover{r} = serial(COMportR{r},'BaudRate',prot_par{r}{2,1});
+    rover{r} = serial(COMportR{r},'BaudRate',prot_par{r}{2,1}); %#ok<TNMLP>
     set(rover{r},'InputBufferSize',prot_par{r}{3,1});
     if (protocol(r) == 0)
         set(rover{r},'FlowControl','hardware');
@@ -444,6 +460,35 @@ while flag
 
     %time reading (relative to start_time)
     current_time = toc;
+    
+    %-------------------------------------
+    % hourly files
+    %-------------------------------------
+    for r = 1 : nrec
+        if (floor(current_time/3600) > hour)
+            
+            hour = floor(current_time/3600);
+            hour_str = num2str(hour,'%03d');
+            
+            fclose(fid_rover{r});
+            fclose(fid_obs{r});
+            fclose(fid_eph{r});
+            if (flag_var_dyn_model) || (flag_stopGOstop)
+                fclose(fid_dyn{r});
+            end
+            
+            fid_rover{r}  = fopen([filerootOUT '_rover_'  hour_str '.bin'],'w+');
+            fid_obs{r}    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
+            fid_eph{r}    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+            if (flag_var_dyn_model) || (flag_stopGOstop)
+                fid_dyn{r}    = fopen([filerootOUT '_dyn_'    hour_str '.bin'],'w+'); %#ok<AGROW>
+            end
+            
+            %write number of satellites
+            fwrite(fid_obs{r}, num_sat, 'int8');
+            fwrite(fid_eph{r}, num_sat, 'int8');
+        end
+    end
 
     for r = 1 : nrec
 
@@ -490,7 +535,7 @@ while flag
                     phase_TRACK   = cell_rover{3,i}(:,6);
                     nTRACK = nTRACK + 1;
 
-                    type = [type prot_par{r}{6,2} ' '];
+                    type = [type prot_par{r}{6,2} ' ']; %#ok<AGROW>
 
                 %Timing/raw message data save (RXM-RAW | PSEUDO)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{1,2}))
@@ -559,7 +604,7 @@ while flag
                         end
                     end
 
-                    type = [type prot_par{r}{1,2} ' '];
+                    type = [type prot_par{r}{1,2} ' ']; %#ok<AGROW>
 
                 %Timing message data save (MEAS_TIME)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{4,2}))
@@ -568,7 +613,7 @@ while flag
                     time_stq = cell_rover{2,i}(3);
                     week_stq = cell_rover{2,i}(2);
 
-                    type = [type prot_par{r}{4,2} ' '];
+                    type = [type prot_par{r}{4,2} ' ']; %#ok<AGROW>
                     nTIM = nTIM + 1;
 
                 %Raw message data save (RAW_MEAS)
@@ -590,7 +635,7 @@ while flag
                         %manage phase without code
                         ph_R(abs(pr_R) == 0) = 0;
 
-                        type = [type prot_par{r}{5,2} ' '];
+                        type = [type prot_par{r}{5,2} ' ']; %#ok<AGROW>
                         nRAW = nRAW + 1;
 
                         %counter increment
@@ -622,7 +667,7 @@ while flag
                     iono{r}(:, 1) = cell_rover{3,i}(9:16);
 
                     if (nHUI == 0)
-                        type = [type prot_par{r}{3,2} ' '];
+                        type = [type prot_par{r}{3,2} ' ']; %#ok<AGROW>
                     end
                     nHUI = nHUI + 1;
 
@@ -637,7 +682,7 @@ while flag
                     end
 
                     if (nEPH == 0)
-                        type = [type prot_par{r}{2,2} ' '];
+                        type = [type prot_par{r}{2,2} ' ']; %#ok<AGROW>
                     end
                     nEPH = nEPH + 1;
 
@@ -651,7 +696,7 @@ while flag
                     fprintf(fid_nmea{r}, '%s', char(nmea_sentences(i,1)));
                     % fprintf('%s', char(nmea_sentences(i,1)));
                 end
-                type = [type 'NMEA '];                    
+                type = [type 'NMEA '];                     %#ok<AGROW>
             end
 
             %----------------------------------
