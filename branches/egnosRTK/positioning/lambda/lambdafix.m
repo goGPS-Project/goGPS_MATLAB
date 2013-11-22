@@ -19,12 +19,12 @@ function [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 %   A wrapper for LAMBDA function to be used in goGPS.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Andrea Nardo
-% Modified by Eugenio Realini
+% Portions of code contributed by Eugenio Realini and Hendy F. Suhandri
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@ function [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global ratiotest mutest succ_rate IAR_method P0 mu flag_auto_mu flag_default_P0
+global ratiotest mutest succ_rate fixed_solution IAR_method P0 mu flag_auto_mu flag_default_P0
 
 if (flag_auto_mu)
     mu = [];
@@ -58,6 +58,8 @@ end
 % perform ambiguity resolution
 if (IAR_method == 0)
     %ILS enumeration (LAMBDA2)
+    [U] = chol(Qahat); %compute cholesky decomposition
+    Qahat = U'*U; %find back the vcm, now the off diag. comp. are identical
     [afixed,sqnorm,Qzhat,Z,D,L] = lambda_routine2(ahat,Qahat);
     % compute the fixed solution
     bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
@@ -84,19 +86,30 @@ elseif (IAR_method == 3 || IAR_method == 4)
     
 elseif (IAR_method == 5)
     % Partial Ambiguity Resolution, method 5
-    [afixed,sqnorm,Ps,Qahat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
-    nfx = size(afixed, 1);
-    Z   = Z(:, 1:nfx);
+    %[afixed,sqnorm,Ps,Qahat,Z,nfx]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+    [afixed,sqnorm,Ps,Qzhat,Z,nfx]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+    %nfx = size(afixed, 1);
+    %Z   = Z(:, 1:nfx);
     % in case of PAR afixed contains the decorrelated ambiguities
-    if nfx > 0
-        Qbz    = Qba*Z;
-        bcheck = bhat - Qbz *cholinv(Z'*Qahat*Z) * (Z'*ahat-afixed);
-        % anyway we store the float ambiguities... (to be improved)
+    if (nfx > 0)
+        Qbz = Qba*Z;
+        
+        try
+           %bcheck = bhat - Qbz *cholinv(Z'*Qahat*Z) * (Z'*ahat-afixed(:,1));
+           bcheck = bhat - Qba *cholinv(Qahat) * (ahat-afixed(:,1));
+        catch ME
+            disp('Problems in PAR (lambdafix.m)');
+            %keyboard;
+        end
+            
+        % anyway we store the float ambiguities and their vcv-matrix... (to be improved)
         acheck = ahat;
+        Qzhat = Qahat;
     else
         % keep float solution
         bcheck = bhat;
         acheck = ahat;
+        Qzhat = Qahat;
     end
 end
 
@@ -117,13 +130,27 @@ if (IAR_method == 0 || IAR_method == 1 || IAR_method == 2)
         % rejection; keep float baseline solution
         bcheck = bhat;
         acheck = ahat;
+        
+        fixed_solution = [fixed_solution 0];
+    else
+        fixed_solution = [fixed_solution 1];
     end
     
     ratiotest = [ratiotest ratio];
     mutest    = [mutest mu];
+    
+elseif (IAR_method == 5)
+
+    if (nfx > 0)
+        fixed_solution = [fixed_solution 1];
+    else
+        fixed_solution = [fixed_solution 0];
+    end
 else
     ratiotest = [ratiotest NaN];
     mutest    = [mutest NaN];
+    
+    fixed_solution = [fixed_solution 0];
 end
 
 succ_rate = [succ_rate Ps];

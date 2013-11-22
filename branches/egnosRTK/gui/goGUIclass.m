@@ -1,4 +1,6 @@
 %----------------------------------------------------------------------------------------------
+%                           goGPS v0.4.1 beta
+%
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
@@ -70,6 +72,7 @@ classdef goGUIclass < handle
         newVal = {};        % contains the value of the element of the interface that require to be channged
         
         initialized = 0;
+        echoChar = '*';
         
     %  INTERFACE STATUS - PATH
     % =========================================================================
@@ -188,7 +191,7 @@ classdef goGUIclass < handle
             obj.interfaceOS = typeOS;
             
             obj.init(handles);
-        end
+        end        
         
         function isOS = typeOS(obj, typeOS)
             isOS = obj.interfaceOS == typeOS;
@@ -387,10 +390,22 @@ classdef goGUIclass < handle
             if nargin < 2
                 str = obj.strPorts;
             end
+            % Set list box with the number of receivers
             value = get(obj.goh.num_receivers,'Value');
             value = min(1,max(length(str), value));
             set(obj.goh.num_receivers,'Value', value);
 
+            % Close old connections that are still open:
+            try
+                oldConnections = instrfind('Type', 'serial');
+                if ~(isempty(oldConnections))
+                    fclose(oldConnections);
+                end
+            catch e
+                fprintf('There has been a problem with old serial connections: %s\n', e.message);
+            end
+
+            % Detect available ports
             try
                 serialInfo = instrhwinfo('serial');
                 num_ports = size(serialInfo.AvailableSerialPorts,1);
@@ -484,8 +499,8 @@ classdef goGUIclass < handle
         function initUIids(obj)
             
             % Rough pre-allocation
-            id2h = zeros(160);	% rough estimation of the handle array size
-            					% at the end of the function it will contain the exact size
+            id2h = zeros(177,1);	% rough estimation of the handle array size
+                                    % at the end of the function it will contain the exact size
 
             % Id naming convections:
             %  p    panels
@@ -502,7 +517,7 @@ classdef goGUIclass < handle
           % --------------------------------------------------------------- 
             
             i=1;   id.Fig           = i;    id2h(i) = obj.goh.main_panel;
-
+            
             i=i+1; id.tTitle        = i;    id2h(i) = obj.goh.txtTitle;
             i=i+1; id.tDesc         = i;    id2h(i) = obj.goh.txtDescription;
             
@@ -577,7 +592,8 @@ classdef goGUIclass < handle
             idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cSBAS];
             
             % Constellation of satellites currently supported
-            idG.pAvailableGNSS = [id.cGPS];
+            idG.pAvailableGNSSCode = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
+            idG.pAvailableGNSSPhase = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
             
           %   INTEGER AMBIGUITY RESOLUTION
           % ---------------------------------------------------------------
@@ -738,8 +754,9 @@ classdef goGUIclass < handle
             i=i+1; id.rW1           = i;    id2h(i) = obj.goh.weight_1;
             i=i+1; id.rW2           = i;    id2h(i) = obj.goh.weight_2;
             i=i+1; id.rW3           = i;    id2h(i) = obj.goh.weight_3;
+            i=i+1; id.rW4           = i;    id2h(i) = obj.goh.weight_4;
             
-            idG.pW = [id.pW id.rW0 id.rW1 id.rW2 id.rW3];
+            idG.pW = [id.pW id.rW0 id.rW1 id.rW2 id.rW3 id.rW4];
             
           %   SETTINGS - KALMAN FILTER
           % --------------------------------------------------------------- 
@@ -835,7 +852,8 @@ classdef goGUIclass < handle
             
             i=i+1; id.tnPorts       = i;    id2h(i) = obj.goh.text_num_receivers;
             i=i+1; id.lnPorts       = i;    id2h(i) = obj.goh.num_receivers;
-            
+            i=i+1; id.lRate         = i;    id2h(i) = obj.goh.pumCaptureRate;            
+                    
             idG.nPorts = [id.tnPorts id.lnPorts];
             
             i=i+1; id.lPort0        = i;    id2h(i) = obj.goh.com_select_0;
@@ -875,7 +893,8 @@ classdef goGUIclass < handle
             i=i+1; id.tUName        = i;    id2h(i) = obj.goh.text_username;
             i=i+1; id.sUName        = i;    id2h(i) = obj.goh.username;
             i=i+1; id.tUPass        = i;    id2h(i) = obj.goh.text_password;
-            i=i+1; id.sUPass        = i;    id2h(i) = obj.goh.password;
+            i=i+1; id.sUPass        = i;    id2h(i) = obj.goh.password; %
+            % Moved in first position => it's a JAVA component
             i=i+1; id.bUPass        = i;    id2h(i) = obj.goh.show_password;
 
             idG.gNTRIP = id.tMnt:id.bUPass;
@@ -919,7 +938,7 @@ classdef goGUIclass < handle
             idG.onRealTime = [idG.ResetStatus ...
                               id.pMode id.lCaptMode ...
                               id.pIFiles id.rBin ...
-                              id.pIOFiles id.pConstellations idG.pAvailableGNSS idG.GoOut ...
+                              id.pIOFiles idG.GoOut ...
                               id.pSettings];
                           
             % On Real Time => Navigation Mode            
@@ -931,20 +950,20 @@ classdef goGUIclass < handle
                             idG.pMSt idG.pMS id.pPorts idG.lPort0];
           
             % On Real Time => Rover Monitor
-            idG.onRT_RMon = [idG.onRealTime ...
-                             id.pOptions id.cUse_SBAS ...
+            idG.onRT_RMon = [idG.onRealTime id.lRate ...
                              idG.pDynModel ...
+                             id.pOptions ...
                              id.pPorts idG.nPorts idG.lPort0];
 
             % On Real Time => Master Monitor
             idG.onRT_MMon = [idG.onRealTime ...
-                             id.pOptions id.cUseNTRIP id.cUse_SBAS ...
+                             id.pOptions id.cUseNTRIP ...
                              idG.pMS_NTRIP];
 
             % On Real Time => Master + Rover Monitor
             idG.onRT_RMMon = [idG.onRealTime ...
-                              id.pOptions id.cUseNTRIP id.cUse_SBAS ...
                               idG.pDynModel ...
+                              id.pOptions id.cUseNTRIP ...
                               id.pPorts idG.nPorts idG.lPort0...
                               idG.pMS_NTRIP];
                                                     
@@ -954,7 +973,7 @@ classdef goGUIclass < handle
             idG.onPostProc = [idG.ResetStatus ...
                               id.pMode id.lAlgType id.lProcType ...
                               id.pIFiles idG.gINI...
-                              id.pIOFiles id.pConstellations idG.pAvailableGNSS idG.GoOut ...
+                              id.pIOFiles id.pConstellations idG.GoOut ...
                               id.pOptions id.cRefPath ...
                               id.pSettings idG.CutOff idG.pW];
             
@@ -963,20 +982,20 @@ classdef goGUIclass < handle
                            id.rBin id.rRin];
                           
             % On Post Proc => Least Squares => Code Stand Alone
-            idG.onPP_LS_C_SA = [idG.onPP_LS id.cPlotProc ...
+            idG.onPP_LS_C_SA = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSCode ...
                                 id.cUse_SBAS];
             
             % On Post Proc => Least Squares => Code Double Differences
-            idG.onPP_LS_C_DD = [idG.onPP_LS id.cPlotProc ...
+            idG.onPP_LS_C_DD = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSCode ...
                                 id.pMSt id.cMPos];
                           
             % On Post Proc => Least Squares => Code and Phase Double Differences
-            idG.onPP_LS_CP_DD_L = [idG.onPP_LS id.cPlotProc ...
+            idG.onPP_LS_CP_DD_L = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSPhase ...
                                    idG.StdCode idG.StdPhase ...
                                    id.pMSt id.cMPos idG.pIntAmb];
 
             % On Post Proc => Least Squares => Code and Phase Velocity estimation
-            idG.onPP_LS_CP_Vel = idG.onPP_LS;
+            idG.onPP_LS_CP_Vel = [idG.onPP_LS idG.pAvailableGNSSPhase];
 
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc id.cPlotProc ...
@@ -985,20 +1004,20 @@ classdef goGUIclass < handle
                            idG.SNR idG.MaxNumSat];
                           
             % On Post Proc => On Kalman Filter => Code Stand Alone
-            idG.onPP_KF_C_SA = [idG.onPP_KF id.rBin ...
+            idG.onPP_KF_C_SA = [idG.onPP_KF id.rBin idG.pAvailableGNSSCode ...
                                id.cUse_SBAS];
             
             % On Post Proc => On Kalman Filter => Code Double Differences
-            idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin ...
+            idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin idG.pAvailableGNSSCode ...
                                id.pMSt id.cMPos];
 
             % On Post Proc => On Kalman Filter => Code and Phase Stand Alone
-            idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin ...
+            idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin idG.pAvailableGNSSPhase ...
                                  idG.StdPhase idG.CS ...
                                  id.cDoppler id.cUse_SBAS idG.pIntAmb];
             
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
-            idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin id.cConstraint ...
+            idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin id.cConstraint idG.pAvailableGNSSPhase ...
                                  idG.StdPhase id.bStdDTM ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
                                  id.pMSt id.cMPos id.cDoppler idG.pIntAmb];
@@ -1242,6 +1261,10 @@ classdef goGUIclass < handle
 
             % Read interface status (initialize structures
             obj.getAllElStatus();            
+
+            % Create the password field
+            obj.initPasswordField('password');
+            drawnow;
             
             % If the working folder does not exist
             if isempty(dir(obj.getSettingsDir()))
@@ -1257,7 +1280,7 @@ classdef goGUIclass < handle
             
             obj.goWB.goMsg('Loading GUI manager object...');
             obj.goWB.titleUpdate('Import Settings');
-
+            
             % Fill pop up menus
             obj.initPopUp(); % Popup are also modified / reloaded in importStateMatlab
             
@@ -1285,7 +1308,37 @@ classdef goGUIclass < handle
 
             obj.initialized = 1;
         end
-                
+
+        % Add an undocumented password box
+        function initPasswordField(obj, pwd)
+            % Undocumented password box for a better management of a password field
+            % Create the widget containing the text
+            jPwdINI = javax.swing.JPasswordField;
+            jPwdINI.setText(pwd);
+            % Substitute the eINI edit box with the Java Scroll Pane
+            set(obj.goh.uipSettings, 'Units', 'pixels');
+            set(obj.goh.uipMS_NTRIP, 'Units', 'pixels');
+            set(obj.goh.password, 'Units', 'pixels');
+            pos = get(obj.goh.password,'Position');
+            posOff = get(obj.goh.uipSettings,'Position');
+            pos(1:2) = pos(1:2) + posOff(1:2);
+            posOff = get(obj.goh.uipMS_NTRIP,'Position');
+            pos(1:2) = pos(1:2) + posOff(1:2);
+            pos(1) = pos(1) + 4;
+            pos(3) = pos(3) - 4;
+            
+            [jPwd, hPwd] = javacomponent(jPwdINI, pos, obj.goh.main_panel);
+                        
+            %obj.id2handle((obj.id2handle==obj.goh.password)) = hPwd;
+            %delete(obj.goh.password); % I should delete this but it'll generate some problems
+            set(obj.goh.password,'Visible','off');
+            obj.goh.jPassword.jpwd = jPwd;
+            obj.goh.jPassword.hpwd = hPwd;
+            obj.echoChar = obj.goh.jPassword.jpwd.getEchoChar;
+            
+            obj.setPassword(get(obj.goh.password,'String'));
+        end
+        
         % Set new enable / disable status
         % Show all the new values stored in the internal state on the GUI
         % Get new values from the GUI
@@ -1547,7 +1600,11 @@ classdef goGUIclass < handle
         
         % Set a new password
         function pwd = getPassword(obj)
-            pwd = obj.getElVal(obj.idUI.sUPass);
+            if isfield(obj.goh,'jPassword')
+                pwd = obj.goh.jPassword.jpwd.getPassword();
+            else
+                pwd = '';
+            end
         end
         
         % Get LAMBDA version
@@ -1606,43 +1663,40 @@ classdef goGUIclass < handle
         
         % Set a new password
         function setPassword(obj, password)
-            if (obj.isInitialized())
-                obj.setElVal(obj.idUI.sUPass, password);
+            
+            if isfield(obj.goh,'jPassword')
+                obj.goh.jPassword.jpwd.setText(password);
+            elseif (obj.isInitialized())
+                set(obj.goh.password,'String',password);
             end
         end
                 
         % Modify the password
         function modifyPassword(obj, newkey, newchar)
-            password = obj.getPassword();
-            switch newkey
-                case 'backspace'
-                    password = password(1:end-1); % Delete the last character in the password
-                case 'delete'
-                    password = password(2:end); % Delete the first character in the password
-                otherwise
-                    % If pressed key produces a printable character
-                    if (uint8(newchar) > 32)
-                        password = [password newchar]; % Add the typed character to the password
-                        pause(0.001)%to avoid unwanted character output before the cursor
-                    end
-            end
-            
-            obj.setPassword(password); % Store the password in its current state
+%             password = obj.getPassword();
+%             switch newkey
+%                 case 'backspace'
+%                     password = password(1:end-1); % Delete the last character in the password
+%                 case 'delete'
+%                     password = password(2:end); % Delete the first character in the password
+%                 otherwise
+%                     % If pressed key produces a printable character
+%                     if (uint8(newchar) > 32)
+%                         password = [password newchar]; % Add the typed character to the password
+%                         pause(0.001)%to avoid unwanted character output before the cursor
+%                     end
+%             end
+%             
+%             obj.setPassword(password); % Store the password in its current state
         end
         
         % Show the password in the password field
         function showPassword(obj)
-            pwd = obj.getPassword();
-            
-            if obj.isActive(obj.idUI.bUPass)
-                set(obj.goh.password,'String',pwd);
-            else
-                SizePass = size(pwd); % Find the number of asterisks
-                if SizePass(2) > 0
-                    asterisk(1,1:SizePass(2)) = '*'; % Create a string of asterisks the same size as the password
-                    set(obj.goh.password,'String',asterisk) % Set the text in the password edit box to the asterisk string
+            if isfield(obj.goh,'jPassword')
+                if obj.isActive(obj.idUI.bUPass)
+                    obj.goh.jPassword.jpwd.setEchoChar(char(0));
                 else
-                    set(obj.goh.password,'String','')
+                    obj.goh.jPassword.jpwd.setEchoChar(obj.echoChar);
                 end
             end
         end
@@ -1697,7 +1751,7 @@ classdef goGUIclass < handle
                 obj.setElStatus([obj.idUI.cPlotAmb], 0, 0);
             end
 
-            % Only for or goD google Earth plot is disabled
+            % Only for the variometric approach google Earth plot is disabled
             if obj.isLS() && obj.isProcessingType(obj.idCP_Vel)
                 obj.setElStatus([obj.idUI.cGEarth], 0, 0);
             end
@@ -1722,6 +1776,7 @@ classdef goGUIclass < handle
                 if (obj.isLambda3Par())
                     obj.setElStatus([obj.idUI.tP0], 1, 0);
                     obj.setElStatus([obj.idUI.nP0], 1, 0);
+                    obj.setElStatus([obj.idUI.cP0], 1, 0);
                 end
             end
             
@@ -1960,6 +2015,7 @@ classdef goGUIclass < handle
                 obj.showPassword();
             end
 
+            
           %   BUTTONS
           % ---------------------------------------------------------------
                         
@@ -2017,145 +2073,150 @@ classdef goGUIclass < handle
                     if exist(filename,'file');
                         obj.setGUILedStatus(obj.idUI.fINI, obj.ledOk, 0);
                         
-                        % If needed init INI reader
-                        if isempty(goIni)
-                            goIni = goIniReader('', 0);
-                        end
-                        % If I have to update the ini file
-                        goIni.update(filename, force);
-                        % Receivers file --------------------------------------
-                        nR = goIni.getData('Receivers','nRec');
-                        data_path = goIni.getData('Receivers','data_path');
-                        file_name = goIni.getData('Receivers','file_name');
-                        
-                        if (isempty(data_path))
-                            if iscell(file_name)
-                                nR = length(file_name);
-                            else
-                                nR = 1;
+                        if obj.isPostProc()
+                            % If needed init INI reader
+                            if isempty(goIni)
+                                goIni = goIniReader('', 0);                                
                             end
-                            goIni.addKey('Receivers','nRec',nR);
-                        end
-                        obj.setElVal(obj.idUI.tNumRec,['x ' num2str(nR)]);
-                        
-                        if (isempty(data_path))
-                            data_path = '';
-                        end
-                        if (isempty(file_name))
-                            obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledKo, 0);
-                        else
-                            % If I have more than one receiver
-                            if iscell(file_name)
-                                % The number of receiver is = to the number of files?
-                                if nR ~= length((file_name))   % Declared number of file ~= number of files
-                                    obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
+                            if (~goIni.getReadStatus())
+                                goIni.readFile();
+                            end
+                            % If I have to update the ini file
+                            goIni.update(filename, force);
+                            % Receivers file --------------------------------------
+                            nR = goIni.getData('Receivers','nRec');
+                            data_path = goIni.getData('Receivers','data_path');
+                            file_name = goIni.getData('Receivers','file_name');
+                            
+                            if (isempty(data_path))
+                                if iscell(file_name)
+                                    nR = length(file_name);
                                 else
-                                    % Check the presence of all the files
-                                    fileOk = true;
-                                    for r = 1:nR
-                                        if ~exist([data_path file_name{r}],'file')
-                                            fileOk = false;
+                                    nR = 1;
+                                end
+                                goIni.addKey('Receivers','nRec',nR);
+                            end
+                            obj.setElVal(obj.idUI.tNumRec,['x ' num2str(nR)]);
+                            
+                            if (isempty(data_path))
+                                data_path = '';
+                            end
+                            if (isempty(file_name))
+                                obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledKo, 0);
+                            else
+                                % If I have more than one receiver
+                                if iscell(file_name)
+                                    % The number of receiver is = to the number of files?
+                                    if nR ~= length((file_name))   % Declared number of file ~= number of files
+                                        obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
+                                    else
+                                        % Check the presence of all the files
+                                        fileOk = true;
+                                        for r = 1:nR
+                                            if ~exist([data_path file_name{r}],'file')
+                                                fileOk = false;
+                                            end
+                                        end
+                                        if fileOk
+                                            obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledOk, 0);
+                                        else
+                                            obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
                                         end
                                     end
-                                    if fileOk
-                                        obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledOk, 0);
-                                    else
-                                        obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
-                                    end
-                                end
-                            else
-                                % The number of receiver is = to the number of files?
-                                if nR > 1   % Declared number of file ~= number of files
-                                    obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
                                 else
-                                    % Check the presence of all the files
-                                    if exist([data_path file_name],'file')
-                                        obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledOk, 0);
-                                    else
+                                    % The number of receiver is = to the number of files?
+                                    if nR > 1   % Declared number of file ~= number of files
                                         obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
+                                    else
+                                        % Check the presence of all the files
+                                        if exist([data_path file_name],'file')
+                                            obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledOk, 0);
+                                        else
+                                            obj.setGUILedStatus(obj.idUI.fRinRover, obj.ledCk, 0);
+                                        end
                                     end
                                 end
                             end
-                        end
-                        
-                        % Master file -----------------------------------------
-                        data_path = goIni.getData('Master','data_path');
-                        file_name = goIni.getData('Master','file_name');
-                        if (isempty(data_path))
-                            data_path = '';
-                        end
-                        if (isempty(file_name))
-                            obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledKo, 0);
-                        else
-                            % Check the presence of all the files
-                            if exist([data_path file_name],'file')
-                                obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledOk, 0);
-                            else
-                                obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledCk, 0);
+                            
+                            % Master file -----------------------------------------
+                            data_path = goIni.getData('Master','data_path');
+                            file_name = goIni.getData('Master','file_name');
+                            if (isempty(data_path))
+                                data_path = '';
                             end
-                        end
-                        
-                        % Navigation file -------------------------------------
-                        data_path = goIni.getData('Navigational','data_path');
-                        file_name = goIni.getData('Navigational','file_name');
-                        if (isempty(data_path))
-                            data_path = '';
-                        end
-                        if (isempty(file_name))
-                            obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledKo, 0);
-                        else
-                            % Check the presence of all the files
-                            if exist([data_path file_name],'file')
-                                obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledOk, 0);
+                            if (isempty(file_name))
+                                obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledKo, 0);
                             else
-                                obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledCk, 0);
+                                % Check the presence of all the files
+                                if exist([data_path file_name],'file')
+                                    obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledOk, 0);
+                                else
+                                    obj.setGUILedStatus(obj.idUI.fRinMaster, obj.ledCk, 0);
+                                end
                             end
-                        end
-                        
-                        % Bin file --------------------------------------------
-                        data_path = goIni.getData('Bin','data_path');
-                        file_prefix = goIni.getData('Bin','file_prefix');
-                        if (isempty(data_path))
-                            data_path = '';
-                        end
-                        if (isempty(file_prefix))
-                            obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledKo, 0);
-                        else
-                            % Check the presence of the files
-                            if ~(isempty(dir([data_path file_prefix '_obs*.bin'])) || isempty(dir([data_path file_prefix '_eph*.bin'])))
-                                obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledOk, 0);
-                            else
-                                obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledCk, 0);
+                            
+                            % Navigation file -------------------------------------
+                            data_path = goIni.getData('Navigational','data_path');
+                            file_name = goIni.getData('Navigational','file_name');
+                            if (isempty(data_path))
+                                data_path = '';
                             end
-                        end
-                        
-                        % DTM file -----------------------------------------------
-                        data_path = goIni.getData('DTM','data_path');
-                        if (isempty(data_path))
-                            obj.setGUILedStatus(obj.idUI.fDTM, obj.ledKo, 0);
-                        else
-                            % Check the presence of the directory
-                            if exist(data_path,'dir')
-                                obj.setGUILedStatus(obj.idUI.fDTM, obj.ledOk, 0);
+                            if (isempty(file_name))
+                                obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledKo, 0);
                             else
-                                obj.setGUILedStatus(obj.idUI.fDTM, obj.ledCk, 0);
+                                % Check the presence of all the files
+                                if exist([data_path file_name],'file')
+                                    obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledOk, 0);
+                                else
+                                    obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledCk, 0);
+                                end
                             end
-                        end
-                        
-                        % Reference path file ------------------------------------
-                        data_path = goIni.getData('RefPath','data_path');
-                        file_name = goIni.getData('RefPath','file_name');
-                        if (isempty(data_path))
-                            data_path = '';
-                        end
-                        if (isempty(file_name))
-                            obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledKo, 0);
-                        else
-                            % Check the presence of all the files
-                            if exist([data_path file_name],'file')
-                                obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledOk, 0);
+                            
+                            % Bin file --------------------------------------------
+                            data_path = goIni.getData('Bin','data_path');
+                            file_prefix = goIni.getData('Bin','file_prefix');
+                            if (isempty(data_path))
+                                data_path = '';
+                            end
+                            if (isempty(file_prefix))
+                                obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledKo, 0);
                             else
-                                obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledCk, 0);
+                                % Check the presence of the files
+                                if ~(isempty(dir([data_path file_prefix '_obs*.bin'])) || isempty(dir([data_path file_prefix '_eph*.bin'])))
+                                    obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledOk, 0);
+                                else
+                                    obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledCk, 0);
+                                end
+                            end
+                            
+                            % DTM file -----------------------------------------------
+                            data_path = goIni.getData('DTM','data_path');
+                            if (isempty(data_path))
+                                obj.setGUILedStatus(obj.idUI.fDTM, obj.ledKo, 0);
+                            else
+                                % Check the presence of the directory
+                                if exist(data_path,'dir')
+                                    obj.setGUILedStatus(obj.idUI.fDTM, obj.ledOk, 0);
+                                else
+                                    obj.setGUILedStatus(obj.idUI.fDTM, obj.ledCk, 0);
+                                end
+                            end
+                            
+                            % Reference path file ------------------------------------
+                            data_path = goIni.getData('RefPath','data_path');
+                            file_name = goIni.getData('RefPath','file_name');
+                            if (isempty(data_path))
+                                data_path = '';
+                            end
+                            if (isempty(file_name))
+                                obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledKo, 0);
+                            else
+                                % Check the presence of all the files
+                                if exist([data_path file_name],'file')
+                                    obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledOk, 0);
+                                else
+                                    obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledCk, 0);
+                                end
                             end
                         end
                     else
@@ -2194,8 +2255,8 @@ classdef goGUIclass < handle
                     goOk = goOk+obj.okGo(obj.idGroup.gLED(i));
                 end
                 goOk = (goOk - length(obj.idGroup.gLED)) == 0;
-            else
-                goOk = 1;
+            else % In real time I just have to check for the output folder
+                goOk = obj.okGo(obj.idUI.fDirGoOut) == 1;
             end
             
             % Chek constellations to be used
@@ -2479,6 +2540,12 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.rW1, state.weight_1, 0);
             obj.setElVal(obj.idUI.rW2, state.weight_2, 0);
             obj.setElVal(obj.idUI.rW3, state.weight_3, 0);
+            % Temporary check during development
+            if (isfield(state,'weight_4')) %since v0.3.2beta -> backward compatibility
+                obj.setElVal(obj.idUI.rW4, state.weight_4, 0);
+            else
+                obj.setElVal(obj.idUI.rW4, 0, 0);
+            end
                         
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
@@ -2504,6 +2571,9 @@ classdef goGUIclass < handle
             %   SETTINGS - PORTS
             % ===============================================================
             
+            if (isfield(state,'captureRate'))
+                obj.setElVal(obj.idUI.lRate, state.captureRate, 0);
+            end
             [s0 s1 s2 s3] = obj.getPortValues(state.com_select_0, state.com_select_1, state.com_select_2, state.com_select_3);
             
             obj.setElVal(obj.idUI.lnPorts, state.num_receivers, 0);
@@ -2622,6 +2692,7 @@ classdef goGUIclass < handle
             state.weight_1          = obj.getElVal(obj.idUI.rW1);
             state.weight_2          = obj.getElVal(obj.idUI.rW2);
             state.weight_3          = obj.getElVal(obj.idUI.rW3);
+            state.weight_4          = obj.getElVal(obj.idUI.rW4);
 
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
@@ -2646,6 +2717,7 @@ classdef goGUIclass < handle
             %   SETTINGS - PORTS
             % ===============================================================
             
+            state.captureRate       = get(obj.goh.pumCaptureRate,'Value');
             state.num_receivers     = obj.getElVal(obj.idUI.lnPorts);
             contents = cellstr(get(obj.goh.com_select_0,'String'));
             state.com_select_0 = contents{get(obj.goh.com_select_0,'Value')};
@@ -2667,7 +2739,7 @@ classdef goGUIclass < handle
             state.port              = obj.getElVal(obj.idUI.sIPport);
             state.mountpoint        = obj.getElVal(obj.idUI.sMnt);
             state.username          = obj.getElVal(obj.idUI.sUName);
-            state.password          = obj.getElVal(obj.idUI.sUPass);
+            state.password          = obj.getPassword();
             state.approx_lat        = obj.getElVal(obj.idUI.nVLat);
             state.approx_lon        = obj.getElVal(obj.idUI.nVLon);
             state.approx_h          = obj.getElVal(obj.idUI.nVH);
@@ -2718,25 +2790,27 @@ classdef goGUIclass < handle
             contents_dyn_mod = cellstr(get(obj.goh.dyn_mod,'String'));
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             %input files
-            data_path = goIni.getData('Bin','data_path');
-            file_prefix = goIni.getData('Bin','file_prefix');            
-            filerootIN = [data_path file_prefix];
             filerootOUT = [get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')];
-            data_path = goIni.getData('Receivers','data_path');
-            file_name = goIni.getData('Receivers','file_name');            
-            filename_R_obs = [data_path file_name];
-            data_path = goIni.getData('Master','data_path');
-            file_name = goIni.getData('Master','file_name');
-            filename_M_obs = [data_path file_name];
-            data_path = goIni.getData('Navigational','data_path');
-            file_name = goIni.getData('Navigational','file_name');
-            filename_nav = [data_path file_name];
-            ref_path = get(obj.goh.ref_path, 'Value');
-            data_path = goIni.getData('RefPath','data_path');
-            file_name = goIni.getData('RefPath','file_name');
-            filename_ref = [data_path file_name];
-            data_path = goIni.getData('DTM','data_path');
-            dtm_dir = data_path;
+            if obj.isPostProc()
+                data_path = goIni.getData('Bin','data_path');
+                file_prefix = goIni.getData('Bin','file_prefix');
+                filerootIN = [data_path file_prefix];
+                data_path = goIni.getData('Receivers','data_path');
+                file_name = goIni.getData('Receivers','file_name');
+                filename_R_obs = [data_path file_name];
+                data_path = goIni.getData('Master','data_path');
+                file_name = goIni.getData('Master','file_name');
+                filename_M_obs = [data_path file_name];
+                data_path = goIni.getData('Navigational','data_path');
+                file_name = goIni.getData('Navigational','file_name');
+                filename_nav = [data_path file_name];
+                ref_path = get(obj.goh.ref_path, 'Value');
+                data_path = goIni.getData('RefPath','data_path');
+                file_name = goIni.getData('RefPath','file_name');
+                filename_ref = [data_path file_name];
+                data_path = goIni.getData('DTM','data_path');
+                dtm_dir = data_path;
+            end
             %serial communication
             % global COMportR
             contents = cellstr(get(obj.goh.com_select_0,'String'));
@@ -2765,10 +2839,12 @@ classdef goGUIclass < handle
             
             ready = 1;
                         
-            %check if the dataset was surveyed with a variable dynamic model
-            d = dir([filerootIN '_dyn_00.bin']);
-            if (obj.isPostProc && (flag_stopGOstop || strcmp(contents_dyn_mod{get(obj.goh.dyn_mod,'Value')},'Variable')) && isempty(d))
-                msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
+            if obj.isPostProc()
+                %check if the dataset was surveyed with a variable dynamic model
+                d = dir([filerootIN '_dyn_00.bin']);
+                if (obj.isPostProc && (flag_stopGOstop || strcmp(contents_dyn_mod{get(obj.goh.dyn_mod,'Value')},'Variable')) && isempty(d))
+                    msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
+                end
             end
             
             if (mode == goGNSS.MODE_RT_R_MON || mode == goGNSS.MODE_RT_RM_MON || mode == goGNSS.MODE_RT_NAV) %if a COM connection to the rover is required
@@ -2811,10 +2887,13 @@ classdef goGUIclass < handle
         % Function to return values to goGPS.m
         function funout = outputFun(obj)
             global goIni;
+            if isempty(goIni)
+                goIni = goIniReader;
+            end
             
             obj.saveConstellations();
             mode = obj.getgoGPSMode();
-            mode_vinc = get(obj.goh.constraint,'Value');
+            mode_vinc = get(obj.goh.constraint,'Value') * obj.isActive(obj.idUI.cConstraint);
             if (get(obj.goh.file_type, 'SelectedObject') == obj.goh.rinex_files)
                 mode_data = 0;
             else %goGPS data
@@ -2838,53 +2917,62 @@ classdef goGUIclass < handle
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             flag_SBAS = get(obj.goh.use_SBAS,'Value');
             flag_IAR = get(obj.goh.cLAMBDA,'Value');
-            data_path = goIni.getData('Bin','data_path');
-            file_prefix = goIni.getData('Bin','file_prefix');            
-            filerootIN = [data_path file_prefix];
             filerootOUT = [get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')];
-            i = 1;
-            j = length(filerootOUT);
-            while (~isempty(dir([filerootOUT '_????_rover.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_master*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_????_obs*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_????_eph*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_????_dyn*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_sat*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_kal*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_dt*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_conf*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_dop*.bin'])) || ...
-                    ~isempty(dir([filerootOUT '_ECEF*.txt'])) || ...
-                    ~isempty(dir([filerootOUT '_geod*.txt'])) || ...
-                    ~isempty(dir([filerootOUT '_plan*.txt'])) || ...
-                    ~isempty(dir([filerootOUT '_????_NMEA*.txt'])) || ...
-                    ~isempty(dir([filerootOUT '.kml'])) )
-                
-                filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
-                i = i + 1;
-            end
-            data_path = goIni.getData('Receivers','data_path');
-            file_name = goIni.getData('Receivers','file_name');
-            filename_R_obs = [data_path file_name];
-            data_path = goIni.getData('Master','data_path');
-            file_name = goIni.getData('Master','file_name');
-            filename_M_obs = [data_path file_name];
-            data_path = goIni.getData('Navigational','data_path');
-            file_name = goIni.getData('Navigational','file_name');
-            filename_nav = [data_path file_name];
-            flag_SP3 = goIni.getData('Navigational','isSP3');
-            if isempty(flag_SP3)
-                if ~isempty(filename_nav)
+            if (obj.isPostProc) % I need these informations only in Post Processing
+                data_path = goIni.getData('Bin','data_path');
+                file_prefix = goIni.getData('Bin','file_prefix');
+                filerootIN = [data_path file_prefix];
+                i = 1;
+                j = length(filerootOUT);
+                while (~isempty(dir([filerootOUT '_????_rover.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_master*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_????_obs*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_????_eph*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_????_dyn*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_sat*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_kal*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_dt*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_conf*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_dop*.bin'])) || ...
+                        ~isempty(dir([filerootOUT '_ECEF*.txt'])) || ...
+                        ~isempty(dir([filerootOUT '_geod*.txt'])) || ...
+                        ~isempty(dir([filerootOUT '_plan*.txt'])) || ...
+                        ~isempty(dir([filerootOUT '_????_NMEA*.txt'])) || ...
+                        ~isempty(dir([filerootOUT '.kml'])) )
+                    
+                    filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
+                    i = i + 1;
+                end
+                data_path = goIni.getData('Receivers','data_path');
+                file_name = goIni.getData('Receivers','file_name');
+                filename_R_obs = [data_path file_name];
+                data_path = goIni.getData('Master','data_path');
+                file_name = goIni.getData('Master','file_name');
+                filename_M_obs = [data_path file_name];
+                data_path = goIni.getData('Navigational','data_path');
+                file_name = goIni.getData('Navigational','file_name');
+                filename_nav = [data_path file_name];
+                flag_SP3 = goIni.getData('Navigational','isSP3');
+                if isempty(flag_SP3)
                     if (strcmpi(filename_nav(end-3:end),'.sp3'))
                         flag_SP3 = 1;
                     else
                         flag_SP3 = 0;
                     end
                 end
+                data_path = goIni.getData('RefPath','data_path');
+                file_name = goIni.getData('RefPath','file_name');
+                filename_ref = [data_path file_name];
+            else
+                filerootIN = '';
+                filename_R_obs = '';
+                filename_M_obs = '';
+                filename_nav = '';
+                filename_ref = '';
+                flag_SP3 = 0;
+                rates = get(obj.goh.pumCaptureRate,'String');                
+                goIni.setCaptureRate(rates{get(obj.goh.pumCaptureRate,'Value')});
             end
-            data_path = goIni.getData('RefPath','data_path');
-            file_prefix = goIni.getData('RefPath','file_prefix');
-            filename_ref = [data_path file_prefix];
             
             contents = cellstr(get(obj.goh.crs,'String'));
             if (strcmp(contents{get(obj.goh.crs,'Value')},'ECEF (X,Y,Z)'))
@@ -2901,6 +2989,7 @@ classdef goGUIclass < handle
             
             contents = cellstr(get(obj.goh.num_receivers,'String'));
             num_rec = str2double(contents{get(obj.goh.num_receivers,'Value')});
+            protocol_idx = nan(4,1);
             
             if num_rec >= 1
                 contentsProt = cellstr(get(obj.goh.protocol_select_0,'String'));
@@ -2945,6 +3034,7 @@ classdef goGUIclass < handle
                     end
                 end
             end
+            protocol_idx = protocol_idx(~isnan(protocol_idx));
             
             funout = cell(25,1);
             
@@ -3037,6 +3127,7 @@ classdef goGUIclass < handle
                 disp('Minimum number of satellites is forced to 4 (for stand-alone positioning)');
                 min_nsat = 4;
             end
+            goIni.addSection('Generic');
             goIni.addKey('Generic','cutoff', str2double(get(obj.goh.cut_off,'String')));
             cutoff = str2double(get(obj.goh.cut_off,'String'));
             goIni.addKey('Generic','snrThr', str2double(get(obj.goh.snr_thres,'String')));
@@ -3051,6 +3142,8 @@ classdef goGUIclass < handle
                 weights = 2;
             elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_3)
                 weights = 3;
+            elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_4)
+                weights = 4;
             end
             snr_a = 30;
             snr_0 = 10;
@@ -3083,21 +3176,23 @@ classdef goGUIclass < handle
             o2 = order*2;
             o3 = order*3;
             h_antenna = str2double(get(obj.goh.antenna_h,'String'));
-            dtm_dir = goIni.getData('DTM','data_path');
-            try
-                load([dtm_dir '/tiles/tile_header'], 'tile_header');
-                load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
-            catch e
-                tile_header.nrows = 0;
-                tile_header.ncols = 0;
-                tile_header.cellsize = 0;
-                tile_header.nodata = 0;
-                tile_georef = zeros(1,1,4);
-            end
+%             if (obj.isPostProc) % I need these informations only in Post Processing
+                dtm_dir = goIni.getData('DTM','data_path');
+                try
+                    load([dtm_dir '/tiles/tile_header'], 'tile_header');
+                    load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
+                catch e
+                    tile_header.nrows = 0;
+                    tile_header.ncols = 0;
+                    tile_header.cellsize = 0;
+                    tile_header.nodata = 0;
+                    tile_georef = zeros(1,1,4);
+                end
+%             end
             master_ip = get(obj.goh.IP_address,'String');
             master_port = str2double(get(obj.goh.port,'String'));
             ntrip_user = get(obj.goh.username,'String');
-            ntrip_pw = get(obj.goh.password,'Userdata');
+            ntrip_pw = obj.getPassword();
             ntrip_mountpoint = get(obj.goh.mountpoint,'String');
             phiApp = str2double(get(obj.goh.approx_lat,'String'));
             lamApp = str2double(get(obj.goh.approx_lon,'String'));
@@ -3115,8 +3210,8 @@ classdef goGUIclass < handle
         function saveConstellations(obj)
             global goIni
             if isempty(goIni)
-                goIni = goIniReader()
-            end
+                goIni = goIniReader;
+            end            
             goIni.addSection('Constellations');
             goIni.addKey('Constellations','GPS',obj.isActive(obj.idUI.cGPS));
             goIni.addKey('Constellations','GLONASS',obj.isActive(obj.idUI.cGLONASS));
@@ -3398,7 +3493,7 @@ classdef goGUIclass < handle
             if (filename ~= 0)
                 pos = find(filename == '_');
                 filename = filename(1:pos(end-1)-1);
-                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                str = sprintf('data_path = "%s"\nfile_prefix = "%s"', pathname, filename);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end

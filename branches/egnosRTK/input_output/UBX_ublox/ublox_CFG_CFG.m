@@ -16,9 +16,9 @@ function [out] = ublox_CFG_CFG(serialObj, action)
 %   Clear, save or load u-blox receiver configurations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -89,14 +89,18 @@ reply_1 = get(serialObj,'BytesAvailable');
 if (reply_1 ~= 0)
     %clear the serial port (data not decoded)
     reply = fread(serialObj, reply_1, 'uint8'); %#ok<NASGU>
+    pause(0.01);
 end
 
 % send message
 try
     fwrite(serialObj, codeDEC, 'uint8', 'async');
+    pause(0.01);
 catch
     stopasync(serialObj);
     fwrite(serialObj, codeDEC, 'uint8', 'async');
+    pause(0.01);
 end
 
 [out] = ublox_check_ACK(serialObj, ID1, ID2);
+pause(0.01);

@@ -1,7 +1,7 @@
-function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, is_GLO, phase)
+function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, is_GLO, lambda)
 
 % SYNTAX:
-%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, is_GLO, phase);
+%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, is_GLO, lambda);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -17,7 +17,7 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %   err_tropo    = tropospheric error
 %   err_iono     = ionospheric error
 %   is_GLO       = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
-%   phase        = L1 carrier (phase=1), L2 carrier (phase=2)
+%   lambda       = vector containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   pos_R = estimated position (X,Y,Z)
@@ -33,9 +33,9 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -53,15 +53,9 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-global v_light
-global lambda1 lambda2
 global sigmaq_cod1 sigmaq_ph
 
-if (phase == 1)
-    lambda = lambda1;
-else
-    lambda = lambda2;
-end
+v_light = goGNSS.V_LIGHT;
 
 %data indexes
 [~, index] = intersect(sat_pr,sat_ph); %sat_ph is a subset of sat_pr
@@ -89,7 +83,7 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ...   %column for X coordinate
 A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ... %column for X coordinate
         (XR_approx(2) - XS(index,2)) ./ distR_approx(index), ... %column for Y coordinate
         (XR_approx(3) - XS(index,3)) ./ distR_approx(index), ... %column for Z coordinate
-         -lambda * eye(nsat_ph), ...                        %column for phase ambiguities
+         diag(-lambda) .* eye(nsat_ph), ...                      %column for phase ambiguities
          ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
      
 %if mixed observations GLONASS/other, then add a parameter to account for
@@ -106,7 +100,7 @@ b_ph = distR_approx - v_light*dtS + err_tropo - err_iono; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector
-y0 = [pr; lambda*ph(index)];
+y0 = [pr; lambda.*ph(index)];
 
 %observation noise covariance matrix
 Q = zeros(n);

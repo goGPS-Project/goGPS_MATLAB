@@ -20,9 +20,9 @@ function [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, s
 %   Klobuchar model or SBAS ionosphere interpolation.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Laboratorio di Geomatica, Polo Regionale di Como,
 %    Politecnico di Milano, Italy
@@ -44,7 +44,7 @@ function [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, s
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light
+v_light = goGNSS.V_LIGHT;
 
 %initialization
 corr = zeros(size(el));
@@ -82,7 +82,7 @@ end
     function [delay] = klobuchar_model(lat, lon, az, el, time_rx, ionoparams)
         
         %initialization
-        delay = zeros(size(el),1);
+        delay = zeros(size(el));
         
         %-------------------------------------------------------------------------------
         % KLOBUCHAR MODEL
@@ -123,15 +123,16 @@ end
         ro = phi + 0.064*cos((lambda-1.617)*pi);
         
         t = lambda*43200 + time_rx;
+        t = mod(t,86400);
         
-        for i = 1 : length(time_rx)
-            while (t(i) >= 86400)
-                t(i) = t(i)-86400;
-            end
-            while (t(i) < 0)
-                t(i) = t(i)+86400;
-            end
-        end
+        % for i = 1 : length(time_rx)
+        %    while (t(i) >= 86400)
+        %        t(i) = t(i)-86400;
+        %    end
+        %    while (t(i) < 0)
+        %        t(i) = t(i)+86400;
+        %    end
+        %end
         
         % index = find(t >= 86400);
         % while ~isempty(index)
@@ -164,7 +165,7 @@ end
     function [delay] = sbas_iono_interp(lat, lon, az, el, sbas)
         
         %initialization
-        delay = NaN(size(el),1);
+        delay = NaN(size(el));
         
         %-------------------------------------------------------------------------------
         % SBAS IONOSPHERE INTERPOLATION

@@ -15,9 +15,9 @@ function [data] = decode_rtcm2(msg, time_GPS)
 %   RTCM 2.3 binary messages decoding (also in sequence).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -44,8 +44,8 @@ preamble_inv = '10011001';       %inverted RTCM2 preamble
 check = ['0' preamble];          %preamble is good only if preceding bit is '0'
 check_inv = ['1' preamble_inv];  %inverted preamble is good only if preceding bit is '1'
 
-pos_preamble = findstr(msg, check) + 1;
-pos_preamble_inv = findstr(msg, check_inv) + 1;
+pos_preamble = strfind(msg, check) + 1;
+pos_preamble_inv = strfind(msg, check_inv) + 1;
 
 %----------------------------------------------------------------------------------------------
 % FIRST MESSAGE SYNCHRONIZATION AND DECODING

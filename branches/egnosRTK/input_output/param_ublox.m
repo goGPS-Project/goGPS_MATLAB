@@ -10,9 +10,9 @@ function [out] = param_ublox
 %   Read u-blox receiver informations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ Str_name = 'UBX';
 BaudRate = 57600;
 
 % Buffer size - USB
-Buffer_size = 16384;
+Buffer_size = 2^12;
 
 % Minimun number of bytes used to synchronize data
 Min_bytes = 0;

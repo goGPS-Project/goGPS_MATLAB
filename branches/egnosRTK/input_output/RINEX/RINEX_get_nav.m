@@ -8,16 +8,16 @@ function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 %   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
 %
 % OUTPUT:
-%   Eph = matrix containing 31 navigation parameters for each satellite
+%   Eph = matrix containing 33 navigation parameters for each satellite
 %   iono = matrix containing ionosphere parameters
 %
 % DESCRIPTION:
 %   Parse a RINEX navigation file.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
 %
 % Partially based on RINEXE.M (EASY suite) by Kai Borre
@@ -122,7 +122,7 @@ while (~feof(fid))
     %character offset (to deal with various RINEX versions)
     sys_id   = lin1(1);
     sys_uint = uint8(sys_id);
-    if (strcmp(sys_id,'G') || strcmp(sys_id,'R') || strcmp(sys_id,'E')|| strcmp(sys_id,'C')  || strcmp(sys_id,'J'))
+    if (strcmp(sys_id,'G') || strcmp(sys_id,'R') || strcmp(sys_id,'E') || strcmp(sys_id,'C') || strcmp(sys_id,'J') || strcmp(sys_id,'S'))
         o = 1;                 %RINEX v2.12(not GPS) or v3.xx
         if (strcmp(sys_id,'G'))
             sys_index = constellations.GPS.indexes(1);
@@ -134,6 +134,8 @@ while (~feof(fid))
             sys_index = constellations.BeiDou.indexes(1);
         elseif (strcmp(sys_id,'J'))
             sys_index = constellations.QZSS.indexes(1);
+        elseif (strcmp(sys_id,'S'))
+            %sys_index = constellations.SBAS.indexes(1);
         end
     elseif (sys_uint == 32 || (sys_uint >= 48 && sys_uint <= 57)) %if blank space or number
         if (strcmpi(file_nav(end),'g'))
@@ -160,8 +162,8 @@ while (~feof(fid))
         lin4 = fgetl(fid);
     end
     
-    %if not a GLONASS entry, read also the next 4 lines
-    if (~strcmp(sys_id, 'R'))
+    %if not a GLONASS or SBAS entry, read also the next 4 lines
+    if (~strcmp(sys_id, 'R') && ~strcmp(sys_id, 'S'))
         while isempty(lin5)
             lin5 = fgetl(fid);
         end
@@ -189,6 +191,8 @@ while (~feof(fid))
             if (~constellations.BeiDou.enabled), continue, end
         case 'J'
             if (~constellations.QZSS.enabled), continue, end
+        case 'S'
+            if (~constellations.SBAS.enabled), continue, end
     end
 
     svprn  = str2num(lin1(o+[1:2])); %When input is a scalar, str2double is better than str2num. But str2double does not support 'D'
@@ -291,10 +295,12 @@ while (~feof(fid))
         Eph(29,i) = fit_int;
         Eph(30,i) = (sys_index-1) + svprn; %satellite index (consistent with other observation arrays)
         Eph(31,i) = int8(sys_id);
+        Eph(32,i) = weektow2time(weekno, toe, sys_id);
+        Eph(33,i) = weektow2time(weekno, toc, sys_id);
         
         %if IODC and IODE do not match, issue a warning
-        if (iodc ~= IODE && ~strcmp(sys_id, 'C'))
-            fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %02d, time %dh %dm %.1fs)\n',svprn,hour,minute,second);
+        if (iodc ~= IODE && ~strcmp(sys_id, 'C') && ~strcmp(sys_id, 'E'))
+            fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %1s%02d, time %dh %dm %.1fs)\n',sys_id,svprn,hour,minute,second);
         end
         
     %if GLONASS
@@ -319,15 +325,15 @@ while (~feof(fid))
         E      = str2num(lin4(o+[61:79])); %age of oper. information  (days)
         
         %frequencies on L1 and L2
-        freq_L1 = freq_num * 0.5625 + 1602.0;
-        freq_L2 = freq_num * 0.4375 + 1246.0;
+        %freq_L1 = freq_num * 0.5625 + 1602.0;
+        %freq_L2 = freq_num * 0.4375 + 1246.0;
         
         %convert GLONASS (UTC) date to GPS date
         date_GLO = datenum([year month day hour minute second]);
         date_GPS = utc2gps(date_GLO);
         
         %convert GPS date to seconds of week (used as GLONASS time-of-ephemeris)
-        [~, toe] = date2gps(datevec(date_GPS));
+        [week_toe, toe] = date2gps(datevec(date_GPS));
         
         %save ephemerides (position, velocity and acceleration vectors in ECEF system PZ-90.02)
         Eph(1,i)  = svprn;
@@ -344,8 +350,8 @@ while (~feof(fid))
         Eph(12,i) = Ya*1e3; %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time [m/s^2]
         Eph(13,i) = Za*1e3; %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time [m/s^2]
         Eph(14,i) = E;
-        Eph(15,i) = freq_L1;
-        Eph(16,i) = freq_L2;
+        Eph(15,i) = freq_num;
+        Eph(16,i) = 0;
         Eph(17,i) = 0;
         Eph(18,i) = toe;
         Eph(19,i) = 0;
@@ -353,7 +359,7 @@ while (~feof(fid))
         Eph(21,i) = 0;
         Eph(22,i) = 0;
         Eph(23,i) = 0;
-        Eph(24,i) = 0;
+        Eph(24,i) = week_toe;
         Eph(25,i) = 0;
         Eph(26,i) = 0;
         Eph(27,i) = Bn; %health flag
@@ -361,5 +367,7 @@ while (~feof(fid))
         Eph(29,i) = 0;
         Eph(30,i) = (sys_index-1) + svprn;
         Eph(31,i) = int8(sys_id);
+        Eph(32,i) = weektow2time(week_toe, toe, sys_id);
+        Eph(33,i) = 0;
     end
 end

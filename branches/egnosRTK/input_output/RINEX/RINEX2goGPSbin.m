@@ -18,9 +18,9 @@ function RINEX2goGPSbin(filename_R_obs, filename_R_nav, filename_M_obs, filename
 %   format (*_obs_* and *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -52,8 +52,21 @@ else
     filename_nav = filename_M_nav;
 end
 
-%load multi-constellation settings and initialize 'constellation' struct
-multi_constellation_settings
+%load multi-constellation settings and initialize 'constellations' struct
+global goIni;
+GPS_flag = goIni.getData('Constellations','GPS');
+GLO_flag = goIni.getData('Constellations','GLONASS');
+GAL_flag = goIni.getData('Constellations','Galileo');
+BDS_flag = goIni.getData('Constellations','BeiDou');
+QZS_flag = goIni.getData('Constellations','QZSS');
+SBS_flag = goIni.getData('Constellations','SBAS');
+[constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+nSatTot = constellations.nEnabledSat;
+if (nSatTot == 0)
+    fprintf('No constellations selected, setting default: GPS-only processing\n');
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    nSatTot = constellations.nEnabledSat;
+end
 
 if (~isempty(dir(filename_R_obs)))
     
@@ -92,7 +105,7 @@ ph1_M  = zeros(num_sat,epochs);
 dop1_M = zeros(num_sat,epochs);
 snr_M  = zeros(num_sat,epochs);
 pos_M  = zeros(3,epochs);
-Eph_M  = zeros(31,num_sat,epochs);
+Eph_M  = zeros(33,num_sat,epochs);
 iono   = zeros(8,epochs);
 
 if (~isempty(dir(filename_M_obs)))
@@ -101,11 +114,11 @@ if (~isempty(dir(filename_M_obs)))
     if (nargin >= 6)
         
         [pr1_M, ~, ph1_M, ~, ~, ~, ~, ~, dop1_M, ~, ~, ~, snr1_M, ~, ~, ~,  ...
-         ~, time_M, ~, ~, ~, ~, Eph_M, iono_M, interval_M] = ...
+         ~, time_M, ~, ~, ~, ~, ~, pos_M, ~, Eph_M, iono_M, interval_M] = ...
          load_RINEX(filename_nav, filename_M_obs, [], constellations, 0, wait_dlg);
     else
         [pr1_M, ~, ph1_M, ~, ~, ~, ~, ~, dop1_M, ~, ~, ~, snr1_M, ~, ~, ~,  ...
-         ~, time_M, ~, ~, ~, ~, Eph_M, iono_M, interval_M] = ...
+         ~, time_M, ~, ~, ~, ~, ~, pos_M, ~, Eph_M, iono_M, interval_M] = ...
          load_RINEX(filename_nav, filename_M_obs, [], constellations, 0);
     end
     
@@ -267,9 +280,9 @@ end
 if (nargin >= 6)
     waitbar(0,wait_dlg,'Reconstruct complete ephemerides set...')
 end
-Eph = zeros(31,num_sat,epochs);
+Eph = zeros(33,num_sat,epochs);
 for i = 1 : epochs
-    Eph(:,:,i) = rt_find_eph(Eph_tmp, time_GPS(i));
+    Eph(:,:,i) = rt_find_eph(Eph_tmp, time_GPS(i), nSatTot);
     if (nargin >= 6)
         waitbar(i/epochs,wait_dlg)
     end

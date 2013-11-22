@@ -21,9 +21,9 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 %   Classify data belonging to each arc.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Lisa Pertusini, Alemu Befkadu
 %----------------------------------------------------------------------------------------------
@@ -48,12 +48,12 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 
 fid = fopen(dat_filename,'rt');      % open file
 fgets(fid);                          % jump the header
-data = fscanf(fid,'%d/%d/%d %d:%d:%f %f %f %f %f %f %f %f %4c %f %f %f %f %f',[22 inf])';
+data = fscanf(fid,'%d/%d/%d %d:%d:%f %d %f %f %f %f %f %f %f %f %f %f %4c %f %f %f %f %f %d %f',[28 inf])';
 fclose(fid);
 clear dat_filename
 
-x0 = data(:,12);    % x coordinates
-y0 = data(:,11);    % y coordinates
+x0 = data(:,16);    % x coordinates
+y0 = data(:,15);    % y coordinates
 clear data
 
 x0_start = x0(1);    % initial point

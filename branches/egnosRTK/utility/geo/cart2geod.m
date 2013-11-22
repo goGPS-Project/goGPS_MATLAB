@@ -17,9 +17,9 @@ function [phi, lam, h] = cart2geod(X, Y, Z)
 %   Conversion from cartesian coordinates to geodetic coordinates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -36,10 +36,10 @@ function [phi, lam, h] = cart2geod(X, Y, Z)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global a_GPS e_GPS
+%global a_GPS e_GPS
 
-a = a_GPS;
-e = e_GPS;
+a = goGNSS.ELL_A_GPS;
+e = goGNSS.ELL_E_GPS;
 
 %radius computation
 r = sqrt(X.^2 + Y.^2 + Z.^2);

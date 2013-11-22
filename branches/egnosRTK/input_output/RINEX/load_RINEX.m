@@ -43,7 +43,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   date = date (year,month,day,hour,minute,second)
 %   pos_R = rover approximate position
 %   pos_M = master station position
-%   Eph = matrix containing 31 navigation parameters for each satellite
+%   Eph = matrix containing 33 navigation parameters for each satellite
 %   iono = vector containing ionosphere parameters
 %
 % DESCRIPTION:
@@ -51,9 +51,9 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   and the MASTER. Selects epochs they have in common.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
 %----------------------------------------------------------------------------------------------
 %
@@ -85,6 +85,7 @@ end
 if (isempty(constellations)) %then use only GPS as default
     [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
 end
+tic;
 
 %number of satellite slots for enabled constellations
 nSatTot = constellations.nEnabledSat;
@@ -184,7 +185,7 @@ if (~flag_SP3)
         waitbar(1,wait_dlg)
     end
 else
-    Eph = zeros(31,nSatTot);
+    Eph = zeros(33,nSatTot);
     iono = zeros(8,1);
 end
 
@@ -255,7 +256,7 @@ interval = min([interval_R, interval_M]);
 
 %-------------------------------------------------------------------------------
 
-nEpochs = 10800;
+nEpochs = 86400;
 
 %variable initialization (GPS)
 time_R = zeros(nEpochs,1);
@@ -280,13 +281,13 @@ date_R = zeros(nEpochs,6);
 date_M = zeros(nEpochs,6);
 
 %read data for the first epoch (ROVER)
-[time_R(1), epoch_R, num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
+[time_R(1), date_R(1,:), num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
 
 %-------------------------------------------------------------------------------
 
 if (filename_M_obs_PresenceFlag)
     %read data for the first epoch (MASTER)
-    [time_M(1), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+    [time_M(1), date_M(1,:), num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
 end
 %-------------------------------------------------------------------------------
 
@@ -310,7 +311,7 @@ if (filename_M_obs_PresenceFlag)
         end
         
         %read data for the current epoch (MASTER)
-        [time_M(1), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+        [time_M(1), date_M(1,:), num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
     end
     
     while ((time_R(1) - time_M(1)) < 0 && abs(time_R(1) - time_M(1)) >= max_desync_frac*interval)
@@ -328,7 +329,7 @@ if (filename_M_obs_PresenceFlag)
         end
         
         %read data for the current epoch (ROVER)
-        [time_R(1), epoch_R, num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
+        [time_R(1), date_R(1,:), num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
     end
 end
 
@@ -337,9 +338,11 @@ end
 obs_R = RINEX_get_obs(FR_oss, num_sat_R, sat_R, sat_types_R, obs_col_R, nObsTypes_R, constellations);
 
 %read ROVER observations
-if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
+if (sum(obs_R.P1 ~= 0) == sum(obs_R.C1 ~= 0))
+    fprintf('Rover: using P1 code observations.\n');
     pr1_R(:,1) = obs_R.P1;
 else
+    fprintf('Rover: using C1 code observations.\n');
     pr1_R(:,1) = obs_R.C1;
 end
 pr2_R(:,1) = obs_R.P2;
@@ -355,9 +358,11 @@ if (filename_M_obs_PresenceFlag)
     obs_M = RINEX_get_obs(FM_oss, num_sat_M, sat_M, sat_types_M, obs_col_M, nObsTypes_M, constellations);
     
     %read MASTER observations
-    if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
+    if (sum(obs_M.P1 ~= 0) == sum(obs_M.C1 ~= 0))
+        fprintf('Master: using P1 code observations.\n');
         pr1_M(:,1) = obs_M.P1;
     else
+        fprintf('Master: using C1 code observations.\n');
         pr1_M(:,1) = obs_M.C1;
     end
     pr2_M(:,1) = obs_M.P2;
@@ -377,39 +382,55 @@ end
 
 %define the reference time
 time(1,1) = roundmod(time_R(1),interval);
-date_R(1,:) = epoch_R(1,:);
-if (filename_M_obs_PresenceFlag)
-    date_M(1,:) = epoch_M(1,:);
-end
 
 if (wait_dlg_PresenceFlag)
     waitbar(0.5,wait_dlg,'Reading RINEX observations...')
 end
 
 k = 2;
+n_mis_epo_R = 0;
+n_mis_epo_M = 0;
 while (~feof(FR_oss))
 
     if (abs((time_R(k-1) - time(k-1))) < max_desync_frac*interval)
-        %read data for the current epoch (ROVER)
-        [time_R(k), epoch_R, num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
-    else
-        time_R(k) = time_R(k-1);
-        if (time_R(k-1) ~= 0)
-            fprintf('Missing epoch %f (ROVER)\n', time(k-1));
+        %display previously missing epochs, if any
+        if (n_mis_epo_R > 0)
+            for n = n_mis_epo_R : -1 : 1
+                mis_epo = datevec(datenum(date_R(k-1,:))-datenum([0 0 0 0 0 n*interval]));
+                fprintf('Missing epoch %d/%02d/%02d %02d:%02d:%02.3f (ROVER)\n', mis_epo);
+            end
         end
+
+        n_mis_epo_R = 0;
+        %read data for the current epoch (ROVER)
+        [time_R(k), date_R(k,:), num_sat_R, sat_R, sat_types_R] = RINEX_get_epoch(FR_oss);
+    else
+        n_mis_epo_R = n_mis_epo_R + 1;
+        time_R(k) = time_R(k-1);
+        date_R(k,:) = date_R(k-1,:);
         time_R(k-1) = 0;
+        date_R(k-1,:) = [0 0 0 0 0 0];
     end
 
     if (filename_M_obs_PresenceFlag)
         if (abs((time_M(k-1) - time(k-1))) < max_desync_frac*interval)
-            %read data for the current epoch (MASTER)
-            [time_M(k), epoch_M, num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
-        else
-            time_M(k) = time_M(k-1);
-            if (time_M(k-1) ~= 0)
-                fprintf('Missing epoch %f (MASTER)\n', time(k-1));
+            %display previously missing epochs, if any
+            if (n_mis_epo_M > 0)
+                for n = n_mis_epo_M : -1 : 1
+                    mis_epo = datevec(datenum(date_M(k-1,:))-datenum([0 0 0 0 0 n*interval]));
+                    fprintf('Missing epoch %d/%02d/%02d %02d:%02d:%02.3f (MASTER)\n', mis_epo);
+                end
             end
+            
+            n_mis_epo_M = 0;
+            %read data for the current epoch (MASTER)
+            [time_M(k), date_M(k,:), num_sat_M, sat_M, sat_types_M] = RINEX_get_epoch(FM_oss);
+        else
+            n_mis_epo_M = n_mis_epo_M + 1;
+            time_M(k) = time_M(k-1);
+            date_M(k,:) = date_M(k-1,:);
             time_M(k-1) = 0;
+            date_M(k-1,:) = [0 0 0 0 0 0];
         end
     end
 
@@ -434,11 +455,6 @@ while (~feof(FR_oss))
 
         nEpochs = nEpochs  + 1;
     end
-    
-    date_R(k,:) = epoch_R(1,:);
-    if (filename_M_obs_PresenceFlag)
-        date_M(k,:) = epoch_M(1,:);
-    end
 
     time(k,1) = time(k-1,1) + interval;
 
@@ -448,7 +464,7 @@ while (~feof(FR_oss))
         obs_R = RINEX_get_obs(FR_oss, num_sat_R, sat_R, sat_types_R, obs_col_R, nObsTypes_R, constellations);
 
         %read ROVER observations
-        if (sum(obs_R.P1 ~= 0) == constellations.nEnabledSat)
+        if (sum(obs_R.P1 ~= 0) == sum(obs_R.C1 ~= 0))
             pr1_R(:,k) = obs_R.P1;
         else
             pr1_R(:,k) = obs_R.C1;
@@ -482,7 +498,7 @@ while (~feof(FR_oss))
             obs_M = RINEX_get_obs(FM_oss, num_sat_M, sat_M, sat_types_M, obs_col_M, nObsTypes_M, constellations);
             
             %read MASTER observations
-            if (sum(obs_M.P1 ~= 0) == constellations.nEnabledSat)
+            if (sum(obs_M.P1 ~= 0) == sum(obs_M.C1 ~= 0))
                 pr1_M(:,k) = obs_M.P1;
             else
                 pr1_M(:,k) = obs_M.C1;
@@ -581,3 +597,6 @@ end
 %GPS week number
 week_R = date2gps(date_R);
 week_M = date2gps(date_M);
+
+fprintf('The RINEX file has been read.\n');
+toc

@@ -15,9 +15,9 @@ function [data] = decode_rtcm3(msg, wait_dlg)
 %   RTCM 3.1 binary messages decoding (also in sequence).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -45,7 +45,7 @@ preamble = '11010011';      % FIXED transport layer header (8 bit)
 
 %codeBIN = [preamble reserved];      % binary initial stream
 
-pos_all = findstr(msg, preamble);    % message initial index
+pos_all = strfind(msg, preamble);    % message initial index
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE IDENTIFICATION

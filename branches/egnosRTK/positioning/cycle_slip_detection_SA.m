@@ -1,9 +1,9 @@
 function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
-         pr, ph, err_iono, doppler_pred_range, sat, sat_born, alpha, phase)
+         pr, ph, err_iono, doppler_pred_range, sat, sat_born, alpha, lambda)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
-%    pr, ph, err_iono, doppler_pred_range, sat, sat_born, alpha, phase);
+%    pr, ph, err_iono, doppler_pred_range, sat, sat_born, alpha, lambda);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
@@ -14,7 +14,7 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
 %   sat = visible satellites configuration
 %   sat_born = new satellites (added in this epoch)
 %   alpha = cycle-slip detection threshold
-%   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   lambda = vector containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   slip = boolean variable (slip=1 if there is a cycle-slip)
@@ -27,9 +27,9 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
 %   range on the basis of the Kalman filter.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -47,18 +47,13 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-global lambda1 lambda2
 global flag_doppler_cs
 
 %number of visible satellites
 nsat = size(sat,1);
 
 %phase ambiguities estimation
-if (phase == 1)
-    N_stim = (pr - lambda1 * ph - 2 * err_iono) / lambda1;
-else
-    N_stim = (pr - lambda2 * ph - 2 * err_iono) / lambda2;
-end
+N_stim = (pr - lambda .* ph - 2 * err_iono) ./ lambda;
 
 %initialization
 N_slip = [];

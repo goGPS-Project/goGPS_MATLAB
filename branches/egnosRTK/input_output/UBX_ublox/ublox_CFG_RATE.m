@@ -16,9 +16,9 @@ function [out] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef)
 %   Set the u-blox navigation/measurement rates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ header1 = 'B5';                            % header (hexadecimal value)
 header2 = '62';                            % header (hexadecimal value)
 
 ID1 = '06';                                % CFG (hexadecimal value)
-ID2 = '08';                                % MSG (hexadecimal value)
+ID2 = '08';                                % RATE (hexadecimal value)
 
 codeHEX = [header1; header2; ID1; ID2];    % initial hexadecimal poll message
 codeDEC = hex2dec(codeHEX);                % conversion to decimal

@@ -1,9 +1,9 @@
 function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
-         ph_Rsat, ph_Msat, pivot, sat, phase)
+         ph_Rsat, ph_Msat, pivot, sat, lambda)
 
 % SYNTAX:
 %   [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
-%   ph_Rsat, ph_Msat, pivot, sat, phase);
+%   ph_Rsat, ph_Msat, pivot, sat, lambda);
 %
 % INPUT:
 %   pr_Rsat = ROVER-SATELLITE code-pseudorange
@@ -12,7 +12,7 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
 %   ph_Msat = MASTER-SATELLITE phase-pseudorange
 %   pivot = pivot satellite
 %   sat = configuration of satellites in view
-%   phase = carrier L1 (phase=1), carrier L2 (phase=2)
+%   lambda = vector containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   N_stim = linear combination ambiguity estimate
@@ -23,9 +23,9 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
 %   using both phase and code observations (satellite-receiver distance).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -43,8 +43,6 @@ function [N_stim, sigmaq_N_stim] = amb_estimate_observ(pr_Rsat, pr_Msat, ...
 %----------------------------------------------------------------------------------------------
 
 %variables initialization
-global lambda1
-global lambda2
 global sigmaq_cod1
 
 %PIVOT position research
@@ -65,10 +63,5 @@ comb_pr = (pr_Rsat - pr_Msat) - (pr_RP - pr_MP);
 comb_ph = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
 
 %linear combination of initial ambiguity estimate
-if (phase == 1)
-    N_stim = ((comb_pr - comb_ph * lambda1)) / lambda1;
-    sigmaq_N_stim = 4*sigmaq_cod1 / lambda1^2;
-else
-    N_stim = ((comb_pr - comb_ph * lambda2)) / lambda2;
-    sigmaq_N_stim = 4*sigmaq_cod1 / lambda2^2;
-end
+N_stim = ((comb_pr - comb_ph .* lambda)) ./ lambda;
+sigmaq_N_stim = 4*sigmaq_cod1 ./ lambda.^2;

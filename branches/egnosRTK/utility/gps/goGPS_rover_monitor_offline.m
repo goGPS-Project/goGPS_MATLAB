@@ -17,9 +17,9 @@ function goGPS_rover_monitor_offline(fileIN, filerootOUT, protocol, flag_var_dyn
 %   also including different protocols.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.2.0 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2011 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -41,6 +41,8 @@ function goGPS_rover_monitor_offline(fileIN, filerootOUT, protocol, flag_var_dyn
 % global COMportR
 global rover
 global order
+
+num_sat = 32;
 
 %------------------------------------------------------
 % read protocol parameters
@@ -69,7 +71,7 @@ iono = cell(nrec,1);
 for r = 1 : nrec
 
     % ephemerides
-    Eph{r} = zeros(29,32);
+    Eph{r} = zeros(33,num_sat);
 
     % ionosphere parameters
     iono{r} = zeros(8,1);
@@ -95,18 +97,22 @@ for r = 1 : nrec
     %   time_GPS --> double, [1,1]  --> zeros(1,1)
     %   time_M   --> double, [1,1]  --> zeros(1,1)
     %   time_R   --> double, [1,1]
-    %   pr_M     --> double, [32,1] --> zeros(32,1)
-    %   pr_R     --> double, [32,1]
-    %   ph_M     --> double, [32,1] --> zeros(32,1)
-    %   ph_R     --> double, [32,1]
-    %   snr_M    --> double, [32,1] --> zeros(32,1)
-    %   snr_R    --> double, [32,1]
+    %   pr_M     --> double, [num_sat,1] --> zeros(num_sat,1)
+    %   pr_R     --> double, [num_sat,1]
+    %   ph_M     --> double, [num_sat,1] --> zeros(num_sat,1)
+    %   ph_R     --> double, [num_sat,1]
+    %   snr_M    --> double, [num_sat,1] --> zeros(num_sat,1)
+    %   snr_R    --> double, [num_sat,1]
     fid_obs{r} = fopen([filerootOUT '_' recname '_obs_00.bin'],'w+');
 
     % input ephemerides
     %   timeGPS  --> double, [1,1]  --> zeros(1,1)
-    %   Eph      --> double, [29,32]
+    %   Eph      --> double, [33,num_sat]
     fid_eph{r} = fopen([filerootOUT '_' recname '_eph_00.bin'],'w+');
+    
+    %write number of satellites
+    fwrite(fid_obs{r}, num_sat, 'int8');
+    fwrite(fid_eph{r}, num_sat, 'int8');
     
     if (flag_var_dyn_model) | (flag_stopGOstop)
         %dynamical model
@@ -157,9 +163,9 @@ for r = 1 : nrec
     header4 = '10';      % header (hexadecimal value)
     
     codeHEX = [header1 header2 header3 header4];  % initial hexadecimal stream
-    codeBIN = dec2bin(hex2dec(codeHEX),32);       % initial binary stream
+    codeBIN = dec2bin(hex2dec(codeHEX),num_sat);       % initial binary stream
 
-    pos_UBX{r} = findstr(data_rover{r}, codeBIN); % message initial index
+    pos_UBX{r} = strfind(data_rover{r}, codeBIN); % message initial index
     pos_UBX{r} = [0 pos_UBX{r}];
 
 %     % find a serial port object.
@@ -316,9 +322,9 @@ tick_TRACK = 0;
 correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
 correction_value = correction_value * (1575420000/(1+1574399750));
 doppler_count = 1;
-delta = zeros(32,1);
-ph_R_old  = zeros(32,1);
-dop_R_old = zeros(32,1);
+delta = zeros(num_sat,1);
+ph_R_old  = zeros(num_sat,1);
+dop_R_old = zeros(num_sat,1);
 
 %for SkyTraq
 IOD_time = -1;
@@ -440,7 +446,7 @@ while flag
                             ph_R_old  = ph_R;
                             dop_R_old = dop_R;
                         else
-                            ph_R = zeros(32,1);
+                            ph_R = zeros(num_sat,1);
                         end
                         nRAW = nRAW + 1;
                     end
@@ -465,7 +471,7 @@ while flag
                     if (ismember(satObs,satEph)) & (length(satObs) >= 4)
 
                         %data save
-                        fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
+                        fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                         fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
                         if (flag_var_dyn_model) | (flag_stopGOstop)
                             fwrite(fid_dyn{r}, order, 'int8');
@@ -520,7 +526,7 @@ while flag
                         if (ismember(satObs,satEph)) & (length(satObs) >= 4)
                             
                             %data save
-                            fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
+                            fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                             fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
                             if (flag_var_dyn_model) | (flag_stopGOstop)
                                 fwrite(fid_dyn{r}, order, 'int8');

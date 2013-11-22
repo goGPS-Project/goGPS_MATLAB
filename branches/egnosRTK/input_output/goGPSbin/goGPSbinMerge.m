@@ -16,9 +16,9 @@ function goGPSbinMerge(filerootR, filerootM, filerootOUT, wait_dlg)
 %   *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -133,6 +133,10 @@ if ~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootM '_obs_*'])) ...
     %open output files
     fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
     fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+    
+    %write number of satellites
+    fwrite(fid_obs, num_sat, 'int8');
+    fwrite(fid_eph, num_sat, 'int8');
     
     %"file hour" variable
     hour = 0;

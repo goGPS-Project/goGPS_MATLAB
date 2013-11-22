@@ -5,16 +5,16 @@ function rtplot_snr(snr, Eph, SP3)
 %
 % INPUT:
 %   snr = signal-to-noise ratio
-%   Eph = matrix containing 31 navigation parameters for each satellite
+%   Eph = matrix containing 33 navigation parameters for each satellite
 %   SP3 = structure containing precise ephemeris data
 %
 % DESCRIPTION:
 %   Real time bar graph of signal-to-noise ratio.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -53,7 +53,7 @@ snr = snr(idx2);
 sys = char(sys(idx1));
 prn = prn(idx1);
 
-sysprn = mat2cell([sys' num2str(prn')]);
+sysprn = {[sys' num2str(prn')]};
 
 if ~isempty(sat)
     barh(1:1:size(sat),snr)

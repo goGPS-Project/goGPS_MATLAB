@@ -1,7 +1,7 @@
-function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase, flag_IAR)
+function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, flag_IAR)
 
 % SYNTAX:
-%   goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3_time, SP3_coor, SP3_clck, iono, phase, flag_IAR);
+%   goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, flag_IAR);
 %
 % INPUT:
 %   time_rx = GPS reception time
@@ -13,11 +13,10 @@ function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, 
 %   snr_R = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M = MASTER-SATELLITE signal-to-noise ratio
 %   Eph   = satellite ephemeris
-%   SP3_time = precise ephemeris time
-%   SP3_coor = precise ephemeris coordinates
-%   SP3_clck = precise ephemeris clocks
-%   iono = ionosphere parameters
-%   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   SP3   = structure containing precise ephemeris and clock
+%   iono  = ionosphere parameters
+%   lambda = wavelength matrix (depending on the enabled constellations)
+%   phase  = L1 carrier (phase=1), L2 carrier (phase=2)
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %
 % DESCRIPTION:
@@ -26,9 +25,9 @@ function goGPS_LS_DD_code_phase(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, 
 %   on code and phase observations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Hendy F. Suhandri
 %----------------------------------------------------------------------------------------------
@@ -53,7 +52,7 @@ global cutoff snr_threshold cond_num_threshold o1 o2 o3
 global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
-global ratiotest mutest succ_rate
+global ratiotest mutest succ_rate fixed_solution
 
 %number of unknown phase ambiguities
 if (length(phase) == 1)
@@ -61,6 +60,9 @@ if (length(phase) == 1)
 else
     nN = 64;
 end
+
+%compute inter-frequency factors (for the ionospheric delay)
+ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
 %covariance matrix initialization
 cov_XR = [];
@@ -90,23 +92,21 @@ else
     end
 end
 
+N1 = zeros(32,1);
+N2 = zeros(32,1);
+Z_om_1 = zeros(o1-1,1);
+sigma2_N = zeros(nN,1);
+
 if (size(sat,1) >= 4)
     
-    %ambiguity initialization: initialized value
-    %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(32,1);
-    N2 = zeros(32,1);
-    Z_om_1 = zeros(o1-1,1);
-    sigma2_N = zeros(nN,1);
-    
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XM, [],  [], sat,   cutoff, snr_threshold, 2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [],  [], sat,   lambda(sat,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], [], XS, dtS, sat_M, cutoff, snr_threshold, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], [], XS, dtS, sat_M, lambda(sat_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3_time, SP3_coor, SP3_clck, iono, [], XM, [],  [], sat,   cutoff, snr_threshold, 2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [],  [], sat,   lambda(sat,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3_time, SP3_coor, SP3_clck, iono, [], [], XS, dtS, sat_M, cutoff, snr_threshold, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], [], XS, dtS, sat_M, lambda(sat_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
     end
     
     %keep only satellites that rover and master have in common
@@ -149,15 +149,20 @@ if (size(sat,1) >= 4)
         for i = 1 : 3
 
             if (phase == 1)
-                [XR, N1(sat), cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_IAR);
+                [XR, N1(sat), cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,1), flag_IAR);
             else
-                [XR, N2(sat), cov_XR, cov_N2, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, phase, flag_IAR);
+                [XR, N2(sat), cov_XR, cov_N2, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(st), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,2), flag_IAR);
             end
             
-            if (i < 3 && ~isempty(ratiotest))
-                ratiotest(end) = [];
-                mutest(end) = [];
-                succ_rate(end) = [];
+            if (i < 3)
+                if (~isempty(ratiotest))
+                    ratiotest(end) = [];
+                    mutest(end) = [];
+                end
+                if (~isempty(fixed_solution))
+                    fixed_solution(end) = [];
+                    succ_rate(end) = [];
+                end
             end
             
             [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
@@ -165,11 +170,44 @@ if (size(sat,1) >= 4)
             
             err_tropo_R = tropo_error_correction(elR(elR ~= 0), hR);
             err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR ~= 0), elR(elR ~= 0), time_rx, iono, []);
+            
+            %correct the ionospheric errors for different frequencies
+            err_iono_R = ionoFactor(sat,phase).*err_iono_R;
+        end
+        
+        if isempty(cov_N1) %if it was not possible to compute the covariance matrix
+            cov_N1 = sigmaq0_N * eye(length(sat));
+        end
+        
+        if isempty(cov_N2) %if it was not possible to compute the covariance matrix
+            cov_N2 = sigmaq0_N * eye(length(sat));
+        end
+        
+        if (length(phase) == 2)
+            N = [N1; N2];
+            sigma2_N(sat) = diag(cov_N1);
+            %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
+            sigma2_N(sat+nN) = diag(cov_N2);
+            %sigma2_N(sat+nN) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
+        else
+            if (phase == 1)
+                N = N1;
+                sigma2_N(sat) = diag(cov_N1);
+                %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
+            else
+                N = N2;
+                sigma2_N(sat) = diag(cov_N2);
+                %sigma2_N(sat) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
+            end
         end
     else
         if (~isempty(Xhat_t_t))
             XR = Xhat_t_t([1,o1+1,o2+1]);
+            N  = Xhat_t_t(o3+1:end);
             pivot = 0;
+
+            fixed_solution = [fixed_solution 0];
+            succ_rate = [succ_rate NaN];
         else
             return
         end
@@ -178,7 +216,11 @@ if (size(sat,1) >= 4)
 else
     if (~isempty(Xhat_t_t))
         XR = Xhat_t_t([1,o1+1,o2+1]);
+        N  = Xhat_t_t(o3+1:end);
         pivot = 0;
+
+        fixed_solution = [fixed_solution 0];
+        succ_rate = [succ_rate NaN];
     else
         return
     end
@@ -188,32 +230,6 @@ if isempty(cov_XR) %if it was not possible to compute the covariance matrix
     cov_XR = sigmaq0 * eye(3);
 end
 sigma2_XR = diag(cov_XR);
-
-if isempty(cov_N1) %if it was not possible to compute the covariance matrix
-    cov_N1 = sigmaq0_N * eye(length(sat));
-end
-
-if isempty(cov_N2) %if it was not possible to compute the covariance matrix
-    cov_N2 = sigmaq0_N * eye(length(sat));
-end
-
-if (length(phase) == 2)
-    N = [N1; N2];
-    sigma2_N(sat) = diag(cov_N1);
-    %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
-    sigma2_N(sat+nN) = diag(cov_N2);
-    %sigma2_N(sat+nN) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
-else
-    if (phase == 1)
-        N = N1;
-        sigma2_N(sat) = diag(cov_N1);
-        %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
-    else
-        N = N2;
-        sigma2_N(sat) = diag(cov_N2);
-        %sigma2_N(sat) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
-    end
-end
 
 %initialization of the initial point with 6(positions and velocities) +
 %32 or 64 (N combinations) variables

@@ -53,9 +53,9 @@ function [data] = decode_RXM_SFRB(msg)
 %   RXM-SFRB binary message decoding (OBSOLETE).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -79,7 +79,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(9,1);
-data{3} = zeros(31,1);
+data{3} = zeros(33,1);
 
 %output data save
 data{1} = 'RXM-SFRB';
@@ -199,5 +199,8 @@ if (PRN <= 32)
         data{3}(28) = tgd;
         data{3}(29) = fit_int;
         data{3}(30) = PRN; %assume only GPS (not multi-constellation)
+        data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+        data{2}(32) = weektow2time(weekno, toe, 'G');
+        data{2}(33) = weektow2time(weekno, toc, 'G');
     end
 end

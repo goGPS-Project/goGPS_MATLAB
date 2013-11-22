@@ -23,6 +23,8 @@
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
 %
 %----------------------------------------------------------------------------------------------
+%                           goGPS v0.4.1 beta
+%
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
@@ -200,8 +202,12 @@ classdef IniReader < handle
                     obj.rawData = obj.rawData{1};
                     
                     if (obj.getVerbosityLev)
-                        %obj.opStatus(1);
-                        cprintf('The INI file has been read correctly.\n');
+                        obj.opStatus(1, obj.colorMode);
+                        if obj.colorMode
+                            cprintf('The INI file has been read correctly.\n');
+                        else
+                            fprintf('The INI file has been read correctly.\n');
+                        end
                     end
                     
                     obj.cleanRaw();      % Strip comments and spaces
@@ -356,11 +362,15 @@ classdef IniReader < handle
         end
         
         % Get data --------------------------------------------------------        
-        function data = getData(obj, section, key)
+        function data = getData(obj, section, key, printErrors)
+            if nargin == 3
+                printErrors = 0;
+            end
+            
             % Get the value of a specified key
-            if (~obj.getReadStatus())
-                obj.printWarning('File not yet read!\n');
-                obj.readFile();
+            if (~obj.getReadStatus() && isempty(obj.section))
+               obj.printWarning('File not yet read!\n');
+               obj.readFile();
             end
             
             data = [];
@@ -405,7 +415,7 @@ classdef IniReader < handle
                 end
             end
             
-            if (isempty(data))
+            if (isempty(data) && printErrors)
                 obj.printError(['Key "' key '" not found!\n']);
                 data = [];
             end
@@ -450,6 +460,13 @@ classdef IniReader < handle
             end
         end
         
+        % Add a data to the object giving key and section -----------------
+        function addData(obj, section, key, data)
+            % Add a data to the object
+            obj.addSection(section)
+            obj.addKey(section, key, data)
+        end
+
         % Remove a section from the object IniReader ----------------------
         function rmSection(obj, section)
             % Remove a section from the object IniReader
@@ -607,7 +624,7 @@ classdef IniReader < handle
                 end                
             end
             
-            if (~obj.getReadStatus())
+            if (~obj.getReadStatus() && isempty(obj.section))
                 obj.printWarning('File not yet read!\n');
                 obj.readFile();
             end
@@ -797,7 +814,7 @@ classdef IniReader < handle
                 colorMode = obj.colorMode;
             end
             if (obj.getVerbosityLev > 0)
-                %obj.opStatus(0);
+                obj.opStatus(0, colorMode);
                 if (colorMode)
                     cprintf('err', 'warning: ');
                     cprintf('text', [text '\n']);
@@ -813,7 +830,7 @@ classdef IniReader < handle
                 colorMode = obj.colorMode;
             end
             if (obj.getVerbosityLev > 0)
-                %obj.opStatus(0);
+                obj.opStatus(0, colorMode);
                 if (colorMode)
                     cprintf('err', 'Error: ');
                     cprintf('text', [text '\n']);
@@ -895,17 +912,30 @@ classdef IniReader < handle
 %    DISPLAY UTILITIES
 % =========================================================================
 
-    methods(Static, Access = 'private')
+    methods(Static, Access = 'public')
         
         % Display a flag of operation status
-        function opStatus(statusOk)
-            cprintf('blue',' [ ');
-            if (statusOk)
-                cprintf('green','ok');
-            else
-                cprintf('red','!!');
+        function opStatus(statusOk, colormode)
+            if (nargin == 1)
+                colormode = true;
             end
-            cprintf('blue',' ] ');
+            if colormode
+                cprintf('blue',' [ ');
+                if (statusOk)
+                    cprintf('green','ok');
+                else
+                    cprintf('red','!!');
+                end
+                cprintf('blue',' ] ');
+            else
+                fprintf(' [ ');
+                if (statusOk)
+                    fprintf('ok');
+                else
+                    fprintf('!!');
+                end
+                fprintf(' ] ');
+            end
         end        
     end
 end

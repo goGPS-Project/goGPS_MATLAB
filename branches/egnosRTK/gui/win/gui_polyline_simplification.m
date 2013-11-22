@@ -25,9 +25,9 @@ function varargout = gui_polyline_simplification(varargin)
 % Last Modified by GUIDE v2.5 08-Oct-2010 13:09:29
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -78,9 +78,12 @@ handles.output = hObject;
 % Update handles structure
 guidata(hObject, handles);
 
+%last settings file path
+file_path = './settings/last_settings_polyline.mat';
+
 %load last used settings, if any
-if exist('../data/settings/last_settings_polyline.mat','file')
-    loadState(handles, '../data/settings/last_settings_polyline.mat');
+if exist(file_path,'file')
+    loadState(handles, file_path);
 end
 
 %pixels
@@ -229,8 +232,11 @@ else
     end
 end
 
+%last settings file path
+file_path = './settings/last_settings_polyline.mat';
+
 %save settings
-saveState(handles,'../data/settings/last_settings_polyline.mat');
+saveState(handles, file_path);
 
 % close(wait_dlg)
 

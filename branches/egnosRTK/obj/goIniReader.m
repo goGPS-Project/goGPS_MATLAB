@@ -22,6 +22,8 @@
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
 %
 %----------------------------------------------------------------------------------------------
+%                           goGPS v0.4.1 beta
+%
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
@@ -70,6 +72,20 @@ classdef goIniReader < IniReader
         function nR = getNumRec(obj)
             % Get the number of receiver in the INI
             nR = obj.getData('Receivers','nRec');
+        end
+        
+        function rate = getCaptureRate(obj)
+            % Get the sampling rate (Hz) to be used in monitor mode
+            rate = obj.getData('Monitor', 'rate');
+            if isempty(rate)
+                rate = 1;
+            end
+        end
+        
+        function setCaptureRate(obj, rate)
+            % Set the sampling rate (Hz) to be used in monitor mode
+            rate = str2double(rate(1:2));
+            obj.addData('Monitor', 'rate', rate);
         end
                 
         function [dataPath fileName nR] = getRecFiles(obj)
@@ -134,7 +150,7 @@ classdef goIniReader < IniReader
         
         function timeStep = getTimeStep(obj)
             % Get time increment (e.g. v = obs(t+timeStep)-obs(t)
-            timeStep = obj.getData('goD','timeStep');
+            timeStep = obj.getData('Variometric','timeStep');
             if (isempty(timeStep))
                 timeStep = 1;
             end    

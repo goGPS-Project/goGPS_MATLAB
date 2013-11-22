@@ -14,7 +14,7 @@ function [pos] = bancroft(B_pass)
 %   having at least 4 visible satellites.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 04-30-95, improved by C.C. Goad 11-24-96
@@ -22,9 +22,8 @@ function [pos] = bancroft(B_pass)
 % Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
 %----------------------------------------------------------------------------------------------
 
-global v_light Omegae_dot_GPS
-
-Omegae_dot = Omegae_dot_GPS;
+v_light = goGNSS.V_LIGHT;
+Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
 
 pos = zeros(4,1);
 

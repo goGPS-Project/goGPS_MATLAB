@@ -22,13 +22,24 @@ function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas,
 %   Compute the signal transmission time.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) Mirko Reguzzoni, Eugenio Realini, 2012
-%
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
-
-global v_light
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%----------------------------------------------------------------------------------------------
 
 %SBAS clock offsets
 if (~isempty(sbas))
@@ -37,7 +48,7 @@ else
     dtsbas = zeros(1,length(sat));
 end
 
-time_tx_RAW = time_rx - (range - err_tropo - err_iono) / v_light + dtR;
+time_tx_RAW = time_rx - (range - err_tropo - err_iono) / goGNSS.V_LIGHT + dtR;
 
 % tcorr0 = 0;
 % tcorr = sat_clock_error_correction(time_tx_RAW, Eph);

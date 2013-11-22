@@ -17,7 +17,7 @@ function [Az, El, D] = topocent(Xr, Xs)
 %   the receiver.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 09-26-97
@@ -26,7 +26,7 @@ function [Az, El, D] = topocent(Xr, Xs)
 %----------------------------------------------------------------------------------------------
 
 %conversion from geocentric cartesian to geodetic coordinates
-[phi, lambda, h] = cart2geod(Xr(1), Xr(2), Xr(3)); %#ok<NASGU>
+[phi, lam, h] = cart2geod(Xr(1), Xr(2), Xr(3)); %#ok<NASGU>
 
 %new origin of the reference system
 X0(:,1) = Xr(1) * ones(size(Xs,1),1);
@@ -34,7 +34,7 @@ X0(:,2) = Xr(2) * ones(size(Xs,1),1);
 X0(:,3) = Xr(3) * ones(size(Xs,1),1);
 
 %computation of topocentric coordinates
-cl = cos(lambda); sl = sin(lambda);
+cl = cos(lam); sl = sin(lam);
 cb = cos(phi); sb = sin(phi);
 F = [-sl -sb*cl cb*cl;
       cl -sb*sl cb*sl;

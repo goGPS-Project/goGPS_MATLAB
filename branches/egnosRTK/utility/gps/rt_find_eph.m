@@ -15,9 +15,9 @@ function [Eph_t] = rt_find_eph(Eph_in, time, nsat)
 %   Extract the ephemerides referred to the current epoch.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ function [Eph_t] = rt_find_eph(Eph_in, time, nsat)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-empty_col = zeros(31,1);
+empty_col = zeros(33,1);
 
 for sv = 1 : nsat
     icol = find_eph(Eph_in, sv, time);

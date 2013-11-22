@@ -25,9 +25,9 @@ function download_igs(gpsweek, dow, items, path_download)
 %   e.g. items=[1 0 0 0 0 0] to download final orbits only
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 % Routine by Stefano Caldera, 2012-05-10
 %----------------------------------------------------------------------------------------------
 

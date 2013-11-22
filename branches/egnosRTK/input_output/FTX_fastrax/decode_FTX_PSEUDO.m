@@ -31,9 +31,9 @@ function [data] = decode_FTX_PSEUDO(msg)
 % DESCRIPTION:
 %   PSEUDO binary message decoding.
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -52,7 +52,8 @@ function [data] = decode_FTX_PSEUDO(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global lambda1
+%retrieve GPS L1 wavelength
+lambda = goGNSS.getWavelength(goGNSS.ID_GPS, 1);
 
 % first message initial index
 pos = 1;
@@ -132,7 +133,7 @@ for j = 1 : NumObs
     
     % PSEUDO.Obs[n].dDoppler 	DOUBLE 	Doppler [m/s].
     [Doppler, pos]      = FTX_TypeConv('DOUBLE', msg, pos);
-    Doppler = Doppler / lambda1;
+    Doppler = Doppler / lambda;
 
     % PSEUDO.Obs[n].iLoopDopplerOffset 	INT16 	Difference between Doppler measurement and the frequency from the software carrier tracking loop [cm/s].   
     [LoopDopplerOffset, pos] = FTX_TypeConv('INT16', msg, pos);

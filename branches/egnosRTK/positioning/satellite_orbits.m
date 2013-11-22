@@ -18,28 +18,39 @@ function [satp, satv] = satellite_orbits(t, Eph, sat, sbas)
 %   of its ephemerides.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
-%
-% Partially based on SATPOS.M (EASY suite) by Kai Borre
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
-
-global a_GLO GM_GLO J2_GLO
-global Omegae_dot_GPS Omegae_dot_GLO Omegae_dot_GAL Omegae_dot_BDS Omegae_dot_QZS
-global circle_rad
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%----------------------------------------------------------------------------------------------
 
 switch char(Eph(31))
     case 'G'
-        Omegae_dot = Omegae_dot_GPS;
+        Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
     case 'R'
-        Omegae_dot = Omegae_dot_GLO;
+        Omegae_dot = goGNSS.OMEGAE_DOT_GLO;
     case 'E'
-        Omegae_dot = Omegae_dot_GAL;
+        Omegae_dot = goGNSS.OMEGAE_DOT_GAL;
     case 'C'
-        Omegae_dot = Omegae_dot_BDS;
+        Omegae_dot = goGNSS.OMEGAE_DOT_BDS;
     case 'J'
-        Omegae_dot = Omegae_dot_QZS;
+        Omegae_dot = goGNSS.OMEGAE_DOT_QZS;
+    otherwise
+        fprintf('Something went wrong in satellite_orbits.m\nUnrecongized Satellite system!\n');
+        Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
 end
 
 %consider BeiDou time (BDT) for BeiDou satellites
@@ -65,6 +76,7 @@ if (~strcmp(char(Eph(31)),'R'))
     Omega0    = Eph(16);
     Omega_dot = Eph(17);
     toe       = Eph(18);
+    time_eph  = Eph(32);
     
     %SBAS satellite coordinate corrections
     if (~isempty(sbas))
@@ -84,12 +96,12 @@ if (~strcmp(char(Eph(31)),'R'))
     %eccentric anomaly
     [Ek, n] = ecc_anomaly(t, Eph);
     
-    A = roota*roota;        %semi-major axis
-    tk = check_t(t - toe);  %time from the ephemeris reference epoch
+    A = roota*roota;             %semi-major axis
+    tk = check_t(t - time_eph);  %time from the ephemeris reference epoch
     
     fk = atan2(sqrt(1-ecc^2)*sin(Ek), cos(Ek) - ecc);    %true anomaly
     phik = fk + omega;                           %argument of latitude
-    phik = rem(phik,circle_rad);
+    phik = rem(phik,goGNSS.CIRCLE_RAD);
     
     uk = phik                + cuc*cos(2*phik) + cus*sin(2*phik); %corrected argument of latitude
     rk = A*(1 - ecc*cos(Ek)) + crc*cos(2*phik) + crs*sin(2*phik); %corrected radial distance
@@ -104,7 +116,7 @@ if (~strcmp(char(Eph(31)),'R'))
         
         %corrected longitude of the ascending node
         Omegak = Omega0 + (Omega_dot - Omegae_dot)*tk - Omegae_dot*toe;
-        Omegak = rem(Omegak + circle_rad,circle_rad);
+        Omegak = rem(Omegak + goGNSS.CIRCLE_RAD,goGNSS.CIRCLE_RAD);
         
         %satellite Earth-fixed coordinates (X,Y,Z)
         xk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
@@ -120,7 +132,7 @@ if (~strcmp(char(Eph(31)),'R'))
         
         %corrected longitude of the ascending node
         Omegak = Omega0 + Omega_dot*tk - Omegae_dot*toe;
-        Omegak = rem(Omegak + circle_rad,circle_rad);
+        Omegak = rem(Omegak + goGNSS.CIRCLE_RAD,goGNSS.CIRCLE_RAD);
         
         %satellite coordinates (X,Y,Z) in inertial system
         xgk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
@@ -179,8 +191,8 @@ if (~strcmp(char(Eph(31)),'R'))
     end
     
 else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
-    
-    toe = Eph(18); %ephemeris reference time
+
+    time_eph = Eph(32); %ephemeris reference time
 
     X   = Eph(5);  %satellite X coordinate at ephemeris reference time
     Y   = Eph(6);  %satellite Y coordinate at ephemeris reference time
@@ -193,13 +205,13 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
     Xa  = Eph(11); %acceleration due to lunar-solar gravitational perturbation along X at ephemeris reference time
     Ya  = Eph(12); %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time
     Za  = Eph(13); %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time
-    %NOTE:  Xa,Ya,Za are considered constant within the integration interval (i.e. toe Å}15 minutes)
+    %NOTE:  Xa,Ya,Za are considered constant within the integration interval (i.e. toe ?}15 minutes)
     
     %integration step
     int_step = 60; %[s]
     
     %time from the ephemeris reference epoch
-    tk = check_t(t - toe);
+    tk = check_t(t - time_eph);
     
     %number of iterations on "full" steps
     n = floor(abs(tk/int_step));
@@ -228,22 +240,22 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
         %step 1
         pos1 = pos;
         vel1 = vel;
-        [pos1_dot, vel1_dot] = satellite_motion_diff_eq(pos1, vel1, acc, a_GLO, GM_GLO, J2_GLO, Omegae_dot_GLO);
+        [pos1_dot, vel1_dot] = satellite_motion_diff_eq(pos1, vel1, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
         %
         %step 2
         pos2 = pos + pos1_dot*ii(s)/2;
         vel2 = vel + vel1_dot*ii(s)/2;
-        [pos2_dot, vel2_dot] = satellite_motion_diff_eq(pos2, vel2, acc, a_GLO, GM_GLO, J2_GLO, Omegae_dot_GLO);
+        [pos2_dot, vel2_dot] = satellite_motion_diff_eq(pos2, vel2, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
         %
         %step 3
         pos3 = pos + pos2_dot*ii(s)/2;
         vel3 = vel + vel2_dot*ii(s)/2;
-        [pos3_dot, vel3_dot] = satellite_motion_diff_eq(pos3, vel3, acc, a_GLO, GM_GLO, J2_GLO, Omegae_dot_GLO);
+        [pos3_dot, vel3_dot] = satellite_motion_diff_eq(pos3, vel3, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
         %
         %step 4
         pos4 = pos + pos3_dot*ii(s);
         vel4 = vel + vel3_dot*ii(s);
-        [pos4_dot, vel4_dot] = satellite_motion_diff_eq(pos4, vel4, acc, a_GLO, GM_GLO, J2_GLO, Omegae_dot_GLO);
+        [pos4_dot, vel4_dot] = satellite_motion_diff_eq(pos4, vel4, acc, goGNSS.ELL_A_GLO, goGNSS.GM_GLO, goGNSS.J2_GLO, goGNSS.OMEGAE_DOT_GLO);
         %
         %final position and velocity
         pos = pos + (pos1_dot + 2*pos2_dot + 2*pos3_dot + pos4_dot)*ii(s)/6;

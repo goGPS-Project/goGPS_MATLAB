@@ -33,9 +33,9 @@ function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
 %   measurements (D1, D2).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni,Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
 %
 % Partially based on FOBS_TYP.M (EASY suite) by Kai Borre
@@ -60,7 +60,7 @@ if (isempty(sysId)) %RINEX v2.xx
     nObs_types = size(Obs_types{1},2)/2;
 
     %search L1 column
-    s1 = strfind(Obs_types{1}, 'L1'); %findstr is obsolete, so strfind is used
+    s1 = strfind(Obs_types{1}, 'L1');
     s2 = strfind(Obs_types{1}, 'LA');
     s = [s1 s2];
     col_L1 = (s+1)/2;

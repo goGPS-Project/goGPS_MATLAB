@@ -1,9 +1,9 @@
 function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-         ph_Rsat, ph_Msat, pr_RSapp, pr_MSapp, doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase)
+         ph_Rsat, ph_Msat, pr_RSapp, pr_MSapp, doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, lambda)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
-%   ph_Rsat, ph_Msat, prRS_app, prMS_app, doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, phase);
+%   ph_Rsat, ph_Msat, prRS_app, prMS_app, doppler_pred_range_R, doppler_pred_range_M, pivot, sat, sat_born, alpha, lambda);
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
@@ -19,7 +19,7 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
 %   sat = visible satellites configuration
 %   sat_born = new satellites (added in this epoch)
 %   alpha = cycle-slip detection threshold
-%   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   lambda = vector containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   slip = boolean variable (slip=1 if there is a cycle-slip)
@@ -31,9 +31,9 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
 %   the new phase ambiguities.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -51,7 +51,6 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
 %----------------------------------------------------------------------------------------------
 
 %variables initialization
-global lambda1 lambda2
 global flag_doppler_cs
 
 %number of visible satellites
@@ -75,11 +74,7 @@ comb_pr = (pr_RSapp - pr_MSapp) - (pr_RPapp - pr_MPapp);
 comb_ph = (ph_Rsat - ph_Msat) - (ph_RP - ph_MP);
 
 %phase ambiguities estimation
-if (phase == 1)
-    N_stim = comb_pr / lambda1 - comb_ph;
-else
-    N_stim = comb_pr / lambda2 - comb_ph;
-end
+N_stim = comb_pr ./ lambda - comb_ph;
 
 %initialization
 N_slip = [];

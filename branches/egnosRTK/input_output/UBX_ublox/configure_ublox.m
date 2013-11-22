@@ -17,9 +17,9 @@ function [serialObj, reply_SAVE] = configure_ublox(serialObj, COMportR, prot_par
 %   Configure u-blox receivers to be used with goGPS.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 %----------------------------------------------------------------------------------------------
 %
@@ -58,7 +58,7 @@ while (~reply_SAVE)
         delete(serialObj);
     end
     % create new serial object
-    serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
+    serialObj = serial(COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
     set(serialObj,'FlowControl','hardware');
     set(serialObj,'RequestToSend','on');

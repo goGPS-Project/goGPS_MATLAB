@@ -22,12 +22,12 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 16-Apr-2013 16:00:55
+% Last Modified by GUIDE v2.5 19-Apr-2013 20:03:23
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -1087,7 +1087,19 @@ function num_receivers_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-    
+
+% --- Executes during object creation, after setting all properties.
+function pumCaptureRate_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to pumCaptureRate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
 % --- Executes on selection change in com_select_0.
 function com_select_0_Callback(hObject, eventdata, handles)
 % hObject    handle to com_select_0 (see GCBO)
@@ -1477,7 +1489,7 @@ function cLAMBDA_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of cLAMBDA
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cLAMBDA);
-
+ 
 % --- Executes on selection change in lLAMBDAMethod.
 function lLAMBDAMethod_Callback(hObject, eventdata, handles)
 % hObject    handle to lLAMBDAMethod (see GCBO)
@@ -1568,8 +1580,6 @@ global goGUI;
 
 
 
-
-
 %   BUTTONS
 % ===============================================================
         
@@ -1606,15 +1616,6 @@ function go_button_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idUI.bGo);
-    
-% --- Executes on button press in bTestUI.
-function bTestUI_Callback(hObject, eventdata, handles)
-% hObject    handle to bTestUI (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-global goGUI
-goGUI.testOnOff();
-
 
 
 

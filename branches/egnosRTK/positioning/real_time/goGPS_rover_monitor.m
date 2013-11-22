@@ -1,4 +1,4 @@
-function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop)
+function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop, rate)
 
 % SYNTAX:
 %   goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop);
@@ -8,6 +8,7 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 %   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq)
 %   flag_var_dyn_model = enable / disable variable dynamic model
 %   flag_stopGOstop    = enable / disable stop-go-stop procedure for direction estimation
+%   rate = measurement rate to be set (default = 1 Hz)
 %
 % DESCRIPTION:
 %   Monitor of receiver operations: stream reading, data visualization 
@@ -15,9 +16,9 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 %   also including different protocols.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -40,6 +41,12 @@ global COMportR
 global rover
 global order
 global rover_data
+
+if nargin == 4
+    rate = 1;
+end
+
+num_sat = 32;
 
 %------------------------------------------------------
 % read protocol parameters
@@ -68,7 +75,7 @@ iono = cell(nrec,1);
 for r = 1 : nrec
 
     % ephemerides
-    Eph{r} = zeros(31,32);
+    Eph{r} = zeros(33,num_sat);
 
     % ionosphere parameters
     iono{r} = zeros(8,1);
@@ -94,18 +101,22 @@ for r = 1 : nrec
     %   time_GPS --> double, [1,1]  --> zeros(1,1)
     %   time_M   --> double, [1,1]  --> zeros(1,1)
     %   time_R   --> double, [1,1]
-    %   pr_M     --> double, [32,1] --> zeros(32,1)
-    %   pr_R     --> double, [32,1]
-    %   ph_M     --> double, [32,1] --> zeros(32,1)
-    %   ph_R     --> double, [32,1]
-    %   snr_M    --> double, [32,1] --> zeros(32,1)
-    %   snr_R    --> double, [32,1]
+    %   pr_M     --> double, [num_sat,1] --> zeros(num_sat,1)
+    %   pr_R     --> double, [num_sat,1]
+    %   ph_M     --> double, [num_sat,1] --> zeros(num_sat,1)
+    %   ph_R     --> double, [num_sat,1]
+    %   snr_M    --> double, [num_sat,1] --> zeros(num_sat,1)
+    %   snr_R    --> double, [num_sat,1]
     fid_obs{r} = fopen([filerootOUT '_' recname '_obs_00.bin'],'w+');
 
     % input ephemerides
     %   timeGPS  --> double, [1,1]  --> zeros(1,1)
-    %   Eph      --> double, [31,32]
+    %   Eph      --> double, [33,num_sat]
     fid_eph{r} = fopen([filerootOUT '_' recname '_eph_00.bin'],'w+');
+    
+    %write number of satellites
+    fwrite(fid_obs{r}, num_sat, 'int8');
+    fwrite(fid_eph{r}, num_sat, 'int8');
     
     if (flag_var_dyn_model) | (flag_stopGOstop)
         %dynamical model
@@ -139,7 +150,7 @@ for r = 1 : nrec
     end
 
     % serial object creation
-    rover{r} = serial (COMportR{r},'BaudRate',prot_par{r}{2,1});
+    rover{r} = serial(COMportR{r},'BaudRate',prot_par{r}{2,1});
     set(rover{r},'InputBufferSize',prot_par{r}{3,1});
     if (protocol(r) == 0)
         set(rover{r},'FlowControl','hardware');
@@ -163,7 +174,7 @@ for r = 1 : nrec
         % only one connection can be opened in writing mode
         fopen(rover{r});
 
-        [rover{r}, reply_save] = configure_ublox(rover{r}, COMportR{r}, prot_par{r}, 1);
+        [rover{r}, reply_save] = configure_ublox(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
@@ -178,7 +189,7 @@ for r = 1 : nrec
         % only one connection can be opened in writing mode
         fopen(rover{r});
         
-        [rover{r}] = configure_fastrax(rover{r}, COMportR{r}, prot_par{r}, 1);
+        [rover{r}] = configure_fastrax(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
@@ -193,7 +204,7 @@ for r = 1 : nrec
         % only one connection can be opened in writing mode
         fopen(rover{r});
 
-        [rover{r}] = configure_skytraq(rover{r}, COMportR{r}, prot_par{r}, 1);
+        [rover{r}] = configure_skytraq(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
@@ -207,7 +218,8 @@ end
 for r = 1 : nrec
     fopen(rover{r});
 end
-
+pause(0.1);
+ 
 %------------------------------------------------------
 % absolute time startup
 %------------------------------------------------------
@@ -236,8 +248,9 @@ rover_1 = zeros(nrec,1);
 rover_2 = zeros(nrec,1);
 
 %starting epoch determination
-while (sum(test) > 0)
-
+nTry = 0;
+while (sum(test) > 0) && (nTry < 100)
+    nTry = nTry + 1;
     %starting time
     current_time = toc;
 
@@ -245,7 +258,7 @@ while (sum(test) > 0)
 
         %serial port checking
         rover_1(r) = get(rover{r},'BytesAvailable');
-        pause(0.05);
+        pause(0.1);
         rover_2(r) = get(rover{r},'BytesAvailable');
 
         %test condition
@@ -254,6 +267,14 @@ while (sum(test) > 0)
         %visualization
         fprintf([prot_par{r}{1,1} '(' num2str(r) ')' ': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1(r), rover_2(r));
     end
+end
+
+if nTry >=100
+    fprintf('ERROR: No byte received, closing connections!\n');
+    for r = 1 : nrec
+        fclose(rover{r});
+    end
+    return
 end
 
 %clear serial ports (data not decoded)
@@ -275,7 +296,9 @@ rover_1 = zeros(nrec,1);
 rover_2 = zeros(nrec,1);
 
 %starting epoch determination
-while (sum(test) > 0)
+nTry = 0;
+while (sum(test) > 0) && (nTry < 100)
+    nTry = nTry + 1;
 
     %starting time
     current_time = toc;
@@ -293,6 +316,14 @@ while (sum(test) > 0)
         %visualization
         fprintf([prot_par{r}{1,1} '(' num2str(r) ')' ': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1(r), rover_2(r));
     end
+end
+
+if nTry >=100
+    fprintf('ERROR: No byte received, closing connections!\n');
+    for r = 1 : nrec
+        fclose(rover{r});
+    end
+    return
 end
 
 %clear the serial port (data not decoded)
@@ -371,7 +402,7 @@ end
 flag = 1;
 setappdata(gcf, 'run', flag);
 
-if (flag_var_dyn_model) & (~flag_stopGOstop)
+if (flag_var_dyn_model) && (~flag_stopGOstop)
     if order == 1
         set(h1, 'SelectedObject', u1)
     elseif order == 2
@@ -387,9 +418,9 @@ tick_TRACK = 0;
 correction_value = 1575420000 - 1574399750 - (3933/65536*16357400);
 correction_value = correction_value * (1575420000/(1+1574399750));
 doppler_count = 1;
-delta = zeros(32,1);
-ph_R_old  = zeros(32,1);
-dop_R_old = zeros(32,1);
+delta = zeros(num_sat,1);
+ph_R_old  = zeros(num_sat,1);
+dop_R_old = zeros(num_sat,1);
 
 %for SkyTraq
 IOD_time = -1;
@@ -426,7 +457,7 @@ while flag
         rover_2 = get(rover{r},'BytesAvailable');
 
         %test if the package writing is finished
-        if (rover_1 == rover_2) & (rover_1 ~= 0)
+        if (rover_1 == rover_2) && (rover_1 ~= 0)
 
             data_rover = fread(rover{r},rover_1,'uint8');     %serial port reading
             fwrite(fid_rover{r},data_rover,'uint8');          %transmitted stream save
@@ -502,7 +533,7 @@ while flag
                             ph_R_old  = ph_R;
                             dop_R_old = dop_R;
                         else
-                            ph_R = zeros(32,1);
+                            ph_R = zeros(num_sat,1);
                         end
                         nRAW = nRAW + 1;
                     end
@@ -524,12 +555,12 @@ while flag
 
                     %if all the visible satellites ephemerides have been transmitted
                     %and the total number of satellites is >= 4
-                    if (ismember(satObs,satEph)) & (length(satObs) >= 4)
+                    if (sum(ismember(satObs,satEph)))>1 && (length(satObs) >= 4)
 
                         %data save
-                        fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
+                        fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                         fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
-                        if (flag_var_dyn_model) | (flag_stopGOstop)
+                        if (flag_var_dyn_model) || (flag_stopGOstop)
                             fwrite(fid_dyn{r}, order, 'int8');
                         end
                     end
@@ -579,12 +610,12 @@ while flag
                         
                         %if all the visible satellites ephemerides have been transmitted
                         %and the total number of satellites is >= 4
-                        if (ismember(satObs,satEph)) & (length(satObs) >= 4)
+                        if (ismember(satObs,satEph)) && (length(satObs) >= 4)
                             
                             %data save
-                            fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(32,1); pr_R; zeros(32,1); ph_R; dop_R; zeros(32,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
+                            fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
                             fwrite(fid_eph{r}, [0; Eph{r}(:)], 'double');
-                            if (flag_var_dyn_model) | (flag_stopGOstop)
+                            if (flag_var_dyn_model) || (flag_stopGOstop)
                                 fwrite(fid_dyn{r}, order, 'int8');
                             end
                         end
@@ -607,7 +638,7 @@ while flag
                     %satellite number
                     sat = cell_rover{2,i}(1);
 
-                    if (~isempty(sat) & sat > 0)
+                    if (~isempty(sat) && sat > 0)
                         Eph{r}(:, sat) = cell_rover{2,i}(:);
                     end
 
@@ -642,9 +673,9 @@ while flag
                 n = size(nmea_sentences,1);
                 for i = 1 : n
                     fprintf(fid_nmea{r}, '%s', char(nmea_sentences(i,1)));
+                    % fprintf('%s', char(nmea_sentences(i,1)));
                 end
-
-                type = [type 'NMEA '];
+                type = [type 'NMEA '];                    
             end
 
             %----------------------------------
@@ -784,7 +815,7 @@ while flag
     flag = getappdata(gcf, 'run');
     drawnow
     
-    if (flag_var_dyn_model) & (~flag_stopGOstop)
+    if (flag_var_dyn_model) && (~flag_stopGOstop)
         % check the changing of kalman filter model
         if get(h1, 'SelectedObject') == u1
             order = 1;
@@ -854,7 +885,7 @@ for r = 1 : nrec
     fclose(fid_obs{r});
     fclose(fid_eph{r});
     fclose(fid_nmea{r});
-    if (flag_var_dyn_model) | (flag_stopGOstop)
+    if (flag_var_dyn_model) || (flag_stopGOstop)
         fclose(fid_dyn{r});
     end
 end

@@ -44,9 +44,9 @@ function [data] = decode_RXM_EPH(msg)
 %   RXM-EPH binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -69,7 +69,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(31,1);
+data{2} = zeros(33,1);
 
 %output data save
 data{1} = 'RXM-EPH';
@@ -159,5 +159,8 @@ if (IODC == IODE2) & (IODC == IODE3)
     data{2}(27) = svhealth;
     data{2}(28) = tgd;
     data{2}(29) = fit_int;
-    data{2}(30) = PRN; %assume only GPS (not multi-constellation)
+    data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
+    data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+    data{2}(32) = weektow2time(weekno, toe, 'G'); %wrong: weekno is mod(1024)... taken care of by the caller
+    data{2}(33) = weektow2time(weekno, toc, 'G'); %wrong: weekno is mod(1024)... taken care of by the caller
 end

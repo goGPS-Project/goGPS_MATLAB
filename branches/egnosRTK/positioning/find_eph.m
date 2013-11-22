@@ -16,7 +16,7 @@ function icol = find_eph(Eph, sat, time)
 %   (with respect to the specified GPS time) in the ephemerides matrix.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre and C.C. Goad 11-26-96
@@ -38,9 +38,12 @@ if (strcmp(char(Eph(31)),'C'))
     time = time - 14;
 end
 
-dtmin = Eph(18,icol) - time;
+time_eph = Eph(32,icol);
+dtmin = time_eph - time;
 for t = isat
-    dt = Eph(18,t) - time;
+    
+    time_eph = Eph(32,t);
+    dt = time_eph - time;
     if (abs(dt) < abs(dtmin))
         icol = t;
         dtmin = dt;
@@ -68,7 +71,8 @@ if (abs(dtmin) > dtmax)
 end
 
 %check satellite health
-if (Eph(27,icol) ~= 0 && ~strcmp(char(Eph(31,icol)),'J')) %the second condition is temporary (QZSS health flag is kept on for tests)
+%the second and third conditions are temporary (QZSS and Galileo health flag is kept on for tests)
+if (Eph(27,icol) ~= 0 && ~strcmp(char(Eph(31,icol)),'J') && ~strcmp(char(Eph(31,icol)),'E'))
     icol = [];
     return
 end

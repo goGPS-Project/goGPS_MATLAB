@@ -18,9 +18,9 @@ function [time, datee, num_sat, sat, sat_types] = RINEX_get_epoch(fid)
 %   the information it contains.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini.
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini.
 %
 % Portions of code contributed by Damiano Triglione (2012).
 % Portions of code contributed by Andrea Gatti (2013).
@@ -59,7 +59,7 @@ end% if
 while (eof==0)
     %read the string
     lin = fgets(fid);
-    %answer = findstr(lin,'COMMENT'); Note   findstr will be removed in a future release. Use strfind instead.
+    %answer = strfind(lin,'COMMENT');
     keywords = {'COMMENT', 'MARKER NAME', 'MARKER NUMBER', 'APPROX POSITION XYZ', 'ANTENNA: DELTA H/E/N'};
     answer = [];
     s = 1;
@@ -100,7 +100,8 @@ while (eof==0)
             
             %computation of the GPS time in weeks and seconds of week
             year = four_digit_year(year);
-            [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
+            [week, tow] = date2gps([year, month, day, hour, minute, second]);
+            [time] = weektow2time(week, tow, 'G');
             
             %number of visible satellites
             [num_sat] = sscanf(lin(30:32),'%d');
@@ -111,11 +112,11 @@ while (eof==0)
             %remove 'blank spaces' and unwanted characters at the end of the string
             lin = RemoveUnwantedTrailingSpaces(lin);
             
-            %add the second line in case there are more than 12 satellites
-            if (num_sat > 12)
-                %lin_add = fgetl(fid);
-                %lin_add = ExtractSubstring(lin_add, 33, 68);
+            %read additional lines, depending on the number of satellites
+            nlines = ceil(num_sat/12);
+            for n = 1 : nlines - 1
                 lin = [lin ExtractSubstring(fgetl(fid), 33, 68)];
+                lin = RemoveUnwantedTrailingSpaces(lin);
             end
             
             pos = 1;
@@ -153,7 +154,8 @@ while (eof==0)
             second = data{6};
             
             %computation of the GPS time in weeks and seconds of week
-            [week, time] = date2gps([year, month, day, hour, minute, second]); %#ok<ASGLU>
+            [week, tow] = date2gps([year, month, day, hour, minute, second]);
+            [time] = weektow2time(week, tow, 'G');
             
             %number of visible satellites
             [num_sat] = sscanf(lin(33:35),'%d');

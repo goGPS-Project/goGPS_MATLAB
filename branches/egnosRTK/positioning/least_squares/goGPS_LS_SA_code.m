@@ -1,27 +1,28 @@
-function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, phase)
+function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase)
 
 % SYNTAX:
-%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, phase);
+%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase);
 %
 % INPUT:
-%   time_rx  = GPS reception time
-%   pr1      = code observations (L1 carrier)
-%   pr2      = code observations (L2 carrier)
-%   snr      = signal-to-noise ratio
-%   Eph      = satellite ephemeris
-%   SP3      = structure containing precise ephemeris data
-%   iono     = ionosphere parameters
-%   sbas     = SBAS corrections
-%   phase    = L1 carrier (phase=1), L2 carrier (phase=2)
+%   time_rx = GPS reception time
+%   pr1     = code observations (L1 carrier)
+%   pr2     = code observations (L2 carrier)
+%   snr     = signal-to-noise ratio
+%   Eph     = satellite ephemeris
+%   SP3     = structure containing precise ephemeris data
+%   iono    = ionosphere parameters
+%   sbas    = SBAS corrections
+%   lambda  = wavelength matrix (depending on the enabled constellations)
+%   phase   = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
 %   Computation of the receiver position (X,Y,Z).
 %   Standalone code positioning by least squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -87,9 +88,9 @@ min_nsat = 4;
 if (size(sat,1) >= min_nsat)
     
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, [], [], [], sat, lambda(sat,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, [], [], [], sat, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, [], [], [], sat, lambda(sat,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
     end
 
     %--------------------------------------------------------------------------------------------
@@ -110,7 +111,7 @@ if (size(sat,1) >= min_nsat)
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
 
-    %if less than 4 satellites are available after the cutoffs, or if the 
+    %if less than min_nsat satellites are available after the cutoffs, or if the 
     % condition number in the least squares exceeds the threshold
     if (size(sat,1) < min_nsat | cond_num > cond_num_threshold)
         

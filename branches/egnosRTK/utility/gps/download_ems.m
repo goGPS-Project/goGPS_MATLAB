@@ -1,12 +1,12 @@
-function [file_ems] = download_ems(prn, gps_week, gps_tow)
+function [file_ems] = download_ems(prn, gps_week, gps_time)
 
 % SYNTAX:
-%   [file_ems] = download_ems(prn, gps_week, gps_tow);
+%   [file_ems] = download_ems(prn, gps_week, gps_time);
 %
 % INPUT:
 %   prn      = EGNOS satellite PRN (120,124 or 126)
 %   gps_week = starting and ending GPS week [vector]
-%   gps_tow  = starting and ending GPS time-of-week [vector]
+%   gps_time = starting and ending GPS time [vector]
 %
 % OUTPUT:
 %   file_ems = donwloaded .ems file names 
@@ -17,9 +17,9 @@ function [file_ems] = download_ems(prn, gps_week, gps_tow)
 %   WARNING: .ems files are available with about 1 hour latency
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 % Adapted by Eugenio Realini, 2013
@@ -54,6 +54,9 @@ down_dir = '../data/EMS';
 
 %buffer in minutes
 buf_min = 13;
+
+%convert GPS time to time-of-week
+gps_tow = weektime2tow(gps_week, gps_time);
 
 % starting time
 [date_f, day_of_year_f] = gps2date(gps_week(1), gps_tow(1));

@@ -44,9 +44,9 @@ function [data] = decode_FTX_EPH(msg)
 %   FTX_EPH binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(31,1);
+data{2} = zeros(33,1);
 
 %output data save
 data{1} = 'FTX-EPH';
@@ -234,7 +234,8 @@ if (IODC == IODE) && (IODC == IODE)
     data{2}(27) = Health;
     data{2}(28) = GroupDelay;
     data{2}(29) = FitPeriod;
-    data{2}(30) = PRN; %assume only GPS (not multi-constellation)
+    data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
+    data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
 end
 
 % Check, no PRN --> delete header to improve performance

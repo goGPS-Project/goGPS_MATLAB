@@ -17,9 +17,9 @@ function nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP, mode)
 %   Returns a $GPGGA sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -62,7 +62,7 @@ phi = abs(phi*180/pi);
 N = [];
 N_unit = [];
 
-if (geoid.ncols ~= 0)
+if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
     %geoid ondulation interpolation
     N = grid_bilin_interp(lam, phi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
     %orthometric height

@@ -1,11 +1,11 @@
 function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, ...
     ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, distM, ...
-    err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, N_kalman, Cee_N_kalman)
+    err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda, N_kalman, Cee_N_kalman)
 
 % SYNTAX:
 %   [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, ...
 %    ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, distM, ...
-%    err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, phase, N_kalman, Cee_N_kalman);
+%    err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda, N_kalman, Cee_N_kalman);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -29,7 +29,7 @@ function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, 
 %   err_iono_R = ROVER-SATELLITE ionospheric error
 %   err_iono_M = MASTER-SATELLITE ionospheric error
 %   pivot = pivot satellite
-%   phase = GPS frequency selector
+%   lambda = vector containing GNSS wavelengths for available satellites
 %   N_kalman = phase ambiguities estimated by Kalman filter
 %   Cee_N_kalman = phase ambiguities estimated error
 %
@@ -42,9 +42,9 @@ function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, 
 %   adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -61,15 +61,8 @@ function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, 
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global lambda1 lambda2
 global sigmaq_cod1 sigmaq_ph
 global amb_restart_method
-
-if (phase == 1)
-    lambda = lambda1;
-else
-    lambda = lambda2;
-end
 
 N_stim_slip = [];
 N_stim_born = [];
@@ -95,6 +88,7 @@ index_amb = [index_slip; index_born];         %satellites for which the ambiguit
 %keep only available phase observations
 ph_R = ph_R(index);
 ph_M = ph_M(index);
+lambda = lambda(index);
 
 %remove zeros
 index_zero_pr = or(pr_R==0,pr_M==0);
@@ -103,6 +97,7 @@ pr_R(index_zero_pr) = [];
 pr_M(index_zero_pr) = [];
 ph_R(index_zero_ph) = [];
 ph_M(index_zero_ph) = [];
+lambda(index_zero_ph) = [];
 
 %number of observations (assuming that sat_ph is a subset of sat_pr)
 nsat_pr = length(pr_R);
@@ -122,8 +117,8 @@ if (amb_restart_method == 0)
     comb_ph = (ph_R - ph_M) - (ph_R(pivot_index_ph) - ph_M(pivot_index_ph));
     
     %linear combination of initial ambiguity estimate
-    N_stim = comb_pr(index) / lambda - comb_ph;
-    %sigmaq_N_stim = 4*sigmaq_cod1 / lambda^2;
+    N_stim = comb_pr(index) ./ lambda - comb_ph;
+    %sigmaq_N_stim = 4*sigmaq_cod1 ./ lambda.^2;
     
     %new ambiguity for slipped satellites
     N_stim_slip = N_stim(index_slip);
@@ -147,8 +142,8 @@ elseif (nsat_pr + nsat_ph - 2 <= 3 + nsat_amb) | (amb_restart_method == 1)
     comb_ph = (ph_R - ph_M) - (ph_R(pivot_index_ph) - ph_M(pivot_index_ph));
     
     %linear combination of initial ambiguity estimate
-    N_stim = comb_pr(index) / lambda - comb_ph;
-    %sigmaq_N_stim = sum(sigmaq_pos_R) / lambda^2;
+    N_stim = comb_pr(index) ./ lambda - comb_ph;
+    %sigmaq_N_stim = sum(sigmaq_pos_R) ./ lambda.^2;
     
     %new ambiguity for slipped satellites
     N_stim_slip = N_stim(index_slip);
@@ -162,7 +157,7 @@ else
     %ambiguity columns in design matrix (lambda positions)
     A_amb = zeros(nsat_ph,nsat_amb);
     for i = 1:nsat_amb
-        A_amb(index_amb(i),i) = -lambda;
+        A_amb(index_amb(i),i) = -lambda(index_amb(i));
     end
     
     %design matrix (code)
@@ -178,8 +173,8 @@ else
               A_amb]; %column for phase ambiguities
 
     %observed pseudoranges
-    probs_pr  = (pr_R - pr_M) - (pr_R(pivot_index_pr) - pr_M(pivot_index_pr));                                     %observed pseudorange DD
-    probs_ph  = (lambda * ph_R - lambda * ph_M) - (lambda * ph_R(pivot_index_ph) - lambda * ph_M(pivot_index_ph)); %observed pseudorange DD
+    probs_pr  = (pr_R - pr_M) - (pr_R(pivot_index_pr) - pr_M(pivot_index_pr));                                                                       %observed pseudorange DD (code)
+    probs_ph  = (lambda .* ph_R - lambda .* ph_M) - (lambda(pivot_index_ph) * ph_R(pivot_index_ph) - lambda(pivot_index_ph) * ph_M(pivot_index_ph)); %observed pseudorange DD (phase)
     
     %approximate pseudoranges
     prapp    =         (distR_approx - distM)      - (distR_approx(pivot_index_pr) - distM(pivot_index_pr));       %approximate pseudorange DD
@@ -195,6 +190,7 @@ else
     prapp_pr(pivot_index_pr) = [];
     prapp_ph(pivot_index_pr) = [];
     N_kalman(pivot_index_pr) = [];
+    lambda(pivot_index_ph)   = [];
 
     %update indexes
     pos = find(index == pivot_index_pr);
@@ -209,7 +205,7 @@ else
     
     %observation vector
     N_kalman = N_kalman(index);
-    probs_ph(index_noamb) = probs_ph(index_noamb) + lambda*N_kalman(index_noamb);
+    probs_ph(index_noamb) = probs_ph(index_noamb) + lambda(index_noamb).*N_kalman(index_noamb);
     y0 = [probs_pr; probs_ph];
 
     %number of observations
@@ -221,14 +217,14 @@ else
     Q2 = Q1(index,index);
     
     Q(1:nsat_pr-1,1:nsat_pr-1) = sigmaq_cod1 * Q1;
-    if (nargin >= 24)
-        Cee_N_kalman(pivot_index_pr,:) = [];
-        Cee_N_kalman(:,pivot_index_pr) = [];
-        %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled with respect to input code and phase variances)
-        Q(nsat_pr:end,nsat_pr:end) = (sigmaq_ph * eye(nsat_ph - 1) + lambda^2*Cee_N_kalman(index,index)) .* Q2;
-    else
+%     if (nargin >= 24)
+%         Cee_N_kalman(pivot_index_pr,:) = [];
+%         Cee_N_kalman(:,pivot_index_pr) = [];
+%         %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled with respect to input code and phase variances)
+%         Q(nsat_pr:end,nsat_pr:end) = (sigmaq_ph * eye(nsat_ph - 1) + lambda(1)^2*Cee_N_kalman(index,index)) .* Q2;
+%     else
         Q(nsat_pr:end,nsat_pr:end) = sigmaq_ph * Q2;
-    end
+%     end
 
     %normal matrix
     N = (A'*(Q^-1)*A);

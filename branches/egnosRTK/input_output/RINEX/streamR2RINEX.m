@@ -15,9 +15,9 @@ function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
 %   File conversion from rover binary stream to RINEX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -42,6 +42,9 @@ week = 0;
 if (nargin == 3)
     waitbar(0.5,wait_dlg,'Reading rover stream files...')
 end
+
+%check if the system uses 3-digit exponential notation
+three_digit_exp = (length(sprintf('%1.1E',1)) == 8);
 
 %ROVER stream reading
 data_rover_all = [];                                                 %overall stream
@@ -101,19 +104,19 @@ if (~isempty(data_rover_all))
     header2 = '62';      % UBX header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_UBX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_UBX = strfind(data_rover_all, codeBIN); % message initial index
 
     header1 = 'A0';      % SkyTraq header (hexadecimal value)
     header2 = 'A1';      % SkyTraq header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_STQ = findstr(data_rover_all, codeBIN); % message initial index
+    pos_STQ = strfind(data_rover_all, codeBIN); % message initial index
 
     header1 = '3C';      % Fastrax header (hexadecimal value)
     header2 = '21';      % Fastrax header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_FTX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_FTX = strfind(data_rover_all, codeBIN); % message initial index
 
     if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)))
         
@@ -158,7 +161,7 @@ if (~isempty(data_rover_all))
     dop1_R = zeros(32,Ncell);                             %doppler measurements
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
     lock_R = zeros(32,Ncell);                             %loss of lock indicator
-    Eph_R  = zeros(31,32,Ncell);                          %broadcast ephemerides
+    Eph_R  = zeros(33,32,Ncell);                          %broadcast ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
@@ -221,6 +224,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
             
         %AID-EPH message data save
@@ -233,6 +239,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
             
         %AID-HUI message data save
@@ -282,6 +291,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
 
         %%%%%%%%%%%%%%%%%%%%%% FTX messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
@@ -329,6 +341,9 @@ if (~isempty(data_rover_all))
             %if the ephemerides are not already available
             if (~isempty(sat) & sat > 0 & isempty(find(Eph_R(18,sat,:) ==  toe, 1)))
                 Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
 
         end
@@ -367,6 +382,9 @@ if (~isempty(data_rover_all))
     
     pos_R = zeros(3,1);
     
+    %retrieve multi-constellation wavelengths
+    lambda = goGNSS.getGNSSWavelengths(Eph_R, size(pr1_R,1));
+    
     %if ephemerides are available
     if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
         cutoff = 15;
@@ -383,7 +401,7 @@ if (~isempty(data_rover_all))
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
-                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], [], [], iono(:,i), [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
+                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, lambda(satAvail,:), cutoff, snr_threshold, 1, 0, 0);
             end
             i = i + 1;
         end
@@ -510,16 +528,16 @@ if (~isempty(data_rover_all))
         fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
         fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
         if (~isempty(pos))
-            if (~isunix)
+            if (three_digit_exp)
                 line_alphaE = sprintf('  %13.4E%13.4E%13.4E%13.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
                 line_betaE  = sprintf('  %13.4E%13.4E%13.4E%13.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
             else
                 line_alphaE = sprintf('  %12.4E%12.4E%12.4E%12.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
                 line_betaE  = sprintf('  %12.4E%12.4E%12.4E%12.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
             end
-            %if running on Windows, convert three-digits exponential notation
+            %if needed, convert three-digits exponential notation
             %to two-digits; in any case, replace 'E' with 'D' and print the string
-            if (~isunix)
+            if (three_digit_exp)
                 line_alphaD = strrep(line_alphaE(1,:),'E+0','D+');
                 line_alphaD = strrep(line_alphaD,'E-0','D-');
                 fprintf(fid_nav,'%s',line_alphaD);
@@ -581,7 +599,6 @@ if (~isempty(data_rover_all))
                 %time of measurement decoding
                 date = gps2date(week_R(i), toc);
                 date(1) = two_digit_year(date(1));
-                date(1) = two_digit_year(date(1));
                 
                 lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
                     satEph(j),date(1), date(2), date(3), date(4), date(5), date(6), ...
@@ -594,9 +611,9 @@ if (~isempty(data_rover_all))
                 linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
                 linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
                 
-                %if running on Windows, convert three-digits exponential notation
+                %if needed, convert three-digits exponential notation
                 %to two-digits; in any case, replace 'E' with 'D' and print the string
-                if (~isunix)
+                if (three_digit_exp)
                     lineD = strrep(lineE(1,:),'E+0','D+');
                     lineD = strrep(lineD,'E-0','D-');
                     fprintf(fid_nav,'%s',lineD);

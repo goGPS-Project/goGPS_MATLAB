@@ -16,9 +16,9 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 %   files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -34,6 +34,22 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+%load multi-constellation settings and initialize 'constellations' struct
+global goIni;
+GPS_flag = goIni.getData('Constellations','GPS');
+GLO_flag = goIni.getData('Constellations','GLONASS');
+GAL_flag = goIni.getData('Constellations','Galileo');
+BDS_flag = goIni.getData('Constellations','BeiDou');
+QZS_flag = goIni.getData('Constellations','QZSS');
+SBS_flag = goIni.getData('Constellations','SBAS');
+[constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+nSatTot = constellations.nEnabledSat;
+if (nSatTot == 0)
+    fprintf('No constellations selected, setting default: GPS-only processing\n');
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    nSatTot = constellations.nEnabledSat;
+end
 
 %ROVER and MASTER stream reading
 if (nargin == 3)
@@ -93,7 +109,7 @@ if (~isempty(Eph))
         %remove observations without ephemerides
         for i = 1 : length(time_GPS)
             satEph = find(sum(abs(Eph(:,:,i)))~=0);
-            delsat = setdiff(1:32,satEph);
+            delsat = setdiff(1:nSatTot,satEph);
             pr1_R(delsat,i)  = 0;
             pr1_M(delsat,i)  = 0;
             ph1_R(delsat,i)  = 0;
@@ -112,7 +128,7 @@ if (~isempty(Eph))
 end
 
 %add dummy Doppler observation variable for master (not available through RTCM)
-dop1_M = zeros(32,length(time_GPS));
+dop1_M = zeros(nSatTot,length(time_GPS));
 
 %complete/partial path
 tMin = 1;
@@ -147,8 +163,10 @@ end
 
 %open output files
 fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
+fwrite(fid_obs, nSatTot, 'int8');
 if (~isempty(EphAvailable))
     fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+    fwrite(fid_eph, nSatTot, 'int8');
 end
 
 %"file hour" variable
@@ -180,10 +198,11 @@ for t = 1 : length(time_GPS)
         end
         
         fid_obs = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
+        fwrite(fid_obs, nSatTot, 'int8');
         if (~isempty(EphAvailable))
             fid_eph = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+            fwrite(fid_eph, nSatTot, 'int8');
         end
-        
     end
     
     fwrite(fid_obs, [time_GPS(t); time_M(t); time_R(t); week_R(t); pr1_M(:,t); pr1_R(:,t); ph1_M(:,t); ph1_R(:,t); dop1_R(:,t); snr_M(:,t); snr_R(:,t); pos_M(:,t); iono(:,t)], 'double');

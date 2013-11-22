@@ -5,9 +5,9 @@
 %   Global variables initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -28,9 +28,9 @@
 % CONSTANTS
 %-------------------------------------------------------------------------------
 
-global v_light
-global f1 f2
-global lambda1 lambda2
+% global v_light
+% global f1 f2
+% global lambda1 lambda2
 global a_GPS a_GLO f_GPS e_GPS
 global GM_GPS GM_GLO GM_GAL GM_BDS GM_QZS
 global Omegae_dot_GPS Omegae_dot_GLO Omegae_dot_GAL Omegae_dot_BDS Omegae_dot_QZS
@@ -38,15 +38,15 @@ global J2_GLO
 global circle_rad
 
 %velocity of light in the void
-v_light = 299792458; % [m/s]
+% v_light = 299792458; % [m/s]
 
 %GPS carriers frequencies
-f1 = 1575420000; % [1/s]
-f2 = 1227600000; % [1/s]
+% f1 = 1575420000; % [1/s]
+% f2 = 1227600000; % [1/s]
 
 %GPS carriers wavelengths
-lambda1 = v_light / f1; % [m]
-lambda2 = v_light / f2; % [m]
+% lambda1 = v_light / f1; % [m]
+% lambda2 = v_light / f2; % [m]
 
 %CRS parameters, according to each GNSS system CRS definition
 % (ICD document in brackets):
@@ -97,6 +97,7 @@ circle_rad = 2*pi_orbit;
 
 global azR elR distR
 global azM elM distM
+global elea
 
 %azimuth, elevation and distance of satellites with respect to the ROVER
 azR = [];
@@ -107,6 +108,8 @@ distR = [];
 azM = [];
 elM = [];
 distM = [];
+
+elea  = 10; % default value for the exponential elevation weight function
 
 %-------------------------------------------------------------------------------
 % DILUTION OF PRECISION
@@ -364,9 +367,9 @@ end
 % LAMBDA
 %-------------------------------------------------------------------------------
 
-global ratiotest mutest succ_rate
+global ratiotest mutest succ_rate fixed_solution
 
 ratiotest = [];
 mutest = [];
 succ_rate = [];
-
+fixed_solution = [];

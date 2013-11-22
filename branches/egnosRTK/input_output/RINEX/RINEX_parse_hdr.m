@@ -19,7 +19,7 @@ function [Obs_types, pos_M, ifound_types, interval, sysId] = RINEX_parse_hdr(fil
 %   RINEX observation file header analysis.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) Kai Borre
 % Kai Borre 09-23-97
@@ -42,8 +42,7 @@ c = 1;
 
 %check if the end of the header or the end of the file has been reached
 while isempty(strfind(line,'END OF HEADER')) && ischar(line)
-    %NOTE1: findstr is obsolete, so strfind is used
-    %NOTE2: ischar is better than checking if line is the number -1.
+    %NOTE: ischar is better than checking if line is the number -1.
     
     answer = strfind(line,'# / TYPES OF OBSERV'); %RINEX v2.xx
     if ~isempty(answer)
@@ -94,6 +93,15 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
         Z = sscanf(line(29:42),'%f');
         pos_M = [X; Y; Z];
     end
+    
+    answer = strfind(line,'ANTENNA: DELTA H/E/N');
+    if ~isempty(answer)
+        dU = sscanf(line(1:14),'%f');
+        dE = sscanf(line(15:28),'%f');
+        dN = sscanf(line(29:42),'%f');
+        delta = [dE; dN; dU];
+    end
+    
     answer = strfind(line,'INTERVAL');
     if ~isempty(answer)
         interval = sscanf(line(1:10),'%f');
@@ -101,4 +109,9 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
     
     %parse next line
     line = fgetl(file);
+end
+
+%apply the antenna offset from the marker (if available)
+if (any(pos_M) && any(delta))
+    pos_M = local2globalPos(delta,pos_M);
 end

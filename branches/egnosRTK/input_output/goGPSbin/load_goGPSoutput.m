@@ -36,9 +36,9 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %   Kalman filter output data reading.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -224,7 +224,7 @@ while ~isempty(d)
     fid_conf = fopen([fileroot '_conf_' hour_str '.bin'],'r+');     %file opening
     num_sat = fread(fid_conf,1,'int8');                             %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
-    num_packs = num_words / (num_sat*2+1);                          %file size (number of packets)
+    num_packs = num_bytes / (num_sat*2+1);                          %file size (number of packets)
     buf_conf = fread(fid_conf,num_bytes,'int8');                    %file reading
     fclose(fid_conf);                                               %file closing
     conf_sat = [conf_sat  zeros(num_sat,num_packs)];                %observations concatenation

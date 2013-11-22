@@ -22,7 +22,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   snr_R    = ROVER-SATELLITE signal-to-noise ratio
 %   snr_M    = MASTER-SATELLITE signal-to-noise ratio
 %   pos_M    = MASTER station position
-%   Eph      = matrix of 31 navigation parameters for each satellite
+%   Eph      = matrix of 33 navigation parameters for each satellite
 %   iono     = ionosphere parameters
 %   loss_R   = flag for the ROVER loss of signal
 %   loss_M   = flag for the MASTER loss of signal
@@ -35,9 +35,9 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, 
 %   by the permanent station (MASTER) in RTCM format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -119,19 +119,19 @@ if ~isempty(data_rover_all)
     header2 = '62';      % UBX header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_UBX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_UBX = strfind(data_rover_all, codeBIN); % message initial index
 
     header1 = 'A0';      % SkyTraq header (hexadecimal value)
     header2 = 'A1';      % SkyTraq header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_STQ = findstr(data_rover_all, codeBIN); % message initial index
+    pos_STQ = strfind(data_rover_all, codeBIN); % message initial index
     
     header1 = '3C';      % Fastrax header (hexadecimal value)
     header2 = '21';      % Fastrax header (hexadecimal value)
     codeHEX = [header1 header2];                % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_FTX = findstr(data_rover_all, codeBIN); % message initial index
+    pos_FTX = strfind(data_rover_all, codeBIN); % message initial index
 
     if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)))
 
@@ -168,7 +168,7 @@ if ~isempty(data_rover_all)
     dop1_R = zeros(32,Ncell);                             %doppler measurements
     ph1_R  = zeros(32,Ncell);                             %phase observations
     snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
-    Eph_R  = zeros(31,32,Ncell);                          %ephemerides
+    Eph_R  = zeros(33,32,Ncell);                          %ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
@@ -453,7 +453,7 @@ if ~isempty(data_master_all)
     ph1_M  = zeros(32,Ncell);                             %phase observations
     snr_M  = zeros(32,Ncell);                             %signal-to-noise ratio
     pos_M  = zeros(3,Ncell);                              %master station position
-    Eph_M  = zeros(31,32,Ncell);                          %ephemerides
+    Eph_M  = zeros(33,32,Ncell);                          %ephemerides
 
     if (nargin == 2)
         waitbar(0,wait_dlg,'Reading master data...')
@@ -636,7 +636,7 @@ if ~isempty(time_GPS)
             snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
             iono   = [iono(:,1:pos)   zeros(8,1)     iono(:,pos+1:end)];
 
-            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(31,32,1), Eph_R(:,:,pos+1:end));
+            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(33,32,1), Eph_R(:,:,pos+1:end));
             
             roundtime_R = roundmod(time_R,interval_R);
         end
@@ -647,7 +647,7 @@ if ~isempty(time_GPS)
         ph1_R  = zeros(32,length(time_GPS));
         dop1_R = zeros(32,length(time_GPS));
         snr_R  = zeros(32,length(time_GPS));
-        Eph_R  = zeros(31,32,length(time_GPS));
+        Eph_R  = zeros(33,32,length(time_GPS));
         iono   = zeros(8,length(time_GPS));
     end
 
@@ -665,7 +665,7 @@ if ~isempty(time_GPS)
             snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
             pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
 
-            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(31,32,1), Eph_M(:,:,pos+1:end));
+            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(33,32,1), Eph_M(:,:,pos+1:end));
             
             roundtime_M = roundmod(time_M,interval_M);
         end
@@ -675,7 +675,7 @@ if ~isempty(time_GPS)
         ph1_M  = zeros(32,length(time_GPS));
         snr_M  = zeros(32,length(time_GPS));
         pos_M  = zeros(3,length(time_GPS));
-        Eph_M  = zeros(31,32,length(time_GPS));
+        Eph_M  = zeros(33,32,length(time_GPS));
     end
 
 else
@@ -692,4 +692,18 @@ if (~Eph_M)
     Eph = Eph_R;
 else
     Eph = Eph_M;
+end
+
+%compute absolute timings
+[time_GPS] = weektow2time(week_R, time_GPS, 'G');
+[time_R]   = weektow2time(week_R, time_R, 'G');
+[time_M]   = weektow2time(week_R, time_M, 'G');
+
+%correct the absolute timing of binary-decoded ephemeris (i.e. use GPS week number from RAW binary messages)
+for s = 1 : size(Eph,2)
+    avail = Eph(32,s,:) ~= 0;
+%     if (max(abs(Eph(32,s,avail)-time_GPS(1))) > 1e7)
+        Eph(32,s,avail) = weektow2time(week_R(avail), squeeze(Eph(18,s,avail)), char(Eph(31,s,avail)));
+        Eph(33,s,avail) = weektow2time(week_R(avail), squeeze(Eph(21,s,avail)), char(Eph(31,s,avail)));
+%     end
 end

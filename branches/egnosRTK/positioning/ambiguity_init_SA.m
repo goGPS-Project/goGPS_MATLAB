@@ -1,9 +1,9 @@
 function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
-    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, is_GLO, phase, N_kalman, Cee_N_kalman)
+    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, is_GLO, lambda, N_kalman, Cee_N_kalman)
 
 % SYNTAX:
 %   [N_stim_slip, N_stim_born, dt_R] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
-%    elR, sat, sat_slip, sat_born, distR_approx, err_tropo, err_iono, is_GLO, phase, N_kalman, Cee_N_kalman);
+%    elR, sat, sat_slip, sat_born, distR_approx, err_tropo, err_iono, is_GLO, lambda, N_kalman, Cee_N_kalman);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -21,7 +21,7 @@ function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS,
 %   err_tropo = tropospheric error
 %   err_iono = ionospheric error
 %   is_GLO = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
-%   phase = GPS frequency selector
+%   lambda = vector containing GNSS wavelengths for available satellites
 %   N_kalman = phase ambiguities estimated by Kalman filter  *** same size as ph ***
 %   Cee_N_kalman = phase ambiguities estimated error  *** same size as ph ***
 %
@@ -35,9 +35,9 @@ function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS,
 %   receiver clock error using a least-squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -54,20 +54,17 @@ function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global v_light
-global lambda1 lambda2
 global sigmaq_cod1 sigmaq_ph
 % global clock_delay_thresh
 
-if (phase == 1)
-    lambda = lambda1;
-else
-    lambda = lambda2;
-end
+v_light = goGNSS.V_LIGHT;
 
 %remove zeros
-pr(pr==0) = [];
-ph(ph==0) = [];
+index_zero_pr = (pr == 0);
+index_zero_ph = (ph == 0);
+pr(index_zero_pr) = [];
+ph(index_zero_ph) = [];
+lambda(index_zero_ph) = [];
 
 %number of observations (assuming that sat_ph is a subset of sat_pr)
 nsat_pr = length(pr);
@@ -95,7 +92,7 @@ index_amb = [index_slip; index_born];         %satellites for which the ambiguit
 %ambiguity columns in design matrix (lambda positions)
 A_amb = zeros(nsat_ph,nsat_amb);
 for i = 1:nsat_amb
-    A_amb(index_amb(i),i) = -lambda;
+    A_amb(index_amb(i),i) = -lambda(index_amb(i));
 end
 
 %design matrix (code)
@@ -126,7 +123,7 @@ b = [b_pr; b_ph(index)];
 
 %observation vector
 ph(index_noamb) = ph(index_noamb) + N_kalman(index_noamb);
-y0 = [pr; lambda*ph];
+y0 = [pr; lambda.*ph];
 
 %observation noise covariance matrix
 Q = zeros(n);
@@ -134,13 +131,13 @@ Q1 = cofactor_matrix_SA(elR, snr);
 Q2 = Q1(index,index);
 
 Q(1:nsat_pr,1:nsat_pr) = sigmaq_cod1 * Q1;
-if (nargin >= 18)
-    %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
-    %with respect to input code and phase variances)
-    Q(nsat_pr+1:end,nsat_pr+1:end) = (sigmaq_ph * eye(nsat_ph) + lambda^2*Cee_N_kalman) .* Q2;
-else
-    Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q2;
-end
+% if (nargin >= 18)
+%     %ambiguity estimation error is taken into account (TO BE FIXED: not properly scaled
+%     %with respect to input code and phase variances)
+%     Q(nsat_pr+1:end,nsat_pr+1:end) = (sigmaq_ph * eye(nsat_ph) + lambda.^2.*Cee_N_kalman) .* Q2;
+% else
+    Q(nsat_pr+1:end,nsat_pr+1:end) = sigmaq_ph * Q2;
+% end
 
 % A_cod = A(1:nsat,:);
 % Q_cod = Q(1:nsat,1:nsat);

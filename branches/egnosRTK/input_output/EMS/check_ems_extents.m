@@ -1,7 +1,7 @@
-function [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sbas)
+function [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sbas, lambda, phase)
 
 % SYNTAX:
-%   [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sbas);
+%   [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sbas, lambda, phase);
 %
 % INPUT:
 %   time_R = reference vector of GPS time of week
@@ -10,6 +10,8 @@ function [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sb
 %   Eph    = ephemerides
 %   iono   = ionospheric parameters (Klobuchar)
 %   sbas   = SBAS corrections
+%   lambda = wavelength matrix (depending on the enabled constellations)
+%   phase  = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % OUTPUT:
 %   ems_data_available = boolean flag for data availability check
@@ -19,9 +21,9 @@ function [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sb
 %   (first available positioning epoch) is within the EMS grids.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -62,7 +64,7 @@ if (~isempty(find(Eph(30,:,:) ~= 0, 1)))
         satAvail = intersect(satObs,satEph)';
 
         if (length(satAvail) >=4)
-            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), [], iono, [], [], [], [], satAvail, cutoff, snr_threshold, 0, 0);
+            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), [], iono, [], [], [], [], satAvail, lambda(satAvail,:), cutoff, snr_threshold, phase, 0, 0);
         end
         
         i = i + 1;

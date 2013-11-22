@@ -1,7 +1,7 @@
-function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono, sbas, phase)
+function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono, sbas, lambda, phase)
 
 % SYNTAX:
-%   goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono, sbas, phase);
+%   goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono, sbas, lambda, phase);
 %
 % INPUT:
 %   time_rx  = GPS reception time
@@ -14,6 +14,7 @@ function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono
 %   SP3      = structure containing precise ephemeris data
 %   iono     = ionosphere parameters
 %   sbas     = SBAS corrections
+%   lambda   = wavelength matrix (depending on the enabled constellations)
 %   phase    = L1 carrier (phase=1), L2 carrier (phase=2)
 %
 % DESCRIPTION:
@@ -21,9 +22,9 @@ function goGPS_LS_SA_code_phase(time_rx, pr1, pr2, ph1, ph2, snr, Eph, SP3, iono
 %   Standalone code and phase positioning by least squares adjustment.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -113,9 +114,9 @@ if (size(sat,1) >= min_nsat)
     sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, cutoff, snr_threshold, 0, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, [], [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, 0, 0); %#ok<ASGLU>
     end
     
     %apply cutoffs also to phase satellites
@@ -188,8 +189,8 @@ if (length(sat) < min_nsat)
     
     %computation of the phase double differences in order to estimate N
     if ~isempty(sat)
-        [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), 1);
-        [N2(sat), sigma2_N2(sat)] = amb_estimate_observ_SA(pr2(sat), ph2(sat), 2);
+        [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), lambda(sat,1));
+        [N2(sat), sigma2_N2(sat)] = amb_estimate_observ_SA(pr2(sat), ph2(sat), lambda(sat,2));
     end
 
     if (length(phase) == 2)
@@ -215,8 +216,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, 1); %#ok<ASGLU>
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, 2);
+        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, lambda(sat_pr,1)); %#ok<ASGLU>
+        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, is_GLO, lambda(sat_pr,2));
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix
@@ -235,18 +236,18 @@ else
     if (length(phase) == 2)
         N = [N1; N2];
         sigma2_N(sat) = diag(cov_N1);
-        %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
+        %sigma2_N(sat) = (sigmaq_cod1 / lambda(sat,1).^2) * ones(length(sat),1);
         sigma2_N(sat+nN) = diag(cov_N2);
-        %sigma2_N(sat+nN) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
+        %sigma2_N(sat+nN) = (sigmaq_cod2 / lambda(sat,2).^2) * ones(length(sat),1);
     else
         if (phase == 1)
             N = N1;
             sigma2_N(sat) = diag(cov_N1);
-            %sigma2_N(sat) = (sigmaq_cod1 / lambda1^2) * ones(length(sat),1);
+            %sigma2_N(sat) = (sigmaq_cod1 / lambda(sat,1).^2) * ones(length(sat),1);
         else
             N = N2;
             sigma2_N(sat) = diag(cov_N2);
-            %sigma2_N(sat) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
+            %sigma2_N(sat) = (sigmaq_cod2 / lambda(sat,2).^2) * ones(length(sat),1);
         end
     end
 end

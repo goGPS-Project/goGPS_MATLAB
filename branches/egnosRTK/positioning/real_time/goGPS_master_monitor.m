@@ -11,9 +11,9 @@ function goGPS_master_monitor(filerootOUT, flag_NTRIP)
 %   Master station monitor: stream reading, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -39,7 +39,9 @@ global server_delay
 % initialization
 %------------------------------------------------------
 
-Eph = zeros(31,32);
+num_sat = 32;
+
+Eph = zeros(33,num_sat);
 
 %------------------------------------------------------
 % data file creation
@@ -52,18 +54,22 @@ fid_master = fopen([filerootOUT '_master_00.bin'],'w+');
 %  time_GPS --> double, [1,1]   --> zeros(1,1)
 %  time_M   --> double, [1,1]
 %  time_R   --> double, [1,1]   --> zeros(1,1)
-%  pr_M     --> double, [32,1]
-%  pr_R     --> double, [32,1]  --> zeros(32,1)
-%  ph_M     --> double, [32,1]
-%  ph_R     --> double, [32,1]  --> zeros(32,1)
-%  snr_M    --> double, [32,1]
-%  snr_R    --> double, [32,1]  --> zeros(32,1)
+%  pr_M     --> double, [num_sat,1]
+%  pr_R     --> double, [num_sat,1]  --> zeros(num_sat,1)
+%  ph_M     --> double, [num_sat,1]
+%  ph_R     --> double, [num_sat,1]  --> zeros(num_sat,1)
+%  snr_M    --> double, [num_sat,1]
+%  snr_R    --> double, [num_sat,1]  --> zeros(num_sat,1)
 fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  timeGPS  --> double, [1,1]   --> zeros(1,1)
-%  Eph      --> double, [31,32]
+%  Eph      --> double, [33,num_sat]
 fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
+
+%write number of satellites
+fwrite(fid_obs, num_sat, 'int8');
+fwrite(fid_eph, num_sat, 'int8');
 
 %------------------------------------------------------
 % creation of the connection to the master
@@ -190,10 +196,10 @@ while flag
             %read data type
             type = '';
 
-            pr1_M = zeros(32,1);
-            pr2_M = zeros(32,1);
-            ph1_M = zeros(32,1);
-            ph2_M = zeros(32,1);
+            pr1_M = zeros(num_sat,1);
+            pr2_M = zeros(num_sat,1);
+            ph1_M = zeros(num_sat,1);
+            ph2_M = zeros(num_sat,1);
 
             time_18L1 = 0;
             time_18L2 = 0;
@@ -275,18 +281,18 @@ while flag
             %keep just last packet for visualization
             time_M = max([time_18L1, time_18L2, time_19CA, time_19P]);
             if (time_18L1 ~= time_M)
-                ph1_M = zeros(32,1);
+                ph1_M = zeros(num_sat,1);
             end
             if (time_18L2 ~= time_M)
-                ph2_M = zeros(32,1);
+                ph2_M = zeros(num_sat,1);
             end
             if (time_19CA ~= time_M)
-                pr1_M = zeros(32,1);
-                ph1_M = zeros(32,1);
-                ph2_M = zeros(32,1);
+                pr1_M = zeros(num_sat,1);
+                ph1_M = zeros(num_sat,1);
+                ph2_M = zeros(num_sat,1);
             end
             if (time_19P ~= time_M)
-                pr2_M = zeros(32,1);
+                pr2_M = zeros(num_sat,1);
             end
 
             %visualization
@@ -362,8 +368,8 @@ while flag
                     pr2_M   = cell_master{3,i}(:,6);
                     ph2_M   = cell_master{3,i}(:,7);
                     lock2_M = cell_master{3,i}(:,8);
-                    snr1_M = zeros(32,1);
-                    snr2_M = zeros(32,1);
+                    snr1_M = zeros(num_sat,1);
+                    snr2_M = zeros(num_sat,1);
 
                     %manage "nearly null" data
                     ph1_M(abs(ph1_M) < 1e-100) = 0;
@@ -467,8 +473,8 @@ while flag
                     pr2_M_GLO   = cell_master{3,i}(:,6);
                     ph2_M_GLO   = cell_master{3,i}(:,7);
                     lock2_M_GLO = cell_master{3,i}(:,8);
-                    snr1_M_GLO = zeros(32,1);
-                    snr2_M_GLO = zeros(32,1);
+                    snr1_M_GLO = zeros(num_sat,1);
+                    snr2_M_GLO = zeros(num_sat,1);
 
                     %manage "nearly null" data
                     ph1_M_GLO(ph1_M_GLO < 1e-100) = 0;
@@ -513,7 +519,7 @@ while flag
             
             if (t > 0) & (pos_M ~= 0)
                 %data save
-                fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(32,1); ph1_M; zeros(32,1); zeros(32,1); snr1_M; zeros(32,1); pos_M(:,1); zeros(8,1)], 'double');
+                fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(num_sat,1); ph1_M; zeros(num_sat,1); zeros(num_sat,1); snr1_M; zeros(num_sat,1); pos_M(:,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [0; Eph(:)], 'double');
             end
 

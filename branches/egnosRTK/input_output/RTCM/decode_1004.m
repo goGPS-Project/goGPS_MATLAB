@@ -30,9 +30,9 @@ function [data] = decode_1004(msg)
 %   RTCM format 1004 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -49,8 +49,9 @@ function [data] = decode_1004(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-%carriers wavelenght
-global lambda1 lambda2
+%retrieve GPS L1/L2 wavelengths
+lambda(1) = goGNSS.getWavelength(goGNSS.ID_GPS, 1);
+lambda(2) = goGNSS.getWavelength(goGNSS.ID_GPS, 2);
 
 %message pointer initialization
 pos = 1;
@@ -145,12 +146,12 @@ for i = 1 : NSV
         %output data save
         data{3}(SV,1)  = DF010;
         data{3}(SV,2)  = (DF011 * 0.02) + (DF014 * 299792.458);
-        data{3}(SV,3)  = (data{3}(SV,2) + (DF012*0.0005)) / lambda1;
+        data{3}(SV,3)  = (data{3}(SV,2) + (DF012*0.0005)) / lambda(1);
         data{3}(SV,4)  = DF013;
         data{3}(SV,5)  = DF015 * 0.25;
         data{3}(SV,6)  = DF016;
         data{3}(SV,7)  = (data{3}(SV,2) + (DF017 * 0.02));
-        data{3}(SV,8)  = (data{3}(SV,2) + (DF018*0.0005)) / lambda2;
+        data{3}(SV,8)  = (data{3}(SV,2) + (DF018*0.0005)) / lambda(2);
         data{3}(SV,9)  = DF019;
         data{3}(SV,10) = DF020 * 0.25;
 

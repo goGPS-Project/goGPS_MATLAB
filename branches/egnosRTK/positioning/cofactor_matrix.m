@@ -18,9 +18,10 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index)
 %   strategy (determined by "weights" global variable).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Andrea Nardo, 22-Apr-2013: added exponential weighting function (weights == 4)
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -35,9 +36,9 @@ function [Q] = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index)
 %
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%-------------------------------------------------------s---------------------------------------
 
-global weights snr_a snr_0 snr_1 snr_A
+global weights snr_a snr_0 snr_1 snr_A elea
 
 %total number of visible satellites
 n = length(elR) - 1;
@@ -69,6 +70,12 @@ else
         q_M = 1 ./ (sin(elM * pi/180).^2) .* (10.^(-(snr_M-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_M-snr_1)+1));
         q_M(snr_M >= snr_1) = 1;
 
+    elseif (weights == 4)
+        %weight vectors (elevation, exponential function)
+        eleref = min(elR)* pi/180; % this is the value for the elevation cut-off angle
+        q_R = (1 + elea*exp(-(elR * pi/180)/eleref)).^2;
+        eleref = min(elM)* pi/180; % this is the value for the elevation cut-off angle
+        q_M = (1 + elea*exp(-(elM * pi/180)/eleref)).^2;
     end
 
     q_RP = q_R(pivot_index,1); % ROVER-PIVOT

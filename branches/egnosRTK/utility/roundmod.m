@@ -15,10 +15,12 @@ function [rx] = roundmod(x,y)
 %   resolution in input.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.3.1 beta
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2012 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
+%
+%    Code contributed by Andrea Gatti
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -34,9 +36,14 @@ function [rx] = roundmod(x,y)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-remainder = mod(x,y);
-rx = zeros(size(remainder));
-pos1 = find(remainder<=y/2);
-pos2 = find(remainder>y/2);
-rx(pos1) = x(pos1) - remainder(pos1);
-rx(pos2) = x(pos2) - remainder(pos2) + y;
+rx = round(x./y).*y;
+
+% Does this peacce of code make sense?
+% This should do the same 10 times faster: rx = round(x./y).*y;
+%
+% remainder = mod(x,y);
+% rx = zeros(size(remainder));
+% pos1 = find(remainder<=y/2);
+% pos2 = find(remainder>y/2);
+% rx(pos1) = x(pos1) - remainder(pos1);
+% rx(pos2) = x(pos2) - remainder(pos2) + y;
