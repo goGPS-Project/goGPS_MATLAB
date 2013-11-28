@@ -109,11 +109,11 @@ classdef goGUIclass < handle
         % Processing type
         idC_SA = 1;      % Code stand-alone
         idC_DD = 2;      % Code double difference
-        idCP_DD_L = 3;   % Code double difference with Lambda
+        idCP_DD_L = 3;   % Code double difference with LAMBDA
 		idCP_Vel = 4;    % Variometric approach for velocity estimation
         idCP_SA = 3;     % Code and phase stand-alone        
         idCP_DD = 4;     % Code and phase double difference
-        idCP_DD_MR = 5;  % Code and phase double difference for several receivers
+        idCP_DD_MR = 5;  % Code and phase double difference for multiple receivers
         strTypeLS = {};  % string containing the pop-up menu fields
         strTypeKF = {};  % string containing the pop-up menu fields
         
@@ -267,12 +267,13 @@ classdef goGUIclass < handle
             obj.strTypeLS{obj.idC_DD} = 'Code double difference';
             obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference (for LAMBDA)';
 			obj.strTypeLS{obj.idCP_Vel} = 'Variometric approach for velocity estimation';
+            obj.strTypeLS{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
 
             obj.strTypeKF{obj.idC_SA} = 'Code stand-alone';
             obj.strTypeKF{obj.idC_DD} = 'Code double difference';
             obj.strTypeKF{obj.idCP_SA} = 'Code and phase stand-alone';
             obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
-            %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
+            %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
             
             obj.strLAMBDAMethod{obj.idILS_enum_old} = 'LAMBDA 2.0 - ILS, enumeration';
             obj.strLAMBDAMethod{obj.idILS_shrink}   = 'LAMBDA 3.0 - ILS, search-and-shrink';
@@ -996,6 +997,12 @@ classdef goGUIclass < handle
 
             % On Post Proc => Least Squares => Code and Phase Velocity estimation
             idG.onPP_LS_CP_Vel = [idG.onPP_LS idG.pAvailableGNSSPhase];
+            
+            % On Post Proc => Least Squares => Code and Phase Double 
+            % => Multi Receivers Mode
+            idG.onPP_LS_CP_DD_MR = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSPhase ...
+                                   idG.StdCode idG.StdPhase ...
+                                   id.pMSt id.cMPos idG.pIntAmb];
 
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc id.cPlotProc ...
@@ -1528,6 +1535,8 @@ classdef goGUIclass < handle
                             mode = goGNSS.MODE_PP_LS_CP_DD_L;
 						case obj.idCP_Vel
                             mode = goGNSS.MODE_PP_LS_CP_VEL;
+                        case obj.idCP_DD_MR
+                            mode = goGNSS.MODE_PP_LS_CP_DD_MR;
                     end
                 end
                 if obj.isKF()
@@ -1964,6 +1973,8 @@ classdef goGUIclass < handle
                                 obj.setElStatus(obj.idGroup.onPP_LS_CP_DD_L, 1, 0);
                             case obj.idCP_Vel
                                 obj.setElStatus(obj.idGroup.onPP_LS_CP_Vel, 1, 0);
+                            case obj.idCP_DD_MR
+                                obj.setElStatus(obj.idGroup.onPP_LS_CP_DD_MR, 1, 0);
                         end
                     end
                     if obj.isKF()

@@ -217,6 +217,12 @@ if goGNSS.isPP(mode) % post-processing
     SP3 = [];
 
     if (mode_data == 0)
+        
+        %if the mode is not a multi-receiver one, fall back to the first
+        %rover filename in case of multi-receiver input (i.e. multiple RINEX files)
+        if (iscell(filename_R_obs) && ~goGNSS.isMR(mode))
+            filename_R_obs = [filename_R_obs{1} filename_R_obs{2}];
+        end
 
         if (flag_SP3)
             %display message
