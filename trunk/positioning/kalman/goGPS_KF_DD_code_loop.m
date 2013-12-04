@@ -29,7 +29,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_loop(XM
 %   Code double differences.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

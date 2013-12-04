@@ -15,7 +15,7 @@ function [data] = decode_rtcm3(msg, wait_dlg)
 %   RTCM 3.1 binary messages decoding (also in sequence).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
