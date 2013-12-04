@@ -113,7 +113,8 @@ classdef goGUIclass < handle
 		idCP_Vel = 4;    % Variometric approach for velocity estimation
         idCP_SA = 3;     % Code and phase stand-alone        
         idCP_DD = 4;     % Code and phase double difference
-        idCP_DD_MR = 5;  % Code and phase double difference for multiple receivers
+        idC_SA_MR = 5;   % Code and phase double difference for multiple receivers
+        idCP_DD_MR = 6;  % Code and phase double difference for multiple receivers
         strTypeLS = {};  % string containing the pop-up menu fields
         strTypeKF = {};  % string containing the pop-up menu fields
         
@@ -267,6 +268,7 @@ classdef goGUIclass < handle
             obj.strTypeLS{obj.idC_DD} = 'Code double difference';
             obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference (for LAMBDA)';
 			obj.strTypeLS{obj.idCP_Vel} = 'Variometric approach for velocity estimation';
+            obj.strTypeLS{obj.idC_SA_MR} = 'Code stand-alone for multiple receivers';
             obj.strTypeLS{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
 
             obj.strTypeKF{obj.idC_SA} = 'Code stand-alone';
@@ -998,6 +1000,11 @@ classdef goGUIclass < handle
             % On Post Proc => Least Squares => Code and Phase Velocity estimation
             idG.onPP_LS_CP_Vel = [idG.onPP_LS idG.pAvailableGNSSPhase];
             
+            % On Post Proc => Least Squares => Code Stand Alone 
+            % => Multi Receivers Mode
+            idG.onPP_LS_C_SA_MR = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSCode ...
+                                   id.cUse_SBAS];
+            
             % On Post Proc => Least Squares => Code and Phase Double 
             % => Multi Receivers Mode
             idG.onPP_LS_CP_DD_MR = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSPhase ...
@@ -1535,6 +1542,8 @@ classdef goGUIclass < handle
                             mode = goGNSS.MODE_PP_LS_CP_DD_L;
 						case obj.idCP_Vel
                             mode = goGNSS.MODE_PP_LS_CP_VEL;
+                        case obj.idC_SA_MR
+                            mode = goGNSS.MODE_PP_LS_C_SA_MR;
                         case obj.idCP_DD_MR
                             mode = goGNSS.MODE_PP_LS_CP_DD_MR;
                     end
@@ -1973,6 +1982,8 @@ classdef goGUIclass < handle
                                 obj.setElStatus(obj.idGroup.onPP_LS_CP_DD_L, 1, 0);
                             case obj.idCP_Vel
                                 obj.setElStatus(obj.idGroup.onPP_LS_CP_Vel, 1, 0);
+                            case obj.idC_SA_MR
+                                obj.setElStatus(obj.idGroup.onPP_LS_C_SA_MR, 1, 0);
                             case obj.idCP_DD_MR
                                 obj.setElStatus(obj.idGroup.onPP_LS_CP_DD_MR, 1, 0);
                         end
@@ -2099,7 +2110,7 @@ classdef goGUIclass < handle
                             data_path = goIni.getData('Receivers','data_path');
                             file_name = goIni.getData('Receivers','file_name');
                             
-                            if (isempty(data_path))
+                            if (isempty(nR))
                                 if iscell(file_name)
                                     nR = length(file_name);
                                 else

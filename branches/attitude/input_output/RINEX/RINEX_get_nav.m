@@ -371,3 +371,7 @@ while (~feof(fid))
         Eph(33,i) = 0;
     end
 end
+
+fclose(fid);
+
+fprintf(['RINEX file ' file_nav ': successfully read.\n']);

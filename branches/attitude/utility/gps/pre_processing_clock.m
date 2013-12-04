@@ -139,11 +139,11 @@ disc = find(abs(dtRdot-mean(dtRdot)) > clock_thresh);
 %remove discontinuities from the clock drift
 for i = 1 : length(disc)
     if (disc(i) < 5)
-        dtRdot(disc(i)) = median([dtRdot(1) dtRdot(10)]);
+        dtRdot(disc(i)) = median(dtRdot(1:10));
     elseif (disc(i) <= nEpochs-6)
-        dtRdot(disc(i)) = median([dtRdot(disc(i)-4) dtRdot(disc(i)+5)]);
+        dtRdot(disc(i)) = median(dtRdot(disc(i)-4:disc(i)+5));
     elseif (disc(i) > nEpochs-6)
-        dtRdot(disc(i)) = median([dtRdot(nEpochs-10) dtRdot(nEpochs-1)]);
+        dtRdot(disc(i)) = median(dtRdot(nEpochs-10:nEpochs-1));
     end
 end
 
