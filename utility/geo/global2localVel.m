@@ -15,7 +15,7 @@ function [y] = global2localVel(x, X)
 %   Rototraslation from Earth-fixed reference frame to local-level reference frame
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
