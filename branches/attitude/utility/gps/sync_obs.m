@@ -91,12 +91,12 @@ snr2 = zeros(nSatTot, ref_len, nObsSet);
 
 for s = 1 : nObsSet
     
-    [~, idx_t] = intersect(time_ref, roundmod(time_i(:,s), max_int));
+    [~, idx_t] = intersect(time_ref, roundmod(time_i(:,1,s), max_int));
     
-    idx_z = find(time_i(:,s) ~= 0);
+    idx_z = find(time_i(:,1,s) ~= 0);
     
-    time(idx_t, s) = time_i(idx_z, s);
-    week(idx_t, s) = week_i(idx_z, s);
+    time(idx_t, s) = time_i(idx_z, 1, s);
+    week(idx_t, s) = week_i(idx_z, 1, s);
     date(idx_t, :, s) = date_i(idx_z, :, s);
     pr1(:,  idx_t, s) = pr1_i(:, idx_z, s);
     ph1(:,  idx_t, s) = ph1_i(:, idx_z, s);

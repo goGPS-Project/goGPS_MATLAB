@@ -267,10 +267,10 @@ if goGNSS.isPP(mode) % post-processing
             dop2_R = dop2_RM(:,:,1:end-1); dop2_M = dop2_RM(:,:,end);
             snr1_R = snr1_RM(:,:,1:end-1); snr1_M = snr1_RM(:,:,end);
             snr2_R = snr2_RM(:,:,1:end-1); snr2_M = snr2_RM(:,:,end);
-            time_R = time_RM(:,1:end-1); time_M = time_RM(:,end);
-            week_R = week_RM(:,1:end-1); week_M = week_RM(:,end);
+            time_R = time_RM(:,1,1:end-1); time_M = time_RM(:,1,end);
+            week_R = week_RM(:,1,1:end-1); week_M = week_RM(:,1,end);
             date_R = date_RM(:,:,1:end-1); date_M = pos_RM(:,:,end);
-            pos_R = pos_RM(:,1:end-1); pos_M = pos_RM(:,end);
+            pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
             
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
@@ -370,7 +370,7 @@ if goGNSS.isPP(mode) % post-processing
         
         %remove flagged satellites (master)
         if (goGNSS.isDD(mode) && exist('bad_sats_M','var'))
-            for f = 1 : size(pr1_R,3)
+            for f = 1 : size(pr1_M,3)
                 if (any(bad_sats_M(:,1,f)))
                     pos = find(bad_sats_M(:,1,f));
                     pr1_R(pos,:,f) = 0;
@@ -2077,10 +2077,10 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     h_ortho(1:nObs) = -9999;
     
     %time formatting
-    [tow] = weektime2tow(week_R, time_GPS);
+    [tow] = weektime2tow(week_R(:,1,1), time_GPS);
     
     %date formatting
-    date = gps2date(week_R, tow);
+    date = gps2date(week_R(:,1,1), tow);
     date(:,1) = two_digit_year(date(:,1));
 
     %file saving
@@ -2288,7 +2288,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     %file saving
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
     %date formatting
-    date = gps2date(week_R, time_GPS);
+    date = gps2date(week_R(:,1,1), time_GPS);
     date(:,1) = two_digit_year(date(:,1));
 
     for i = 1 : nObs

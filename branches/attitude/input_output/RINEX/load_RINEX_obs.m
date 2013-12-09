@@ -75,8 +75,8 @@ end
 
 %variable initialization
 nEpochs = 86400;
-time = zeros(nEpochs,nFiles);
-week = zeros(nEpochs,nFiles);
+time = zeros(nEpochs,1,nFiles);
+week = zeros(nEpochs,1,nFiles);
 pr1 = zeros(nSatTot,nEpochs,nFiles);
 pr2 = zeros(nSatTot,nEpochs,nFiles);
 ph1 = zeros(nSatTot,nEpochs,nFiles);
@@ -86,7 +86,7 @@ dop2 = zeros(nSatTot,nEpochs,nFiles);
 snr1 = zeros(nSatTot,nEpochs,nFiles);
 snr2 = zeros(nSatTot,nEpochs,nFiles);
 date = zeros(nEpochs,6,nFiles);
-pos = zeros(3,nFiles);
+pos = zeros(3,1,nFiles);
 
 for f = 1 : nFiles
     
@@ -104,7 +104,7 @@ for f = 1 : nFiles
     end
     
     %parse RINEX header
-    [obs_type, pos(:,f), basic_info, interval, sysId] = RINEX_parse_hdr(fid);
+    [obs_type, pos(:,1,f), basic_info, interval, sysId] = RINEX_parse_hdr(fid);
     
     %check the availability of basic data to parse the RINEX file
     if (basic_info == 0)
@@ -128,7 +128,7 @@ for f = 1 : nFiles
     while (~feof(fid))
         
         %read data for the current epoch (ROVER)
-        [time(k,f), date(k,:,f), num_sat, sat, sat_types] = RINEX_get_epoch(fid);
+        [time(k,1,f), date(k,:,f), num_sat, sat, sat_types] = RINEX_get_epoch(fid);
         
         if (k > nEpochs)
             %variable initialization (GPS)
@@ -169,7 +169,7 @@ for f = 1 : nFiles
     end
     
     %GPS week number
-    week(:,f) = date2gps(date(:,:,f));
+    week(:,1,f) = date2gps(date(:,:,f));
     
     %-------------------------------------------------------------------------------
     
