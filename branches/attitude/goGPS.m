@@ -28,12 +28,12 @@
 %---------------------------------------------------------------------------------------------
 
 % clear all the variables in the workspace
-clear all
+% clear all
 
 %NOTE: using only clearvars causes crashes, e.g. when launching two
 %constrained positioning processes in a row (not clear why...)
-% clearvars
-% clearvars -global goGUI goIni goObj
+clearvars
+clearvars -global goGUI goIni goObj
 
 % close all windows
 close all
@@ -1442,6 +1442,86 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
         end
 
         goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR);
+        
+        if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
+            fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+            if (t == 1)
+                fwrite(fid_sat, nSatTot, 'int8');
+                fwrite(fid_conf, nSatTot, 'int8');
+            end
+            fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+            fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
+            fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+            
+            if (flag_plotproc)
+                if (t == 1), goWB.shiftDown(); end
+                if (flag_cov == 0)
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                else
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                end
+                if (flag_skyplot == 1)
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,t), Eph_t, SP3);
+                else
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
+                end
+                plot_t = plot_t + 1;
+                pause(0.01);
+            end
+        else
+            unused_epochs(t) = 1;
+        end
+      
+        if ((t == 1) && (~flag_plotproc))
+            fprintf('Processing...\n');
+        end
+        
+        goWB.goTime(t);
+    end
+
+    goWB.close();
+    
+    fclose(fid_kal);
+    fclose(fid_sat);
+    fclose(fid_dop);
+    fclose(fid_conf);
+    
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING (RELATIVE POSITIONING): LEAST SQUARES ON CODE AND PHASE
+% DOUBLE DIFFERENCES (MULTI-RECEIVER)
+%----------------------------------------------------------------------------------------------
+
+elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
+
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
+
+    nN = nSatTot;
+    check_on = 0;
+    check_off = 0;
+    check_pivot = 0;
+    check_cs = 0;
+    
+    plot_t = 1;
+
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
+    
+    for t = 1 : length(time_GPS)
+
+        if (mode_data == 0)
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+        else
+            Eph_t = Eph(:,:,t);
+        end
+
+        goGPS_LS_DD_code_phase_MR(time_GPS(t), pos_M(:,t), squeeze(pr1_R(:,t,:)), pr1_M(:,t), squeeze(pr2_R(:,t,:)), pr2_M(:,t), squeeze(ph1_R(:,t,:)), ph1_M(:,t), squeeze(ph2_R(:,t,:)), ph2_M(:,t), squeeze(snr_R(:,t,:)), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR);
         
         if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');

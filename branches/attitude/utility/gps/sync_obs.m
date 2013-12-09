@@ -62,10 +62,11 @@ nSatTot = size(pr1_i,1);
 %number of observation datasets (e.g. number of read RINEX files)
 nObsSet = size(pr1_i,3);
 
-%find min and max time tags (among all observation datasets)
-idx = find(time_i ~= 0);
-min_t = min(time_i(idx));
-max_t = max(time_i(idx));
+%find min and max time tags (in common among all observation datasets)
+time_i_nan = time_i;
+time_i_nan(time_i == 0) = NaN;
+min_t = max(min(time_i_nan,[],1));
+max_t = min(max(time_i_nan,[],1));
 
 %find the largest interval
 max_int = max(interval(:));
@@ -91,9 +92,7 @@ snr2 = zeros(nSatTot, ref_len, nObsSet);
 
 for s = 1 : nObsSet
     
-    [~, idx_t] = intersect(time_ref, roundmod(time_i(:,1,s), max_int));
-    
-    idx_z = find(time_i(:,1,s) ~= 0);
+    [~, idx_t, idx_z] = intersect(time_ref, roundmod(time_i(:,1,s), max_int));
     
     time(idx_t, s) = time_i(idx_z, 1, s);
     week(idx_t, s) = week_i(idx_z, 1, s);
