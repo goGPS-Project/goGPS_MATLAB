@@ -15,7 +15,7 @@ function [date, doy] = gps2date(gps_week, gps_sow)
 %   Conversion from GPS time to calendar date and day of year (DOY).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
