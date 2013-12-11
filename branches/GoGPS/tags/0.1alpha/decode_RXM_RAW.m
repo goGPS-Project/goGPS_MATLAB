@@ -1,0 +1,180 @@
+function [data] = decode_RXM_RAW(msg)
+
+% SYNTAX:
+%   [data] = decode_RXM_RAW(msg)
+%
+% INPUT:
+%   msg = message transmitted by the u-blox receiver
+%
+% OUTPUT:
+%   data = cell-array that contains the RXM-RAW packet information
+%          1.1) message class-id (RXM-RAW)
+%          2.1) TOW  = week time (in seconds)
+%          2.2) WEEK = GPS week
+%          2.3) NSV  = number of visible satellites
+%          2.4) RES  = reserved field (not used)
+%          3.1) CPM  = phase measurements (in cycles)
+%          3.2) PRM  = pseudorange measurements (C/A code in meters)
+%          3.3) DOM  = doppler measurements (in Hertz)
+%          3.4) SV   = space vehicle number
+%          3.5) MQI  = measurement quality index
+%          3.6) CNO  = signal-to-noise ratio (in dbHz)
+%          3.7) LLI  = loss of lock indicator
+%
+% DESCRIPTION:
+%   RXM-RAW binary message decoding.
+
+%----------------------------------------------------------------------------------------------
+%                           goGPS v0.1 alpha
+%
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
+%----------------------------------------------------------------------------------------------
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%----------------------------------------------------------------------------------------------
+
+% first message initial index
+pos = 1;
+
+%output variable initialization
+data = cell(3,1);
+data{1} = 0;
+data{2} = zeros(4,1);
+data{3} = zeros(32,7);
+
+%output data save
+data{1} = 'RXM-RAW';
+
+% week time decoding (4 byte)
+TOW1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW3 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW4 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+TOW = TOW1 + (TOW2 * 2^8) + (TOW3 * 2^16) + (TOW4 * 2^24);  % little endian
+TOW = TOW / 1000;
+clear TOW1 TOW2 TOW3 TOW4
+
+% GPS week decoding (2 byte)
+WEEK1 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+WEEK2 = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+WEEK = WEEK1 + (WEEK2 * 2^8);        % little endian
+clear WEEK1 WEEK2
+
+% number of visible satellites (1 byte)
+NSV = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+
+% reserved field (1 byte)
+RES = bin2dec(msg(pos:pos+7));  pos = pos + 8;
+
+%output data save
+data{2}(1) = TOW;
+data{2}(2) = WEEK;
+data{2}(3) = NSV;
+data{2}(4) = RES;
+
+%read the measurements of every satellite
+for j = 1 : NSV
+
+    % L1 phase measurement decoding (in cycles)
+    L1field = msg(pos:pos+63);
+    pos = pos + 64;
+
+    % byte order inversion (little endian)
+    L1field = fliplr(reshape(L1field,8,[]));
+    L1field = L1field(:)';
+
+    % floating point value decoding (double floating point)
+    sign = str2num(L1field(1));
+    esp  = bin2dec(L1field(2:12));
+    mant = bin2dec(L1field(13:64)) / 2^52;
+    L1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    clear L1field sign esp mant
+
+    %------------------------------------------------
+
+    % C/A pseudorange measurement decoding (in meters)
+    C1field = msg(pos:pos+63);
+    pos = pos + 64;
+
+    % byte order inversion (little endian)
+    C1field = fliplr(reshape(C1field,8,[]));
+    C1field = C1field(:)';
+
+    % floating point value decoding (double floating point)
+    sign = str2num(C1field(1));
+    esp  = bin2dec(C1field(2:12));
+    mant = bin2dec(C1field(13:64)) / 2^52;
+    C1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    clear C1field sign esp mant
+
+    %------------------------------------------------
+
+    % doppler measurements decoding (in Hz)
+    D1field = msg(pos:pos+31);
+    pos = pos + 32;
+
+    % byte order inversion (little endian)
+    D1field = fliplr(reshape(D1field,8,[]));
+    D1field = D1field(:)';
+
+    % floating point value decoding (single floating point)
+    sign = str2num(D1field(1));
+    esp  = bin2dec(D1field(2:9));
+    mant = bin2dec(D1field(10:32)) / 2^23;
+    D1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    clear D1field sign esp mant
+
+    %------------------------------------------------
+
+    % satellite number decoding
+    SV = bin2dec(msg(pos:pos+7));
+    pos = pos + 8;
+
+    % exclude EGNOS satellites (SV = 121, 122, etc.)
+    if (SV <= 32)
+
+        % phase, code and doppler measure save
+        CPM = L1;
+        PRM = C1;
+        DOM = D1;
+        clear L1 C1 D1
+
+        % quality index decoding
+        MQI = bin2dec(msg(pos:pos+7));
+        pos = pos + 8;
+
+        % signal-to-noise ratio decoding (in dBHz)
+        CNO = bin2dec(msg(pos:pos+7));
+        pos = pos + 8;
+
+        % signal loss index decoding
+        LLI = bin2dec(msg(pos:pos+7));
+        pos = pos + 8;
+
+        %data output save
+        data{3}(SV,1) = CPM;
+        data{3}(SV,2) = PRM;
+        data{3}(SV,3) = DOM;
+        data{3}(SV,4) = SV;
+        data{3}(SV,5) = MQI;
+        data{3}(SV,6) = CNO;
+        data{3}(SV,7) = LLI;
+
+    else
+        pos = pos+24;
+    end
+end

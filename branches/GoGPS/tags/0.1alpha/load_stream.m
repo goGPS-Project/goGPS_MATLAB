@@ -1,0 +1,363 @@
+function [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+          loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot)
+
+% SYNTAX:
+%   [time_GPS, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, snr_R, snr_M, pos_M, Eph, ...
+%    loss_R, loss_M, data_rover_all, data_master_all] = load_stream (fileroot);
+%
+% INPUT:
+%   fileroot = name of the file to be read
+%
+% OUTPUT:
+%   time_GPS = reference GPS time
+%   time_R   = GPS time for the ROVER observations
+%   time_M   = GPS time for the MASTER observations
+%   pr1_R    = ROVER-SATELLITE code-pseudorange (carrier L1)
+%   pr1_M    = MASTER-SATELLITE code-pseudorange (carrier L1)
+%   ph1_R    = ROVER-SATELLITE phase observations (carrier L1)
+%   ph1_M    = MASTER-SATELLITE phase observations (carrier L1)
+%   Eph      = matrix of 21 ephemerides for each satellite
+%   loss_R   = flag for the ROVER loss of signal
+%   loss_M   = flag for the MASTER loss of signal
+%   data_rover_all  = ROVER overall stream
+%   data_master_all = MASTER overall stream
+%
+% DESCRIPTION:
+%   Reading of the streams trasmitted by the u-blox receiver (ROVER) and
+%   by the permanent station (MASTER) in RTCM format.
+
+%----------------------------------------------------------------------------------------------
+%                           goGPS v0.1 alpha
+%
+% Copyright (C) 2009-2010 Mirko Reguzzoni*, Eugenio Realini**
+%
+% * Laboratorio di Geomatica, Polo Regionale di Como, Politecnico di Milano, Italy
+% ** Graduate School for Creative Cities, Osaka City University, Japan
+%----------------------------------------------------------------------------------------------
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%----------------------------------------------------------------------------------------------
+
+global lambda1
+
+%ROVER stream reading
+data_rover_all = [];                                                 %overall stream
+hour = 0;                                                            %hour index (integer)
+hour_str = num2str(hour,'%02d');                                     %hour index (string)
+d = dir([fileroot '_rover_' hour_str '.bin']);                       %file to be read
+while ~isempty(d)
+    fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
+    num_bytes = d.bytes;                                             %file size (number of bytes)
+    fid_rover = fopen([fileroot '_rover_' hour_str '.bin']);         %file opening
+    data_rover = fread(fid_rover,num_bytes,'uint8');                 %file reading
+    data_rover = dec2bin(data_rover,8);                              %conversion in binary number (N x 8bits matrix)
+    data_rover = data_rover';                                        %transposed (8bits x N matrix)
+    data_rover = data_rover(:)';                                     %conversion into a string (8N bits vector)
+    fclose(fid_rover);                                               %file closing
+    data_rover_all = [data_rover_all data_rover];                    %stream concatenation
+    hour = hour+1;                                                   %hour increase
+    hour_str = num2str(hour,'%02d');
+    d = dir([fileroot '_rover_' hour_str '.bin']);                   %file to be read
+end
+
+%-------------------------------------------------------------------------------
+
+if ~isempty(data_rover_all)
+
+    %displaying
+    fprintf('Decoding rover data \n');
+
+    %message decoding
+    [cell_rover] = decode_ublox(data_rover_all);
+
+    %initialization (to make the writing faster)
+    Ncell  = size(cell_rover,2);                          %number of read RTCM packets
+    time_R = zeros(Ncell,1);                              %GPS time of week
+    pr1_R  = zeros(32,Ncell);                             %code observations
+    ph1_R  = zeros(32,Ncell);                             %phase observations
+    snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
+    Eph_R  = zeros(21,32,Ncell);                          %ephemerides
+
+    i = 1;
+    for j = 1 : Ncell
+        if (strcmp(cell_rover{1,j},'RXM-RAW'))            %RXM-RAW message data
+            time_R(i) = round(cell_rover{2,j}(1));
+            pr1_R(:,i) = cell_rover{3,j}(:,2);
+            ph1_R(:,i) = cell_rover{3,j}(:,1);
+            snr_R(:,i) = cell_rover{3,j}(:,6);
+
+            %manage "nearly null" data
+            pos = abs(ph1_R(:,i)) < 1e-100;
+            ph1_R(pos,i) = 0;
+
+            %phase adjustement
+            pos = abs(ph1_R(:,i)) > 0 & abs(ph1_R(:,i)) < 1e7;
+            if(sum(pos) ~= 0)
+                ambig = 2^23;
+                n = floor((pr1_R(pos,i)/lambda1-ph1_R(pos,i)) / ambig + 0.5 );
+                ph1_R(pos,i) = ph1_R(pos,i) + n*ambig;
+            end
+
+            i = i + 1;
+
+            Eph_R(:,:,i) = Eph_R(:,:,i-1);                %previous epoch ephemerides copying
+
+        elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
+
+            %satellite number
+            sat = cell_rover{2,j}(1);
+
+            Eph_R(:,sat,i) = cell_rover{2,j}(:);
+
+        end
+    end
+
+    %residual data erase (after initialization)
+    time_R(i:end)  = [];
+    pr1_R(:,i:end) = [];
+    ph1_R(:,i:end) = [];
+    Eph_R(:,:,i:end) = [];
+
+else
+    %displaying
+    fprintf('No rover data acquired! \n');
+
+    time_R = [];                         %GPS time
+    pr1_R  = [];                         %code observations
+    ph1_R  = [];                         %phase observations
+    snr_R  = [];                         %signal-to-noise ratio
+    Eph_R  = [];                         %ephemerides
+
+end
+
+%-------------------------------------------------------------------------------
+
+%MASTER stream reading
+data_master_all = [];                                                %overall stream
+hour = 0;                                                            %hour index (integer)
+hour_str = num2str(hour,'%02d');                                     %hour index (string)
+d = dir([fileroot '_master_' hour_str '.bin']);                      %file to be read
+while ~isempty(d)
+    fprintf(['Reading: ' fileroot '_master_' hour_str '.bin\n']);
+    num_bytes = d.bytes;                                             %file size (number of bytes)
+    fid_master = fopen([fileroot '_master_' hour_str '.bin']);       %file opening
+    data_master = fread(fid_master,num_bytes,'uint8');               %file reading
+    data_master = dec2bin(data_master,8);                            %conversion into binary number (N x 8bits matrix)
+    data_master = data_master';                                      %transposed (8bits x N matrix)
+    data_master = data_master(:)';                                   %conversion into a string (8N bits vector)
+    fclose(fid_master);                                              %file closing
+    data_master_all = [data_master_all data_master];                 %stream concatenation
+    hour = hour+1;                                                   %hour increase
+    hour_str = num2str(hour,'%02d');
+    d = dir([fileroot '_master_' hour_str '.bin']);                  %file to be read
+end
+
+%-------------------------------------------------------------------------------
+
+if ~isempty(data_master_all)
+
+    %displaying
+    fprintf('Decoding master data \n');
+
+    pos = 1;
+    sixofeight = [];
+    is_rtcm2 = 1;
+
+    while (pos + 7 <= length(data_master_all))
+        if (~strcmp(data_master_all(pos:pos+1),'01'))
+            is_rtcm2 = 0;
+            break
+        end
+        sixofeight = [sixofeight fliplr(data_master_all(pos+2:pos+7))];
+        pos = pos + 8;
+    end
+
+    %stream decodification
+    if(is_rtcm2)
+        [cell_master] = decode_rtcm2(sixofeight);
+    else
+        [cell_master] = decode_rtcm3(data_master_all);
+    end
+
+    %initialization (to make the writing faster)
+    Ncell  = size(cell_master,2);                         %number of read RTCM packets
+    time_M = zeros(Ncell,1);                              %GPS time
+    pr1_M  = zeros(32,Ncell);                             %code observations
+    ph1_M  = zeros(32,Ncell);                             %phase observations
+    snr_M  = zeros(32,Ncell);                             %signal-to-noise ratio
+    pos_M  = zeros(3,Ncell);                              %master station position
+    Eph_M  = zeros(21,32,Ncell);                          %ephemerides
+
+    i = 1;
+    for j = 1 : Ncell
+        if (cell_master{1,j} == 3)
+        elseif (cell_master{1,j} == 18)
+        elseif (cell_master{1,j} == 19)
+        elseif (cell_master{1,j} == 1002) | (cell_master{1,j} == 1004) %RTCM 1002 or 1004 message
+
+            time_M(i)  = cell_master{2,j}(2);             %GPS time logging
+            pr1_M(:,i) = cell_master{3,j}(:,2);           %code observations logging
+            ph1_M(:,i) = cell_master{3,j}(:,3);           %phase observations logging
+            snr_M(:,i) = cell_master{3,j}(:,5);           %signal-to-noise ratio logging
+
+            i = i+1;                                      %epoch counter increase
+
+            pos_M(:,i) = pos_M(:,i-1);                    %previous epoch master coordinates copying
+            Eph_M(:,:,i) = Eph_M(:,:,i-1);                %previous epoch ephemerides copying
+
+        elseif (cell_master{1,j} == 1005)                 %RTCM 1005 message
+
+            coordX_M = cell_master{2,j}(8);
+            coordY_M = cell_master{2,j}(9);
+            coordZ_M = cell_master{2,j}(10);
+
+            pos_M(:,i) = [coordX_M; coordY_M; coordZ_M];
+            
+            if (i == 2) & (pos_M(:,1) == 0)
+                pos_M(:,i-1) = pos_M(:,i);
+            end
+
+        elseif (cell_master{1,j} == 1006)                 %RTCM 1006 message
+
+            coordX_M = cell_master{2,j}(8);
+            coordY_M = cell_master{2,j}(9);
+            coordZ_M = cell_master{2,j}(10);
+
+            pos_M(:,i) = [coordX_M; coordY_M; coordZ_M];
+            
+            if (i == 2) & (pos_M(:,1) == 0)
+                pos_M(:,i-1) = pos_M(:,i);
+            end
+
+        elseif (cell_master{1,j} == 1019)                 %RTCM 1019 message
+
+            sat = cell_master{2,j}(1);                    %satellite number
+            Eph_M(:,sat,i) = cell_master{2,j}(:);         %single satellite ephemerides logging
+        end
+    end
+
+    %residual data erase (after initialization)
+    time_M(i:end)  = [];
+    pr1_M(:,i:end) = [];
+    ph1_M(:,i:end) = [];
+    snr_M(:,i:end) = [];
+    pos_M(:,i:end) = [];
+    Eph_M(:,:,i:end) = [];
+
+    ph1_M(ph1_M < 1e-100) = 0;
+
+else
+    %displaying
+    fprintf('No master data acquired! \n');
+
+    time_M = [];                         %GPS time
+    pr1_M  = [];                         %code observations
+    ph1_M  = [];                         %phase observations
+    snr_M  = [];                         %signal-to-noise ratio
+    pos_M  = [];                         %master station position
+    Eph_M  = [];                         %ephemerides
+end
+
+%-------------------------------------------------------------------------------
+
+if ~isempty(time_R) & ~isempty(time_M)
+
+    %initial synchronization
+    while (time_R(1) < time_M(1))
+        time_R(1)    = [];                         %GPS time
+        pr1_R(:,1)   = [];                         %code observations
+        ph1_R(:,1)   = [];                         %phase observations
+        snr_R(:,1)   = [];                         %signal-to-noise ratio
+        Eph_R(:,:,1) = [];                         %ephemerides
+    end
+
+    while (time_M(1) < time_R(1))
+        time_M(1)    = [];                         %GPS time
+        pr1_M(:,1)   = [];                         %code observations
+        ph1_M(:,1)   = [];                         %phase observations
+        snr_M(:,1)   = [];                         %signal-to-noise ratio
+        pos_M(:,1)   = [];                         %master station position
+        Eph_M(:,:,1) = [];                         %ephemerides
+    end
+
+end
+
+%-------------------------------------------------------------------------------
+
+%signal losses
+time_GPS = union(time_R,time_M);                     %overall reference time
+if ~isempty(time_GPS)
+
+    time_GPS = (time_GPS(1) : 1 : time_GPS(end))';   %GPS time without interruptions
+
+    loss_R = 1 - ismember(time_GPS,time_R);          %losses of signal (ROVER)
+    loss_M = 1 - ismember(time_GPS,time_M);          %losses of signal (MASTER)
+
+    if ~isempty(time_R)
+
+        newtime_R = setdiff(time_GPS, time_R);       %ROVER missing epochs
+        for i = 1 : length(newtime_R)
+
+            pos = find(time_R == newtime_R(i) - 1);  %position before the "holes"
+
+            time_R = [time_R(1:pos);  newtime_R(i);  time_R(pos+1:end)];
+            pr1_R  = [pr1_R(:,1:pos)  zeros(32,1)    pr1_R(:,pos+1:end)];
+            ph1_R  = [ph1_R(:,1:pos)  zeros(32,1)    ph1_R(:,pos+1:end)];
+            snr_R  = [snr_R(:,1:pos)  zeros(32,1)    snr_R(:,pos+1:end)];
+
+            Eph_R  = cat(3, Eph_R(:,:,1:pos), zeros(21,32,1), Eph_R(:,:,pos+1:end));
+        end
+    else
+        time_R = time_GPS;
+        pr1_R  = zeros(32,length(time_GPS));
+        ph1_R  = zeros(32,length(time_GPS));
+        snr_R  = zeros(32,length(time_GPS));
+        Eph_R  = zeros(21,32,length(time_GPS));
+    end
+
+    if ~isempty(time_M)
+
+        newtime_M = setdiff(time_GPS, time_M);       %MASTER missing epochs
+        for i = 1 : length(newtime_M)
+
+            pos = find(time_M == newtime_M(i) - 1);  %position before the "holes"
+
+            time_M = [time_M(1:pos);  newtime_M(i);  time_M(pos+1:end)];
+            pr1_M  = [pr1_M(:,1:pos)  zeros(32,1)    pr1_M(:,pos+1:end)];
+            ph1_M  = [ph1_M(:,1:pos)  zeros(32,1)    ph1_M(:,pos+1:end)];
+            snr_M  = [snr_M(:,1:pos)  zeros(32,1)    snr_M(:,pos+1:end)];
+            pos_M  = [pos_M(:,1:pos)  zeros(3,1)     pos_M(:,pos+1:end)];
+
+            Eph_M  = cat(3, Eph_M(:,:,1:pos), zeros(21,32,1), Eph_M(:,:,pos+1:end));
+        end
+    else
+        time_M = time_GPS;
+        pr1_M  = zeros(32,length(time_GPS));
+        ph1_M  = zeros(32,length(time_GPS));
+        snr_M  = zeros(32,length(time_GPS));
+        pos_M  = zeros(3,length(time_GPS));
+        Eph_M  = zeros(21,32,length(time_GPS));
+    end
+
+else
+    loss_R = [];          %losses of signal (ROVER)
+    loss_M = [];          %losses of signal (MASTER)
+end
+
+%if ephemerides coming from RTCM stream are not available, use rover ones
+if (~Eph_M)
+    Eph = Eph_R;
+else
+    Eph = Eph_M;
+end
