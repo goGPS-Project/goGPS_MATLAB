@@ -173,17 +173,17 @@ else %apply LAMBDA
     
     if (flag_Tykhon)
         %Processing with Tykhonov-Phillips regularization
-        [x_hat, bias, lbd] = tykhonov_regularization(x_hat, y0, b, A, Q);
+        [x_hat, bias, lbd] = tykhonov_regularization(x_hat, y0, b, A, Q); %#ok<ASGLU>
         
         %computation of the condition number on the eigenvalues of N
         N_min_eig = min(eig(N + lbd*eye(m)));
         N_max_eig = max(eig(N + lbd*eye(m)));
-        cond_num = ceil(log10(N_max_eig / N_min_eig));
+        cond_num = ceil(log10(N_max_eig / N_min_eig)); %#ok<NASGU>
     else
         %computation of the condition number on the eigenvalues of N
         N_min_eig = min(eig(N));
         N_max_eig = max(eig(N));
-        cond_num = ceil(log10(N_max_eig / N_min_eig));
+        cond_num = ceil(log10(N_max_eig / N_min_eig)); %#ok<NASGU>
     end
     
     if (~flag_Tykhon)

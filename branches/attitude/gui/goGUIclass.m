@@ -2985,6 +2985,7 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('RefPath','data_path');
                 file_name = goIni.getData('RefPath','file_name');
                 filename_ref = [data_path file_name];
+                [multi_antenna_rf, ~] = goIni.getGeometry();
             else
                 filerootIN = '';
                 filename_R_obs = '';
@@ -3058,7 +3059,7 @@ classdef goGUIclass < handle
             end
             protocol_idx = protocol_idx(~isnan(protocol_idx));
             
-            funout = cell(25,1);
+            funout = cell(26,1);
             
             funout{1} = mode;
             funout{2} = mode_vinc;
@@ -3085,6 +3086,7 @@ classdef goGUIclass < handle
             funout{23} = filename_ref;
             funout{24} = pos_M_man;
             funout{25} = protocol_idx;
+            funout{26} = multi_antenna_rf;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm

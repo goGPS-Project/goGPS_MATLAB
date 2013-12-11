@@ -76,15 +76,15 @@ end
 
 if (length(phase) == 2)
     sat_pr = find( (pr1 ~= 0) & (pr2 ~= 0) );
-    sat = find( (pr1 ~= 0) & (ph1 ~= 0) & ...
-        (pr2 ~= 0) & (ph2 ~= 0) );
+    sat    = find( (pr1 ~= 0) & (ph1 ~= 0) & ...
+                   (pr2 ~= 0) & (ph2 ~= 0) );
 else
     if (phase == 1)
         sat_pr = find( (pr1 ~= 0) );
-        sat = find( (pr1 ~= 0) & (ph1 ~= 0) );
+        sat    = find( (pr1 ~= 0) & (ph1 ~= 0) );
     else
         sat_pr = find( (pr2 ~= 0) );
-        sat = find( (pr2 ~= 0) & (ph2 ~= 0) );
+        sat    = find( (pr2 ~= 0) & (ph2 ~= 0) );
     end
 end
 sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
@@ -152,7 +152,7 @@ if (size(sat,1) >= min_nsat)
     
     %if the number of satellites is not sufficient after the cutoffs, or
     %if the condition number in the least squares exceeds the threshold
-    if (size(sat,1) < min_nsat | cond_num > cond_num_threshold)
+    if (size(sat,1) < min_nsat || cond_num > cond_num_threshold)
 
         if (~isempty(Xhat_t_t))
             XR = Xhat_t_t([1,o1+1,o2+1]);

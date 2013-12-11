@@ -78,17 +78,17 @@ if (mode_user == 1)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS;
+            filename_nav, filename_ref, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS;
     elseif (ismac)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix_mac;
+            filename_nav, filename_ref, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS_unix_mac;
     else %linux
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx] = gui_goGPS_unix_linux;
+            filename_nav, filename_ref, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS_unix_linux;
     end
 
     global goIni; %#ok<TLEV>
@@ -1521,7 +1521,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_LS_DD_code_phase_MR(time_GPS(t), pos_M(:,t), squeeze(pr1_R(:,t,:)), pr1_M(:,t), squeeze(pr2_R(:,t,:)), pr2_M(:,t), squeeze(ph1_R(:,t,:)), ph1_M(:,t), squeeze(ph2_R(:,t,:)), ph2_M(:,t), squeeze(snr_R(:,t,:)), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR);
+        goGPS_LS_DD_code_phase_MR(time_GPS(t), multi_antenna_rf, pos_M(:,t), squeeze(pr1_R(:,t,:)), pr1_M(:,t), squeeze(pr2_R(:,t,:)), pr2_M(:,t), squeeze(ph1_R(:,t,:)), ph1_M(:,t), squeeze(ph2_R(:,t,:)), ph2_M(:,t), squeeze(snr_R(:,t,:)), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR);
         
         if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');

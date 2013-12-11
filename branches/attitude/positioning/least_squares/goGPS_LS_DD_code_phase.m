@@ -85,35 +85,43 @@ distM = zeros(nSatTot,1);
 %--------------------------------------------------------------------------------------------
 
 if (length(phase) == 2)
-    sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & ...
-        (pr2_R ~= 0) & (pr2_M ~= 0) );
+    sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) & ...
+                   (pr2_R ~= 0) & (pr2_M ~= 0) );
+    sat    = find( (ph1_R ~= 0) & (ph1_M ~= 0) & ...
+                   (ph2_R ~= 0) & (ph2_M ~= 0) );
 else
     if (phase == 1)
-        sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
+        sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
+        sat    = find( (ph1_R ~= 0) & (ph1_M ~= 0) );
     else
-        sat = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
+        sat_pr = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
+        sat    = find( (ph2_R ~= 0) & (ph2_M ~= 0) );
     end
 end
+sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
+sat = sat(ismember(sat, Eph(30,:)));
 
 N1 = zeros(nSatTot,1);
 N2 = zeros(nSatTot,1);
 Z_om_1 = zeros(o1-1,1);
 sigma2_N = zeros(nN,1);
 
-if (size(sat,1) >= 4)
+if (size(sat_pr,1) >= 4)
+    
+    sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [],  [], sat,   lambda(sat,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
-        if (length(sat_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], [], XS, dtS, sat_M, lambda(sat_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM, [],  [], sat_pr,   lambda(sat_pr,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
+        if (length(sat_pr_M) < 4); return; end
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], [], XS, dtS, sat_pr_M, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [],  [], sat,   lambda(sat,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
-        if (length(sat_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], [], XS, dtS, sat_M, lambda(sat_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM, [],  [], sat_pr,   lambda(sat_pr,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
+        if (length(sat_pr_M) < 4); return; end
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], [], XS, dtS, sat_pr_M, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
     end
     
     %keep only satellites that rover and master have in common
-    [sat, iR, iM] = intersect(sat_R, sat_M);
+    [sat_pr, iR, iM] = intersect(sat_pr_R, sat_pr_M);
     XS = XS(iR,:);
     if (~isempty(err_tropo_R))
         err_tropo_R = err_tropo_R(iR);
@@ -122,13 +130,18 @@ if (size(sat,1) >= 4)
         err_iono_M  = err_iono_M (iM);
     end
     
+    %apply cutoffs also to phase satellites
+    sat_removed = setdiff(sat_pr_old, sat_pr);
+    sat(ismember(sat,sat_removed)) = [];
+    
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
     %--------------------------------------------------------------------------------------------
     
     %satellite configuration
     conf_sat = zeros(nSatTot,1);
-    conf_sat(sat,1) = +1;
+    conf_sat(sat_pr,1) = -1;
+    conf_sat(sat,1)    = +1;
     
     %no cycle-slips when working with code only
     conf_cs = zeros(nSatTot,1);
