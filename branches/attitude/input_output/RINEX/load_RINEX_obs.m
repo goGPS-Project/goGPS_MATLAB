@@ -59,8 +59,8 @@ else
     wait_dlg_PresenceFlag = true;
 end
 
-if (isempty(constellations)) %then use only GPS as default
-    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+if (nargin < 2 || isempty(constellations)) %then use only GPS as default
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
 
 %number of satellite slots for enabled constellations
