@@ -496,11 +496,13 @@ while flag
                 fclose(fid_dyn{r});
             end
             
-            fid_rover{r}  = fopen([filerootOUT '_rover_'  hour_str '.bin'],'w+');
-            fid_obs{r}    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
-            fid_eph{r}    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
+            recname = [prot_par{r}{1,1} num2str(r)];
+            
+            fid_rover{r}  = fopen([filerootOUT '_' recname '_rover_'  hour_str '.bin'],'w+');
+            fid_obs{r}    = fopen([filerootOUT '_' recname '_obs_'    hour_str '.bin'],'w+');
+            fid_eph{r}    = fopen([filerootOUT '_' recname '_eph_'    hour_str '.bin'],'w+');
             if (flag_var_dyn_model) || (flag_stopGOstop)
-                fid_dyn{r}    = fopen([filerootOUT '_dyn_'    hour_str '.bin'],'w+'); %#ok<AGROW>
+                fid_dyn{r}    = fopen([filerootOUT '_' recname '_dyn_'    hour_str '.bin'],'w+'); %#ok<AGROW>
             end
             
             %write number of satellites
@@ -955,9 +957,9 @@ if (nrec == 1)
             r = nrec;
             recname = [prot_par{r}{1,1} num2str(r)];
             if (~isunix)
-                gui_decode_stream([filerootOUT '_' recname '_rover_00.bin'], [filerootOUT '_' recname], constellations);
+                gui_decode_stream([filerootOUT '_' recname], constellations);
             else
-                gui_decode_stream_unix([filerootOUT '_' recname '_rover_00.bin'], [filerootOUT '_' recname], constellations);
+                gui_decode_stream_unix([filerootOUT '_' recname], constellations);
             end
     end
 end

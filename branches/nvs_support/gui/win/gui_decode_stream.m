@@ -95,14 +95,12 @@ position(2) = (screenSize(4)-position(4))/2;
 set(hObject, 'Position', position);
 if (~isempty(varargin))
     set(handles.data_stream,'String',varargin{1});
+    temp = varargin{1};
+    temp = temp(max(strfind(temp, '/'))+1:end);
+    set(handles.data_out_name,'String',temp);
+    clear temp
     if (numel(varargin) > 1)
-        temp = varargin{2};
-        temp = temp(max(strfind(temp, '/'))+1:end);
-        set(handles.data_out_name,'String',temp);
-        clear temp
-    end
-    if (numel(varargin) > 2)
-        constellations = varargin{3};
+        constellations = varargin{2};
         set(handles.cGPS, 'Value', constellations.GPS.enabled);
         set(handles.cGLONASS, 'Value', constellations.GLONASS.enabled);
         set(handles.cGalileo, 'Value', constellations.Galileo.enabled);
