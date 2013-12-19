@@ -15,7 +15,7 @@ function [sow] = weektime2tow(week, time)
 %   GPS time in week, seconds-of-week.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

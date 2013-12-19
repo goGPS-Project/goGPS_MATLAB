@@ -16,7 +16,7 @@ function streams2goGPSbin(filerootIN, filerootOUT, wait_dlg)
 %   files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -157,15 +157,15 @@ j = length(filerootOUT);
 while (~isempty(dir([filerootOUT '_obs*.bin'])) | ...
         ~isempty(dir([filerootOUT '_eph*.bin'])) )
     
-    filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
+    filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
     i = i + 1;
 end
 
 %open output files
-fid_obs = fopen([filerootOUT '_obs_000.bin'],'w+');
+fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 fwrite(fid_obs, nSatTot, 'int8');
 if (~isempty(EphAvailable))
-    fid_eph = fopen([filerootOUT '_eph_000.bin'],'w+');
+    fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
     fwrite(fid_eph, nSatTot, 'int8');
 end
 
@@ -190,7 +190,7 @@ for t = 1 : length(time_GPS)
     if (floor(t/3600) > hour)
         
         hour = floor(t/3600);
-        hour_str = num2str(hour,'%03d');
+        hour_str = num2str(hour,'%02d');
         
         fclose(fid_obs);
         if (~isempty(EphAvailable))

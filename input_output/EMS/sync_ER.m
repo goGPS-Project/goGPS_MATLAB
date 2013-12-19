@@ -16,7 +16,7 @@ function [sync_data] = sync_ER(data_E, time_E, week_R, time_R)
 %   Tool for synchronizing EGNOS data with the rover observations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

@@ -22,7 +22,7 @@ function [dx_E, dy_E, dz_E, doffset_E, iode_E, GPS_time25] = load_ltc(iodp_mask,
 %   Load the long term corrections (LTC).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

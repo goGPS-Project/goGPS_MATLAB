@@ -20,7 +20,7 @@ function [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, s
 %   Klobuchar model or SBAS ionosphere interpolation.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

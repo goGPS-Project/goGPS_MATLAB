@@ -11,7 +11,7 @@ function goGPS_master_monitor(filerootOUT, flag_NTRIP)
 %   Master station monitor: stream reading, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -40,27 +40,15 @@ global server_delay
 %------------------------------------------------------
 
 num_sat = 32;
+
 Eph = zeros(33,num_sat);
-
-%counter for creating hourly files
-hour = 0;
-
-%do not overwrite existing files
-i = 1;
-j = length(filerootOUT);
-while (~isempty(dir([filerootOUT '_obs*.bin'])) || ...
-        ~isempty(dir([filerootOUT '_eph*.bin'])) )
-    
-    filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
-    i = i + 1;
-end
 
 %------------------------------------------------------
 % data file creation
 %------------------------------------------------------
 
 %master binary stream (uint8)
-fid_master = fopen([filerootOUT '_master_000.bin'],'w+');
+fid_master = fopen([filerootOUT '_master_00.bin'],'w+');
 
 %input observations
 %  time_GPS --> double, [1,1]   --> zeros(1,1)
@@ -72,12 +60,12 @@ fid_master = fopen([filerootOUT '_master_000.bin'],'w+');
 %  ph_R     --> double, [num_sat,1]  --> zeros(num_sat,1)
 %  snr_M    --> double, [num_sat,1]
 %  snr_R    --> double, [num_sat,1]  --> zeros(num_sat,1)
-fid_obs = fopen([filerootOUT '_obs_000.bin'],'w+');
+fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  timeGPS  --> double, [1,1]   --> zeros(1,1)
 %  Eph      --> double, [33,num_sat]
-fid_eph = fopen([filerootOUT '_eph_000.bin'],'w+');
+fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %write number of satellites
 fwrite(fid_obs, num_sat, 'int8');
@@ -121,7 +109,7 @@ master_1 = 0;
 master_2 = 0;
 
 %starting epoch determination
-while (master_1 ~= master_2) || (master_1 == 0)
+while (master_1 ~= master_2) | (master_1 == 0)
 
     %starting time
     current_time = toc;
@@ -169,38 +157,11 @@ setappdata(gcf, 'run', flag);
 %nmea flag
 nmea_sent = 0;
 
-%waiting time
-waiting_time_start = toc;
-
-%approximate message rate
-approx_msg_rate = 1;
-
 %infinite loop
 while flag
-    
+
     %time reading
     current_time = toc;
-
-    %-------------------------------------
-    % hourly files
-    %-------------------------------------
-    if (floor(current_time/3600) > hour)
-        
-        hour = floor(current_time/3600);
-        hour_str = num2str(hour,'%03d');
-        
-        fclose(fid_master);
-        fclose(fid_obs);
-        fclose(fid_eph);
-        
-        fid_master = fopen([filerootOUT '_master_'  hour_str '.bin'],'w+');
-        fid_obs    = fopen([filerootOUT '_obs_'    hour_str '.bin'],'w+');
-        fid_eph    = fopen([filerootOUT '_eph_'    hour_str '.bin'],'w+');
-        
-        %write number of satellites
-        fwrite(fid_obs, num_sat, 'int8');
-        fwrite(fid_eph, num_sat, 'int8');
-    end
 
     %TCP/IP port checking
     master_1 = get(master,'BytesAvailable');
@@ -208,13 +169,7 @@ while flag
     master_2 = get(master,'BytesAvailable');
 
     %test if the package writing is finished
-    if (master_1 == master_2) && (master_1 ~= 0)
-        
-        %approximate message rate
-        approx_msg_rate = max([1 round(current_time - waiting_time_start)]);
-        
-        %reset waiting time start
-        waiting_time_start = current_time;
+    if (master_1 == master_2) & (master_1 ~= 0)
 
         data_master = fread(master,master_1,'uint8');     %TCP/IP port reading
         fwrite(fid_master,data_master,'uint8');           %transmitted stream saving
@@ -345,7 +300,7 @@ while flag
             fprintf('master: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, master_1, master_2);
             fprintf('MSG types: %s\n', type);
 
-            if ((n18L1 > 0 || n18L2 > 0) && n19CA > 0)
+            if ((n18L1 > 0 | n18L2 > 0) & n19CA > 0)
                 sat_pr = find(pr1_M ~= 0);
                 sat_ph = find(ph1_M ~= 0);
                 sat1 = union(sat_pr,sat_ph);
@@ -562,7 +517,7 @@ while flag
                 end
             end
             
-            if (t > 0) && (any(pos_M))
+            if (t > 0) & (pos_M ~= 0)
                 %data save
                 fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(num_sat,1); ph1_M; zeros(num_sat,1); zeros(num_sat,1); snr1_M; zeros(num_sat,1); pos_M(:,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [0; Eph(:)], 'double');
@@ -716,7 +671,7 @@ while flag
         end
 
         %send a new NMEA string
-        if (flag_NTRIP) && (mod(current_time-start_time,nmea_update_rate) < 1)
+        if (flag_NTRIP) & (mod(current_time-start_time,nmea_update_rate) < 1)
             if (nmea_sent == 0)
                 nmea_update = sprintf('%s\r\n',nmea_init);
                 fwrite(master,nmea_update);
@@ -724,37 +679,6 @@ while flag
             end
         else
             nmea_sent = 0;
-        end
-    else
-        %check waiting time
-        waiting_time = current_time - waiting_time_start;
-        
-        if (waiting_time > 10*approx_msg_rate)
-            
-            %display message
-            fprintf('Not receiving data. Reconnecting... ');
-
-            %close master connection
-            fclose(master);
-            
-            master = tcpip(master_ip,master_port);
-            set(master,'InputBufferSize', 16384);
-            fopen(master);
-            
-            if (flag_NTRIP)
-                ntripstring = NTRIP_string_generator(nmea_init);
-                %fprintf('NTRIP request [%s]',ntripstring);
-                fwrite(master,ntripstring);
-            end
-            
-            %wait until the buffer writing is started before continuing
-            while get(master,'BytesAvailable') == 0, end;
-            
-            %reset waiting time start
-            waiting_time_start = current_time;
-            
-            %display message
-            fprintf('done.\n');
         end
     end
 

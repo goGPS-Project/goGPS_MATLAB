@@ -21,7 +21,7 @@ function [table, nodes] = polyline_arcsClustering (dat_filename, cov_filename, f
 %   Classify data belonging to each arc.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

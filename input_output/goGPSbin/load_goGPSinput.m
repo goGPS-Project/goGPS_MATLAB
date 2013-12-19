@@ -31,7 +31,7 @@ function [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, ...
 %   Kalman filter input data reading.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ num_sat = 32;
 %observations reading
 i = 0;                                                              %epoch counter
 hour = 0;                                                           %hour index (integer)
-hour_str = num2str(hour,'%03d');                                    %hour index (string)
+hour_str = num2str(hour,'%02d');                                    %hour index (string)
 d = dir([fileroot '_obs_' hour_str '.bin']);                        %file to be read
 while ~isempty(d)
     fprintf(['Reading: ' fileroot '_obs_' hour_str '.bin\n']);
@@ -112,7 +112,7 @@ while ~isempty(d)
         iono(:,i)     = buf_obs(j + [4+7*num_sat+4:4+7*num_sat+11]);
     end
     hour = hour+1;                                                  %hour increase
-    hour_str = num2str(hour,'%03d');                                %conversion into a string
+    hour_str = num2str(hour,'%02d');                                %conversion into a string
     d = dir([fileroot '_obs_' hour_str '.bin']);                    %file to be read
 end
 
@@ -125,7 +125,7 @@ num_eph = 33;
 %read ephemerides
 i = 0;                                                              %epoch counter
 hour = 0;                                                           %hour index (integer)
-hour_str = num2str(hour,'%03d');                                    %hour index (string)
+hour_str = num2str(hour,'%02d');                                    %hour index (string)
 d = dir([fileroot '_eph_' hour_str '.bin']);                        %file to be read
 if isempty(d)
     Eph = zeros(num_eph,num_sat,length(time_GPS(:,1)));
@@ -147,7 +147,7 @@ while ~isempty(d)
                              [num_eph,num_sat]);                    %ephemerides concatenation
     end
     hour = hour+1;                                                  %hour increase
-    hour_str = num2str(hour,'%03d');                                %conversion into a string
+    hour_str = num2str(hour,'%02d');                                %conversion into a string
     d = dir([fileroot '_eph_' hour_str '.bin']);                    %file to be read
 end
 

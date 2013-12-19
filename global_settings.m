@@ -5,7 +5,7 @@
 %   User-defined global settings.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -55,7 +55,7 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
        ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
        ~isempty(dir([filerootOUT '.kml'])) )
 
-   filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
+   filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
    i = i + 1;
 end
 

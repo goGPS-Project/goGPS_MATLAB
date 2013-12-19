@@ -17,7 +17,7 @@ function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, 
 %   output data saving (observations).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
@@ -62,10 +62,10 @@ end
 %------------------------------------------------------
 
 %master binary stream (uint8)
-fid_master = fopen([filerootOUT '_master_000.bin'],'w+');
+fid_master = fopen([filerootOUT '_master_00.bin'],'w+');
 
 %rover binary stream (uint8)
-fid_rover = fopen([filerootOUT '_rover_000.bin'],'w+');
+fid_rover = fopen([filerootOUT '_rover_00.bin'],'w+');
 
 %input observations (master & rover)
 %  time_GPS --> double, [1,1]
@@ -81,12 +81,12 @@ fid_rover = fopen([filerootOUT '_rover_000.bin'],'w+');
 %  XM       --> double, [1,1]
 %  YM       --> double, [1,1]
 %  ZM       --> double, [1,1]
-fid_obs = fopen([filerootOUT '_obs_000.bin'],'w+');
+fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  time_GPS --> double, [1,1]
 %  Eph      --> double, [33,nSatTot]
-fid_eph = fopen([filerootOUT '_eph_000.bin'],'w+');
+fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %write number of satellites
 fwrite(fid_obs, nSatTot, 'int8');
@@ -100,7 +100,7 @@ if (flag_var_dyn_model) | (flag_stopGOstop)
     %  sigmaq_vU  --> double, [1,1] - not used
     %  sigmaq0    --> double, [1,1] - not used
     %  sigmaq0_N  --> double, [1,1] - not used
-    fid_dyn = fopen([filerootOUT '_dyn_000.bin'],'w+');
+    fid_dyn = fopen([filerootOUT '_dyn_00.bin'],'w+');
 end
 %nmea sentences
 fid_nmea = fopen([filerootOUT '_', prot_par{1,1},'_NMEA.txt'],'wt');
@@ -626,7 +626,7 @@ while flag
     if (floor(t/3600) > hour)
 
         hour = floor(t/3600);
-        hour_str = num2str(hour,'%03d');
+        hour_str = num2str(hour,'%02d');
 
         fclose(fid_master);
         fclose(fid_rover);

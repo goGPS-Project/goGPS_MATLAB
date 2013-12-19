@@ -31,7 +31,7 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection(N_kalman, ...
 %   the new phase ambiguities.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

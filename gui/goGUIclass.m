@@ -1,5 +1,5 @@
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -2841,7 +2841,7 @@ classdef goGUIclass < handle
                         
             if obj.isPostProc()
                 %check if the dataset was surveyed with a variable dynamic model
-                d = dir([filerootIN '_dyn_000.bin']);
+                d = dir([filerootIN '_dyn_00.bin']);
                 if (obj.isPostProc && (flag_stopGOstop || strcmp(contents_dyn_mod{get(obj.goh.dyn_mod,'Value')},'Variable')) && isempty(d))
                     msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
                 end

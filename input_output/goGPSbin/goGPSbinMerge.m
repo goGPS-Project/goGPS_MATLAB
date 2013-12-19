@@ -16,7 +16,7 @@ function goGPSbinMerge(filerootR, filerootM, filerootOUT, wait_dlg)
 %   *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -126,13 +126,13 @@ if ~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootM '_obs_*'])) ...
     while (~isempty(dir([filerootOUT '_obs*.bin'])) | ...
             ~isempty(dir([filerootOUT '_eph*.bin'])) )
         
-        filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
+        filerootOUT(j+1:j+3) = ['_' num2str(i,'%02d')];
         i = i + 1;
     end
     
     %open output files
-    fid_obs = fopen([filerootOUT '_obs_000.bin'],'w+');
-    fid_eph = fopen([filerootOUT '_eph_000.bin'],'w+');
+    fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
+    fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
     
     %write number of satellites
     fwrite(fid_obs, num_sat, 'int8');
@@ -159,7 +159,7 @@ if ~isempty(dir([filerootR '_obs_*'])) & ~isempty(dir([filerootM '_obs_*'])) ...
         if (floor(t/3600) > hour)
             
             hour = floor(t/3600);
-            hour_str = num2str(hour,'%03d');
+            hour_str = num2str(hour,'%02d');
             
             fclose(fid_obs);
             fclose(fid_eph);

@@ -38,7 +38,7 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
 %   positioning, plotting, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %
@@ -91,10 +91,10 @@ end
 %------------------------------------------------------
 
 %master binary stream (uint8)
-fid_master = fopen([filerootOUT '_master_000.bin'],'w+');
+fid_master = fopen([filerootOUT '_master_00.bin'],'w+');
 
 %rover binary stream (uint8)
-fid_rover = fopen([filerootOUT '_rover_000.bin'],'w+');
+fid_rover = fopen([filerootOUT '_rover_00.bin'],'w+');
 
 %input observations (master & rover)
 %  time_GPS --> double, [1,1]
@@ -110,12 +110,12 @@ fid_rover = fopen([filerootOUT '_rover_000.bin'],'w+');
 %  XM       --> double, [1,1]
 %  YM       --> double, [1,1]
 %  ZM       --> double, [1,1]
-fid_obs = fopen([filerootOUT '_obs_000.bin'],'w+');
+fid_obs = fopen([filerootOUT '_obs_00.bin'],'w+');
 
 %input ephemerides
 %  time_GPS --> double, [1,1]
 %  Eph      --> double, [33,32]
-fid_eph = fopen([filerootOUT '_eph_000.bin'],'w+');
+fid_eph = fopen([filerootOUT '_eph_00.bin'],'w+');
 
 %write number of satellites
 fwrite(fid_obs, nSatTot, 'int8');
@@ -129,7 +129,7 @@ fwrite(fid_eph, nSatTot, 'int8');
 %  Xhat_t_t --> double, [o1+nN,1]
 %  Yhat_t_t --> double, [3,1]
 %  Cee      --> double, [o1+nN,o1+nN]
-fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+fid_kal = fopen([filerootOUT '_kal_00.bin'],'w+');
 
 %satellite azimuth, elevation and distance
 %  azM   --> double, [32,1]
@@ -138,7 +138,7 @@ fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
 %  elR   --> double, [32,1]
 %  distM --> double, [32,1]
 %  distR --> double, [32,1]
-fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+fid_sat = fopen([filerootOUT '_sat_00.bin'],'w+');
 fwrite(fid_sat, nSatTot, 'int8');
 
 %dilution of precision
@@ -148,7 +148,7 @@ fwrite(fid_sat, nSatTot, 'int8');
 %  KPDOP    --> double, [1,1]
 %  KHDOP    --> double, [1,1]
 %  KVDOP    --> double, [1,1]
-fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+fid_dop = fopen([filerootOUT '_dop_00.bin'],'w+');
 
 if (flag_var_dyn_model) | (flag_stopGOstop)
     %dynamical model
@@ -158,14 +158,14 @@ if (flag_var_dyn_model) | (flag_stopGOstop)
     %  sigmaq_vU  --> double, [1,1] - not used
     %  sigmaq0    --> double, [1,1] - not used
     %  sigmaq0_N  --> double, [1,1] - not used
-    fid_dyn = fopen([filerootOUT '_dyn_000.bin'],'w+');
+    fid_dyn = fopen([filerootOUT '_dyn_00.bin'],'w+');
 end
 
 %satellite configuration
 %  conf_sat --> int8, [32,1]
 %  conf_cs  --> int8, [32,1]
 %  pivot    --> int8, [1,1]
-fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
+fid_conf = fopen([filerootOUT '_conf_00.bin'],'w+');
 fwrite(fid_conf, nSatTot, 'int8');
 
 %nmea sentences 
@@ -726,7 +726,7 @@ while flag
     if (floor(t/3600) > hour)
 
         hour = floor(t/3600);
-        hour_str = num2str(hour,'%03d');
+        hour_str = num2str(hour,'%02d');
 
         fclose(fid_master);
         fclose(fid_rover);

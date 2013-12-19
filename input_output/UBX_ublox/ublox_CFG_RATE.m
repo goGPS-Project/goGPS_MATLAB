@@ -16,7 +16,7 @@ function [out] = ublox_CFG_RATE(serialObj, measRate, navRate, timeRef)
 %   Set the u-blox navigation/measurement rates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

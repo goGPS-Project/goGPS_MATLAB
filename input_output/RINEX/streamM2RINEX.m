@@ -14,7 +14,7 @@ function streamM2RINEX(fileroot, filename, week, wait_dlg)
 %   File conversion from master stream (RTCM 3.x) to RINEX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -43,7 +43,7 @@ three_digit_exp = (length(sprintf('%1.1E',1)) == 8);
 %MASTER stream reading
 data_master_all = [];                                                %overall stream
 hour = 0;                                                            %hour index (integer)
-hour_str = num2str(hour,'%03d');                                     %hour index (string)
+hour_str = num2str(hour,'%02d');                                     %hour index (string)
 d = dir([fileroot '_master_' hour_str '.bin']);                      %file to be read
 while ~isempty(d)
     if (nargin == 3)
@@ -58,7 +58,7 @@ while ~isempty(d)
     fclose(fid_master);                                              %file closing
     data_master_all = [data_master_all data_master];                 %stream concatenation
     hour = hour+1;                                                   %hour increase
-    hour_str = num2str(hour,'%03d');
+    hour_str = num2str(hour,'%02d');
     d = dir([fileroot '_master_' hour_str '.bin']);                  %file to be read
 end
 

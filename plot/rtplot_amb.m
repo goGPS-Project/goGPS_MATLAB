@@ -14,7 +14,7 @@ function rtplot_amb (t, delta, stima_amb, sigma_amb, cs)
 %   Real-time plot of ambiguities.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

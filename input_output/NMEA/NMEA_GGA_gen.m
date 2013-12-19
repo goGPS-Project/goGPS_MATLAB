@@ -17,7 +17,7 @@ function nmeastring = NMEA_GGA_gen(pos_R, nsat, time, HDOP, mode)
 %   Returns a $GPGGA sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.1 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
