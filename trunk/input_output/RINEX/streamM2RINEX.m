@@ -144,6 +144,7 @@ if (~isempty(data_master_all))
         time_M_old = -1;
         flag_no_obs = 1;
         week_M = ones(Ncell,1)*week;
+        week_cycle = 0;
         for j = 1 : Ncell
             if (nargin == 4)
                 waitbar(j/Ncell,wait_dlg)
@@ -167,9 +168,10 @@ if (~isempty(data_master_all))
                 end
                 
                 if (time_M(i) < time_M_old)
-                    week_M(i) = week_M(i) + 1;
+                    week_cycle = week_cycle + 1;
                 end
                 
+                week_M(i) = week_M(i) + week_cycle;
                 time_M_old = time_M(i);
                 
             elseif (cell_master{1,j} == 1004)                 %RTCM 1004 message
@@ -195,9 +197,10 @@ if (~isempty(data_master_all))
                 end
                 
                 if (time_M(i) < time_M_old)
-                    week_M(i) = week_M(i) + 1;
+                    week_cycle = week_cycle + 1;
                 end
                 
+                week_M(i) = week_M(i) + week_cycle;
                 time_M_old = time_M(i);
                 
             elseif ((cell_master{1,j} == 1005) | (cell_master{1,j} == 1006)) & (pos_M == 0)
