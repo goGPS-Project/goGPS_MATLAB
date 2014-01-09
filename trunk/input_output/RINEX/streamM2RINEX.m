@@ -159,6 +159,13 @@ if (~isempty(data_master_all))
                 ph1_M(:,i)  = cell_master{3,j}(:,3);          %phase observations logging
                 snr1_M(:,i) = cell_master{3,j}(:,5);          %signal-to-noise ratio logging
                 
+                if (time_M(i) < time_M_old)
+                    week_cycle = week_cycle + 1;
+                end
+                
+                week_M(i) = week_M(i) + week_cycle;
+                time_M_old = time_M(i);
+                
                 i = i+1;                                      %epoch counter increase
                 
                 if (cell_master{3,j}(:,1) == 0)
@@ -166,13 +173,6 @@ if (~isempty(data_master_all))
                 else
                     code_type = 'P1';
                 end
-                
-                if (time_M(i) < time_M_old)
-                    week_cycle = week_cycle + 1;
-                end
-                
-                week_M(i) = week_M(i) + week_cycle;
-                time_M_old = time_M(i);
                 
             elseif (cell_master{1,j} == 1004)                 %RTCM 1004 message
                 
@@ -188,6 +188,13 @@ if (~isempty(data_master_all))
                 
                 flag_L2 = 1;
                 
+                if (time_M(i) < time_M_old)
+                    week_cycle = week_cycle + 1;
+                end
+                
+                week_M(i) = week_M(i) + week_cycle;
+                time_M_old = time_M(i);
+                
                 i = i+1;
                 
                 if (cell_master{3,j}(:,1) == 0)
@@ -195,13 +202,6 @@ if (~isempty(data_master_all))
                 else
                     code_type = 'P1';
                 end
-                
-                if (time_M(i) < time_M_old)
-                    week_cycle = week_cycle + 1;
-                end
-                
-                week_M(i) = week_M(i) + week_cycle;
-                time_M_old = time_M(i);
                 
             elseif ((cell_master{1,j} == 1005) | (cell_master{1,j} == 1006)) & (pos_M == 0)
                 
