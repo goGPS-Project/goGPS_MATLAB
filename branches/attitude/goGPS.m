@@ -1568,6 +1568,90 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
     fclose(fid_sat);
     fclose(fid_dop);
     fclose(fid_conf);
+    
+%----------------------------------------------------------------------------------------------
+% POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE (MULTI-RECEIVER, AVERAGE)
+%----------------------------------------------------------------------------------------------
+
+elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
+
+    fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
+    fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+    fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+    fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
+
+    nN = nSatTot;
+    check_on = 0;
+    check_off = 0;
+    check_pivot = 0;
+    check_cs = 0;
+    
+    plot_t = 1;
+
+    %goWaitBar
+    goWB = goWaitBar(length(time_GPS));
+    goWB.titleUpdate('Processing...');
+    
+    for t = 1 : length(time_GPS)
+
+        if (mode_data == 0)
+            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+        else
+            Eph_t = Eph(:,:,t);
+        end
+        
+        sbas_t = find_sbas(sbas, t);
+        
+        goGPS_LS_SA_code_MR(time_GPS(t), squeeze(pr1_R(:,t,:)), squeeze(pr2_R(:,t,:)), squeeze(snr_R(:,t,:)), Eph_t, SP3, iono, sbas_t, lambda, 1);
+        
+        if (t == 1)
+            fwrite(fid_sat, nSatTot, 'int8');
+            fwrite(fid_conf, nSatTot, 'int8');
+        end
+        
+        if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
+            Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
+            Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
+            fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
+            fwrite(fid_sat, [zeros(nSatTot,1); azR(:,1); zeros(nSatTot,1); elR(:,1); zeros(nSatTot,1); distR(:,1)], 'double');
+            fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
+            fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+            
+            if (flag_plotproc)
+                if (t == 1), goWB.shiftDown(); end
+                if (flag_cov == 0)
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                    rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                else
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+                end
+                if (flag_skyplot == 1)
+                    rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    rtplot_snr (snr_R(:,t), Eph_t, SP3);
+                else
+                    rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
+                end
+                plot_t = plot_t + 1;
+                pause(0.01);
+            end
+        else
+            unused_epochs(t) = 1;
+        end
+        
+        if ((t == 1) && (~flag_plotproc))
+            fprintf('Processing...\n');
+        end
+        
+        goWB.goTime(t);
+    end
+    
+    goWB.close();
+
+    fclose(fid_kal);
+    fclose(fid_sat);
+    fclose(fid_dop);
+    fclose(fid_conf);
 
 %--------------------------------------------------------------------------------------------------------------------
 % POST-PROCESSING (RELATIVE POSITIONING): KALMAN FILTER ON CODE AND PHASE DOUBLE DIFFERENCES WITHOUT LINE CONSTRAINT
