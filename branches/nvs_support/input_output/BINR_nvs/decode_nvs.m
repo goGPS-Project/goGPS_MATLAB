@@ -38,8 +38,6 @@ function [data] = decode_nvs(msg, constellations, wait_dlg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-warning off
-
 if (nargin < 2 || isempty(constellations))
     [constellations] = goGNSS.initConstellation(1, 1, 0, 0, 0, 0);
 end
@@ -48,30 +46,57 @@ end
 data = cell(0);
 
 %----------------------------------------------------------------------------------------------
-% NVS MESSAGE HEADER
+% NVS MESSAGE HEADER(s)
 %----------------------------------------------------------------------------------------------
 
-codeHEX = '10';                          % <DLE> header (hexadecimal value)
-codeBIN = dec2bin(hex2dec(codeHEX),8);   % <DLE> header (binary value)
+header1 = '10';      % header (hexadecimal value)
+header2 = 'F5';      % header (hexadecimal value)
 
-pos_all = findstr(msg, codeBIN);          % key sequence initial indexes
+codeHEX = [header1 header2];              % initial hexadecimal stream
+codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
 
-pos = 1;
+pos_F5 = strfind(msg, codeBIN);          % message initial index
 
-for i = 1 : length(pos_all)
-    next_byte = dec2hex(bin2dec(msg(pos_all(i)+7)));
-    if (strcmp(next_byte,'F5') || ...
-        strcmp(next_byte,'F7') || ...
-        strcmp(next_byte,'4A') || ...
-        strcmp(next_byte,'62'))
-        
-        pos = pos_all(i);
-        
-        break
-    end
-end
+header1 = '10';      % header (hexadecimal value)
+header2 = 'F6';      % header (hexadecimal value)
 
-codeBIN_HDR = codeBIN;
+codeHEX = [header1 header2];              % initial hexadecimal stream
+codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
+
+pos_F6 = strfind(msg, codeBIN);          % message initial index
+
+header1 = '10';      % header (hexadecimal value)
+header2 = 'F7';      % header (hexadecimal value)
+
+codeHEX = [header1 header2];              % initial hexadecimal stream
+codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
+
+pos_F7 = strfind(msg, codeBIN);          % message initial index
+
+header1 = '10';      % header (hexadecimal value)
+header2 = '4A';      % header (hexadecimal value)
+
+codeHEX = [header1 header2];              % initial hexadecimal stream
+codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
+
+pos_4A = strfind(msg, codeBIN);          % message initial index
+
+header1 = '10';      % header (hexadecimal value)
+header2 = '62';      % header (hexadecimal value)
+
+codeHEX = [header1 header2];              % initial hexadecimal stream
+codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
+
+pos_62 = strfind(msg, codeBIN);          % message initial index
+
+pos_all = union(pos_F5, pos_F6);
+pos_all = union(pos_all, pos_F7);
+pos_all = union(pos_all, pos_4A);
+pos_all = union(pos_all, pos_62);
+
+pos = pos_all(1);
+
+codeBIN_HDR = codeBIN(1:8);
 
 %----------------------------------------------------------------------------------------------
 % NVS MESSAGE FOOTER
@@ -83,7 +108,7 @@ header2 = '03';      % header (hexadecimal value)
 codeHEX = [header1 header2];              % initial hexadecimal stream
 codeBIN = dec2bin(hex2dec(codeHEX),16);   % initial binary stream
 
-pos_FTR = findstr(msg, codeBIN);          % message initial index
+pos_FTR = strfind(msg, codeBIN);          % message initial index
 
 i = 1;
 while (i <= length(pos_FTR) && pos_FTR(i)+23 <= length(msg))
@@ -122,7 +147,9 @@ while (pos + 7 < length(msg) && i <= length(pos_FTR))
         id = dec2hex(id,2);
         
         % position of the last bit of the data message (i.e. before <DLE><ETX>)
-        data_msg_end = pos_FTR(i) - 1;
+        %data_msg_end = pos_FTR(i) - 1;
+        data_msg_end = pos_FTR(find(pos_FTR>pos,1)) - 1;
+        if (isempty(data_msg_end)), break, end;
 
         % counter increment
         i = i + 1;
@@ -144,6 +171,7 @@ while (pos + 7 < length(msg) && i <= length(pos_FTR))
         % skip the 2 closing bytes (i.e. <DLE><ETX>)
         pos = pos + 16;
     else
-        break
+        pos = pos_all(find(pos_all>pos,1));
+        if (isempty(pos)), break, end;
     end
 end
