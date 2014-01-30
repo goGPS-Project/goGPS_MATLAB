@@ -169,10 +169,12 @@ QZS_flag = goIni.getData('Constellations','QZSS');
 SBS_flag = goIni.getData('Constellations','SBAS');
 [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 nSatTot = constellations.nEnabledSat;
+n_sys = sum([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag]);
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
     nSatTot = constellations.nEnabledSat;
+    n_sys = 1;
 end
 
 %initialization of global variables/constants
@@ -1924,7 +1926,7 @@ elseif (mode == goGNSS.MODE_RT_RM_MON)
 
 elseif (mode == goGNSS.MODE_RT_NAV)
 
-    goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
+    goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R, constellations);
 end
 
 if (goGNSS.isPP(mode)) %remove unused epochs from time_GPS (for LS modes)

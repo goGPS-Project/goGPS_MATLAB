@@ -905,16 +905,16 @@ while flag
             elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
                 
                 %u-blox fields
-                    if (protocol == 0)
-                        %ionosphere parameters
-                        iono(:, 1) = cell_rover{3,i}(9:16);
-                    end
-                    
-                    %NVS fields
-                    if (protocol == 3)
-                        %ionosphere parameters
-                        iono(:, 1) = cell_rover{2,i}(1:8);
-                    end
+                if (protocol == 0)
+                    %ionosphere parameters
+                    iono(:, 1) = cell_rover{3,i}(9:16);
+                end
+                
+                %NVS fields
+                if (protocol == 3)
+                    %ionosphere parameters
+                    iono(:, 1) = cell_rover{2,i}(1:8);
+                end
                 
                 if (nHUI == 0)
                     type = [type prot_par{3,2} ' '];
@@ -1032,7 +1032,7 @@ while flag
 
                 %time from the ephemerides reference epoch
                 if (conf_eph(i) == 0)
-                    time_eph = Eph(nSatTot,s);
+                    time_eph = Eph(32,s);
                     tk = check_t(time_GPS-time_eph);
                 end
 
@@ -1106,7 +1106,7 @@ while flag
             end
 
             if(is_rtcm2)
-                cell_master = [cell_master decode_rtcm2(sixofeight,time_GPS,constellations)]; %RTCM 2 decoding
+                cell_master = [cell_master decode_rtcm2(sixofeight,constellations,time_GPS)]; %RTCM 2 decoding
             else
                 cell_master = [cell_master decode_rtcm3(data_master,constellations)];         %RTCM 3 decoding and appending
             end
@@ -1260,8 +1260,12 @@ while flag
                     if (cell_master{1,i} == 1002 || cell_master{1,i} == 1004)
                         msg_time = round(cell_master{2,i}(2)); %GPS time-of-week
                     else
-                        d = weekday(now);
+                        curr_time = now;
+                        d = weekday(curr_time) - 1;
                         msg_time = d*86400 + round(cell_master{2,i}(2)); %from GLONASS time-of-day to GPS time-of-week
+                        msg_time = msg_time - 3*3600; %adjust the UTC-GLONASS time offset
+                        [~, leap_sec] = utc2gps(curr_time);
+                        msg_time = msg_time + leap_sec;
                     end
                     
                     %buffer index computation
@@ -1273,12 +1277,15 @@ while flag
                             index = time_GPS - round(cell_master{2,i}(2)) + 1;
                         end
                         
+                        %detect satellite indexes (for multi-GNSS)
+                        sat_idx = find(cell_master{3,i}(:,2) ~= 0);
+                        
                         %buffer writing
                         tick_M(index)  = 1;
                         time_M(index)  = cell_master{2,i}(2);
-                        pr_M(:,index)  = cell_master{3,i}(:,2);
-                        ph_M(:,index)  = cell_master{3,i}(:,3);
-                        snr_M(:,index) = cell_master{3,i}(:,5);
+                        pr_M(sat_idx,index)  = cell_master{3,i}(sat_idx,2);
+                        ph_M(sat_idx,index)  = cell_master{3,i}(sat_idx,3);
+                        snr_M(sat_idx,index) = cell_master{3,i}(sat_idx,5);
                         
                         %manage "nearly null" data
                         pos = abs(ph_M(:,index)) < 1e-100;

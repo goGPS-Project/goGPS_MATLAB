@@ -1,7 +1,7 @@
 function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
          flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, ...
          flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ...
-         ph2_M, ph2_R, dop2_M, dop2_R)
+         ph2_M, ph2_R, dop2_M, dop2_R, constellations)
 
 % SYNTAX:
 %   goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, 
@@ -14,7 +14,7 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
 %   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq, 3:NVS)
 %   mode_vinc   = constraint flag
 %   flag_ms     = plot master station flag
-%   flag_ge     =  google earth flag
+%   flag_ge     = google earth flag
 %   flag_cov    = plot error ellipse flag
 %   flag_NTRIP  = use/don't use NTRIP flag
 %   flag_ms_pos = use/don't use RTCM master position
@@ -32,6 +32,8 @@ function goGPS_realtime(filerootOUT, protocol, mode_vinc, flag_ms, flag_ge, ...
 %   ph2_R  = phase observation ROVER-SATELLITE (carrier L2)
 %   dop2_M = Doppler observation MASTER-SATELLITE (carrier L2)
 %   dop2_R = Doppler observation ROVER-SATELLITE (carrier L2)
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % DESCRIPTION:
 %   goGPS real-time algorithm: stream reading and synchronization,
@@ -73,7 +75,7 @@ if (flag_var_dyn_model) & (~flag_stopGOstop)
 end
 
 %number of satellites (only GPS for real-time processing)
-nSatTot = 32;
+nSatTot = constellations.nEnabledSat;
 
 %------------------------------------------------------
 % read protocol parameters
@@ -102,13 +104,13 @@ fid_rover = fopen([filerootOUT '_rover_000.bin'],'w+');
 %  time_GPS --> double, [1,1]
 %  time_M   --> double, [1,1]
 %  time_R   --> double, [1,1]
-%  pr_M     --> double, [32,1]
-%  pr_R     --> double, [32,1]
-%  ph_M     --> double, [32,1]
-%  ph_R     --> double, [32,1]
-%  dop_R    --> double, [32,1]
-%  snr_M    --> double, [32,1]
-%  snr_R    --> double, [32,1]
+%  pr_M     --> double, [nSatTot,1]
+%  pr_R     --> double, [nSatTot,1]
+%  ph_M     --> double, [nSatTot,1]
+%  ph_R     --> double, [nSatTot,1]
+%  dop_R    --> double, [nSatTot,1]
+%  snr_M    --> double, [nSatTot,1]
+%  snr_R    --> double, [nSatTot,1]
 %  XM       --> double, [1,1]
 %  YM       --> double, [1,1]
 %  ZM       --> double, [1,1]
@@ -116,7 +118,7 @@ fid_obs = fopen([filerootOUT '_obs_000.bin'],'w+');
 
 %input ephemerides
 %  time_GPS --> double, [1,1]
-%  Eph      --> double, [33,32]
+%  Eph      --> double, [33,nSatTot]
 fid_eph = fopen([filerootOUT '_eph_000.bin'],'w+');
 
 %write number of satellites
@@ -134,12 +136,12 @@ fwrite(fid_eph, nSatTot, 'int8');
 fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
 
 %satellite azimuth, elevation and distance
-%  azM   --> double, [32,1]
-%  azR   --> double, [32,1]
-%  elM   --> double, [32,1]
-%  elR   --> double, [32,1]
-%  distM --> double, [32,1]
-%  distR --> double, [32,1]
+%  azM   --> double, [nSatTot,1]
+%  azR   --> double, [nSatTot,1]
+%  elM   --> double, [nSatTot,1]
+%  elR   --> double, [nSatTot,1]
+%  distM --> double, [nSatTot,1]
+%  distR --> double, [nSatTot,1]
 fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
 fwrite(fid_sat, nSatTot, 'int8');
 
@@ -164,8 +166,8 @@ if (flag_var_dyn_model) | (flag_stopGOstop)
 end
 
 %satellite configuration
-%  conf_sat --> int8, [32,1]
-%  conf_cs  --> int8, [32,1]
+%  conf_sat --> int8, [nSatTot,1]
+%  conf_cs  --> int8, [nSatTot,1]
 %  pivot    --> int8, [1,1]
 fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
 fwrite(fid_conf, nSatTot, 'int8');
@@ -181,7 +183,7 @@ hour = 0;
 %------------------------------------------------------
 
 %number of unknown phase ambiguities
-nN = 32;
+nN = nSatTot;
 
 %ionosphere parameters
 iono = zeros(8,1);
@@ -239,6 +241,12 @@ delete([filerootOUT '_log.txt']);
 diary([filerootOUT '_log.txt']);
 diary on
 
+if (protocol == 3)
+    receiver_delay = 0.07;
+else
+    receiver_delay = 0.05;
+end
+
 %------------------------------------------------------
 % rover header package acquisition
 %------------------------------------------------------
@@ -259,8 +267,9 @@ while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
 
     %serial port check
     rover_1 = get(rover,'BytesAvailable');
-    pause(0.05);
+    pause(receiver_delay);
     rover_2 = get(rover,'BytesAvailable');
+    
     %visualization
     fprintf([prot_par{1,1},': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time, rover_1, rover_2);
 
@@ -279,9 +288,9 @@ fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
 fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 
 %pseudoranges
-pr_R = zeros(32,1);
+pr_R = zeros(nSatTot,1);
 %ephemerides
-Eph = zeros(33,32);
+Eph = zeros(33,nSatTot);
 %satellites with observations available
 satObs = [];
 nsatObs_old = [];
@@ -324,11 +333,12 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
 
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
-        pause(0.1);
+        pause(receiver_delay);
         rover_2 = get(rover,'BytesAvailable');
     end
 
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
+    if (protocol == 3), data_rover = remove_double_10h(data_rover); end
     fwrite(fid_rover,data_rover,'uint8');          %transmitted stream save
     data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
     data_rover = data_rover';                      %transpose (8bit x N matrix)
@@ -337,13 +347,13 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
     % -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
     if (protocol == 0)
-        [cell_rover] = decode_ublox(data_rover);
+        [cell_rover] = decode_ublox(data_rover, constellations);
     elseif (protocol == 1)
-        [cell_rover] = decode_fastrax_it03(data_rover);
+        [cell_rover] = decode_fastrax_it03(data_rover, constellations);
     elseif (protocol == 2)
-        [cell_rover] = decode_skytraq(data_rover);
+        [cell_rover] = decode_skytraq(data_rover, constellations);
     elseif (protocol == 3)
-        [cell_rover] = decode_nvs(data_rover);
+        [cell_rover] = decode_nvs(data_rover, constellations);
     end
 	
 	%for SkyTraq
@@ -352,7 +362,7 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
     %cell_rover
     for i = 1 : size(cell_rover,2)
 
-        %Timing/raw message data save (RXM-RAW | PSEUDO)
+        %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
         if (strcmp(cell_rover{1,i},prot_par{1,2}))
 
             %just information needed for basic positioning is saved
@@ -373,26 +383,34 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
                 pr_R = cell_rover{3,i}(:,3);
             end
             
-        %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
+        %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
         elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
-            %satellite number
-            sat = cell_rover{2,i}(1);
+            %satellite index
+            idx = cell_rover{2,i}(30);
 
-            if (~isempty(sat) & sat > 0)
-                Eph(:, sat) = cell_rover{2,i}(:);
-                weekno = Eph(24,sat);
-                Eph(32,sat) = weektime2tow(weekno,Eph(32,sat));
-                Eph(33,sat) = weektime2tow(weekno,Eph(33,sat));
+            if (~isempty(idx) && idx > 0)
+                Eph(:, idx) = cell_rover{2,i}(:);
+                weekno = Eph(24,idx);
+                Eph(32,idx) = weektime2tow(weekno,Eph(32,idx));
+                Eph(33,idx) = weektime2tow(weekno,Eph(33,idx));
             end
 
             
-        %Hui message data save (AID-HUI)
+        %Hui message data save (AID-HUI | 4Ah)
         elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
 
-            %ionosphere parameters
-            iono(:, 1) = cell_rover{3,i}(9:16);
-
+            %u-blox fields
+            if (protocol == 0)
+                %ionosphere parameters
+                iono(:, 1) = cell_rover{3,i}(9:16);
+            end
+            
+            %NVS fields
+            if (protocol == 3)
+                %ionosphere parameters
+                iono(:, 1) = cell_rover{2,i}(1:8);
+            end
         end
     end
 
@@ -400,7 +418,7 @@ while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
     satEph = find(sum(abs(Eph))~=0);
 
     %delete data if ephemerides are not available
-    delsat = setdiff(1:32,satEph);
+    delsat = setdiff(1:nSatTot,satEph);
     pr_R(delsat)  = 0;
 
     %satellites with observations available
@@ -452,7 +470,7 @@ while (~sync_rover)
         
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
-        pause(0.1);
+        pause(receiver_delay);
         rover_2 = get(rover,'BytesAvailable');
         
         %visualization
@@ -461,19 +479,20 @@ while (~sync_rover)
     end
     
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
+    if (protocol == 3), data_rover = remove_double_10h(data_rover); end
     data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
     data_rover = data_rover';                      %transpose (8bit x N matrix)
     data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
     
     %message decoding
     if (protocol == 0)
-        [cell_rover] = decode_ublox(data_rover);
+        [cell_rover] = decode_ublox(data_rover, constellations);
     elseif (protocol == 1)
-        [cell_rover] = decode_fastrax_it03(data_rover);
+        [cell_rover] = decode_fastrax_it03(data_rover, constellations);
     elseif (protocol == 2)
-        [cell_rover] = decode_skytraq(data_rover);
+        [cell_rover] = decode_skytraq(data_rover, constellations);
     elseif (protocol == 3)
-        [cell_rover] = decode_nvs(data_rover);
+        [cell_rover] = decode_nvs(data_rover, constellations);
     end
     
     for i = 1 : size(cell_rover,2)
@@ -564,13 +583,13 @@ tick_R = zeros(B,1);      % empty/full rover buffer
 time_M = zeros(B,1);      % master time buffer
 time_R = zeros(B,1);      % rover time buffer
 week_R = zeros(B,1);      % rover week buffer
-pr_M   = zeros(32,B);     % master code buffer
-pr_R   = zeros(32,B);     % rover code buffer
-ph_M   = zeros(32,B);     % master phase buffer
-ph_R   = zeros(32,B);     % rover phase buffer
-dop_R  = zeros(32,B);     % rover Doppler buffer
-snr_M  = zeros(32,B);     % master SNR buffer
-snr_R  = zeros(32,B);     % rover SNR buffer
+pr_M   = zeros(nSatTot,B);     % master code buffer
+pr_R   = zeros(nSatTot,B);     % rover code buffer
+ph_M   = zeros(nSatTot,B);     % master phase buffer
+ph_R   = zeros(nSatTot,B);     % rover phase buffer
+dop_R  = zeros(nSatTot,B);     % rover Doppler buffer
+snr_M  = zeros(nSatTot,B);     % master SNR buffer
+snr_R  = zeros(nSatTot,B);     % rover SNR buffer
 if (flag_ms_pos)
     pos_M  = zeros(3, B);        % master station coordinates read from RTCM
 else
@@ -800,7 +819,7 @@ while flag
 
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
-        pause(0.05);
+        pause(receiver_delay);
         rover_2 = get(rover,'BytesAvailable');
 
     end
@@ -825,10 +844,10 @@ while flag
         tick_R(1:dtime)  = zeros(dtime,1);
         time_R(1:dtime)  = zeros(dtime,1);
         week_R(1:dtime)  = zeros(dtime,1);
-        pr_R(:,1:dtime)  = zeros(32,dtime);
-        ph_R(:,1:dtime)  = zeros(32,dtime);
-        dop_R(:,1:dtime) = zeros(32,dtime);
-        snr_R(:,1:dtime) = zeros(32,dtime);
+        pr_R(:,1:dtime)  = zeros(nSatTot,dtime);
+        ph_R(:,1:dtime)  = zeros(nSatTot,dtime);
+        dop_R(:,1:dtime) = zeros(nSatTot,dtime);
+        snr_R(:,1:dtime) = zeros(nSatTot,dtime);
 
     else
 
@@ -836,10 +855,10 @@ while flag
         tick_R = zeros(B,1);
         time_R = zeros(B,1);
         week_R = zeros(B,1);
-        pr_R   = zeros(32,B);
-        ph_R   = zeros(32,B);
-        dop_R  = zeros(32,B);
-        snr_R  = zeros(32,B);
+        pr_R   = zeros(nSatTot,B);
+        ph_R   = zeros(nSatTot,B);
+        dop_R  = zeros(nSatTot,B);
+        snr_R  = zeros(nSatTot,B);
 
     end
 
@@ -853,21 +872,22 @@ while flag
 
         data_rover = fread(rover,rover_1,'uint8');     %serial port reading
         fwrite(fid_rover,data_rover,'uint8');          %transmitted stream save
+        if (protocol == 3), data_rover = remove_double_10h(data_rover); end
         data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
         data_rover = data_rover';                      %transpose (8bit x N matrix)
         data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
 
         %message decoding
         if (protocol == 0)
-            [cell_rover, nmea_sentences] = decode_ublox(data_rover);
+            [cell_rover, nmea_sentences] = decode_ublox(data_rover, constellations);
         elseif (protocol == 1)
-            [cell_rover] = decode_fastrax_it03(data_rover);
+            [cell_rover] = decode_fastrax_it03(data_rover, constellations);
             nmea_sentences = [];
         elseif (protocol == 2)
-            [cell_rover] = decode_skytraq(data_rover);
+            [cell_rover] = decode_skytraq(data_rover, constellations);
             nmea_sentences = [];
         elseif (protocol == 3)
-            [cell_rover] = decode_nvs(data_rover);
+            [cell_rover] = decode_nvs(data_rover, constellations);
             nmea_sentences = [];
         end
 
@@ -895,7 +915,7 @@ while flag
                 
                 type = [type prot_par{6,2} ' '];
 
-            %Timing/raw message data save (RXM-RAW | PSEUDO)
+            %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
             elseif (strcmp(cell_rover{1,i},prot_par{1,2}))
 
                 %buffer index computation
@@ -917,11 +937,13 @@ while flag
                     snr_R(:,index) = cell_rover{3,i}(:,6);
 
                     %phase computation (only for Fastrax)
-                    tick_PSEUDO = cell_rover{2,i}(4);
-                    if (protocol == 1 & tick_TRACK == tick_PSEUDO)
-                        %manage phase without code and phase correction
-                        ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0) - correction_value*doppler_count;
-                        doppler_count = doppler_count + 1;
+                    if (protocol == 1)
+                        tick_PSEUDO = cell_rover{2,i}(4);
+                        if (tick_TRACK == tick_PSEUDO)
+                            %manage phase without code and phase correction
+                            ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0) - correction_value*doppler_count;
+                            doppler_count = doppler_count + 1;
+                        end
                     end
 
                     %manage "nearly null" data
@@ -971,17 +993,17 @@ while flag
                     end
                 end
 
-            %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
+            %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
             elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
                 %satellite number
-                sat = cell_rover{2,i}(1);
+                idx = cell_rover{2,i}(1);
 
-                if (~isempty(sat) & sat > 0)
-                    Eph(:, sat) = cell_rover{2,i}(:);
-                    weekno = Eph(24,sat);
-                    Eph(32,sat) = weektime2tow(weekno,Eph(32,sat));
-                    Eph(33,sat) = weektime2tow(weekno,Eph(33,sat));
+                if (~isempty(idx) & idx > 0)
+                    Eph(:, idx) = cell_rover{2,i}(:);
+                    weekno = Eph(24,idx);
+                    Eph(32,idx) = weektime2tow(weekno,Eph(32,idx));
+                    Eph(33,idx) = weektime2tow(weekno,Eph(33,idx));
                 end
 
                 if (nEPH == 0)
@@ -990,11 +1012,20 @@ while flag
 
                 nEPH = nEPH + 1;
                 
-            %Hui message data save (AID-HUI)
+            %Hui message data save (AID-HUI | 4Ah)
             elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
                 
-                %ionosphere parameters
-                iono(:, 1) = cell_rover{3,i}(9:16);
+                %u-blox fields
+                if (protocol == 0)
+                    %ionosphere parameters
+                    iono(:, 1) = cell_rover{3,i}(9:16);
+                end
+                
+                %NVS fields
+                if (protocol == 3)
+                    %ionosphere parameters
+                    iono(:, 1) = cell_rover{2,i}(1:8);
+                end
                 
                 if (nHUI == 0)
                     type = [type prot_par{3,2} ' '];
@@ -1029,20 +1060,24 @@ while flag
     fprintf('decoding: %7.4f sec (%smessages)\n', current_time-start_time, type);
     fprintf('GPStime=%7.4f (%d satellites)\n', time_R(i), length(sat));
 
-    fprintf('P1 SAT:');
+    %assign system and PRN code to each satellite
+    [sys_pr, prn_pr] = find_sat_system(sat_pr, constellations);
+    [sys_ph, prn_ph] = find_sat_system(sat_ph, constellations);
+    
+    fprintf('C1 SAT:');
     for j = 1 : length(sat_pr)
-        fprintf(' %02d', sat_pr(j));
+        fprintf(' %s%02d', sys_pr(j), prn_pr(j));
     end
     fprintf('\n');
 
     fprintf('L1 SAT:');
     k = 1;
     for j = 1 : length(sat_ph)
-        while (sat_ph(j) ~= sat_pr(k))
-            fprintf('   ');
+        while (k <= length(sat_pr) && sat_ph(j) ~= sat_pr(k))
+            fprintf('    ');
             k = k + 1;
         end
-        fprintf(' %02d', sat_ph(j));
+        fprintf(' %s%02d', sys_ph(j), prn_ph(j));
         k = k + 1;
     end
     fprintf('\n');
@@ -1053,7 +1088,7 @@ while flag
 
     if (~isempty(sat) & index > 0)
         %satellites with observations available for ephemerides polling
-        conf_sat_eph = zeros(32,1);
+        conf_sat_eph = zeros(nSatTot,1);
         conf_sat_eph(sat_pr) = 1;
 
         %ephemerides update cycle
@@ -1067,7 +1102,7 @@ while flag
         check = 0;
         i = 1;
 
-        while ((check == 0) & (i<=32))
+        while ((check == 0) & (i<=nSatTot))
 
             s = sat_index(i);
 
@@ -1150,15 +1185,16 @@ while flag
             end
             
             if(is_rtcm2)
-                cell_master = [cell_master decode_rtcm2(sixofeight,time_GPS)]; %RTCM 2 decoding
+                cell_master = [cell_master decode_rtcm2(sixofeight, constellations, time_GPS)]; %RTCM 2 decoding
             else
-                cell_master = [cell_master decode_rtcm3(data_master)];         %RTCM 3 decoding and appending
+                cell_master = [cell_master decode_rtcm3(data_master, constellations)];         %RTCM 3 decoding and appending
             end
         end
 
-        %detect the last read 19/1002/1004 message
+        %detect the last read 19/1002/1004/1010/1012 message
         i = size(cell_master,2);
-        while (i > 0) & (isempty(cell_master{1,i}) | ((cell_master{1,i} ~= 19) & (cell_master{1,i} ~= 1002) & (cell_master{1,i} ~= 1004)))
+        while (i > 0) & (isempty(cell_master{1,i}) | ((cell_master{1,i} ~= 19) & (cell_master{1,i} ~= 1002) & (cell_master{1,i} ~= 1004) ...
+                                                                               & (cell_master{1,i} ~= 1010) & (cell_master{1,i} ~= 1012)))
             i = i - 1;
         end
 
@@ -1187,9 +1223,9 @@ while flag
         %current cell to zero
         tick_M(1:dtime)  = zeros(dtime,1);
         time_M(1:dtime)  = zeros(dtime,1);
-        pr_M(:,1:dtime)  = zeros(32,dtime);
-        ph_M(:,1:dtime)  = zeros(32,dtime);
-        snr_M(:,1:dtime) = zeros(32,dtime);
+        pr_M(:,1:dtime)  = zeros(nSatTot,dtime);
+        ph_M(:,1:dtime)  = zeros(nSatTot,dtime);
+        snr_M(:,1:dtime) = zeros(nSatTot,dtime);
         %pos_M current cell keeps the latest value(s), until it is updated
         % by a new RTCM message (3, 1005 or 1006)
         pos = find(sum(pos_M(:,1+dtime:end)) ~= 0);
@@ -1204,9 +1240,9 @@ while flag
         %buffer to zero
         tick_M = zeros(B,1);
         time_M = zeros(B,1);
-        pr_M   = zeros(32,B);
-        ph_M   = zeros(32,B);
-        snr_M  = zeros(32,B);
+        pr_M   = zeros(nSatTot,B);
+        ph_M   = zeros(nSatTot,B);
+        snr_M  = zeros(nSatTot,B);
         if (flag_ms_pos)
             % master station coordinates read from RTCM
             pos_M  = zeros(3, B);
@@ -1296,11 +1332,23 @@ while flag
 
                     type = [type '3 '];
 
-                %message 1002/1004 (RTCM3)
-                case {1002, 1004}
-
+                %message 1002/1004/1010/1012 (RTCM3)
+                case {1002, 1004, 1010, 1012}
+                    
+                    %message timing
+                    if (cell_master{1,i} == 1002 || cell_master{1,i} == 1004)
+                        msg_time = round(cell_master{2,i}(2)); %GPS time-of-week
+                    else
+                        curr_time = now;
+                        d = weekday(curr_time) - 1;
+                        msg_time = d*86400 + round(cell_master{2,i}(2)); %from GLONASS time-of-day to GPS time-of-week
+                        msg_time = msg_time - 3*3600; %adjust the UTC-GLONASS time offset
+                        [~, leap_sec] = utc2gps(curr_time);
+                        msg_time = msg_time + leap_sec;
+                    end
+                    
                     %buffer index computation
-                    index = time_GPS - round(cell_master{2,i}(2)) + 1;
+                    index = time_GPS - msg_time + 1;
 
                     if (index <= B)
                         while (index < 1)
@@ -1308,12 +1356,15 @@ while flag
                             index = time_GPS - round(cell_master{2,i}(2)) + 1;
                         end
 
+                        %detect satellite indexes (for multi-GNSS)
+                        sat_idx = find(cell_master{3,i}(:,2) ~= 0);
+                        
                         %buffer writing
                         tick_M(index)  = 1;
                         time_M(index)  = cell_master{2,i}(2);
-                        pr_M(:,index)  = cell_master{3,i}(:,2);
-                        ph_M(:,index)  = cell_master{3,i}(:,3);
-                        snr_M(:,index) = cell_master{3,i}(:,5);
+                        pr_M(sat_idx,index)  = cell_master{3,i}(sat_idx,2);
+                        ph_M(sat_idx,index)  = cell_master{3,i}(sat_idx,3);
+                        snr_M(sat_idx,index) = cell_master{3,i}(sat_idx,5);
 
                         %manage "nearly null" data
                         pos = abs(ph_M(:,index)) < 1e-100;
@@ -1365,14 +1416,14 @@ while flag
                     type = [type '1006 '];
 
                 %message 1019 (RTCM3)
-                case 1019
+                case {1019, 1020}
 
                     %satellite number
                     sat = cell_master{2,i}(1);
 
                     Eph(:,sat) = cell_master{2,i}(:);
 
-                    type = [type '1019 '];
+                    type = [type num2str(cell_master{1,i}) ' '];
 
             end
             %if no master position is awaiting indexing
@@ -1407,20 +1458,24 @@ while flag
         fprintf('decoding: %7.4f sec (%smessages)\n', current_time-start_time, type);
         fprintf('GPStime=%7.4f (%d satellites)\n', time_M(i), length(sat));
 
+        %assign system and PRN code to each satellite
+        [sys_pr, prn_pr] = find_sat_system(sat_pr, constellations);
+        [sys_ph, prn_ph] = find_sat_system(sat_ph, constellations);
+        
         fprintf('P1 SAT:');
         for p = 1 : length(sat_pr)
-            fprintf(' %02d', sat_pr(p));
+            fprintf(' %s%02d', sys_pr(p), prn_pr(p));
         end
         fprintf('\n');
 
         fprintf('L1 SAT:');
         r = 1;
         for p = 1 : length(sat_ph)
-            while (sat_ph(p) ~= sat_pr(r))
-                fprintf('   ');
+            while (r <= length(sat_pr) && sat_ph(p) ~= sat_pr(r))
+                fprintf('    ');
                 r = r + 1;
             end
-            fprintf(' %02d', sat_ph(p));
+            fprintf(' %s%02d', sys_ph(p), prn_ph(p));
             r = r + 1;
         end
         fprintf('\n');
@@ -1491,7 +1546,7 @@ while flag
             
             %delete data if ephemerides are not available
             %the buffer is activated only after the Kalman filter initialization
-            delsat = setdiff(1:32,satEph);
+            delsat = setdiff(1:nSatTot,satEph);
             pr_R(delsat,1)  = 0;
             pr_M(delsat,1)  = 0;
             ph_R(delsat,1)  = 0;
@@ -1524,12 +1579,12 @@ while flag
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
-                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, 1, [], 0);
+                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, lambda, 1, [], 0);
                     else
-                        kalman_initialized = goGPS_KF_DD_code_phase_init_model(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, order, 1, [], 0);
+                        kalman_initialized = goGPS_KF_DD_code_phase_init_model(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, lambda, order, 1, [], 0);
                     end
                 else
-                    kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, 1, ref_path, []);
+                    kalman_initialized = goGPS_KF_DD_code_phase_init_vinc(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, lambda, 1, ref_path, []);
                 end
                 
                 if (kalman_initialized)
@@ -1671,7 +1726,7 @@ while flag
                 date = clock;
 
                 %input data save
-                fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(32,1); zeros(3,1); zeros(8,1)], 'double');
+                fwrite(fid_obs, [time_GPS; 0; 0; 0; zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(nSatTot,1); zeros(3,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [time_GPS; Eph(:)], 'double');
                 if (flag_var_dyn_model) | (flag_stopGOstop)
                     fwrite(fid_dyn, order, 'int8');
@@ -1680,12 +1735,12 @@ while flag
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, 1, [], 0); %#ok<NASGU,ASGLU>
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(zeros(3,1), 0, zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(nSatTot,1), zeros(nSatTot,1), Eph, [], iono, lambda, 1, [], 0); %#ok<NASGU,ASGLU>
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, order, 1, [], 0); %#ok<NASGU,ASGLU>
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(zeros(3,1), 0, zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(nSatTot,1), zeros(nSatTot,1), Eph, [], iono, lambda, order, 1, [], 0); %#ok<NASGU,ASGLU>
                     end
                 else
-                    [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(zeros(3,1), 0, zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), zeros(32,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(32,1), zeros(32,1), Eph, [], iono, 1, ref_path); %#ok<NASGU,ASGLU>
+                    [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(zeros(3,1), 0, zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), zeros(nSatTot,1), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, zeros(nSatTot,1), zeros(nSatTot,1), Eph, [], iono, lambda, 1, ref_path); %#ok<NASGU,ASGLU>
                 end
 
                 if (flag_stopGOstop)
@@ -1756,9 +1811,9 @@ while flag
                     end
                     if (flag_skyplot == 1)
                         rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph, []);
-                        rtplot_snr (zeros(32,1), Eph, []);
+                        rtplot_snr (zeros(nSatTot,1), Eph, []);
                     else
-                        rttext_sat (t, azR, elR, zeros(32,1), conf_sat, pivot, Eph, []);
+                        rttext_sat (t, azR, elR, zeros(nSatTot,1), conf_sat, pivot, Eph, []);
                     end
                 end
 
@@ -1811,7 +1866,7 @@ while flag
                     satEph = find(sum(abs(Eph))~=0);
 
                     %delete data if ephemerides are not available
-                    delsat = setdiff(1:32,satEph);
+                    delsat = setdiff(1:nSatTot,satEph);
                     pr_R(delsat,b)  = 0;
                     pr_M(delsat,b)  = 0;
                     ph_R(delsat,b)  = 0;
@@ -1833,12 +1888,12 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, [], 0);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, [], 0);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1, [], 0);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, order, 1, [], 0);
                         end
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, ref_path);
                     end
 
                     if (flag_stopGOstop)
@@ -1964,7 +2019,7 @@ while flag
                     satEph = find(sum(abs(Eph))~=0);
 
                     %delete data if ephemerides are not available
-                    delsat = setdiff(1:32,satEph);
+                    delsat = setdiff(1:nSatTot,satEph);
                     pr_R(delsat,b)  = 0;
                     pr_M(delsat,b)  = 0;
                     ph_R(delsat,b)  = 0;
@@ -1986,12 +2041,12 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, [], 0);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, [], 0);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1, [], 0);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, order, 1, [], 0);
                         end
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, ref_path);
                     end
 
                     if (flag_stopGOstop)
@@ -2166,7 +2221,7 @@ while flag
                         satEph = find(sum(abs(Eph))~=0);
 
                         %delete data if ephemerides are not available (b=B)
-                        delsat = setdiff(1:32,satEph);
+                        delsat = setdiff(1:nSatTot,satEph);
                         pr_R(delsat,b)  = 0;
                         pr_M(delsat,b)  = 0;
                         ph_R(delsat,b)  = 0;
@@ -2188,12 +2243,12 @@ while flag
                         %Kalman filter
                         if (mode_vinc == 0)
                             if (~flag_var_dyn_model)
-                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, [], 0);
+                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, [], 0);
                             else
-                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1, [], 0);
+                                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, order, 1, [], 0);
                             end
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, ref_path);
                         end
 
                         if (flag_stopGOstop)
@@ -2318,7 +2373,7 @@ while flag
                     satEph = find(sum(abs(Eph))~=0);
 
                     %delete data if ephemerides are not available
-                    delsat = setdiff(1:32,satEph);
+                    delsat = setdiff(1:nSatTot,satEph);
                     pr_R(delsat,b)  = 0;
                     pr_M(delsat,b)  = 0;
                     ph_R(delsat,b)  = 0;
@@ -2340,12 +2395,12 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, [], 0);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, [], 0);
                         else
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, order, 1, [], 0);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, order, 1, [], 0);
                         end
                     else
-                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, 1, ref_path);
+                        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_vinc(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, ref_path);
                     end
 
                     if (flag_stopGOstop)
