@@ -48,12 +48,16 @@ LOSu = LOS / norm(LOS);           %receiver-satellite line-of-sight unit vector 
 vrel = vel_S - vel_R;             %receiver-satellite relative velocity vector
 radial_vel = dot(vrel,LOSu);      %receiver-satellite radial velocity [= vrel(1)*LOSu(1) + vrel(2)*LOSu(2) + vrel(3)*LOSu(3)]
 k = find_eph(Eph, sat, time);
-af2   = Eph(2,k);
-af1   = Eph(20,k);
-toc   = Eph(21,k);
-if (strcmp(char(Eph(31)),'C')); time = time - 14; end %consider BeiDou time (BDT) for BeiDou satellites
-dt = check_t(time - toc);
-sat_clock_drift = af1 + 2*af2*dt; %satellite clock drift
-doppler_app1 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda(1);
-doppler_app2 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda(2);
-
+if (~isempty(k))
+    af2 = Eph(2,k);
+    af1 = Eph(20,k);
+    toc = Eph(21,k);
+    if (strcmp(char(Eph(31)),'C')); time = time - 14; end %consider BeiDou time (BDT) for BeiDou satellites
+    dt = check_t(time - toc);
+    sat_clock_drift = af1 + 2*af2*dt; %satellite clock drift
+    doppler_app1 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda(1);
+    doppler_app2 = -(radial_vel + v_light*(rec_clock_drift - sat_clock_drift)) / lambda(2);
+else
+    doppler_app1 = 0;
+    doppler_app2 = 0;
+end

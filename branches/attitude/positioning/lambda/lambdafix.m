@@ -55,62 +55,76 @@ if (flag_default_P0)
     end
 end
 
-% perform ambiguity resolution
-if (IAR_method == 0)
-    %ILS enumeration (LAMBDA2)
-    [U] = chol(Qahat); %compute cholesky decomposition
-    Qahat = U'*U; %find back the vcm, now the off diag. comp. are identical
-    [afixed,sqnorm,Qzhat,Z,D,L] = lambda_routine2(ahat,Qahat);
-    % compute the fixed solution
-    bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
-    acheck = afixed(:,1);
-    % success rate
-    Ps = prod(2*normcdf(0.5./sqrt(D))-1);
-    %[up_bound, lo_bound] = success_rate(D,L,zeros(length(D)));
-    
-elseif (IAR_method == 1 || IAR_method == 2)
-    % ILS shrinking, method 1
-    % ILS enumeration, method 2
-    [afixed,sqnorm,Ps,Qzhat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
-    % compute the fixed solution
-    bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
-    acheck = afixed(:,1);
-    
-elseif (IAR_method == 3 || IAR_method == 4)
-    % Integer rounding, method 3
-    % Integer bootstrapping, method 4
-    [afixed,sqnorm,Ps,Qzhat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
-    % compute the fixed solution
-    bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
-    acheck = afixed(:,1);
-    
-elseif (IAR_method == 5)
-    % Partial Ambiguity Resolution, method 5
-    %[afixed,sqnorm,Ps,Qahat,Z,nfx]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
-    [afixed,sqnorm,Ps,Qzhat,Z,nfx]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
-    %nfx = size(afixed, 1);
-    %Z   = Z(:, 1:nfx);
-    % in case of PAR afixed contains the decorrelated ambiguities
-    if (nfx > 0)
-        Qbz = Qba*Z;
+try
+    % perform ambiguity resolution
+    if (IAR_method == 0)
+        %ILS enumeration (LAMBDA2)
+        [U] = chol(Qahat); %compute cholesky decomposition
+        Qahat = U'*U; %find back the vcm, now the off diag. comp. are identical
+        [afixed,sqnorm,Qzhat,Z,D,L] = lambda_routine2(ahat,Qahat);
+        % compute the fixed solution
+        bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
+        acheck = afixed(:,1);
+        % success rate
+        Ps = prod(2*normcdf(0.5./sqrt(D))-1);
+        %[up_bound, lo_bound] = success_rate(D,L,zeros(length(D)));
         
-        try
-           %bcheck = bhat - Qbz *cholinv(Z'*Qahat*Z) * (Z'*ahat-afixed(:,1));
-           bcheck = bhat - Qba *cholinv(Qahat) * (ahat-afixed(:,1));
-        catch ME
-            disp('Problems in PAR (lambdafix.m)');
-            %keyboard;
-        end
+    elseif (IAR_method == 1 || IAR_method == 2)
+        % ILS shrinking, method 1
+        % ILS enumeration, method 2
+        [afixed,sqnorm,Ps,Qzhat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+        % compute the fixed solution
+        bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
+        acheck = afixed(:,1);
+        
+    elseif (IAR_method == 3 || IAR_method == 4)
+        % Integer rounding, method 3
+        % Integer bootstrapping, method 4
+        [afixed,sqnorm,Ps,Qzhat,Z]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+        % compute the fixed solution
+        bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
+        acheck = afixed(:,1);
+        
+    elseif (IAR_method == 5)
+        % Partial Ambiguity Resolution, method 5
+        %[afixed,sqnorm,Ps,Qahat,Z,nfx]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+        [afixed,sqnorm,Ps,Qzhat,Z,nfx]=LAMBDA(ahat,Qahat,IAR_method,'P0',P0,'mu',mu);
+        %nfx = size(afixed, 1);
+        %Z   = Z(:, 1:nfx);
+        % in case of PAR afixed contains the decorrelated ambiguities
+        if (nfx > 0)
+            Qbz = Qba*Z;
             
-        % anyway we store the float ambiguities and their vcv-matrix... (to be improved)
-        acheck = ahat;
-        Qzhat = Qahat;
-    else
-        % keep float solution
-        bcheck = bhat;
-        acheck = ahat;
-        Qzhat = Qahat;
+            try
+                %bcheck = bhat - Qbz *cholinv(Z'*Qahat*Z) * (Z'*ahat-afixed(:,1));
+                bcheck = bhat - Qba *cholinv(Qahat) * (ahat-afixed(:,1));
+            catch ME
+                disp('Problems in PAR (lambdafix.m)');
+                %keyboard;
+            end
+            
+            % anyway we store the float ambiguities and their vcv-matrix... (to be improved)
+            acheck = ahat;
+            Qzhat = Qahat;
+        else
+            % keep float solution
+            bcheck = bhat;
+            acheck = ahat;
+            Qzhat = Qahat;
+        end
     end
+catch
+    % keep float solution
+    bcheck = bhat;
+    acheck = ahat;
+    Qzhat = Qahat;
+    
+    fixed_solution = [fixed_solution 0];
+    ratiotest = [ratiotest NaN];
+    mutest    = [mutest NaN];
+    succ_rate = [succ_rate NaN];
+    
+    return
 end
 
 % If IAR_method = 0 or IAR_method = 1 or IAR_method = 2 perform ambiguity validation through ratio test

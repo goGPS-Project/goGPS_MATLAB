@@ -1,4 +1,4 @@
-function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2] = ...
+function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, max_int] = ...
           sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval)
 
 % SYNTAX:
@@ -72,7 +72,7 @@ max_t = min(max(time_i_nan,[],1));
 max_int = max(interval(:));
 
 %define the reference time
-time_ref = (roundmod(min_t,interval) : max_int : roundmod(max_t,interval))';
+time_ref = (roundmod(min_t,max_int) : max_int : roundmod(max_t,max_int))';
 
 %number of reference epochs
 ref_len = length(time_ref);

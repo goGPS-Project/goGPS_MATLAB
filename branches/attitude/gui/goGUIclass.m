@@ -1604,6 +1604,10 @@ classdef goGUIclass < handle
         function isSA = isStandAlone(obj)
             isSA = obj.isProcessingType(obj.idC_SA) || (obj.isLS() && obj.isProcessingType(obj.idCP_Vel)) || (obj.isKF() && obj.isProcessingType(obj.idCP_SA));
         end
+        
+        function isMR = isMultiReceiver(obj)
+            isMR = obj.isProcessingType(obj.idC_SA_MR) || obj.isProcessingType(obj.idCP_DD_MR);
+        end
 
         %   INTERFACE GETTERS - INPUT FILE TYPE
         % =================================================================
@@ -2985,7 +2989,11 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('RefPath','data_path');
                 file_name = goIni.getData('RefPath','file_name');
                 filename_ref = [data_path file_name];
-                [multi_antenna_rf, ~] = goIni.getGeometry();
+                if(obj.isMultiReceiver)
+                    [multi_antenna_rf, ~] = goIni.getGeometry();
+                else
+                    multi_antenna_rf = [];
+                end
             else
                 filerootIN = '';
                 filename_R_obs = '';

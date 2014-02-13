@@ -65,7 +65,7 @@ else
     end
 end
 
-if (abs(dtmin) > dtmax)
+if (fix(abs(dtmin)) > dtmax)
     icol = [];
     return
 end

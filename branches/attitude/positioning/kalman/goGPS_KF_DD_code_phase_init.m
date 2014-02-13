@@ -219,7 +219,7 @@ if (length(sat_pr) >= 4)
     sat(ismember(sat,sat_removed)) = [];
     
     for i = 1:size(sat_pr)
-        if (nargin > 23 & ~isempty(dtMdot) & dop1_M(sat_pr(i)) == 0 & any(Eph(:)))
+        if (nargin > 22 & ~isempty(dtMdot) & dop1_M(sat_pr(i)) == 0 & any(Eph(:)))
             [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph, lambda(sat_pr(i),:));
         end
     end

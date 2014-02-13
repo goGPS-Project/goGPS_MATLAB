@@ -89,12 +89,14 @@ date = zeros(nEpochs,6,nFiles);
 pos = zeros(3,1,nFiles);
 
 for f = 1 : nFiles
-    
+
     if (iscell(filename))
         current_file = filename{f,1};
     else
         current_file = filename;
     end
+    
+    fprintf(['Reading RINEX file ' current_file ': ... ']);
     
     %open RINEX observation file
     fid = fopen(current_file,'r');
@@ -104,7 +106,7 @@ for f = 1 : nFiles
     end
     
     %parse RINEX header
-    [obs_type, pos(:,1,f), basic_info, interval, sysId] = RINEX_parse_hdr(fid);
+    [obs_type, pos(:,1,f), basic_info, interval(:,1,f), sysId] = RINEX_parse_hdr(fid);
     
     %check the availability of basic data to parse the RINEX file
     if (basic_info == 0)
@@ -176,9 +178,9 @@ for f = 1 : nFiles
     %close RINEX files
     fclose(fid);
     
-    fprintf(['RINEX file ' current_file ': successfully read.\n']);
+    fprintf(['done\n']);
 end
 
 %sync observations
-[time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2] = ...
+[time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval] = ...
 sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval);
