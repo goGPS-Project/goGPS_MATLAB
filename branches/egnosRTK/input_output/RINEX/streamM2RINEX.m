@@ -141,7 +141,10 @@ if (~isempty(data_master_all))
         
         i = 1;
         toe_old = -1;
+        time_M_old = -1;
         flag_no_obs = 1;
+        week_M = ones(Ncell,1)*week;
+        week_cycle = 0;
         for j = 1 : Ncell
             if (nargin == 4)
                 waitbar(j/Ncell,wait_dlg)
@@ -155,6 +158,13 @@ if (~isempty(data_master_all))
                 pr1_M(:,i)  = cell_master{3,j}(:,2);          %code observations logging
                 ph1_M(:,i)  = cell_master{3,j}(:,3);          %phase observations logging
                 snr1_M(:,i) = cell_master{3,j}(:,5);          %signal-to-noise ratio logging
+                
+                if (time_M(i) < time_M_old)
+                    week_cycle = week_cycle + 1;
+                end
+                
+                week_M(i) = week_M(i) + week_cycle;
+                time_M_old = time_M(i);
                 
                 i = i+1;                                      %epoch counter increase
                 
@@ -177,6 +187,13 @@ if (~isempty(data_master_all))
                 snr2_M(:,i) = cell_master{3,j}(:,10);         %signal-to-noise ratio logging (L2)
                 
                 flag_L2 = 1;
+                
+                if (time_M(i) < time_M_old)
+                    week_cycle = week_cycle + 1;
+                end
+                
+                week_M(i) = week_M(i) + week_cycle;
+                time_M_old = time_M(i);
                 
                 i = i+1;
                 
@@ -217,6 +234,7 @@ if (~isempty(data_master_all))
         
         %residual data erase (after initialization)
         time_M(i:end)   = [];
+        week_M(i:end)   = [];
         pr1_M(:,i:end)  = [];
         ph1_M(:,i:end)  = [];
         snr1_M(:,i:end) = [];
@@ -231,7 +249,7 @@ if (~isempty(data_master_all))
         
         if (any(time_M))
             %date decoding
-            date = gps2date(week, time_M);
+            date = gps2date(week_M, time_M);
             
             %----------------------------------------------------------------------------------------------
             % OBSERVATION RATE (INTERVAL)
@@ -389,6 +407,8 @@ if (~isempty(data_master_all))
                 end
                 
                 satEph = find(Eph_M(1,:,i) ~= 0);
+                toe_old = -1;
+                week_E = week_M(1);
                 for j = 1 : length(satEph)
                     af2      = Eph_M(2,satEph(j),i);
                     M0       = Eph_M(3,satEph(j),i);
@@ -420,8 +440,14 @@ if (~isempty(data_master_all))
                     fit_int  = Eph_M(29,satEph(j),i);
                     system   = Eph_M(31,satEph(j),i); %#ok<NASGU>
                     
+                    if (toe < toe_old)
+                        week_E = week_E + 1;
+                    end
+                    
+                    toe_old = toe;
+                    
                     %time of measurement decoding
-                    date = gps2date(week, toc);
+                    date = gps2date(week_E, toc);
                     date(1) = two_digit_year(date(1));
                     
                     lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
