@@ -121,7 +121,7 @@ master_1 = 0;
 master_2 = 0;
 
 %starting epoch determination
-while (master_1 ~= master_2) | (master_1 == 0)
+while (master_1 ~= master_2) || (master_1 == 0)
 
     %starting time
     current_time = toc;
@@ -169,12 +169,18 @@ setappdata(gcf, 'run', flag);
 %nmea flag
 nmea_sent = 0;
 
+%waiting time
+waiting_time_start = toc;
+
+%approximate message rate
+approx_msg_rate = 1;
+
 %infinite loop
 while flag
     
     %time reading
     current_time = toc;
-    
+
     %-------------------------------------
     % hourly files
     %-------------------------------------
@@ -202,7 +208,13 @@ while flag
     master_2 = get(master,'BytesAvailable');
 
     %test if the package writing is finished
-    if (master_1 == master_2) & (master_1 ~= 0)
+    if (master_1 == master_2) && (master_1 ~= 0)
+        
+        %approximate message rate
+        approx_msg_rate = max([1 round(current_time - waiting_time_start)]);
+        
+        %reset waiting time start
+        waiting_time_start = current_time;
 
         data_master = fread(master,master_1,'uint8');     %TCP/IP port reading
         fwrite(fid_master,data_master,'uint8');           %transmitted stream saving
@@ -333,7 +345,7 @@ while flag
             fprintf('master: %7.4f sec (%4d bytes --> %4d bytes)\n', current_time-start_time, master_1, master_2);
             fprintf('MSG types: %s\n', type);
 
-            if ((n18L1 > 0 | n18L2 > 0) & n19CA > 0)
+            if ((n18L1 > 0 || n18L2 > 0) && n19CA > 0)
                 sat_pr = find(pr1_M ~= 0);
                 sat_ph = find(ph1_M ~= 0);
                 sat1 = union(sat_pr,sat_ph);
@@ -550,7 +562,7 @@ while flag
                 end
             end
             
-            if (t > 0) & (pos_M ~= 0)
+            if (t > 0) && (any(pos_M))
                 %data save
                 fwrite(fid_obs, [0; time_M; 0; 0; pr1_M; zeros(num_sat,1); ph1_M; zeros(num_sat,1); zeros(num_sat,1); snr1_M; zeros(num_sat,1); pos_M(:,1); zeros(8,1)], 'double');
                 fwrite(fid_eph, [0; Eph(:)], 'double');
@@ -704,7 +716,7 @@ while flag
         end
 
         %send a new NMEA string
-        if (flag_NTRIP) & (mod(current_time-start_time,nmea_update_rate) < 1)
+        if (flag_NTRIP) && (mod(current_time-start_time,nmea_update_rate) < 1)
             if (nmea_sent == 0)
                 nmea_update = sprintf('%s\r\n',nmea_init);
                 fwrite(master,nmea_update);
@@ -712,6 +724,37 @@ while flag
             end
         else
             nmea_sent = 0;
+        end
+    else
+        %check waiting time
+        waiting_time = current_time - waiting_time_start;
+        
+        if (waiting_time > 10*approx_msg_rate)
+            
+            %display message
+            fprintf('Not receiving data. Reconnecting... ');
+
+            %close master connection
+            fclose(master);
+            
+            master = tcpip(master_ip,master_port);
+            set(master,'InputBufferSize', 16384);
+            fopen(master);
+            
+            if (flag_NTRIP)
+                ntripstring = NTRIP_string_generator(nmea_init);
+                %fprintf('NTRIP request [%s]',ntripstring);
+                fwrite(master,ntripstring);
+            end
+            
+            %wait until the buffer writing is started before continuing
+            while get(master,'BytesAvailable') == 0, end;
+            
+            %reset waiting time start
+            waiting_time_start = current_time;
+            
+            %display message
+            fprintf('done.\n');
         end
     end
 
