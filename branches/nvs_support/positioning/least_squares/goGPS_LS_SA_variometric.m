@@ -46,6 +46,7 @@ global cutoff snr_threshold cond_num_threshold o1 o2 o3
 global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR
 global PDOP HDOP VDOP
+global n_sys
 
 %covariance matrix initialization
 cov_XR = [];
@@ -121,9 +122,9 @@ sigma2_N = zeros(nN,1);
 
 SP3 = [];    % this var should be filled with SP3 data
 
-min_nsat = 4;
+min_nsat_LS = 3 + n_sys;
 
-if (size(sat,1) >= min_nsat)
+if (size(sat,1) >= min_nsat_LS)
     
     sat_pr_old = sat_pr;
     
@@ -160,7 +161,7 @@ if (size(sat,1) >= min_nsat)
         % sat_pr_t0
         % sat_pr_t1
         sat_pr = intersect(sat_pr_t0,sat_pr_t1);
-        if size(sat_pr,1) <= 4
+        if size(sat_pr,1) <= min_nsat_LS
             Xhat_t_t = [0;9999;  0;9999; 0;9999; 0;0;0];
             return
         end
@@ -207,7 +208,7 @@ if (size(sat,1) >= min_nsat)
     
     %if less than 4 satellites are available after the cutoffs, or if the
     % condition number in the least squares exceeds the threshold
-    if (size(sat,1) < min_nsat || cond_num > cond_num_threshold)
+    if (size(sat,1) < min_nsat_LS || cond_num > cond_num_threshold)
         
         % if (~isempty(Xhat_t_t))
         %     XR_t0 = Xhat_t_t([1,o1+1,o2+1]);

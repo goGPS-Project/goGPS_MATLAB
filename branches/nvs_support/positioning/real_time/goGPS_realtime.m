@@ -68,6 +68,7 @@ global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global Xhat_t_t Cee conf_sat conf_cs pivot Yhat_t_t
 global master rover
+global n_sys
 
 if (flag_var_dyn_model) & (~flag_stopGOstop)
     %disable skyplot and signal-to-noise ratio
@@ -285,7 +286,7 @@ data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
 %visualization
 fprintf('\n');
 fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
-fprintf('note: it might take some time to acquire signal from 4 satellites\n');
+fprintf('note: it might take some time to acquire signal from a sufficient number of satellites\n');
 
 %pseudoranges
 pr_R = zeros(nSatTot,1);
@@ -297,7 +298,9 @@ nsatObs_old = [];
 %satellites with ephemerides available
 satEph = [];
 
-while ((length(satObs) < 4) | (~ismember(satObs,satEph)))
+min_nsat_LS = 3 + n_sys;
+
+while ((length(satObs) < min_nsat_LS) | (~ismember(satObs,satEph)))
 
     if (protocol == 0)
         %poll available ephemerides
@@ -1558,12 +1561,12 @@ while flag
             %satellites with observations available
             %satObs = find( (pr_R(:,1) ~= 0) & (ph_R(:,1) ~= 0) & (pr_M(:,1) ~= 0) & (ph_M(:,1) ~= 0));
             satObs = find( (pr_R(:,1) ~= 0) & (pr_M(:,1) ~= 0));
-            
+
             %if all the visible satellites ephemerides have been transmitted
-            %and the total number of satellites is >= 4 and the master
+            %and the total number of satellites is >= min_nsat_LS and the master
             %station position is available
-            if (ismember(satObs,satEph)) & (length(satObs) >= 4) & (sum(abs(pos_M(:,1))) ~= 0)
-                %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
+            if (ismember(satObs,satEph)) & (length(satObs) >= min_nsat_LS) & (sum(abs(pos_M(:,1))) ~= 0)
+                %if (length(satObs_M) == length(satEph)) & (length(satObs) >= min_nsat_LS)
 
                 %input data save
                 fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
@@ -1572,7 +1575,7 @@ while flag
                     fwrite(fid_dyn, order, 'int8');
                 end
                 
-                %WARNING: with just 4 satellites the least squares problem
+                %WARNING: with just min_nsat_LS satellites the least squares problem
                 %for double differences is not solvable and the covariance matrix
                 %of the estimation error cannot be computed
                 

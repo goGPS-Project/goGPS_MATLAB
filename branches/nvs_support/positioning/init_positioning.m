@@ -89,6 +89,14 @@ dtR = 0;
 err_tropo = zeros(nsat,1);
 err_iono  = zeros(nsat,1);
 
+%output variable initialization
+cov_XR = [];
+var_dtR = [];
+PDOP = -9999;
+HDOP = -9999;
+VDOP = -9999;
+cond_num = [];
+
 if (flag_XS == 0)
     %satellite position and clock error
     [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3, sbas, err_tropo, err_iono, dtR);
@@ -129,15 +137,7 @@ if (flag_XR == 0)
         
         if (flag_XR == 2)
             cov_XR = zeros(3,3);
-        else
-            cov_XR = [];
         end
-        var_dtR = [];
-        
-        PDOP = -9999;
-        HDOP = -9999;
-        VDOP = -9999;
-        cond_num = [];
         
         return
     end
@@ -239,11 +239,6 @@ if (nsat >= nsat_required)
             [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys);
         else
             [dtR, var_dtR] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys);
-            cov_XR = [];
-            PDOP = -9999;
-            HDOP = -9999;
-            VDOP = -9999;
-            cond_num = [];
         end
 
         if (flag_XS == 0)
@@ -266,13 +261,5 @@ else
 
     if (flag_XR == 2)
         cov_XR = zeros(3,3);
-    else
-        cov_XR = [];
     end
-    var_dtR = [];
-
-    PDOP = -9999;
-    HDOP = -9999;
-    VDOP = -9999;
-    cond_num = [];
 end

@@ -51,6 +51,7 @@ global cutoff snr_threshold cond_num_threshold o1 o2 o3
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
+global n_sys
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -122,7 +123,8 @@ end
 %------------------------------------------------------------------------------------
 
 %if the number of visible satellites is sufficient
-if (size(sat,1) >= 4)
+min_nsat_LS = 3 + n_sys;
+if (size(sat,1) >= min_nsat_LS)
     
     %approximate position
     XR0 = X_t1_t([1,o1+1,o2+1]);
@@ -154,9 +156,9 @@ if (size(sat,1) >= 4)
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
     
-    %if at least 4 satellites are available after the cutoffs, and if the 
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (size(sat,1) >= 4 & cond_num < cond_num_threshold)
+    if (size(sat,1) >= min_nsat_LS & cond_num < cond_num_threshold)
 
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
@@ -217,7 +219,7 @@ end
 %----------------------------------------------------------------------------------------
 
 %Kalman filter equations
-if (size(sat,1) >= 4 & cond_num < cond_num_threshold)
+if (size(sat,1) >= min_nsat_LS & cond_num < cond_num_threshold)
 
     K = T*Cee*T' + Cvv;
 

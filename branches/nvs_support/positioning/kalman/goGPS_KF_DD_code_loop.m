@@ -54,6 +54,7 @@ global cutoff snr_threshold cond_num_threshold o1 o2 o3
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
+global n_sys
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -122,8 +123,9 @@ nsat = size(sat,1);
 % OBSERVATION EQUATIONS
 %------------------------------------------------------------------------------------
 
-%if at least 4 satellites are available
-if (nsat >= 4)
+%if at least min_nsat_LS satellites are available
+min_nsat_LS = 3 + n_sys;
+if (nsat >= min_nsat_LS)
     
     %approximate position
     XR0 = X_t1_t([1,o1+1,o2+1]);
@@ -170,9 +172,9 @@ if (nsat >= 4)
     [null_max_elR, pivot_index] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(pivot_index);
 
-    %if at least 4 satellites are available after the cutoffs, and if the 
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (nsat >= 4 & cond_num < cond_num_threshold)
+    if (nsat >= min_nsat_LS & cond_num < cond_num_threshold)
         
         %--------------------------------------------------------------------------------------------
         % LEAST SQUARES SOLUTION
@@ -256,7 +258,7 @@ end
 %----------------------------------------------------------------------------------------
 
 %Kalman filter equations
-if (nsat >= 4 & cond_num < cond_num_threshold)
+if (nsat >= min_nsat_LS & cond_num < cond_num_threshold)
 
     K = T*Cee*T' + Cvv;
 

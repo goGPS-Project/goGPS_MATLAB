@@ -42,6 +42,7 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 global COMportR
 global rover
 global order
+global n_sys
 
 if (nargin == 4)
     rate = 1;
@@ -631,10 +632,12 @@ while flag
 
                     %satellites with observations available
                     satObs = find(pr_R(:,1) ~= 0);
+                    
+                    min_nsat_LS = 3 + n_sys;
 
                     %if all the visible satellites ephemerides have been transmitted
-                    %and the total number of satellites is >= 4
-                    if (sum(ismember(satObs,satEph)))>1 && (length(satObs) >= 4)
+                    %and the total number of satellites is >= min_nsat_LS
+                    if (sum(ismember(satObs,satEph)))>1 && (length(satObs) >= min_nsat_LS)
 
                         %data save
                         fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
@@ -688,8 +691,8 @@ while flag
                         satObs = find(pr_R(:,1) ~= 0);
                         
                         %if all the visible satellites ephemerides have been transmitted
-                        %and the total number of satellites is >= 4
-                        if (ismember(satObs,satEph)) && (length(satObs) >= 4)
+                        %and the total number of satellites is >= min_nsat_LS
+                        if (ismember(satObs,satEph)) && (length(satObs) >= min_nsat_LS)
                             
                             %data save
                             fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');

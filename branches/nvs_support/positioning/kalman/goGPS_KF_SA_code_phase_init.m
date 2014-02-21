@@ -57,6 +57,7 @@ global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
+global n_sys
 
 kalman_initialized = 0;
 
@@ -171,7 +172,9 @@ end
 Z_om_1 = zeros(o1-1,1);
 sigma2_N = zeros(nN,1);
 
-if (length(sat_pr) >= 4)
+min_nsat_LS = 3 + n_sys;
+
+if (length(sat_pr) >= min_nsat_LS)
 
     sat_pr_old = sat_pr;
 

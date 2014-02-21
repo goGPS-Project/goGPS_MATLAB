@@ -76,6 +76,7 @@ global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
 global ratiotest mutest succ_rate fixed_solution
+global n_sys
 
 kalman_initialized = 0;
 
@@ -193,20 +194,22 @@ end
 Z_om_1 = zeros(o1-1,1);
 sigma2_N = zeros(nN,1);
 
-if (length(sat_pr) >= 4)
+min_nsat_LS = 3 + n_sys;
+
+if (length(sat_pr) >= min_nsat_LS)
     
     sat_pr_old = sat_pr;
     
     if (phase(1) == 1)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
-        if (length(sat_pr_M) < 4); return; end
+        if (length(sat_pr_M) < min_nsat_LS); return; end
         [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
         
         err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
         err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
     else
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM,  [],  [], sat_pr,   [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
-        if (length(sat_pr_M) < 4); return; end
+        if (length(sat_pr_M) < min_nsat_LS); return; end
         [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
         
         err_iono1_M = err_iono2_M ./ ionoFactor(sat_pr_M,2);
@@ -256,9 +259,9 @@ if (length(sat_pr) >= 4)
         pivot = sat_pr(pivot_index);
     end
     
-    %if at least 4 satellites are available after the cutoffs, and if the
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
-    if (size(sat_pr,1) >= 4 & cond_num < cond_num_threshold)
+    if (size(sat_pr,1) >= min_nsat_LS & cond_num < cond_num_threshold)
         
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
@@ -274,7 +277,7 @@ end
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 | size(sat,1) <= 4)
+if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 | size(sat,1) <= min_nsat_LS)
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible

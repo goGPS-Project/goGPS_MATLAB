@@ -45,6 +45,7 @@ global COMportR master_ip master_port server_delay
 global HDOP
 global nmea_init nmea_update_rate
 global master rover
+global n_sys
 
 nSatTot = constellations.nEnabledSat;
 
@@ -231,7 +232,9 @@ nsatObs_old = [];
 %satellites with ephemerides available
 satEph = [];
 
-while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
+min_nsat_LS = 3 + n_sys;
+
+while ((length(satObs) < min_nsat_LS | ~ismember(satObs,satEph)))
 
     if (protocol == 0)
         %poll available ephemerides
@@ -994,7 +997,7 @@ while flag
         lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
 
         %position update
-        if length(satObs) >= 4
+        if length(satObs) >= min_nsat_LS
              pos_t = init_positioning(time_GPS, pr_R(satObs,i), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), 10, 0, 1, 0, 0);
         end
 
@@ -1475,10 +1478,10 @@ while flag
         satObs = find( (pr_R(:,1) ~= 0) & (pr_M(:,1) ~= 0));
         
         %if all the visible satellites ephemerides have been transmitted
-        %and the total number of satellites is >= 4 and the master
+        %and the total number of satellites is >= min_nsat_LS and the master
         %station position is available
-        if (ismember(satObs,satEph)) & (length(satObs) >= 4) & (sum(abs(pos_M(:,1))) ~= 0)
-            %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
+        if (ismember(satObs,satEph)) & (length(satObs) >= min_nsat_LS) & (sum(abs(pos_M(:,1))) ~= 0)
+            %if (length(satObs_M) == length(satEph)) & (length(satObs) >= min_nsat_LS)
             
             %input data save
             fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');

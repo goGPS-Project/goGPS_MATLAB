@@ -54,7 +54,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global cutoff snr_threshold
+global cutoff snr_threshold n_sys
 
 v_light = goGNSS.V_LIGHT;
 
@@ -96,7 +96,9 @@ for i = 1 : nEpochs
     % RECEIVER POSITION AND CLOCK ERROR
     %----------------------------------------------------------------------------------------------
     
-    if (length(sat0) >= 4)
+    min_nsat_LS = 3 + n_sys;
+    
+    if (length(sat0) >= min_nsat_LS)
         
         [~, dtR_tmp, ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0);
         
@@ -104,7 +106,7 @@ for i = 1 : nEpochs
             dtR(i) = dtR_tmp;
         end
         
-        if (size(sat,1) >= 4)
+        if (size(sat,1) >= min_nsat_LS)
             
             if (i > 1)
                 %compute receiver clock drift

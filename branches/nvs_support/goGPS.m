@@ -169,16 +169,18 @@ QZS_flag = goIni.getData('Constellations','QZSS');
 SBS_flag = goIni.getData('Constellations','SBAS');
 [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 nSatTot = constellations.nEnabledSat;
-n_sys = sum([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag]);
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
-    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    GPS_flag = 1; GLO_flag = 1; GAL_flag = 1; BDS_flag = 1; QZS_flag = 1;
+    [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
     nSatTot = constellations.nEnabledSat;
-    n_sys = 1;
 end
 
 %initialization of global variables/constants
 global_init;
+
+%number of enabled constellations
+n_sys = sum([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag]);
 
 % start evaluating computation time
 tic
