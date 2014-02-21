@@ -173,6 +173,11 @@ for f = 1 : nFiles
     %GPS week number
     week(:,1,f) = date2gps(date(:,:,f));
     
+    %observation rate
+    if (interval(:,1,f) == 0)
+        interval(:,1,f) = median(time(2:k-1,1,f) - time(1:k-2,1,f));
+    end
+    
     %-------------------------------------------------------------------------------
     
     %close RINEX files

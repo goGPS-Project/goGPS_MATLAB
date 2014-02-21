@@ -32,7 +32,7 @@ ifound_types = 0;
 Obs_types = cell(0,0);
 sysId = cell(0,0);
 pos_M = [];
-interval = 1; %default to 1 second (1 Hz observations)
+interval = 0;
 
 %parse first line
 line = fgetl(file);
