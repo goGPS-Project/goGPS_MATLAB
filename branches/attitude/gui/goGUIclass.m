@@ -990,7 +990,7 @@ classdef goGUIclass < handle
             
             % On Post Proc => Least Squares => Code Double Differences
             idG.onPP_LS_C_DD = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSCode ...
-                                id.pMSt id.cMPos];
+                                id.pMSt id.cMPos idG.SNR];
                           
             % On Post Proc => Least Squares => Code and Phase Double Differences
             idG.onPP_LS_CP_DD_L = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSPhase ...
