@@ -5,7 +5,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 %
 % INPUT:
 %   file_nav = RINEX navigation file
-%   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
+%   constellations = struct with multi-constellation settings (see goGNSS.initConstellation)
 %
 % OUTPUT:
 %   Eph = matrix containing 33 navigation parameters for each satellite

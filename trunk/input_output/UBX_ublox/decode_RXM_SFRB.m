@@ -1,10 +1,12 @@
-function [data] = decode_RXM_SFRB(msg)
+function [data] = decode_RXM_SFRB(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_RXM_SFRB(msg);
+%   [data] = decode_RXM_SFRB(msg, constellations);
 %
 % INPUT:
 %   msg = message transmitted by the u-blox receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the RXM-SFRB packet information
@@ -71,6 +73,10 @@ function [data] = decode_RXM_SFRB(msg)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
 
 % first message initial index
 pos = 1;
@@ -168,7 +174,7 @@ if (PRN <= 32)
     end
 
     %output and reorder ephemerides data (if IODC == IODE)
-    if (IODC == IODE2) & (IODC == IODE3)
+    if ((IODC == IODE2) && (IODC == IODE3) && constellations.GPS.enabled)
         data{3}(1) = PRN;
         data{3}(2) = af2;
         data{3}(3) = M0;
@@ -198,8 +204,8 @@ if (PRN <= 32)
         data{3}(27) = svhealth;
         data{3}(28) = tgd;
         data{3}(29) = fit_int;
-        data{3}(30) = PRN; %assume only GPS (not multi-constellation)
-        data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+        data{3}(30) = constellations.GPS.indexes(PRN);
+        data{2}(31) = int8('G');
         data{2}(32) = weektow2time(weekno, toe, 'G');
         data{2}(33) = weektow2time(weekno, toc, 'G');
     end

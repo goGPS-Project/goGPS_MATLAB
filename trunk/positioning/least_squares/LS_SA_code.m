@@ -1,7 +1,7 @@
-function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, is_GLO)
+function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys)
 
 % SYNTAX:
-%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, is_GLO);
+%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -13,7 +13,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_
 %   dtS          = satellite clock error (vector)
 %   err_tropo_RS = tropospheric error
 %   err_iono_RS  = ionospheric error
-%   is_GLO = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
+%   sys          = array with different values for different systems
 %
 % OUTPUT:
 %   XR   = estimated position (X,Y,Z)
@@ -57,9 +57,11 @@ n = length(pr_R);
 %number of unknown parameters
 m = 4;
 
-% %approximate receiver-satellite distance
-% XR_mat = XR_approx(:,ones(n,1))';
-% distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
+if (~any(distR_approx))
+    %approximate receiver-satellite distance
+    XR_mat = XR_approx(:,ones(n,1))';
+    distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
+end
 
 %design matrix
 A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
@@ -67,12 +69,17 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
      (XR_approx(3) - XS(:,3)) ./ distR_approx, ... %column for Z coordinate
       ones(n,1)];        %column for receiver clock delay (multiplied by c)
   
-%if mixed observations GLONASS/other, then add a parameter to account for
-% sub-second difference between GLONASS system time and GPS(or other) system time.
-% NOTE: only for GLONASS satellites
-if (any(is_GLO) && any(~is_GLO))
-    m = m + 1;
-    A = [A, is_GLO];
+%if multi-system observations, then estimate an inter-system bias parameter for each additional system
+uni_sys = unique(sys(sys ~= 0));
+num_sys = length(uni_sys);
+ISB = zeros(n,1);
+if (num_sys > 1)
+    m = m + num_sys - 1;
+    for s = 2 : num_sys
+        ISB(sys == uni_sys(s)) = 1;
+        A = [A, ISB];
+        ISB = zeros(n,1);
+    end
 end
 
 %known term vector

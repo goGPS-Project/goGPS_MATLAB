@@ -54,6 +54,7 @@ global cutoff snr_threshold cond_num_threshold o1 o2 o3
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
+global n_sys
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -122,19 +123,20 @@ nsat = size(sat,1);
 % OBSERVATION EQUATIONS
 %------------------------------------------------------------------------------------
 
-%if at least 4 satellites are available
-if (nsat >= 4)
+%if at least min_nsat_LS satellites are available
+min_nsat_LS = 3 + n_sys;
+if (nsat >= min_nsat_LS)
     
     %approximate position
     XR0 = X_t1_t([1,o1+1,o2+1]);
     flag_XR = 1;
     
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat, lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat,  [], lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat, lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat,  [], lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
     end
     
     %keep only satellites that rover and master have in common
@@ -170,9 +172,9 @@ if (nsat >= 4)
     [null_max_elR, pivot_index] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(pivot_index);
 
-    %if at least 4 satellites are available after the cutoffs, and if the 
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (nsat >= 4 & cond_num < cond_num_threshold)
+    if (nsat >= min_nsat_LS & cond_num < cond_num_threshold)
         
         %--------------------------------------------------------------------------------------------
         % LEAST SQUARES SOLUTION
@@ -256,7 +258,7 @@ end
 %----------------------------------------------------------------------------------------
 
 %Kalman filter equations
-if (nsat >= 4 & cond_num < cond_num_threshold)
+if (nsat >= min_nsat_LS & cond_num < cond_num_threshold)
 
     K = T*Cee*T' + Cvv;
 

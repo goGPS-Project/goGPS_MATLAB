@@ -1,10 +1,12 @@
-function [data] = decode_1002(msg)
+function [data] = decode_1002(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_1002(msg)
+%   [data] = decode_1002(msg, constellations)
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the 1002 packet information
@@ -54,7 +56,11 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(6,1);
-data{3} = zeros(32,5);
+data{3} = zeros(constellations.nEnabledSat,5);
+
+if (~constellations.GPS.enabled)
+    return
+end
 
 %message number = 1002
 DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
@@ -119,13 +125,19 @@ for i = 1 : NSV
         DF015 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
         %---------------------------------------------------------
+        
+        % assign constellation-specific indexes
+        idx = [];
+        if (SV <= 32 && constellations.GPS.enabled)
+            idx = constellations.GPS.indexes(SV);
+        end
 
         %data output save
-        data{3}(SV,1) = DF010;
-        data{3}(SV,2) = (DF011 * 0.02) + (DF014 * 299792.458);
-        data{3}(SV,3) = (data{3}(SV,2) + (DF012*0.0005)) / lambda;
-        data{3}(SV,4) = DF013;
-        data{3}(SV,5) = DF015 * 0.25;
+        data{3}(idx,1) = DF010;
+        data{3}(idx,2) = (DF011 * 0.02) + (DF014 * 299792.458);
+        data{3}(idx,3) = (data{3}(SV,2) + (DF012*0.0005)) / lambda;
+        data{3}(idx,4) = DF013;
+        data{3}(idx,5) = DF015 * 0.25;
 
     else %SBAS satellites
 
@@ -133,5 +145,4 @@ for i = 1 : NSV
         pos = pos + 68;
 
     end
-
 end

@@ -10,7 +10,7 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col,
 %   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
 %   obs_col = structure defining in which columns each observation type is to be found
 %   nObsTypes = number of available observations
-%   constellations = struct with multi-constellation settings (see 'multi_constellation_settings.m')
+%   constellations = struct with multi-constellation settings (see goGNSS.initConstellation)
 %
 % OUTPUT:
 %   obs_struct = struct with observations of enabled constellations
@@ -116,7 +116,7 @@ if (~isempty(sat_types)) %RINEX v2.xx
             fltObs = sscanf(strObs, '%f'); % read all the observations in the string
             obsId = 0; % index of the current observation
             % start parsing the observation string
-            for k = 1 : min(nObsTypes, floor(linLength/16))
+            for k = 1 : min(nObsTypes, ceil(linLength/16))
                 % check if the element is empty
                 if (~strcmp(strObs(:,k)','              ')) % if the current val is not missing (full of spaces)
                     obsId = obsId+1;

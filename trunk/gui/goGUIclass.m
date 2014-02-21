@@ -935,14 +935,14 @@ classdef goGUIclass < handle
           % ---------------------------------------------------------------
           
             % On Real Time
-            idG.onRealTime = [idG.ResetStatus ...
+            idG.onRealTime = [idG.ResetStatus id.pConstellations ...
                               id.pMode id.lCaptMode ...
                               id.pIFiles id.rBin ...
                               id.pIOFiles idG.GoOut ...
                               id.pSettings];
                           
             % On Real Time => Navigation Mode            
-            idG.onRT_Nav = [idG.onRealTime ...
+            idG.onRT_Nav = [idG.onRealTime idG.pAvailableGNSSPhase ...
                             id.pOptions id.cConstraint id.cRefPath id.cPlotProc id.cUseNTRIP ...
                             id.pKF idG.pKF_ENU idG.StdCode id.bStdPhase idG.StdT0 id.bStdDTM ...
                             idG.pW idG.CutOff idG.SNR idG.CS idG.MaxNumSat idG.StopGoStop ...
@@ -950,7 +950,8 @@ classdef goGUIclass < handle
                             idG.pMSt idG.pMS id.pPorts idG.lPort0];
           
             % On Real Time => Rover Monitor
-            idG.onRT_RMon = [idG.onRealTime id.lRate ...
+            idG.onRT_RMon = [idG.onRealTime idG.pAvailableGNSSCode ...
+                             id.lRate ...
                              idG.pDynModel ...
                              id.pOptions ...
                              id.pPorts idG.nPorts idG.lPort0];
@@ -961,7 +962,7 @@ classdef goGUIclass < handle
                              idG.pMS_NTRIP];
 
             % On Real Time => Master + Rover Monitor
-            idG.onRT_RMMon = [idG.onRealTime ...
+            idG.onRT_RMMon = [idG.onRealTime idG.pAvailableGNSSPhase ...
                               idG.pDynModel ...
                               id.pOptions id.cUseNTRIP ...
                               id.pPorts idG.nPorts idG.lPort0...
@@ -2999,6 +3000,8 @@ classdef goGUIclass < handle
                     protocol_idx(1) = 1;
                 elseif (strcmp(contentsProt{get(obj.goh.protocol_select_0,'Value')},'SkyTraq'))
                     protocol_idx(1) = 2;
+                elseif (strcmp(contentsProt{get(obj.goh.protocol_select_0,'Value')},'BINR (NVS)'))
+                    protocol_idx(1) = 3;
                 end
                 
                 if num_rec >= 2
@@ -3009,6 +3012,8 @@ classdef goGUIclass < handle
                         protocol_idx(2) = 1;
                     elseif (strcmp(contentsProt{get(obj.goh.protocol_select_1,'Value')},'SkyTraq'))
                         protocol_idx(2) = 2;
+                    elseif (strcmp(contentsProt{get(obj.goh.protocol_select_1,'Value')},'BINR (NVS)'))
+                        protocol_idx(2) = 3;
                     end
                     
                     if num_rec >= 3
@@ -3019,6 +3024,8 @@ classdef goGUIclass < handle
                             protocol_idx(3) = 1;
                         elseif (strcmp(contentsProt{get(obj.goh.protocol_select_2,'Value')},'SkyTraq'))
                             protocol_idx(3) = 2;
+                        elseif (strcmp(contentsProt{get(obj.goh.protocol_select_2,'Value')},'BINR (NVS)'))
+                            protocol_idx(3) = 3;
                         end
                         
                         if num_rec >= 4
@@ -3029,6 +3036,8 @@ classdef goGUIclass < handle
                                 protocol_idx(4) = 1;
                             elseif (strcmp(contentsProt{get(obj.goh.protocol_select_3,'Value')},'SkyTraq'))
                                 protocol_idx(4) = 2;
+                            elseif (strcmp(contentsProt{get(obj.goh.protocol_select_3,'Value')},'BINR (NVS)'))
+                                protocol_idx(4) = 3;
                             end
                         end
                     end

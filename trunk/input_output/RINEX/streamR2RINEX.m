@@ -1,11 +1,14 @@
-function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
+function [week] = streamR2RINEX(fileroot, filename, rinex_metadata, constellations, wait_dlg)
 
 % SYNTAX:
-%   [week] = streamR2RINEX(fileroot, filename, wait_dlg);
+%   [week] = streamR2RINEX(fileroot, filename, rinex_metadata, constellations, wait_dlg);
 %
 % INPUT:
 %   fileroot = input file root (rover data, binary stream)
 %   filename = output file name (rover data, RINEX format)
+%   rinex_metadata = struct with RINEX metadata
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -39,7 +42,21 @@ function [week] = streamR2RINEX(fileroot, filename, wait_dlg)
 global weights;
 week = 0;
 
-if (nargin == 3)
+nSatTot = constellations.nEnabledSat;
+if (nSatTot == 0)
+    fprintf('No constellations selected, setting default: GPS-only\n');
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    nSatTot = constellations.nEnabledSat;
+end
+
+%check requested RINEX version
+if (strcmp(rinex_metadata.version(1),'3'))
+    rin_ver_id = 3;
+else
+    rin_ver_id = 2;
+end
+
+if (nargin == 5)
     waitbar(0.5,wait_dlg,'Reading rover stream files...')
 end
 
@@ -52,7 +69,7 @@ hour = 0;                                                            %hour index
 hour_str = num2str(hour,'%03d');                                     %hour index (string)
 d = dir([fileroot '_rover_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
-    if (nargin == 2)
+    if (nargin == 4)
         fprintf(['Reading: ' fileroot '_rover_' hour_str '.bin\n']);
     end
     num_bytes = d.bytes;                                             %file size (number of bytes)
@@ -86,7 +103,7 @@ end
 clear hour hour_str d
 clear data_rover fid_rover
 
-if (nargin == 3)
+if (nargin == 5)
     waitbar(1,wait_dlg)
 end
 
@@ -95,80 +112,111 @@ end
 if (~isempty(data_rover_all))
     
     %displaying
-    if (nargin == 2)
+    if (nargin == 4)
         fprintf('Decoding rover data \n');
     end
     
     %detect binary format
-    header1 = 'B5';      % UBX header (hexadecimal value)
-    header2 = '62';      % UBX header (hexadecimal value)
-    codeHEX = [header1 header2];                % initial hexadecimal stream
+    pattern1 = 'B5';      % UBX pattern (hexadecimal value)
+    pattern2 = '62';      % UBX pattern (hexadecimal value)
+    codeHEX = [pattern1 pattern2];              % initial hexadecimal stream
     codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
     pos_UBX = strfind(data_rover_all, codeBIN); % message initial index
 
-    header1 = 'A0';      % SkyTraq header (hexadecimal value)
-    header2 = 'A1';      % SkyTraq header (hexadecimal value)
-    codeHEX = [header1 header2];                % initial hexadecimal stream
-    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
-    pos_STQ = strfind(data_rover_all, codeBIN); % message initial index
+    pattern1 = '0D';      % SkyTraq pattern (hexadecimal value)
+    pattern2 = '0A';      % SkyTraq pattern (hexadecimal value)
+    pattern3 = 'A0';      % SkyTraq pattern (hexadecimal value)
+    pattern4 = 'A1';      % SkyTraq pattern (hexadecimal value)
+    codeHEX = [pattern1 pattern2 pattern3 pattern4]; % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),32);          % initial binary stream
+    pos_STQ = strfind(data_rover_all, codeBIN);      % message initial index
 
-    header1 = '3C';      % Fastrax header (hexadecimal value)
-    header2 = '21';      % Fastrax header (hexadecimal value)
-    codeHEX = [header1 header2];                % initial hexadecimal stream
-    codeBIN = dec2bin(hex2dec(codeHEX),16);     % initial binary stream
+    pattern1 = '3E';      % Fastrax pattern (hexadecimal value)
+    pattern2 = '3C';      % Fastrax pattern (hexadecimal value)
+    pattern3 = '21';      % Fastrax pattern (hexadecimal value)
+    codeHEX = [pattern1 pattern2 pattern3];     % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),24);     % initial binary stream
     pos_FTX = strfind(data_rover_all, codeBIN); % message initial index
+    
+    pattern1 = '10';      % NVS pattern (hexadecimal value)
+    pattern2 = '03';      % NVS pattern (hexadecimal value)
+    pattern3 = '10';      % NVS pattern (hexadecimal value)
+    codeHEX = [pattern1 pattern2 pattern3];     % initial hexadecimal stream
+    codeBIN = dec2bin(hex2dec(codeHEX),24);     % initial binary stream
+    pos_NVS = findstr(data_rover_all, codeBIN); % message initial index
 
-    if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)))
+    if ((length(pos_UBX) > length(pos_STQ)) && (length(pos_UBX) > length(pos_FTX)) && (length(pos_UBX) > length(pos_NVS)))
         
         receiver = 'u-blox';
         
         %UBX format decoding
-        if (nargin == 3)
-            [cell_rover] = decode_ublox(data_rover_all, wait_dlg);
+        if (nargin == 5)
+            [cell_rover] = decode_ublox(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_ublox(data_rover_all);
+            [cell_rover] = decode_ublox(data_rover_all, constellations);
         end
-    elseif ((length(pos_STQ) > length(pos_UBX)) && (length(pos_STQ) > length(pos_FTX)))
+    elseif ((length(pos_STQ) > length(pos_UBX)) && (length(pos_STQ) > length(pos_FTX)) && (length(pos_STQ) > length(pos_NVS)))
         
         receiver = 'SkyTraq';
         
         %SkyTraq format decoding
-        if (nargin == 3)
-            [cell_rover] = decode_skytraq(data_rover_all, wait_dlg);
+        if (nargin == 5)
+            [cell_rover] = decode_skytraq(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_skytraq(data_rover_all);
+            [cell_rover] = decode_skytraq(data_rover_all, constellations);
         end
-    elseif ((length(pos_FTX) > length(pos_UBX)) && (length(pos_FTX) > length(pos_STQ)))
+    elseif ((length(pos_FTX) > length(pos_UBX)) && (length(pos_FTX) > length(pos_STQ)) && (length(pos_FTX) > length(pos_NVS)))
 
         receiver = 'fastrax';
         
         %Fastrax format decoding
-        if (nargin == 3)
-            [cell_rover] = decode_fastrax_it03(data_rover_all, wait_dlg);
+        if (nargin == 5)
+            [cell_rover] = decode_fastrax_it03(data_rover_all, constellations, wait_dlg);
         else
-            [cell_rover] = decode_fastrax_it03(data_rover_all);
+            [cell_rover] = decode_fastrax_it03(data_rover_all, constellations);
         end
-    
+    elseif ((length(pos_NVS) > length(pos_UBX)) && (length(pos_NVS) > length(pos_STQ)) && (length(pos_NVS) > length(pos_FTX)))
+
+        receiver = 'NVS';
+        
+        %compress <DLE><DLE> to <DLE>
+        data_rover_all = reshape(data_rover_all,8,[]);
+        data_rover_all = data_rover_all';
+        data_rover_all = fbin2dec(data_rover_all);
+        if (nargin == 5)
+            data_rover_all = remove_double_10h(data_rover_all, wait_dlg);
+        else
+            data_rover_all = remove_double_10h(data_rover_all);
+        end
+        data_rover_all = dec2bin(data_rover_all,8);             %conversion in binary number (N x 8bits matrix)
+        data_rover_all = data_rover_all';                       %transposed (8bits x N matrix)
+        data_rover_all = data_rover_all(:)';                    %conversion into a string (8N bits vector)
+
+        %NVS format decoding
+        if (nargin == 5)
+            [cell_rover] = decode_nvs(data_rover_all, constellations, wait_dlg);
+        else
+            [cell_rover] = decode_nvs(data_rover_all, constellations);
+        end
     end
     clear data_rover_all
-    
+
     %initialization (to make writing faster)
     Ncell  = size(cell_rover,2);                          %number of read UBX messages
     time_R = zeros(Ncell,1);                              %GPS time of week
     week_R = zeros(Ncell,1);                              %GPS week
-    ph1_R  = zeros(32,Ncell);                             %phase observations
-    pr1_R  = zeros(32,Ncell);                             %code observations
-    dop1_R = zeros(32,Ncell);                             %doppler measurements
-    snr_R  = zeros(32,Ncell);                             %signal-to-noise ratio
-    lock_R = zeros(32,Ncell);                             %loss of lock indicator
-    Eph_R  = zeros(33,32,Ncell);                          %broadcast ephemerides
+    ph1_R  = zeros(nSatTot,Ncell);                        %phase observations
+    pr1_R  = zeros(nSatTot,Ncell);                        %code observations
+    dop1_R = zeros(nSatTot,Ncell);                        %doppler measurements
+    snr_R  = zeros(nSatTot,Ncell);                        %signal-to-noise ratio
+    lock_R = zeros(nSatTot,Ncell);                        %loss of lock indicator
+    Eph_R  = zeros(33,nSatTot,Ncell);                     %broadcast ephemerides
     iono   = zeros(8,Ncell);                              %ionosphere parameters
     tick_TRACK  = zeros(Ncell,1);
     tick_PSEUDO = zeros(Ncell,1);
-    phase_TRACK = zeros(32,Ncell);                        %phase observations - TRACK
-
+    phase_TRACK = zeros(nSatTot,Ncell);                   %phase observations - TRACK
     
-    if (nargin == 3)
+    if (nargin == 5)
         waitbar(0,wait_dlg,'Reading rover data...')
     end
     
@@ -183,7 +231,7 @@ if (~isempty(data_rover_all))
     
     i = 1;
     for j = 1 : Ncell
-        if (nargin == 3)
+        if (nargin == 5)
             waitbar(j/Ncell,wait_dlg)
         end
         
@@ -218,7 +266,7 @@ if (~isempty(data_rover_all))
         elseif (strcmp(cell_rover{1,j},'RXM-EPH'))
             
             %satellite number
-            sat = cell_rover{2,j}(1);
+            sat = cell_rover{2,j}(30);
             toe = cell_rover{2,j}(18);                   %time of ephemeris
             
             %if the ephemerides are not already available
@@ -233,7 +281,7 @@ if (~isempty(data_rover_all))
         elseif (strcmp(cell_rover{1,j},'AID-EPH'))
             
             %satellite number
-            sat = cell_rover{2,j}(1);
+            sat = cell_rover{2,j}(30);
             toe = cell_rover{2,j}(18);                   %time of ephemeris
 
             %if the ephemerides are not already available
@@ -285,7 +333,7 @@ if (~isempty(data_rover_all))
         elseif (strcmp(cell_rover{1,j},'GPS_EPH'))
             
             %satellite number
-            sat = cell_rover{2,j}(1);
+            sat = cell_rover{2,j}(30);
             toe = cell_rover{2,j}(18);                   %time of ephemeris
             
             %if the ephemerides are not already available
@@ -335,7 +383,7 @@ if (~isempty(data_rover_all))
         elseif (strcmp(cell_rover{1,j},'FTX-EPH'))
             
             %satellite number
-            sat = cell_rover{2,j}(1);
+            sat = cell_rover{2,j}(30);
             toe = cell_rover{2,j}(18);                   %time of ephemeris
 
             %if the ephemerides are not already available
@@ -345,6 +393,60 @@ if (~isempty(data_rover_all))
                 Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
                 Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
             end
+            
+        %%%%%%%%%%%%%%%%%%%%%% NVS messages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        elseif (strcmp(cell_rover{1,j},'F5h'))            %F5h message data
+            time_R(i)   = cell_rover{2,j}(1);
+            week_R(i)   = cell_rover{2,j}(2)+1024;
+            ph1_R(:,i)  = cell_rover{3,j}(:,1);
+            pr1_R(:,i)  = cell_rover{3,j}(:,2);
+            dop1_R(:,i) = cell_rover{3,j}(:,3);
+            snr_R(:,i)  = cell_rover{3,j}(:,6);
+            
+            %manage "nearly null" data
+            ph1_R(abs(ph1_R(:,i)) < 1e-100,i) = 0;
+            
+            %keep just "on top of second" measurements
+            %if (time_R(i)- floor(time_R(i)) == 0)
+            i = i + 1;
+            %end
+            
+        %62h message data save
+        elseif (strcmp(cell_rover{1,j},'62h'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(30);
+            toe = cell_rover{2,j}(18);                   %time of ephemeris
+            
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0 & (isempty(find(Eph_R(18,sat,:) ==  toe, 1)) | isnan(toe)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
+            end
+
+        %F7h message data save
+        elseif (strcmp(cell_rover{1,j},'F7h'))
+            
+            %satellite number
+            sat = cell_rover{2,j}(30);
+            toe = cell_rover{2,j}(18);                   %time of ephemeris
+            
+            %if the ephemerides are not already available
+            if (~isempty(sat) & sat > 0 & (isempty(find(Eph_R(18,sat,:) ==  toe, 1)) | isnan(toe)))
+                Eph_R(:,sat,i) = cell_rover{2,j}(:);     %single satellite ephemerides logging
+                weekno = Eph_R(24,sat,i);
+                Eph_R(32,sat,i) = weektime2tow(weekno,Eph_R(32,sat,i));
+                Eph_R(33,sat,i) = weektime2tow(weekno,Eph_R(33,sat,i));
+            end
+            
+        %4Ah message data save
+        elseif (strcmp(cell_rover{1,j},'4Ah'))
+
+            %ionosphere parameters
+            iono(:, i) = cell_rover{2,j}(1:8);
 
         end
     end
@@ -362,12 +464,12 @@ if (~isempty(data_rover_all))
     Eph_R(:,:,i:end) = [];
     iono(:,i:end)    = [];
 
-    if (~isempty(time_R))
+    if (any(time_R))
         %date decoding
         date = gps2date(week_R, time_R);
     else
         %displaying
-        if (nargin == 3)
+        if (nargin == 5)
             msgbox('No raw data acquired.');
         else
             fprintf('No raw data acquired.\n');
@@ -379,7 +481,7 @@ if (~isempty(data_rover_all))
     %----------------------------------------------------------------------------------------------
     % APPROXIMATE POSITION
     %----------------------------------------------------------------------------------------------
-    
+ 
     pos_R = zeros(3,1);
     
     %retrieve multi-constellation wavelengths
@@ -401,7 +503,7 @@ if (~isempty(data_rover_all))
             satEph = find(Eph_t(1,:) ~= 0);
             satAvail = intersect(satObs,satEph)';
             if (length(satAvail) >=4)
-                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, lambda(satAvail,:), cutoff, snr_threshold, 1, 0, 0);
+                pos_R = init_positioning(time_R(i), pr1_R(satAvail,i), snr_R(satAvail,i), Eph_t(:,:), [], iono(:,i), [], [], [], [], satAvail, [], lambda(satAvail,:), cutoff, snr_threshold, 1, 0, 0);
             end
             i = i + 1;
         end
@@ -414,37 +516,166 @@ if (~isempty(data_rover_all))
     interval = median(time_R(2:end) - time_R(1:end-1));
     
     %----------------------------------------------------------------------------------------------
+    % MULTI-CONSTELLATION SETTINGS
+    %----------------------------------------------------------------------------------------------
+    
+    GPSenabled = constellations.GPS.enabled;
+    GLOenabled = constellations.GLONASS.enabled;
+    GALenabled = constellations.Galileo.enabled;
+    BDSenabled = constellations.BeiDou.enabled;
+    QZSenabled = constellations.QZSS.enabled;
+    SBSenabled = constellations.SBAS.enabled;
+    
+    if (GPSenabled), GPSavailable = any(any(pr1_R(constellations.GPS.indexes,:))); else GPSavailable = 0; end
+    if (GLOenabled), GLOavailable = any(any(pr1_R(constellations.GLONASS.indexes,:))); else GLOavailable = 0; end
+    if (GALenabled), GALavailable = any(any(pr1_R(constellations.Galileo.indexes,:))); else GALavailable = 0; end
+    if (BDSenabled), BDSavailable = any(any(pr1_R(constellations.BeiDou.indexes,:))); else BDSavailable = 0; end
+    if (QZSenabled), QZSavailable = any(any(pr1_R(constellations.QZSS.indexes,:))); else QZSavailable = 0; end
+    if (SBSenabled), SBSavailable = any(any(pr1_R(constellations.SBAS.indexes,:))); else SBSavailable = 0; end
+    
+    Eph_ind_array = Eph_R(30,:,:);
+    Eph_ind_array = Eph_ind_array(:);
+    if (GPSenabled), GPSavailableEPH = ~isempty(intersect(Eph_ind_array,constellations.GPS.indexes)); else GPSavailableEPH = 0; end
+    if (GLOenabled), GLOavailableEPH = ~isempty(intersect(Eph_ind_array,constellations.GLONASS.indexes)); else GLOavailableEPH = 0; end
+    if (GALenabled), GALavailableEPH = ~isempty(intersect(Eph_ind_array,constellations.Galileo.indexes)); else GALavailableEPH = 0; end
+    if (BDSenabled), BDSavailableEPH = ~isempty(intersect(Eph_ind_array,constellations.BeiDou.indexes)); else BDSavailableEPH = 0; end
+    if (QZSenabled), QZSavailableEPH = ~isempty(intersect(Eph_ind_array,constellations.QZSS.indexes)); else QZSavailableEPH = 0; end
+    if (SBSenabled), SBSavailableEPH = ~isempty(intersect(Eph_ind_array,constellations.SBAS.indexes)); else SBSavailableEPH = 0; end
+
+    i = 1;
+    if (GPSenabled && ~GPSavailable), warning_msg{i} = 'GPS observations not available'; i = i + 1; end
+    if (GLOenabled && ~GLOavailable), warning_msg{i} = 'GLONASS observations not available'; i = i + 1; end
+    if (GALenabled && ~GALavailable), warning_msg{i} = 'Galileo observations not available'; i = i + 1; end
+    if (BDSenabled && ~BDSavailable), warning_msg{i} = 'BeiDou observations not available'; i = i + 1; end
+    if (QZSenabled && ~QZSavailable), warning_msg{i} = 'QZSS observations not available'; i = i + 1; end
+    if (SBSenabled && ~SBSavailable), warning_msg{i} = 'SBAS observations not available'; i = i + 1; end
+    
+    if (GPSenabled && GPSavailable && ~GPSavailableEPH), warning_msg{i} = 'GPS ephemerides not available'; i = i + 1; end
+    if (GLOenabled && GLOavailable && ~GLOavailableEPH), warning_msg{i} = 'GLONASS ephemerides not available'; i = i + 1; end
+    if (GALenabled && GALavailable && ~GALavailableEPH), warning_msg{i} = 'Galileo ephemerides not available'; i = i + 1; end
+    if (BDSenabled && BDSavailable && ~BDSavailableEPH), warning_msg{i} = 'BeiDou ephemerides not available'; i = i + 1; end
+    if (QZSenabled && QZSavailable && ~QZSavailableEPH), warning_msg{i} = 'QZSS ephemerides not available'; i = i + 1; end
+    if (SBSenabled && SBSavailable && ~SBSavailableEPH), warning_msg{i} = 'SBAS ephemerides not available'; i = i + 1; end
+    
+    if (i > 1)
+        if (nargin == 5)
+            msgbox(warning_msg);
+        else
+            for j = 1 : (i-1); fprintf(['WARNING: ' warning_msg{j} '.\n']); end
+        end
+    end
+    
+    GPSactive = (GPSenabled && GPSavailable);
+    GLOactive = (GLOenabled && GLOavailable);
+    GALactive = (GALenabled && GALavailable);
+    BDSactive = (BDSenabled && BDSavailable);
+    QZSactive = (QZSenabled && QZSavailable);
+    SBSactive = (SBSenabled && SBSavailable);
+    
+    GPSactiveEPH = (GPSenabled && GPSavailable && GPSavailableEPH);
+    GLOactiveEPH = (GLOenabled && GLOavailable && GLOavailableEPH);
+    GALactiveEPH = (GALenabled && GALavailable && GALavailableEPH);
+    BDSactiveEPH = (BDSenabled && BDSavailable && BDSavailableEPH);
+    QZSactiveEPH = (QZSenabled && QZSavailable && QZSavailableEPH);
+    SBSactiveEPH = (SBSenabled && SBSavailable && SBSavailableEPH);
+    
+    SYSactive = [GPSactive, GLOactive, GALactive, ...
+        BDSactive, QZSactive, SBSactive];
+    
+    SYSactiveEPH = [GPSactiveEPH, GLOactiveEPH, GALactiveEPH, ...
+        BDSactiveEPH, QZSactiveEPH, SBSactiveEPH];
+
+    mixed_sys  = (sum(SYSactive) >= 2);
+    single_sys = (sum(SYSactive) == 1);
+    
+    mixed_sys_eph  = (sum(SYSactiveEPH) >= 2);
+    single_sys_eph = (sum(SYSactiveEPH) == 1);
+    
+    %----------------------------------------------------------------------------------------------
     % RINEX OBSERVATION FILE
     %----------------------------------------------------------------------------------------------
     
     %displaying
-    if (nargin == 2)
-        fprintf(['Writing: ' filename '.obs\n']);
+    if (nargin == 4)
+        fprintf('Writing rover observation file...\n');
     end
     
     %create RINEX observation file
-    fid_obs = fopen([filename '.obs'],'wt');
+    fid_obs = fopen([filename sprintf('.%2do', two_digit_year(date(1,1)))],'wt');
+    
+    %file type
+    if (mixed_sys)
+        file_type = 'M: Mixed';
+    elseif(single_sys && GPSactive)
+        file_type = 'G: GPS';
+    elseif(single_sys && GLOactive)
+        file_type = 'R: GLONASS';
+    elseif(single_sys && GALactive)
+        file_type = 'E: Galileo';
+    elseif(single_sys && SBSactive)
+        file_type = 'S: SBAS Payload';
+    end
+    
+    %current date and time in UTC
+    date_str_UTC = local_time_to_utc(now, 30);
+    [date_str_UTC, time_str_UTC] = strtok(date_str_UTC,'T');
+    time_str_UTC = time_str_UTC(2:end-1);
+    
+    %maximum filename length for RUN BY field
+    rb_len = min(20,length(rinex_metadata.agency));
     
     %maximum filename length for MARKER NAME field
-    pos = find(filename == '/');
-    if (isempty(pos)), pos = 0; end
-    marker_name = filename(pos(end)+1:end);
-    mn_len = min(60,length(marker_name));
+    mn_len = min(60,length(rinex_metadata.marker_name));
+    
+    %maximum filename length for OBSERVER field
+    ob_len = min(20,length(rinex_metadata.observer));
+    
+    %maximum filename length for AGENCY field
+    oa_len = min(40,length(rinex_metadata.observer_agency));
+    
+    %system id
+    sys = [];
+    band = [];
+    attrib = [];
+    if (GPSactive), sys = [sys 'G']; band = [band '1']; attrib = [attrib 'C']; end
+    if (GLOactive), sys = [sys 'R']; band = [band '1']; attrib = [attrib 'C']; end
+    if (GALactive), sys = [sys 'E']; band = [band '1']; attrib = [attrib 'X']; end
+    if (BDSactive), sys = [sys 'C']; band = [band '2']; attrib = [attrib 'I']; end
+    if (QZSactive), sys = [sys 'J']; band = [band '1']; attrib = [attrib 'C']; end
+    if (SBSactive), sys = [sys 'S']; band = [band '1']; attrib = [attrib 'C']; end
+    
+    %find first available epoch for the active constellations
+    [~, t] = find(pr1_R(:,:) ~= 0, 1);
 
     %write header
-    fprintf(fid_obs,'     2.10           OBSERVATION DATA    G (GPS)             RINEX VERSION / TYPE\n');
-    fprintf(fid_obs,'goGPS                                                       PGM / RUN BY / DATE \n');
-    fprintf(fid_obs,'%-60sMARKER NAME         \n',marker_name(1:mn_len));
-    fprintf(fid_obs,'                                                            OBSERVER / AGENCY   \n');
+    fprintf(fid_obs,'%9.2f           OBSERVATION DATA    %-19s RINEX VERSION / TYPE\n', str2num(rinex_metadata.version), file_type);
+    fprintf(fid_obs,'%-20s%-20s%-20sPGM / RUN BY / DATE \n', 'goGPS', rinex_metadata.agency(1:rb_len), [date_str_UTC ' ' time_str_UTC ' UTC']);
+    fprintf(fid_obs,'%-60sMARKER NAME         \n',rinex_metadata.marker_name(1:mn_len));
+    if (rin_ver_id == 3)
+        fprintf(fid_obs,'%-20s                                        MARKER TYPE         \n', rinex_metadata.marker_type);
+    end
+    fprintf(fid_obs,'%-20s%-40sOBSERVER / AGENCY   \n', rinex_metadata.observer(1:ob_len), rinex_metadata.observer_agency(1:oa_len));
     fprintf(fid_obs,'                    %-20s                    REC # / TYPE / VERS \n', receiver);
     fprintf(fid_obs,'                                                            ANT # / TYPE        \n');
     fprintf(fid_obs,'%14.4f%14.4f%14.4f                  APPROX POSITION XYZ \n', pos_R(1), pos_R(2), pos_R(3));
     fprintf(fid_obs,'        0.0000        0.0000        0.0000                  ANTENNA: DELTA H/E/N\n');
     fprintf(fid_obs,'     2     0                                                WAVELENGTH FACT L1/2\n');
-    fprintf(fid_obs,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
+    if (rin_ver_id == 2)
+        fprintf(fid_obs,'     4    C1    L1    S1    D1                              # / TYPES OF OBSERV \n');
+    else
+        for s = 1 : length(sys)
+            fprintf(fid_obs,'%-1s    4 C%c%c L%c%c S%c%c D%c%c                                      SYS / # / OBS TYPES \n',sys(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s),band(s),attrib(s));
+        end
+        fprintf(fid_obs,'DBHZ                                                        SIGNAL STRENGTH UNIT\n');
+    end
     fprintf(fid_obs,'%10.3f                                                  INTERVAL            \n', interval);
     fprintf(fid_obs,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
-        date(1,1), date(1,2), date(1,3), date(1,4), date(1,5), date(1,6));
+        date(t,1), date(t,2), date(t,3), date(t,4), date(t,5), date(t,6));
+    if (rin_ver_id == 3)
+        for s = 1 : length(sys)
+            fprintf(fid_obs,'%c                                                           SYS / PHASE SHIFTS  \n',sys(s));
+        end
+    end
     fprintf(fid_obs,'                                                            END OF HEADER       \n');
     
     %-------------------------------------------------------------------------------
@@ -452,50 +683,84 @@ if (~isempty(data_rover_all))
     %number of records
     N = length(time_R);
     
-    if (nargin == 3)
+    if (nargin == 5)
         waitbar(0,wait_dlg,'Writing rover observation file...')
     end
     
-    date(:,1) = two_digit_year(date(:,1));
-    
-    %write data
+    %cycle through epochs
     for i = 1 : N
-        if (nargin == 3)
+        if (nargin == 5)
             waitbar(i/N,wait_dlg)
         end
 
         sat = find(pr1_R(:,i) ~= 0);
         n = length(sat);
-
+        
+        %assign system and PRN code to each satellite
+        [sys, prn] = find_sat_system(sat, constellations);
+        
+        if (i > 1)
+            current_epoch = datenum([date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6)]);
+            if (current_epoch == previous_epoch)
+                continue %some binary streams contained the same epoch twice (some kind of bug...)
+            end
+        end
+        
+        previous_epoch = datenum([date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6)]);
+        
         %if no observations are available, do not write anything
         if (n > 0)
-            fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
-                date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
-            if (n>12)
-                for j = 1 : 12
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
-                fprintf(fid_obs,'\n');
-                fprintf(fid_obs,'%32s','');
-                for j = 13 : n
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
-            else
-                for j = 1 : n
-                    fprintf(fid_obs,'G%02d',sat(j));
-                end
-            end
-            fprintf(fid_obs,'\n');
-            for j = 1 : n
-                fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                if (abs(ph1_R(sat(j),i)) > 1e-100)
-                    fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+            
+            %RINEX v2.xx
+            if (rin_ver_id == 2)
+                %epoch record
+                fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
+                    two_digit_year(date(i,1)), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
+                if (n>12)
+                    for j = 1 : 12
+                        fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                    end
+                    fprintf(fid_obs,'\n');
+                    fprintf(fid_obs,'%32s','');
+                    for j = 13 : n
+                        fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                    end
                 else
-                    fprintf(fid_obs,'                ');
+                    for j = 1 : n
+                        fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                    end
                 end
-                fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
-                fprintf(fid_obs,'%14.3f %1d',dop1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
                 fprintf(fid_obs,'\n');
+                %observation record(s)
+                for j = 1 : n
+                    fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    if (abs(ph1_R(sat(j),i)) > 1e-100)
+                        fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    else
+                        fprintf(fid_obs,'                ');
+                    end
+                    fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    fprintf(fid_obs,'%14.3f %1d',dop1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    fprintf(fid_obs,'\n');
+                end
+            %RINEX v3.xx    
+            else
+                %epoch record
+                fprintf(fid_obs,'> %4d %2d %2d %2d %2d %10.7f  0 %2d\n', ...
+                    date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
+                %observation record(s)
+                for j = 1 : n
+                    fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                    fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    if (abs(ph1_R(sat(j),i)) > 1e-100)
+                        fprintf(fid_obs,'%14.3f%1d%1d',ph1_R(sat(j),i),lock_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    else
+                        fprintf(fid_obs,'                ');
+                    end
+                    fprintf(fid_obs,'%14.3f %1d',snr_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    fprintf(fid_obs,'%14.3f %1d',dop1_R(sat(j),i),floor(snr_R(sat(j),i)/6));
+                    fprintf(fid_obs,'\n');
+                end
             end
         end
     end
@@ -511,133 +776,241 @@ if (~isempty(data_rover_all))
     if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))
         
         %displaying
-        if (nargin == 2)
-            fprintf(['Writing: ' filename '.nav\n']);
+        if (nargin == 4)
+            fprintf('Writing rover navigation file...\n');
         end
         
-        %find first non-zero ionosphere parameters
-        pos = find(iono(1,:) ~= 0);
-        if (~isempty(pos))
-            iono = iono(:,pos(1));
-        end
-
-        %create RINEX navigation file
-        fid_nav = fopen([filename '.nav'],'wt');
-        
-        %write header
-        fprintf(fid_nav,'     2.10           NAVIGATION DATA                         RINEX VERSION / TYPE\n');
-        fprintf(fid_nav,'goGPS                                                       PGM / RUN BY / DATE \n');
-        if (~isempty(pos))
-            if (three_digit_exp)
-                line_alphaE = sprintf('  %13.4E%13.4E%13.4E%13.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
-                line_betaE  = sprintf('  %13.4E%13.4E%13.4E%13.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
-            else
-                line_alphaE = sprintf('  %12.4E%12.4E%12.4E%12.4E          ION ALPHA           \n', iono(1), iono(2), iono(3), iono(4));
-                line_betaE  = sprintf('  %12.4E%12.4E%12.4E%12.4E          ION BETA            \n', iono(5), iono(6), iono(7), iono(8));
-            end
-            %if needed, convert three-digits exponential notation
-            %to two-digits; in any case, replace 'E' with 'D' and print the string
-            if (three_digit_exp)
-                line_alphaD = strrep(line_alphaE(1,:),'E+0','D+');
-                line_alphaD = strrep(line_alphaD,'E-0','D-');
-                fprintf(fid_nav,'%s',line_alphaD);
-                line_betaD = strrep(line_betaE(1,:),'E+0','D+');
-                line_betaD = strrep(line_betaD,'E-0','D-');
-                fprintf(fid_nav,'%s',line_betaD);
-            else
-                line_alphaD = strrep(line_alphaE(1,:),'E+','D+');
-                line_alphaD = strrep(line_alphaD,'E-','D-');
-                fprintf(fid_nav,'%s',line_alphaD);
-                line_betaD = strrep(line_betaE(1,:),'E+','D+');
-                line_betaD = strrep(line_betaD,'E-','D-');
-                fprintf(fid_nav,'%s',line_betaD);
-            end
-        end
-        fprintf(fid_nav,'                                                            END OF HEADER       \n');
-        
-        if (nargin == 3)
+        if (nargin == 5)
             waitbar(0,wait_dlg,'Writing rover navigation file...')
         end
-        
-        for i = 1 : N
-            if (nargin == 3)
-                waitbar(i/N,wait_dlg)
+
+        ext = [];
+        if (rin_ver_id == 2)
+            sat_sys = cell(0);
+            m = 1;
+            if (GPSactiveEPH), sat_sys{m} = 'N: GPS NAV DATA';  m = m + 1; ext = [ext 'n']; end
+            if (GLOactiveEPH), sat_sys{m} = 'GLONASS NAV DATA';            ext = [ext 'g']; end
+        else
+            if (mixed_sys_eph)
+                ext = 'p';
+            elseif(single_sys_eph && GPSactiveEPH)
+                ext = 'n';
+            elseif(single_sys_eph && GLOactiveEPH)
+                ext = 'g';
+            elseif(single_sys_eph && GALactiveEPH)
+                ext = 'l';
+            end
+            sat_sys{1} = file_type;
+        end
+
+        for f = 1 : length(ext)
+            
+            %create RINEX navigation file
+            fid_nav = fopen([filename sprintf('.%2d%c', two_digit_year(date(1,1)), ext(f))], 'wt');
+
+            %write header
+            if (rin_ver_id == 2)
+                fprintf(fid_nav,'%9.2f           %-39s RINEX VERSION / TYPE\n', str2num(rinex_metadata.version), sat_sys{f});
+            else
+                fprintf(fid_nav,'%9.2f           N: GNSS NAV DATA    %-19s RINEX VERSION / TYPE\n', str2num(rinex_metadata.version), sat_sys{f});
+            end
+            fprintf(fid_nav,'%-20s%-20s%-20sPGM / RUN BY / DATE \n', 'goGPS', rinex_metadata.agency(1:rb_len), [date_str_UTC ' ' time_str_UTC ' UTC']);
+            
+            %find first non-zero ionosphere parameters
+            pos = find(iono(1,:) ~= 0);
+            if (~isempty(pos))
+                iono = iono(:,pos(1));
             end
             
-            satEph = find(Eph_R(1,:,i) ~= 0);
-            for j = 1 : length(satEph)
-                af2      = Eph_R(2,satEph(j),i);
-                M0       = Eph_R(3,satEph(j),i);
-                roota    = Eph_R(4,satEph(j),i);
-                deltan   = Eph_R(5,satEph(j),i);
-                ecc      = Eph_R(6,satEph(j),i);
-                omega    = Eph_R(7,satEph(j),i);
-                cuc      = Eph_R(8,satEph(j),i);
-                cus      = Eph_R(9,satEph(j),i);
-                crc      = Eph_R(10,satEph(j),i);
-                crs      = Eph_R(11,satEph(j),i);
-                i0       = Eph_R(12,satEph(j),i);
-                idot     = Eph_R(13,satEph(j),i);
-                cic      = Eph_R(14,satEph(j),i);
-                cis      = Eph_R(15,satEph(j),i);
-                Omega0   = Eph_R(16,satEph(j),i);
-                Omegadot = Eph_R(17,satEph(j),i);
-                toe      = Eph_R(18,satEph(j),i);
-                af0      = Eph_R(19,satEph(j),i);
-                af1      = Eph_R(20,satEph(j),i);
-                toc      = Eph_R(21,satEph(j),i);
-                IODE     = Eph_R(22,satEph(j),i);
-                codes    = Eph_R(23,satEph(j),i);
-                weekno   = Eph_R(24,satEph(j),i); %#ok<NASGU>
-                L2flag   = Eph_R(25,satEph(j),i);
-                svaccur  = Eph_R(26,satEph(j),i);
-                svhealth = Eph_R(27,satEph(j),i);
-                tgd      = Eph_R(28,satEph(j),i);
-                fit_int  = Eph_R(29,satEph(j),i);
-                system   = Eph_R(31,satEph(j),i); %#ok<NASGU>
-                
-                %time of measurement decoding
-                date = gps2date(week_R(i), toc);
-                date(1) = two_digit_year(date(1));
-                
-                lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
-                    satEph(j),date(1), date(2), date(3), date(4), date(5), date(6), ...
-                    af0, af1, af2);
-                linesE(1,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', IODE , crs, deltan, M0);
-                linesE(2,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
-                linesE(3,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toe, cic, Omega0, cis);
-                linesE(4,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', i0, crc, omega, Omegadot);
-                linesE(5,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week_R(1), L2flag);
-                linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
-                linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
-                
+            if (~isempty(pos))
+                if (three_digit_exp)
+                    line_alphaE = sprintf('%13.4E%13.4E%13.4E%13.4E', iono(1), iono(2), iono(3), iono(4));
+                    line_betaE  = sprintf('%13.4E%13.4E%13.4E%13.4E', iono(5), iono(6), iono(7), iono(8));
+                else
+                    line_alphaE = sprintf('%12.4E%12.4E%12.4E%12.4E', iono(1), iono(2), iono(3), iono(4));
+                    line_betaE  = sprintf('%12.4E%12.4E%12.4E%12.4E', iono(5), iono(6), iono(7), iono(8));
+                end
                 %if needed, convert three-digits exponential notation
                 %to two-digits; in any case, replace 'E' with 'D' and print the string
                 if (three_digit_exp)
-                    lineD = strrep(lineE(1,:),'E+0','D+');
-                    lineD = strrep(lineD,'E-0','D-');
-                    fprintf(fid_nav,'%s',lineD);
-                    for k = 1 : 7
-                        lineD = strrep(linesE(k,:),'E+0','D+');
-                        lineD = strrep(lineD,'E-0','D-');
-                        fprintf(fid_nav,'%s',lineD);
-                    end
+                    line_alphaD = strrep(line_alphaE(1,:),'E+0','D+');
+                    line_alphaD = strrep(line_alphaD,'E-0','D-');
+                    line_betaD = strrep(line_betaE(1,:),'E+0','D+');
+                    line_betaD = strrep(line_betaD,'E-0','D-');
                 else
-                    lineD = strrep(lineE(1,:),'E+','D+');
-                    lineD = strrep(lineD,'E-','D-');
-                    fprintf(fid_nav,'%s',lineD);
-                    for k = 1 : 7
-                        lineD = strrep(linesE(k,:),'E+','D+');
-                        lineD = strrep(lineD,'E-','D-');
-                        fprintf(fid_nav,'%s',lineD);
+                    line_alphaD = strrep(line_alphaE(1,:),'E+','D+');
+                    line_alphaD = strrep(line_alphaD,'E-','D-');
+                    line_betaD = strrep(line_betaE(1,:),'E+','D+');
+                    line_betaD = strrep(line_betaD,'E-','D-');
+                end
+                
+                if (rin_ver_id == 2)
+                    fprintf(fid_nav,'  %s          ION ALPHA           \n',line_alphaD);
+                    fprintf(fid_nav,'  %s          ION BETA            \n',line_betaD);
+                else
+                    fprintf(fid_nav,'GPSA %s       IONOSPHERIC CORR    \n',line_alphaD);
+                    fprintf(fid_nav,'GPSB %s       IONOSPHERIC CORR    \n',line_betaD);
+                end
+            end
+            fprintf(fid_nav,'                                                            END OF HEADER       \n');
+            
+            for i = 1 : N
+                if (nargin == 5)
+                    waitbar(i/N,wait_dlg)
+                end
+                
+                idxEph = find(Eph_R(1,:,i) ~= 0);
+                
+                for j = 1 : length(idxEph)
+                    
+                    lineE = [];
+                    linesE = [];
+                    
+                    %if GPS
+                    if ((strcmp(ext(f),'n') &&  strcmp(char(Eph_R(31,idxEph(j),i)),'G')) || ...
+                        (strcmp(ext(f),'p') && (strcmp(char(Eph_R(31,idxEph(j),i)),'G')  || ...
+                                                strcmp(char(Eph_R(31,idxEph(j),i)),'E')  || ...
+                                                strcmp(char(Eph_R(31,idxEph(j),i)),'C')  || ...
+                                                strcmp(char(Eph_R(31,idxEph(j),i)),'J'))))
+
+                        prn      = Eph_R(1,idxEph(j),i);
+                        af2      = Eph_R(2,idxEph(j),i);
+                        M0       = Eph_R(3,idxEph(j),i);
+                        roota    = Eph_R(4,idxEph(j),i);
+                        deltan   = Eph_R(5,idxEph(j),i);
+                        ecc      = Eph_R(6,idxEph(j),i);
+                        omega    = Eph_R(7,idxEph(j),i);
+                        cuc      = Eph_R(8,idxEph(j),i);
+                        cus      = Eph_R(9,idxEph(j),i);
+                        crc      = Eph_R(10,idxEph(j),i);
+                        crs      = Eph_R(11,idxEph(j),i);
+                        i0       = Eph_R(12,idxEph(j),i);
+                        idot     = Eph_R(13,idxEph(j),i);
+                        cic      = Eph_R(14,idxEph(j),i);
+                        cis      = Eph_R(15,idxEph(j),i);
+                        Omega0   = Eph_R(16,idxEph(j),i);
+                        Omegadot = Eph_R(17,idxEph(j),i);
+                        toe      = Eph_R(18,idxEph(j),i);
+                        af0      = Eph_R(19,idxEph(j),i);
+                        af1      = Eph_R(20,idxEph(j),i);
+                        toc      = Eph_R(21,idxEph(j),i);
+                        IODE     = Eph_R(22,idxEph(j),i);
+                        codes    = Eph_R(23,idxEph(j),i);
+                        weekno   = Eph_R(24,idxEph(j),i); %#ok<NASGU>
+                        L2flag   = Eph_R(25,idxEph(j),i);
+                        svaccur  = Eph_R(26,idxEph(j),i);
+                        svhealth = Eph_R(27,idxEph(j),i);
+                        tgd      = Eph_R(28,idxEph(j),i);
+                        fit_int  = Eph_R(29,idxEph(j),i);
+                        sys      = Eph_R(31,idxEph(j),i);
+                        
+                        %time of measurement decoding
+                        date_toc = gps2date(week_R(i), toc);
+
+                        if (rin_ver_id == 2)
+                            
+                            date_toc(1) = two_digit_year(date_toc(1));
+                            
+                            lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
+                                prn ,date_toc(1), date_toc(2), date_toc(3), date_toc(4), date_toc(5), date_toc(6), af0, af1, af2);
+                            linesE(1,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', IODE , crs, deltan, M0);
+                            linesE(2,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
+                            linesE(3,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toe, cic, Omega0, cis);
+                            linesE(4,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', i0, crc, omega, Omegadot);
+                            linesE(5,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week_R(i), L2flag);
+                            linesE(6,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
+                            linesE(7,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
+                        %if RINEX v3.xx
+                        else
+                            lineE(1,:) = sprintf('%c%02d %04d %2d %2d %2d %2d %2d% 18.12E% 18.12E% 18.12E\n', ...
+                                char(sys), prn, date_toc(1), date_toc(2), date_toc(3), date_toc(4), date_toc(5), date_toc(6), af0, af1, af2);
+                            linesE(1,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', IODE , crs, deltan, M0);
+                            linesE(2,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', cuc, ecc, cus, roota);
+                            linesE(3,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', toe, cic, Omega0, cis);
+                            linesE(4,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', i0, crc, omega, Omegadot);
+                            linesE(5,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', idot, codes, week_R(i), L2flag);
+                            linesE(6,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', svaccur, svhealth, tgd, IODE);
+                            linesE(7,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', toc, fit_int, 0, 0);  %here "toc" should be "tom" (e.g. derived from Z-count in Hand Over Word)
+                        end
+                    %if GLONASS
+                    elseif ((strcmp(ext(f),'g') || strcmp(ext(f),'p')) && strcmp(char(Eph_R(31,idxEph(j),i)),'R'))
+                        prn      = Eph_R(1,idxEph(j),i);
+                        TauN     = Eph_R(2,idxEph(j),i);
+                        GammaN   = Eph_R(3,idxEph(j),i);
+                        tk       = Eph_R(4,idxEph(j),i);
+                        X        = Eph_R(5,idxEph(j),i)/1e3;  %satellite X coordinate at ephemeris reference time [km]
+                        Y        = Eph_R(6,idxEph(j),i)/1e3;  %satellite Y coordinate at ephemeris reference time [km]
+                        Z        = Eph_R(7,idxEph(j),i)/1e3;  %satellite Z coordinate at ephemeris reference time [km]
+                        Xv       = Eph_R(8,idxEph(j),i)/1e3;  %satellite velocity along X at ephemeris reference time [m/s]
+                        Yv       = Eph_R(9,idxEph(j),i)/1e3;  %satellite velocity along Y at ephemeris reference time [m/s]
+                        Zv       = Eph_R(10,idxEph(j),i)/1e3; %satellite velocity along Z at ephemeris reference time [m/s]
+                        Xa       = Eph_R(11,idxEph(j),i)/1e3; %acceleration due to lunar-solar gravitational perturbation along X at ephemeris reference time [m/s^2]
+                        Ya       = Eph_R(12,idxEph(j),i)/1e3; %acceleration due to lunar-solar gravitational perturbation along Y at ephemeris reference time [m/s^2]
+                        Za       = Eph_R(13,idxEph(j),i)/1e3; %acceleration due to lunar-solar gravitational perturbation along Z at ephemeris reference time [m/s^2]
+                        E        = Eph_R(14,idxEph(j),i);
+                        freq_num = Eph_R(15,idxEph(j),i);
+                        tb       = Eph_R(16,idxEph(j),i); %#ok<NASGU>
+                        Bn       = Eph_R(27,idxEph(j),i);
+                        sys      = Eph_R(31,idxEph(j),i);
+                        
+                        %time of measurement decoding and
+                        %conversion from GPS date to GLONASS (UTC) date
+                        %date_GPS = gps2date(week_R(i), time_R(i));
+                        date_GPS = date(i,:);
+                        date_GLO = datevec(gps2utc(datenum(date_GPS)));
+                        %sec_of_day = date_GLO(3)*3600 + date_GLO(2)*60 + date_GLO(1);
+                        datenum_GLO = datenum([date_GLO(1) date_GLO(2) date_GLO(3) 0 0 0]) + datenum(tk/86400);
+                        date_GLO = datevec(datenum_GLO);
+
+                        if (rin_ver_id == 2)
+                            
+                            date_GLO(1) = two_digit_year(date_GLO(1));
+                            
+                            lineE(1,:) = sprintf('%2d %02d %2d %2d %2d %2d%5.1f% 18.12E% 18.12E% 18.12E\n', ...
+                                prn, date_GLO(1), date_GLO(2), date_GLO(3), date_GLO(4), date_GLO(5), date_GLO(6), -TauN, GammaN, tk);
+                            linesE(1,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', X, Xv, single(Xa), Bn);
+                            linesE(2,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', Y, Yv, single(Ya), freq_num);
+                            linesE(3,:) = sprintf('   % 18.12E% 18.12E% 18.12E% 18.12E\n', Z, Zv, single(Za), E);
+                        %if RINEX v3.xx
+                        else
+                            lineE(1,:) = sprintf('%c%02d %04d %2d %2d %2d %2d %2d% 18.12E% 18.12E% 18.12E\n', ...
+                                char(sys), prn, date_GLO(1), date_GLO(2), date_GLO(3), date_GLO(4), date_GLO(5), date_GLO(6), -TauN, GammaN, tk);
+                            linesE(1,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', X, Xv, single(Xa), Bn);
+                            linesE(2,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', Y, Yv, single(Ya), freq_num);
+                            linesE(3,:) = sprintf('    % 18.12E% 18.12E% 18.12E% 18.12E\n', Z, Zv, single(Za), E);
+                        end
+                    end
+                    
+                    if (~isempty(lineE))
+                        %if needed, convert three-digits exponential notation
+                        %to two-digits; in any case, replace 'E' with 'D' and print the string
+                        n = size(linesE,1);
+                        if (three_digit_exp)
+                            lineD = strrep(char(lineE(1,:)),'E+0','D+');
+                            lineD = strrep(lineD,'E-0','D-');
+                            fprintf(fid_nav,'%s',lineD);
+                            for k = 1 : n
+                                lineD = strrep(char(linesE(k,:)),'E+0','D+');
+                                lineD = strrep(lineD,'E-0','D-');
+                                fprintf(fid_nav,'%s',lineD);
+                            end
+                        else
+                            lineD = strrep(char(lineE(1,:)),'E+','D+');
+                            lineD = strrep(lineD,'E-','D-');
+                            fprintf(fid_nav,'%s',lineD);
+                            for k = 1 : n
+                                lineD = strrep(char(linesE(k,:)),'E+','D+');
+                                lineD = strrep(lineD,'E-','D-');
+                                fprintf(fid_nav,'%s',lineD);
+                            end
+                        end
                     end
                 end
             end
+            
+            %close RINEX navigation file
+            fclose(fid_nav);
         end
-        
-        %close RINEX navigation file
-        fclose(fid_nav);
-        
     end
     
     %output week number
@@ -646,7 +1019,7 @@ if (~isempty(data_rover_all))
     end
 else
     %displaying
-    if (nargin == 3)
+    if (nargin == 5)
         msgbox('No rover data acquired.');
     else
         fprintf('No rover data acquired.\n');

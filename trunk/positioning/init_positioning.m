@@ -1,7 +1,7 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS)
 
 % SYNTAX:
-%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS);
+%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -16,6 +16,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   XS0         = satellite positions (=[] if not available)
 %   dtS0        = satellite clocks (=[] if not available)
 %   sat0        = available satellite PRNs
+%   sys0        = array with different values for different systems (used if flag_XS == 1)
 %   lambda      = wavelength matrix (depending on the enabled constellations)
 %   cutoff_el   = elevation cutoff
 %   cutoff_snr  = signal-to-noise ratio cutoff
@@ -40,7 +41,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   el        = satellite elevation (vector)
 %   az        = satellite azimuth (vector)
 %   dist      = satellite-receiver geometric distance (vector)
-%   is_GLO    = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
+%   sys       = array with different values for different systems
 %   cov_XR    = receiver position error covariance matrix [3x3]
 %   var_dtR   = receiver clock error variance (scalar)
 %   PDOP      = position dilution of precision (scalar)
@@ -73,8 +74,6 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-v_light = goGNSS.V_LIGHT;
-
 %compute inter-frequency factors (for the ionospheric delay)
 ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
@@ -90,12 +89,18 @@ dtR = 0;
 err_tropo = zeros(nsat,1);
 err_iono  = zeros(nsat,1);
 
-%GLONASS time offset array initialization
-is_GLO = zeros(nsat,1);
+%output variable initialization
+cov_XR = [];
+var_dtR = [];
+PDOP = -9999;
+HDOP = -9999;
+VDOP = -9999;
+cond_num = [];
 
 if (flag_XS == 0)
     %satellite position and clock error
-    [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, is_GLO] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3, sbas, err_tropo, err_iono, dtR);
+    [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3, sbas, err_tropo, err_iono, dtR);
+
 else
     XS  = XS0;
     dtS = dtS0;
@@ -103,25 +108,24 @@ else
     VS_tx = [];
     time_tx = [];
     no_eph = zeros(nsat,1);
+    sys = sys0;
 end
 
+%if multi-system observations, then an inter-system bias parameter for each additional system must be estimated
+num_sys  = length(unique(sys(sys ~= 0)));
+min_nsat = 3 + num_sys;
+
 %----------------------------------------------------------------------------------------------
-% APPROXIMATE RECEIVER POSITION BY BANCROFT ALGORITHM
+% APPROXIMATE RECEIVER POSITION
 %----------------------------------------------------------------------------------------------
 
 if (flag_XR == 0)
     
     index = find(no_eph == 0);
     
-    %if mixed observations GLONASS/other, then don't use GLONASS (system time difference)
-    if (any(is_GLO) && any(~is_GLO))
-        
-        index_GLO = find(is_GLO);
-        index = setdiff(index,index_GLO);
-    end
-    
-    if (length(index) < 4) %if available observations are not enough, return
-        %empty variables
+    nsat_avail = length(index);
+
+    if (nsat_avail < min_nsat) %if available observations are not enough, return empty variables
         XR   = [];
         dtR  = [];
         az   = [];
@@ -133,26 +137,19 @@ if (flag_XR == 0)
         
         if (flag_XR == 2)
             cov_XR = zeros(3,3);
-        else
-            cov_XR = [];
         end
-        var_dtR = [];
-        
-        PDOP = -9999;
-        HDOP = -9999;
-        VDOP = -9999;
-        cond_num = [];
         
         return
     end
 
-    %NOTE: satellite selection may enhance the solution
-    B = [XS(index,:), pseudorange(index) + v_light * dtS(index)]; %Bancroft matrix
-    x = bancroft(B);                                         %estimated parameters
-    XR = x(1:3);                                         %receiver coordinates [m]
-    %dtR = x(4) / v_light;                               %receiver clock error [s]
+    %iterative least-squares from the center of the Earth (i.e. [0; 0; 0])
+    XR0 = zeros(3,1);
+    for i = 1 : 3
+        [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));
+        XR0 = XR;
+    end
 else
-    XR = XR0;                                          %known receiver coordinates
+    XR = XR0; %known receiver coordinates
 end
 
 %----------------------------------------------------------------------------------------------
@@ -176,7 +173,7 @@ az   = az(index);
 dist = dist(index);
 XS   = XS(index,:);
 dtS  = dtS(index);
-is_GLO = is_GLO(index);
+sys  = sys(index);
 ionoFactor = ionoFactor(index,:);
 nsat = size(pseudorange,1);
 if (flag_XS == 1)
@@ -187,16 +184,12 @@ end
 % LEAST SQUARES SOLUTION
 %--------------------------------------------------------------------------------------------
 
-%if mixed observations GLONASS/other, then an additional parameter will be
-%added to the least squares adjustment (i.e. at least 5 satellites required)
-if (any(is_GLO) && any(~is_GLO))
-    min_nsat = 5;
-else
-    min_nsat = 4;
-end
+%if multi-system observations, then an inter-system bias parameter for each additional system must be estimated
+num_sys  = length(unique(sys(sys ~= 0)));
+min_nsat = 3 + num_sys;
 
 %there are not enough satellites to improve the receiver position
-if ((flag_XR == 1) & (nsat < min_nsat))
+if ((flag_XR == 1) && (nsat < min_nsat))
     flag_XR = 2;
 end
 
@@ -221,7 +214,7 @@ if (nsat >= nsat_required)
     %threshold = sum of the coordinate variation over all satellites [m]
     threshold = 0.01;
 
-    while ((sqrt(sum((XS(:)-XSold(:)).^2)) > threshold) & (n_iter < n_iter_max))
+    while ((sqrt(sum((XS(:)-XSold(:)).^2)) > threshold) && (n_iter < n_iter_max))
 
         XSold = XS;             %save old version of satellite positions
         n_iter = n_iter+1;      %increase iteration counter
@@ -243,14 +236,9 @@ if (nsat >= nsat_required)
         err_iono = ionoFactor(:,phase).*err_iono;
 
         if (flag_XR < 2) %if unknown or approximate receiver position
-            [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, is_GLO);
+            [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys);
         else
-            [dtR, var_dtR] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, is_GLO);
-            cov_XR = [];
-            PDOP = -9999;
-            HDOP = -9999;
-            VDOP = -9999;
-            cond_num = [];
+            [dtR, var_dtR] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys);
         end
 
         if (flag_XS == 0)
@@ -273,13 +261,5 @@ else
 
     if (flag_XR == 2)
         cov_XR = zeros(3,3);
-    else
-        cov_XR = [];
     end
-    var_dtR = [];
-
-    PDOP = -9999;
-    HDOP = -9999;
-    VDOP = -9999;
-    cond_num = [];
 end

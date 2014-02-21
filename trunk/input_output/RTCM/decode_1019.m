@@ -1,10 +1,12 @@
-function [data] = decode_1019(msg)
+function [data] = decode_1019(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_1019(msg)
+%   [data] = decode_1019(msg, constellations)
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the 1019 packet information
@@ -203,8 +205,8 @@ if (DF085 == DF071)
     data{2}(27) = DF102;
     data{2}(28) = DF101;
     data{2}(29) = DF137;
-    data{2}(30) = DF009;     %assume only GPS (not multi-constellation)
-    data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+    data{2}(30) = constellations.GPS.indexes(DF009);
+    data{2}(31) = int8('G');
     data{2}(32) = weektow2time(DF076, DF093, 'G');
     data{2}(33) = weektow2time(DF076, DF081, 'G');
 end

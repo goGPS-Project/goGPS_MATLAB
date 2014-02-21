@@ -51,11 +51,11 @@ global circle_rad
 %CRS parameters, according to each GNSS system CRS definition
 % (ICD document in brackets):
 %
-% *_GPS --> WGS-84  (IS-GPS200E)
-% *_GLO --> PZ-90   (GLONASS-ICD 5.1)
-% *_GAL --> GTRF    (Galileo-ICD 1.1)
-% *_BDS --> CSG2000 (BeiDou-ICD 1.0)
-% *_QZS --> WGS-84  (IS-QZSS 1.5D)
+% *_GPS --> WGS-84   (IS-GPS200E)
+% *_GLO --> PZ-90    (GLONASS-ICD 5.1)
+% *_GAL --> GTRF     (Galileo-ICD 1.1)
+% *_BDS --> CGCS2000 (BeiDou-ICD 1.0)
+% *_QZS --> WGS-84   (IS-QZSS 1.5D)
 
 %ellipsoid semi-major axis [m]
 a_GPS = 6378137;
@@ -373,3 +373,11 @@ ratiotest = [];
 mutest = [];
 succ_rate = [];
 fixed_solution = [];
+
+%-------------------------------------------------------------------------------
+% MULTI-CONSTELLATION
+%-------------------------------------------------------------------------------
+
+global n_sys
+
+n_sys = 1;

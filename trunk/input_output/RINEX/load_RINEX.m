@@ -16,7 +16,7 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   filename_R_obs = RINEX observation file (ROVER)
 %   filename_M_obs = RINEX observation file (MASTER) (empty if not available)
 %   constellations = struct with multi-constellation settings
-%                   (see 'multi_constellation_settings.m' - empty if not available)
+%                   (see goGNSS.initConstellation - empty if not available)
 %   flag_SP3 = boolean flag to indicate SP3 availability
 %   wait_dlg = optional handler to waitbar figure (optional)
 %
@@ -208,11 +208,11 @@ end
 %parse RINEX header
 [obs_typ_R, pos_R, info_base_R, interval_R, sysId] = RINEX_parse_hdr(FR_oss);
 
-%check RINEX version
+%check RINEX version (rover)
 if (isempty(sysId))
-    RINEX_version = 2;
+    RINEX_version_R = 2;
 else
-    RINEX_version = 3;
+    RINEX_version_R = 3;
 end
 
 %check the availability of basic data to parse the RINEX file (ROVER)
@@ -224,12 +224,19 @@ end
 [obs_col_R, nObsTypes_R] = obs_type_find(obs_typ_R, sysId);
 
 %number of lines to be read for each epoch (only for RINEX v2.xx)
-if (RINEX_version == 2)
+if (RINEX_version_R == 2)
     nLinesToRead_R = ceil(nObsTypes_R/5);  %maximum of 5 obs per line
 end
 
 if (filename_M_obs_PresenceFlag)
     [obs_typ_M, pos_M, info_base_M, interval_M, sysId] = RINEX_parse_hdr(FM_oss);
+    
+    %check RINEX version (rover)
+    if (isempty(sysId))
+        RINEX_version_M = 2;
+    else
+        RINEX_version_M = 3;
+    end
     
     %check the availability of basic data to parse the RINEX file (MASTER)
     if (info_base_M == 0)
@@ -299,7 +306,7 @@ if (filename_M_obs_PresenceFlag)
     while ((time_M(1) - time_R(1)) < 0 && abs(time_M(1) - time_R(1)) >= max_desync_frac*interval)
         
         %number of lines to be skipped
-        if (RINEX_version == 2)
+        if (RINEX_version_M == 2)
             nSkipLines = num_sat_M*nLinesToRead_M;
         else
             nSkipLines = num_sat_M;
@@ -317,7 +324,7 @@ if (filename_M_obs_PresenceFlag)
     while ((time_R(1) - time_M(1)) < 0 && abs(time_R(1) - time_M(1)) >= max_desync_frac*interval)
 
         %number of lines to be skipped
-        if (RINEX_version == 2)
+        if (RINEX_version_R == 2)
             nSkipLines = num_sat_R*nLinesToRead_R;
         else
             nSkipLines = num_sat_R;
@@ -478,7 +485,7 @@ while (~feof(FR_oss))
         snr2_R(:,k) = obs_R.S2;
 %     else
 %         %number of lines to be skipped
-%         if (RINEX_version == 2)
+%         if (RINEX_version_R == 2)
 %             nSkipLines = num_sat_R*nLinesToRead_R;
 %         else
 %             nSkipLines = num_sat_R;
@@ -512,7 +519,7 @@ while (~feof(FR_oss))
             snr2_M(:,k) = obs_M.S2;
 %         else
 %             %number of lines to be skipped
-%             if (RINEX_version == 2)
+%             if (RINEX_version_M == 2)
 %                 nSkipLines = num_sat_M*nLinesToRead_M;
 %             else
 %                 nSkipLines = num_sat_M;

@@ -40,7 +40,7 @@ global weights snr_a snr_0 snr_1 snr_A elea
 %total number of visible satellites
 n = length(elR);
 
-if (weights == 0)
+if (weights == 0 || (~any(elR) || ~any(snr_R)))
     
     %code-code or phase-phase co-factor matrix Q construction
     Q = eye(n);

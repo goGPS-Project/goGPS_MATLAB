@@ -171,12 +171,16 @@ SBS_flag = goIni.getData('Constellations','SBAS');
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
-    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    GPS_flag = 1; GLO_flag = 1; GAL_flag = 1; BDS_flag = 1; QZS_flag = 1;
+    [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
     nSatTot = constellations.nEnabledSat;
 end
 
 %initialization of global variables/constants
 global_init;
+
+%number of enabled constellations
+n_sys = sum([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag]);
 
 % start evaluating computation time
 tic
@@ -1900,7 +1904,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == goGNSS.MODE_RT_R_MON)
-    goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop, goIni.getCaptureRate());
+    goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop, goIni.getCaptureRate(), constellations);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: MASTER MONITORING
@@ -1916,7 +1920,7 @@ elseif (mode == goGNSS.MODE_RT_M_MON)
 
 elseif (mode == goGNSS.MODE_RT_RM_MON)
 
-    goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M);
+    goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M, constellations);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
@@ -1924,7 +1928,7 @@ elseif (mode == goGNSS.MODE_RT_RM_MON)
 
 elseif (mode == goGNSS.MODE_RT_NAV)
 
-    goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
+    goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R, constellations);
 end
 
 if (goGNSS.isPP(mode)) %remove unused epochs from time_GPS (for LS modes)
@@ -2588,7 +2592,7 @@ end
 % REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
 %----------------------------------------------------------------------------------------------
 
-if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode))    
+if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))    
     figure
     epochs = (time_GPS-time_GPS(1))/interval;
     ax = zeros(3,1);
@@ -3157,6 +3161,14 @@ if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(ref_path)) && (~isempty(EA
     fprintf('Std3D:  %7.4f m\n',std(dist3D,1));
     fprintf('RMS3D:  %7.4f m\n',sqrt(std(dist3D)^2+mean(dist3D)^2));
     fprintf('--------------------------------\n\n');
+end
+
+%----------------------------------------------------------------------------------------------
+
+if (exist('time_GPS', 'var') && isempty(time_GPS))
+    fprintf('\n');
+    fprintf('Warning: no epochs were available/usable for processing. The result files will be empty.\n');
+    fprintf('\n');
 end
 
 %----------------------------------------------------------------------------------------------

@@ -1,16 +1,18 @@
-function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M)
+function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M, constellations)
 
 % SYNTAX:
-%   goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M);
+%   goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M, constellations);
 %
 % INPUT:
 %   filerootOUT = output file prefix
-%   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq)
+%   protocol    = protocol (0:Ublox, 1:Fastrax, 2:SkyTraq, 3:NVS)
 %   flag_NTRIP = use/don't use NTRIP flag
 %   flag_ms_pos = use/don't use RTCM master position
 %   flag_var_dyn_model = enable/disable variable dynamic model
 %   flag_stopGOstop = enable/disable direction estimation by stop-go-stop procedure
 %   pos_M = master station position (X,Y,Z)
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % DESCRIPTION:
 %   goGPS real-time monitor: stream reading and synchronization,
@@ -43,8 +45,9 @@ global COMportR master_ip master_port server_delay
 global HDOP
 global nmea_init nmea_update_rate
 global master rover
+global n_sys
 
-nSatTot = 32;
+nSatTot = constellations.nEnabledSat;
 
 %------------------------------------------------------
 % read protocol parameters
@@ -55,6 +58,8 @@ elseif (protocol == 1)
     prot_par = param_fastrax;
 elseif (protocol == 2)
     prot_par = param_skytraq;
+elseif (protocol == 3)
+    prot_par = param_nvs;
 end
 
 %------------------------------------------------------
@@ -153,6 +158,11 @@ elseif (protocol == 2)
 
     % skytraq configuration
     [rover] = configure_skytraq(rover, COMportR, prot_par, 1);
+    
+elseif (protocol == 3)
+
+    % nvs configuration
+    [rover] = configure_nvs(rover, COMportR, prot_par, 1);
 end
 
 %------------------------------------------------------
@@ -165,6 +175,12 @@ tic
 delete([filerootOUT '_log.txt']);
 diary([filerootOUT '_log.txt']);
 diary on
+
+if (protocol == 3)
+    receiver_delay = 0.07;
+else
+    receiver_delay = 0.05;
+end
 
 %------------------------------------------------------
 % rover header package acquisition
@@ -186,7 +202,7 @@ while (rover_1 ~= rover_2) | (rover_1 == 0) | (rover_1 < prot_par{4,1})
 
     %serial port check
     rover_1 = get(rover,'BytesAvailable');
-    pause(0.05);
+    pause(receiver_delay);
     rover_2 = get(rover,'BytesAvailable');
 
     %visualization
@@ -216,7 +232,9 @@ nsatObs_old = [];
 %satellites with ephemerides available
 satEph = [];
 
-while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
+min_nsat_LS = 3 + n_sys;
+
+while ((length(satObs) < min_nsat_LS | ~ismember(satObs,satEph)))
 
     if (protocol == 0)
         %poll available ephemerides
@@ -252,11 +270,12 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
 
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
-        pause(0.1);
+        pause(receiver_delay);
         rover_2 = get(rover,'BytesAvailable');
     end
 
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
+    if (protocol == 3), data_rover = remove_double_10h(data_rover); end
     fwrite(fid_rover,data_rover,'uint8');          %transmitted stream save
     data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
     data_rover = data_rover';                      %transpose (8bit x N matrix)
@@ -264,11 +283,13 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
 
     %message decoding
     if (protocol == 0)
-        [cell_rover] = decode_ublox(data_rover);
+        [cell_rover] = decode_ublox(data_rover, constellations);
     elseif (protocol == 1)
-        [cell_rover] = decode_fastrax_it03(data_rover);
+        [cell_rover] = decode_fastrax_it03(data_rover, constellations);
     elseif (protocol == 2)
-        [cell_rover] = decode_skytraq(data_rover);
+        [cell_rover] = decode_skytraq(data_rover, constellations);
+    elseif (protocol == 3)
+        [cell_rover] = decode_nvs(data_rover, constellations);
     end
     
     %for SkyTraq
@@ -276,7 +297,7 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
 
     for i = 1 : size(cell_rover,2)
 
-        %Timing/raw message data save (RXM-RAW | PSEUDO)
+        %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
         if (strcmp(cell_rover{1,i},prot_par{1,2}))
 
             %just information needed for basic positioning is saved
@@ -297,26 +318,33 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
                 pr_R = cell_rover{3,i}(:,3);
             end
             
-        %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
+        %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
         elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
-            %satellite number
-            sat = cell_rover{2,i}(1);
-
-            if (~isempty(sat) & sat > 0)
-                Eph(:, sat) = cell_rover{2,i}(:);
-                weekno = Eph(24,sat);
-                Eph(32,sat) = weektime2tow(weekno,Eph(32,sat));
-                Eph(33,sat) = weektime2tow(weekno,Eph(33,sat));
-            end
-
+            %satellite index
+            idx = cell_rover{2,i}(30);
             
-        %Hui message data save (AID-HUI)
+            if (~isempty(idx) && idx > 0)
+                Eph(:, idx) = cell_rover{2,i}(:);
+                weekno = Eph(24,idx);
+                Eph(32,idx) = weektime2tow(weekno,Eph(32,idx));
+                Eph(33,idx) = weektime2tow(weekno,Eph(33,idx));
+            end
+            
+        %Hui message data save (AID-HUI | 4Ah)
         elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
-
-            %ionosphere parameters
-            iono(:, 1) = cell_rover{3,i}(9:16);
-
+            
+            %u-blox fields
+            if (protocol == 0)
+                %ionosphere parameters
+                iono(:, 1) = cell_rover{3,i}(9:16);
+            end
+            
+            %NVS fields
+            if (protocol == 3)
+                %ionosphere parameters
+                iono(:, 1) = cell_rover{2,i}(1:8);
+            end
         end
     end
 
@@ -329,7 +357,7 @@ while ((length(satObs) < 4 | ~ismember(satObs,satEph)))
 
     %satellites with observations available
     satObs = find(pr_R ~= 0);
-    
+
     if (isempty(nsatObs_old) | length(satObs) ~= nsatObs_old)
         %display current number of satellites
         fprintf('Number of visible satellites with ephemerides: %d\n', length(satObs));
@@ -341,7 +369,7 @@ end
 lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
 
 %initial positioning
-pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, lambda(satObs,:), 10, 0, 1, 0, 0);
+pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), 10, 0, 1, 0, 0);
 
 if (isempty(pos_R))
     fprintf('It was not possible to estimate an approximate position.\n');
@@ -376,7 +404,7 @@ while (~sync_rover)
         
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
-        pause(0.1);
+        pause(receiver_delay);
         rover_2 = get(rover,'BytesAvailable');
         
         %visualization
@@ -385,22 +413,25 @@ while (~sync_rover)
     end
     
     data_rover = fread(rover,rover_1,'uint8');     %serial port reading
+    if (protocol == 3), data_rover = remove_double_10h(data_rover); end
     data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
     data_rover = data_rover';                      %transpose (8bit x N matrix)
     data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
     
     %message decoding
     if (protocol == 0)
-        [cell_rover] = decode_ublox(data_rover);
+        [cell_rover] = decode_ublox(data_rover, constellations);
     elseif (protocol == 1)
-        [cell_rover] = decode_fastrax_it03(data_rover);
+        [cell_rover] = decode_fastrax_it03(data_rover, constellations);
     elseif (protocol == 2)
-        [cell_rover] = decode_skytraq(data_rover);
+        [cell_rover] = decode_skytraq(data_rover, constellations);
+    elseif (protocol == 3)
+        [cell_rover] = decode_nvs(data_rover, constellations);
     end
-    
+
     for i = 1 : size(cell_rover,2)
-        
-        %Timing/raw message data save (RXM-RAW | PSEUDO)
+
+        %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
         if (strcmp(cell_rover{1,i},prot_par{1,2}))
             
             %just information about the epoch is saved
@@ -679,7 +710,7 @@ while flag
 
         %serial port check
         rover_1 = get(rover,'BytesAvailable');
-        pause(0.05);
+        pause(receiver_delay);
         rover_2 = get(rover,'BytesAvailable');
 
     end
@@ -732,18 +763,22 @@ while flag
 
         data_rover = fread(rover,rover_1,'uint8');     %serial port reading
         fwrite(fid_rover,data_rover,'uint8');          %transmitted stream save
+        if (protocol == 3), data_rover = remove_double_10h(data_rover); end
         data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
         data_rover = data_rover';                      %transpose (8bit x N matrix)
         data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
 
         %message decoding
         if (protocol == 0)
-            [cell_rover, nmea_sentences] = decode_ublox(data_rover);
+            [cell_rover, nmea_sentences] = decode_ublox(data_rover, constellations);
         elseif (protocol == 1)
-            [cell_rover] = decode_fastrax_it03(data_rover);
+            [cell_rover] = decode_fastrax_it03(data_rover, constellations);
             nmea_sentences = [];
         elseif (protocol == 2)
-            [cell_rover] = decode_skytraq(data_rover);
+            [cell_rover] = decode_skytraq(data_rover, constellations);
+            nmea_sentences = [];
+        elseif (protocol == 3)
+            [cell_rover] = decode_nvs(data_rover, constellations);
             nmea_sentences = [];
         end
 
@@ -771,7 +806,7 @@ while flag
                 
                 type = [type prot_par{6,2} ' '];
 
-            %Timing/raw message data save (RXM-RAW | PSEUDO)
+            %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
             elseif (strcmp(cell_rover{1,i},prot_par{1,2}))
 
                 %buffer index computation
@@ -793,11 +828,13 @@ while flag
                     snr_R(:,index) = cell_rover{3,i}(:,6);
 
                     %phase computation (only for Fastrax)
-                    tick_PSEUDO = cell_rover{2,i}(4);
-                    if (protocol == 1 & tick_TRACK == tick_PSEUDO)
-                        %manage phase without code and phase correction
-                        ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0) - correction_value*doppler_count;
-                        doppler_count = doppler_count + 1;
+                    if (protocol == 1)
+                        tick_PSEUDO = cell_rover{2,i}(4);
+                        if (tick_TRACK == tick_PSEUDO)
+                            %manage phase without code and phase correction
+                            ph_R(abs(pr_R(:,index)) > 0) = phase_TRACK(abs(pr_R(:,index)) > 0) - correction_value*doppler_count;
+                            doppler_count = doppler_count + 1;
+                        end
                     end
 
                     %manage "nearly null" data
@@ -848,17 +885,17 @@ while flag
                     end
                 end
 
-            %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
+            %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
             elseif (strcmp(cell_rover{1,i},prot_par{2,2}))
 
                 %satellite number
-                sat = cell_rover{2,i}(1);
+                idx = cell_rover{2,i}(1);
 
-                if (~isempty(sat) & sat > 0)
-                    Eph(:, sat) = cell_rover{2,i}(:);
-                    weekno = Eph(24,sat);
-                    Eph(32,sat) = weektime2tow(weekno,Eph(32,sat));
-                    Eph(33,sat) = weektime2tow(weekno,Eph(33,sat));
+                if (~isempty(idx) & idx > 0)
+                    Eph(:, idx) = cell_rover{2,i}(:);
+                    weekno = Eph(24,idx);
+                    Eph(32,idx) = weektime2tow(weekno,Eph(32,idx));
+                    Eph(33,idx) = weektime2tow(weekno,Eph(33,idx));
                 end
 
                 if (nEPH == 0)
@@ -867,11 +904,20 @@ while flag
 
                 nEPH = nEPH + 1;
                 
-            %Hui message data save (AID-HUI)
+            %Hui message data save (AID-HUI | 4Ah)
             elseif (strcmp(cell_rover{1,i},prot_par{3,2}))
                 
-                %ionosphere parameters
-                iono(:, 1) = cell_rover{3,i}(9:16);
+                %u-blox fields
+                if (protocol == 0)
+                    %ionosphere parameters
+                    iono(:, 1) = cell_rover{3,i}(9:16);
+                end
+                
+                %NVS fields
+                if (protocol == 3)
+                    %ionosphere parameters
+                    iono(:, 1) = cell_rover{2,i}(1:8);
+                end
                 
                 if (nHUI == 0)
                     type = [type prot_par{3,2} ' '];
@@ -906,26 +952,30 @@ while flag
     fprintf('decoding: %7.4f sec (%smessages)\n', current_time-start_time, type);
     fprintf('GPStime=%7.4f (%d satellites)\n', time_R(i), length(sat));
 
-    fprintf('P1 SAT:');
+    %assign system and PRN code to each satellite
+    [sys_pr, prn_pr] = find_sat_system(sat_pr, constellations);
+    [sys_ph, prn_ph] = find_sat_system(sat_ph, constellations);
+    
+    fprintf('C1 SAT:');
     for j = 1 : length(sat_pr)
-        fprintf(' %02d', sat_pr(j));
+        fprintf(' %s%02d', sys_pr(j), prn_pr(j));
     end
     fprintf('\n');
 
     fprintf('L1 SAT:');
     k = 1;
     for j = 1 : length(sat_ph)
-        while (sat_ph(j) ~= sat_pr(k))
-            fprintf('   ');
+        while (k <= length(sat_pr) && sat_ph(j) ~= sat_pr(k))
+            fprintf('    ');
             k = k + 1;
         end
-        fprintf(' %02d', sat_ph(j));
+        fprintf(' %s%02d', sys_ph(j), prn_ph(j));
         k = k + 1;
     end
     fprintf('\n');
 
     %--------------------------------------------------------------
-    %stand-alone approx. positioning (Bancroft) for NMEA update
+    %stand-alone approx. positioning for NMEA update
     %--------------------------------------------------------------
 
     if (flag_NTRIP) & (mod(t,nmea_update_rate) == 0)
@@ -947,8 +997,8 @@ while flag
         lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
 
         %position update
-        if length(satObs) >= 4
-             pos_t = init_positioning(time_GPS, pr_R(satObs,i), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, lambda(satObs,:), 10, 0, 1, 0, 0);
+        if length(satObs) >= min_nsat_LS
+             pos_t = init_positioning(time_GPS, pr_R(satObs,i), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), 10, 0, 1, 0, 0);
         end
 
         nmea_update = sprintf('%s\r\n',NMEA_GGA_gen([pos_t(1); pos_t(2); pos_t(3)], length(satObs), time_R(b), HDOP));
@@ -985,7 +1035,7 @@ while flag
 
                 %time from the ephemerides reference epoch
                 if (conf_eph(i) == 0)
-                    time_eph = Eph(nSatTot,s);
+                    time_eph = Eph(32,s);
                     tk = check_t(time_GPS-time_eph);
                 end
 
@@ -1059,15 +1109,16 @@ while flag
             end
 
             if(is_rtcm2)
-                cell_master = [cell_master decode_rtcm2(sixofeight,time_GPS)]; %RTCM 2 decoding
+                cell_master = [cell_master decode_rtcm2(sixofeight,constellations,time_GPS)]; %RTCM 2 decoding
             else
-                cell_master = [cell_master decode_rtcm3(data_master)];         %RTCM 3 decoding and appending
+                cell_master = [cell_master decode_rtcm3(data_master,constellations)];         %RTCM 3 decoding and appending
             end
         end
 
-        %detect the last read 19/1002/1004 message
+        %detect the last read 19/1002/1004/1010/1012 message
         i = size(cell_master,2);
-        while (i > 0) & (isempty(cell_master{1,i}) | ((cell_master{1,i} ~= 19) & (cell_master{1,i} ~= 1002) & (cell_master{1,i} ~= 1004)))
+        while (i > 0) & (isempty(cell_master{1,i}) | ((cell_master{1,i} ~= 19) & (cell_master{1,i} ~= 1002) & (cell_master{1,i} ~= 1004) ...
+                                                                               & (cell_master{1,i} ~= 1010) & (cell_master{1,i} ~= 1012)))
             i = i - 1;
         end
 
@@ -1205,11 +1256,23 @@ while flag
 
                     type = [type '3 '];
 
-                %message 1002/1004 (RTCM3)
-                case {1002, 1004}
+                %message 1002/1004/1010/1012 (RTCM3)
+                case {1002, 1004, 1010, 1012}
 
+                    %message timing
+                    if (cell_master{1,i} == 1002 || cell_master{1,i} == 1004)
+                        msg_time = round(cell_master{2,i}(2)); %GPS time-of-week
+                    else
+                        curr_time = now;
+                        d = weekday(curr_time) - 1;
+                        msg_time = d*86400 + round(cell_master{2,i}(2)); %from GLONASS time-of-day to GPS time-of-week
+                        msg_time = msg_time - 3*3600; %adjust the UTC-GLONASS time offset
+                        [~, leap_sec] = utc2gps(curr_time);
+                        msg_time = msg_time + leap_sec;
+                    end
+                    
                     %buffer index computation
-                    index = time_GPS - round(cell_master{2,i}(2)) + 1;
+                    index = time_GPS - msg_time + 1;
                     
                     if (index <= B)
                         while (index < 1)
@@ -1217,19 +1280,21 @@ while flag
                             index = time_GPS - round(cell_master{2,i}(2)) + 1;
                         end
                         
+                        %detect satellite indexes (for multi-GNSS)
+                        sat_idx = find(cell_master{3,i}(:,2) ~= 0);
+                        
                         %buffer writing
                         tick_M(index)  = 1;
                         time_M(index)  = cell_master{2,i}(2);
-                        pr_M(:,index)  = cell_master{3,i}(:,2);
-                        ph_M(:,index)  = cell_master{3,i}(:,3);
-                        snr_M(:,index) = cell_master{3,i}(:,5);
+                        pr_M(sat_idx,index)  = cell_master{3,i}(sat_idx,2);
+                        ph_M(sat_idx,index)  = cell_master{3,i}(sat_idx,3);
+                        snr_M(sat_idx,index) = cell_master{3,i}(sat_idx,5);
                         
                         %manage "nearly null" data
                         pos = abs(ph_M(:,index)) < 1e-100;
                         ph_M(pos,index) = 0;
                         
                         type = [type num2str(cell_master{1,i}) ' '];
-                        
                     end
 
                 %message 1005 (RTCM3)
@@ -1273,16 +1338,15 @@ while flag
 
                     type = [type '1006 '];
 
-                %message 1019 (RTCM3)
-                case 1019
+                %message 1019/1020 (RTCM3)
+                case {1019, 1020}
 
                     %satellite number
                     sat = cell_master{2,i}(1);
 
                     Eph(:,sat) = cell_master{2,i}(:);
 
-                    type = [type '1019 '];
-
+                    type = [type num2str(cell_master{1,i}) ' '];
             end
             %if no master position is awaiting indexing
             if(~master_waiting)
@@ -1315,21 +1379,25 @@ while flag
         %fprintf('MSG types: %s\n', type);
         fprintf('decoding: %7.4f sec (%smessages)\n', current_time-start_time, type);
         fprintf('GPStime=%7.4f (%d satellites)\n', time_M(i), length(sat));
-
+        
+        %assign system and PRN code to each satellite
+        [sys_pr, prn_pr] = find_sat_system(sat_pr, constellations);
+        [sys_ph, prn_ph] = find_sat_system(sat_ph, constellations);
+        
         fprintf('P1 SAT:');
         for p = 1 : length(sat_pr)
-            fprintf(' %02d', sat_pr(p));
+            fprintf(' %s%02d', sys_pr(p), prn_pr(p));
         end
         fprintf('\n');
 
         fprintf('L1 SAT:');
         r = 1;
         for p = 1 : length(sat_ph)
-            while (sat_ph(p) ~= sat_pr(r))
-                fprintf('   ');
+            while (r <= length(sat_pr) && sat_ph(p) ~= sat_pr(r))
+                fprintf('    ');
                 r = r + 1;
             end
-            fprintf(' %02d', sat_ph(p));
+            fprintf(' %s%02d', sys_ph(p), prn_ph(p));
             r = r + 1;
         end
         fprintf('\n');
@@ -1410,10 +1478,10 @@ while flag
         satObs = find( (pr_R(:,1) ~= 0) & (pr_M(:,1) ~= 0));
         
         %if all the visible satellites ephemerides have been transmitted
-        %and the total number of satellites is >= 4 and the master
+        %and the total number of satellites is >= min_nsat_LS and the master
         %station position is available
-        if (ismember(satObs,satEph)) & (length(satObs) >= 4) & (sum(abs(pos_M(:,1))) ~= 0)
-            %if (length(satObs_M) == length(satEph)) & (length(satObs) >= 4)
+        if (ismember(satObs,satEph)) & (length(satObs) >= min_nsat_LS) & (sum(abs(pos_M(:,1))) ~= 0)
+            %if (length(satObs_M) == length(satEph)) & (length(satObs) >= min_nsat_LS)
             
             %input data save
             fwrite(fid_obs, [time_GPS; time_M(1); time_R(1); week_R(1); pr_M(:,1); pr_R(:,1); ph_M(:,1); ph_R(:,1); dop_R(:,1); snr_M(:,1); snr_R(:,1); pos_M(:,1); iono(:,1)], 'double');
@@ -1696,10 +1764,13 @@ while flag
     
     %-------------------------------------
     
+    [sys_ep, prn_ep] = find_sat_system(satEph, constellations);
+    [sys_ob, prn_ob] = find_sat_system(satObs, constellations);
+        
     %visualization
     fprintf('EPH SAT:');
     for i = 1 : length(satEph)
-        fprintf(' %02d', satEph(i));
+        fprintf(' %s%02d', sys_ep(i), prn_ep(i));
     end
     fprintf('\n');
     
@@ -1707,10 +1778,10 @@ while flag
     j = 1;
     for i = 1 : length(satObs)
         while (satObs(i) ~= satEph(j))
-            fprintf('   ');
+            fprintf('    ');
             j = j + 1;
         end
-        fprintf(' %02d', satObs(i));
+        fprintf(' %s%02d', sys_ob(i), prn_ob(i));
         j = j + 1;
     end
     fprintf('\n');
@@ -1764,7 +1835,6 @@ while flag
 
     %clear screen
     clc
-
 end
 
 %------------------------------------------------------

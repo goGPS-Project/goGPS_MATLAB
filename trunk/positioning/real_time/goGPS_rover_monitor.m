@@ -1,14 +1,16 @@
-function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop, rate)
+function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop, rate, constellations)
 
 % SYNTAX:
-%   goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop);
+%   goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_stopGOstop, rate, constellations);
 %
 % INPUT:
 %   filerootOUT = output file prefix
-%   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq)
+%   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq, 3:NVS)
 %   flag_var_dyn_model = enable / disable variable dynamic model
 %   flag_stopGOstop    = enable / disable stop-go-stop procedure for direction estimation
 %   rate = measurement rate to be set (default = 1 Hz)
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % DESCRIPTION:
 %   Monitor of receiver operations: stream reading, data visualization 
@@ -40,12 +42,13 @@ function goGPS_rover_monitor(filerootOUT, protocol, flag_var_dyn_model, flag_sto
 global COMportR
 global rover
 global order
+global n_sys
 
-if nargin == 4
+if (nargin == 4)
     rate = 1;
 end
 
-num_sat = 32;
+num_sat = constellations.nEnabledSat;
 
 %counter for creating hourly files
 hour = 0;
@@ -64,6 +67,8 @@ for r = 1 : nrec
         prot_par{r} = param_fastrax;
     elseif (protocol(r) == 2)
         prot_par{r} = param_skytraq;
+    elseif (protocol(r) == 3)
+        prot_par{r} = param_nvs;
     end
 end
 
@@ -220,6 +225,21 @@ for r = 1 : nrec
         fopen(rover{r});
 
         [rover{r}] = configure_skytraq(rover{r}, COMportR{r}, prot_par{r}, rate);
+
+        % temporary connection closure (for other receiver setup)
+        fclose(rover{r});
+
+    % nvs configuration
+    elseif (protocol(r) == 3)
+
+        %visualization
+        fprintf('\n');
+        fprintf('CONFIGURATION (nvs n.%d)\n',r);
+        
+        % only one connection can be opened in writing mode
+        fopen(rover{r});
+
+        [rover{r}] = configure_nvs(rover{r}, COMportR{r}, prot_par{r}, rate);
 
         % temporary connection closure (for other receiver setup)
         fclose(rover{r});
@@ -494,27 +514,40 @@ while flag
 
     for r = 1 : nrec
 
+        if (protocol(r) == 3)
+            delay = 0.07;
+        else
+            delay = 0.05;
+        end
         %serial port checking
         rover_1 = get(rover{r},'BytesAvailable');
-        pause(0.05);
+        pause(delay);
         rover_2 = get(rover{r},'BytesAvailable');
 
         %test if the package writing is finished
         if (rover_1 == rover_2) && (rover_1 ~= 0)
-
-            data_rover = fread(rover{r},rover_1,'uint8');     %serial port reading
-            fwrite(fid_rover{r},data_rover,'uint8');          %transmitted stream save
+            
+            %visualization
+            fprintf('\n');
+            fprintf('---------------------------------------------------\n')
+            
+            data_rover = fread(rover{r},rover_1,'uint8');  %serial port reading
+            fwrite(fid_rover{r},data_rover,'uint8');       %transmitted stream save
+            if (protocol(r) == 3), data_rover = remove_double_10h(data_rover); end
             data_rover = dec2bin(data_rover,8);            %conversion to binary (N x 8bit matrix)
             data_rover = data_rover';                      %transpose (8bit x N matrix)
             data_rover = data_rover(:)';                   %conversion to string (8N bit vector)
 
             if (protocol(r) == 0)
-                [cell_rover, nmea_sentences] = decode_ublox(data_rover);
+                [cell_rover, nmea_sentences] = decode_ublox(data_rover, constellations);
             elseif (protocol(r) == 1)
-                [cell_rover] = decode_fastrax_it03(data_rover);
+                [cell_rover] = decode_fastrax_it03(data_rover, constellations);
                 nmea_sentences = [];
             elseif (protocol(r) == 2)
-                [cell_rover] = decode_skytraq(data_rover);
+                [cell_rover] = decode_skytraq(data_rover, constellations);
+                nmea_sentences = [];
+            elseif (protocol(r) == 3)
+                [cell_rover] = decode_nvs(data_rover, constellations);
                 nmea_sentences = [];
             end
 
@@ -539,7 +572,7 @@ while flag
 
                     type = [type prot_par{r}{6,2} ' ']; %#ok<AGROW>
 
-                %Timing/raw message data save (RXM-RAW | PSEUDO)
+                %Timing/raw message data save (RXM-RAW | PSEUDO | F5h)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{1,2}))
 
                     time_R = cell_rover{2,i}(1);
@@ -578,6 +611,12 @@ while flag
                         end
                         nRAW = nRAW + 1;
                     end
+                    
+                    %NVS specific fields
+                    if (protocol(r) == 3)
+                        rdf_R = cell_rover{3,i}(:,5); %#ok<NASGU>
+                        nRAW = nRAW + 1;
+                    end
 
                     %manage phase without code
                     ph_R(abs(pr_R) == 0) = 0;
@@ -593,10 +632,12 @@ while flag
 
                     %satellites with observations available
                     satObs = find(pr_R(:,1) ~= 0);
+                    
+                    min_nsat_LS = 3 + n_sys;
 
                     %if all the visible satellites ephemerides have been transmitted
-                    %and the total number of satellites is >= 4
-                    if (sum(ismember(satObs,satEph)))>1 && (length(satObs) >= 4)
+                    %and the total number of satellites is >= min_nsat_LS
+                    if (sum(ismember(satObs,satEph)))>1 && (length(satObs) >= min_nsat_LS)
 
                         %data save
                         fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
@@ -650,8 +691,8 @@ while flag
                         satObs = find(pr_R(:,1) ~= 0);
                         
                         %if all the visible satellites ephemerides have been transmitted
-                        %and the total number of satellites is >= 4
-                        if (ismember(satObs,satEph)) && (length(satObs) >= 4)
+                        %and the total number of satellites is >= min_nsat_LS
+                        if (ismember(satObs,satEph)) && (length(satObs) >= min_nsat_LS)
                             
                             %data save
                             fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
@@ -662,25 +703,34 @@ while flag
                         end
                     end
 
-                %Hui message data save (AID-HUI)
+                %Hui message data save (AID-HUI | 4Ah)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{3,2}))
-
-                    %ionosphere parameters
-                    iono{r}(:, 1) = cell_rover{3,i}(9:16);
+                    
+                    %u-blox fields
+                    if (protocol(r) == 0)
+                        %ionosphere parameters
+                        iono{r}(:, 1) = cell_rover{3,i}(9:16);
+                    end
+                    
+                    %NVS fields
+                    if (protocol(r) == 3)
+                        %ionosphere parameters
+                        iono{r}(:, 1) = cell_rover{2,i}(1:8);
+                    end
 
                     if (nHUI == 0)
                         type = [type prot_par{r}{3,2} ' ']; %#ok<AGROW>
                     end
                     nHUI = nHUI + 1;
 
-                %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH)
+                %Eph message data save (AID-EPH | FTX-EPH | GPS_EPH | F7h)
                 elseif (strcmp(cell_rover{1,i},prot_par{r}{2,2}))
 
-                    %satellite number
-                    sat = cell_rover{2,i}(1);
+                    %satellite index
+                    idx = cell_rover{2,i}(30);
 
-                    if (~isempty(sat) && sat > 0)
-                        Eph{r}(:, sat) = cell_rover{2,i}(:);
+                    if (~isempty(idx) && idx > 0)
+                        Eph{r}(:, idx) = cell_rover{2,i}(:);
                     end
 
                     if (nEPH == 0)
@@ -704,8 +754,6 @@ while flag
             %----------------------------------
 
             %visualization
-            fprintf('\n');
-            fprintf('---------------------------------------------------\n')
             fprintf([prot_par{r}{1,1} '(' num2str(r) ')' ': %7.4f sec (%4d bytes --> %4d bytes)\n'], current_time-start_time, rover_1, rover_2);
             fprintf('MSG types: %s\n', type);
 
@@ -717,25 +765,31 @@ while flag
 
                 if (i < length(time_R)), fprintf(' DELAYED\n'); else fprintf('\n'); end
                 fprintf('Epoch %3d:  GPStime=%d:%.3f (%d satellites)\n', t(r), week_R, time_R, length(sat));
+                %assign system and PRN code to each satellite
+                [sys, prn] = find_sat_system(sat, constellations);
                 for j = 1 : length(sat)
+
                     if (protocol(r) == 0)
-                        fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
-                            sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
+                        fprintf('   SAT %s%02d:  C1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
+                            sys(j), prn(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
                     elseif (protocol(r) == 1)
-                        % fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
+                        % fprintf('   SAT %02d:  C1=%11.2f  L1=%12.2f  D1=%7.1f  QI=%1d  SNR=%2d  LOCK=%1d\n', ...
                         %     sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)),
                         %     qual_R(sat(j)), snr_R(sat(j)), lock_R(sat(j)));
-                        fprintf('   SAT %02d:  P1=%11.2f  L1=%13.4f  D1=%7.1f  SNR=%2d  FLAG=%5d  CORR=%5d  LDO=%5d  ECnt=%6d Delta=%8.4f\n', ...
-                            sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)), ObsFlags_R(sat(j)), Corr_R(sat(j)), LDO_R(sat(j)), ...
+                        fprintf('   SAT %s%02d:  C1=%11.2f  L1=%13.4f  D1=%7.1f  SNR=%2d  FLAG=%5d  CORR=%5d  LDO=%5d  ECnt=%6d Delta=%8.4f\n', ...
+                            sys(j), prn(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)), ObsFlags_R(sat(j)), Corr_R(sat(j)), LDO_R(sat(j)), ...
                             EpochCount(sat(j)), delta(sat(j)));
                     elseif (protocol(r) == 2)
-                        fprintf('   SAT %02d:  P1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
-                            sat(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
+                        fprintf('   SAT %s%02d:  C1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
+                            sys(j), prn(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
+                    elseif (protocol(r) == 3)
+                        fprintf('   SAT %s%02d:  C1=%11.2f  L1=%12.2f  D1=%7.1f  SNR=%2d\n', ...
+                            sys(j), prn(j), pr_R(sat(j)), ph_R(sat(j)), dop_R(sat(j)), snr_R(sat(j)));
                     end
                 end
             end
 
-            %visualization (AID-HUI information)
+            %visualization (AID-HUI | 4A information)
             if (nHUI > 0)
                 fprintf('Ionosphere parameters: ');
                 if (sum(iono{r}) ~= 0)
@@ -753,12 +807,14 @@ while flag
                 end
             end
 
-            %visualization (AID-EPH | FTX-EPH | GPS_EPH information)
+            %visualization (AID-EPH | FTX-EPH | GPS_EPH | F7h information)
             if (nEPH > 0)
-                sat = find(sum(abs(Eph{r}))>0);
+                sat = find(Eph{r}(1,:));
+                sid = Eph{r}(1,sat);
+                sys = Eph{r}(31,sat);
                 fprintf('Eph: ');
                 for i = 1 : length(sat)
-                    fprintf('%d ', sat(i));
+                    fprintf('%s%d ', char(sys(i)), sid(i));
                 end
                 fprintf('\n');
             end
@@ -890,18 +946,23 @@ close(f1);
 % RINEX conversion
 %------------------------------------------------------
 
-%dialog
-selection = questdlg('Do you want to decode the binary streams and create RINEX files?',...
-    'Request Function',...
-    'Yes','No','Yes');
-switch selection,
-    case 'Yes',
-        %visualization
-        fprintf('\n');
-        fprintf('RINEX CONVERSION\n');
-        
-        for r = 1 : nrec
+if (nrec == 1)
+    %dialog
+    selection = questdlg('Do you want to decode the binary streams and create RINEX files?',...
+        'Request Function',...
+        'Yes','No','Yes');
+    switch selection,
+        case 'Yes',
+            %visualization
+            fprintf('\n');
+            fprintf('RINEX CONVERSION\n');
+            
+            r = nrec;
             recname = [prot_par{r}{1,1} num2str(r)];
-            streamR2RINEX([filerootOUT '_' recname],[filerootOUT '_' recname '_rover']);
-        end
+            if (~isunix)
+                gui_decode_stream([filerootOUT '_' recname], constellations);
+            else
+                gui_decode_stream_unix([filerootOUT '_' recname], constellations);
+            end
+    end
 end
