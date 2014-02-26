@@ -781,8 +781,11 @@ switch selection,
         fprintf('\n');
         fprintf('RINEX CONVERSION\n');
         
-        for r = 1 : nrec
-            recname = [prot_par{r}{1,1} num2str(r)];
-            streamR2RINEX([filerootOUT '_' recname],[filerootOUT '_' recname '_rover']);
+        r = nrec;
+        recname = [prot_par{r}{1,1} num2str(r)];
+        if (~isunix)
+            gui_decode_stream([filerootOUT '_' recname], constellations);
+        else
+            gui_decode_stream_unix([filerootOUT '_' recname], constellations);
         end
 end

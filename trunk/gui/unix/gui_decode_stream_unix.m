@@ -160,8 +160,9 @@ function browse_data_stream_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 [filename, pathname] = uigetfile( ...
-    {'*.ubx;*.UBX;*_rover_*.bin','UBX stream data (*.ubx,*_rover_*.bin)'; ...
-     '*.stq;*.STQ;*_rover_*.bin','SkyTraq stream data (*.stq,*_rover_*.bin)'; ...
+    {'*_rover_*.bin','goGPS-saved rover stream data (UBX, SkyTraq, FTX, BINR) (*_rover_*.bin)'; ...
+     '*.ubx;*.UBX','UBX stream data (*.ubx,*.UBX)'; ...
+     '*.stq;*.STQ','SkyTraq stream data (*.stq,*.STQ)'; ...
      '*.rtcm;*.RTCM;*_master_*.bin','RTCM stream data (*.rtcm,*_master_*.bin)'}, ...
     'Choose stream data','../data');
 
@@ -274,8 +275,10 @@ function convert_button_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 filerootIN = get(handles.data_stream,'String');
 filerootOUT = [get(handles.data_out_folder,'String') '\' get(handles.data_out_name,'String')];
+filerootOUT_path = [get(handles.data_out_folder,'String') '\'];
 filerootIN(filerootIN == '\') = '/';
 filerootOUT(filerootOUT == '\') = '/';
+filerootOUT_path(filerootOUT_path == '\') = '/';
 
 flag_no_master = 0;
 if strcmp(filerootIN(end-3:end),'.ubx') | strcmp(filerootIN(end-3:end),'.UBX') | ...
@@ -307,14 +310,18 @@ elseif (get(handles.output_type, 'SelectedObject') == handles.out_rinex)
     rinex_metadata.observer = get(handles.observer,'String');
     rinex_metadata.observer_agency = get(handles.observer_agency,'String');
     if (get(handles.flag_rover_stream,'Value'))
-        week = streamR2RINEX(filerootIN, [filerootOUT '_rover'], rinex_metadata, constellations, wait_dlg);
+        week = streamR2RINEX(filerootIN, filerootOUT_path, rinex_metadata, constellations, wait_dlg);
     end
     
     if (get(handles.flag_master_stream,'Value')) & (~flag_no_master)
         if (~week)
             week = gui_GPS_week;
         end
-        streamM2RINEX(filerootIN, [filerootOUT '_master'], week, rinex_metadata, constellations, wait_dlg);
+        if (get(handles.flag_rover_stream,'Value') & ~week)
+            rinex_metadata.marker_name = 'RTCM';
+            rinex_metadata.marker_type = '';
+        end
+        streamM2RINEX(filerootIN, filerootOUT_path, week, rinex_metadata, constellations, wait_dlg);
     end
 end
 
@@ -357,6 +364,7 @@ if (hObject == handles.out_rinex)
     if (strcmp(get(handles.data_out_folder, 'String'), '../data/data_goGPS'))
         set(handles.data_out_folder, 'String', '../data/data_RINEX');
     end
+    set(handles.data_out_name, 'Enable', 'off');
 else
     set(handles.flag_rover_stream, 'Enable', 'off');
     set(handles.flag_master_stream, 'Enable', 'off');
@@ -380,6 +388,7 @@ else
     if (strcmp(get(handles.data_out_folder, 'String'), '../data/data_RINEX'))
         set(handles.data_out_folder, 'String', '../data/data_goGPS');
     end
+    set(handles.data_out_name, 'Enable', 'on');
 end
 
 
