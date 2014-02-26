@@ -37,7 +37,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

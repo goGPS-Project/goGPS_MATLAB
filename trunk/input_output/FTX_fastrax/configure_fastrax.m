@@ -18,7 +18,7 @@ function [serialObj] = configure_fastrax(serialObj, COMportR, prot_par, rate)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 %----------------------------------------------------------------------------------------------
 %

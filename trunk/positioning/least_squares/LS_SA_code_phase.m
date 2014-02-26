@@ -35,7 +35,7 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

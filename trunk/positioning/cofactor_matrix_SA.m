@@ -17,7 +17,7 @@ function [Q] = cofactor_matrix_SA(elR, snr_R)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 % Andrea Nardo, 22-Apr-2013: added exponential weighting function (weights == 4)
 %----------------------------------------------------------------------------------------------
 %

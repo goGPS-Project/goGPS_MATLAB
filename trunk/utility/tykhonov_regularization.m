@@ -21,7 +21,7 @@ function [x_hat, bias, lbd] = tykhonov_regularization(x, y0, b, A, Q)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Hendy F. Suhandri
 %----------------------------------------------------------------------------------------------

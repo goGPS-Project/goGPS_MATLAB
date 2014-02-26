@@ -26,7 +26,7 @@ function [data] = decode_1013(msg, constellations)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Sara Lucca
 %----------------------------------------------------------------------------------------------

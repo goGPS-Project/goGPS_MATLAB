@@ -17,7 +17,7 @@ function [out] = nvs_raw_output_rate(serialObj, rate)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

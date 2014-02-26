@@ -21,7 +21,7 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col,
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Damiano Triglione (2012)
 % Portions of code contributed by Andrea Gatti (2013)

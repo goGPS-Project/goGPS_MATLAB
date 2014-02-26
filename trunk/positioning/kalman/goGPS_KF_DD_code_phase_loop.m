@@ -45,7 +45,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Andrea Nardo
 %----------------------------------------------------------------------------------------------
