@@ -101,13 +101,19 @@ end
 % XR_mat
 % XR_approx
 % distR_approx
-%Coordinate transformation
+
+%Coordinate transformation from Cartesion to Geodetic
 [phi, lam, h] = cart2geod(XM_mat(1,1), XM_mat(1,2), XM_mat(1,3));
 
-R_el = [-sin(phi)*cos(lam) -sin(phi)*sin(lam) -cos(phi) ;
-    -sin(lam) cos(lam) 0 ;
-    cos(phi)*cos(lam) cos(phi)*sin(lam) -sin(phi)];
+% %Coordinate transformation from ECEF to Local level (NED)
+% R_el = [-sin(phi)*cos(lam) -sin(phi)*sin(lam) -cos(phi) ;
+%         -sin(lam) cos(lam) 0 ;
+%         cos(phi)*cos(lam) cos(phi)*sin(lam) -sin(phi)];
 
+%Coordinate transformation from Local level (NED) to ECEF
+R_le = [-sin(phi)*cos(lam) -sin(lam) -cos(phi)*cos(lam);
+        -sin(phi)*sin(lam) cos(lam) -cos(phi)*sin(lam);
+        cos(phi) 0 -sin(phi)];
 
 %line-of-sight matrix (code)
 % G = [((XR_approx(1,1) - XS(:,1)) ./ distR_approx(:,1)) - ((XR_approx(1,1) - XS(pivot_index,1)) / distR_approx(pivot_index,1)), ... %column for X coordinate
@@ -192,8 +198,8 @@ Gp = (eye(m) - A*(A'*Q^-1*A)^-1*A'*Q^-1)*G;
 % Pg = G*((G'*(Q^-1)*G)^-1)*G'*(Q^-1);
 % Ap = (eye(m) - G*((G'*(Q^-1)*G)^-1)*G'*(Q^-1))*A;
 %Rfloat = (Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1;
-Rfloat = (Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1 
-%Rfloot = R_el*Rfloat
+Rfloat = R_le'*((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1) 
+%Rfloat = R_le^-1*Rfloat
 Zfloat = (A'*Q^-1*A)^-1*A'*Q^-1*(y - G*Rfloat*Fn) %%-> formula is still incorrect!
 Q_vecR = kron((Fn*(P^-1)*Fn')^-1,(Gp'*(Q^-1)*Gp)^-1)
 Q_vecZ = (kron(P^-1,A'*Q^-1*A) - kron(P^-1*Fn',A'*Q^-1*G)*(kron(Fn*P^-1*Fn',G'*Q^-1*G))^-1*kron(Fn*P^-1,G'*Q^-1*A))^-1
