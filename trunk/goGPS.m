@@ -101,13 +101,13 @@ else
     % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
     %-------------------------------------------------------------------------------------------
 
-    mode = goGNSS.MODE_PP_LS_C_SA;   % functioning mode    
+    mode = goGNSS.MODE_PP_KF_CP_DD;   % functioning mode    
     
     mode_vinc = 0;    % navigation mode
     % mode_vinc=0 --> without linear constraint
     % mode_vinc=1 --> with linear constraint
 
-    mode_data = 1;    % data loading mode
+    mode_data = 0;    % data loading mode
     % mode_data=0 --> RINEX data
     % mode_data=1 --> goGPS binary data
 
@@ -145,15 +145,6 @@ else
 
     %User-defined global settings
     global_settings;
-
-    %Check availability of Instrument Control Toolbox
-    if goGNSS.isRT()
-        try
-            instrhwinfo;
-        catch
-            error('Instrument Control Toolbox is needed to run goGPS in real-time mode.');
-        end
-    end
 end
 
 %-------------------------------------------------------------------------------------------
@@ -171,7 +162,7 @@ SBS_flag = goIni.getData('Constellations','SBAS');
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
-    GPS_flag = 1; GLO_flag = 1; GAL_flag = 1; BDS_flag = 1; QZS_flag = 1;
+    GPS_flag = 1; GLO_flag = 0; GAL_flag = 0; BDS_flag = 0; QZS_flag = 0;
     [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
     nSatTot = constellations.nEnabledSat;
 end

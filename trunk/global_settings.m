@@ -29,10 +29,10 @@
 %-------------------------------------------------------------------------------
 
 folderIN  = '../data/data_goGPS';
-folderOUT = '../data';
+folderOUT = '../data/out';
 
 prefixIN  = 'yamatogawa';
-prefixOUT = 'out';
+prefixOUT = 'out_mila_UBLX_14028';
 
 filerootIN  = [folderIN '/' prefixIN];
 filerootOUT = [folderOUT '/' prefixOUT];
@@ -58,41 +58,6 @@ while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
    filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
    i = i + 1;
 end
-
-%-------------------------------------------------------------------------------
-% INPUT FILENAMES (RINEX data mode)
-%-------------------------------------------------------------------------------
-
-if (mode_data == 0)
-
-    filename_R_obs = '../data/data_RINEX/basket/perim2.08o';
-    filename_M_obs = '../data/data_RINEX/basket/COMO1190.08o';
-    filename_nav   = '../data/data_RINEX/basket/COMO1190.08n';
-
-    %---------------------------------------------------------------------------
-    % FILE CHECK
-    %---------------------------------------------------------------------------
-
-    %check the file existence
-    if (~exist(filename_R_obs,'file'))
-        error('Warning: ROVER observation file not found.');
-    end
-
-    if (~exist(filename_M_obs,'file'))
-        error('Warning: MASTER observation file not found.');
-    end
-
-    if (~exist(filename_nav,'file'))
-        error('Warning: MASTER navigation file not found.');
-    end
-
-end
-
-%-------------------------------------------------------------------------------
-% REFERENCE PATH FILENAME
-%-------------------------------------------------------------------------------
-
-filename_ref = '../data/data_RINEX/basket/refBASKET.mat';
 
 %-------------------------------------------------------------------------------
 % MASTER STATION POSITION
@@ -125,23 +90,21 @@ global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_
 global amb_restart_method
 
 %variance of initial state
-sigmaq0 = 9;
+sigmaq0 = 1;
 
 %variance of velocity coordinates [m^2/s^2]
-sigmaq_vE = 1e-1;
-sigmaq_vN = 1e-1;
-sigmaq_vU = 1e-1;
-sigmaq_vel = 1e-0;
+sigmaq_vE = 0.5^2;
+sigmaq_vN = 0.5^2;
+sigmaq_vU = 0.1^2;
+sigmaq_vel = 0.1^2;
 
 %variance of code observations [m^2]
-% sigmaq_cod1 = 0.36;
-sigmaq_cod1 = 9;
-sigmaq_cod2 = 0.16;
+sigmaq_cod1 = 0.3^2;
+sigmaq_cod2 = 0.4^2;
 
 %variance of phase observations [m^2]
 %(maximize to obtain a code-based solution)
-% sigmaq_ph = 0.000004;
-sigmaq_ph = 0.001;
+sigmaq_ph = 0.003^2;
 % sigmaq_ph = 0.001e30;
 
 %variance of ambiguity combinations [cycles]
@@ -156,7 +119,7 @@ sigmaq_dtm = 1e30;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 0;
+cutoff = 10;
 
 %initialization cut-off [degrees]
 % cutoff_init = 15;
@@ -165,14 +128,15 @@ cutoff = 0;
 snr_threshold = 0;
 
 %cycle slip threshold [cycles]
-cs_threshold = 10;
+cs_threshold = 3;
 
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
-%          - weights=1: weight based on satellite elevation
+%          - weights=1: weight based on satellite elevation (sin)
 %          - weights=2: weight based on signal-to-noise ratio
 %          - weights=3: weight based on combined elevation and signal-to-noise ratio
-weights = 2;
+%          - weights=4: weight based on satellite elevation (exp)
+weights = 1;
 
 %weight function parameters
 snr_a = 30;
@@ -181,7 +145,7 @@ snr_1 = 50;
 snr_A = 30;
 
 %order of the dynamic model polynomial
-order = 2;
+order = 1;
 
 %useful values to index matrices
 o1 = order;
@@ -189,7 +153,7 @@ o2 = order*2;
 o3 = order*3;
 
 %ambiguity restart method
-amb_restart_method = 1;
+amb_restart_method = 2;
 
 %-------------------------------------------------------------------------------
 % INTEGER AMBIGUITY RESOLUTION
@@ -197,8 +161,8 @@ amb_restart_method = 1;
 global IAR_method P0 mu flag_auto_mu
 
 %choose Integer Least Squares estimator
-IAR_method = 0; %ILS method with numeration in search (LAMBDA2)
-%IAR_method = 1; %ILS method with shrinking ellipsoid during search (LAMBDA3)
+%IAR_method = 0; %ILS method with numeration in search (LAMBDA2)
+IAR_method = 1; %ILS method with shrinking ellipsoid during search (LAMBDA3)
 %IAR_method = 2; %ILS method with numeration in search (LAMBDA3)
 %IAR_method = 3; %integer rounding method (LAMBDA3)
 %IAR_method = 4; %integer bootstrapping method (LAMBDA3)
@@ -224,7 +188,7 @@ flag_default_P0 = 1;
 global h_antenna
 
 %antenna height from the ground [m]
-h_antenna = 1;
+h_antenna = 0;
 
 %-------------------------------------------------------------------------------
 % DTM (SET PATH AND LOAD PARAMETER FILES)
@@ -275,12 +239,47 @@ COMportR = manCOMport;
 % ntrip_mountpoint = 'mmmmmmm';
 
 %set approximate coordinates manually to initialize NMEA string
-phiApp = 34.5922;
-lamApp = 135.5059;
-hApp = 20;
+% phiApp = 34.5922;
+% lamApp = 135.5059;
+% hApp = 20;
+% 
+% [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a_GPS, f_GPS);
 
-[XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a_GPS, f_GPS);
+XApp = -3749409.0399;
+YApp = 3683775.1374;
+ZApp = 3600727.7577;
 
 %Initial NMEA sentence required by some NTRIP casters
 nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
 
+%-------------------------------------------------------------------------------
+% INI file
+%-------------------------------------------------------------------------------
+iniFile = './settings/Milano_daily_test_VRS_InputFiles.ini';
+
+%initialize INI file reading
+global goIni;
+goIni = goIniReader;
+goIni.setFileName(iniFile);
+
+%extract user-defined settings from INI file
+data_path = goIni.getData('Receivers','data_path');
+file_name = goIni.getData('Receivers','file_name');
+filename_R_obs = [data_path file_name];
+data_path = goIni.getData('Master','data_path');
+file_name = goIni.getData('Master','file_name');
+filename_M_obs = [data_path file_name];
+data_path = goIni.getData('Navigational','data_path');
+file_name = goIni.getData('Navigational','file_name');
+filename_nav = [data_path file_name];
+flag_SP3 = goIni.getData('Navigational','isSP3');
+if isempty(flag_SP3)
+    if (strcmpi(filename_nav(end-3:end),'.sp3'))
+        flag_SP3 = 1;
+    else
+        flag_SP3 = 0;
+    end
+end
+data_path = goIni.getData('RefPath','data_path');
+file_name = goIni.getData('RefPath','file_name');
+filename_ref = [data_path file_name];
