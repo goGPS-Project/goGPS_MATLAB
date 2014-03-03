@@ -693,7 +693,7 @@ if (~isempty(data_rover_all))
         end
         fprintf(fid_obs,'%10.3f                                                  INTERVAL            \n', interval);
         fprintf(fid_obs,'%6d%6d%6d%6d%6d%13.7f     GPS         TIME OF FIRST OBS   \n', ...
-            date(t,1), date(t,2), date(t,3), date(t,4), date(t,5), date(t,6));
+            date(first_epoch+t-1,1), date(first_epoch+t-1,2), date(first_epoch+t-1,3), date(first_epoch+t-1,4), date(first_epoch+t-1,5), date(first_epoch+t-1,6));
         if (rin_ver_id == 3)
             for s = 1 : length(sys)
                 fprintf(fid_obs,'%c                                                           SYS / PHASE SHIFTS  \n',sys(s));
