@@ -572,7 +572,7 @@ if (~isempty(data_rover_all))
         if (QZSenabled && QZSavailable && ~QZSavailableEPH), warning_msg{i} = 'QZSS ephemerides not available'; i = i + 1; end
         if (SBSenabled && SBSavailable && ~SBSavailableEPH), warning_msg{i} = 'SBAS ephemerides not available'; i = i + 1; end
         
-        if (i > 1)
+        if (i > 1 && n_doy == 1)
             if (nargin == 5)
                 msgbox(warning_msg);
             else
