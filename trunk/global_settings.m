@@ -29,10 +29,10 @@
 %-------------------------------------------------------------------------------
 
 folderIN  = '../data/data_goGPS';
-folderOUT = '../data/out';
+folderOUT = '../data/out/batch';
 
 prefixIN  = 'yamatogawa';
-prefixOUT = 'out_mila_UBLX_14028';
+prefixOUT = 'mila_UBLX_14031';
 
 filerootIN  = [folderIN '/' prefixIN];
 filerootOUT = [folderOUT '/' prefixOUT];

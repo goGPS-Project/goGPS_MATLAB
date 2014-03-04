@@ -54,9 +54,9 @@ addpath(genpath(pwd));
 % INTERFACE TYPE DEFINITION
 %----------------------------------------------------------------------------------------------
 
-mode_user = 1;  % user interface type
-% mode_user=0 --> use text interface
-% mode_user=1 --> use GUI
+mode_user=1; % user interface type
+%        =0 --> use text interface
+%        =1 --> use GUI
 
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
@@ -677,7 +677,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             unused_epochs(t) = 1;
         end
         
-        if ((t == 1) & (~flag_plotproc))
+        if (t == 1)
             fprintf('Processing...\n');
         end
         
@@ -755,9 +755,8 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
         else
             rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
         end
-    else
-        fprintf('Processing...\n');
     end
+    fprintf('Processing...\n');
     
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -871,10 +870,9 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
-            else
-                if (t == 1)
-                    fprintf('Processing...\n');
-                end
+            end
+            if (t == 1)
+                fprintf('Processing...\n');
             end
         else
             unused_epochs(t) = 1;
@@ -1110,9 +1108,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
                 rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
             end
         end
-    else
-        fprintf('Processing...\n');
     end
+    fprintf('Processing...\n');
     
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -1236,7 +1233,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
             unused_epochs(t) = 1;
         end
       
-        if ((t == 1) & (~flag_plotproc))
+        if (t == 1)
             fprintf('Processing...\n');
         end
         
@@ -1312,9 +1309,8 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         else
             rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
         end
-    else
-        fprintf('Processing...\n');
     end
+    fprintf('Processing...\n');
 
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -1430,7 +1426,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             unused_epochs(t) = 1;
         end
       
-        if ((t == 1) & (~flag_plotproc))
+        if (t == 1)
             fprintf('Processing...\n');
         end
         
@@ -1504,9 +1500,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
                     rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
                 end
             end
-        else
-            fprintf('Processing...\n');
         end
+        fprintf('Processing...\n');
         
         %goWaitBar
         goWB = goWaitBar(length(time_GPS));
@@ -1647,9 +1642,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
                     rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
                 end
             end
-        else
-            fprintf('Processing...\n');
         end
+        fprintf('Processing...\n');
         
         %goWaitBar
         goWB = goWaitBar(length(time_GPS));
@@ -1839,9 +1833,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
                 rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
             end
         end
-    else
-        fprintf('Processing...\n');
     end
+    fprintf('Processing...\n');
     
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -2050,7 +2043,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16d% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
+        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16d% 16.3f% 16.8f% 16.8f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16s% 16.3f% 16.3f% 16.4f% 16.4f% 16.4f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
     end
     fclose(fid_out);
     
