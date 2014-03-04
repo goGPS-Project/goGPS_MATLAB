@@ -1,10 +1,12 @@
-function [data] = decode_1020(msg)
+function [data] = decode_1020(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_1020(msg)
+%   [data] = decode_1020(msg, constellations)
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the 1020 packet information
@@ -52,7 +54,7 @@ function [data] = decode_1020(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Sara Lucca
 %----------------------------------------------------------------------------------------------
@@ -77,7 +79,11 @@ pos = 1;
 %output variable initialization
 data = cell(3,1);
 data{1} = 0;
-data{2} = zeros(25,1);
+data{2} = zeros(33,1);
+
+if (~constellations.GLONASS.enabled)
+    return
+end
 
 %message number = 1020
 DF002 = fbin2dec(msg(pos:pos+11)); pos = pos + 12;
@@ -328,3 +334,19 @@ data{2}(14) = DF117;
 data{2}(15) = DF118;
 data{2}(16) = DF119;
 data{2}(17) = DF126;
+data{2}(18) = NaN; %toe not available, taken care of by the caller
+data{2}(19) = 0;
+data{2}(20) = 0;
+data{2}(21) = 0;
+data{2}(22) = 0;
+data{2}(23) = 0;
+data{2}(24) = 0; %weekno not available, taken care of by the caller
+data{2}(25) = 0;
+data{2}(26) = 0;
+data{2}(27) = 0; %sv health not available
+data{2}(28) = 0;
+data{2}(29) = 0;
+data{2}(30) = constellations.GLONASS.indexes(DF038);
+data{2}(31) = int8('R');
+data{2}(32) = 0; %continuous toe taken care of by the caller
+data{2}(33) = 0;

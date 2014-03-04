@@ -23,7 +23,7 @@ function [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sb
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -64,7 +64,7 @@ if (~isempty(find(Eph(30,:,:) ~= 0, 1)))
         satAvail = intersect(satObs,satEph)';
 
         if (length(satAvail) >=4)
-            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), [], iono, [], [], [], [], satAvail, lambda(satAvail,:), cutoff, snr_threshold, phase, 0, 0);
+            pos_R = init_positioning(time_R(i), pr(satAvail,i), snr(satAvail,i), Eph_t(:,:), [], iono, [], [], [], [], satAvail, [], lambda(satAvail,:), cutoff, snr_threshold, phase, 0, 0);
         end
         
         i = i + 1;

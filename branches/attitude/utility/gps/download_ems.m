@@ -19,7 +19,7 @@ function [file_ems] = download_ems(prn, gps_week, gps_time)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 % Adapted by Eugenio Realini, 2013

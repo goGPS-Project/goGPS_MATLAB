@@ -1,10 +1,12 @@
-function [data] = decode_fastrax_it03(msg, wait_dlg)
+function [data] = decode_fastrax_it03(msg, constellations, wait_dlg)
 
 % SYNTAX:
-%   [data] = decode_fastrax_it03(msg, wait_dlg);
+%   [data] = decode_fastrax_it03(msg, constellations, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received by the fastrax_it03 receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -15,9 +17,9 @@ function [data] = decode_fastrax_it03(msg, wait_dlg)
 %   Fastrax_it03 messages decoding (also in sequence).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.0
+%                           goGPS v0.4.1 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -35,6 +37,10 @@ function [data] = decode_fastrax_it03(msg, wait_dlg)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
 
 %----------------------------------------------------------------------------------------------
 % FTX MESSAGE HEADER
@@ -68,13 +74,13 @@ end
 % counter initialization
 i = 0;
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0,wait_dlg,'Decoding rover stream...')
 end
 
 while (pos + 15 <= length(msg))
     
-    if (nargin == 2)
+    if (nargin == 3)
         waitbar(pos/length(msg),wait_dlg)
     end
 
@@ -126,15 +132,15 @@ while (pos + 15 <= length(msg))
 
                         % TRACK (Track)                
                         case  3, 
-                            [data(:,i)] = decode_FTX_TRACK(msg(pos:pos+((2*LEN)*8)-1));
+                            [data(:,i)] = decode_FTX_TRACK(msg(pos:pos+((2*LEN)*8)-1), constellations);
 
                         % RAW (raw measurement) - PSEUDO
                         case  4, 
-                            [data(:,i)] = decode_FTX_PSEUDO(msg(pos:pos+((2*LEN)*8)-1));
+                            [data(:,i)] = decode_FTX_PSEUDO(msg(pos:pos+((2*LEN)*8)-1), constellations);
 
                         % EPH (ephemerides)
                         case 10, 
-                            [data(:,i)] = decode_FTX_EPH(msg(pos:pos+((2*LEN)*8)-1));
+                            [data(:,i)] = decode_FTX_EPH(msg(pos:pos+((2*LEN)*8)-1), constellations);
 
                     end
 

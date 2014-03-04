@@ -6,7 +6,7 @@ function goGPS_rover_monitor_offline(fileIN, filerootOUT, protocol, flag_var_dyn
 % INPUT:
 %   fileIN = input file (binary stream)
 %   filerootOUT = output file prefix
-%   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq)
+%   protocol    = protocol verctor (0:Ublox, 1:Fastrax, 2:SkyTraq, 3:NVS)
 %   flag_var_dyn_model = enable / disable variable dynamic model
 %   flag_stopGOstop    = enable / disable stop-go-stop procedure for direction estimation
 %   flag_simul         = enable / disable real-time simulation (disable for faster decoding)
@@ -19,7 +19,7 @@ function goGPS_rover_monitor_offline(fileIN, filerootOUT, protocol, flag_var_dyn
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -41,6 +41,7 @@ function goGPS_rover_monitor_offline(fileIN, filerootOUT, protocol, flag_var_dyn
 % global COMportR
 global rover
 global order
+global n_sys
 
 num_sat = 32;
 
@@ -58,6 +59,8 @@ for r = 1 : nrec
         prot_par{r} = param_fastrax;
     elseif (protocol(r) == 2)
         prot_par{r} = param_skytraq;
+    elseif (protocol(r) == 3)
+        prot_par{r} = param_nvs;
     end
 end
 
@@ -388,6 +391,10 @@ while flag
             elseif (protocol(r) == 2)
                 [cell_rover] = decode_skytraq(data_rover);
                 nmea_sentences = [];
+            elseif (protocol(r) == 3)
+                %[cell_rover] = decode_nvs(data_rover);
+                cell_rover = [];
+                nmea_sentences = [];
             end
 
             %read data type
@@ -465,10 +472,12 @@ while flag
 
                     %satellites with observations available
                     satObs = find(pr_R(:,1) ~= 0);
+                    
+                    min_nsat_LS = 3 + n_sys;
 
                     %if all the visible satellites ephemerides have been transmitted
-                    %and the total number of satellites is >= 4
-                    if (ismember(satObs,satEph)) & (length(satObs) >= 4)
+                    %and the total number of satellites is >= min_nsat_LS
+                    if (ismember(satObs,satEph)) & (length(satObs) >= min_nsat_LS)
 
                         %data save
                         fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
@@ -522,8 +531,8 @@ while flag
                         satObs = find(pr_R(:,1) ~= 0);
                         
                         %if all the visible satellites ephemerides have been transmitted
-                        %and the total number of satellites is >= 4
-                        if (ismember(satObs,satEph)) & (length(satObs) >= 4)
+                        %and the total number of satellites is >= min_nsat_LS
+                        if (ismember(satObs,satEph)) & (length(satObs) >= min_nsat_LS)
                             
                             %data save
                             fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
@@ -772,8 +781,11 @@ switch selection,
         fprintf('\n');
         fprintf('RINEX CONVERSION\n');
         
-        for r = 1 : nrec
-            recname = [prot_par{r}{1,1} num2str(r)];
-            streamR2RINEX([filerootOUT '_' recname],[filerootOUT '_' recname '_rover']);
+        r = nrec;
+        recname = [prot_par{r}{1,1} num2str(r)];
+        if (~isunix)
+            gui_decode_stream([filerootOUT '_' recname], constellations);
+        else
+            gui_decode_stream_unix([filerootOUT '_' recname], constellations);
         end
 end

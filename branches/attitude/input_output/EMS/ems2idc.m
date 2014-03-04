@@ -23,7 +23,7 @@ function [band, block, ivd, givei, igp] = ems2idc(msg, iodi_mask, band_mask, igp
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 %----------------------------------------------------------------------------------------------

@@ -1,10 +1,12 @@
-function [data] = decode_rtcm3(msg, wait_dlg)
+function [data] = decode_rtcm3(msg, constellations, wait_dlg)
 
 % SYNTAX:
-%   [data] = decode_rtcm3(msg, wait_dlg);
+%   [data] = decode_rtcm3(msg, constellations, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -17,7 +19,7 @@ function [data] = decode_rtcm3(msg, wait_dlg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -35,6 +37,10 @@ function [data] = decode_rtcm3(msg, wait_dlg)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 1, 0, 0, 0, 0);
+end
 
 %----------------------------------------------------------------------------------------------
 % MESSAGE ID CODE
@@ -60,7 +66,7 @@ if ~isempty(pos_all)
     % counter initialization
     i = 0;
     
-    if (nargin == 2)
+    if (nargin == 3)
         waitbar(0,wait_dlg,'Decoding master stream...')
     end
 
@@ -74,7 +80,7 @@ if ~isempty(pos_all)
 
         if (pos + 9 <= length(msg))
             
-            if (nargin == 2)
+            if (nargin == 3)
                 waitbar(pos/length(msg),wait_dlg)
             end
 
@@ -100,19 +106,19 @@ if ~isempty(pos_all)
 
                         % GPS observations on L1 carrier
                         case 1001
-                            [data(:,i)] = decode_1001(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1001(msg(pos:pos+8*LEN-1), constellations);
 
                         % GPS observations on L1 carrier
                         case 1002
-                            [data(:,i)] = decode_1002(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1002(msg(pos:pos+8*LEN-1), constellations);
 
                         % GPS observations on L1/L2 carrier
                         case 1003
-                            [data(:,i)] = decode_1003(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1003(msg(pos:pos+8*LEN-1), constellations);
 
                         % GPS observations on L1/L2 carrier
                         case 1004
-                            [data(:,i)] = decode_1004(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1004(msg(pos:pos+8*LEN-1), constellations);
 
                         % master station coordinates
                         case 1005
@@ -132,23 +138,23 @@ if ~isempty(pos_all)
 
                         % GLONASS observations on L1 carrier
                         case 1009
-                            [data(:,i)] = decode_1009(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1009(msg(pos:pos+8*LEN-1), constellations);
 
                         % GLONASS observations on L1 carrier
                         case 1010
-                            [data(:,i)] = decode_1010(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1010(msg(pos:pos+8*LEN-1), constellations);
 
                         % GLONASS observations on L1/L2 carrier
                         case 1011
-                            [data(:,i)] = decode_1011(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1011(msg(pos:pos+8*LEN-1), constellations);
 
                         % GLONASS observations on L1/L2 carrier
                         case 1012
-                            [data(:,i)] = decode_1012(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1012(msg(pos:pos+8*LEN-1), constellations);
 
                         % system parameters
                         case 1013
-                            [data(:,i)] = decode_1013(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1013(msg(pos:pos+8*LEN-1), constellations);
 
                         % auxiliary network information
                         case 1014
@@ -156,23 +162,23 @@ if ~isempty(pos_all)
 
                         % ionospheric correction differences
                         case 1015
-                            [data(:,i)] = decode_1015(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1015(msg(pos:pos+8*LEN-1), constellations);
 
                         % geometric correction differences
                         case 1016
-                            [data(:,i)] = decode_1016(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1016(msg(pos:pos+8*LEN-1), constellations);
 
                         % combined ionospheric and geometric correction differences
                         case 1017
-                            [data(:,i)] = decode_1017(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1017(msg(pos:pos+8*LEN-1), constellations);
 
-                        % other informations: satellite ephemerides
+                        %GPS ephemerides
                         case 1019
-                            [data(:,i)] = decode_1019(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1019(msg(pos:pos+8*LEN-1), constellations);
 
                         %GLONASS ephemerides
                         case 1020
-                            [data(:,i)] = decode_1020(msg(pos:pos+8*LEN-1));
+                            [data(:,i)] = decode_1020(msg(pos:pos+8*LEN-1), constellations);
 
                         % not implemented
                         case 1029

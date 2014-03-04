@@ -19,7 +19,7 @@ function [iodi_mask, band_mask, igp_mask, n_bands_mask] = load_igpmask(MT, msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 %----------------------------------------------------------------------------------------------

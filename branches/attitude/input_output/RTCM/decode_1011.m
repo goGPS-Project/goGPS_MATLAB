@@ -1,10 +1,12 @@
-function [data] = decode_1011(msg)
+function [data] = decode_1011(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_1011(msg)
+%   [data] = decode_1011(msg, constellations)
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the 1011 packet information
@@ -32,7 +34,7 @@ function [data] = decode_1011(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Sara Lucca
 %----------------------------------------------------------------------------------------------
@@ -58,9 +60,13 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(6,1);
-data{3} = zeros(32,10);
+data{3} = zeros(constellations.nEnabledSat,10);
 
-%message number = 1020
+if (~constellations.GLONASS.enabled)
+    return
+end
+
+%message number = 1011
 DF002 = fbin2dec(msg(pos:pos+11)); pos = pos + 12;
 
 %Reference station ID
@@ -130,22 +136,27 @@ for i = 1 : NSV
 
         %GLONASS L2 Lock Time Indicator
         DF049 = fbin2dec(msg(pos:pos+6)); pos = pos + 7;
-
-        %L1 carrier frequency [MHz]
-        data{3}(SV,9) = (DF040 - 7) * 0.5625 + 1602.0;
-
-        %L2 carrier frequency [MHz]
-        data{3}(SV,10) = (DF040 - 7) * 0.4375 + 1246.0;
-
-        %output data save
-        data{3}(SV,1)  = DF039;
-        data{3}(SV,2)  = DF041;
-        data{3}(SV,3)  = (data{3}(SV,2) + DF042) * data{3}(SV,9) * 1e6 / goGNSS.V_LIGHT;
-        data{3}(SV,4)  = DF043;
-        data{3}(SV,5)  = DF046;
-        data{3}(SV,6)  = (data{3}(SV,2) + DF047);
-        data{3}(SV,7)  = (data{3}(SV,2) + DF048) * data{3}(SV,10) * 1e6 / goGNSS.V_LIGHT;
-        data{3}(SV,8)  = DF049;
+        
+        % assign constellation-specific indexes
+        if (constellations.GLONASS.enabled)
+            idx = constellations.GLONASS.indexes(SV);
+            
+            %L1 carrier frequency [MHz]
+            data{3}(idx,9) = (DF040 - 7) * 0.5625 + 1602.0;
+            
+            %L2 carrier frequency [MHz]
+            data{3}(idx,10) = (DF040 - 7) * 0.4375 + 1246.0;
+            
+            %output data save
+            data{3}(idx,1)  = DF039;
+            data{3}(idx,2)  = DF041;
+            data{3}(idx,3)  = (data{3}(idx,2) + DF042) * data{3}(idx,9) * 1e6 / goGNSS.V_LIGHT;
+            data{3}(idx,4)  = DF043;
+            data{3}(idx,5)  = DF046;
+            data{3}(idx,6)  = (data{3}(idx,2) + DF047);
+            data{3}(idx,7)  = (data{3}(idx,2) + DF048) * data{3}(idx,10) * 1e6 / goGNSS.V_LIGHT;
+            data{3}(idx,8)  = DF049;
+        end
 
     else %SBAS satellites
 

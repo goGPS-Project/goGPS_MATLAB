@@ -20,7 +20,7 @@ function KML_write_cov (lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -37,7 +37,7 @@ function KML_write_cov (lamR,phiR,hR,lamM,phiM,hM,ellipse,nsat,date)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global kml_filename
+global kml_filename n_sys
 
 %-------------------------------------------------------------------------------
 % PARAMETERS FOR THE KML FILE
@@ -56,7 +56,8 @@ iconR = 'http://maps.google.com/mapfiles/kml/pal2/icon26.png';
 iconM = 'http://maps.google.com/mapfiles/kml/shapes/square.png';
 
 %string representing the ARGB color of the points
-if (nsat >= 4)
+min_nsat_LS = 3 + n_sys;
+if (nsat >= min_nsat_LS)
     point_colorR = 'fff5005a';
 else
     point_colorR = 'ff0000ff';

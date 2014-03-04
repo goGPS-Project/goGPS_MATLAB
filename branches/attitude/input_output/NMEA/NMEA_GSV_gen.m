@@ -9,7 +9,7 @@ function GSVlines = NMEA_GSV_gen(sat, el, az, snr, constellations)
 %   az = azimuth [deg]
 %   snr = signal-to-noise ratio [dB]
 %   constellations = struct with multi-constellation settings
-%                   (see 'multi_constellation_settings.m' - empty if not available)
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   GSVlines = $GPGSV sentence(s) (NMEA)
@@ -20,7 +20,7 @@ function GSVlines = NMEA_GSV_gen(sat, el, az, snr, constellations)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

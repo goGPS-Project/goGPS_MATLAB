@@ -9,12 +9,12 @@
 *          d8888P                                                 *
 \*****************************************************************/
 
-   v0.4.0beta
+   v0.4.2beta
 
 1. Introduction
    ============
-   goGPS is a software package designed to perform GPS positioning
-   with low cost receivers, either in post-processing or real-time.
+   goGPS is a software package designed to perform GPS positioning,
+   either in post-processing or real-time.
    It is developed in MATLAB and it is aimed at providing a tool
    useful for studying GPS positioning, implementing and testing
    new algorithms and interacting in general with GPS-related
@@ -40,8 +40,8 @@
    For real-time tasks:
    - 'Instrument Control Toolbox' installed on MATLAB
    - GPS receiver providing raw data on a COM port (currently
-     u-blox UBX, Fastrax IT03 and SkyTraq binary protocols are
-     supported) with their own drivers installed
+     u-blox UBX, Fastrax IT03, SkyTraq and NVS BINR binary
+	 protocols are supported) with their own drivers installed
    - GPS permanent station(s) broadcasting raw data in RTCM 3.x
      format through NTRIP protocol (at least '1002' or '1004'
      messages)

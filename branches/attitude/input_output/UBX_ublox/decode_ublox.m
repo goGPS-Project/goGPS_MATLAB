@@ -1,10 +1,12 @@
-function [data, nmea_sentences] = decode_ublox(msg, wait_dlg)
+function [data, nmea_sentences] = decode_ublox(msg, constellations, wait_dlg)
 
 % SYNTAX:
-%   [data, nmea_sentences] = decode_ublox(msg, wait_dlg);
+%   [data, nmea_sentences] = decode_ublox(msg, constellations, wait_dlg);
 %
 % INPUT:
 %   msg = binary message received by the u-blox receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -18,7 +20,7 @@ function [data, nmea_sentences] = decode_ublox(msg, wait_dlg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -34,6 +36,10 @@ function [data, nmea_sentences] = decode_ublox(msg, wait_dlg)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
 
 %----------------------------------------------------------------------------------------------
 % UBX MESSAGE HEADER
@@ -96,13 +102,13 @@ end
 % counter initialization
 i = 0;
 
-if (nargin == 2)
+if (nargin == 3)
     waitbar(0,wait_dlg,'Decoding rover stream...')
 end
 
 while (pos + 15 <= length(msg))
 
-    if (nargin == 2)
+    if (nargin == 3)
         waitbar(pos/length(msg),wait_dlg)
     end
 
@@ -167,15 +173,15 @@ while (pos + 15 <= length(msg))
                             case '02'
                                 switch id
                                     % RAW (raw measurement)
-                                    case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1));
+                                    case '10', [data(:,i)] = decode_RXM_RAW(msg(pos:pos+8*LEN-1), constellations);
                                         
                                     % SFRB (subframe buffer)
-                                    %case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1));
+                                    %case '11', [data(:,i)] = decode_RXM_SFRB(msg(pos:pos+8*LEN-1), constellations);
                                         
                                     % EPH (*OBSOLETE* ephemeris)
                                     case '31'
                                        if (LEN == 104) %(ephemeris available)
-                                           [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1));
+                                           [data(:,i)] = decode_RXM_EPH(msg(pos:pos+8*LEN-1), constellations);
                                        end
                                 end
                                 
@@ -188,7 +194,7 @@ while (pos + 15 <= length(msg))
                                     % EPH (ephemeris)
                                     case '31'
                                         if (LEN == 104) %(ephemeris available)
-                                            [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1));
+                                            [data(:,i)] = decode_AID_EPH(msg(pos:pos+8*LEN-1), constellations);
                                         end
                                 end
                         end

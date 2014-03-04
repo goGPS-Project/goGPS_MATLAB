@@ -1,10 +1,12 @@
-function [data] = decode_FTX_EPH(msg)
+function [data] = decode_FTX_EPH(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_FTX_EPH(msg);
+%   [data] = decode_FTX_EPH(msg, constellations);
 %
 % INPUT:
 %   msg = message transmitted by the fastrax receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the FTX_EPH packet information
@@ -46,7 +48,7 @@ function [data] = decode_FTX_EPH(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Ivan Reguzzoni
 %----------------------------------------------------------------------------------------------
@@ -65,6 +67,10 @@ function [data] = decode_FTX_EPH(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
+
 % first message initial index
 pos = 1;
 
@@ -75,7 +81,6 @@ data{2} = zeros(33,1);
 
 %output data save
 data{1} = 'FTX-EPH';
-
 
 % RAW_EPHEMERIS.wPrn 		WORD 	The PRN for which the data is intended.
 [PRN, pos]          = FTX_TypeConv('WORD', msg, pos);
@@ -204,7 +209,7 @@ Idot = Idot * (2^(-43));
 Idot = Idot * pi();
 
 %output and reorder ephemerides data (if IODC == IODE)
-if (IODC == IODE) && (IODC == IODE)
+if ((IODC == IODE) && (IODC == IODE) && constellations.GPS.enabled)
     data{2}(1) = PRN;
     data{2}(2) = Af2;
     data{2}(3) = M0;
@@ -234,8 +239,10 @@ if (IODC == IODE) && (IODC == IODE)
     data{2}(27) = Health;
     data{2}(28) = GroupDelay;
     data{2}(29) = FitPeriod;
-    data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
-    data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+    data{2}(30) = constellations.GPS.indexes(PRN);
+    data{2}(31) = int8('G');
+    data{2}(32) = weektow2time(TocWeek, Toe,   'G');
+    data{2}(33) = weektow2time(TocWeek, TowMs, 'G');
 end
 
 % Check, no PRN --> delete header to improve performance

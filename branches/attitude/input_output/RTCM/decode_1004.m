@@ -1,10 +1,12 @@
-function [data] = decode_1004(msg)
+function [data] = decode_1004(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_1004(msg)
+%   [data] = decode_1004(msg, constellations)
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the 1004 packet information
@@ -32,7 +34,7 @@ function [data] = decode_1004(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -60,7 +62,11 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(6,1);
-data{3} = zeros(32,10);
+data{3} = zeros(constellations.nEnabledSat,10);
+
+if (~constellations.GPS.enabled)
+    return
+end
 
 %message number = 1004
 DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
@@ -142,18 +148,24 @@ for i = 1 : NSV
         DF020 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
         %---------------------------------------------------------
+        
+        % assign constellation-specific indexes
+        idx = [];
+        if (SV <= 32 && constellations.GPS.enabled)
+            idx = constellations.GPS.indexes(SV);
+        end
 
         %output data save
-        data{3}(SV,1)  = DF010;
-        data{3}(SV,2)  = (DF011 * 0.02) + (DF014 * 299792.458);
-        data{3}(SV,3)  = (data{3}(SV,2) + (DF012*0.0005)) / lambda(1);
-        data{3}(SV,4)  = DF013;
-        data{3}(SV,5)  = DF015 * 0.25;
-        data{3}(SV,6)  = DF016;
-        data{3}(SV,7)  = (data{3}(SV,2) + (DF017 * 0.02));
-        data{3}(SV,8)  = (data{3}(SV,2) + (DF018*0.0005)) / lambda(2);
-        data{3}(SV,9)  = DF019;
-        data{3}(SV,10) = DF020 * 0.25;
+        data{3}(idx,1)  = DF010;
+        data{3}(idx,2)  = (DF011 * 0.02) + (DF014 * 299792.458);
+        data{3}(idx,3)  = (data{3}(SV,2) + (DF012*0.0005)) / lambda(1);
+        data{3}(idx,4)  = DF013;
+        data{3}(idx,5)  = DF015 * 0.25;
+        data{3}(idx,6)  = DF016;
+        data{3}(idx,7)  = (data{3}(SV,2) + (DF017 * 0.02));
+        data{3}(idx,8)  = (data{3}(SV,2) + (DF018*0.0005)) / lambda(2);
+        data{3}(idx,9)  = DF019;
+        data{3}(idx,10) = DF020 * 0.25;
 
     else %SBAS satellites
 
@@ -161,5 +173,4 @@ for i = 1 : NSV
         pos = pos + 119;
 
     end
-
 end

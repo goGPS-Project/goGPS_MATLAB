@@ -1,10 +1,12 @@
-function [data] = decode_1016(msg)
+function [data] = decode_1016(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_1016(msg)
+%   [data] = decode_1016(msg, constellations)
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the 1016 packet information
@@ -27,7 +29,7 @@ function [data] = decode_1016(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Sara Lucca
 %----------------------------------------------------------------------------------------------
@@ -53,7 +55,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(7,1);
-data{3} = zeros(32,4);
+data{3} = zeros(constellations.nEnabledSat,4);
 
 %message number = 1016
 DF002 = fbin2dec(msg(pos:pos+11));  pos = pos + 12;
@@ -108,11 +110,17 @@ for i = 1 : DF067
     DF071 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
 
     %---------------------------------------------------------
+    
+    % assign constellation-specific indexes
+    idx = [];
+    if (SV <= 24 && constellations.GLONASS.enabled)
+        idx = constellations.GLONASS.indexes(SV);
+    end
 
     %output data save
-    data{3}(SV,1)  = DF074;
-    data{3}(SV,2)  = DF075;
-    data{3}(SV,3)  = DF070;
-    data{3}(SV,4)  = DF071;
+    data{3}(idx,1)  = DF074;
+    data{3}(idx,2)  = DF075;
+    data{3}(idx,3)  = DF070;
+    data{3}(idx,4)  = DF071;
 
 end

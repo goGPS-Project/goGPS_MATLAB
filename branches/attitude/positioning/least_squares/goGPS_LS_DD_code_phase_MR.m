@@ -29,7 +29,7 @@ function goGPS_LS_DD_code_phase_MR(time_rx, multi_ant_rf, XM, pr1_R, pr1_M, pr2_
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Hendy F. Suhandri
 %----------------------------------------------------------------------------------------------
@@ -55,6 +55,7 @@ global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
 global ratiotest mutest succ_rate fixed_solution
+global n_sys
 
 %total number of satellite slots (depending on the constellations enabled)
 nSatTot = size(pr1_R,1);
@@ -119,27 +120,29 @@ N2 = zeros(nSatTot*nRov,1);
 Z_om_1 = zeros(o1-1,1);
 sigma2_N = zeros(nN,1);
 
-if (size(sat_pr,1) >= 4)
+min_nsat_LS = 3 + n_sys;
+
+if (size(sat_pr,1) >= min_nsat_LS)
     
     sat_pr_old = sat_pr;
     
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M_tmp, err_iono_M_tmp, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM, [],  [], sat_pr,   lambda(sat_pr,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M_tmp, err_iono_M_tmp, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM, [],  [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M_tmp, err_iono_M_tmp, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), is_GLO, cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM, [],  [], sat_pr,   lambda(sat_pr,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M_tmp, err_iono_M_tmp, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM, [],  [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
     end
     
     err_tropo_M(sat_pr_M,1) = err_tropo_M_tmp;
     err_iono_M(sat_pr_M,1) = err_iono_M_tmp;
     
-    if (length(sat_pr_M) < 4); return; end
+    if (length(sat_pr_M) < min_nsat_LS); return; end
     
     sat_pr_R = (1 : nSatTot)';
     for r = 1 : nRov
         if (phase == 1)
-            [XR(:,r), dtR(r,1), ~, ~, ~, ~, ~, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M,r), snr_R(sat_pr_M,r), Eph, SP3, iono, [], [], XS, dtS, sat_pr_M, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
+            [XR(:,r), dtR(r,1), ~, ~, ~, ~, ~, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M,r), snr_R(sat_pr_M,r), Eph, SP3, iono, [], [], XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
         else
-            [XR(:,r), dtR(r,1), ~, ~, ~, ~, ~, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M,r), snr_R(sat_pr_M,r), Eph, SP3, iono, [], [], XS, dtS, sat_pr_M, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
+            [XR(:,r), dtR(r,1), ~, ~, ~, ~, ~, err_tropo_R_tmp, err_iono_R_tmp, sat_pr_R_tmp, elR(sat_pr_R_tmp,r), azR(sat_pr_R_tmp,r), distR(sat_pr_R_tmp,r), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M,r), snr_R(sat_pr_M,r), Eph, SP3, iono, [], [], XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
         end
         
         err_tropo_R(sat_pr_R_tmp,r) = err_tropo_R_tmp;
@@ -178,9 +181,9 @@ if (size(sat_pr,1) >= 4)
     % LEAST SQUARES SOLUTION
     %--------------------------------------------------------------------------------------------
     
-    %if at least 4 satellites are available after the cutoffs, and if the
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
-    if (size(sat,1) >= 4 && cond_num < cond_num_threshold)
+    if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
         
         idx_amb = sat;
         for r = 1 : nRov-1

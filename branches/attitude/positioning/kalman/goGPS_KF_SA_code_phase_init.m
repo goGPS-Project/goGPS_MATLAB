@@ -30,7 +30,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Andrea Nardo
 %----------------------------------------------------------------------------------------------
@@ -57,6 +57,7 @@ global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
+global n_sys
 
 kalman_initialized = 0;
 
@@ -171,16 +172,18 @@ end
 Z_om_1 = zeros(o1-1,1);
 sigma2_N = zeros(nN,1);
 
-if (length(sat_pr) >= 4)
+min_nsat_LS = 3 + n_sys;
+
+if (length(sat_pr) >= min_nsat_LS)
 
     sat_pr_old = sat_pr;
 
     if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<ASGLU>
         
         err_iono2 = err_iono1 .* ionoFactor(sat_pr,2);
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono2, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, lambda(sat_pr,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono2, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<ASGLU>
         
         err_iono1 = err_iono2 ./ ionoFactor(sat_pr,2);
     end
@@ -189,13 +192,11 @@ if (length(sat_pr) >= 4)
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
     
-    %if mixed observations GLONASS/other, then an additional parameter will be
-    %added to the least squares adjustment (i.e. at least 5 satellites required)
-    if (any(is_GLO) && any(~is_GLO))
-        min_nsat = 5;
-    else
-        min_nsat = 4;
-    end
+    %if multi-system observations, then an additional parameter to estimate the inter-system bias
+    %for each additional system is needed
+    uni_sys = unique(sys(sys ~= 0));
+    num_sys = length(uni_sys);
+    min_nsat = 3 + num_sys;
 
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
@@ -271,8 +272,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, is_GLO, lambda(sat_pr,1)); %#ok<ASGLU>
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, is_GLO, lambda(sat_pr,2));
+        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, sys, lambda(sat_pr,1)); %#ok<ASGLU>
+        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, sys, lambda(sat_pr,2));
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix

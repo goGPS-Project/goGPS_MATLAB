@@ -1,10 +1,12 @@
-function [data] = decode_RXM_EPH(msg)
+function [data] = decode_RXM_EPH(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_RXM_EPH(msg);
+%   [data] = decode_RXM_EPH(msg, constellations);
 %
 % INPUT:
 %   msg = message transmitted by the u-blox receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the RXM-EPH packet information
@@ -46,7 +48,7 @@ function [data] = decode_RXM_EPH(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -63,7 +65,11 @@ function [data] = decode_RXM_EPH(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% first message initial index
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
+
+%first message initial index
 pos = 1;
 
 %output variable initialization
@@ -129,7 +135,7 @@ IODE3    = subframe_3_data(8);
 IDOT     = subframe_3_data(9);
 
 %output and reorder ephemerides data (if IODC == IODE)
-if (IODC == IODE2) & (IODC == IODE3)
+if ((IODC == IODE2) && (IODC == IODE3) && constellations.GPS.enabled)
     data{2}(1) = PRN;
     data{2}(2) = af2;
     data{2}(3) = M0;
@@ -159,8 +165,8 @@ if (IODC == IODE2) & (IODC == IODE3)
     data{2}(27) = svhealth;
     data{2}(28) = tgd;
     data{2}(29) = fit_int;
-    data{2}(30) = PRN;       %assume only GPS (not multi-constellation)
-    data{2}(31) = int8('G'); %assume only GPS (not multi-constellation)
+    data{2}(30) = constellations.GPS.indexes(PRN);
+    data{2}(31) = int8('G');
     data{2}(32) = weektow2time(weekno, toe, 'G'); %wrong: weekno is mod(1024)... taken care of by the caller
     data{2}(33) = weektow2time(weekno, toc, 'G'); %wrong: weekno is mod(1024)... taken care of by the caller
 end

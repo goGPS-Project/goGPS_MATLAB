@@ -1,7 +1,7 @@
-function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, is_GLO] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR)
+function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR)
 
 % SYNTAX:
-%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, is_GLO] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR);
+%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -21,14 +21,14 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, is_GLO] = satellite_positions(
 %   VS_tx   = satellite velocity at transmission time in ECEF(time_tx) (X,Y,Z)
 %   time_tx = transmission time (vector)
 %   no_eph  = satellites with no ephemeris available (vector) (0: available, 1: not available)
-%   is_GLO  = boolean array to identify which satellites are GLONASS (0: not GLONASS, 1: GLONASS)
+%   sys_idx = array with different values for different systems
 %
 % DESCRIPTION:
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -56,8 +56,8 @@ VS_tx   = zeros(nsat,3);
 %satellites with no ephemeris available
 no_eph  = zeros(nsat,1);
 
-%GLONASS satellites
-is_GLO  = zeros(nsat,1);
+%system array
+sys_idx = zeros(nsat,1);
 
 for i = 1 : nsat
     
@@ -102,18 +102,17 @@ for i = 1 : nsat
     traveltime = time_rx - time_tx(i,1);
     switch char(sys)
         case 'G'
-            Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
+            Omegae_dot = goGNSS.OMEGAE_DOT_GPS; sys_idx(i,1) = 1;
         case 'R'
-            Omegae_dot = goGNSS.OMEGAE_DOT_GLO;
-            is_GLO(i) = 1;
+            Omegae_dot = goGNSS.OMEGAE_DOT_GLO; sys_idx(i,1) = 2;
         case 'E'
-            Omegae_dot = goGNSS.OMEGAE_DOT_GAL;
+            Omegae_dot = goGNSS.OMEGAE_DOT_GAL; sys_idx(i,1) = 3;
         case 'C'
-            Omegae_dot = goGNSS.OMEGAE_DOT_BDS;
+            Omegae_dot = goGNSS.OMEGAE_DOT_BDS; sys_idx(i,1) = 4;
         case 'J'
-            Omegae_dot = goGNSS.OMEGAE_DOT_QZS;
+            Omegae_dot = goGNSS.OMEGAE_DOT_QZS; sys_idx(i,1) = 5;
         otherwise
-            fprintf('Something went wrong in satellite_positions.m\nUnrecongized Satellite system!\n');
+            fprintf('Something went wrong in satellite_positions.m\nUnrecognized Satellite system!\n');
             Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
     end
     XS(i,:) = earth_rotation_correction(traveltime, XS_tx(i,:), Omegae_dot);

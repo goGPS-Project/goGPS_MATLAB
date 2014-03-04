@@ -35,7 +35,7 @@ function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
 %
 % Partially based on FOBS_TYP.M (EASY suite) by Kai Borre
