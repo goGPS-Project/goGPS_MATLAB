@@ -194,29 +194,30 @@ Fn;
 
 %attitude-based float solution
 Gp = (eye(m) - A*(A'*Q^-1*A)^-1*A'*Q^-1)*G;
-% Pfn= Fn'*((Fn*(P^-1)*Fn')^-1)*Fn*(P^-1);
-% Pg = G*((G'*(Q^-1)*G)^-1)*G'*(Q^-1);
-% Ap = (eye(m) - G*((G'*(Q^-1)*G)^-1)*G'*(Q^-1))*A;
-%Rfloat = (Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1;
-Rfloat = R_le'*((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1) 
-%Rfloat = R_le^-1*Rfloat
-Zfloat = (A'*Q^-1*A)^-1*A'*Q^-1*(y - G*Rfloat*Fn) %%-> formula is still incorrect!
-Q_vecR = kron((Fn*(P^-1)*Fn')^-1,(Gp'*(Q^-1)*Gp)^-1)
-Q_vecZ = (kron(P^-1,A'*Q^-1*A) - kron(P^-1*Fn',A'*Q^-1*G)*(kron(Fn*P^-1*Fn',G'*Q^-1*G))^-1*kron(Fn*P^-1,G'*Q^-1*A))^-1
-%Q_Z    = (sigmaq_cod1/lambda(1,1)^2)*(kron(P,(sigmaq_ph/sigmaq_cod1)*Q1)+kron(Fn'*(Fn*P^-1*Fn')^-1*Fn,U*(U'*Q1^-1*U)^-1*U'))
+Rfloat = R_le'*((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1); %floated-Rotation Matrix 
+Zfloat = (A'*Q^-1*A)^-1*A'*Q^-1*(y - G*Rfloat*Fn); %floated-ambiguities
+Q_vecR = kron((Fn*(P^-1)*Fn')^-1,(Gp'*(Q^-1)*Gp)^-1);
+Q_vecZ = (kron(P^-1,A'*Q^-1*A) - kron(P^-1*Fn',A'*Q^-1*G)*(kron(Fn*P^-1*Fn',G'*Q^-1*G))^-1*kron(Fn*P^-1,G'*Q^-1*A))^-1;
 
-%
-% vecZfloat = (kron(eye(n),((A'*(Q^-1)*A)^-1)*A'*(Q^-1)))*(y(:) - (kron(Fn',G))*Rfloat(:));
-% QvecR = kron((Fn*(P^-1)*Fn')^-1,(Gp'*(Q^-1)*Gp)^-1)
-% QZrR  = kron(-F'*(F*(P^-1)*F)^-1,((A'*(Q^-1)*A)^-1)*A'*(Q^-1)*G*((Gp'*(Q^-1)*Gp)^-1));
-% QRZr  = QZrR';
-% QvecZ = ((kron(P^-1,A'*(Q^-1)))*(eye(m*n)-kron(Pfn,Pg))*(kron(eye(n),A)))^-1;
+%float rotation angles for single baseline case
+if n  == 1
+    yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
+    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
 
+elseif n = 2
+    yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
+    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
+    roll  = asind(Rfloat(3,2)/cosd(pitch))
+    
+else
+    yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
+    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
+    roll  = atand(Rfloat(3,2))/Rfloat(3,3)
+end
 
-
-% if (~flag_IAR)
-%     %apply least squares solution
-%     R = Rfloat;
+if (~flag_IAR)
+    %apply least squares solution
+    R = Rfloat;
 %
 %     %estimated double difference ambiguities (without PIVOT)
 %     N_hat_nopivot = vecZfloat;
@@ -282,4 +283,4 @@ Q_vecZ = (kron(P^-1,A'*Q^-1*A) - kron(P^-1*Fn',A'*Q^-1*G)*(kron(Fn*P^-1*Fn',G'*Q
 %         cov_R = [];
 %         cov_N = [];
 %     end
-% end
+end
