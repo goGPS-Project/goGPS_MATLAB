@@ -77,6 +77,10 @@ classdef goGNSS < handle
         GM_GAL = 3.986004418e14;                  % Galileo Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_BDS = 3.986004418e14;                  % BeiDou  Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_QZS = 3.986005e14;                     % QZSS    Gravitational constant * (mass of Earth) [m^3/s^2]
+                                                  % (NOTE: these values are not actually called from goGNSS.m
+                                                  %        by ecc_anomaly.m for computation time reasons; if
+                                                  %        it's needed to change them, please update also
+                                                  %        the values in ecc_anomaly.m)
         
         OMEGAE_DOT_GPS = 7.2921151467e-5;             % GPS     Angular velocity of the Earth rotation [rad/s]
         OMEGAE_DOT_GLO = 7.292115e-5;                 % GLONASS Angular velocity of the Earth rotation [rad/s]
@@ -87,7 +91,10 @@ classdef goGNSS < handle
         J2_GLO = 1.0826257e-3;                        % GLONASS second zonal harmonic of the geopotential
         
         PI_ORBIT = 3.1415926535898;                   % pi value used for orbit computation
-        CIRCLE_RAD = 2*goGNSS.PI_ORBIT;               % 2 pi
+        CIRCLE_RAD = 2*goGNSS.PI_ORBIT;               % 2 pi (NOTE: this value is not actually called from goGNSS.m
+                                                      %             for computation time reasons; if it's needed to
+                                                      %             change it, please update also ecc_anomaly.m and
+                                                      %             satellite_orbits.m)
         
         % CONSTELLATION SPECIFIC ------------------------------------------
         
