@@ -20,7 +20,7 @@ function [satp, satv] = satellite_orbits(t, Eph, sat, sbas)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -96,12 +96,15 @@ if (~strcmp(char(Eph(31)),'R'))
     %eccentric anomaly
     [Ek, n] = ecc_anomaly(t, Eph);
     
+    %cr = goGNSS.CIRCLE_RAD;
+    cr = 6.283185307179600;
+    
     A = roota*roota;             %semi-major axis
     tk = check_t(t - time_eph);  %time from the ephemeris reference epoch
     
     fk = atan2(sqrt(1-ecc^2)*sin(Ek), cos(Ek) - ecc);    %true anomaly
     phik = fk + omega;                           %argument of latitude
-    phik = rem(phik,goGNSS.CIRCLE_RAD);
+    phik = rem(phik,cr);
     
     uk = phik                + cuc*cos(2*phik) + cus*sin(2*phik); %corrected argument of latitude
     rk = A*(1 - ecc*cos(Ek)) + crc*cos(2*phik) + crs*sin(2*phik); %corrected radial distance
@@ -116,7 +119,7 @@ if (~strcmp(char(Eph(31)),'R'))
         
         %corrected longitude of the ascending node
         Omegak = Omega0 + (Omega_dot - Omegae_dot)*tk - Omegae_dot*toe;
-        Omegak = rem(Omegak + goGNSS.CIRCLE_RAD,goGNSS.CIRCLE_RAD);
+        Omegak = rem(Omegak + cr, cr);
         
         %satellite Earth-fixed coordinates (X,Y,Z)
         xk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
@@ -132,7 +135,7 @@ if (~strcmp(char(Eph(31)),'R'))
         
         %corrected longitude of the ascending node
         Omegak = Omega0 + Omega_dot*tk - Omegae_dot*toe;
-        Omegak = rem(Omegak + goGNSS.CIRCLE_RAD,goGNSS.CIRCLE_RAD);
+        Omegak = rem(Omegak + cr, cr);
         
         %satellite coordinates (X,Y,Z) in inertial system
         xgk = x1k*cos(Omegak) - y1k*cos(ik)*sin(Omegak);
@@ -262,7 +265,7 @@ else %GLONASS satellite coordinates computation (GLONASS-ICD 5.1)
         vel = vel + (vel1_dot + 2*vel2_dot + 2*vel3_dot + vel4_dot)*ii(s)/6;
     end
 
-    %transformation from PZ-90.02 to WGS-84 (ITRF2000)
+    %transformation from PZ-90.02 to WGS-84 (G1150)
     satp(1,1) = pos(1) - 0.36;
     satp(2,1) = pos(2) + 0.08;
     satp(3,1) = pos(3) + 0.18;

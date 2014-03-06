@@ -28,7 +28,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_init(XR0, XM, time_rx, pr1_R, p
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -51,6 +51,7 @@ global cutoff snr_threshold cond_num_threshold o1 o2 o3
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
+global n_sys
 
 kalman_initialized = 0;
 
@@ -131,16 +132,18 @@ end
 %zero vector useful in matrix definitions
 Z_om_1 = zeros(o1-1,1);
 
-if (size(sat,1) >= 4)
+min_nsat_LS = 3 + n_sys;
+
+if (size(sat,1) >= min_nsat_LS)
     
     if (phase == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat, lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
-        if (length(sat_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat, [], lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
+        if (length(sat_M) < min_nsat_LS); return; end
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), is_GLO, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat, lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
-        if (length(sat_M) < 4); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [], [],     sat, [], lambda(sat,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
+        if (length(sat_M) < min_nsat_LS); return; end
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
     end
     
     %keep only satellites that rover and master have in common
@@ -175,9 +178,9 @@ if (size(sat,1) >= 4)
     % LEAST SQUARES SOLUTION
     %--------------------------------------------------------------------------------------------
 
-    %if at least 4 satellites are available after the cutoffs, and if the 
+    %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (size(sat,1) >= 4 & cond_num < cond_num_threshold)
+    if (size(sat,1) >= min_nsat_LS & cond_num < cond_num_threshold)
         
         %loop is needed to improve the atmospheric error correction
         for i = 1 : 3

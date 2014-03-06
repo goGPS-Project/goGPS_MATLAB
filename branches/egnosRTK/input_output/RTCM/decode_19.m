@@ -1,12 +1,14 @@
-function [data] = decode_19(msg, n_words, modz)
+function [data] = decode_19(msg, n_words, modz, constellations)
 
 % SYNTAX:
-%   [data] = decode_19(msg, n_words, modz)
+%   [data] = decode_19(msg, n_words, modz, constellations)
 %
 % INPUT:
 %   msg = binary message received from the master station
 %   n_words = number of words composing the message
 %   modz = modified Z-count
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the message '18' information
@@ -27,7 +29,7 @@ function [data] = decode_19(msg, n_words, modz)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -51,7 +53,11 @@ pos = 3;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(2,1);
-data{3} = zeros(32,7);
+data{3} = zeros(constellations.nEnabledSat,7);
+
+if (~constellations.GPS.enabled)
+    return
+end
 
 if (pos + n_words*30-1 <= length(msg))
 

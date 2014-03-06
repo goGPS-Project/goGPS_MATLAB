@@ -1,10 +1,12 @@
-function [data] = decode_skytraq_RAW_MEAS(msg)
+function [data] = decode_skytraq_RAW_MEAS(msg, constellations)
 
 % SYNTAX:
-%   [data] = decode_skytraq_RAW_MEAS(msg);
+%   [data] = decode_skytraq_RAW_MEAS(msg, constellations);
 %
 % INPUT:
 %   msg = message transmitted by the SkyTraq receiver
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   data = cell-array that contains the RAW_MEAS packet information
@@ -24,7 +26,7 @@ function [data] = decode_skytraq_RAW_MEAS(msg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -41,6 +43,10 @@ function [data] = decode_skytraq_RAW_MEAS(msg)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+end
+
 % first message initial index
 pos = 1;
 
@@ -48,7 +54,7 @@ pos = 1;
 data = cell(3,1);
 data{1} = 0;
 data{2} = zeros(2,1);
-data{3} = zeros(32,6);
+data{3} = zeros(constellations.nEnabledSat,6);
 
 %output data save
 data{1} = 'RAW_MEAS';
@@ -116,20 +122,22 @@ for j = 1 : NMEAS
     channel_indicator = fbin2dec(msg(pos:pos+7));
     pos = pos + 8;
 
-    % exclude EGNOS satellites (SV = 121, 122, etc.)
-    if (PRN <= 32)
-
-        % phase, code and doppler measure save
-        CPM = L1;
-        PRM = C1;
-        DOM = D1;
-
-        %data output save
-        data{3}(PRN,1) = PRN;
-        data{3}(PRN,2) = CN0;
-        data{3}(PRN,3) = PRM;
-        data{3}(PRN,4) = CPM;
-        data{3}(PRN,5) = DOM;
-        data{3}(PRN,6) = channel_indicator;
+    % assign constellation-specific indexes
+    idx = [];
+    if (SV <= 32)
+        idx = constellations.GPS.indexes(SV);
     end
+    
+    % phase, code and doppler measure save
+    CPM = L1;
+    PRM = C1;
+    DOM = D1;
+    
+    % data output save
+    data{3}(idx,1) = PRN;
+    data{3}(idx,2) = CN0;
+    data{3}(idx,3) = PRM;
+    data{3}(idx,4) = CPM;
+    data{3}(idx,5) = DOM;
+    data{3}(idx,6) = channel_indicator;
 end

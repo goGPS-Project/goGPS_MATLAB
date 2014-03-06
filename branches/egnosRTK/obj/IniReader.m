@@ -25,7 +25,7 @@
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    Code contributed by Andrea Gatti
@@ -277,7 +277,7 @@ classdef IniReader < handle
         function sectionList = getSections(obj)
             % Get the list of available sections
             if (~obj.getReadStatus())
-                obj.printWarning('File not yet read!\n');
+                %obj.printWarning('File not yet read!\n');
                 obj.readFile();
             end
             
@@ -332,7 +332,7 @@ classdef IniReader < handle
             end
             
             if (~obj.getReadStatus())                
-                obj.printWarning('File not yet read!\n');
+                %obj.printWarning('File not yet read!\n');
                 obj.readFile();
             end
             
@@ -369,7 +369,7 @@ classdef IniReader < handle
             
             % Get the value of a specified key
             if (~obj.getReadStatus() && isempty(obj.section))
-               obj.printWarning('File not yet read!\n');
+               %obj.printWarning('File not yet read!\n');
                obj.readFile();
             end
             
@@ -597,7 +597,7 @@ classdef IniReader < handle
             end
             
             if (~obj.getReadStatus())
-                obj.printWarning('File not yet read!\n');
+                %obj.printWarning('File not yet read!\n');
 
                 obj.readFile();
             end
@@ -625,7 +625,7 @@ classdef IniReader < handle
             end
             
             if (~obj.getReadStatus() && isempty(obj.section))
-                obj.printWarning('File not yet read!\n');
+                %obj.printWarning('File not yet read!\n');
                 obj.readFile();
             end
             
@@ -671,7 +671,7 @@ classdef IniReader < handle
             end            
             
             if (~obj.getReadStatus())
-                obj.printWarning('File not yet read')
+                %obj.printWarning('File not yet read')
                 obj.readFile();
             end
             

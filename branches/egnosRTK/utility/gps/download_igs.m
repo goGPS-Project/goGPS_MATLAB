@@ -27,7 +27,7 @@ function download_igs(gpsweek, dow, items, path_download)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 % Routine by Stefano Caldera, 2012-05-10
 %----------------------------------------------------------------------------------------------
 

@@ -1,10 +1,12 @@
-function [data] = decode_rtcm2(msg, time_GPS)
+function [data] = decode_rtcm2(msg, constellations, time_GPS)
 
 % SYNTAX:
-%   [data] = decode_rtcm2(msg, time_GPS)
+%   [data] = decode_rtcm2(msg, constellations, time_GPS)
 %
 % INPUT:
 %   msg = binary message received from the master station
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %   time_GPS = current GPS time (in case message 14 is not available)
 %
 % OUTPUT:
@@ -17,7 +19,7 @@ function [data] = decode_rtcm2(msg, time_GPS)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -33,6 +35,10 @@ function [data] = decode_rtcm2(msg, time_GPS)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+if (nargin < 2 || isempty(constellations))
+    [constellations] = goGNSS.initConstellation(1, 1, 0, 0, 0, 0);
+end
 
 %----------------------------------------------------------------------------------------------
 % RTCM2 HEADER DETECTION
@@ -157,7 +163,7 @@ if ~isempty(pos)
 
                         % RTK uncorrected carrier phases
                         case 18
-                            [data(:,i)] = decode_18(msg(pos-2:pos+n_words*30-1), n_words, modz);
+                            [data(:,i)] = decode_18(msg(pos-2:pos+n_words*30-1), n_words, modz, constellations);
                             if(nargin == 2)
                                 sec_of_hour = data{2,i}(2);
                                 sec_of_week = time_GPS - mod(time_GPS,3600) + sec_of_hour;
@@ -166,7 +172,7 @@ if ~isempty(pos)
 
                         % RTK uncorrected pseudoranges
                         case 19
-                            [data(:,i)] = decode_19(msg(pos-2:pos+n_words*30-1), n_words, modz);
+                            [data(:,i)] = decode_19(msg(pos-2:pos+n_words*30-1), n_words, modz, constellations);
                             if(nargin == 2)
                                 sec_of_hour = data{2,i}(2);
                                 sec_of_week = time_GPS - mod(time_GPS,3600) + sec_of_hour;
@@ -182,5 +188,4 @@ if ~isempty(pos)
         end
 
     end
-
 end

@@ -24,7 +24,7 @@ function [igp4, tv] = sel_igp(latpp, lonpp, igp, lat_igp, lon_igp)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 % Adapted by Eugenio Realini, 2013

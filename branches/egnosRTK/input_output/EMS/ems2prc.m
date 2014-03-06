@@ -23,7 +23,7 @@ function [MT, IODF, prc, udrei, sv, n_sv] = ems2prc(msg, iodp_mask, prn_mask)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Code contributed by Giuliano Sironi, 2011
 % Portions of code contributed by Antonio Herrera Olmo, 2012

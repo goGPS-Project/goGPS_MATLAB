@@ -8,7 +8,7 @@ function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 %   time = time window (GPS time)
 %   week = GPS week
 %   constellations = struct with multi-constellation settings
-%                   (see 'multi_constellation_settings.m' - empty if not available)
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
 %
 % OUTPUT:
@@ -27,7 +27,7 @@ function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify

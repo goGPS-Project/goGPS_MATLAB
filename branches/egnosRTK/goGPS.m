@@ -10,7 +10,7 @@
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -54,9 +54,9 @@ addpath(genpath(pwd));
 % INTERFACE TYPE DEFINITION
 %----------------------------------------------------------------------------------------------
 
-mode_user = 1;  % user interface type
-% mode_user=0 --> use text interface
-% mode_user=1 --> use GUI
+mode_user=1; % user interface type
+%        =0 --> use text interface
+%        =1 --> use GUI
 
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
@@ -102,13 +102,13 @@ else
     % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
     %-------------------------------------------------------------------------------------------
 
-    mode = goGNSS.MODE_PP_LS_C_SA;   % functioning mode    
+    mode = goGNSS.MODE_PP_KF_CP_DD;   % functioning mode    
     
     mode_vinc = 0;    % navigation mode
     % mode_vinc=0 --> without linear constraint
     % mode_vinc=1 --> with linear constraint
 
-    mode_data = 1;    % data loading mode
+    mode_data = 0;    % data loading mode
     % mode_data=0 --> RINEX data
     % mode_data=1 --> goGPS binary data
 
@@ -146,15 +146,6 @@ else
 
     %User-defined global settings
     global_settings;
-
-    %Check availability of Instrument Control Toolbox
-    if goGNSS.isRT()
-        try
-            instrhwinfo;
-        catch
-            error('Instrument Control Toolbox is needed to run goGPS in real-time mode.');
-        end
-    end
 end
 
 %-------------------------------------------------------------------------------------------
@@ -172,12 +163,16 @@ SBS_flag = goIni.getData('Constellations','SBAS');
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
-    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
+    GPS_flag = 1; GLO_flag = 0; GAL_flag = 0; BDS_flag = 0; QZS_flag = 0;
+    [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
     nSatTot = constellations.nEnabledSat;
 end
 
 %initialization of global variables/constants
 global_init;
+
+%number of enabled constellations
+n_sys = sum([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag]);
 
 % start evaluating computation time
 tic
@@ -683,7 +678,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             unused_epochs(t) = 1;
         end
         
-        if ((t == 1) & (~flag_plotproc))
+        if (t == 1)
             fprintf('Processing...\n');
         end
         
@@ -761,9 +756,8 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
         else
             rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
         end
-    else
-        fprintf('Processing...\n');
     end
+    fprintf('Processing...\n');
     
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -877,10 +871,9 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
-            else
-                if (t == 1)
-                    fprintf('Processing...\n');
-                end
+            end
+            if (t == 1)
+                fprintf('Processing...\n');
             end
         else
             unused_epochs(t) = 1;
@@ -1116,9 +1109,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
                 rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
             end
         end
-    else
-        fprintf('Processing...\n');
     end
+    fprintf('Processing...\n');
     
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -1242,7 +1234,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
             unused_epochs(t) = 1;
         end
       
-        if ((t == 1) & (~flag_plotproc))
+        if (t == 1)
             fprintf('Processing...\n');
         end
         
@@ -1318,9 +1310,8 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         else
             rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
         end
-    else
-        fprintf('Processing...\n');
     end
+    fprintf('Processing...\n');
 
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -1436,7 +1427,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             unused_epochs(t) = 1;
         end
       
-        if ((t == 1) & (~flag_plotproc))
+        if (t == 1)
             fprintf('Processing...\n');
         end
         
@@ -1510,9 +1501,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
                     rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
                 end
             end
-        else
-            fprintf('Processing...\n');
         end
+        fprintf('Processing...\n');
         
         %goWaitBar
         goWB = goWaitBar(length(time_GPS));
@@ -1653,9 +1643,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 0)
                     rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
                 end
             end
-        else
-            fprintf('Processing...\n');
         end
+        fprintf('Processing...\n');
         
         %goWaitBar
         goWB = goWaitBar(length(time_GPS));
@@ -1845,9 +1834,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
                 rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
             end
         end
-    else
-        fprintf('Processing...\n');
     end
+    fprintf('Processing...\n');
     
     %goWaitBar
     goWB = goWaitBar(length(time_GPS));
@@ -1901,7 +1889,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) & (mode_vinc == 1)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == goGNSS.MODE_RT_R_MON)
-    goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop, goIni.getCaptureRate());
+    goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop, goIni.getCaptureRate(), constellations);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: MASTER MONITORING
@@ -1917,7 +1905,7 @@ elseif (mode == goGNSS.MODE_RT_M_MON)
 
 elseif (mode == goGNSS.MODE_RT_RM_MON)
 
-    goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M);
+    goGPS_realtime_monitor(filerootOUT, protocol_idx, flag_NTRIP, flag_ms_pos, flag_var_dyn_model, flag_stopGOstop, pos_M, constellations);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: KALMAN FILTER ON PHASE AND CODE DOUBLE DIFFERENCES WITH/WITHOUT A CONSTRAINT
@@ -1925,7 +1913,7 @@ elseif (mode == goGNSS.MODE_RT_RM_MON)
 
 elseif (mode == goGNSS.MODE_RT_NAV)
 
-    goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R);
+    goGPS_realtime(filerootOUT, protocol_idx, mode_vinc, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_ms_pos, flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, ref_path, mat_path, pos_M, dop1_M, pr2_M, pr2_R, ph2_M, ph2_R, dop2_M, dop2_R, constellations);
 end
 
 if (goGNSS.isPP(mode)) %remove unused epochs from time_GPS (for LS modes)
@@ -2056,7 +2044,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16d% 16.3f% 16.8f% 16.8f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16s% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
+        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16d% 16.3f% 16.8f% 16.8f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16s% 16.3f% 16.3f% 16.4f% 16.4f% 16.4f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
     end
     fclose(fid_out);
     
@@ -2589,7 +2577,7 @@ end
 % REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
 %----------------------------------------------------------------------------------------------
 
-if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode))    
+if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))    
     figure
     epochs = (time_GPS-time_GPS(1))/interval;
     ax = zeros(3,1);
@@ -3158,6 +3146,14 @@ if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(ref_path)) && (~isempty(EA
     fprintf('Std3D:  %7.4f m\n',std(dist3D,1));
     fprintf('RMS3D:  %7.4f m\n',sqrt(std(dist3D)^2+mean(dist3D)^2));
     fprintf('--------------------------------\n\n');
+end
+
+%----------------------------------------------------------------------------------------------
+
+if (exist('time_GPS', 'var') && isempty(time_GPS))
+    fprintf('\n');
+    fprintf('Warning: no epochs were available/usable for processing. The result files will be empty.\n');
+    fprintf('\n');
 end
 
 %----------------------------------------------------------------------------------------------

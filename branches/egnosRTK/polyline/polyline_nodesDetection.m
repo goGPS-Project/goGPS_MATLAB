@@ -21,7 +21,7 @@ function [nodes, utm_zone] = polyline_nodesDetection (filename, dN1, dN2, angle_
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
 %
-% Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Lisa Pertusini, Alemu Befkadu
 %----------------------------------------------------------------------------------------------
