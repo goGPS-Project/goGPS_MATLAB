@@ -12,7 +12,7 @@ function [Obs_types, pos_M, ifound_types, interval, sysId] = RINEX_parse_hdr(fil
 %               RINEX v3.xx --> e.g. C1CL1CD1C...
 %   pos_M = master station approximate position
 %   ifound_types = boolean variable to check the correct acquisition of basic information
-%   interval = Observation interval in seconds
+%   interval = observation interval in seconds
 %   sysId = cell-array containing one-letter identifiers for constellations
 %
 % DESCRIPTION:
@@ -32,7 +32,7 @@ ifound_types = 0;
 Obs_types = cell(0,0);
 sysId = cell(0,0);
 pos_M = [];
-interval = 1; %default to 1 second (1 Hz observations)
+interval = 0;
 
 %parse first line
 line = fgetl(file);

@@ -59,7 +59,7 @@ end
 
 if (t == 1)
     xlabel('[m]'); ylabel('[m]');
-    title('b:ok k:birth r:death m:pivot g:cycle-slip y:only-dyn');
+    title('b:ok k:+1sat r:-1sat m:pivot g:cycle-slip y:only-dyn');
     grid; axis equal
     hold on
     

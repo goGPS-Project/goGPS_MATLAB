@@ -136,7 +136,7 @@ if (size(sat,1) >= min_nsat)
     
     %if a sufficient number of satellites is available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (size(sat,1) >= min_nsat & cond_num < cond_num_threshold)
+    if (size(sat,1) >= min_nsat && cond_num < cond_num_threshold)
         
         %loop is needed to improve the atmospheric error correction
         for i = 1 : 3

@@ -109,11 +109,12 @@ classdef goGUIclass < handle
         % Processing type
         idC_SA = 1;      % Code stand-alone
         idC_DD = 2;      % Code double difference
-        idCP_DD_L = 3;   % Code double difference with Lambda
+        idCP_DD_L = 3;   % Code double difference with LAMBDA
 		idCP_Vel = 4;    % Variometric approach for velocity estimation
         idCP_SA = 3;     % Code and phase stand-alone        
         idCP_DD = 4;     % Code and phase double difference
-        idCP_DD_MR = 5;  % Code and phase double difference for several receivers
+        idC_SA_MR = 5;   % Code and phase double difference for multiple receivers
+        idCP_DD_MR = 6;  % Code and phase double difference for multiple receivers
         strTypeLS = {};  % string containing the pop-up menu fields
         strTypeKF = {};  % string containing the pop-up menu fields
         
@@ -267,12 +268,14 @@ classdef goGUIclass < handle
             obj.strTypeLS{obj.idC_DD} = 'Code double difference';
             obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference (for LAMBDA)';
 			obj.strTypeLS{obj.idCP_Vel} = 'Variometric approach for velocity estimation';
+            obj.strTypeLS{obj.idC_SA_MR} = 'Code stand-alone for multiple receivers';
+            %obj.strTypeLS{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
 
             obj.strTypeKF{obj.idC_SA} = 'Code stand-alone';
             obj.strTypeKF{obj.idC_DD} = 'Code double difference';
             obj.strTypeKF{obj.idCP_SA} = 'Code and phase stand-alone';
             obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
-            %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for several receivers';
+            %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
             
             obj.strLAMBDAMethod{obj.idILS_enum_old} = 'LAMBDA 2.0 - ILS, enumeration';
             obj.strLAMBDAMethod{obj.idILS_shrink}   = 'LAMBDA 3.0 - ILS, search-and-shrink';
@@ -997,6 +1000,17 @@ classdef goGUIclass < handle
 
             % On Post Proc => Least Squares => Code and Phase Velocity estimation
             idG.onPP_LS_CP_Vel = [idG.onPP_LS idG.pAvailableGNSSPhase];
+            
+            % On Post Proc => Least Squares => Code Stand Alone 
+            % => Multi Receivers Mode
+            idG.onPP_LS_C_SA_MR = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSCode ...
+                                   id.cUse_SBAS];
+            
+            % On Post Proc => Least Squares => Code and Phase Double 
+            % => Multi Receivers Mode
+            idG.onPP_LS_CP_DD_MR = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSPhase ...
+                                   idG.StdCode idG.StdPhase ...
+                                   id.pMSt id.cMPos idG.pIntAmb];
 
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc id.cPlotProc ...
@@ -1529,6 +1543,10 @@ classdef goGUIclass < handle
                             mode = goGNSS.MODE_PP_LS_CP_DD_L;
 						case obj.idCP_Vel
                             mode = goGNSS.MODE_PP_LS_CP_VEL;
+                        case obj.idC_SA_MR
+                            mode = goGNSS.MODE_PP_LS_C_SA_MR;
+                        case obj.idCP_DD_MR
+                            mode = goGNSS.MODE_PP_LS_CP_DD_MR;
                     end
                 end
                 if obj.isKF()
@@ -1586,6 +1604,10 @@ classdef goGUIclass < handle
         
         function isSA = isStandAlone(obj)
             isSA = obj.isProcessingType(obj.idC_SA) || (obj.isLS() && obj.isProcessingType(obj.idCP_Vel)) || (obj.isKF() && obj.isProcessingType(obj.idCP_SA));
+        end
+        
+        function isMR = isMultiReceiver(obj)
+            isMR = obj.isProcessingType(obj.idC_SA_MR) || obj.isProcessingType(obj.idCP_DD_MR);
         end
 
         %   INTERFACE GETTERS - INPUT FILE TYPE
@@ -1965,6 +1987,10 @@ classdef goGUIclass < handle
                                 obj.setElStatus(obj.idGroup.onPP_LS_CP_DD_L, 1, 0);
                             case obj.idCP_Vel
                                 obj.setElStatus(obj.idGroup.onPP_LS_CP_Vel, 1, 0);
+                            case obj.idC_SA_MR
+                                obj.setElStatus(obj.idGroup.onPP_LS_C_SA_MR, 1, 0);
+                            case obj.idCP_DD_MR
+                                obj.setElStatus(obj.idGroup.onPP_LS_CP_DD_MR, 1, 0);
                         end
                     end
                     if obj.isKF()
@@ -2089,7 +2115,7 @@ classdef goGUIclass < handle
                             data_path = goIni.getData('Receivers','data_path');
                             file_name = goIni.getData('Receivers','file_name');
                             
-                            if (isempty(data_path))
+                            if (isempty(nR))
                                 if iscell(file_name)
                                     nR = length(file_name);
                                 else
@@ -2964,6 +2990,11 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('RefPath','data_path');
                 file_name = goIni.getData('RefPath','file_name');
                 filename_ref = [data_path file_name];
+                if(obj.isMultiReceiver)
+                    [multi_antenna_rf, ~] = goIni.getGeometry();
+                else
+                    multi_antenna_rf = [];
+                end
             else
                 filerootIN = '';
                 filename_R_obs = '';
@@ -3045,7 +3076,7 @@ classdef goGUIclass < handle
             end
             protocol_idx = protocol_idx(~isnan(protocol_idx));
             
-            funout = cell(25,1);
+            funout = cell(26,1);
             
             funout{1} = mode;
             funout{2} = mode_vinc;
@@ -3072,6 +3103,7 @@ classdef goGUIclass < handle
             funout{23} = filename_ref;
             funout{24} = pos_M_man;
             funout{25} = protocol_idx;
+            funout{26} = multi_antenna_rf;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
