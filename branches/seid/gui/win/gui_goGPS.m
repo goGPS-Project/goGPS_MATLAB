@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 19-Apr-2013 20:03:23
+% Last Modified by GUIDE v2.5 18-Mar-2014 16:50:54
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
@@ -1694,3 +1694,11 @@ if length(eventdata.Modifier) == 1
         goGUI.testOnOff();
     end
 end
+
+
+% --------------------------------------------------------------------
+function seid_Callback(hObject, eventdata, handles)
+% hObject    handle to seid (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+gui_seid;
