@@ -36,9 +36,9 @@ classdef goGUIclass < handle
         % Colors
         disableCol = [0.502 0.502 0.502];   % Grey (disabled color)
         enableCol = [0 0 0];                % Black (enabled color)
-        green = [0 0.8 0];                  % Green - for flas
-        yellow = [1 0.8 0.1];               % Yellow - for flas
-        red = [1 0 0];                      % Red - for flas
+        green = [0 0.8 0];                  % Green - for flag
+        yellow = [1 0.8 0.1];               % Yellow - for flag
+        red = [1 0 0];                      % Red - for flag
         
         % goGPS Modes
     end
@@ -3289,7 +3289,7 @@ classdef goGUIclass < handle
         end
         
         % Function to init the INI editor
-        % creates, objects, load default valuesm, etc...
+        % creates, objects, load default values, etc...
         function initEditINI(obj, h)
             global goIni
             
@@ -3414,7 +3414,7 @@ classdef goGUIclass < handle
             end
         end
      
-        % Browse 4 INI
+        % Save INI
         function saveINI(obj)
             filename = get(obj.edtINI.h.sINIout, 'String');
             try

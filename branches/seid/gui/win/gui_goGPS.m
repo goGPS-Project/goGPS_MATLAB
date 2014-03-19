@@ -1679,6 +1679,14 @@ function about_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 gui_about;
 
+% --------------------------------------------------------------------
+function seid_Callback(hObject, eventdata, handles)
+% hObject    handle to seid (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+gui_seid;
+
+
 % --- Executes on key press with focus on main_panel and none of its controls.
 function main_panel_KeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to main_panel (see GCBO)
@@ -1694,11 +1702,3 @@ if length(eventdata.Modifier) == 1
         goGUI.testOnOff();
     end
 end
-
-
-% --------------------------------------------------------------------
-function seid_Callback(hObject, eventdata, handles)
-% hObject    handle to seid (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-gui_seid;
