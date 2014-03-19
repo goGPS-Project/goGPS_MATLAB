@@ -66,8 +66,19 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_code_phase_MR(XR_approx, F, XM, XS, ..
 
 global sigmaq_cod1 sigmaq_ph
 
+%define baseline component in NEW Body coord frame (skip zero components)
+
+for k = 1 : length(F(1,:))
+    for i = 1 : length(F(:,1))
+        if (F(i,k) ~= 0)
+            Fn(i,k) = F(i,k);
+        end
+    end
+end
+
 %number of baselines (n)
-n = size(XR_approx,2);
+p = size(Fn,1);
+n = size(Fn,2);
 
 %number of (pesudo) DD-obs. in one baseline (m) (because the number of the pivot satellite is still
 %included for matrix structure reasons)
@@ -75,16 +86,15 @@ m = 2*length(pr_R); %--->INPUT: pr_M = numb. of CA obs. in Master
 
 %number of unknown parameters (u)
 %q is span of matrix F, (F = matrix baselines in body system)
-if n < 1
+if p < 1
     error('LS_DD_code_phase_MR: no available baselines.')
-elseif n == 1
+elseif p == 1
     q = 1;
-elseif n == 2
+elseif p == 2
     q = 2;
-else %n > 2
+else %p > 2
     q = 3;
 end
-q;
 
 u = 3*q + (m/2-1)*n;
 
@@ -97,10 +107,6 @@ for r = 1 : n
     XR_mat(:,:,r) = XR_approx(:,r*ones(m/2,1))';
     distR_approx(:,r) = sqrt(sum((XS-XR_mat(:,:,r)).^2 ,2));
 end
-% XS
-% XR_mat
-% XR_approx
-% distR_approx
 
 %Coordinate transformation from Cartesion to Geodetic
 [phi, lam, h] = cart2geod(XM_mat(1,1), XM_mat(1,2), XM_mat(1,3));
@@ -120,21 +126,20 @@ R_le = [-sin(phi)*cos(lam) -sin(lam) -cos(phi)*cos(lam);
 %      ((XR_approx(2,1) - XS(:,2)) ./ distR_approx(:,1)) - ((XR_approx(2,1) - XS(pivot_index,2)) / distR_approx(pivot_index,1)), ... %column for Y coordinate
 %      ((XR_approx(3,1) - XS(:,3)) ./ distR_approx(:,1)) - ((XR_approx(3,1) - XS(pivot_index,3)) / distR_approx(pivot_index,1))]    %column for Z coordinate];
 
-format long g
-
 G = [-((XS(:,1) - XR_approx(1,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,1) - XR_approx(1,1)) / distR_approx(pivot_index,1)), ... %column for X coordinate
-    -((XS(:,2) - XR_approx(2,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,2) - XR_approx(2,1)) / distR_approx(pivot_index,1)), ... %column for Y coordinate
-    -((XS(:,3) - XR_approx(3,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,3) - XR_approx(3,1)) / distR_approx(pivot_index,1))];    %column for Z coordinate];
+     -((XS(:,2) - XR_approx(2,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,2) - XR_approx(2,1)) / distR_approx(pivot_index,1)), ... %column for Y coordinate
+     -((XS(:,3) - XR_approx(3,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,3) - XR_approx(3,1)) / distR_approx(pivot_index,1))];    %column for Z coordinate];
 
 
 %line-of-sight matrix (code and phase)
 G = [G; G];
 
 %wavelength matrix (code and phase)
-A = [zeros(m/2,m/2); diag(lambda) .* eye(m/2)];
+%A = [zeros(m/2,m/2); diag(lambda).* eye(m/2)]
+%A = [zeros(m/2,m/2); diag(lambda)]
+A = kron([0;lambda(1)],eye(m/2));
 
 %known approximated term matrix
-
 %b    =      distR_approx - repmat(distR_approx(pivot_index,:),m/2,1) - repmat(distM,1,n) + repmat(distM(pivot_index),m/2,n)
 b    =     (distR_approx - repmat(distM,1,n))       - repmat(distR_approx(pivot_index,:) - repmat(distM(pivot_index),1,n),m/2,1);       %approximate pseudorange DD
 b    = b + (err_tropo_R  - repmat(err_tropo_M,1,n)) - repmat(err_tropo_R(pivot_index,:)  - repmat(err_tropo_M(pivot_index),1,n),m/2,1); %tropospheric error DD
@@ -181,17 +186,6 @@ Q;
 P  = 0.5*(eye(n)+ones(n));
 Qy = kron(P,Q);
 
-%antenna baselines in body coord. frame
-for k = 1 : length(F(1,:))
-    for i = 1 : length(F(:,1))
-        if (F(i,k) ~= 0)
-            Fn(i,k) = F(i,k);
-        end
-    end
-end
-
-Fn;
-
 %attitude-based float solution
 Gp = (eye(m) - A*(A'*Q^-1*A)^-1*A'*Q^-1)*G;
 Rfloat = R_le'*((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1); %floated-Rotation Matrix 
@@ -201,19 +195,36 @@ Q_vecZ = (kron(P^-1,A'*Q^-1*A) - kron(P^-1*Fn',A'*Q^-1*G)*(kron(Fn*P^-1*Fn',G'*Q
 
 %float rotation angles for single baseline case
 if n  == 1
-    yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
-    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
+    yaw   = atand(Rfloat(2,1)/Rfloat(1,1));
+    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2));
 
-elseif n = 2
-    yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
-    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
+elseif n == 2
+    yaw   = atand(Rfloat(2,1)/Rfloat(1,1));
+    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2));
     roll  = asind(Rfloat(3,2)/cosd(pitch))
     
 else
-    yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
-    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
-    roll  = atand(Rfloat(3,2))/Rfloat(3,3)
+    yaw   = atand(Rfloat(2,1)/Rfloat(1,1));
+    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2));
+    roll  = atand(Rfloat(3,2)/Rfloat(3,3));
 end
+
+% % %%find R
+% % s   = size(Rfloat,2);
+% % Ro  = Rfloat;
+% % tol = 1e-6*eye(s);
+% % itr = 0;
+% % while Ro'*Ro > tol
+% %     R = Ro
+% %     mu = eye(s)^-1 * (eye(s) - Rfloat'*R);
+% %     Ro = ((eye(s)^-1 - mu)^-1 * eye(s)^-1*Rfloat')'
+% %     itr = itr + 1;
+% %     if itr > 20
+% %         fprintf('The algorithm doesnt converge \n')
+% %         break;
+% %     end;
+% % end;
+
 
 if (~flag_IAR)
     %apply least squares solution
