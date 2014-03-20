@@ -1,4 +1,4 @@
-function [R, N_hat, cov_R, cov_N] = LS_DD_code_phase_MR(XR_approx, F, XM, XS, ...
+function [AT, vecZfloat, cov_R, cov_Z] = LS_DD_code_phase_MR(XR_approx, F, XM, XS, ...
     pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, ...
     err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_IAR)
 %
@@ -118,8 +118,8 @@ end
 
 %Coordinate transformation from Local level (NED) to ECEF
 R_le = [-sin(phi)*cos(lam) -sin(lam) -cos(phi)*cos(lam);
-        -sin(phi)*sin(lam) cos(lam) -cos(phi)*sin(lam);
-        cos(phi) 0 -sin(phi)];
+    -sin(phi)*sin(lam) cos(lam) -cos(phi)*sin(lam);
+    cos(phi) 0 -sin(phi)];
 
 %line-of-sight matrix (code)
 % G = [((XR_approx(1,1) - XS(:,1)) ./ distR_approx(:,1)) - ((XR_approx(1,1) - XS(pivot_index,1)) / distR_approx(pivot_index,1)), ... %column for X coordinate
@@ -127,8 +127,8 @@ R_le = [-sin(phi)*cos(lam) -sin(lam) -cos(phi)*cos(lam);
 %      ((XR_approx(3,1) - XS(:,3)) ./ distR_approx(:,1)) - ((XR_approx(3,1) - XS(pivot_index,3)) / distR_approx(pivot_index,1))]    %column for Z coordinate];
 
 G = [-((XS(:,1) - XR_approx(1,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,1) - XR_approx(1,1)) / distR_approx(pivot_index,1)), ... %column for X coordinate
-     -((XS(:,2) - XR_approx(2,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,2) - XR_approx(2,1)) / distR_approx(pivot_index,1)), ... %column for Y coordinate
-     -((XS(:,3) - XR_approx(3,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,3) - XR_approx(3,1)) / distR_approx(pivot_index,1))];    %column for Z coordinate];
+    -((XS(:,2) - XR_approx(2,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,2) - XR_approx(2,1)) / distR_approx(pivot_index,1)), ... %column for Y coordinate
+    -((XS(:,3) - XR_approx(3,1)) ./ distR_approx(:,1)) + ((XS(pivot_index,3) - XR_approx(3,1)) / distR_approx(pivot_index,1))];    %column for Z coordinate];
 
 
 %line-of-sight matrix (code and phase)
@@ -187,111 +187,99 @@ P  = 0.5*(eye(n)+ones(n));
 Qy = kron(P,Q);
 
 %attitude-based float solution
-Gp = (eye(m) - A*(A'*Q^-1*A)^-1*A'*Q^-1)*G;
-Rfloat = R_le'*((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1); %floated-Rotation Matrix 
-Zfloat = (A'*Q^-1*A)^-1*A'*Q^-1*(y - G*Rfloat*Fn); %floated-ambiguities
-Q_vecR = kron((Fn*(P^-1)*Fn')^-1,(Gp'*(Q^-1)*Gp)^-1);
-Q_vecZ = (kron(P^-1,A'*Q^-1*A) - kron(P^-1*Fn',A'*Q^-1*G)*(kron(Fn*P^-1*Fn',G'*Q^-1*G))^-1*kron(Fn*P^-1,G'*Q^-1*A))^-1;
-
-%float rotation angles for single baseline case
-if n  == 1
-    yaw   = atand(Rfloat(2,1)/Rfloat(1,1));
-    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2));
-
-elseif n == 2
-    yaw   = atand(Rfloat(2,1)/Rfloat(1,1));
-    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2));
-    roll  = asind(Rfloat(3,2)/cosd(pitch))
-    
-else
-    yaw   = atand(Rfloat(2,1)/Rfloat(1,1));
-    pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2));
-    roll  = atand(Rfloat(3,2)/Rfloat(3,3));
-end
-
-% % %%find R
-% % s   = size(Rfloat,2);
-% % Ro  = Rfloat;
-% % tol = 1e-6*eye(s);
-% % itr = 0;
-% % while Ro'*Ro > tol
-% %     R = Ro
-% %     mu = eye(s)^-1 * (eye(s) - Rfloat'*R);
-% %     Ro = ((eye(s)^-1 - mu)^-1 * eye(s)^-1*Rfloat')'
-% %     itr = itr + 1;
-% %     if itr > 20
-% %         fprintf('The algorithm doesnt converge \n')
-% %         break;
-% %     end;
-% % end;
-
+Gp        = (eye(m) - A*(A'*Q^-1*A)^-1*A'*Q^-1)*G;
+Rfloat    = ((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1); %floated-Rotation Matrix
+Rfloat_le = R_le'*((Gp'*Q^-1*Gp)^-1*Gp'*Q^-1*y*P^-1*Fn'*(Fn*P^-1*Fn')^-1); %floated-Rotation Matrix
+Zfloat    = (A'*Q^-1*A)^-1*A'*Q^-1*(y - G*Rfloat*Fn); %floated-ambiguities
+vecRfloat = reshape(Rfloat,[],1);
+vecZfloat = reshape(Zfloat,[],1);
+QvecR     = kron((Fn*(P^-1)*Fn')^-1,(Gp'*(Q^-1)*Gp)^-1);
+QvecZ     = (kron(P^-1,A'*Q^-1*A) - kron(P^-1*Fn',A'*Q^-1*G)*(kron(Fn*P^-1*Fn',G'*Q^-1*G))^-1*kron(Fn*P^-1,G'*Q^-1*A))^-1;
+QvecRZ    = -(kron(Fn*P^-1*Fn',G'*Q^-1*G))^-1 * (kron(Fn*P^-1,G'*Q^-1*A)) *  QvecZ;
 
 if (~flag_IAR)
     %apply least squares solution
-    R = Rfloat;
-%
-%     %estimated double difference ambiguities (without PIVOT)
-%     N_hat_nopivot = vecZfloat;
-%
-%     %add a zero at PIVOT position
-%     N_hat = zeros((m/2)*n+1,1);
-%     N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-%     N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-%
-%     %covariance matrix of the estimation error
-%     if (m*n > u)
-%
-%         %rover position covariance matrix
-%         cov_R = QvecR;
-%
-%         %combined ambiguity covariance matrix
-%         cov_N_nopivot = QvecZ;
-%
-%         %add one line and one column (zeros) at PIVOT position
-%         cov_N = zeros((m/2)*n+1);
-%         cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
-%         cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
-%     else
-%         cov_R = [];
-%         cov_N = [];
-%     end
-%
-% else %apply LAMBDA
-%
-%     if (m*n > u && sigmaq_ph ~= 1e30)
-%
-%         [vecZcheck, QvecZhat] = lambdafix(vecZfloat, QvecZ);
-%
-%         R     = ((G'*(Q^-1)*G)^-1)*G'*(Q^-1)*(y-A*vecZcheck)*(P^-1)*Fn'*((Fn*(P^-1)*Fn')^-1);
-%         cov_R = kron((Fn*(P^-1)*Fn')^-1,(G'*(Q^-1)*G)^-1); % = QRR - QRZr*(QZrZr^-1)*QZrR;
-%
-%
-%         %estimated double difference ambiguities (without PIVOT)
-%         N_hat_nopivot = vecZcheck;
-%
-%         %add a zero at PIVOT position
-%         N_hat = zeros(m*n/2+1,1);
-%         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-%         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-%
-%         %combined ambiguity covariance matrix
-%         cov_N_nopivot = QvecZhat;
-%
-%         %add one line and one column (zeros) at PIVOT position
-%         cov_N = zeros(n/2+1);
-%         cov_N(1:pivot_index-1,1:pivot_index-1)     = cov_N_nopivot(1:pivot_index-1,1:pivot_index-1);
-%         cov_N(pivot_index+1:end,pivot_index+1:end) = cov_N_nopivot(pivot_index:end,pivot_index:end);
-%
-%     else
-%         R = Rfloat;
-%         N_hat_nopivot = vecZfloat;
-%
-%         %add a zero at PIVOT position
-%         N_hat = zeros((m/2)*n+1,1);
-%         N_hat(1:pivot_index-1)   = N_hat_nopivot(1:pivot_index-1);
-%         N_hat(pivot_index+1:end) = N_hat_nopivot(pivot_index:end);
-%
-%         cov_R = [];
-%         cov_N = [];
-%     end
+    Rdef = R_le'*Rfloat;
+    
+    %estimated double difference ambiguities (without PIVOT)
+    vecZfloat_nopivot = vecZfloat;
+    
+    %add a zero at PIVOT position
+    vecZfloat = zeros((m/2)*n+1,1);
+    vecZfloat(1:pivot_index-1)   = vecZfloat_nopivot(1:pivot_index-1);
+    vecZfloat(pivot_index+1:end) = vecZfloat_nopivot(pivot_index:end);
+    
+    %covariance matrix of the estimation error
+    if (m*n > u)
+        
+        %rover position covariance matrix
+        cov_R = QvecR;
+        
+        %combined ambiguity covariance matrix
+        cov_Z_nopivot = QvecZ;
+        
+        %add one line and one column (zeros) at PIVOT position
+        cov_Z = zeros((m/2)*n+1);
+        cov_Z(1:pivot_index-1,1:pivot_index-1)     = cov_Z_nopivot(1:pivot_index-1,1:pivot_index-1);
+        cov_Z(pivot_index+1:end,pivot_index+1:end) = cov_Z_nopivot(pivot_index:end,pivot_index:end);
+    else
+        cov_R = [];
+        cov_Z = [];
+    end
+    
+else %apply LAMBDA
+    
+    if (m*n > u && sigmaq_ph ~= 1e30)
+        [vecRcheck, vecZcheck, QZcheck] = lambdafix(vecRfloat, vecZfloat, QvecR, QvecZ, QvecRZ);
+        
+        Zcheck = reshape(vecZcheck,m/2,n);
+        Rdef   = R_le'*(((G'*(Q^-1)*G)^-1)*G'*(Q^-1)*(y-A*Zcheck)*(P^-1)*Fn'*((Fn*(P^-1)*Fn')^-1));
+        cov_R  = kron((Fn*(P^-1)*Fn')^-1,(G'*(Q^-1)*G)^-1);
+        
+        
+        %estimated double difference ambiguities (without PIVOT)
+        vecZfloat_nopivot = vecZcheck;
+        
+        %add a zero at PIVOT position
+        vecZfloat = zeros(m*n/2+1,1);
+        vecZfloat(1:pivot_index-1)   = vecZfloat_nopivot(1:pivot_index-1);
+        vecZfloat(pivot_index+1:end) = vecZfloat_nopivot(pivot_index:end);
+        
+        %combined ambiguity covariance matrix
+        cov_Z_nopivot = QZcheck;
+        
+        %add one line and one column (zeros) at PIVOT position
+        cov_Z = zeros((m/2)*n+1);
+        cov_Z(1:pivot_index-1,1:pivot_index-1)     = cov_Z_nopivot(1:pivot_index-1,1:pivot_index-1);
+        cov_Z(pivot_index+1:end,pivot_index+1:end) = cov_Z_nopivot(pivot_index:end,pivot_index:end);
+        
+    else
+        Rdef = R_le'*Rfloat;
+        vecZfloat_nopivot = vecZfloat;
+        
+        %add a zero at PIVOT position
+        vecZfloat = zeros((m/2)*n+1,1);
+        vecZfloat(1:pivot_index-1)   = vecZfloat_nopivot(1:pivot_index-1);
+        vecZfloat(pivot_index+1:end) = vecZfloat_nopivot(pivot_index:end);
+        
+        cov_R = [];
+        cov_Z = [];
+    end
+end
+
+%Rotation angles for single baseline case
+if n  == 1
+    yaw   = atand(Rdef(2,1)/Rdef(1,1));
+    pitch = atand(-Rdef(3,1)/sqrt(Rdef(1,1)^2+Rdef(2,1)^2));
+    AT    = [yaw;pitch;0];
+elseif n == 2
+    yaw   = atand(Rdef(2,1)/Rdef(1,1));
+    pitch = atand(-Rdef(3,1)/sqrt(Rdef(1,1)^2+Rdef(2,1)^2));
+    roll  = asind(Rdef(3,2)/cosd(pitch));
+    AT    = [yaw;pitch;roll];
+else
+    yaw   = atand(Rdef(2,1)/Rdef(1,1));
+    pitch = atand(-Rdef(3,1)/sqrt(Rdef(1,1)^2+Rdef(2,1)^2));
+    roll  = atand(Rdef(3,2)/Rdef(3,3));
+    AT    = [yaw;pitch;roll];
 end
