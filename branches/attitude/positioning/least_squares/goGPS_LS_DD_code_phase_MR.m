@@ -187,7 +187,7 @@ if (size(sat_pr,1) >= min_nsat_LS)
         
         idx_amb = sat;
         for r = 1 : nRov-1
-            idx_amb = [idx_amb; sat+nSatTot*r]; %#ok<AGROW>
+            idx_amb = [idx_amb; sat+nSatTot*r] %#ok<AGROW>
         end
         
         %loop is needed to improve the atmospheric error correction
