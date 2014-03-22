@@ -35,6 +35,16 @@ clear all
 % clearvars
 % clearvars -global goGUI goIni goObj
 
+% if the plotting gets slower than usual, there might be problems with the
+% Java garbage collector. In case, you can try to use the following
+% command:
+%
+% java.lang.System.gc() %clear the Java garbage collector
+%
+% or:
+%
+% clear java
+
 % close all windows
 close all
 
@@ -127,9 +137,9 @@ else
 
     flag_amb = 0;        % plot ambiguities (only in post-processing)
 
-    flag_skyplot = 1;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
+    flag_skyplot = 0;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
 
-    flag_plotproc = 1;   % plot while processing
+    flag_plotproc = 0;   % plot while processing
 
     flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
     
@@ -1064,19 +1074,21 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f \n',velpos(epo,:));
     end
     
-%     figure
-%     plot(xENU(:,1))
-%     hold on
-%     plot(xENU(:,2),'r')
-%     plot(xENU(:,3),'g')
-%     title('Displacement (blue=E; red=N; green=U)')
+    % figure
+    % plot(xENU(:,1))
+    % hold on
+    % plot(xENU(:,2),'r')
+    % plot(xENU(:,3),'g')
+    % title('Displacement (blue=E; red=N; green=U)')
     
-    figure
-    plot(vENU(:,1))
-    hold on
-    plot(vENU(:,2),'r')
-    plot(vENU(:,3),'g')
-    title('Velocity (blue=E; red=N; green=U)')
+    if (mode_user == 1)
+        figure
+        plot(vENU(:,1))
+        hold on
+        plot(vENU(:,2),'r')
+        plot(vENU(:,3),'g')
+        title('Velocity (blue=E; red=N; green=U)')
+    end
     
     goWB.close();
     
@@ -2734,7 +2746,7 @@ if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && (
     Cee_XYZ = Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:);
     Cee_ENU = global2localCov(Cee([1 o1+1 o2+1],[1 o1+1 o2+1],:), Xhat_t_t([1 o1+1 o2+1],:));
     
-    if (flag_cov == 1)
+    if (flag_cov == 1 && mode_user == 1)
         %trajectory plotting
         figure
         plot(EAST, NORTH, '.r'); axis equal
@@ -2780,7 +2792,7 @@ end
 % REPRESENTATION OF THE ESTIMATED COORDINATES TIME SERIES
 %----------------------------------------------------------------------------------------------
 
-if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))    
+if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GPS)))  && (mode_user == 1)    
     figure
     epochs = (time_GPS-time_GPS(1))/interval;
     ax = zeros(3,1);
@@ -2845,7 +2857,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 %if any positioning was done (either post-processing or real-time, not constrained)
-if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)))
+if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1)
     %2D plot
     figure
     plot(EAST, NORTH, '.r');
@@ -2857,7 +2869,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 %if any positioning was done (either post-processing or real-time, not constrained)
-if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)))
+if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && mode_user == 1)
     
 %     %3D plot (XYZ)
 %     figure

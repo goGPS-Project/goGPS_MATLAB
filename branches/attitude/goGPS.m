@@ -127,9 +127,9 @@ else
 
     flag_amb = 0;        % plot ambiguities (only in post-processing)
 
-    flag_skyplot = 1;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
+    flag_skyplot = 0;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
 
-    flag_plotproc = 1;   % plot while processing
+    flag_plotproc = 0;   % plot while processing
 
     flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
     
@@ -137,7 +137,7 @@ else
     
     flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
     
-    flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
+    flag_IAR = 0;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
 
     %----------------------------------------------------------------------------------------------
     % USER-DEFINED SETTINGS
@@ -3016,7 +3016,47 @@ end
 %          title(['Combination of estimated ambiguities between PIVOT and SATELLITE ',num2str(i)]);
 %       end
 %    end
-% 
+% end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF THE TIME VARIATION OF THE COMBINATIONS OF ESTIMATED AMBIGUITIES
+%----------------------------------------------------------------------------------------------
+
+% if (mode == goGNSS.MODE_PP_KF_CP_DD) | (mode == goGNSS.MODE_PP_KF_CP_SA)
+%     
+%     [~, index_pivot] = unique(pivot, 'first');
+%     index_pivot = sort(index_pivot);
+%     
+%     for i = 1 : nSatTot
+%         index = find(conf_sat(i,:) == 1)';
+%         index_cs = find(conf_cs(i,:) == 1)';
+%         if ~isempty(index)
+%             figure
+%             grid on
+%             hold on
+%             for p = 1 : length(index_pivot)
+%                 if (p < length(index_pivot))
+%                     subindex = find(index >= index_pivot(p) & index < index_pivot(p+1));
+%                     subindex_cs = find(index_cs >= index_pivot(p) & index_cs < index_pivot(p+1));
+%                 else
+%                     subindex = find(index >= index_pivot(p));
+%                     subindex_cs = find(index_cs >= index_pivot(p));
+%                 end
+%                 
+%                 if (~isempty(subindex))
+%                     %combination of estimated ambiguities
+%                     plot(subindex,estim_amb(i,subindex)-estim_amb(i,subindex(end)),'b.');
+%                 end
+%                 
+%                 if (~isempty(subindex_cs))
+%                     %cycle-slip
+%                     plot(subindex_cs,0,'mo');
+%                 end
+%             end
+%             hold off
+%             title(['Combination of estimated ambiguities between PIVOT and SATELLITE ',num2str(i)]);
+%         end
+%     end
 % end
 
 %----------------------------------------------------------------------------------------------
