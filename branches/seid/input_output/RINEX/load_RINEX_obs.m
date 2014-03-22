@@ -1,10 +1,10 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-          time_ref, time, week, date, pos, interval] = ...
+          time_ref, time, week, date, pos, interval, flag_P1] = ...
           load_RINEX_obs(filename, constellations, wait_dlg)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-%    time_ref, time, week, date, pos, interval] = ...
+%    time_ref, time, week, date, pos, interval, flag_P1] = ...
 %    load_RINEX_obs(filename, constellations, wait_dlg);
 %
 % INPUT:
@@ -27,12 +27,13 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   date = date (year,month,day,hour,minute,second)
 %   pos = rover approximate position
 %   interval = observation time interval [s]
+%   flag_P1 = flag indicating whether the code is C1 or P1
 %
 % DESCRIPTION:
 %   Parses RINEX observation files.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
@@ -51,6 +52,8 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+flag_P1 = 0;
 
 % Check the input arguments
 if (nargin < 3)
@@ -153,6 +156,7 @@ for f = 1 : nFiles
         %read ROVER observations
         if (sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
             pr1(:,k,f) = obs.P1;
+            flag_P1 = 1;
         else
             pr1(:,k,f) = obs.C1;
         end

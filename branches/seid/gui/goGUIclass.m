@@ -113,7 +113,7 @@ classdef goGUIclass < handle
 		idCP_Vel = 4;    % Variometric approach for velocity estimation
         idCP_SA = 3;     % Code and phase stand-alone        
         idCP_DD = 4;     % Code and phase double difference
-        idC_SA_MR = 5;   % Code and phase double difference for multiple receivers
+        idC_SA_MR = 5;   % Code stand-alone for multiple receivers
         idCP_DD_MR = 6;  % Code and phase double difference for multiple receivers
         strTypeLS = {};  % string containing the pop-up menu fields
         strTypeKF = {};  % string containing the pop-up menu fields
