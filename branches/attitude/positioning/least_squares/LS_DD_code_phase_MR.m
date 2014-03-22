@@ -204,10 +204,11 @@ if (~flag_IAR)
     %estimated double difference ambiguities (without PIVOT)
     vecZfloat_nopivot = vecZfloat;
     
-    %add a zero at PIVOT position
-    vecZfloat = zeros((m/2)*n+1,1);
-    vecZfloat(1:pivot_index-1)   = vecZfloat_nopivot(1:pivot_index-1);
-    vecZfloat(pivot_index+1:end) = vecZfloat_nopivot(pivot_index:end);
+    %add a zero at PIVOT positions
+    vecZfloat = zeros(((m/2)+1)*n,1);
+    idx_all = 1 : length(vecZfloat);
+    idx_nopivot = setdiff(idx_all, pivot_index_vec);
+    vecZfloat(idx_nopivot) = vecZfloat_nopivot;
     
     %covariance matrix of the estimation error
     if (m*n > u)
@@ -218,10 +219,9 @@ if (~flag_IAR)
         %combined ambiguity covariance matrix
         cov_Z_nopivot = QvecZ;
         
-        %add one line and one column (zeros) at PIVOT position
-        cov_Z = zeros((m/2)*n+1);
-        cov_Z(1:pivot_index-1,1:pivot_index-1)     = cov_Z_nopivot(1:pivot_index-1,1:pivot_index-1);
-        cov_Z(pivot_index+1:end,pivot_index+1:end) = cov_Z_nopivot(pivot_index:end,pivot_index:end);
+        %add one line and one column (zeros) at PIVOT positions
+        cov_Z = zeros(((m/2)+1)*n);
+        cov_Z(idx_nopivot,idx_nopivot) = cov_Z_nopivot;
     else
         cov_R = [];
         cov_Z = [];
@@ -240,27 +240,27 @@ else %apply LAMBDA
         %estimated double difference ambiguities (without PIVOT)
         vecZfloat_nopivot = vecZcheck;
         
-        %add a zero at PIVOT position
-        vecZfloat = zeros(m*n/2+1,1);
-        vecZfloat(1:pivot_index-1)   = vecZfloat_nopivot(1:pivot_index-1);
-        vecZfloat(pivot_index+1:end) = vecZfloat_nopivot(pivot_index:end);
+        %add a zero at PIVOT positions
+        vecZfloat = zeros(((m/2)+1)*n,1);
+        idx_all = 1 : length(vecZfloat);
+        idx_nopivot = setdiff(idx_all, pivot_index_vec);
+        vecZfloat(idx_nopivot) = vecZfloat_nopivot;
         
         %combined ambiguity covariance matrix
         cov_Z_nopivot = QZcheck;
         
-        %add one line and one column (zeros) at PIVOT position
-        cov_Z = zeros((m/2)*n+1);
-        cov_Z(1:pivot_index-1,1:pivot_index-1)     = cov_Z_nopivot(1:pivot_index-1,1:pivot_index-1);
-        cov_Z(pivot_index+1:end,pivot_index+1:end) = cov_Z_nopivot(pivot_index:end,pivot_index:end);
-        
+        %add one line and one column (zeros) at PIVOT positions
+        cov_Z = zeros(((m/2)+1)*n);
+        cov_Z(idx_nopivot,idx_nopivot) = cov_Z_nopivot;
     else
         Rdef = R_le'*Rfloat;
         vecZfloat_nopivot = vecZfloat;
         
-        %add a zero at PIVOT position
-        vecZfloat = zeros((m/2)*n+1,1);
-        vecZfloat(1:pivot_index-1)   = vecZfloat_nopivot(1:pivot_index-1);
-        vecZfloat(pivot_index+1:end) = vecZfloat_nopivot(pivot_index:end);
+        %add a zero at PIVOT positions
+        vecZfloat = zeros(((m/2)+1)*n,1);
+        idx_all = 1 : length(vecZfloat);
+        idx_nopivot = setdiff(idx_all, pivot_index_vec);
+        vecZfloat(idx_nopivot) = vecZfloat_nopivot;
         
         cov_R = [];
         cov_Z = [];

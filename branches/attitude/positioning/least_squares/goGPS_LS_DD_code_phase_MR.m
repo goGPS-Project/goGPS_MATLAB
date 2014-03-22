@@ -187,40 +187,40 @@ if (size(sat_pr,1) >= min_nsat_LS)
         
         idx_amb = sat;
         for r = 1 : nRov-1
-            idx_amb = [idx_amb; sat+nSatTot*r] %#ok<AGROW>
+            idx_amb = [idx_amb; sat+nSatTot*r]; %#ok<AGROW>
         end
         
-        %loop is needed to improve the atmospheric error correction
-        for i = 1 : 3
+%         %loop is needed to improve the atmospheric error correction
+%         for i = 1 : 3
 
             if (phase == 1)
-                [XR, N1(idx_amb), cov_XR, cov_N1] = LS_DD_code_phase_MR(XR, multi_ant_rf, XM, XS, pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat,:), elM(sat), err_tropo_R(sat,:), err_iono_R(sat,:), err_tropo_M(sat), err_iono_M(sat), pivot_index, lambda(sat,1), flag_IAR);
+                [YPR, N1(idx_amb), cov_XR, cov_N1] = LS_DD_code_phase_MR(XR, multi_ant_rf, XM, XS, pr1_R(sat,:), ph1_R(sat,:), snr_R(sat,:), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat,:), elM(sat), err_tropo_R(sat,:), err_iono_R(sat,:), err_tropo_M(sat), err_iono_M(sat), pivot_index, lambda(sat,1), flag_IAR);
             else
-                [XR, N2(idx_amb), cov_XR, cov_N2] = LS_DD_code_phase_MR(XR, multi_ant_rf, XM, XS, pr2_R(sat,:), ph2_R(sat,:), snr_R(sat,:), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat,:), elM(sat), err_tropo_R(sat,:), err_iono_R(sat,:), err_tropo_M(sat), err_iono_M(sat), pivot_index, lambda(sat,2), flag_IAR);
+                [YPR, N2(idx_amb), cov_XR, cov_N2] = LS_DD_code_phase_MR(XR, multi_ant_rf, XM, XS, pr2_R(sat,:), ph2_R(sat,:), snr_R(sat,:), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat,:), elM(sat), err_tropo_R(sat,:), err_iono_R(sat,:), err_tropo_M(sat), err_iono_M(sat), pivot_index, lambda(sat,2), flag_IAR);
             end
             
-            if (i < 3)
-                if (~isempty(ratiotest))
-                    ratiotest(end) = [];
-                    mutest(end) = [];
-                end
-                if (~isempty(fixed_solution))
-                    fixed_solution(end) = [];
-                    succ_rate(end) = [];
-                end
-            end
+%             if (i < 3)
+%                 if (~isempty(ratiotest))
+%                     ratiotest(end) = [];
+%                     mutest(end) = [];
+%                 end
+%                 if (~isempty(fixed_solution))
+%                     fixed_solution(end) = [];
+%                     succ_rate(end) = [];
+%                 end
+%             end
             
-            for r = 1 : nRov
-                [phiR, lamR, hR] = cart2geod(XR(1,r), XR(2,r), XR(3,r));
-                [azR(azR(:,r) ~= 0,r), elR(elR(:,r) ~= 0,r), distR(distR(:,r) ~= 0,r)] = topocent(XR(:,r), XS);
-                
-                err_tropo_R(:,r) = tropo_error_correction(elR(elR(:,r) ~= 0,r), hR);
-                err_iono_R(:,r) = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR(:,r) ~= 0,r), elR(elR(:,r) ~= 0,r), time_rx, iono, []);
-                
-                %correct the ionospheric errors for different frequencies
-                err_iono_R(:,r) = ionoFactor(sat,phase).*err_iono_R(:,r);
-            end
-        end
+%             for r = 1 : nRov
+%                 [phiR, lamR, hR] = cart2geod(XR(1,r), XR(2,r), XR(3,r));
+%                 [azR(azR(:,r) ~= 0,r), elR(elR(:,r) ~= 0,r), distR(distR(:,r) ~= 0,r)] = topocent(XR(:,r), XS);
+%                 
+%                 err_tropo_R(:,r) = tropo_error_correction(elR(elR(:,r) ~= 0,r), hR);
+%                 err_iono_R(:,r) = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR(:,r) ~= 0,r), elR(elR(:,r) ~= 0,r), time_rx, iono, []);
+%                 
+%                 %correct the ionospheric errors for different frequencies
+%                 err_iono_R(:,r) = ionoFactor(sat,phase).*err_iono_R(:,r);
+%             end
+%         end
         
         if isempty(cov_N1) %if it was not possible to compute the covariance matrix
             cov_N1 = sigmaq0_N * eye(length(sat)*nRov);
@@ -249,8 +249,8 @@ if (size(sat_pr,1) >= min_nsat_LS)
         end
     else
         if (~isempty(Xhat_t_t))
-            XR = Xhat_t_t([1,o1+1,o2+1]);
-            N  = Xhat_t_t(o3+1:end);
+            YPR = Xhat_t_t([1,o1+1,o2+1]);
+            N   = Xhat_t_t(o3+1:end);
             pivot = 0;
 
             fixed_solution = [fixed_solution 0];
@@ -262,8 +262,8 @@ if (size(sat_pr,1) >= min_nsat_LS)
        
 else
     if (~isempty(Xhat_t_t))
-        XR = Xhat_t_t([1,o1+1,o2+1]);
-        N  = Xhat_t_t(o3+1:end);
+        YPR = Xhat_t_t([1,o1+1,o2+1]);
+        N   = Xhat_t_t(o3+1:end);
         pivot = 0;
 
         fixed_solution = [fixed_solution 0];
@@ -278,20 +278,18 @@ if isempty(cov_XR) %if it was not possible to compute the covariance matrix
 end
 sigma2_XR = diag(cov_XR);
 
-%initialization of the initial point with 6(positions and velocities) +
-%nSatTot or nSatTotx2 (N combinations) variables
-Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N];
+%3 attitude parameters (yaw, pitch, roll)
+Xhat_t_t = [YPR(1); Z_om_1; YPR(2); Z_om_1; YPR(3); Z_om_1];
 
 %--------------------------------------------------------------------------------------------
 % INITIAL STATE COVARIANCE MATRIX
 %--------------------------------------------------------------------------------------------
 
 %initial state covariance matrix
-Cee(:,:) = zeros(o3+nN);
+Cee(:,:) = zeros(o3);
 Cee(1,1) = sigma2_XR(1);
 Cee(o1+1,o1+1) = sigma2_XR(2);
 Cee(o2+1,o2+1) = sigma2_XR(3);
 Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
-Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);

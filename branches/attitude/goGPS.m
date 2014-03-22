@@ -1515,12 +1515,15 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
         goGPS_LS_DD_code_phase_MR(time_GPS(t), multi_antenna_rf, pos_M(:,t), squeeze(pr1_R(:,t,:)), pr1_M(:,t), squeeze(pr2_R(:,t,:)), pr2_M(:,t), squeeze(ph1_R(:,t,:)), ph1_M(:,t), squeeze(ph2_R(:,t,:)), ph2_M(:,t), squeeze(snr_R(:,t,:)), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR);
         
         if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
-            fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+            
+            Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
+            Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
+            fwrite(fid_kal, [Xhat_t_t_dummy; Cee_dummy(:)], 'double');
             if (t == 1)
                 fwrite(fid_sat, nSatTot, 'int8');
                 fwrite(fid_conf, nSatTot, 'int8');
             end
-            fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+            fwrite(fid_sat, [azM; azR(:,1); elM; elR(:,1); distM; distR(:,1)], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
