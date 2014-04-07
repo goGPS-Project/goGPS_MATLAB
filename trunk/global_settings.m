@@ -119,7 +119,7 @@ sigmaq_dtm = 1e30;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 10;
+cutoff = 15;
 
 %initialization cut-off [degrees]
 % cutoff_init = 15;
@@ -128,7 +128,7 @@ cutoff = 10;
 snr_threshold = 0;
 
 %cycle slip threshold [cycles]
-cs_threshold = 3;
+cs_threshold = 1;
 
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations

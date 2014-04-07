@@ -57,6 +57,9 @@ do
         DOYF_START=${DOY_START}
         DOYF_END=${DOY_END}
     fi
+
+    #./CRX2RNX ${MARKER_M}${DOYF}${SESSION_M}.${YEAR}d
+    #./CRX2RNX ${MARKER_R}${DOYF}${SESSION_R}.${YEAR}d
     
     SED1="s/${MARKER_M}[0-9][0-9][0-9]${SESSION_M}.${YEAR}${EXT_M}/${MARKER_M}${DOYF}${SESSION_M}.${YEAR}${EXT_M}/g"
     SED2="s/${MARKER_R}[0-9][0-9][0-9]${SESSION_R}.${YEAR}${EXT_R}/${MARKER_R}${DOYF}${SESSION_R}.${YEAR}${EXT_R}/g"
@@ -80,9 +83,20 @@ do
         sed -i "" ${SED5} goGPS.m
     else
         echo "OS detection failed."
+        exit
     fi
     
     sh goGPS_cmd.sh > ${OUT_FOLDER}/${MARKER_M}_${MARKER_R}_${YEAR}${DOYF}_batch_stdout.txt
     
     tail -1 ${OUT_FOLDER}/${MARKER_M}_${MARKER_R}_${YEAR}${DOYF}_position.txt | awk '{print $8,$9,$10}' >> ${OUT_FOLDER}/${MARKER_M}_${MARKER_R}_${YEAR}${DOYF_START}${DOYF_END}_extraction.txt
+    
+    SED6="s/mode_user=[0-1]/mode_user=1/g"
+    
+    if [[ "$OSTYPE" == "linux-gnu" ]]; then
+        #Linux
+        sed -i ${SED6} goGPS.m
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        #MacOS
+        sed -i "" ${SED6} goGPS.m
+    fi
 done
