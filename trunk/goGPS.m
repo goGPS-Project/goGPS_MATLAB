@@ -27,8 +27,12 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %---------------------------------------------------------------------------------------------
 
+% strore currecnt breakpoints before doing clear all
+myBreakpoints=dbstatus;
+save('myBreakpoints.mat', 'myBreakpoints');
+
 % clear all the variables in the workspace
-clear all
+clear all;
 
 %NOTE: using only clearvars causes crashes, e.g. when launching two
 %constrained positioning processes in a row (not clear why...)
@@ -56,6 +60,13 @@ fclose('all');
 
 % disable warnings
 warning off; %#ok<WNOFF>
+
+% resoring breakpoints from before doing clear all
+load('myBreakpoints.mat');
+dbstop(myBreakpoints);
+
+%remove all variable (removing myBreakpoints)
+clearvars *;
 
 % include all subdirectories
 addpath(genpath(pwd));
