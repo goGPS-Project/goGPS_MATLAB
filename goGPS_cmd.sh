@@ -20,8 +20,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #----------------------------------------------------------------------------------------------
 
-#matlab_exec=matlab    #Linux example
-matlab_exec=/Applications/MATLAB_R2010b.app/bin/matlab     #MacOS example
+if [ "$(uname)" == "Darwin" ]; then
+    matlab_exec=/Applications/MATLAB_R2010b.app/bin/matlab     #MacOS example
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+    matlab_exec=/usr/local/MATLAB/R2013a/bin/matlab    #Linux example
+elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
+    # Do something under Windows NT platform
+    echo "MINGW32_NT platform"
+fi
 
 X="goGPS"
 echo ${X} > matlab_command.m
