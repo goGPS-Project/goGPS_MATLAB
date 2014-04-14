@@ -1,5 +1,5 @@
 function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, max_int] = ...
-          sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval)
+          sync_obs(time_i, tow_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval)
 
 % SYNTAX:
 %   [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2] = ...
@@ -65,17 +65,23 @@ nObsSet = size(pr1_i,3);
 %find min and max time tags (in common among all observation datasets)
 time_i_nan = time_i;
 time_i_nan(time_i == 0) = NaN;
-min_t = max(min(time_i_nan,[],1));
-max_t = min(max(time_i_nan,[],1));
+min_time = max(min(time_i_nan,[],1));
+max_time = min(max(time_i_nan,[],1));
+
+tow_i_nan = tow_i;
+tow_i_nan(tow_i == 0) = NaN;
+min_tow = max(min(tow_i_nan,[],1));
+max_tow = min(max(tow_i_nan,[],1));
 
 %find the largest interval
 max_int = max(interval(:));
 
 %define the reference time
-time_ref = (roundmod(min_t,max_int) : max_int : roundmod(max_t,max_int))';
+time_ref = (roundmod(min_time,max_int) : max_int : roundmod(max_time,max_int))';
+tow_ref  = (roundmod(min_tow, max_int) : max_int : roundmod(max_tow, max_int))';
 
 %number of reference epochs
-ref_len = length(time_ref);
+ref_len = length(tow_ref);
 
 %create containers
 time = zeros(ref_len, 1, nObsSet);
@@ -92,7 +98,7 @@ snr2 = zeros(nSatTot, ref_len, nObsSet);
 
 for s = 1 : nObsSet
     
-    [~, idx_t, idx_z] = intersect(time_ref, roundmod(time_i(:,1,s), max_int));
+    [~, idx_t, idx_z] = intersect(roundmod(tow_ref, max_int), roundmod(tow_i(:,1,s), max_int));
     
     time(idx_t, s) = time_i(idx_z, 1, s);
     week(idx_t, s) = week_i(idx_z, 1, s);

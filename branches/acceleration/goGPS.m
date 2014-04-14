@@ -28,12 +28,12 @@
 %---------------------------------------------------------------------------------------------
 
 % clear all the variables in the workspace
-clear all
+% clear all
 
 %NOTE: using only clearvars causes crashes, e.g. when launching two
 %constrained positioning processes in a row (not clear why...)
-% clearvars
-% clearvars -global goGUI goIni goObj
+clearvars
+clearvars -global goGUI goIni goObj
 
 % if the plotting gets slower than usual, there might be problems with the
 % Java garbage collector. In case, you can try to use the following
@@ -938,8 +938,170 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
     fclose(fid_dop);
     fclose(fid_conf);
     
+% %----------------------------------------------------------------------------------------------
+% % VARIOMETRIC APPROACH FOR VELOCITY ESTIMATION STAND-ALONE ENGINE
+% %----------------------------------------------------------------------------------------------
+%     
+% elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
+%     
+%     fid_kal = fopen([filerootOUT '_kal_000.txt'],'w');
+%     fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
+%     fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
+%     fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
+%     
+%     nN = nSatTot;
+%     check_on = 0;
+%     check_off = 0;
+%     check_pivot = 0;
+%     check_cs = 0;
+%     
+%     plot_t = 1;
+%     time_step = goIni.getTimeStep();   %time step to perform the difference between phase observations
+%     fprintf('TimeStep used is %d epochs\n', time_step);
+%     % External loop to show bar update every 15 epochs
+%     stepUpdate = 15;
+%     goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
+%     goWB.titleUpdate('Variometric approach running...');
+%     ind=0;
+%     for tExt = 1:stepUpdate:(length(time_GPS)-(time_step))
+%         for t = tExt:min(tExt+stepUpdate-1,length(time_GPS)-(time_step))
+%             if (mode_data == 0)
+%                 Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+%                 Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step), nSatTot);
+%                 
+%                 sbas_t = find_sbas(sbas, t);
+%                 sbas_t1 = find_sbas(sbas, t+time_step);
+%             else
+%                 Eph_t = Eph(:,:,t+time_step);
+%                 Eph_t1 = Eph(:,:,t+time_step);
+%                 
+%                 sbas_t = find_sbas(sbas, t);
+%                 sbas_t1 = find_sbas(sbas, t+time_step);
+%             end
+%             
+%             goGPS_LS_SA_variometric(time_GPS(t), time_GPS(t+time_step), pr1_R(:,t), pr1_R(:,t+time_step), pr2_R(:,t), pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step), ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1, [], [], iono, sbas_t, sbas_t1, lambda, 1, time_step);
+%             Xhat_t_t(1:6)=-Xhat_t_t(1:6)./(interval.*time_step);
+%             if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
+%                 Xhat_t_t_dummy = [Xhat_t_t]; %#ok<NBRAK>
+%                 ind=ind+1;
+%                 vel_pos(ind,:) = Xhat_t_t; %#ok<SAGROW>
+%                 Cee_dummy = Cee;
+%                 %         fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n', Xhat_t_t );
+%                 if (t == 1)
+%                     fwrite(fid_sat, nSatTot, 'int8');
+%                     fwrite(fid_conf, nSatTot, 'int8');
+%                 end
+%                 fwrite(fid_sat, [zeros(nSatTot,1); azR; zeros(nSatTot,1); elR; zeros(nSatTot,1); distR], 'double');
+%                 fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
+%                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+%                 
+%                 %if (flag_plotproc)
+%                 %    if (flag_cov == 0)
+%                 %        if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+%                 %        rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+%                 %    else
+%                 %        if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+%                 %        rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
+%                 %    end
+%                 %    if (flag_skyplot == 1)
+%                 %        rtplot_skyplot (plot_t, azR, elR, conf_sat, pivot);
+%                 %        rtplot_snr (snr_R(:,t));
+%                 %    else
+%                 %        rttext_sat (plot_t, azR, elR, snr_R(:,t), conf_sat, pivot);
+%                 %    end
+%                 %    plot_t = plot_t + 1;
+%                 %    %pause(0.01);
+%                 %end
+%             else
+%                 unused_epochs(t) = 1;
+%             end
+%         end
+%         goWB.goTime(tExt/stepUpdate);
+%     end
+%     goDX=cumsum(vel_pos(:,1)).*(interval.*time_step);
+%     goDY=cumsum(vel_pos(:,3)).*(interval.*time_step);
+%     goDZ=cumsum(vel_pos(:,5)).*(interval.*time_step);
+%     %jumps=0.*goDX;
+%     jumps=(find(vel_pos(:,2)==-9999));
+%     jumps=[0; jumps; length(goDX)-1];
+%     mX = zeros(length(jumps)-1,1);
+%     mY = zeros(length(jumps)-1,1);
+%     mZ = zeros(length(jumps)-1,1);
+%     lastX=0;
+%     lastY=0;
+%     lastZ=0;
+%     for epo=1:length(jumps)-1;
+%         if (jumps(epo+1)-jumps(epo))~=1;
+%             mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
+%             mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
+%             mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
+%             lastX = goDX(jumps(epo)+1:jumps(epo+1)-1) - mean(goDX(jumps(epo)+1:jumps(epo+1)-1)) + mX(epo);
+%             lastY = goDY(jumps(epo)+1:jumps(epo+1)-1) - mean(goDY(jumps(epo)+1:jumps(epo+1)-1)) + mY(epo);
+%             lastZ = goDZ(jumps(epo)+1:jumps(epo+1)-1) - mean(goDZ(jumps(epo)+1:jumps(epo+1)-1)) + mZ(epo);
+%             goDX(jumps(epo)+1:jumps(epo+1)-1)= lastX;
+%             goDY(jumps(epo)+1:jumps(epo+1)-1)= lastY;
+%             goDZ(jumps(epo)+1:jumps(epo+1)-1)= lastZ;
+%         elseif (jumps(epo) ~= 0)
+%             mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
+%             mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
+%             mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
+%             goDX(jumps(epo)) = lastX(end);
+%             goDY(jumps(epo)) = lastY(end);
+%             goDZ(jumps(epo)) = lastZ(end);
+%         end
+%     end
+%     flag = find(diff(goDX) > 100);
+%     goDX(flag)=goDX(flag-1);
+%     goDY(flag)=goDY(flag-1);
+%     goDZ(flag)=goDZ(flag-1);
+%     %goDX=goDX-goDX(1)+(vel_pos(1,7));
+%     %goDY=goDY-goDY(1)+(vel_pos(1,8));
+%     %goDZ=goDZ-goDZ(1)+(vel_pos(1,9));
+%     [phiX, lamX, hX] = cart2geod(goDX,goDY,goDZ);
+%     vel_pos(:,7)=goDX;
+%     vel_pos(:,8)=goDY;
+%     vel_pos(:,9)=goDZ;
+%     vel_pos(:,10)=phiX.*180/pi;
+%     vel_pos(:,11)=lamX.*180/pi;
+%     vel_pos(:,12)=hX;
+% 
+%     for epo=1:length(goDX)
+%         
+%         xENU(epo,:) = global2localPos(vel_pos(epo,7:9)', vel_pos(1,7:9)'); %#ok<SAGROW>
+%         vENU(epo,:) = global2localVel(vel_pos(epo,1:2:5)', [phiX(epo), lamX(epo)]'.*180/pi); %#ok<SAGROW>
+%         velpos(epo,:)=[vel_pos(epo,:), vENU(epo,:), time_GPS(epo)]; %#ok<SAGROW>
+%         
+%         fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f \n',velpos(epo,:));
+%     end
+%     
+%     % figure
+%     % plot(xENU(:,1))
+%     % hold on
+%     % plot(xENU(:,2),'r')
+%     % plot(xENU(:,3),'g')
+%     % title('Displacement (blue=E; red=N; green=U)')
+%     
+%     if (mode_user == 1)
+%         figure
+%         plot(vENU(:,1))
+%         hold on
+%         plot(vENU(:,2),'r')
+%         plot(vENU(:,3),'g')
+%         title('Velocity (blue=E; red=N; green=U)')
+%     end
+%     
+%     goWB.close();
+%     
+%     fclose(fid_kal);
+%     fclose(fid_sat);
+%     fclose(fid_dop);
+%     fclose(fid_conf);
+%     
+%     time_GPS = time_GPS(1:end-time_step);
+%     week_R = week_R(1:end-time_step);
+    
 %----------------------------------------------------------------------------------------------
-% VARIOMETRIC APPROACH FOR VELOCITY ESTIMATION STAND-ALONE ENGINE
+% VARIOMETRIC APPROACH FOR VELOCITY AND ACCELERATION ESTIMATION (STAND-ALONE)
 %----------------------------------------------------------------------------------------------
     
 elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
@@ -957,36 +1119,45 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     
     plot_t = 1;
     time_step = goIni.getTimeStep();   %time step to perform the difference between phase observations
+    do = 2; %differenation order
     fprintf('TimeStep used is %d epochs\n', time_step);
+    fprintf('Differentation order used is %d \n', do);
     % External loop to show bar update every 15 epochs
     stepUpdate = 15;
-    goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
+    goWB = goWaitBar((length(time_GPS)-(time_step*do))/stepUpdate);
     goWB.titleUpdate('Variometric approach running...');
     ind=0;
-    for tExt = 1:stepUpdate:(length(time_GPS)-(time_step))
-        for t = tExt:min(tExt+stepUpdate-1,length(time_GPS)-(time_step))
+    for tExt = 1:stepUpdate:(length(time_GPS)-(time_step*do))
+        for t = tExt:min(tExt+stepUpdate-1,length(time_GPS)-(time_step*do))
             if (mode_data == 0)
-                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+                Eph_t  = rt_find_eph (Eph, time_GPS(t), nSatTot);
                 Eph_t1 = rt_find_eph (Eph, time_GPS(t+time_step), nSatTot);
+                Eph_t2 = rt_find_eph (Eph, time_GPS(t+time_step*do), nSatTot);
                 
-                sbas_t = find_sbas(sbas, t);
+                sbas_t  = find_sbas(sbas, t);
                 sbas_t1 = find_sbas(sbas, t+time_step);
+                sbas_t2 = find_sbas(sbas, t+time_step*do);
             else
                 Eph_t = Eph(:,:,t+time_step);
                 Eph_t1 = Eph(:,:,t+time_step);
+                Eph_t2 = Eph(:,:,t+time_step*do);
                 
                 sbas_t = find_sbas(sbas, t);
                 sbas_t1 = find_sbas(sbas, t+time_step);
+                sbas_t2 = find_sbas(sbas, t+time_step*do);
             end
             
-            goGPS_LS_SA_variometric(time_GPS(t), time_GPS(t+time_step), pr1_R(:,t), pr1_R(:,t+time_step), pr2_R(:,t), pr2_R(:,t+time_step), ph1_R(:,t), ph1_R(:,t+time_step), ph2_R(:,t), ph2_R(:,t+time_step), snr_R(:,t), snr_R(:,t+time_step), Eph_t, Eph_t1, [], [], iono, sbas_t, sbas_t1, lambda, 1, time_step);
-            Xhat_t_t(1:6)=-Xhat_t_t(1:6)./(interval.*time_step);
+            goGPS_LS_SA_variometric_a(time_GPS(t), time_GPS(t+time_step), time_GPS(t+time_step*do), pr1_R(:,t), pr1_R(:,t+time_step), pr1_R(:,t+time_step*do), pr2_R(:,t), pr2_R(:,t+time_step), pr2_R(:,t+time_step*do), ph1_R(:,t), ph1_R(:,t+time_step), ph1_R(:,t+time_step*do), ph2_R(:,t), ph2_R(:,t+time_step), ph2_R(:,t+time_step*do), snr_R(:,t), snr_R(:,t+time_step), snr_R(:,t+time_step*do), Eph_t, Eph_t1, Eph_t2, [], [], [], iono, sbas_t, sbas_t1, sbas_t2, lambda, 1, time_step, do); 
+            Xhat_t_t(1:6)=Xhat_t_t(1:6)./(interval.*time_step);
+            Xhat_t_t(2:2:6)=Xhat_t_t(2:2:6)./(interval.*time_step);
+            Xhat_t_t(7:end)=Xhat_t_t(7:end)./(interval.*time_step).^do;
+            Xhat_t_t(8:2:end)=Xhat_t_t(8:2:end)./(interval.*time_step).^do;
             if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                 Xhat_t_t_dummy = [Xhat_t_t]; %#ok<NBRAK>
                 ind=ind+1;
                 vel_pos(ind,:) = Xhat_t_t; %#ok<SAGROW>
                 Cee_dummy = Cee;
-                %         fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f\n', Xhat_t_t );
+                fprintf(fid_kal,'%12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f %12.8f\n', Xhat_t_t );
                 if (t == 1)
                     fwrite(fid_sat, nSatTot, 'int8');
                     fwrite(fid_conf, nSatTot, 'int8');
@@ -1018,11 +1189,12 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         end
         goWB.goTime(tExt/stepUpdate);
     end
-    goDX=cumsum(vel_pos(:,1)).*(interval.*time_step);
-    goDY=cumsum(vel_pos(:,3)).*(interval.*time_step);
-    goDZ=cumsum(vel_pos(:,5)).*(interval.*time_step);
+    goDX=vel_pos(:,1);
+    goDY=vel_pos(:,3);
+    goDZ=vel_pos(:,5);
     %jumps=0.*goDX;
-    jumps=(find(vel_pos(:,2)==-9999));
+    jumps=(find(abs(vel_pos(:,8))==9999));
+    njumps=length(jumps);
     jumps=[0; jumps; length(goDX)-1];
     mX = zeros(length(jumps)-1,1);
     mY = zeros(length(jumps)-1,1);
@@ -1030,65 +1202,93 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     lastX=0;
     lastY=0;
     lastZ=0;
-    for epo=1:length(jumps)-1;
-        if (jumps(epo+1)-jumps(epo))~=1;
-            mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
-            mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
-            mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
-            lastX = goDX(jumps(epo)+1:jumps(epo+1)-1) - mean(goDX(jumps(epo)+1:jumps(epo+1)-1)) + mX(epo);
-            lastY = goDY(jumps(epo)+1:jumps(epo+1)-1) - mean(goDY(jumps(epo)+1:jumps(epo+1)-1)) + mY(epo);
-            lastZ = goDZ(jumps(epo)+1:jumps(epo+1)-1) - mean(goDZ(jumps(epo)+1:jumps(epo+1)-1)) + mZ(epo);
-            goDX(jumps(epo)+1:jumps(epo+1)-1)= lastX;
-            goDY(jumps(epo)+1:jumps(epo+1)-1)= lastY;
-            goDZ(jumps(epo)+1:jumps(epo+1)-1)= lastZ;
-        elseif (jumps(epo) ~= 0)
-            mX(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,7));
-            mY(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,8));
-            mZ(epo) = mean(vel_pos(jumps(epo)+1:jumps(epo+1)-1,9));
-            goDX(jumps(epo)) = lastX(end);
-            goDY(jumps(epo)) = lastY(end);
-            goDZ(jumps(epo)) = lastZ(end);
+    for step=1:njumps+1
+        nMin=jumps(step)+1;
+        nMax=jumps(step+1);
+        x = vel_pos(nMin:nMax,1);
+        y = vel_pos(nMin:nMax,3);
+        z = vel_pos(nMin:nMax,5);
+        n=length(x);
+        t = (0:n-1)';
+        vx = vel_pos(nMin:nMax-1,7);
+        vy = vel_pos(nMin:nMax-1,9);
+        vz = vel_pos(nMin:nMax-1,11);
+        sigma2_v = ones(3,n-1);
+        sigma2_v(1,:) = abs(vel_pos(nMin:nMax-1,8)');
+        sigma2_v(2,:) = abs(vel_pos(nMin:nMax-1,10)');
+        sigma2_v(3,:) = abs(vel_pos(nMin:nMax-1,12)');
+        ax = vel_pos(nMin:nMax-1,13);
+        ay = vel_pos(nMin:nMax-1,15);
+        az = vel_pos(nMin:nMax-1,17);
+        
+        phiX = zeros(length(ax),1);
+        lamX = zeros(length(ax),1);
+        xENU = zeros(length(ax),3);
+        vENU = zeros(length(ax),3);
+        aENU = zeros(length(ax),3);
+        
+        for epo=1:length(ax)
+            
+            xENU(epo,:) = global2localPos([x(epo); y(epo); z(epo)], [x(epo); y(epo); z(epo)]);
+            [phiX(epo), lamX(epo)] = cart2geod(x(epo), y(epo), z(epo));
+            vENU(epo,:) = global2localVel([vx(epo); vy(epo); vz(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
+            aENU(epo,:) = global2localVel([ax(epo); ay(epo); az(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
         end
-    end
-    flag = find(diff(goDX) > 100);
-    goDX(flag)=goDX(flag-1);
-    goDY(flag)=goDY(flag-1);
-    goDZ(flag)=goDZ(flag-1);
-    %goDX=goDX-goDX(1)+(vel_pos(1,7));
-    %goDY=goDY-goDY(1)+(vel_pos(1,8));
-    %goDZ=goDZ-goDZ(1)+(vel_pos(1,9));
-    [phiX, lamX, hX] = cart2geod(goDX,goDY,goDZ);
-    vel_pos(:,7)=goDX;
-    vel_pos(:,8)=goDY;
-    vel_pos(:,9)=goDZ;
-    vel_pos(:,10)=phiX.*180/pi;
-    vel_pos(:,11)=lamX.*180/pi;
-    vel_pos(:,12)=hX;
+        
+        vSTD = std(vENU);
+        aSTD = std(aENU);
 
-    for epo=1:length(goDX)
-        
-        xENU(epo,:) = global2localPos(vel_pos(epo,7:9)', vel_pos(1,7:9)'); %#ok<SAGROW>
-        vENU(epo,:) = global2localVel(vel_pos(epo,1:2:5)', [phiX(epo), lamX(epo)]'.*180/pi); %#ok<SAGROW>
-        velpos(epo,:)=[vel_pos(epo,:), vENU(epo,:), time_GPS(epo)]; %#ok<SAGROW>
-        
-        fprintf(fid_kal,'%10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f %10.5f \n',velpos(epo,:));
+        if (mode_user == 1)
+            figure('Color','white')
+            plot(vENU(:,1))
+            hold on
+            plot(vENU(:,2),'r')
+            plot(vENU(:,3),'g')
+            title(['Velocity (blue=E; red=N; green=U); sigmaE=' num2str(vSTD(1,1),1) ' m/s, sigmaN=' num2str(vSTD(1,2),1) ' m/s, sigmaU=' num2str(vSTD(1,3),1) 'm/s'])
+            xlabel(['Epoch [' num2str(interval) ' s]'])
+            ylabel('m/s')
+            
+            figure('Color','white')
+            plot(aENU(:,1))
+            hold on
+            plot(aENU(:,2),'r')
+            plot(aENU(:,3),'g')
+            title(['Acceleration (blue=E; red=N; green=U); sigmaE=' num2str(aSTD(1,1),1) ' m/s^2, sigmaN=' num2str(aSTD(1,2),1) ' m/s^2, sigmaU=' num2str(aSTD(1,3),1) 'm/s^2'])
+            xlabel(['Epoch [' num2str(interval) ' s]'])
+            ylabel('m/s^2')
+        end
+%         Cxx = zeros(3,3,n);
+%         for i=1:n
+%             Cxx(1,1,i)=C0x.data(nMin-1+i,1)+0.01;
+%             Cxx(1,2,i)=C0x.data(nMin-1+i,2);
+%             Cxx(2,1,i)=C0x.data(nMin-1+i,2);
+%             Cxx(1,3,i)=C0x.data(nMin-1+i,3);
+%             Cxx(3,1,i)=C0x.data(nMin-1+i,3);
+%             Cxx(2,2,i)=C0x.data(nMin-1+i,4)+0.01;
+%             Cxx(2,3,i)=C0x.data(nMin-1+i,5);
+%             Cxx(3,2,i)=C0x.data(nMin-1+i,5);
+%             Cxx(3,3,i)=C0x.data(nMin-1+i,6)+0.01;
+%         end
     end
     
-    % figure
-    % plot(xENU(:,1))
-    % hold on
-    % plot(xENU(:,2),'r')
-    % plot(xENU(:,3),'g')
-    % title('Displacement (blue=E; red=N; green=U)')
-    
-    if (mode_user == 1)
-        figure
-        plot(vENU(:,1))
-        hold on
-        plot(vENU(:,2),'r')
-        plot(vENU(:,3),'g')
-        title('Velocity (blue=E; red=N; green=U)')
-    end
+%     sigma2_a = ones(3,n-1);
+%     sigma2_a(1,:) = sigma_a*sigma2_a(1,:);
+%     sigma2_a(2,:) = sigma_a*sigma2_a(2,:);
+%     sigma2_a(3,:) = sigma_a*sigma2_a(3,:);
+%     
+%     if  ref_sys==1
+%         x0 = [x y z]' ;
+%         v0 = [vx vy vz]';
+%         
+%         x0 = global2localPos(x0, x0(:,1));
+%         v0 = global2localVel(v0, x(:,1));
+%         Cxx = global2localCov(Cxx, x(:,1));
+%         sigma2_v = global2localDiagCov(sigma2_v, x(:,1));
+%         sigma2_a(3,:) = sigma_a_h*sigma2_a(3,:)/sigma_a;
+%     else
+%         x0 = [x-mean(x) y-mean(y) z-mean(z)]' ; %remove first position to use regularized velocities
+%         v0 = [vx vy vz]';
+%     end
     
     goWB.close();
     
