@@ -27,7 +27,7 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %---------------------------------------------------------------------------------------------
 
-% strore currecnt breakpoints before doing clear all
+% store current breakpoints before doing clear all
 myBreakpoints=dbstatus;
 save('myBreakpoints.mat', 'myBreakpoints');
 
@@ -61,12 +61,11 @@ fclose('all');
 % disable warnings
 warning off; %#ok<WNOFF>
 
-% resoring breakpoints from before doing clear all
+% restoring breakpoints from before doing clear all
 load('myBreakpoints.mat');
 dbstop(myBreakpoints);
-
-%remove all variable (removing myBreakpoints)
-clearvars *;
+clear myBreakpoints;
+if (exist('myBreakpoints.mat','file')); delete('myBreakpoints.mat'); end
 
 % include all subdirectories
 addpath(genpath(pwd));
