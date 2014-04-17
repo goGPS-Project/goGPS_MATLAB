@@ -1,11 +1,12 @@
-function [Ek, n] = ecc_anomaly(time, Eph)
+function [Ek, n] = ecc_anomaly(time, Eph, GM)
 
 % SYNTAX:
-%   [Ek, n] = ecc_anomaly(time, Eph);
+%   [Ek, n] = ecc_anomaly(time, Eph, GM);
 %
 % INPUT:
 %   time = GPS time
 %   Eph = ephemerides matrix
+%   GM = Earth universal gravitational constant
 %
 % OUTPUT:
 %   Ek = eccentric anomaly
@@ -22,26 +23,28 @@ function [Ek, n] = ecc_anomaly(time, Eph)
 % Partially based on SATPOS.M (EASY suite) by Kai Borre
 %----------------------------------------------------------------------------------------------
 
-switch char(Eph(31))
-    case 'G'
-        %GM = goGNSS.GM_GPS;
-        GM = 3.986005e14;
-    case 'R'
-        %GM = goGNSS.GM_GLO;
-        GM = 3.9860044e14;
-    case 'E'
-        %GM = goGNSS.GM_GAL;
-        GM = 3.986004418e14;
-    case 'C'
-        %GM = goGNSS.GM_BDS;
-        GM = 3.986004418e14;
-    case 'J'
-        %GM = goGNSS.GM_QZS;
-        GM = 3.986005e14;
-    otherwise
-        fprintf('Something went wrong in ecc_anomaly.m\nUnrecongized Satellite system!\n');
-        %GM = goGNSS.GM_GPS;
-        GM = 3.986005e14;
+if (nargin < 3)
+    switch char(Eph(31))
+        case 'G'
+            %GM = goGNSS.GM_GPS;
+            GM = 3.986005e14;
+        case 'R'
+            %GM = goGNSS.GM_GLO;
+            GM = 3.9860044e14;
+        case 'E'
+            %GM = goGNSS.GM_GAL;
+            GM = 3.986004418e14;
+        case 'C'
+            %GM = goGNSS.GM_BDS;
+            GM = 3.986004418e14;
+        case 'J'
+            %GM = goGNSS.GM_QZS;
+            GM = 3.986005e14;
+        otherwise
+            fprintf('Something went wrong in ecc_anomaly.m\nUnrecongized Satellite system!\n');
+            %GM = goGNSS.GM_GPS;
+            GM = 3.986005e14;
+    end
 end
 
 %get ephemerides

@@ -355,8 +355,8 @@ classdef goGNSS < handle
                             lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GALILEO, 1);
                             lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GALILEO, 2);
                         case 'C'
-                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 1);
-                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 2);
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 2);
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 3);
                         case 'J'
                             lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_QZSS, 1);
                             lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_QZSS, 2);

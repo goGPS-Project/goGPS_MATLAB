@@ -1205,10 +1205,17 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     for step=1:njumps+1
         nMin=jumps(step)+1;
         nMax=jumps(step+1);
+        
         x = vel_pos(nMin:nMax,1);
         y = vel_pos(nMin:nMax,3);
         z = vel_pos(nMin:nMax,5);
         n=length(x);
+        
+%         x = cumsum(vel_pos(nMin:nMax-1,7)).*(interval.*time_step);
+%         y = cumsum(vel_pos(nMin:nMax-1,9)).*(interval.*time_step);
+%         z = cumsum(vel_pos(nMin:nMax-1,11)).*(interval.*time_step);
+%         n=length(x)+1;
+        
         t = (0:n-1)';
         vx = vel_pos(nMin:nMax-1,7);
         vy = vel_pos(nMin:nMax-1,9);
@@ -1229,16 +1236,28 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         
         for epo=1:length(ax)
             
-            xENU(epo,:) = global2localPos([x(epo); y(epo); z(epo)], [x(epo); y(epo); z(epo)]);
+            xENU(epo,:) = global2localPos([x(epo); y(epo); z(epo)], [x(1); y(1); z(1)]);
             [phiX(epo), lamX(epo)] = cart2geod(x(epo), y(epo), z(epo));
             vENU(epo,:) = global2localVel([vx(epo); vy(epo); vz(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
             aENU(epo,:) = global2localVel([ax(epo); ay(epo); az(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
         end
         
+        vENU(isnan(vENU)) = 0;
+        aENU(isnan(aENU)) = 0;
+        
         vSTD = std(vENU);
         aSTD = std(aENU);
 
         if (mode_user == 1)
+            figure('Color','white')
+            plot(xENU(:,1))
+            hold on
+            plot(xENU(:,2),'r')
+            plot(xENU(:,3),'g')
+            title('Position (blue=E; red=N; green=U)')
+            xlabel(['Epoch [' num2str(interval) ' s]'])
+            ylabel('m')
+            
             figure('Color','white')
             plot(vENU(:,1))
             hold on
