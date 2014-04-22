@@ -1250,7 +1250,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
 
         if (mode_user == 1)
             figure('Color','white')
-            plot(xENU(:,1))
+            plot(xENU(:,1));
+            axes(1) = gca;
             hold on
             plot(xENU(:,2),'r')
             plot(xENU(:,3),'g')
@@ -1259,7 +1260,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             ylabel('m')
             
             figure('Color','white')
-            plot(vENU(:,1))
+            plot(vENU(:,1));
+            axes(2) = gca;
             hold on
             plot(vENU(:,2),'r')
             plot(vENU(:,3),'g')
@@ -1268,13 +1270,16 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             ylabel('m/s')
             
             figure('Color','white')
-            plot(aENU(:,1))
+            plot(aENU(:,1));
+            axes(3) = gca;
             hold on
             plot(aENU(:,2),'r')
             plot(aENU(:,3),'g')
             title(['Acceleration (blue=E; red=N; green=U); sigmaE=' num2str(aSTD(1,1),1) ' m/s^2, sigmaN=' num2str(aSTD(1,2),1) ' m/s^2, sigmaU=' num2str(aSTD(1,3),1) 'm/s^2'])
             xlabel(['Epoch [' num2str(interval) ' s]'])
             ylabel('m/s^2')
+            
+            linkaxes(axes,'x')
         end
 %         Cxx = zeros(3,3,n);
 %         for i=1:n

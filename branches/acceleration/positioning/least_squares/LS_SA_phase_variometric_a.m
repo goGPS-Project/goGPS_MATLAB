@@ -1,4 +1,4 @@
-function [x_hat, x_hat_a, dtR, dtR_a, cov_XR, cov_XR_a, var_dtR, var_dtR_a] = LS_SA_phase_variometric_a(XR_approx_t0, XR_approx_t1,XR_approx_t2, XS_t0, XS_t1,XS_t2, ph_t0, ph_t1,ph_t2, snr, elR, distR_approx_t0, distR_approx_t1,distR_approx_t2, sat_ph, dtS_t0, dtS_t1,dtS_t2, err_tropo_t0, err_tropo_t1, err_tropo_t2, err_iono_t0, err_iono_t1,err_iono_t2, phase, lambda)
+function [XR, XR_a, dtR, dtR_a, cov_XR, cov_XR_a, var_dtR, var_dtR_a] = LS_SA_phase_variometric_a(XR_approx_t0, XR_approx_t1,XR_approx_t2, XS_t0, XS_t1,XS_t2, ph_t0, ph_t1,ph_t2, snr, elR, distR_approx_t0, distR_approx_t1,distR_approx_t2, sat_ph, dtS_t0, dtS_t1,dtS_t2, err_tropo_t0, err_tropo_t1, err_tropo_t2, err_iono_t0, err_iono_t1,err_iono_t2, phase, lambda)
                                                                                     
 % SYNTAX:
 %   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, phase);
@@ -105,6 +105,8 @@ N = (A'*(Q^-1)*A);
 %least squares solution
 x_hat = (N^-1)*A'*(Q^-1)*(y0-b); %velocity
 x_hat_a = (N^-1)*A'*(Q^-1)*(y0_a-b_a); %acceleration
+XR = XR_approx_t1-XR_approx_t0 + x_hat(1:3);
+XR_a = XR_approx_t2-2*XR_approx_t1+XR_approx_t0 + x_hat_a(1:3);
 %XR = x_hat;
 %XR_a = x_hat_a;
 
