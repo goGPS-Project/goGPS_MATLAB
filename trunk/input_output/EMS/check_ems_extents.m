@@ -1,12 +1,13 @@
-function [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sbas, lambda, phase)
+function [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph, iono, sbas, lambda, phase)
 
 % SYNTAX:
-%   [ems_data_available] = check_ems_extents(time_R, pr, snr, Eph, iono, sbas, lambda, phase);
+%   [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph, iono, sbas, lambda, phase);
 %
 % INPUT:
 %   time_R = reference vector of GPS time of week
 %   pr     = pseudorange
 %   snr    = signal-to-noise ratio
+%   nSatTot = total number of satellites (depending on the enabled constellations)
 %   Eph    = ephemerides
 %   iono   = ionospheric parameters (Klobuchar)
 %   sbas   = SBAS corrections
@@ -56,9 +57,8 @@ if (~isempty(find(Eph(30,:,:) ~= 0, 1)))
     while (sum(abs((pos_R))) == 0 & i <= length(time_R))
         
         satObs = find(pr(:,i) ~= 0);
-        nsat = length(satObs);
         
-        Eph_t  = rt_find_eph (Eph, time_R(i), nsat);
+        Eph_t  = rt_find_eph (Eph, time_R(i), nSatTot);
         
         satEph = find(Eph_t(1,:) ~= 0);
         satAvail = intersect(satObs,satEph)';
