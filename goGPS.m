@@ -573,7 +573,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %check if the survey is within the EMS grids
             if (~isempty(sbas))
-                [ems_data_available] = check_ems_extents(time_R, pr1_R, snr_R, Eph, iono, sbas, lambda, 1);
+                [ems_data_available] = check_ems_extents(time_R, pr1_R, snr_R, nSatTot, Eph, iono, sbas, lambda, 1);
             end
         end
         
