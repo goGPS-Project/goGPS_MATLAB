@@ -158,7 +158,7 @@ if (size(sat,1) >= min_nsat_LS)
     
     %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (size(sat,1) >= min_nsat_LS & cond_num < cond_num_threshold)
+    if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
 
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
@@ -209,7 +209,7 @@ end
 %------------------------------------------------------------------------------------
 
 %search for a possible PIVOT change
-if (pivot ~= pivot_old & pivot_old ~= 0)
+if (pivot ~= pivot_old && pivot_old ~= 0)
 
     check_pivot = 1;
 end
@@ -219,7 +219,7 @@ end
 %----------------------------------------------------------------------------------------
 
 %Kalman filter equations
-if (size(sat,1) >= min_nsat_LS & cond_num < cond_num_threshold)
+if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
 
     K = T*Cee*T' + Cvv;
 

@@ -116,7 +116,7 @@ sat = sat(ismember(sat, Eph(30,:)));
 % APPROXIMATE POSITION
 %-----------------------------------------------------------------------------------
 
-if ((sum(abs(XR0)) == 0) | isempty(XR0))
+if ((sum(abs(XR0)) == 0) || isempty(XR0))
     %approximate position not available
     flag_XR = 0;
     XR0 = [];
@@ -180,7 +180,7 @@ if (size(sat,1) >= min_nsat_LS)
 
     %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (size(sat,1) >= min_nsat_LS & cond_num < cond_num_threshold)
+    if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
         
         %loop is needed to improve the atmospheric error correction
         for i = 1 : 3

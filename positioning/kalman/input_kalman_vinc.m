@@ -83,7 +83,7 @@ A0 = [((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_ind
       ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index))];    %column for Z coordinate
 
 %design matrix (projected on the constraint) 
-A = [ax(j)*A0(:,1) + ay(j)*A0(:,2) + az(j)*A0(:,3)];
+A = ax(j)*A0(:,1) + ay(j)*A0(:,2) + az(j)*A0(:,3);
 
 %observed pseudoranges
 probs_pr1  = (pr1_R - pr1_M) - (pr1_R(pivot_index) - pr1_M(pivot_index));  %observed pseudorange DD (L1 code)

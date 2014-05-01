@@ -151,12 +151,10 @@ if (length(phase) == 2)
 else
     if (phase == 1)
         sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
-        sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & ...
-                    (ph1_R ~= 0) & (ph1_M ~= 0) );
+        sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
     else
         sat_pr = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
-        sat = find( (pr2_R ~= 0) & (pr2_M ~= 0) & ...
-                    (ph2_R ~= 0) & (ph2_M ~= 0) );
+        sat = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
     end
 end
 sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
@@ -169,7 +167,7 @@ sat = sat(ismember(sat, Eph(30,:)));
 % APPROXIMATE POSITION
 %-----------------------------------------------------------------------------------
 
-if ((sum(abs(XR0)) == 0) | isempty(XR0))
+if ((sum(abs(XR0)) == 0) || isempty(XR0))
     %approximate position not available
     flag_XR = 0;
     XR0 = [];
@@ -222,7 +220,7 @@ if (length(sat_pr) >= min_nsat_LS)
     sat(ismember(sat,sat_removed)) = [];
     
     for i = 1:size(sat_pr)
-        if (nargin > 22 & ~isempty(dtMdot) & dop1_M(sat_pr(i)) == 0 & any(Eph(:)))
+        if (nargin > 22 && ~isempty(dtMdot) && dop1_M(sat_pr(i)) == 0 && any(Eph(:)))
             [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph, lambda(sat_pr(i),:));
         end
     end
@@ -253,7 +251,7 @@ if (length(sat_pr) >= min_nsat_LS)
     
     %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
-    if (size(sat_pr,1) >= min_nsat_LS & cond_num < cond_num_threshold)
+    if (size(sat_pr,1) >= min_nsat_LS && cond_num < cond_num_threshold)
         
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);
@@ -269,7 +267,7 @@ end
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
-if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 | size(sat,1) <= min_nsat_LS)
+if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 || size(sat,1) <= min_nsat_LS)
     
     %ambiguity initialization: initialized value
     %if the satellite is visible, 0 if the satellite is not visible

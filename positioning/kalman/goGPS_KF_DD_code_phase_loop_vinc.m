@@ -198,7 +198,7 @@ if (nsat >= min_nsat)
     sat(ismember(sat,sat_removed)) = [];
     
     for i = 1:size(sat_pr)
-        if (nargin > 22 & ~isempty(dtMdot) & dop1_M(sat_pr(i)) == 0 & sum(sum(Eph)) ~= 0)
+        if (nargin > 22 && ~isempty(dtMdot) && dop1_M(sat_pr(i)) == 0 && sum(sum(Eph)) ~= 0)
             [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph, lambda(sat_pr(i),:));
         end
     end
@@ -331,7 +331,7 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         
         %search for a possible PIVOT change
-        if (pivot ~= pivot_old & pivot_old ~= 0)
+        if (pivot ~= pivot_old && pivot_old ~= 0)
             
             check_pivot = 1;
             
@@ -376,7 +376,7 @@ if (nsat >= min_nsat)
                 [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o1+1:o1+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o1+1:o1+nSatTot), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 
-                if (check_cs1 | check_cs2)
+                if (check_cs1 || check_cs2)
                     check_cs = 1;
                 end
                 
@@ -415,7 +415,7 @@ if (nsat >= min_nsat)
         % PHASE AMBIGUITY ESTIMATION
         %------------------------------------------------------------------------------------
         
-        if (check_on | check_cs)
+        if (check_on || check_cs)
             if (length(phase) == 2)
                 [N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot, lambda(sat_pr,1), X_t1_t(o1+sat_pr), Cee(o1+sat_pr, o1+sat_pr));
                 [N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot, lambda(sat_pr,2), X_t1_t(o1+sat_pr), Cee(o1+sat_pr, o1+sat_pr));
@@ -672,9 +672,9 @@ Yhat_t_t(2,1) = ref(i,2) + ay(i) * (Xhat_t_t(1) - s0(i));
 Yhat_t_t(3,1) = ref(i,3) + az(i) * (Xhat_t_t(1) - s0(i));
 
 %cartesian coordinates position
-if ((Yhat_t_t(1) < min(ref(i,1),ref(i+1,1))) | (Yhat_t_t(1) > max(ref(i,1),ref(i+1,1))) | ...
-    (Yhat_t_t(2) < min(ref(i,2),ref(i+1,2))) | (Yhat_t_t(2) > max(ref(i,2),ref(i+1,2))) | ...
-    (Yhat_t_t(3) < min(ref(i,3),ref(i+1,3))) | (Yhat_t_t(3) > max(ref(i,3),ref(i+1,3))))
+if ((Yhat_t_t(1) < min(ref(i,1),ref(i+1,1))) || (Yhat_t_t(1) > max(ref(i,1),ref(i+1,1))) || ...
+    (Yhat_t_t(2) < min(ref(i,2),ref(i+1,2))) || (Yhat_t_t(2) > max(ref(i,2),ref(i+1,2))) || ...
+    (Yhat_t_t(3) < min(ref(i,3),ref(i+1,3))) || (Yhat_t_t(3) > max(ref(i,3),ref(i+1,3))))
 
     d1 = sqrt(sum((ref(i,:) - Yhat_t_t).^2));
     d2 = sqrt(sum((ref(i+1,:) - Yhat_t_t).^2));
@@ -697,9 +697,9 @@ Y_t1_t(1,2) = ref(i,2) + ay(i) * (X_t1_t(1) - s0(i));
 Y_t1_t(1,3) = ref(i,3) + az(i) * (X_t1_t(1) - s0(i));
 
 %cartesian coordinates position
-if ((Y_t1_t(1) < min(ref(i,1),ref(i+1,1))) | (Y_t1_t(1) > max(ref(i,1),ref(i+1,1))) | ...
-    (Y_t1_t(2) < min(ref(i,2),ref(i+1,2))) | (Y_t1_t(2) > max(ref(i,2),ref(i+1,2))) | ...
-    (Y_t1_t(3) < min(ref(i,3),ref(i+1,3))) | (Y_t1_t(3) > max(ref(i,3),ref(i+1,3))))
+if ((Y_t1_t(1) < min(ref(i,1),ref(i+1,1))) || (Y_t1_t(1) > max(ref(i,1),ref(i+1,1))) || ...
+    (Y_t1_t(2) < min(ref(i,2),ref(i+1,2))) || (Y_t1_t(2) > max(ref(i,2),ref(i+1,2))) || ...
+    (Y_t1_t(3) < min(ref(i,3),ref(i+1,3))) || (Y_t1_t(3) > max(ref(i,3),ref(i+1,3))))
 
     d1 = sqrt(sum((ref(i,:) - Y_t1_t).^2));
     d2 = sqrt(sum((ref(i+1,:) - Y_t1_t).^2));

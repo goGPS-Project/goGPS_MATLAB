@@ -174,7 +174,7 @@ if (nsat >= min_nsat_LS)
 
     %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (nsat >= min_nsat_LS & cond_num < cond_num_threshold)
+    if (nsat >= min_nsat_LS && cond_num < cond_num_threshold)
         
         %--------------------------------------------------------------------------------------------
         % LEAST SQUARES SOLUTION
@@ -248,7 +248,7 @@ end
 %------------------------------------------------------------------------------------
 
 %search for a possible PIVOT change
-if (pivot ~= pivot_old & pivot_old ~= 0)
+if (pivot ~= pivot_old && pivot_old ~= 0)
 
     check_pivot = 1;
 end
@@ -258,7 +258,7 @@ end
 %----------------------------------------------------------------------------------------
 
 %Kalman filter equations
-if (nsat >= min_nsat_LS & cond_num < cond_num_threshold)
+if (nsat >= min_nsat_LS && cond_num < cond_num_threshold)
 
     K = T*Cee*T' + Cvv;
 

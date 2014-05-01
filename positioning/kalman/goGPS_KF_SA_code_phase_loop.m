@@ -173,7 +173,7 @@ Z_app = XR0(3);
 tile_buffer_size = 3;
 
 %check if the approximated position lies within one of the available tiles, otherwise set nodata value
-if ( ~isempty(tile_row) & ~isempty(tile_col) )
+if ( ~isempty(tile_row) && ~isempty(tile_col) )
     tile_buffer = cell(tile_buffer_size,tile_buffer_size);
     for i = -1 : 1
         for j = -1 : 1
@@ -199,7 +199,7 @@ if ( ~isempty(tile_row) & ~isempty(tile_col) )
     tile_buffer = cell2mat(tile_buffer);
 
     %computation of the tile buffer dimension (cell number)
-    [tile_height tile_width] = size(tile_buffer);
+    [tile_height, tile_width] = size(tile_buffer);
 
     %tile buffer lower left center coordinates extraction
     Ell = tile_georef(tile_row,tile_col,1) - tile_width/tile_buffer_size*tile_header.cellsize + tile_header.cellsize/2;
@@ -320,7 +320,7 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         
         %search for a possible PIVOT change
-        if (pivot ~= pivot_old & pivot_old ~= 0)
+        if (pivot ~= pivot_old && pivot_old ~= 0)
             
             check_pivot = 1;
             
@@ -338,7 +338,7 @@ if (nsat >= min_nsat)
                 [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           pr1(sat), ph1(sat), err_iono1(phase_index), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), pr2(sat), ph2(sat), err_iono2(phase_index), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 
-                if (check_cs1 | check_cs2)
+                if (check_cs1 || check_cs2)
                     check_cs = 1;
                 end
             else
