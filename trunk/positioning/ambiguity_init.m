@@ -128,7 +128,7 @@ if (amb_restart_method == 0)
     
 %if the number of observations is not sufficient to apply least squares adjustment
 %or if the selected method is Kalman-estimated code - phase comparison
-elseif (nsat_pr + nsat_ph - 2 <= 3 + nsat_amb) | (amb_restart_method == 1)
+elseif (nsat_pr + nsat_ph - 2 <= 3 + nsat_amb) || (amb_restart_method == 1)
     
     %KEPT AS A REFERENCE: it should be used in the calling functions and
     %passed as an argument

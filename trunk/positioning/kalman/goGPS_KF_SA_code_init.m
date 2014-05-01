@@ -117,7 +117,7 @@ end
 % APPROXIMATE POSITION
 %--------------------------------------------------------------------------------------------
 
-if ((sum(abs(XR0)) == 0) | isempty(XR0))
+if ((sum(abs(XR0)) == 0) || isempty(XR0))
     %approximate position not available
     flag_XR = 0;
 else
@@ -160,7 +160,7 @@ if (length(sat) >= min_nsat_LS)
     
     %if at least min_nsat_LS satellites are available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (size(sat,1) >= min_nsat_LS & cond_num < cond_num_threshold)
+    if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
         
         if isempty(cov_XR) %if it was not possible to compute the covariance matrix
             cov_XR = sigmaq0 * eye(3);

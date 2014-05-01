@@ -63,10 +63,10 @@ if ncands <= n+1;
             afloat(i) = afloat(i) - dw;
             if (i ~= k);
                 afixed(i) = round (afloat(i));
-            else;
+            else
                 if isequal (afloat(i),afixed(i));
                     afixed(i) = round(afixed(i) + 1);
-                else;
+                else
                     afixed(i) = round (afloat(i) + sign (afloat(i) - afixed(i)));
                 end;
             end;

@@ -232,7 +232,7 @@ Z_app = XR0(3);
 tile_buffer_size = 3;
 
 %check if the approximated position lies within one of the available tiles, otherwise set nodata value
-if ( ~isempty(tile_row) & ~isempty(tile_col) )
+if ( ~isempty(tile_row) && ~isempty(tile_col) )
     tile_buffer = cell(tile_buffer_size,tile_buffer_size);
     for i = -1 : 1
         for j = -1 : 1
@@ -258,7 +258,7 @@ if ( ~isempty(tile_row) & ~isempty(tile_col) )
     tile_buffer = cell2mat(tile_buffer);
 
     %computation of the tile buffer dimension (cell number)
-    [tile_height tile_width] = size(tile_buffer);
+    [tile_height, tile_width] = size(tile_buffer);
 
     %tile buffer lower left center coordinates extraction
     Ell = tile_georef(tile_row,tile_col,1) - tile_width/tile_buffer_size*tile_header.cellsize + tile_header.cellsize/2;
@@ -310,7 +310,7 @@ if (nsat >= min_nsat)
     sat(ismember(sat,sat_removed)) = [];
     
     for i = 1:size(sat_pr)
-        if (nargin > 22 & ~isempty(dtMdot) & dop1_M(sat_pr(i)) == 0 & sum(sum(Eph)) ~= 0)
+        if (nargin > 22 && ~isempty(dtMdot) && dop1_M(sat_pr(i)) == 0 && sum(sum(Eph)) ~= 0)
             [dop1_M(sat_pr(i)), dop2_M(sat_pr(i))] = doppler_shift_approx(XM, zeros(3,1), XS_tx(i,:)', VS_tx(i,:)', time_tx(i), dtMdot, sat_pr(i), Eph, lambda(sat_pr(i),:));
         end
     end
@@ -443,7 +443,7 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         
         %search for a possible PIVOT change
-        if (pivot ~= pivot_old & pivot_old ~= 0)
+        if (pivot ~= pivot_old && pivot_old ~= 0)
             
             check_pivot = 1;
             
@@ -488,7 +488,7 @@ if (nsat >= min_nsat)
                 [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 
-                if (check_cs1 | check_cs2)
+                if (check_cs1 || check_cs2)
                     check_cs = 1;
                 end
                 
@@ -527,7 +527,7 @@ if (nsat >= min_nsat)
         % PHASE AMBIGUITY ESTIMATION
         %------------------------------------------------------------------------------------
         
-        if (check_on | check_cs)
+        if (check_on || check_cs)
             if (length(phase) == 2)
                 [N1_slip, N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
                 [N2_slip, N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr));
