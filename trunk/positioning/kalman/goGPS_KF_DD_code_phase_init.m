@@ -150,11 +150,13 @@ if (length(phase) == 2)
                 (pr2_R ~= 0) & (pr2_M ~= 0) & (ph2_R ~= 0) & (ph2_M ~= 0) );
 else
     if (phase == 1)
-        sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
-        sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
+        sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );        
+        sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & ...
+                    (ph1_R ~= 0) & (ph1_M ~= 0) );
     else
         sat_pr = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
-        sat = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
+        sat = find( (pr2_R ~= 0) & (pr2_M ~= 0) & ...
+                    (ph2_R ~= 0) & (ph2_M ~= 0) );
     end
 end
 sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
