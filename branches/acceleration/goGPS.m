@@ -563,7 +563,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %check if the survey is within the EMS grids
             if (~isempty(sbas))
-                [ems_data_available] = check_ems_extents(time_R, pr1_R, snr_R, Eph, iono, sbas, lambda, 1);
+                [ems_data_available] = check_ems_extents(time_R, pr1_R, snr_R, nSatTot, Eph, iono, sbas, lambda, 1);
             end
         end
         
@@ -1148,10 +1148,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             end
             
             goGPS_LS_SA_variometric_a(time_GPS(t), time_GPS(t+time_step), time_GPS(t+time_step*do), pr1_R(:,t), pr1_R(:,t+time_step), pr1_R(:,t+time_step*do), pr2_R(:,t), pr2_R(:,t+time_step), pr2_R(:,t+time_step*do), ph1_R(:,t), ph1_R(:,t+time_step), ph1_R(:,t+time_step*do), ph2_R(:,t), ph2_R(:,t+time_step), ph2_R(:,t+time_step*do), snr_R(:,t), snr_R(:,t+time_step), snr_R(:,t+time_step*do), Eph_t, Eph_t1, Eph_t2, [], [], [], iono, sbas_t, sbas_t1, sbas_t2, lambda, 1, time_step, do); 
-            Xhat_t_t(1:6)=Xhat_t_t(1:6)./(interval.*time_step);
-            Xhat_t_t(2:2:6)=Xhat_t_t(2:2:6)./(interval.*time_step);
-            Xhat_t_t(7:end)=Xhat_t_t(7:end)./(interval.*time_step).^do;
-            Xhat_t_t(8:2:end)=Xhat_t_t(8:2:end)./(interval.*time_step).^do;
+            Xhat_t_t(7:12)=Xhat_t_t(7:12)./(interval.*time_step);
+            Xhat_t_t(7:2:12)=Xhat_t_t(7:2:12)./(interval.*time_step);
+            Xhat_t_t(13:end)=Xhat_t_t(13:end)./(interval.*time_step).^do;
+            Xhat_t_t(13:2:end)=Xhat_t_t(13:2:end)./(interval.*time_step).^do;
             if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                 Xhat_t_t_dummy = [Xhat_t_t]; %#ok<NBRAK>
                 ind=ind+1;
@@ -1242,13 +1242,25 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             aENU(epo,:) = global2localVel([ax(epo); ay(epo); az(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
         end
         
-        vENU(isnan(vENU)) = 0;
-        aENU(isnan(aENU)) = 0;
+%         for q = 1 : 2
+%             vENU(abs(vENU(:,1)) > 2*std(vENU(~isnan(vENU(:,1)),1)),1) = NaN;
+%             vENU(abs(vENU(:,2)) > 2*std(vENU(~isnan(vENU(:,2)),2)),2) = NaN;
+%             vENU(abs(vENU(:,3)) > 2*std(vENU(~isnan(vENU(:,3)),3)),3) = NaN;
+            
+%             aENU(abs(aENU(:,1)) > 2*std(aENU(~isnan(aENU(:,1)),1)),1) = NaN;
+%             aENU(abs(aENU(:,2)) > 2*std(aENU(~isnan(aENU(:,2)),2)),2) = NaN;
+%             aENU(abs(aENU(:,3)) > 2*std(aENU(~isnan(aENU(:,3)),3)),3) = NaN;
+%         end
         
-        vSTD = std(vENU);
-        aSTD = std(aENU);
+        vSTD(1,1) = std(vENU(~isnan(vENU(:,1)),1));
+        vSTD(1,2) = std(vENU(~isnan(vENU(:,2)),2));
+        vSTD(1,3) = std(vENU(~isnan(vENU(:,3)),3));
+        
+        aSTD(1,1) = std(aENU(~isnan(aENU(:,1)),1));
+        aSTD(1,2) = std(aENU(~isnan(aENU(:,2)),2));
+        aSTD(1,3) = std(aENU(~isnan(aENU(:,3)),3));
 
-        if (mode_user == 1)
+        if (mode_user == 1 && ~isempty(vENU))
             figure('Color','white')
             plot(xENU(:,1));
             axes(1) = gca;
@@ -1281,38 +1293,23 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             
             linkaxes(axes,'x')
         end
-%         Cxx = zeros(3,3,n);
-%         for i=1:n
-%             Cxx(1,1,i)=C0x.data(nMin-1+i,1)+0.01;
-%             Cxx(1,2,i)=C0x.data(nMin-1+i,2);
-%             Cxx(2,1,i)=C0x.data(nMin-1+i,2);
-%             Cxx(1,3,i)=C0x.data(nMin-1+i,3);
-%             Cxx(3,1,i)=C0x.data(nMin-1+i,3);
-%             Cxx(2,2,i)=C0x.data(nMin-1+i,4)+0.01;
-%             Cxx(2,3,i)=C0x.data(nMin-1+i,5);
-%             Cxx(3,2,i)=C0x.data(nMin-1+i,5);
-%             Cxx(3,3,i)=C0x.data(nMin-1+i,6)+0.01;
+        
+%         m = [];
+%         i = 1;
+%         aENU = diff(vENU);
+%         delta = 20;
+%         for s = 1 : delta : floor(size(aENU,1)-delta)
+%             a1 = aENU(s:s+delta-1,1);
+%             a2 = aENU(s:s+delta-1,2);
+%             a3 = aENU(s:s+delta-1,3);
+%             m(i,1) = mean(a1(~isnan(a1)));
+%             m(i,2) = mean(a2(~isnan(a2)));
+%             m(i,3) = mean(a3(~isnan(a3)));
+%             i = i + 1;
 %         end
+%         std(m(:,3))
+
     end
-    
-%     sigma2_a = ones(3,n-1);
-%     sigma2_a(1,:) = sigma_a*sigma2_a(1,:);
-%     sigma2_a(2,:) = sigma_a*sigma2_a(2,:);
-%     sigma2_a(3,:) = sigma_a*sigma2_a(3,:);
-%     
-%     if  ref_sys==1
-%         x0 = [x y z]' ;
-%         v0 = [vx vy vz]';
-%         
-%         x0 = global2localPos(x0, x0(:,1));
-%         v0 = global2localVel(v0, x(:,1));
-%         Cxx = global2localCov(Cxx, x(:,1));
-%         sigma2_v = global2localDiagCov(sigma2_v, x(:,1));
-%         sigma2_a(3,:) = sigma_a_h*sigma2_a(3,:)/sigma_a;
-%     else
-%         x0 = [x-mean(x) y-mean(y) z-mean(z)]' ; %remove first position to use regularized velocities
-%         v0 = [vx vy vz]';
-%     end
     
     goWB.close();
     

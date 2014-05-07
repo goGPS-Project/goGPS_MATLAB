@@ -1,7 +1,7 @@
-function [XR, XR_a, dtR, dtR_a, cov_XR, cov_XR_a, var_dtR, var_dtR_a] = LS_SA_phase_variometric_a(XR_approx_t0, XR_approx_t1,XR_approx_t2, XS_t0, XS_t1,XS_t2, ph_t0, ph_t1,ph_t2, snr, elR, distR_approx_t0, distR_approx_t1,distR_approx_t2, sat_ph, dtS_t0, dtS_t1,dtS_t2, err_tropo_t0, err_tropo_t1, err_tropo_t2, err_iono_t0, err_iono_t1,err_iono_t2, phase, lambda)
+function [XR, XR_a, dtR, dtR_a, cov_XR, cov_XR_a, var_dtR, var_dtR_a] = LS_SA_phase_variometric_a(XR_approx_t0, XR_approx_t1,XR_approx_t2, XS_t0, XS_t1,XS_t2, ph_t0, ph_t1,ph_t2, snr, elR, distR_approx_t0, distR_approx_t1,distR_approx_t2, sat_ph, dtS_t0, dtS_t1,dtS_t2, err_tropo_t0, err_tropo_t1, err_tropo_t2, err_iono_t0, err_iono_t1,err_iono_t2, phase, sys, lambda)
                                                                                     
 % SYNTAX:
-%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, phase);
+%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, phase, sys, lambda);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -17,6 +17,8 @@ function [XR, XR_a, dtR, dtR_a, cov_XR, cov_XR_a, var_dtR, var_dtR_a] = LS_SA_ph
 %   err_tropo    = tropospheric error
 %   err_iono     = ionospheric error
 %   phase        = L1 carrier (phase=1), L2 carrier (phase=2)
+%   sys          = array with different values for different systems
+%   lambda       = vector containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   pos_R = estimated position (X,Y,Z)
@@ -79,6 +81,19 @@ for i = 1 : n
     A = [A; eij_approx(1) eij_approx(2) eij_approx(3) 1];
 end
 
+%if multi-system observations, then estimate an inter-system bias parameter for each additional system
+% uni_sys = unique(sys(sys ~= 0));
+% num_sys = length(uni_sys);
+% ISB = zeros(n,1);
+% if (num_sys > 1)
+%     m = m + num_sys - 1;
+%     for s = 2 : num_sys
+%         ISB(sys == uni_sys(s)) = 1;
+%         A = [A, ISB];
+%         ISB = zeros(n,1);
+%     end
+% end
+
 %known term vector
 try
     b = distR_approx_t1' - distR_approx_t0' - v_light*(dtS_t1 - dtS_t0); %velocity estimation
@@ -111,8 +126,8 @@ XR_a = XR_approx_t2-2*XR_approx_t1+XR_approx_t0 + x_hat_a(1:3);
 %XR_a = x_hat_a;
 
 %estimated receiver clock drift
-dtR = x_hat(end)/v_light;
-dtR_a = x_hat_a(end)/v_light;
+dtR = x_hat(4)/v_light;
+dtR_a = x_hat_a(4)/v_light;
 
 %estimation of the variance of the observation error velocity
 y_hat = A*x_hat + b;

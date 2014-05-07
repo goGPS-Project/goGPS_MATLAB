@@ -132,6 +132,18 @@ SP3 = [];    % this var should be filled with SP3 data
 
 min_nsat_LS = 3 + n_sys;
 
+elR_t0 = zeros(size(elR'));
+elR_t1 = zeros(size(elR'));
+elR_t2 = zeros(size(elR'));
+
+azR_t0 = zeros(size(azR'));
+azR_t1 = zeros(size(azR'));
+azR_t2 = zeros(size(azR'));
+
+distR_t0 = zeros(size(distR'));
+distR_t1 = zeros(size(distR'));
+distR_t2 = zeros(size(distR'));
+
 if (size(sat,1) >= min_nsat_LS)
     
     sat_pr_old = sat_pr;
@@ -199,6 +211,7 @@ if (size(sat,1) >= min_nsat_LS)
     err_iono_t0 = err_iono_t0(idx_ok);
     err_iono_t1 = err_iono_t1(idx_ok);
     err_iono_t2 = err_iono_t2(idx_ok);
+    sys = sys(idx_ok);
     
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
@@ -260,7 +273,7 @@ end
 
 %variometric approach
 if ~isempty(sat)
-    [x_hat, x_hat_a, dtR, dtR_a, cov_x_hat, cov_x_hat_a, var_dtR, var_dtR_a] = LS_SA_phase_variometric_a(XR_t0, XR_t1, XR_t2, XS_t0, XS_t1,XS_t2, ph1_t0(sat), ph1_t1(sat), ph1_t2(sat), (snr_t0(sat) + snr_t1(sat) + snr_t2(sat))./3, (elR_t0(sat) + elR_t1(sat) + elR_t2(sat))./3, distR_t0(sat), distR_t1(sat), distR_t2(sat), sat, dtS_t0, dtS_t1, dtS_t2, err_tropo_t0, err_tropo_t1, err_tropo_t2, err_iono_t0, err_iono_t1,err_iono_t2,phase, lambda(sat,1)); %#ok<ASGLU>                                                                                       
+    [x_hat, x_hat_a, dtR, dtR_a, cov_x_hat, cov_x_hat_a, var_dtR, var_dtR_a] = LS_SA_phase_variometric_a(XR_t0, XR_t1, XR_t2, XS_t0, XS_t1,XS_t2, ph1_t0(sat), ph1_t1(sat), ph1_t2(sat), (snr_t0(sat) + snr_t1(sat) + snr_t2(sat))./3, (elR_t0(sat) + elR_t1(sat) + elR_t2(sat))./3, distR_t0(sat), distR_t1(sat), distR_t2(sat), sat, dtS_t0, dtS_t1, dtS_t2, err_tropo_t0, err_tropo_t1, err_tropo_t2, err_iono_t0, err_iono_t1,err_iono_t2,phase, sys, lambda(sat,1)); %#ok<ASGLU>                                                                                       
 end
 
 if isempty(cov_x_hat) %if it was not possible to compute the covariance matrix
