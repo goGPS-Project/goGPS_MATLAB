@@ -91,7 +91,7 @@ else
         
         tData = get(subobj(end),'XData')';
         b1(sat,tData-dt(1)+1) = get(subobj(end),'YData');
-        b2(sat,tData-dt(1)+1) = get(subobj(end-1),'YData') - b1(sat,tData-dt(1)+1);
+        b2(sat,tData-dt(1)+1) = get(subobj(end-1),'YData') - b1(sat,tData-dt(1)+1);        
         
         if (length(subobj) > 3)
             tData = get(subobj(1),'XData')';
@@ -142,6 +142,9 @@ else
         
         %satellite id
         set(subfig(i),'UserData',sat(i));
+        
+        yt = get(subfig(i),'YTick');
+        set(subfig(i),'YTickLabel', sprintf('%.1f|',yt))
         
         %axes and title
         ax = axis;
