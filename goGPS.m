@@ -27,28 +27,12 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %---------------------------------------------------------------------------------------------
 
-%----------------------------------------------------------------------------------------------
-% INTERFACE TYPE DEFINITION
-%----------------------------------------------------------------------------------------------
-
-mode_user=1; % user interface type
-%        =0 --> use text interface
-%        =1 --> use GUI
-
-if (exist('is_batch','var'))
-    mode_user=0;
-end
-
-%----------------------------------------------------------------------------------------------
-% WORKSPACE INITIALIZATION
-%----------------------------------------------------------------------------------------------
-
 % store current breakpoints before doing clear all
 myBreakpoints=dbstatus;
 save('myBreakpoints.mat', 'myBreakpoints');
 
 % clear all the variables in the workspace
-if (mode_user == 1)
+if (~exist('is_batch','var'))
     clear all;
 end
 
@@ -72,7 +56,7 @@ close all
 % clear the command prompt
 %clc
 
-if (mode_user == 1)
+if (~exist('is_batch','var'))
     % close all the opened files
     fclose('all');
 end
@@ -88,6 +72,18 @@ if (exist('myBreakpoints.mat','file')); delete('myBreakpoints.mat'); end
 
 % include all subdirectories
 addpath(genpath(pwd));
+
+%----------------------------------------------------------------------------------------------
+% INTERFACE TYPE DEFINITION
+%----------------------------------------------------------------------------------------------
+
+mode_user=1; % user interface type
+%        =0 --> use text interface
+%        =1 --> use GUI
+
+if (exist('is_batch','var'))
+    mode_user=0;
+end
 
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
