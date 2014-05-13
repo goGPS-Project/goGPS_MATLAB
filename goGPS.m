@@ -34,6 +34,7 @@ save('myBreakpoints.mat', 'myBreakpoints');
 % clear all the variables in the workspace
 if (~exist('is_batch','var'))
     clear all;
+    clearvars -global goIni;
 end
 
 %NOTE: using only clearvars causes crashes, e.g. when launching two
@@ -118,7 +119,6 @@ if (mode_user == 1)
             filename_nav, filename_ref, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS_unix_linux;
     end
 
-    clearvars -global goIni;
     global goIni; %#ok<TLEV>
     if (isempty(mode))
         return
