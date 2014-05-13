@@ -27,17 +27,34 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %---------------------------------------------------------------------------------------------
 
+%----------------------------------------------------------------------------------------------
+% INTERFACE TYPE DEFINITION
+%----------------------------------------------------------------------------------------------
+
+mode_user=1; % user interface type
+%        =0 --> use text interface
+%        =1 --> use GUI
+
+if (exist('is_batch','var'))
+    mode_user=0;
+end
+
+%----------------------------------------------------------------------------------------------
+% WORKSPACE INITIALIZATION
+%----------------------------------------------------------------------------------------------
+
 % store current breakpoints before doing clear all
 myBreakpoints=dbstatus;
 save('myBreakpoints.mat', 'myBreakpoints');
 
 % clear all the variables in the workspace
-clear all;
+if (mode_user == 1)
+    clear all;
+end
 
 %NOTE: using only clearvars causes crashes, e.g. when launching two
 %constrained positioning processes in a row (not clear why...)
 % clearvars
-% clearvars -global goGUI goIni goObj
 
 % if the plotting gets slower than usual, there might be problems with the
 % Java garbage collector. In case, you can try to use the following
@@ -55,8 +72,10 @@ close all
 % clear the command prompt
 %clc
 
-% close all the opened files
-fclose('all');
+if (mode_user == 1)
+    % close all the opened files
+    fclose('all');
+end
 
 % disable warnings
 warning off; %#ok<WNOFF>
@@ -71,21 +90,13 @@ if (exist('myBreakpoints.mat','file')); delete('myBreakpoints.mat'); end
 addpath(genpath(pwd));
 
 %----------------------------------------------------------------------------------------------
-% INTERFACE TYPE DEFINITION
-%----------------------------------------------------------------------------------------------
-
-mode_user=1; % user interface type
-%        =0 --> use text interface
-%        =1 --> use GUI
-
-%----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
 global order o1 o2 o3 h_antenna cutoff weights
 
 % Set global variable for goGPS obj mode
-clearvars -global goObj goIni;
+clearvars -global goObj;
 global goObj;
 % For future development the flag goObs will guide a possible migration to the
 % use of generic objects (such as goObservations) able to automatically manage
@@ -111,60 +122,91 @@ if (mode_user == 1)
             filename_nav, filename_ref, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS_unix_linux;
     end
 
+    clearvars -global goIni;
     global goIni; %#ok<TLEV>
     if (isempty(mode))
         return
     end
 else
 
-    %-------------------------------------------------------------------------------------------
-    % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
-    %-------------------------------------------------------------------------------------------
+    if (mode_user == 1)
+        %-------------------------------------------------------------------------------------------
+        % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
+        %-------------------------------------------------------------------------------------------
+        
+        mode = goGNSS.MODE_PP_KF_CP_DD;   % functioning mode
+        
+        mode_vinc = 0;    % navigation mode
+        % mode_vinc=0 --> without linear constraint
+        % mode_vinc=1 --> with linear constraint
+        
+        mode_data = 0;    % data loading mode
+        % mode_data=0 --> RINEX data
+        % mode_data=1 --> goGPS binary data
+        
+        mode_ref = 0;     % reference path mode
+        % mode_ref=0 --> do not use a reference path
+        % mode_ref=1 --> use a reference path (plot it and use it for statistics)
+        
+        flag_ms_pos = 0;     % read master station position from RTCM or RINEX header
+        
+        flag_ms = 0;         % plot master station position --> no=0, yes=1
+        
+        flag_ge = 0;         % use google earth --> no=0, yes=1
+        
+        flag_cov = 0;        % plot error ellipse --> no=0, yes=1
+        
+        flag_NTRIP = 1;      % use NTRIP --> no=0, yes=1
+        
+        flag_amb = 0;        % plot ambiguities (only in post-processing)
+        
+        flag_skyplot = 0;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
+        
+        flag_plotproc = 0;   % plot while processing
+        
+        flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
+        
+        flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
+        
+        flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
+        
+        flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
+        
+        %----------------------------------------------------------------------------------------------
+        % USER-DEFINED SETTINGS
+        %----------------------------------------------------------------------------------------------
+        
+        %User-defined global settings
+        global_settings;
+        
+    else
+        
+        %-------------------------------------------------------------------------------------------
+        % DISABLE FUNCTIONS NOT USED FOR BATCH PROCESSING
+        %-------------------------------------------------------------------------------------------
 
-    mode = goGNSS.MODE_PP_KF_CP_DD;   % functioning mode    
-    
-    mode_vinc = 0;    % navigation mode
-    % mode_vinc=0 --> without linear constraint
-    % mode_vinc=1 --> with linear constraint
+        mode_vinc = 0;    % navigation mode
+        mode_data = 0;    % data loading mode
+        mode_ref = 0;     % reference path mode
+        flag_ms = 0;         % plot master station position --> no=0, yes=1
+        flag_ge = 0;         % use google earth --> no=0, yes=1
+        flag_cov = 0;        % plot error ellipse --> no=0, yes=1
+        flag_NTRIP = 1;      % use NTRIP --> no=0, yes=1
+        flag_amb = 0;        % plot ambiguities (only in post-processing)
+        flag_skyplot = 0;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
+        flag_plotproc = 0;   % plot while processing
+        flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
+        flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
 
-    mode_data = 0;    % data loading mode
-    % mode_data=0 --> RINEX data
-    % mode_data=1 --> goGPS binary data
-
-    mode_ref = 0;     % reference path mode
-    % mode_ref=0 --> do not use a reference path
-    % mode_ref=1 --> use a reference path (plot it and use it for statistics)
-
-    flag_ms_pos = 1;     % read master station position from RTCM or RINEX header
-
-    flag_ms = 0;         % plot master station position --> no=0, yes=1
-
-    flag_ge = 0;         % use google earth --> no=0, yes=1
-
-    flag_cov = 0;        % plot error ellipse --> no=0, yes=1
-
-    flag_NTRIP = 1;      % use NTRIP --> no=0, yes=1
-
-    flag_amb = 0;        % plot ambiguities (only in post-processing)
-
-    flag_skyplot = 0;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
-
-    flag_plotproc = 0;   % plot while processing
-
-    flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
-    
-    flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
-    
-    flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
-    
-    flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
-
-    %----------------------------------------------------------------------------------------------
-    % USER-DEFINED SETTINGS
-    %----------------------------------------------------------------------------------------------
-
-    %User-defined global settings
-    global_settings;
+        %----------------------------------------------------------------------------------------------
+        % USER-DEFINED SETTINGS
+        %----------------------------------------------------------------------------------------------
+        
+        %User-defined global settings (only if batch processing from shell script)
+        if (~exist('is_batch','var'))
+            global_settings;
+        end
+    end
 end
 
 %-------------------------------------------------------------------------------------------
@@ -254,15 +296,22 @@ if goGNSS.isPP(mode) % post-processing
             bad_sats_R = zeros(nSatTot, 1, size(time_R,3));
             
             for f = 1 : size(time_R,3)
-                %goWaitBar
-                goWB = goWaitBar(length(time_GPS));
-                goWB.titleUpdate('Pre-processing rover...');
+                
+                if (mode_user == 1)
+                    %goWaitBar
+                    goWB = goWaitBar(length(time_GPS));
+                    goWB.titleUpdate('Pre-processing rover...');
+                else
+                    goWB = [];
+                end
 
                 %pre-processing
                 fprintf(['Pre-processing rover observations (file ' filename_obs{f} ')...\n']);
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f)] = pre_processing_clock(time_GPS, time_R(:,1,f), [], pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB);
 
-                goWB.close();
+                if (mode_user == 1)
+                    goWB.close();
+                end
             end
 
         else %relative positioning
@@ -271,7 +320,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %read observation RINEX file(s)
             [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
-             time_GPS, time_RM, week_RM, date_RM, pos_RM, interval] = ...
+             time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
          
             pr1_R = pr1_RM(:,:,1:end-1); pr1_M = pr1_RM(:,:,end);
@@ -286,6 +335,12 @@ if goGNSS.isPP(mode) % post-processing
             week_R = week_RM(:,1,1:end-1); week_M = week_RM(:,1,end);
             date_R = date_RM(:,:,1:end-1); date_M = pos_RM(:,:,end);
             pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
+            antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
+            
+            %apply the antenna offset from the marker (if available)
+            if (exist('is_batch','var') && any(pos_M) && any(antoff_M))
+                pos_M_man = local2globalPos(antoff_M, pos_M_off);
+            end
             
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
@@ -295,25 +350,37 @@ if goGNSS.isPP(mode) % post-processing
             bad_sats_R = zeros(nSatTot, 1, size(time_R,3));
             
             for f = 1 : size(time_R,3)
-                %goWaitBar
-                goWB = goWaitBar(length(time_GPS));
-                goWB.titleUpdate('Pre-processing rover...');
+                if (mode_user == 1)
+                    %goWaitBar
+                    goWB = goWaitBar(length(time_GPS));
+                    goWB.titleUpdate('Pre-processing rover...');
+                else
+                    goWB = [];
+                end
                 
                 %pre-processing
                 fprintf(['Pre-processing rover observations (file ' filename_obs{f} ')...\n']);
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f)] = pre_processing_clock(time_GPS, time_R(:,1,f), [], pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB);
 
-                goWB.close();
+                if (mode_user == 1)
+                    goWB.close();
+                end
             end
             
-            %goWaitBar
-            goWB = goWaitBar(length(time_GPS));
-            goWB.titleUpdate('Pre-processing master...');
+            if (mode_user == 1)
+                %goWaitBar
+                goWB = goWaitBar(length(time_GPS));
+                goWB.titleUpdate('Pre-processing master...');
+            else
+                goWB = [];
+            end
             
             fprintf(['Pre-processing master observations (file ' filename_obs{end} ')...\n']);
             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB);
             
-            goWB.close();
+            if (mode_user == 1)
+                goWB.close();
+            end
         end
         
         if (flag_SP3)
@@ -332,7 +399,6 @@ if goGNSS.isPP(mode) % post-processing
         
         %TEMP
         snr_R = snr1_R;
-        date  = date_R;
         if (goGNSS.isDD(mode))
             snr_M = snr1_M;
         end
@@ -423,7 +489,7 @@ if goGNSS.isPP(mode) % post-processing
         %snr_M = snr_M(:,end:-1:1);
 
         %time_GPS = time_GPS(end:-1:1);
-        %date = date(end:-1:1,:);
+        %date_R = date_R(end:-1:1,:);
         
     else %mode_data == 1
         
@@ -434,24 +500,37 @@ if goGNSS.isPP(mode) % post-processing
         %retrieve multi-constellation wavelengths
         lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
 
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Pre-processing rover...');
+        if (mode_user == 1)
+            %goWaitBar
+            goWB = goWaitBar(length(time_GPS));
+            goWB.titleUpdate('Pre-processing rover...');
+        else
+            goWB = [];
+        end
 
         %pre-processing
         fprintf('Pre-processing rover observations...\n');
         [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB);
         
-        goWB.close();
+        if (mode_user == 1)
+            goWB.close();
+        end
         
         if goGNSS.isDD(mode) % relative positioning
-            goWB = goWaitBar(length(time_GPS));
-            goWB.titleUpdate('Pre-processing master...');
+            
+            if (mode_user == 1)
+                goWB = goWaitBar(length(time_GPS));
+                goWB.titleUpdate('Pre-processing master...');
+            else
+                goWB = [];
+            end
             
             fprintf('Pre-processing master observations...\n');
             [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB);
             
-            goWB.close();
+            if (mode_user == 1)
+                goWB.close();
+            end
         end
         
         %interval between epochs
@@ -494,7 +573,7 @@ if goGNSS.isPP(mode) % post-processing
         end
 
         %date
-        date = gps2date(week_R, time_GPS);
+        date_R = gps2date(week_R, time_GPS);
 
         %other variables
         pos_R = zeros(3,1);
@@ -533,7 +612,7 @@ if goGNSS.isPP(mode) % post-processing
         delay = delay(tMin:tMax);
         loss_R = loss_R(tMin:tMax);
         loss_M = loss_M(tMin:tMax);
-        date = date(tMin:tMax,:);
+        date_R = date_R(tMin:tMax,:);
     end
 
     %if absolute post-processing positioning
@@ -605,7 +684,7 @@ if goGNSS.isPP(mode) % post-processing
             pos_M(1,1:length(time_GPS)) = pos_M_man(1);
             pos_M(2,1:length(time_GPS)) = pos_M_man(2);
             pos_M(3,1:length(time_GPS)) = pos_M_man(3);
-            fprintf('Warning: master position fixed to user-defined values:\n');
+            fprintf('Master position fixed to user-defined values:\n');
             fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
         end
 
@@ -686,9 +765,13 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
     
     plot_t = 1;
     
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
 
     for t = 1 : length(time_GPS)
 
@@ -716,12 +799,12 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
-                if (t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 else
-                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
@@ -741,10 +824,14 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             fprintf('Processing...\n');
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
     
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -803,10 +890,10 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
 
     if (flag_plotproc)
         if (flag_cov == 0)
-            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(1,:)), end;
+            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(1,:)), end;
             rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
         else
-            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
+            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
         end
         if (flag_skyplot == 1)
@@ -818,9 +905,13 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
     end
     fprintf('Processing...\n');
     
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
 
     for t = 2 : length(time_GPS)
 
@@ -840,12 +931,12 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
-            if (t == 2), goWB.shiftDown(); end
+            if (mode_user == 1 && t == 2), goWB.shiftDown(); end
             if (flag_cov == 0)
-                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
             else
-                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
             end
             if (flag_skyplot == 1)
@@ -857,10 +948,14 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
             pause(0.01);
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
 
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -886,9 +981,13 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
     
     plot_t = 1;
     
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
 
     for t = 1 : length(time_GPS)
 
@@ -914,12 +1013,12 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
-                if (t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 else
-                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
@@ -938,10 +1037,14 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
             unused_epochs(t) = 1;
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
 
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -970,8 +1073,12 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     fprintf('TimeStep used is %d epochs\n', time_step);
     % External loop to show bar update every 15 epochs
     stepUpdate = 15;
-    goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
-    goWB.titleUpdate('Variometric approach running...');
+    if (mode_user == 1)
+        goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
+        goWB.titleUpdate('Variometric approach running...');
+    else
+        goWB = [];
+    end
     ind=0;
     for tExt = 1:stepUpdate:(length(time_GPS)-(time_step))
         for t = tExt:min(tExt+stepUpdate-1,length(time_GPS)-(time_step))
@@ -1007,10 +1114,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
                 
                 %if (flag_plotproc)
                 %    if (flag_cov == 0)
-                %        if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                %        if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                 %        rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 %    else
-                %        if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                %        if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                 %        rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 %    end
                 %    if (flag_skyplot == 1)
@@ -1026,7 +1133,9 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
                 unused_epochs(t) = 1;
             end
         end
-        goWB.goTime(tExt/stepUpdate);
+        if (mode_user == 1)
+            goWB.goTime(tExt/stepUpdate);
+        end
     end
     goDX=cumsum(vel_pos(:,1)).*(interval.*time_step);
     goDY=cumsum(vel_pos(:,3)).*(interval.*time_step);
@@ -1100,7 +1209,9 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         title('Velocity (blue=E; red=N; green=U)')
     end
     
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
     
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1154,10 +1265,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
 
     if (flag_plotproc)
         if (flag_cov == 0)
-            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(1,:)), end;
+            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(1,:)), end;
             rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
         else
-            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
+            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
         end
         if (flag_amb == 1)
@@ -1173,9 +1284,13 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
     end
     fprintf('Processing...\n');
     
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
 
     for t = 2 : length(time_GPS)
 
@@ -1195,12 +1310,12 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
-            if (t == 2), goWB.shiftDown(); end
+            if (mode_user == 1 && t == 2), goWB.shiftDown(); end
             if (flag_cov == 0)
-                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
             else
-                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
             end
             if (flag_amb == 1)
@@ -1217,10 +1332,14 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
             end
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
     
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1246,9 +1365,13 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
     
     plot_t = 1;
     
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Pocessing...');
+    else
+        goWB = [];
+    end
 
     for t = 1 : length(time_GPS)
 
@@ -1274,12 +1397,12 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
-                if (t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 else
-                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
@@ -1299,10 +1422,14 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
             fprintf('Processing...\n');
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
     
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1359,10 +1486,10 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
 
     if (flag_plotproc)
         if (flag_cov == 0)
-            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
+            if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end;
             rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
         else
-            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
+            if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path);
         end
         if (flag_skyplot == 1)
@@ -1374,9 +1501,13 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
     end
     fprintf('Processing...\n');
 
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
     
     for t = 2 : length(time_GPS)
 
@@ -1396,12 +1527,12 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
-            if (t == 2), goWB.shiftDown(); end
+            if (mode_user == 1 && t == 2), goWB.shiftDown(); end
             if (flag_cov == 0)
-                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
             else
-                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
             end
             if (flag_skyplot == 1)
@@ -1413,10 +1544,14 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
             pause(0.01);
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
     
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1442,9 +1577,13 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
     
     plot_t = 1;
 
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
     
     for t = 1 : length(time_GPS)
 
@@ -1467,12 +1606,12 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
-                if (t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 else
-                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
@@ -1492,10 +1631,14 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             fprintf('Processing...\n');
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
 
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
     
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1522,9 +1665,13 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
     
     plot_t = 1;
 
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
     
     for t = 1 : length(time_GPS)
 
@@ -1547,12 +1694,12 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
-                if (t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 else
-                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
@@ -1572,10 +1719,14 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
             fprintf('Processing...\n');
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
 
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
     
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1601,9 +1752,13 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
     
     plot_t = 1;
 
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
     
     for t = 1 : length(time_GPS)
 
@@ -1631,12 +1786,12 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
-                if (t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 else
-                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                     rtplot_matlab_cov (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
                 end
                 if (flag_skyplot == 1)
@@ -1656,10 +1811,14 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
             fprintf('Processing...\n');
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
     
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1710,10 +1869,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
 
         if (flag_plotproc)
             if (flag_cov == 0)
-                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
+                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end;
                 rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
             else
-                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
+                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
                 rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
             end
             if (flag_amb == 1)
@@ -1729,9 +1888,13 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
         end
         fprintf('Processing...\n');
         
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
+        if (mode_user == 1)
+            %goWaitBar
+            goWB = goWaitBar(length(time_GPS));
+            goWB.titleUpdate('Processing...');
+        else
+            goWB = [];
+        end
 
         for t = 2 : length(time_GPS)
 
@@ -1749,12 +1912,12 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
             if (flag_plotproc)
-                if (t == 2), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 2), goWB.shiftDown(); end
                 if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
                 else
-                    if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                     rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
                 end
                 if (flag_amb == 1)
@@ -1771,10 +1934,14 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
                 end
             end
             
-            goWB.goTime(t);
+            if (mode_user == 1)
+                goWB.goTime(t);
+            end
         end
         
-        goWB.close();
+        if (mode_user == 1)
+            goWB.close();
+        end
 
         fclose(fid_kal);
         fclose(fid_sat);
@@ -1844,14 +2011,14 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
         
         if (flag_plotproc)
             if (flag_cov == 0)
-                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date(1,:)), end;
+                if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end;
                 if (flag_stopGOstop == 1)
                     rtplot_matlab_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
                 else
                     rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
                 end
             else
-                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(1,:)), end;
+                if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
                 if (flag_stopGOstop == 1)
                     rtplot_matlab_cov_stopGOstop (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
                 else
@@ -1871,9 +2038,13 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
         end
         fprintf('Processing...\n');
         
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
+        if (mode_user == 1)
+            %goWaitBar
+            goWB = goWaitBar(length(time_GPS));
+            goWB.titleUpdate('Processing...');
+        else
+            goWB = [];
+        end
         
         for t = 2 : length(time_GPS)
             
@@ -1938,16 +2109,16 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             
             if (flag_plotproc)
-                if (t == 2), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 2), goWB.shiftDown(); end
                 if (flag_cov == 0)
-                    if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     if (flag_stopGOstop == 1)
                         rtplot_matlab_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
                     else
                         rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
                     end
                 else
-                    if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date(t,:)), end;
+                    if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
                     if (flag_stopGOstop == 1)
                         rtplot_matlab_cov_stopGOstop (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), [P1_UTM_E, P1_UTM_N], [P2_UTM_E, P2_UTM_N], flag_ms, ref_path, mat_path, flag_dyn, flag_amb);
                     else
@@ -1967,10 +2138,14 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
                     pause(0.01);
                 end
             end
-            goWB.goTime(t);
+            if (mode_user == 1)
+                goWB.goTime(t);
+            end
         end
         
-        goWB.close();
+        if (mode_user == 1)
+            goWB.close();
+        end
         
         if (flag_stopGOstop == 1)
             %azimuth computation
@@ -2047,7 +2222,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
     fwrite(fid_conf, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
 
     if (flag_plotproc)
-        if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), date(1,:)), end;
+        if (flag_ge == 1), rtplot_googleearth (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), date_R(1,:)), end;
         rtplot_matlab (1, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
         if (flag_amb == 1)
             rtplot_amb (1, window, Xhat_t_t(o1+1:o1+nSatTot), sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot))), conf_cs);
@@ -2062,9 +2237,13 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
     end
     fprintf('Processing...\n');
     
-    %goWaitBar
-    goWB = goWaitBar(length(time_GPS));
-    goWB.titleUpdate('Processing...');
+    if (mode_user == 1)
+        %goWaitBar
+        goWB = goWaitBar(length(time_GPS));
+        goWB.titleUpdate('Processing...');
+    else
+        goWB = [];
+    end
 
     for t = 2 : length(time_GPS)
 
@@ -2082,8 +2261,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
 
         if (flag_plotproc)
-            if (t == 2), goWB.shiftDown(); end
-            if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date(t,:)), end;
+            if (mode_user == 1 && t == 2), goWB.shiftDown(); end
+            if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date_R(t,:)), end;
             rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
             if (flag_amb == 1)
                 rtplot_amb (t, window, Xhat_t_t(o1+1:o1+nSatTot), sqrt(diag(Cee(o1+1:o1+nSatTot,o1+1:o1+nSatTot))), conf_cs);
@@ -2099,10 +2278,14 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
             end
         end
         
-        goWB.goTime(t);
+        if (mode_user == 1)
+            goWB.goTime(t);
+        end
     end
     
-    goWB.close();
+    if (mode_user == 1)
+        goWB.close();
+    end
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -2254,8 +2437,8 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     [tow] = weektime2tow(week_R(:,1,1), time_GPS);
     
     %date formatting
-    date = gps2date(week_R(:,1,1), tow);
-    date(:,1) = two_digit_year(date(:,1));
+    date_R = gps2date(week_R(:,1,1), tow);
+    date_R(:,1) = two_digit_year(date_R(:,1));
 
     %file saving
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
@@ -2269,12 +2452,12 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         end
 
         %file writing
-        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16d% 16.3f% 16.8f% 16.8f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16s% 16.3f% 16.3f% 16.4f% 16.4f% 16.4f% 16d% 16.4f\n', date(i,1), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
+        fprintf(fid_out, '%02d/%02d/%02d    %02d:%02d:%06.3f% 16d% 16.3f% 16.8f% 16.8f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16.4f% 16s% 16.3f% 16.3f% 16.4f% 16.4f% 16.4f% 16d% 16.4f\n', date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
     end
     fclose(fid_out);
     
     % Save in matlab format all the outputs
-    save([filerootOUT '_position.mat'], 'date', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate');
+    save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate');
 end
 
 %----------------------------------------------------------------------------------------------
@@ -2286,7 +2469,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
     %display information
     fprintf('Writing report file (PDF)...\n');
 
-    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','portrait','PaperUnits','centimeters','PaperType','A4');
+    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','portrait','PaperUnits','centimeters','PaperType','A4','Visible','off');
     paperSize = get(f,'PaperSize');
     set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
 
@@ -2462,8 +2645,9 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     %file saving
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
     %date formatting
-    date = gps2date(week_R(:,1,1), time_GPS);
-    date(:,1) = two_digit_year(date(:,1));
+    time_NMEA = weektime2tow(week_R(:,1,1), time_GPS);
+    date_NMEA = gps2date(week_R(:,1,1), time_NMEA);
+    date_NMEA(:,1) = two_digit_year(date_NMEA(:,1));
 
     for i = 1 : nObs
 
@@ -2477,7 +2661,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         %NMEA string generation
         GGAstring = NMEA_GGA_gen(pos_KAL(:,i), nsat, time_GPS(i), HDOP(i), mode);
         if (pivot(i) ~= 0)
-            RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date(i,:));
+            RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date_NMEA(i,:));
             GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i), constellations);
             GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '3');
             if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))
@@ -3383,8 +3567,10 @@ end
 
 %----------------------------------------------------------------------------------------------
 
-% close all the opened files
-fclose('all');
+if (mode_user == 1)
+    % close all the opened files
+    fclose('all');
+end
 
 %re-enable MATLAB warnings
 warning on %#ok<WNON>

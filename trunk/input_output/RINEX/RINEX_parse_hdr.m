@@ -1,7 +1,7 @@
-function [Obs_types, pos_M, ifound_types, interval, sysId] = RINEX_parse_hdr(file)
+function [Obs_types, pos_M, ifound_types, interval, sysId, antoff] = RINEX_parse_hdr(file)
 
 % SYNTAX:
-%   [Obs_types, pos_M, ifound_types, interval, sysId] = RINEX_parse_hdr(file);
+%   [Obs_types, pos_M, ifound_types, interval, sysId, antoff] = RINEX_parse_hdr(file);
 %
 % INPUT:
 %   file = pointer to RINEX observation file
@@ -14,6 +14,7 @@ function [Obs_types, pos_M, ifound_types, interval, sysId] = RINEX_parse_hdr(fil
 %   ifound_types = boolean variable to check the correct acquisition of basic information
 %   interval = observation interval in seconds
 %   sysId = cell-array containing one-letter identifiers for constellations
+%   antoff = antenna offset [m]
 %
 % DESCRIPTION:
 %   RINEX observation file header analysis.
@@ -99,7 +100,12 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
         dU = sscanf(line(1:14),'%f');
         dE = sscanf(line(15:28),'%f');
         dN = sscanf(line(29:42),'%f');
-        delta = [dE; dN; dU];
+        antoff = [dE; dN; dU];
+    end
+
+    answer = strfind(line,'ANT # / TYPE');
+    if ~isempty(answer)
+        anttyp = sscanf(line(21:40),'%f');
     end
     
     answer = strfind(line,'INTERVAL');
@@ -112,6 +118,6 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
 end
 
 %apply the antenna offset from the marker (if available)
-if (any(pos_M) && any(delta))
-    pos_M = local2globalPos(delta,pos_M);
+if (any(pos_M) && any(antoff))
+    pos_M = local2globalPos(antoff, pos_M);
 end
