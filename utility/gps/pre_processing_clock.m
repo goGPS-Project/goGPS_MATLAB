@@ -127,7 +127,9 @@ for i = 1 : nEpochs
         end
     end
     
-    waitbar_handle.goTime(i);
+    if (nargin > 15 && ~isempty(waitbar_handle))
+        waitbar_handle.goTime(i);
+    end
 end
 
 %----------------------------------------------------------------------------------------------

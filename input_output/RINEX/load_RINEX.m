@@ -1,14 +1,14 @@
 function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
           dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
           snr2_R, snr2_M, time, time_R, time_M, week_R, week_M, ...
-          date_R, date_M, pos_R, pos_M, Eph, iono, interval] = ...
+          date_R, date_M, pos_R, pos_M, Eph, iono, interval, antoff_R, antoff_M] = ...
           load_RINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3, wait_dlg)
 
 % SYNTAX:
 %   [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %    dop1_R, dop1_M, dop2_R, dop2_M, snr1_R, snr1_M, ...
 %    snr2_R, snr2_M, time, time_R, time_M, week_R, week_M, ...
-%    date_R, date_M, pos_R, pos_M, Eph, iono, interval] = ...
+%    date_R, date_M, pos_R, pos_M, Eph, iono, interval, antoff_R, antoff_R] = ...
 %    load_RINEX(filename_nav, filename_R_obs, filename_M_obs, constellations, flag_SP3, wait_dlg);
 %
 % INPUT:
@@ -45,6 +45,9 @@ function [pr1_R, pr1_M, ph1_R, ph1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
 %   pos_M = master station position
 %   Eph = matrix containing 33 navigation parameters for each satellite
 %   iono = vector containing ionosphere parameters
+%   interval = observation rate [s]
+%   antoff_R = antenna offset (ROVER)
+%   antoff_M = antenna offset (MASTER)
 %
 % DESCRIPTION:
 %   Parses RINEX files (observation and navigation) for both the ROVER
@@ -206,7 +209,7 @@ if (wait_dlg_PresenceFlag)
 end
 
 %parse RINEX header
-[obs_typ_R, pos_R, info_base_R, interval_R, sysId] = RINEX_parse_hdr(FR_oss);
+[obs_typ_R, pos_R, info_base_R, interval_R, sysId, antoff_R] = RINEX_parse_hdr(FR_oss);
 
 %check RINEX version (rover)
 if (isempty(sysId))
@@ -229,7 +232,7 @@ if (RINEX_version_R == 2)
 end
 
 if (filename_M_obs_PresenceFlag)
-    [obs_typ_M, pos_M, info_base_M, interval_M, sysId] = RINEX_parse_hdr(FM_oss);
+    [obs_typ_M, pos_M, info_base_M, interval_M, sysId, antoff_M] = RINEX_parse_hdr(FM_oss);
     
     %check RINEX version (rover)
     if (isempty(sysId))
