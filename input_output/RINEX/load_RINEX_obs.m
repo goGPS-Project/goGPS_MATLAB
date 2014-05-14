@@ -153,7 +153,7 @@ for f = 1 : nFiles
         obs = RINEX_get_obs(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, constellations);
         
         %read ROVER observations
-        if (sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
+        if (~any(obs.C1) || sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
             pr1(:,k,f) = obs.P1;
         else
             pr1(:,k,f) = obs.C1;
