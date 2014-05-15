@@ -3004,6 +3004,7 @@ classdef goGUIclass < handle
                 flag_SP3 = 0;
                 rates = get(obj.goh.pumCaptureRate,'String');                
                 goIni.setCaptureRate(rates{get(obj.goh.pumCaptureRate,'Value')});
+                multi_antenna_rf = [];
             end
             
             contents = cellstr(get(obj.goh.crs,'String'));
