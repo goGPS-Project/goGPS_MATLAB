@@ -3006,6 +3006,11 @@ if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GP
         plot(ax(2), epochs(pos), NORTH(pos),'xr')
         plot(ax(3), epochs(pos), UP_KAL(pos),'xr')
         
+        pos = find(pivot == 0);
+        plot(ax(1), epochs(pos), EAST(pos),'.y')
+        plot(ax(2), epochs(pos), NORTH(pos),'.y')
+        plot(ax(3), epochs(pos), UP_KAL(pos),'.y')
+        
     else
         subplot(ax(1))
         plot(epochs, EAST_UTM,'.'); title('EAST UTM'); ylabel('[m]')
@@ -3018,12 +3023,12 @@ if (mode ~= goGNSS.MODE_PP_LS_CP_VEL) && (goGNSS.isPP(mode) && (~isempty(time_GP
         plot(ax(1), epochs(pos), EAST_UTM(pos),'xr')
         plot(ax(2), epochs(pos), NORTH_UTM(pos),'xr')
         plot(ax(3), epochs(pos), h_KAL(pos),'xr')
+        
+        pos = find(pivot == 0);
+        plot(ax(1), epochs(pos), EAST_UTM(pos),'.y')
+        plot(ax(2), epochs(pos), NORTH_UTM(pos),'.y')
+        plot(ax(3), epochs(pos), h_KAL(pos),'.y')
     end
-    
-    pos = find(pivot == 0);
-    plot(ax(1), epochs(pos), EAST(pos),'.y')
-    plot(ax(2), epochs(pos), NORTH(pos),'.y')
-    plot(ax(3), epochs(pos), h_KAL(pos),'.y')
     
     linkaxes(ax,'x')
 end
