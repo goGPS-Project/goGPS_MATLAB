@@ -302,7 +302,7 @@ if goGNSS.isPP(mode) % post-processing
                 end
 
                 %pre-processing
-                fprintf(['Pre-processing rover observations (file ' filename_obs{f} ')...\n']);
+                fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f)] = pre_processing_clock(time_GPS, time_R(:,1,f), [], pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB);
 
                 if (mode_user == 1)
@@ -334,7 +334,7 @@ if goGNSS.isPP(mode) % post-processing
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
             
             %apply the antenna offset from the marker (if available)
-            if (exist('is_batch','var') && any(pos_M) && any(antoff_M))
+            if (exist('is_batch','var') && any(pos_M_off) && any(antoff_M))
                 pos_M_man = local2globalPos(antoff_M, pos_M_off);
             end
             
@@ -355,7 +355,7 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %pre-processing
-                fprintf(['Pre-processing rover observations (file ' filename_obs{f} ')...\n']);
+                fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f)] = pre_processing_clock(time_GPS, time_R(:,1,f), [], pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB);
 
                 if (mode_user == 1)
@@ -371,7 +371,7 @@ if goGNSS.isPP(mode) % post-processing
                 goWB = [];
             end
             
-            fprintf(['Pre-processing master observations (file ' filename_obs{end} ')...\n']);
+            fprintf('%s',['Pre-processing master observations (file ' filename_obs{end} ')...']); fprintf('\n');
             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB);
             
             if (mode_user == 1)
