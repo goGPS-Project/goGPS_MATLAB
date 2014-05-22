@@ -99,7 +99,7 @@ for f = 1 : nFiles
         current_file = filename;
     end
     
-    fprintf(['Reading RINEX file ' current_file ': ... ']);
+    fprintf('%s',['Reading RINEX file ' current_file ': ... ']);
     
     %open RINEX observation file
     fid = fopen(current_file,'r');
@@ -192,3 +192,13 @@ end
 %sync observations
 [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval] = ...
 sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval);
+
+for f = 1 : nFiles
+    holes = find(week(:,1,f) == 0);
+    for h = holes'
+        if (h > 1)
+            week(h,1,f) = week(h-1,1,f);
+            date(h,:,f) = datevec(datenum(date(h-1,:,f)) + datenum([0 0 0 0 0 interval]));
+        end
+    end
+end
