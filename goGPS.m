@@ -2960,18 +2960,18 @@ if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && (
 
     %file saving (XYZ covariance)
     fid_cov = fopen([filerootOUT '_cov_XYZ.txt'], 'wt');
-    fprintf(fid_cov, '      XX              XY              XZ              YY              YZ              ZZ\n');
+    fprintf(fid_cov, '       XX              XY              XZ              YY              YZ              ZZ\n');
     for i = 1 : length(phi_KAL)
-        fprintf(fid_cov, '   %.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', Cee_XYZ(1,1,i), Cee_XYZ(1,2,i), ...
+        fprintf(fid_cov, '%.3e% 16.3e% 16.3e% 16.3e% 16.3e% 16.3e\n', Cee_XYZ(1,1,i), Cee_XYZ(1,2,i), ...
             Cee_XYZ(1,3,i), Cee_XYZ(2,2,i), Cee_XYZ(2,3,i), Cee_XYZ(3,3,i));
     end
     fclose(fid_cov);
     
     %file saving (ENU covariance)
     fid_cov = fopen([filerootOUT '_cov_ENU.txt'], 'wt');
-    fprintf(fid_cov, 'EastEast       EastNorth          EastUp      NorthNorth         NorthUp            UpUp\n');
+    fprintf(fid_cov, ' EastEast       EastNorth          EastUp      NorthNorth         NorthUp            UpUp\n');
     for i = 1 : length(phi_KAL)
-        fprintf(fid_cov, '   %.3f% 16.3f% 16.3f% 16.3f% 16.3f% 16.3f\n', Cee_ENU(1,1,i), Cee_ENU(1,2,i), ...
+        fprintf(fid_cov, '%.3e% 16.3e% 16.3e% 16.3e% 16.3e% 16.3e\n', Cee_ENU(1,1,i), Cee_ENU(1,2,i), ...
             Cee_ENU(1,3,i), Cee_ENU(2,2,i), Cee_ENU(2,3,i), Cee_ENU(3,3,i));
     end
     fclose(fid_cov);
