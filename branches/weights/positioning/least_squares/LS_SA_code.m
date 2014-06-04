@@ -48,6 +48,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR_
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+global weights
 
 v_light = goGNSS.V_LIGHT;
 
@@ -89,7 +90,8 @@ b = distR_approx - v_light*dtS + err_tropo_RS + err_iono_RS;
 y0 = pr_R;
 
 %observation covariance matrix
-Q = cofactor_matrix_SA(elR, snr_R);
+weightMatrix = CWeightMatrix(weights); % TBD - remove once the fuction will be part of a class
+Q = weightMatrix.getCofactorMatrixSA( elR, snr_R );
 
 %normal matrix
 N = (A'*(Q^-1)*A);

@@ -94,7 +94,8 @@ end
 y0 = lambda.*(ph_t0 - ph_t1);
 
 %observation noise covariance matrix
-Q1 = cofactor_matrix_SA(elR, snr);
+weightMatrix = CWeightMatrix(); % TBD - remove once the fuction will be part of a class
+Q1 = weightMatrix.getCofactorMatrixSA( elR, snr );
 Q  = sigmaq_ph * Q1;
 
 %normal matrix

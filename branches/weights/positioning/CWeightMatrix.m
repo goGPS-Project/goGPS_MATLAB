@@ -39,9 +39,17 @@ classdef CWeightMatrix < handle %#codegen
     end
     
     methods
-        function obj = CWeightMatrix()
-            obj.pivot_index = 0;
-            obj.weights = 0;
+        function obj = CWeightMatrix(weights, pivot_index)
+            if nargin == 1
+                obj.pivot_index = 0;
+                obj.weights = weights;
+            elseif nargin == 2
+                obj.weights = weights;
+                obj.pivot_index = pivot_index;                
+            else
+                obj.weights = 0;
+                obj.pivot_index = 0;                
+            end
         end
         
         % SYNTAX:
@@ -61,18 +69,18 @@ classdef CWeightMatrix < handle %#codegen
                 weightMatrix = 2*ones(numSat) + 2*eye(numSat);
             else
                 
-                q_R = getNonTrivialWeight( elR , snr_R );
-                q_M = getNonTrivialWeight( elM , snr_M );
+                q_R = obj.getNonTrivialWeight( elR , snr_R );
+                q_M = obj.getNonTrivialWeight( elM , snr_M );
                 
                 q_RP = q_R( obj.pivot_index , 1 ); % ROVER-PIVOT
                 q_MP = q_M( obj.pivot_index , 1 ); % MASTER-PIVOT
                 q_R(obj.pivot_index) = [];
                 q_M(obj.pivot_index) = [];
                 q_RS = q_R;                % ROVER-generic satellite (without pivot)
-                q_MS = q_M;                % MASTER-generic satellite (without pivot)
+                q_MS = q_M;                % MASTER-generic satellite (without pivot)                                
                 
                 %code-code or phase-phase co-factor matrix Q construction
-                weightMatrix = (q_RP + q_MP) * ones(obj.numSat) + diag(q_RS + q_MS);
+                weightMatrix = (q_RP + q_MP) * ones(numSat) + diag(q_RS + q_MS);
             end
         end
         
@@ -89,17 +97,16 @@ classdef CWeightMatrix < handle %#codegen
         % DESCRIPTION:
         %   Co-factor matrix construction on the basis of selected weighting
         %   strategy (determined by "weights" global variable).
-        function weightMatrix = cofactor_matrix_SA(obj, elR, snr_R)
-            %total number of visible satellites
-            n = length(elR);
+        function weightMatrix = getCofactorMatrixSA(obj, elR, snr_R)
             
             if (obj.weights == 0 || (~any(elR) || ~any(snr_R)))
-                
+                %total number of visible satellites
+                n = length(elR);
                 %code-code or phase-phase co-factor matrix Q construction
                 weightMatrix = eye(n);
                 
             else
-                q_R = getNonTrivialWeight( elR , snr_R );
+                q_R = obj.getNonTrivialWeight( elR , snr_R );
                 
                 %code-code or phase-phase co-factor matrix Q construction
                 weightMatrix = diag(q_R);
@@ -111,41 +118,39 @@ classdef CWeightMatrix < handle %#codegen
         function q = getNonTrivialWeight(obj, el, snr)
             if ( obj.weights == 1 )                
                 %weight vectors (elevation)
-                q = getSinElevationWeight(el);
+                q = obj.getSinElevationWeight(el);
                 
             elseif ( obj.weights == 2 )
                 
                 %weight vectors (signal-to-noise ratio)
-                q = getSnrRatioWeight( snr );
+                q = obj.getSnrRatioWeight( snr );
                 
             elseif ( obj.weights == 3 )
                 %weight vectors (elevation and signal-to-noise ratio)
-                q = getSinElevationWeight( el ) .* getSnrRatioWeight( snr );
+                q = obj.getSinElevationWeight( el ) .* getSnrRatioWeight( snr );
                 
             elseif ( obj.weights == 4 )
                 %weight vectors (elevation, exponential function)
-                q = getExpElevationWeight( el );
+                q = obj.getExpElevationWeight( el );
             end            
         end
         
         %weight vectors (elevation, exponential function)
-        function q = getExpElevationWeight( el )
-            eleref = degtorad(min(el)); % this is the value for the elevation cut-off angle
-            q = power( 1 + obj.elea*exp(-(degtorad( el ))/eleref) , 2 );
+        function q = getExpElevationWeight(obj, el )
+            eleref = min(el) * pi / 180; % this is the value for the elevation cut-off angle
+            q = power( 1 + obj.elea*exp(-( el * pi / 180 )/eleref) , 2 );
         end
         
         %weight vectors (elevation)
-        function q = getSinElevationWeight( el )
-            q = 1 ./ power(sin(degtorad( el )),2);
+        function q = getSinElevationWeight(obj, el )
+            q = 1 ./ power(sin( el * pi / 180 ),2);
         end
         
         %weight vectors (signal-to-noise ratio)
-        function q = getSnrRatioWeight( snr )
+        function q = getSnrRatioWeight(obj, snr )
             q = 10.^( -( snr - obj.snr_1 ) / obj.snr_a ) .* ...
                 (  (obj.snr_A / 10.^( -(obj.snr_0 - obj.snr_1 ) / obj.snr_a ) - 1 ) ./ ( obj.snr_0 - obj.snr_1 ) .* ( snr - obj.snr_1 ) + 1 );
             q(snr >= obj.snr_1) = 1;
         end
-    end
-    
+    end    
 end
-

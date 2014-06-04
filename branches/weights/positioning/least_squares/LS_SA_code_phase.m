@@ -108,8 +108,9 @@ b = [b_pr; b_ph(index)];
 y0 = [pr; lambda.*ph(index)];
 
 %observation noise covariance matrix
+weightMatrix = CWeightMatrix(); % TBD - remove once the fuction will be part of a class
 Q = zeros(n);
-Q1 = cofactor_matrix_SA(elR, snr);
+Q1 = weightMatrix.getCofactorMatrixSA( elR, snr );
 Q2 = Q1(index,index);
 Q(1:nsat_pr,1:nsat_pr) = sigmaq_cod1 * Q1;
 Q(nsat_pr+1:end,nsat_pr+1:end) = sigmaq_ph * Q2;

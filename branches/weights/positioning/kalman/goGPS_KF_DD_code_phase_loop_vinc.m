@@ -76,6 +76,7 @@ global azR elR distR azM elM distM
 global PDOP HDOP VDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
+global weights
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -561,8 +562,9 @@ if (nsat >= min_nsat)
         % OBSERVATION COVARIANCE MATRIX
         %------------------------------------------------------------------------------------
         
-        %construction of the cofactor matrix
-        Q = cofactor_matrix(elR(sat_pr), elM(sat_pr), snr_R(sat_pr), snr_M(sat_pr), pivot_index);
+        %construction of the cofactor matrix        
+        weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
+        Q = weightMatrix.getCofactorMatrixDD( length(sat_pr) - 1, elR(sat_pr), elM(sat_pr), snr_R(sat_pr), snr_M(sat_pr) );
         
         %zeroes vector useful in matrix definitions
         Z_n_n = zeros(n,n);

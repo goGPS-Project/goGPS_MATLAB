@@ -83,6 +83,7 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_multibaseline(Ant, F, XS, XM, ...
 
 % %variable initialization
 % global sigmaq_cod1 sigmaq_ph
+global weights
 
 %number of baseline (n)
 n = Ant-1; %---> INPUT: ant = numbers of antenna      
@@ -163,8 +164,9 @@ y0([pivot_index, pivot_index+m/2]) = [];
 m = (m - 2);
  
 %observation noise covariance matrix
+weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
 Q  = zeros(m);
-Q1 = cofactor_matrix(elR1, elM, snr_R1, snr_M, pivot_index);
+Q1 = weightMatrix.getCofactorMatrixDD( m/2, elR1, elM, snr_R1, snr_M );
 Q(1:m/2,1:m/2) = sigmaq_cod1 * Q1;
 Q(m/2+1:end,m/2+1:end) = sigmaq_ph * Q1;
 

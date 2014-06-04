@@ -64,7 +64,7 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_code_phase_MR(XR_approx, F, XM, XS, ..
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global sigmaq_cod1 sigmaq_ph
+global sigmaq_cod1 sigmaq_ph weights
 
 %number of baselines (n)
 n = size(XR_approx,2);
@@ -173,11 +173,11 @@ m = (m - 2);
 y = reshape((y0 - b),m,n);
 
 %observation noise covariance matrix
+weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
 Q  = zeros(m);
-Q1 = cofactor_matrix(elR(:,1), elM, snr_R(:,1), snr_M, pivot_index);
+Q1 = weightMatrix.getCofactorMatrixDD( m/2, elR, elM, snr_R, snr_M );
 Q(1:m/2,1:m/2) = sigmaq_cod1 * Q1;
 Q(m/2+1:end,m/2+1:end) = sigmaq_ph * Q1;
-Q;
 P  = 0.5*(eye(n)+ones(n));
 Qy = kron(P,Q);
 
@@ -189,8 +189,6 @@ for k = 1 : length(F(1,:))
         end
     end
 end
-
-Fn;
 
 %attitude-based float solution
 Gp = (eye(m) - A*(A'*Q^-1*A)^-1*A'*Q^-1)*G;

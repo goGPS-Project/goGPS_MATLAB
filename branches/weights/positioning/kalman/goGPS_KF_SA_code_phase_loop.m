@@ -515,7 +515,8 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         
         %construction of the cofactor matrix
-        Q = cofactor_matrix_SA(elR(sat_pr), snr(sat_pr));
+        weightMatrix = CWeightMatrix(); % TBD - remove once the fuction will be part of a class
+        Q = weightMatrix.getCofactorMatrixSA( elR(sat_pr), snr(sat_pr) );
         
         %zeroes vector useful in matrix definitions
         Z_n_n = zeros(n,n);

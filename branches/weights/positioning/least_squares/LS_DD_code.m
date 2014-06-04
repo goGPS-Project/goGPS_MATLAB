@@ -48,6 +48,8 @@ function [xR, cov_XR] = LS_DD_code(XR_approx, XS, pr_R, pr_M, snr_R, snr_M, elR,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global weights
+
 %number of observations
 n = length(pr_R);
 
@@ -80,7 +82,8 @@ y0(pivot_index)   = [];
 n = n - 1;
 
 %observation covariance matrix
-Q = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
+weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
+Q = weightMatrix.getCofactorMatrixDD( n, elR, elM, snr_R, snr_M );
 
 %normal matrix
 N = (A'*(Q^-1)*A);

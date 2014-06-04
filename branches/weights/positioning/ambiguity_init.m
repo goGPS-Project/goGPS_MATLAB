@@ -63,6 +63,7 @@ function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, 
 
 global sigmaq_cod1 sigmaq_ph
 global amb_restart_method
+global weights
 
 N_stim_slip = [];
 N_stim_born = [];
@@ -212,8 +213,9 @@ else
     n = length(y0);
     
     %observation noise covariance matrix
-    Q = zeros(n);
-    Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index_pr);
+    weightMatrix = CWeightMatrix(pivot_index_pr, weights); % TBD - remove once the fuction will be part of a class
+    Q = zeros(n);    
+    Q1 = weightMatrix.getCofactorMatrixDD( n / 2 , elR, elM, snr_R, snr_M );
     Q2 = Q1(index,index);
     
     Q(1:nsat_pr-1,1:nsat_pr-1) = sigmaq_cod1 * Q1;

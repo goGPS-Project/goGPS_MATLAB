@@ -72,7 +72,8 @@ b = distR - v_light*dtS + err_tropo_RS + err_iono_RS;
 y0 = pr_R;
 
 %observation covariance matrix
-Q = cofactor_matrix_SA(elR, snr_R);
+weightMatrix = CWeightMatrix(); % TBD - remove once the fuction will be part of a class
+Q = weightMatrix.getCofactorMatrixSA( elR, snr_R );
 
 %normal matrix
 N = (A'*(Q^-1)*A);

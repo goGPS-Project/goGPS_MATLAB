@@ -64,7 +64,7 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-global sigmaq_cod1 sigmaq_ph
+global sigmaq_cod1 sigmaq_ph weights
 
 if (nargin < 19)
     flag_Tykhon = 0;    %<--- set 1 to force Tykhonov (experimental)
@@ -122,8 +122,9 @@ y0([pivot_index, pivot_index+n/2])    = [];
 n = n - 2;
 
 %observation noise covariance matrix
+weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
 Q = zeros(n);
-Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
+Q1 = weightMatrix.getCofactorMatrixDD( n/2, elR, elM, snr_R, snr_M );
 Q(1:n/2,1:n/2) = sigmaq_cod1 * Q1;
 Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q1;
 
