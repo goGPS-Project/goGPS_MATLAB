@@ -36,9 +36,10 @@ classdef goGUIclass < handle
         % Colors
         disableCol = [0.502 0.502 0.502];   % Grey (disabled color)
         enableCol = [0 0 0];                % Black (enabled color)
-        green = [0 0.8 0];                  % Green - for flas
-        yellow = [1 0.8 0.1];               % Yellow - for flas
-        red = [1 0 0];                      % Red - for flas
+        green = [0 0.8 0];                  % Green - for flag
+        yellow = [1 0.8 0.1];               % Yellow - for flag
+        red = [1 0 0];                      % Red - for flag
+        blue = [0 0 1];                     % Blue - for flag
         
         % goGPS Modes
     end
@@ -156,7 +157,7 @@ classdef goGUIclass < handle
         ledOk  = 3;          % Led status ok
         ledKo  = 4;          % Led status ko
         ledCk  = 5;          % Led status check
-
+        ledOp  = 6;          % Led status optional parameter
     end
     
     properties (GetAccess = 'public', SetAccess = 'private')
@@ -677,13 +678,19 @@ classdef goGUIclass < handle
             
             idG.RefPath = [id.tRefPath id.fRefPath];
             
+            % PCO/PCV file ------------------------------------------------
+            i=i+1; id.tPCO          = i;    id2h(i) = obj.goh.tPCO;
+            i=i+1; id.fPCO          = i;    id2h(i) = obj.goh.fPCO;
+            
+            idG.PCO = [id.tPCO id.fPCO];
+            
             % Group of ids in the panel pIOFiles
-            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.BinGoIn idG.GoOut idG.DTM idG.RefPath];
+            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.BinGoIn idG.GoOut idG.DTM idG.RefPath idG.PCO];
             
             % For a correct LED management these following id groups must be synchronized 
-            idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath];
+            idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO];
             idG.gBinLED =  [id.fBinGoIn];
-            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fBinGoIn];
+            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBinGoIn];
             idG.gDirLED =  [id.fDirGoOut];
             idG.gLED = [idG.gFileLED idG.gBinLED idG.gDirLED];
 
@@ -1048,7 +1055,7 @@ classdef goGUIclass < handle
           
             
             % On RINEX / BIN
-            idG.onRin = [idG.RinRover idG.RinMaster idG.RinNav];
+            idG.onRin = [idG.RinRover idG.RinMaster idG.RinNav idG.PCO];
             idG.onBin = [idG.BinGoIn];
 
             [idG.gPanels idG.strEl idG.valEl] = obj.autoElClassification(id2h);
@@ -1452,7 +1459,7 @@ classdef goGUIclass < handle
         function isOk  = okGo(obj, idEl)
             isOk = ~obj.isEnabled(idEl);
             if ~isOk
-                isOk = obj.isColor(idEl, obj.green);
+                isOk = obj.isColor(idEl, obj.green) || obj.isColor(idEl, obj.blue);
             end
         end
                        
@@ -2245,6 +2252,23 @@ classdef goGUIclass < handle
                                     obj.setGUILedStatus(obj.idUI.fRefPath, obj.ledCk, 0);
                                 end
                             end
+                            
+                            % PCO/PCV file ------------------------------------
+                            data_path = goIni.getData('PCO_PCV_file','data_path');
+                            file_name = goIni.getData('PCO_PCV_file','file_name');
+                            if (isempty(data_path))
+                                data_path = '';
+                            end
+                            if (isempty(file_name))
+                                obj.setGUILedStatus(obj.idUI.fPCO, obj.ledOp, 0);
+                            else
+                                % Check the presence of all the files
+                                if exist([data_path file_name],'file')
+                                    obj.setGUILedStatus(obj.idUI.fPCO, obj.ledOk, 0);
+                                else
+                                    obj.setGUILedStatus(obj.idUI.fPCO, obj.ledCk, 0);
+                                end
+                            end
                         end
                     else
                         obj.setGUILedStatus(obj.idUI.fINI, obj.ledCk, 0);
@@ -2425,6 +2449,10 @@ classdef goGUIclass < handle
             elseif (status == obj.ledCk) % Led Check
                 if ~obj.isColor(idEl, obj.yellow)
                     obj.setElVal(idEl,obj.yellow)
+                end
+            elseif (status == obj.ledOp) % Led Optional parameter
+                if ~obj.isColor(idEl, obj.blue)
+                    obj.setElVal(idEl,obj.blue)
                 end
             end
             obj.setAllElContent();
@@ -2837,6 +2865,9 @@ classdef goGUIclass < handle
                 filename_ref = [data_path file_name];
                 data_path = goIni.getData('DTM','data_path');
                 dtm_dir = data_path;
+                data_path = goIni.getData('PCO_PCV_file','data_path');
+                file_name = goIni.getData('PCO_PCV_file','file_name');
+                filename_pco = [data_path file_name];
             end
             %serial communication
             % global COMportR
@@ -2990,6 +3021,9 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('RefPath','data_path');
                 file_name = goIni.getData('RefPath','file_name');
                 filename_ref = [data_path file_name];
+                data_path = goIni.getData('PCO_PCV_file','data_path');
+                file_name = goIni.getData('PCO_PCV_file','file_name');
+                filename_pco = [data_path file_name];
                 if(obj.isMultiReceiver)
                     [multi_antenna_rf, ~] = goIni.getGeometry();
                 else
@@ -3001,6 +3035,7 @@ classdef goGUIclass < handle
                 filename_M_obs = '';
                 filename_nav = '';
                 filename_ref = '';
+                filename_pco = '';
                 flag_SP3 = 0;
                 rates = get(obj.goh.pumCaptureRate,'String');                
                 goIni.setCaptureRate(rates{get(obj.goh.pumCaptureRate,'Value')});
@@ -3077,7 +3112,7 @@ classdef goGUIclass < handle
             end
             protocol_idx = protocol_idx(~isnan(protocol_idx));
             
-            funout = cell(26,1);
+            funout = cell(27,1);
             
             funout{1} = mode;
             funout{2} = mode_vinc;
@@ -3102,9 +3137,10 @@ classdef goGUIclass < handle
             funout{21} = filename_M_obs;
             funout{22} = filename_nav;
             funout{23} = filename_ref;
-            funout{24} = pos_M_man;
-            funout{25} = protocol_idx;
-            funout{26} = multi_antenna_rf;
+            funout{24} = filename_pco;
+            funout{25} = pos_M_man;
+            funout{26} = protocol_idx;
+            funout{27} = multi_antenna_rf;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
