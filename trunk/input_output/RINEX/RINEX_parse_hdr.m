@@ -1,7 +1,7 @@
-function [Obs_types, pos_M, ifound_types, interval, sysId, antoff] = RINEX_parse_hdr(file)
+function [Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod] = RINEX_parse_hdr(file)
 
 % SYNTAX:
-%   [Obs_types, pos_M, ifound_types, interval, sysId, antoff] = RINEX_parse_hdr(file);
+%   [Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod] = RINEX_parse_hdr(file);
 %
 % INPUT:
 %   file = pointer to RINEX observation file
@@ -15,6 +15,7 @@ function [Obs_types, pos_M, ifound_types, interval, sysId, antoff] = RINEX_parse
 %   interval = observation interval in seconds
 %   sysId = cell-array containing one-letter identifiers for constellations
 %   antoff = antenna offset [m]
+%   antmod = antenna model [string]
 %
 % DESCRIPTION:
 %   RINEX observation file header analysis.
@@ -105,7 +106,12 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
 
     answer = strfind(line,'ANT # / TYPE');
     if ~isempty(answer)
-        anttyp = sscanf(line(21:40),'%f');
+        antmod = sscanf(line(21:35),'%c');
+        radtyp = sscanf(line(36:40),'%c');
+        if (isempty(find(radtyp ~= ' ', 1)))
+            radtyp = ' NONE';
+        end
+        antmod = [antmod radtyp];
     end
     
     answer = strfind(line,'INTERVAL');

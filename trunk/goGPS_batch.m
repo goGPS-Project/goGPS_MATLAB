@@ -90,6 +90,10 @@ data_path = goIni.getData('RefPath','data_path');
 file_name = goIni.getData('RefPath','file_name');
 filename_ref = [data_path file_name];
 
+data_path = goIni.getData('PCO_PCV_file','data_path');
+file_name = goIni.getData('PCO_PCV_file','file_name');
+filename_pco = [data_path file_name];
+
 %-------------------------------------------------------------------------------
 % FUNCTIONING MODE
 %-------------------------------------------------------------------------------
@@ -116,7 +120,7 @@ if (~flag_ms_pos)
     [markers, coords_X, coords_Y, coords_Z] = textread(sta_coord_file,'%s%f%f%f');
     
     %find the correct marker
-    marker_idx = find(strcmp(markers, 'MILA'));
+    marker_idx = find(strcmp(markers, markerM));
     
     %extract the corresponding coordinates
     XM = coords_X(marker_idx);
@@ -321,6 +325,8 @@ for doy = doy_start : 1 : doy_end
     
     idx = size(date_R,1);
     fprintf(fid_extract,'%02d/%02d/%02d    %02d:%02d:%06.3f% 16.4f% 16.4f% 16.4f\n', date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx));
+    
+    delete([filerootOUT '_*.bin']);
 end
 
 fclose(fid_extract);

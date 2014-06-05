@@ -1,10 +1,10 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-          time_ref, time, week, date, pos, interval, antoff] = ...
+          time_ref, time, week, date, pos, interval, antoff, antmod] = ...
           load_RINEX_obs(filename, constellations, wait_dlg)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-%    time_ref, time, week, date, pos, interval, antoff] = ...
+%    time_ref, time, week, date, pos, interval, antoff, antmod] = ...
 %    load_RINEX_obs(filename, constellations, wait_dlg);
 %
 % INPUT:
@@ -28,12 +28,13 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   pos = rover approximate position
 %   interval = observation time interval [s]
 %   antoff = antenna offset [m]
+%   antmod = antenna model [string]
 %
 % DESCRIPTION:
 %   Parses RINEX observation files.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
@@ -90,6 +91,7 @@ date = zeros(nEpochs,6,nFiles);
 pos = zeros(3,1,nFiles);
 interval = zeros(1,1,nFiles);
 antoff = zeros(3,1,nFiles);
+antmod = cell(1,1,nFiles);
 
 for f = 1 : nFiles
 
@@ -109,7 +111,7 @@ for f = 1 : nFiles
     end
     
     %parse RINEX header
-    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f)] = RINEX_parse_hdr(fid);
+    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}] = RINEX_parse_hdr(fid);
     
     %check the availability of basic data to parse the RINEX file
     if (basic_info == 0)

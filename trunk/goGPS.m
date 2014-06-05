@@ -106,17 +106,17 @@ if (mode_user == 1)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS;
+            filename_nav, filename_ref, filename_pco, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS;
     elseif (ismac)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS_unix_mac;
+            filename_nav, filename_ref, filename_pco, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS_unix_mac;
     else %linux
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS_unix_linux;
+            filename_nav, filename_ref, filename_pco, pos_M_man, protocol_idx, multi_antenna_rf] = gui_goGPS_unix_linux;
     end
 
     global goIni; %#ok<TLEV>
@@ -281,9 +281,12 @@ if goGNSS.isPP(mode) % post-processing
             
             %read observation RINEX file(s)
             [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
-             time_GPS, time_R, week_R, date_R, pos_R, interval] = ...
+             time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R] = ...
              load_RINEX_obs(filename_obs, constellations);
-            
+         
+            %read antenna phase center offset (NOTE: reading only L1 offset for now)
+            antPCO_R = read_antenna_PCO(filename_pco, antmod_R);
+
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
             
@@ -316,8 +319,11 @@ if goGNSS.isPP(mode) % post-processing
             
             %read observation RINEX file(s)
             [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
-             time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM] = ...
+             time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
+         
+            %read antenna phase center offset (NOTE: reading only L1 offset for now)
+            antPCO_RM = read_antenna_PCO(filename_pco, antmod_RM);
          
             pr1_R = pr1_RM(:,:,1:end-1); pr1_M = pr1_RM(:,:,end);
             ph1_R = ph1_RM(:,:,1:end-1); ph1_M = ph1_RM(:,:,end);
@@ -332,10 +338,11 @@ if goGNSS.isPP(mode) % post-processing
             date_R = date_RM(:,:,1:end-1); date_M = pos_RM(:,:,end);
             pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
+            antPCO_R = antPCO_RM(:,1,1:end-1); antPCO_M = antPCO_RM(:,1,end);
             
             %apply the antenna offset from the marker (if available)
-            if (exist('is_batch','var') && any(pos_M_off) && any(antoff_M))
-                pos_M_man = local2globalPos(antoff_M, pos_M_off);
+            if (exist('is_batch','var') && any(pos_M_off) && (any(antoff_M) || any(antPCO_M)))
+                pos_M_man = local2globalPos(antoff_M+antPCO_M, pos_M_off);
             end
             
             %retrieve multi-constellation wavelengths
@@ -680,8 +687,15 @@ if goGNSS.isPP(mode) % post-processing
             pos_M(1,1:length(time_GPS)) = pos_M_man(1);
             pos_M(2,1:length(time_GPS)) = pos_M_man(2);
             pos_M(3,1:length(time_GPS)) = pos_M_man(3);
+            if (exist('is_batch','var') && any(pos_M_off))
+                pos_M_disp = pos_M_off;
+            else
+                pos_M_disp(1,1) = pos_M_man(1,1);
+                pos_M_disp(2,1) = pos_M_man(2,1);
+                pos_M_disp(3,1) = pos_M_man(3,1);
+            end
             fprintf('Master position fixed to user-defined values:\n');
-            fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
+            fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_disp(1,1), pos_M_disp(2,1), pos_M_disp(3,1));
         end
 
         %if master station data are not available
@@ -2379,6 +2393,8 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         else
             pos_REF(:,i) = pos_KAL(:,1);
         end
+        %apply rover antenna offset
+        pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R(:,1,1)), pos_KAL(:,i));
     end
 end
 
@@ -2452,8 +2468,10 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     end
     fclose(fid_out);
     
-    % Save in matlab format all the outputs
-    save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate');
+    if (~exist('is_batch','var'))
+        % Save in matlab format all the outputs
+        save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate');
+    end
 end
 
 %----------------------------------------------------------------------------------------------
@@ -2635,7 +2653,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 %if any positioning was done (either post-processing or real-time)
-if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && ~exist('is_batch','var')
     %display information
     fprintf('Writing NMEA file...\n');
     %file saving
@@ -2689,7 +2707,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 %if any positioning was done (either post-processing or real-time)
-if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
+if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && ~exist('is_batch','var')
     %display information
     fprintf('Writing KML file...\n');
     %"clampToGround" plots the points attached to the ground
