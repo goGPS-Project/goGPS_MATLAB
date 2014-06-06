@@ -1,17 +1,18 @@
-function [time, datee, num_sat, sat, sat_types] = RINEX_get_epoch(fid)
+function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 
 % SYNTAX:
-%   [time, datee, num_sat, sat, sat_types] = RINEX_get_epoch(fid);
+%   [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid);
 %
 % INPUT:
 %   fid = pointer to the observation RINEX file
 %
 % OUTPUT:
-%   time = observation GPS time
+%   time = observation GPS time (continuous)
 %   datee = date (year,month,day,hour,minute,second)
 %   num_sat = number of available satellites (NOTE: RINEX v3.xx does not output 'sat' and 'sat_types')
 %   sat = list of all visible satellites
 %   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
+%   tow = observation GPS time (seconds-of-week)
 %
 % DESCRIPTION:
 %   Scan the first line of each epoch (RINEX) and return
