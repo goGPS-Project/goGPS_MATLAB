@@ -3157,7 +3157,7 @@ classdef goGUIclass < handle
             else
                 sigmaq_ph = 1e30;
             end
-            sigmaq0_N = 100;
+            sigmaq0_N = 1000;
             if (get(obj.goh.toggle_std_dtm,'Value'))
                 sigmaq_dtm = str2double(get(obj.goh.std_dtm,'String'))^2;
             else

@@ -89,7 +89,7 @@ sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 %covariance matrix of the estimation error
 if (n > m)
     Cxx = sigma02_hat*(N^-1);
-    var_dtR = Cxx(1,1);
+    var_dtR = Cxx(1,1) / v_light;
 else
     var_dtR = []; 
 end
