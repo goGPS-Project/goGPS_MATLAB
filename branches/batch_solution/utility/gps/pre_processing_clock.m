@@ -303,16 +303,19 @@ for s = 1 : nSatTot
             
             if (flag_jumps_ph1 || flag_jumps_pr1)
                 ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
+                if (any(dop1(s,index)))
+                    dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
+                end
             end
 
-            ph1(s,:) = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            ph1(s,:) = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
             
             index_s = find(ph1(s,:) ~= 0);
             index = intersect(index_e,index_s);
 
             ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), 10);
 
-            %pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
         else
             bad_sats(s) = 1;
         end
@@ -331,16 +334,19 @@ for s = 1 : nSatTot
             
             if (flag_jumps_ph2 || flag_jumps_pr2)
                 ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
+                if (any(dop2(s,index)))
+                    dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
+                end
             end
             
-            ph2(s,:) = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            ph2(s,:) = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
             
             index_s = find(ph2(s,:) ~= 0);
             index = intersect(index_e,index_s);
             
             ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), 10);
 
-            %pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
         else
             bad_sats(s) = 1;
         end
@@ -359,36 +365,66 @@ ph2 = ph2_interp;
 end
 
 
-function [ph] = detect_and_fix_cycle_slips(time, pr, ph, el, err_iono, lambda)
+function [ph] = detect_and_fix_cycle_slips(time, pr, ph, dop, el, err_iono, lambda)
 
 global cutoff
 
-flag_plot = 0;
+flag_plot = 1;
 
-N_mat = zeros(size(ph));
 cutoff_idx = find(el(1,:) > cutoff);
 avail_idx = find(ph(1,:) ~= 0);
 idx = intersect(cutoff_idx, avail_idx);
+
+N_mat = zeros(size(ph));
 N_mat(1,idx) = (pr(1,idx) - lambda(1,1).*ph(1,idx) - 2.*err_iono(1,idx))./lambda(1,1);
+
 if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     
     buf = 1; %epochs
     delta_thres = 10; %cycles
 
-    delta = diff(N_mat(1,:))';
+    %detection
+    if (~any(dop))
+        
+        delta = diff(N_mat(1,:))';
+        
+        ignored_peak_val = min(N_mat(1,N_mat(1,:)~=0));
+    else
+        pred_phase = ph - dop;
+        delta_all = (pred_phase(1:end-1) - ph(2:end))';
+        delta = delta_all;
+%         delta = zeros(size(ph))';
+%         delta(cutoff_idx(1:end-1)) = delta_all(cutoff_idx(1:end-1));
+        
+        ignored_peak_val = 1e+06;
+    end
+    
     delta_sigma = delta;
-    delta_sigma(abs(delta_sigma) > min(N_mat(1,N_mat(1,:)~=0))) = 0;
-    sigma = std(delta_sigma(delta_sigma ~= 0));
+    pos_peaks = find(abs(delta_sigma) > ignored_peak_val);
+    delta_sigma(pos_peaks) = 0;
+    not_zero = find(delta_sigma ~= 0);
+    delta_sigma(not_zero) = delta_sigma(not_zero) - median(delta_sigma(not_zero));
+%     p = polyfit(not_zero, delta_sigma(not_zero), 3);
+%     y = p(1).*not_zero.^3 + p(2).*not_zero.^2 + p(3).*not_zero + p(4);
+%     delta_sigma(not_zero) = delta_sigma(not_zero) - y;
+%     sigma = std(delta_sigma(not_zero));
     
-    jump_thres = 3*sigma;
-    jmp = find(abs(delta) > jump_thres);
+    [~,~,outliers] = deleteoutliers(delta_sigma(not_zero),0.001);
+    [~,jmp] = intersect(delta_sigma,outliers);
     
+%     jump_thres = 10*sigma;
+%     jmp = find(abs(delta_sigma) > jump_thres);
+
+    jmp = [jmp; pos_peaks];
+    jmp = sort(jmp);
+
     if (flag_plot)
         figure
-        plot(delta)
+        plot(delta_sigma)
         hold on
-        plot([1 length(delta)],[jump_thres jump_thres],'r--');
-        plot([1 length(delta)],[-jump_thres -jump_thres],'r--');
+        plot(jmp,delta_sigma(jmp),'rx')
+%         plot([1 length(delta)],[jump_thres jump_thres],'r--');
+%         plot([1 length(delta)],[-jump_thres -jump_thres],'r--');
         
         figure
         idx_plot = N_mat~=0;
@@ -401,6 +437,11 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     N_before_zero = 0;
     N_after_zero = 0;
     
+    if (isempty(jmp))
+        return
+    end
+
+    %fixing
     for j = jmp'
         if (j <= buf || j >= length(ph)-buf)
             check = 0;
