@@ -381,7 +381,7 @@ N_mat(1,idx) = (pr(1,idx) - lambda(1,1).*ph(1,idx) - 2.*err_iono(1,idx))./lambda
 if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     
     buf = 1; %epochs
-    delta_thres = 10; %cycles
+    delta_thres = 1e30; %cycles
 
     %detection
     if (~any(dop))
@@ -408,9 +408,13 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 %     y = p(1).*not_zero.^3 + p(2).*not_zero.^2 + p(3).*not_zero + p(4);
 %     delta_sigma(not_zero) = delta_sigma(not_zero) - y;
 %     sigma = std(delta_sigma(not_zero));
-    
-    [~,~,outliers] = deleteoutliers(delta_sigma(not_zero),0.001);
-    [~,jmp] = intersect(delta_sigma,outliers);
+
+    if (~isempty(delta_sigma(not_zero)))
+        [~,~,outliers] = deleteoutliers(delta_sigma(not_zero),0.001);
+        [~,jmp] = intersect(delta_sigma,outliers);
+    else
+        return
+    end
     
 %     jump_thres = 10*sigma;
 %     jmp = find(abs(delta_sigma) > jump_thres);
@@ -427,8 +431,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 %         plot([1 length(delta)],[-jump_thres -jump_thres],'r--');
         
         figure
-        idx_plot = N_mat~=0;
-        plot(N_mat(idx_plot));
+        idx_plot = find(N_mat~=0);
+        plot(idx_plot, N_mat(idx_plot));
         
         coltab = colorcube(2*length(jmp));
         c = 1;
@@ -471,8 +475,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                     
                     if (flag_plot)
                         hold on
-                        idx_plot = N_mat~=0;
-                        plot(N_mat(idx_plot),'Color',coltab(2*c-1,:));
+                        idx_plot = find(N_mat~=0);
+                        plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
                         
                         c = c + 1;
                     end
@@ -493,8 +497,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 
                 if (flag_plot)
                     hold on
-                    idx_plot = N_mat~=0;
-                    plot(N_mat(idx_plot),'Color',coltab(2*c-1,:));
+                    idx_plot = find(N_mat~=0);
+                    plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
                     
                     c = c + 1;
                 end
@@ -513,8 +517,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 
                 if (flag_plot)
                     hold on
-                    idx_plot = N_mat~=0;
-                    plot(N_mat(idx_plot),'Color',coltab(2*c-1,:));
+                    idx_plot = find(N_mat~=0);
+                    plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
                     
                     c = c + 1;
                 end
