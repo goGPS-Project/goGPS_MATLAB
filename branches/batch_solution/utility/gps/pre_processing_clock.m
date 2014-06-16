@@ -379,56 +379,39 @@ N_mat = zeros(size(ph));
 N_mat(1,idx) = (pr(1,idx) - lambda(1,1).*ph(1,idx) - 2.*err_iono(1,idx))./lambda(1,1);
 
 if (~isempty(N_mat(1,N_mat(1,:)~=0)))
-    
-    buf = 1; %epochs
+
     delta_thres = 1e30; %cycles
 
     %detection
-    if (~any(dop))
+%     if (~any(dop) || (sum(~~dop) ~= sum(~~ph)))
         
         delta = diff(N_mat(1,:))';
-        
-        ignored_peak_val = min(N_mat(1,N_mat(1,:)~=0));
-    else
-        pred_phase = ph - dop;
-        delta_all = (pred_phase(1:end-1) - ph(2:end))';
-        delta = delta_all;
-%         delta = zeros(size(ph))';
-%         delta(cutoff_idx(1:end-1)) = delta_all(cutoff_idx(1:end-1));
-        
-        ignored_peak_val = 1e+06;
-    end
+%     else
+%         interval = diff(time);
+%         interval = [interval; interval(end)]';
+%         pred_phase = ph - dop.*interval;
+%         delta_all = (pred_phase(1:end-1) - ph(2:end))';
+%         delta = delta_all;
+%     end
     
-    delta_sigma = delta;
-    pos_peaks = find(abs(delta_sigma) > ignored_peak_val);
-    delta_sigma(pos_peaks) = 0;
-    not_zero = find(delta_sigma ~= 0);
-    delta_sigma(not_zero) = delta_sigma(not_zero) - median(delta_sigma(not_zero));
-%     p = polyfit(not_zero, delta_sigma(not_zero), 3);
-%     y = p(1).*not_zero.^3 + p(2).*not_zero.^2 + p(3).*not_zero + p(4);
-%     delta_sigma(not_zero) = delta_sigma(not_zero) - y;
-%     sigma = std(delta_sigma(not_zero));
+    delta_test = delta;
+    not_zero = find(delta_test ~= 0);
+    %delta_test(not_zero) = delta_test(not_zero) - median(delta_test(not_zero));
 
-    if (~isempty(delta_sigma(not_zero)))
-        [~,~,outliers] = deleteoutliers(delta_sigma(not_zero),0.001);
-        [~,jmp] = intersect(delta_sigma,outliers);
+    if (~isempty(delta_test(not_zero)))
+        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+        [~,jmp] = intersect(delta_test,outliers);
     else
         return
     end
     
-%     jump_thres = 10*sigma;
-%     jmp = find(abs(delta_sigma) > jump_thres);
-
-    jmp = [jmp; pos_peaks];
     jmp = sort(jmp);
 
     if (flag_plot)
         figure
-        plot(delta_sigma)
+        plot(delta_test)
         hold on
-        plot(jmp,delta_sigma(jmp),'rx')
-%         plot([1 length(delta)],[jump_thres jump_thres],'r--');
-%         plot([1 length(delta)],[-jump_thres -jump_thres],'r--');
+        plot(jmp,delta_test(jmp),'rx')
         
         figure
         idx_plot = find(N_mat~=0);
@@ -447,23 +430,20 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     %fixing
     for j = jmp'
-        if (j <= buf || j >= length(ph)-buf)
+        if (j <= 1 || j >= length(ph)-1)
             check = 0;
             pos_zeros = [];
         else
-            pos_zeros = find(N_mat(1,j-buf:j+buf) == 0,1,'last');
+            pos_zeros = find(N_mat(1,j-1:j+1) == 0,1,'last');
             check = isempty(pos_zeros);
         end
         if (ismember(j,cutoff_idx) || N_before_zero ~= 0)
             if (check)
-                %if (ph(1,j) ~= 0 && ph(1,j+1) ~= 0)
                 ph_propos = ph(1,j+1) + delta(j);
                 if (j == 1)
                     ph_propag = ph_propos;
-                    %d_propag = d_propos;
                 else
                     ph_propag = interp1(time(j-1:j),ph(1,j-1:j),time(j+1),'linear','extrap');
-                    %d_propag = ph(1,j+1) - 2*ph(1,j) + ph(1,j-1);
                 end
                 if (abs(ph_propos - ph_propag) < delta_thres)
                     idx = (N_mat(1,:)==0);
