@@ -71,6 +71,9 @@ dtRdot = zeros(nEpochs-1,1);
 %vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
 bad_sats = zeros(nSatTot,1);
 
+%vector with bad epochs definition
+bad_epochs=zeros(nEpochs,1);
+
 %--------------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
 %--------------------------------------------------------------------------------------------
@@ -106,8 +109,10 @@ for i = 1 : nEpochs
     min_nsat_LS = 3 + n_sys;
     
     if (length(sat0) >= min_nsat_LS)
+
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
         
-        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0);
+        %bad_sats(bad_sat_i)=1;
         
         if (~isempty(dtR_tmp))
             dtR(i) = dtR_tmp;
@@ -146,7 +151,7 @@ for i = 1 : nEpochs
     end
 end
 
-bad_epochs = (var_dtR(:,1) > 5e-6);
+%bad_epochs = (var_dtR(:,1) > 5e-6);
 
 %----------------------------------------------------------------------------------------------
 % RECEIVER CLOCK DRIFT DISCONTINUITIES

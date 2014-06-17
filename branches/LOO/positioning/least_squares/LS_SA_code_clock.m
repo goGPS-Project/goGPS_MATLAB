@@ -1,4 +1,4 @@
-function [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys)
+function [dtR, var_dtR, bad_obs, bad_epoch] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold)
 
 % SYNTAX:
 %   [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys);
@@ -25,6 +25,8 @@ function [dtR, var_dtR] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tro
 %                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Stefano Caldera
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -73,18 +75,60 @@ y0 = pr_R;
 
 %observation covariance matrix
 Q = cofactor_matrix_SA(elR, snr_R);
+invQ=diag((diag(Q).^-1));
 
 %normal matrix
-N = (A'*(Q^-1)*A);
+N = (A'*(invQ)*A);
 
-%least squares solution
-x   = (N^-1)*A'*(Q^-1)*(y0-b);
+
+if nargin<8 || (n == m) || exist('SPP_threshold','var')==0
+    %least squares solution
+    x   = (N^-1)*A'*(invQ)*(y0-b);
+    %estimation of the variance of the observation error
+    y_hat = A*x + b;
+    v_hat = y0 - y_hat;
+    sigma02_hat = (v_hat'*(invQ)*v_hat) / (n-m);
+    
+    if n==m
+        bad_epoch=1;
+    else
+        bad_epoch=0;
+    end
+    bad_obs=[];
+else    
+    %------------------------------------------------------------------------------------
+    % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
+    %------------------------------------------------------------------------------------
+    search_for_outlier=1;
+    bad_obs=[];
+    
+    while search_for_outlier==1
+        [index_outlier,x,sigma02_hat]=OLOO(A, y0-b, Q);
+        if index_outlier~=0
+            bad_obs=[bad_obs;index_outlier];
+            %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
+            A(index_outlier,:)=[];
+            y0(index_outlier,:)=[];
+            b(index_outlier,:)=[];
+            Q(index_outlier,:)=[];
+            Q(:,index_outlier)=[];
+            invQ=diag((diag(Q).^-1));
+            [n,m]=size(A);
+        else
+            search_for_outlier=0;
+        end
+    end
+    N = (A'*(invQ)*A);
+    
+    if n>m
+        bad_epoch=(sigma02_hat>SPP_threshold^2);
+    else
+        bad_epoch=1;
+    end
+    
+end
+
 dtR = x(1) / v_light;
-
-%estimation of the variance of the observation error
-y_hat = A*x + b;
-v_hat = y0 - y_hat;
-sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 
 %covariance matrix of the estimation error
 if (n > m)
