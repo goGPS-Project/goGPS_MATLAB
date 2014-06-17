@@ -78,6 +78,7 @@ end
 %variable initialization
 nEpochs = 86400;
 time = zeros(nEpochs,1,nFiles);
+tow = zeros(nEpochs,1,nFiles);
 week = zeros(nEpochs,1,nFiles);
 pr1 = zeros(nSatTot,nEpochs,nFiles);
 pr2 = zeros(nSatTot,nEpochs,nFiles);
@@ -135,7 +136,7 @@ for f = 1 : nFiles
     while (~feof(fid))
         
         %read data for the current epoch (ROVER)
-        [time(k,1,f), date(k,:,f), num_sat, sat, sat_types] = RINEX_get_epoch(fid);
+        [time(k,1,f), date(k,:,f), num_sat, sat, sat_types, tow(k,1,f)] = RINEX_get_epoch(fid);
         
         if (k > nEpochs)
             %variable initialization (GPS)
@@ -193,7 +194,7 @@ end
 
 %sync observations
 [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval] = ...
-sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval);
+sync_obs(time, tow, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval);
 
 for f = 1 : nFiles
     holes = find(week(:,1,f) == 0);

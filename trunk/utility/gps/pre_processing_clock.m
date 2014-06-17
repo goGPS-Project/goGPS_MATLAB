@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -29,6 +29,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time
 %   dtR = receiver clock error
 %   dtRdot receiver clock drift
 %   bad_sats = vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
+%   bad_epochs = vector for flagging "bad" epochs (e.g. least-squares on code observations giving high condition number)
 %
 % DESCRIPTION:
 %   Pre-processing of code and phase observations to correct them for
@@ -54,7 +55,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats] = pre_processing_clock(time
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global cutoff snr_threshold n_sys
+global cutoff snr_threshold n_sys flag_doppler_cs
 
 v_light = goGNSS.V_LIGHT;
 
@@ -82,6 +83,12 @@ else
     flag_XR = 1;
 end
 
+err_iono = zeros(32,nEpochs);
+el = zeros(32,nEpochs);
+cond_num = zeros(nEpochs,1);
+cov_XR = zeros(3,3,nEpochs);
+var_dtR = zeros(nEpochs,1);
+
 for i = 1 : nEpochs
     
     %--------------------------------------------------------------------------------------------
@@ -100,10 +107,17 @@ for i = 1 : nEpochs
     
     if (length(sat0) >= min_nsat_LS)
         
-        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0);
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0);
         
         if (~isempty(dtR_tmp))
             dtR(i) = dtR_tmp;
+            err_iono(sat,i) = err_iono_tmp;
+            el(sat,i) = el_tmp;
+            cond_num(i,1) = cond_num_tmp;
+            if (~isempty(var_dtR_tmp))
+                cov_XR(:,:,i) = cov_XR_tmp;
+                var_dtR(i,1) = var_dtR_tmp;
+            end
         end
         
         if (size(sat,1) >= min_nsat_LS)
@@ -132,6 +146,8 @@ for i = 1 : nEpochs
     end
 end
 
+bad_epochs = (var_dtR(:,1) > 5e-6);
+
 %----------------------------------------------------------------------------------------------
 % RECEIVER CLOCK DRIFT DISCONTINUITIES
 %----------------------------------------------------------------------------------------------
@@ -153,17 +169,17 @@ end
 
 dtRdot(end+1) = dtRdot(end);
 
-%check if it is needed to correct observations for receiver clocks offsets
-% (some RINEX files contain clock-corrected observations, although they are
-%  not respecting the specifications); clock offsets lower than 1
-%  microsecond don't need to be corrected
-if (max(abs(dtR)) < 1e-6)
-    return
-end
+% %check if it is needed to correct observations for receiver clocks offsets
+% % (some RINEX files contain clock-corrected observations, although they are
+% %  not respecting the specifications); clock offsets lower than 1
+% %  microsecond don't need to be corrected
+% if (max(abs(dtR)) < 1e-6)
+%     return
+% end
 
 %check which observations must be corrected for receiver clock offsets
 % (some receivers have inconsistent observations, e.g. code with clock
-%  jumps, phase wihtout)
+%  jumps, phase without)
 
 %jump detection threshold
 j_thres = (clock_thresh*10)*v_light;
@@ -236,6 +252,12 @@ time_desync = time_ref - time;
 %reference time "correction"
 time_ref(index_e) = time(index_e) + dtR(index_e) + time_desync(index_e);
 
+%variables to store interpolated observations
+pr1_interp = zeros(size(pr1));
+ph1_interp = zeros(size(ph1));
+pr2_interp = zeros(size(pr2));
+ph2_interp = zeros(size(ph2));
+
 for s = 1 : nSatTot
 
     if (any(pr1(s,:)))
@@ -245,14 +267,11 @@ for s = 1 : nSatTot
         
         if (length(index) > 1)
             
-            if (flag_jumps_pr1)
+            if (flag_jumps_pr1 || flag_jumps_ph1)
                 pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
             end
-            % if (any(dop1(s,index)))
-            %     pr1(s,index) = pr1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index))*lambda(s,1);
-            % else
-            pr1(s,index) = interp1(time(index), pr1(s,index), time_ref(index), 'spline');
-            % end
+
+            pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), 10);
         else
             bad_sats(s) = 1;
         end
@@ -265,14 +284,11 @@ for s = 1 : nSatTot
         
         if (length(index) > 1)
             
-            if (flag_jumps_pr2)
+            if (flag_jumps_pr2 || flag_jumps_ph2)
                 pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
             end
-            % if (any(dop2(s,index)))
-            %     pr2(s,index) = pr2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index))*lambda(s,2);
-            % else
-            pr2(s,index) = interp1(time(index), pr2(s,index), time_ref(index), 'spline');
-            % end
+            
+            pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), 10);
         else
             bad_sats(s) = 1;
         end
@@ -285,14 +301,21 @@ for s = 1 : nSatTot
         
         if (length(index) > 1)
             
-            if (flag_jumps_ph1)
+            if (flag_jumps_ph1 || flag_jumps_pr1)
                 ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
+                if (flag_doppler_cs && any(dop1(s,index)))
+                    dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
+                end
             end
-            % if (any(dop1(s,index)))
-            %     ph1(s,index) = ph1(s,index) + (time_ref(index) - time(index))'.*(f1 - dop1(s,index));
-            % else
-            ph1(s,index) = interp1(time(index), ph1(s,index), time_ref(index), 'spline');
-            % end
+
+            ph1(s,:) = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            
+            index_s = find(ph1(s,:) ~= 0);
+            index = intersect(index_e,index_s);
+
+            ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), 10);
+
+%             pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
         else
             bad_sats(s) = 1;
         end
@@ -309,14 +332,21 @@ for s = 1 : nSatTot
         
         if (length(index) > 1)
             
-            if (flag_jumps_ph2)
+            if (flag_jumps_ph2 || flag_jumps_pr2)
                 ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
+                if (flag_doppler_cs && any(dop2(s,index)))
+                    dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
+                end
             end
-            % if (any(dop2(s,index)))
-            %     ph2(s,index) = ph2(s,index) + (time_ref(index) - time(index))'.*(f2 - dop2(s,index));
-            % else
-            ph2(s,index) = interp1(time(index), ph2(s,index), time_ref(index), 'spline');
-            % end
+            
+            ph2(s,:) = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            
+            index_s = find(ph2(s,:) ~= 0);
+            index = intersect(index_e,index_s);
+            
+            ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), 10);
+
+%             pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
         else
             bad_sats(s) = 1;
         end
@@ -325,4 +355,188 @@ for s = 1 : nSatTot
         
         bad_sats(s) = 1;
     end
+end
+
+pr1 = pr1_interp;
+pr2 = pr2_interp;
+ph1 = ph1_interp;
+ph2 = ph2_interp;
+
+end
+
+
+function [ph] = detect_and_fix_cycle_slips(time, pr, ph, dop, el, err_iono, lambda)
+
+global cutoff flag_doppler_cs
+
+flag_plot = 0;
+
+cutoff_idx = find(el(1,:) > cutoff);
+avail_idx = find(ph(1,:) ~= 0);
+idx = intersect(cutoff_idx, avail_idx);
+
+N_mat = zeros(size(ph));
+N_mat(1,idx) = (pr(1,idx) - lambda(1,1).*ph(1,idx) - 2.*err_iono(1,idx))./lambda(1,1);
+
+if (~isempty(N_mat(1,N_mat(1,:)~=0)))
+
+    delta_thres = 1e30; %cycles
+
+    %detection
+    if (~flag_doppler_cs || ~any(dop) || (sum(~~dop) ~= sum(~~ph)))
+        
+        delta = diff(N_mat(1,:))';
+    else
+        interval = diff(time);
+        interval = [interval; interval(end)]';
+        pred_phase = ph - dop.*interval;
+        delta_all = (pred_phase(1:end-1) - ph(2:end))';
+        delta = delta_all;
+    end
+    
+    delta_test = delta;
+    not_zero = find(delta_test ~= 0);
+    %delta_test(not_zero) = delta_test(not_zero) - median(delta_test(not_zero));
+
+    if (~isempty(delta_test(not_zero)))
+        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+        outliers(abs(outliers)<0.5) = [];
+        [~,jmp] = intersect(delta_test,outliers);
+    else
+        return
+    end
+    
+    jmp = sort(jmp);
+
+    if (flag_plot)
+        figure
+        plot(delta_test)
+        hold on
+        plot(jmp,delta_test(jmp),'rx')
+        
+        figure
+        idx_plot = find(N_mat~=0);
+        plot(idx_plot, N_mat(idx_plot));
+        
+        coltab = colorcube(2*length(jmp));
+        c = 1;
+    end
+    
+    N_before_zero = 0;
+    N_after_zero = 0;
+    
+    if (isempty(jmp))
+        return
+    end
+
+    %fixing
+    for j = jmp'
+        if (j <= 1 || j >= length(ph)-1)
+            check = 0;
+            pos_zeros = [];
+        else
+            pos_zeros = find(N_mat(1,j-1:j+1) == 0,1,'last');
+            check = isempty(pos_zeros);
+        end
+        if (ismember(j,cutoff_idx) || N_before_zero ~= 0)
+            if (check)
+                ph_propos = ph(1,j+1) + delta(j);
+                if (j == 1)
+                    ph_propag = ph_propos;
+                else
+                    ph_propag = interp1(time(j-1:j),ph(1,j-1:j),time(j+1),'linear','extrap');
+                end
+                if (abs(ph_propos - ph_propag) < delta_thres)
+                    idx = (N_mat(1,:)==0);
+                    cs_correction = round(delta(j));
+                    N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
+                    ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+                    N_mat(1,idx) = 0;
+                    ph   (1,idx) = 0;
+                    
+                    if (flag_plot)
+                        hold on
+                        idx_plot = find(N_mat~=0);
+                        plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
+                        
+                        c = c + 1;
+                    end
+                end
+                
+            elseif (pos_zeros == 3)
+                
+                N_before_zero = N_mat(1,j);
+                
+            elseif (pos_zeros == 2)
+                
+                idx = (N_mat(1,:)==0);
+                cs_correction = round(N_mat(1,j+1) - N_before_zero);
+                N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
+                ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+                N_mat(1,idx) = 0;
+                ph   (1,idx) = 0;
+                
+                if (flag_plot)
+                    hold on
+                    idx_plot = find(N_mat~=0);
+                    plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
+                    
+                    c = c + 1;
+                end
+                
+                N_before_zero = 0;
+                N_after_zero = N_mat(1,j+1);
+                
+            elseif (pos_zeros == 1)
+                
+                idx = (N_mat(1,:)==0);
+                cs_correction = round(N_mat(1,j+1) - N_after_zero);
+                N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
+                ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+                N_mat(1,idx) = 0;
+                ph   (1,idx) = 0;
+                
+                if (flag_plot)
+                    hold on
+                    idx_plot = find(N_mat~=0);
+                    plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
+                    
+                    c = c + 1;
+                end
+                
+                N_after_zero = 0;
+            end
+        end
+    end
+end
+end
+
+
+function [pr] = code_range_to_phase_range(pr, ph, el, err_iono, lambda)
+
+global cutoff
+
+N_mat = zeros(size(ph));
+cutoff_idx = find(el(1,:) > cutoff);
+N_mat(1,cutoff_idx) = (pr(1,cutoff_idx) - lambda(1,1).*ph(1,cutoff_idx) - 2.*err_iono(1,cutoff_idx))./lambda(1,1);
+if (~isempty(N_mat(1,N_mat(1,:)~=0)))
+    N = round(mean(N_mat(1,N_mat(1,:)~=0)));
+    idx = find(ph(1,:) ~= 0);
+    pr = zeros(size(ph));
+    pr(1,idx) = lambda(1,1).*(ph(1,idx)+N);
+end
+end
+
+function [yi] = lagrange_interp1(x,y,xi,n)
+d = n/2;
+yi = zeros(size(y));
+for t = 1 : length(x)
+    if (t<=d)
+        yi(t) = LagrangeInter(x(1:n), y(1:n), xi(t));
+    elseif (t>(length(x)-d))
+        yi(t) = LagrangeInter(x(end-d-1:end), y(end-d-1:end), xi(t));
+    else
+        yi(t) = LagrangeInter(x(t-d:t+d), y(t-d:t+d), xi(t));
+    end
+end
 end
