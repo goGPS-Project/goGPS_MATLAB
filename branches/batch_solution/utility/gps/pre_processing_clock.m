@@ -55,7 +55,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processin
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global cutoff snr_threshold n_sys
+global cutoff snr_threshold n_sys flag_doppler_cs
 
 v_light = goGNSS.V_LIGHT;
 
@@ -303,7 +303,7 @@ for s = 1 : nSatTot
             
             if (flag_jumps_ph1 || flag_jumps_pr1)
                 ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
-                if (any(dop1(s,index)))
+                if (flag_doppler_cs && any(dop1(s,index)))
                     dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
                 end
             end
@@ -315,7 +315,7 @@ for s = 1 : nSatTot
 
             ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), 10);
 
-            pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+%             pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
         else
             bad_sats(s) = 1;
         end
@@ -334,7 +334,7 @@ for s = 1 : nSatTot
             
             if (flag_jumps_ph2 || flag_jumps_pr2)
                 ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
-                if (any(dop2(s,index)))
+                if (flag_doppler_cs && any(dop2(s,index)))
                     dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
                 end
             end
@@ -346,7 +346,7 @@ for s = 1 : nSatTot
             
             ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), 10);
 
-            pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+%             pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
         else
             bad_sats(s) = 1;
         end
@@ -367,9 +367,9 @@ end
 
 function [ph] = detect_and_fix_cycle_slips(time, pr, ph, dop, el, err_iono, lambda)
 
-global cutoff
+global cutoff flag_doppler_cs
 
-flag_plot = 1;
+flag_plot = 0;
 
 cutoff_idx = find(el(1,:) > cutoff);
 avail_idx = find(ph(1,:) ~= 0);
@@ -383,16 +383,16 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     delta_thres = 1e30; %cycles
 
     %detection
-%     if (~any(dop) || (sum(~~dop) ~= sum(~~ph)))
+    if (~flag_doppler_cs || ~any(dop) || (sum(~~dop) ~= sum(~~ph)))
         
         delta = diff(N_mat(1,:))';
-%     else
-%         interval = diff(time);
-%         interval = [interval; interval(end)]';
-%         pred_phase = ph - dop.*interval;
-%         delta_all = (pred_phase(1:end-1) - ph(2:end))';
-%         delta = delta_all;
-%     end
+    else
+        interval = diff(time);
+        interval = [interval; interval(end)]';
+        pred_phase = ph - dop.*interval;
+        delta_all = (pred_phase(1:end-1) - ph(2:end))';
+        delta = delta_all;
+    end
     
     delta_test = delta;
     not_zero = find(delta_test ~= 0);
@@ -400,6 +400,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     if (~isempty(delta_test(not_zero)))
         [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+        outliers(abs(outliers)<0.5) = [];
         [~,jmp] = intersect(delta_test,outliers);
     else
         return
