@@ -113,7 +113,7 @@ cond_num = N_max_eig / N_min_eig;
 if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
-    var_dtR = Cxx(4,4);
+    var_dtR = Cxx(4,4) / v_light;
 else
     cov_XR  = [];
     var_dtR = []; 
