@@ -263,6 +263,9 @@ ph1_interp = zeros(size(ph1));
 pr2_interp = zeros(size(pr2));
 ph2_interp = zeros(size(ph2));
 
+%Lagrange interpolation order
+lagr_order = 10;
+
 for s = 1 : nSatTot
 
     if (any(pr1(s,:)))
@@ -270,13 +273,13 @@ for s = 1 : nSatTot
         index_s = find(pr1(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        if (length(index) > 1)
+        if (length(index) > lagr_order)
             
             if (flag_jumps_pr1 || flag_jumps_ph1)
                 pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
             end
 
-            pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), 10);
+            pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), lagr_order);
         else
             bad_sats(s) = 1;
         end
@@ -287,13 +290,13 @@ for s = 1 : nSatTot
         index_s = find(pr2(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        if (length(index) > 1)
+        if (length(index) > lagr_order)
             
             if (flag_jumps_pr2 || flag_jumps_ph2)
                 pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
             end
             
-            pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), 10);
+            pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), lagr_order);
         else
             bad_sats(s) = 1;
         end
@@ -304,7 +307,7 @@ for s = 1 : nSatTot
         index_s = find(ph1(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        if (length(index) > 1)
+        if (length(index) > lagr_order)
             
             if (flag_jumps_ph1 || flag_jumps_pr1)
                 ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
@@ -318,7 +321,7 @@ for s = 1 : nSatTot
             index_s = find(ph1(s,:) ~= 0);
             index = intersect(index_e,index_s);
 
-            ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), 10);
+            ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
 
 %             pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
         else
@@ -335,7 +338,7 @@ for s = 1 : nSatTot
         index_s = find(ph2(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
-        if (length(index) > 1)
+        if (length(index) > lagr_order)
             
             if (flag_jumps_ph2 || flag_jumps_pr2)
                 ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
@@ -349,7 +352,7 @@ for s = 1 : nSatTot
             index_s = find(ph2(s,:) ~= 0);
             index = intersect(index_e,index_s);
             
-            ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), 10);
+            ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
 
 %             pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
         else

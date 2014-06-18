@@ -1,15 +1,9 @@
-function inv = tinv (x, n)
-% For each probability value x, compute the inverse of the
-% cumulative distribution function (CDF) of the t (Student)
-% distribution with degrees of freedom n.  This function is
-% analogous to looking in a table for the t-value of a single-tailed
-% distribution.
+function inv = finv (x, m, n)
+% For each component of x, compute the quantile (the inverse of
+% the CDF) at x of the F distribution with parameters m and
+% n.
 
-% For very large n, the "correct" formula does not really work well,
-% and the quantiles of the standard normal distribution are used
-% directly.
-
-% Description: Quantile function of the t distribution
+% Description: Quantile function of the F distribution
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.2 beta
@@ -35,45 +29,35 @@ function inv = tinv (x, n)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-if (nargin ~= 2)
-    error('Requires two input arguments.');
+if (nargin ~= 3)
+    error('Requires three input arguments.');
 end
 
-if (~isscalar (n))
-    [retval, x, n] = common_size (x, n);
+if (~isscalar (m) || ~isscalar (n))
+    [retval, x, m, n] = common_size (x, m, n);
     if (retval > 0)
-        error ('tinv: X and N must be of common size or scalar');
+        error ('finv: X, M and N must be of common size or scalar');
     end
 end
 
-inv = zeros (size (x));
+sz = size (x);
+inv = zeros (sz);
 
-k = find ((x < 0) | (x > 1) | isnan (x) | ~(n > 0));
+k = find ((x < 0) | (x > 1) | isnan (x) | ~(m > 0) | ~(n > 0));
 if (any (k))
     inv(k) = NaN;
 end
 
-k = find ((x == 0) & (n > 0));
-if (any (k))
-    inv(k) = -Inf;
-end
-
-k = find ((x == 1) & (n > 0));
+k = find ((x == 1) & (m > 0) & (n > 0));
 if (any (k))
     inv(k) = Inf;
 end
 
-k = find ((x > 0) & (x < 1) & (n > 0) & (n < 10000));
+k = find ((x > 0) & (x < 1) & (m > 0) & (n > 0));
 if (any (k))
-    if (isscalar (n))
-        inv(k) = (sign (x(k) - 1/2) .* sqrt (n .* (1 ./ betainv (2*min (x(k), 1 - x(k)), n/2, 1/2) - 1)));
+    if (isscalar (m) && isscalar (n))
+        inv(k) = ((1 ./ betainv (1 - x(k), n / 2, m / 2) - 1) .* n ./ m);
     else
-        inv(k) = (sign (x(k) - 1/2) .* sqrt (n(k) .* (1 ./ betainv (2*min (x(k), 1 - x(k)), n(k)/2, 1/2) - 1)));
+        inv(k) = ((1 ./ betainv (1 - x(k), n(k) / 2, m(k) / 2) - 1) .* n(k) ./ m(k));
     end
-end
-
-% For large n, use the quantiles of the standard normal
-k = find ((x > 0) & (x < 1) & (n >= 10000));
-if (any (k))
-    inv(k) = stdnormal_inv (x(k));
 end

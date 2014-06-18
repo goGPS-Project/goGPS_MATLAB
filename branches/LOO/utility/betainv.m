@@ -1,104 +1,102 @@
-function x = betainv(p,a,b)
-%BETAINV Inverse of the beta cumulative distribution function (cdf).
-%   X = BETAINV(P,A,B) returns the inverse of the beta cdf with 
-%   parameters A and B at the values in P.
+function inv = betainv (x, a, b)
+% For each component of x, compute the quantile (the inverse of
+% the CDF) at x of the Beta distribution with parameters a
+% and b.
+
+% Description: Quantile function of the Beta distribution
+
+%----------------------------------------------------------------------------------------------
+%                           goGPS v0.4.2 beta
 %
-%   The size of X is the common size of the input arguments. A scalar input  
-%   functions as a constant matrix of the same size as the other inputs.    
+% Copyright (C) 1995-2011 Kurt Hornik
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
-%   BETAINV uses Newton's method to converge to the solution.
+% Adapted from Octave.
+% Author: KH <Kurt.Hornik@wu-wien.ac.at>
+%----------------------------------------------------------------------------------------------
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%----------------------------------------------------------------------------------------------
 
-%   Reference:
-%      [1]     M. Abramowitz and I. A. Stegun, "Handbook of Mathematical
-%      Functions", Government Printing Office, 1964.
-
-%   B.A. Jones 1-12-93
-
-if nargin < 3, 
-    error('Requires three input arguments.'); 
+if (nargin ~= 3)
+    error('Requires three input arguments.');
 end
 
-[errorcode p a b] = distchck(3,p,a,b);
-
-if errorcode > 0
-    error('Requires non-scalar arguments to match in size.');
-end
-
-%   Initialize x to zero.
-x = zeros(size(p));
-
-%   Return NaN if the arguments are outside their respective limits.
-k = find(p < 0 | p > 1 | a <= 0 | b <= 0);
-if any(k),
-   tmp = NaN;
-   x(k) = tmp(ones(size(k))); 
-end
-
-% The inverse cdf of 0 is 0, and the inverse cdf of 1 is 1.  
-k0 = find(p == 0 & a > 0 & b > 0);
-if any(k0), 
-    x(k0) = zeros(size(k0)); 
-end
-
-k1 = find(p==1);
-if any(k1), 
-    x(k1) = ones(size(k1)); 
-end
-
-% Newton's Method.
-% Permit no more than count_limit interations.
-count_limit = 100;
-count = 0;
-
-k = find(p > 0 & p < 1 & a > 0 & b > 0);
-pk = p(k);
-
-%   Use the mean as a starting guess. 
-xk = a(k) ./ (a(k) + b(k));
-
-
-% Move starting values away from the boundaries.
-if xk == 0,
-    xk = sqrt(eps);
-end
-if xk == 1,
-    xk = 1 - sqrt(eps);
-end
-
-
-h = ones(size(pk));
-crit = sqrt(eps); 
-
-% Break out of the iteration loop for the following:
-%  1) The last update is very small (compared to x).
-%  2) The last update is very small (compared to 100*eps).
-%  3) There are more than 100 iterations. This should NEVER happen. 
-
-while(any(abs(h) > crit * abs(xk)) & max(abs(h)) > crit    ...
-                                 & count < count_limit), 
-                                 
-    count = count+1;    
-    h = (betacdf(xk,a(k),b(k)) - pk) ./ betapdf(xk,a(k),b(k));
-    xnew = xk - h;
-
-% Make sure that the values stay inside the bounds.
-% Initially, Newton's Method may take big steps.
-    ksmall = find(xnew < 0);
-    klarge = find(xnew > 1);
-    if any(ksmall) | any(klarge)
-        xnew(ksmall) = xk(ksmall) /10;
-        xnew(klarge) = 1 - (1 - xk(klarge))/10;
+if (~isscalar (a) || ~isscalar(b))
+    [retval, x, a, b] = common_size (x, a, b);
+    if (retval > 0)
+        error ('betainv: X, A and B must be of common size or scalars');
     end
-
-    xk = xnew;  
 end
 
-% Return the converged value(s).
-x(k) = xk;
+sz = size (x);
+inv = zeros (sz);
 
-if count==count_limit, 
-    fprintf('\nWarning: BETAINV did not converge.\n');
-    str = 'The last step was:  ';
-    outstr = sprintf([str,'%13.8f'],h);
-    fprintf(outstr);
+k = find ((x < 0) | (x > 1) | ~(a > 0) | ~(b > 0) | isnan (x));
+if (any (k))
+    inv (k) = NaN;
+end
+
+k = find ((x == 1) & (a > 0) & (b > 0));
+if (any (k))
+    inv (k) = 1;
+end
+
+k = find ((x > 0) & (x < 1) & (a > 0) & (b > 0));
+if (any (k))
+    if (~isscalar(a) || ~isscalar(b))
+        a = a (k);
+        b = b (k);
+        y = a ./ (a + b);
+    else
+        y = a / (a + b) * ones (size (k));
+    end
+    x = x (k);
+    
+    if (isa (y, 'single'))
+        myeps = eps ('single');
+    else
+        myeps = eps;
+    end
+    
+    l = find (y < myeps);
+    if (any (l))
+        y(l) = sqrt (myeps) * ones (length (l), 1);
+    end
+    l = find (y > 1 - myeps);
+    if (any (l))
+        y(l) = 1 - sqrt (myeps) * ones (length (l), 1);
+    end
+    
+    y_old = y;
+    for i = 1 : 10000
+        h     = (betacdf (y_old, a, b) - x) ./ betapdf (y_old, a, b);
+        y_new = y_old - h;
+        ind   = find (y_new <= myeps);
+        if (any (ind))
+            y_new (ind) = y_old (ind) / 10;
+        end
+        ind = find (y_new >= 1 - myeps);
+        if (any (ind))
+            y_new (ind) = 1 - (1 - y_old (ind)) / 10;
+        end
+        h = y_old - y_new;
+        if (max (abs (h)) < sqrt (myeps))
+            break;
+        end
+        y_old = y_new;
+    end
+    
+    inv (k) = y_new;
 end
