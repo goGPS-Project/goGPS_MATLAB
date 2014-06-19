@@ -324,7 +324,7 @@ for doy = doy_start : 1 : doy_end
     goGPS
     
     idx = size(date_R,1);
-    fprintf(fid_extract,'%02d/%02d/%02d    %02d:%02d:%06.3f% 16.4f% 16.4f% 16.4f\n', date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx));
+    fprintf(fid_extract,'%02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
     
     delete([filerootOUT '_*.bin']);
 end
