@@ -71,6 +71,7 @@ m = 4;
 
 %design matrix (phase)
 A = [];
+A_a = [];
 
 for i = 1 : n
 
@@ -79,6 +80,7 @@ for i = 1 : n
     eij_approx=(eij_approx_t0 + eij_approx_t1)./2;
     
     A = [A; eij_approx(1) eij_approx(2) eij_approx(3) 1];
+    A_a = [A_a; eij_approx_t1(1) eij_approx_t1(2) eij_approx_t1(3) 1];
 end
 
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
@@ -116,10 +118,11 @@ Q  = sigmaq_ph * Q1;
 
 %normal matrix
 N = (A'*(Q^-1)*A);
+N_a = (A_a'*(Q^-1)*A_a);
 
 %least squares solution
 x_hat = (N^-1)*A'*(Q^-1)*(y0-b); %velocity
-x_hat_a = (N^-1)*A'*(Q^-1)*(y0_a-b_a); %acceleration
+x_hat_a = (N_a^-1)*A_a'*(Q^-1)*(y0_a-b_a); %acceleration
 XR = XR_approx_t1-XR_approx_t0 + x_hat(1:3);
 XR_a = XR_approx_t2-2*XR_approx_t1+XR_approx_t0 + x_hat_a(1:3);
 %XR = x_hat;
@@ -135,7 +138,7 @@ v_hat = y0 - y_hat;
 sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 
 %estimation of the variance of the observation error accelerations
-y_hat_a = A*x_hat_a + b_a;
+y_hat_a = A_a*x_hat_a + b_a;
 v_hat_a = y0_a - y_hat_a;
 sigma02_hat_a = (v_hat_a'*(Q^-1)*v_hat_a) / (n-m);
 
@@ -144,7 +147,7 @@ if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
     var_dtR = Cxx(end,end);
-    Cxx_a = sigma02_hat_a * (N^-1);
+    Cxx_a = sigma02_hat_a * (N_a^-1);
     cov_XR_a  = Cxx_a(1:3,1:3);
     var_dtR_a = Cxx_a(end,end);
 else

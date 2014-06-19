@@ -1121,7 +1121,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     time_step = goIni.getTimeStep();   %time step to perform the difference between phase observations
     do = 2; %differenation order
     fprintf('TimeStep used is %d epochs\n', time_step);
-    fprintf('Differentation order used is %d \n', do);
+    fprintf('Differentiation order used is %d \n', do);
     % External loop to show bar update every 15 epochs
     stepUpdate = 15;
     goWB = goWaitBar((length(time_GPS)-(time_step*do))/stepUpdate);
@@ -1149,9 +1149,9 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             
             goGPS_LS_SA_variometric_a(time_GPS(t), time_GPS(t+time_step), time_GPS(t+time_step*do), pr1_R(:,t), pr1_R(:,t+time_step), pr1_R(:,t+time_step*do), pr2_R(:,t), pr2_R(:,t+time_step), pr2_R(:,t+time_step*do), ph1_R(:,t), ph1_R(:,t+time_step), ph1_R(:,t+time_step*do), ph2_R(:,t), ph2_R(:,t+time_step), ph2_R(:,t+time_step*do), snr_R(:,t), snr_R(:,t+time_step), snr_R(:,t+time_step*do), Eph_t, Eph_t1, Eph_t2, [], [], [], iono, sbas_t, sbas_t1, sbas_t2, lambda, 1, time_step, do); 
             Xhat_t_t(7:12)=Xhat_t_t(7:12)./(interval.*time_step);
-            Xhat_t_t(7:2:12)=Xhat_t_t(7:2:12)./(interval.*time_step);
+            Xhat_t_t(8:2:12)=Xhat_t_t(8:2:12)./(interval.*time_step);
             Xhat_t_t(13:end)=Xhat_t_t(13:end)./(interval.*time_step).^do;
-            Xhat_t_t(13:2:end)=Xhat_t_t(13:2:end)./(interval.*time_step).^do;
+            Xhat_t_t(14:2:end)=Xhat_t_t(14:2:end)./(interval.*time_step).^do;
             if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
                 Xhat_t_t_dummy = [Xhat_t_t]; %#ok<NBRAK>
                 ind=ind+1;
@@ -1294,21 +1294,39 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
             linkaxes(axes,'x')
         end
         
-%         m = [];
-%         i = 1;
-%         aENU = diff(vENU);
-%         delta = 20;
-%         for s = 1 : delta : floor(size(aENU,1)-delta)
-%             a1 = aENU(s:s+delta-1,1);
-%             a2 = aENU(s:s+delta-1,2);
-%             a3 = aENU(s:s+delta-1,3);
-%             m(i,1) = mean(a1(~isnan(a1)));
-%             m(i,2) = mean(a2(~isnan(a2)));
-%             m(i,3) = mean(a3(~isnan(a3)));
-%             i = i + 1;
-%         end
-%         std(m(:,3))
-
+        m = [];
+        i = 1;
+        delta = 20/interval; %20 seconds
+        
+        aENU2 = (vENU(time_step+1:end,:)-vENU(1:end-time_step,:))/(interval.*time_step);
+        aSTD2(1,1) = std(aENU2(~isnan(aENU2(:,1)),1));
+        aSTD2(1,2) = std(aENU2(~isnan(aENU2(:,2)),2));
+        aSTD2(1,3) = std(aENU2(~isnan(aENU2(:,3)),3));
+        
+        for s = 1 : delta : floor(size(aENU2,1)-delta)
+            a1 = aENU2(s:s+delta-1,1);
+            a2 = aENU2(s:s+delta-1,2);
+            a3 = aENU2(s:s+delta-1,3);
+            m(i,1) = mean(a1(~isnan(a1))); %#ok<SAGROW>
+            m(i,2) = mean(a2(~isnan(a2))); %#ok<SAGROW>
+            m(i,3) = mean(a3(~isnan(a3))); %#ok<SAGROW>
+            x_m(i) = s+delta/2-1; %#ok<SAGROW>
+            i = i + 1;
+        end
+        std(m(:,3))
+        
+        figure('Color','white')
+        plot(aENU2(:,1));
+        axes(4) = gca;
+        hold on
+        plot(aENU2(:,2),'r')
+        plot(aENU2(:,3),'g')
+        title(['Acceleration (blue=E; red=N; green=U); sigmaE=' num2str(aSTD2(1,1),1) ' m/s^2, sigmaN=' num2str(aSTD2(1,2),1) ' m/s^2, sigmaU=' num2str(aSTD2(1,3),1) 'm/s^2'])
+        xlabel(['Epoch [' num2str(interval) ' s]'])
+        ylabel('m/s^2')
+        hold on
+        plot(x_m,m(:,3),'xr','LineWidth',2)
+        linkaxes(axes,'x')
     end
     
     goWB.close();
