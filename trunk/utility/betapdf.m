@@ -1,45 +1,93 @@
-function y = betapdf(x,a,b)
-%BETAPDF Beta probability density function.
-%   Y = BETAPDF(X,A,B) returns the beta probability density 
-%   function with parameters A and B at the values in X.
+function pdf = betapdf (x, a, b)
+% For each element of x, returns the PDF at x of the beta
+% distribution with parameters a and b.
+
+% Description: PDF of the Beta distribution
+
+%----------------------------------------------------------------------------------------------
+%                           goGPS v0.4.2 beta
 %
-%   The size of Y is the common size of the input arguments. A scalar input  
-%   functions as a constant matrix of the same size as the other inputs.    
+% Copyright (C) 1995-2011 Kurt Hornik
+% Copyright (C) 2010 Christos Dimitrakakis
+% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%
+% Adapted from Octave.
+% Author: KH <Kurt.Hornik@wu-wien.ac.at>, CD <christos.dimitrakakis@gmail.com>
+%----------------------------------------------------------------------------------------------
+%
+%    This program is free software: you can redistribute it and/or modify
+%    it under the terms of the GNU General Public License as published by
+%    the Free Software Foundation, either version 3 of the License, or
+%    (at your option) any later version.
+%
+%    This program is distributed in the hope that it will be useful,
+%    but WITHOUT ANY WARRANTY; without even the implied warranty of
+%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%    GNU General Public License for more details.
+%
+%    You should have received a copy of the GNU General Public License
+%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%----------------------------------------------------------------------------------------------
 
-%   References:
-%      [1]  M. Abramowitz and I. A. Stegun, "Handbook of Mathematical
-%      Functions", Government Printing Office, 1964, 26.1.33.
-
-if nargin < 3, 
-   error('Requires three input arguments.');
+if (nargin ~= 3)
+    error('Requires three input arguments.');
 end
 
-[errorcode x a b] = distchck(3,x,a,b);
-
-if errorcode > 0
-    error('Requires non-scalar arguments to match in size.');
+if (~isscalar (a) || ~isscalar(b))
+    [retval, x, a, b] = common_size (x, a, b);
+    if (retval > 0)
+        error ('betapdf: X, A and B must be of common size or scalar');
+    end
 end
 
-% Initialize Y to zero.
-y = zeros(size(x));
+sz = size (x);
+pdf = zeros (sz);
 
-% Return NaN for parameter values outside their respective limits.
-k1 = find(a <= 0 | b <= 0 | x < 0 | x > 1);
-if any(k1)
-   tmp = NaN;
-    y(k1) = tmp(ones(size(k1))); 
+k = find (~(a > 0) | ~(b > 0) | isnan (x));
+if (any (k))
+    pdf (k) = NaN;
 end
 
-% Return Inf for x = 0 and a < 1 or x = 1 and b < 1.
-% Required for non-IEEE machines.
-k2 = find((x == 0 & a < 1) | (x == 1 & b < 1));
-if any(k2)
-   tmp = Inf;
-    y(k2) = tmp(ones(size(k2))); 
+k = find ((x > 0) & (x < 1) & (a > 0) & (b > 0) & ((a ~= 1) | (b ~= 1)));
+if (any (k))
+    if (isscalar(a) && isscalar(b))
+        pdf(k) = exp ((a - 1) .* log (x(k)) + (b - 1) .* log (1 - x(k)) + gammaln(a + b) - gammaln(a) - gammaln(b));
+    else
+        pdf(k) = exp ((a(k) - 1) .* log (x(k)) + (b(k) - 1) .* log (1 - x(k)) + gammaln(a(k) + b(k)) - gammaln(a(k)) - gammaln(b(k)));
+    end
 end
 
-% Return the beta density function for valid parameters.
-k = find(~(a <= 0 | b <= 0 | x <= 0 | x >= 1));
-if any(k)
-    y(k) = x(k) .^ (a(k) - 1) .* (1 - x(k)) .^ (b(k) - 1) ./ beta(a(k),b(k));
+% Most important special cases when the density is finite.
+k = find ((x == 0) & (a == 1) & (b > 0) & (b ~= 1));
+if (any (k))
+    if (isscalar(a) && isscalar(b))
+        pdf(k) = exp(gammaln(a + b) - gammaln(a) - gammaln(b));
+    else
+        pdf(k) = exp(gammaln(a(k) + b(k)) - gammaln(a(k)) - gammaln(b(k)));
+    end
+end
+
+k = find ((x == 1) & (b == 1) & (a > 0) & (a ~= 1));
+if (any (k))
+    if (isscalar(a) && isscalar(b))
+        pdf(k) = exp(gammaln(a + b) - gammaln(a) - gammaln(b));
+    else
+        pdf(k) = exp(gammaln(a(k) + b(k)) - gammaln(a(k)) - gammaln(b(k)));
+    end
+end
+
+k = find ((x >= 0) & (x <= 1) & (a == 1) & (b == 1));
+if (any (k))
+    pdf(k) = 1;
+end
+
+% Other special case when the density at the boundary is infinite.
+k = find ((x == 0) & (a < 1));
+if (any (k))
+    pdf(k) = Inf;
+end
+
+k = find ((x == 1) & (b < 1));
+if (any (k))
+    pdf(k) = Inf;
 end
