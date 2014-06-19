@@ -1,4 +1,4 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_PreP)
 
 % SYNTAX:
 %   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS);
@@ -26,6 +26,8 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %                 2: fixed
 %   flag_XS     = 0: unknown
 %                 1: already estimated
+%   flag_PreP   = 0: postprocessing
+%                 1: preprocessing
 %
 % OUTPUT:
 %   XR        = receiver position (X,Y,Z)
@@ -58,6 +60,8 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Stefano Caldera
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -115,6 +119,11 @@ end
 num_sys  = length(unique(sys(sys ~= 0)));
 min_nsat = 3 + num_sys;
 
+
+% maximum RMS of code single point positioning to accept current epoch
+SPP_threshold=5; %meters 
+bad_sat=[];
+
 %----------------------------------------------------------------------------------------------
 % APPROXIMATE RECEIVER POSITION
 %----------------------------------------------------------------------------------------------
@@ -145,7 +154,8 @@ if (flag_XR == 0)
     %iterative least-squares from the center of the Earth (i.e. [0; 0; 0])
     XR0 = zeros(3,1);
     for i = 1 : 3
-        [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));
+        [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));       
+        %bad_sat(sat(bad_obs))=1;
         XR0 = XR;
     end
 else
@@ -236,9 +246,105 @@ if (nsat >= nsat_required)
         err_iono = ionoFactor(:,phase).*err_iono;
 
         if (flag_XR < 2) %if unknown or approximate receiver position
-            [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys);
+
+            
+            [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
+            
+            if (exist('flag_PreP','var') && flag_PreP==1)
+                if ~isempty(bad_obs)
+                    % remove bad observation
+                    bad_sat=[bad_sat;(sat(bad_obs))];
+                    
+                    % remove bad satellite from observations
+                    XS(bad_obs,:)=[];
+                    XSold(bad_obs,:)=[];
+                    snr(bad_obs)=[];
+                    sat(bad_obs)=[];
+                    pseudorange(bad_obs)=[];
+                    dtS(bad_obs)=[];
+                    err_tropo(bad_obs)=[];
+                    err_iono(bad_obs)=[];
+                    sys(bad_obs)=[];
+                    ionoFactor(bad_obs,:)=[];
+                    nsat = size(pseudorange,1);
+                    if (flag_XS == 1)
+                        XS0(bad_obs,:)  = [];
+                    end
+                    
+                    %satellite topocentric coordinates (azimuth, elevation, distance)
+                    [az, el, dist] = topocent(XR, XS);
+                    
+                    %elevation cutoff
+                    index = find((el > cutoff_el));
+                    
+                    sat   = sat(index);
+                    pseudorange = pseudorange(index);
+                    snr  = snr(index);
+                    el   = el(index);
+                    az   = az(index);
+                    dist = dist(index);
+                    XS   = XS(index,:);
+                    XSold= XSold(index,:);
+                    dtS  = dtS(index);
+                    err_tropo=err_tropo(index);
+                    err_iono=err_iono(index);
+                    sys  = sys(index);
+                    ionoFactor = ionoFactor(index,:);
+                    nsat = size(pseudorange,1);
+                    if (flag_XS == 1)
+                        XS0  = XS0(index,:);
+                    end
+                end
+            end
+            
         else
-            [dtR, var_dtR] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys);
+            [dtR, var_dtR, bad_obs, bad_epoch] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
+            if (exist('flag_PreP','var') && flag_PreP==1)
+                if ~isempty(bad_obs)
+                    % add outlier satellite to bad_sat
+                    bad_sat=[bad_sat;(sat(bad_obs))];
+                    
+                    % remove bad satellite from observations
+                    XS(bad_obs,:)=[];
+                    XSold(bad_obs,:)=[];
+                    snr(bad_obs)=[];
+                    sat(bad_obs)=[];
+                    pseudorange(bad_obs)=[];
+                    dtS(bad_obs)=[];
+                    err_tropo(bad_obs)=[];
+                    err_iono(bad_obs)=[];
+                    sys(bad_obs)=[];
+                    ionoFactor(bad_obs,:)=[];
+                    nsat = size(pseudorange,1);
+                    if (flag_XS == 1)
+                        XS0(bad_obs,:)  = [];
+                    end
+                    
+                    %satellite topocentric coordinates (azimuth, elevation, distance)
+                    [az, el, dist] = topocent(XR, XS);
+                    
+                    %elevation cutoff
+                    index = find((el > cutoff_el));
+                    
+                    sat   = sat(index);
+                    pseudorange = pseudorange(index);
+                    snr  = snr(index);
+                    el   = el(index);
+                    az   = az(index);
+                    dist = dist(index);
+                    XS   = XS(index,:);
+                    XSold= XSold(index,:);
+                    dtS  = dtS(index);
+                    err_tropo=err_tropo(index);
+                    err_iono=err_iono(index);
+                    sys  = sys(index);
+                    ionoFactor = ionoFactor(index,:);
+                    nsat = size(pseudorange,1);
+                    if (flag_XS == 1)
+                        XS0  = XS0(index,:);
+                    end
+                end
+            end
         end
 
         if (flag_XS == 0)

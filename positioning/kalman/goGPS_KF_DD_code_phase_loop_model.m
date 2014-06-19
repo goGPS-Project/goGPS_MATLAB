@@ -49,7 +49,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
-% Portions of code contributed by Andrea Nardo
+% Portions of code contributed by Andrea Nardo, Stefano Caldera
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -717,6 +717,28 @@ if (nsat >= min_nsat)
         end
         if (h_dtm ~= tile_header.nodata)
             Cnn(end+1,end+1) = sigmaq_dtm;
+        end
+        
+        %------------------------------------------------------------------------------------
+        % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
+        %------------------------------------------------------------------------------------
+        search_for_outlier = 1;
+       
+        while (search_for_outlier == 1)
+            sum_H = sum(H,1);
+            H1 = H;
+            H1(:,sum_H == 0) = [];            
+            [index_outlier] = OLOO(H1, y0, Cnn);
+            
+            if (index_outlier ~= 0)
+               %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
+               H(index_outlier,:)   = [];
+               y0(index_outlier,:)  = [];
+               Cnn(index_outlier,:) = [];
+               Cnn(:,index_outlier) = [];               
+            else
+                search_for_outlier = 0;
+            end
         end
         
         %------------------------------------------------------------------------------------
