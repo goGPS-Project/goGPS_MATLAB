@@ -29,9 +29,9 @@
 %-------------------------------------------------------------------------------
 
 folderIN  = '../data/data_goGPS';
-folderOUT = '../data/out/batch';
-
 prefixIN  = 'yamatogawa';
+
+folderOUT = '../data/out/batch';
 prefixOUT = 'mila_UBLX_14031';
 
 filerootIN  = [folderIN '/' prefixIN];
@@ -84,7 +84,7 @@ pos_M_man = [XM; YM; ZM];
 % KALMAN FILTER
 %-------------------------------------------------------------------------------
 
-global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
+global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel %#ok<*TLEV>
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global amb_restart_method

@@ -1,10 +1,10 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-          time_ref, time, week, date, pos, interval] = ...
+          time_ref, time, week, date, pos, interval, antoff, antmod] = ...
           load_RINEX_obs(filename, constellations, wait_dlg)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-%    time_ref, time, week, date, pos, interval] = ...
+%    time_ref, time, week, date, pos, interval, antoff, antmod] = ...
 %    load_RINEX_obs(filename, constellations, wait_dlg);
 %
 % INPUT:
@@ -27,12 +27,14 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   date = date (year,month,day,hour,minute,second)
 %   pos = rover approximate position
 %   interval = observation time interval [s]
+%   antoff = antenna offset [m]
+%   antmod = antenna model [string]
 %
 % DESCRIPTION:
 %   Parses RINEX observation files.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
@@ -89,6 +91,8 @@ snr2 = zeros(nSatTot,nEpochs,nFiles);
 date = zeros(nEpochs,6,nFiles);
 pos = zeros(3,1,nFiles);
 interval = zeros(1,1,nFiles);
+antoff = zeros(3,1,nFiles);
+antmod = cell(1,1,nFiles);
 
 for f = 1 : nFiles
 
@@ -98,7 +102,7 @@ for f = 1 : nFiles
         current_file = filename;
     end
     
-    fprintf(['Reading RINEX file ' current_file ': ... ']);
+    fprintf('%s',['Reading RINEX file ' current_file ': ... ']);
     
     %open RINEX observation file
     fid = fopen(current_file,'r');
@@ -108,7 +112,7 @@ for f = 1 : nFiles
     end
     
     %parse RINEX header
-    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId] = RINEX_parse_hdr(fid);
+    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}] = RINEX_parse_hdr(fid);
     
     %check the availability of basic data to parse the RINEX file
     if (basic_info == 0)
@@ -152,7 +156,7 @@ for f = 1 : nFiles
         obs = RINEX_get_obs(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, constellations);
         
         %read ROVER observations
-        if (sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
+        if (~any(obs.C1) || sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
             pr1(:,k,f) = obs.P1;
         else
             pr1(:,k,f) = obs.C1;
@@ -191,3 +195,13 @@ end
 %sync observations
 [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval] = ...
 sync_obs(time, tow, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval);
+
+for f = 1 : nFiles
+    holes = find(week(:,1,f) == 0);
+    for h = holes'
+        if (h > 1)
+            week(h,1,f) = week(h-1,1,f);
+            date(h,:,f) = datevec(datenum(date(h-1,:,f)) + datenum([0 0 0 0 0 interval]));
+        end
+    end
+end
