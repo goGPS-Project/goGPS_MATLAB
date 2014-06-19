@@ -1428,7 +1428,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
     if (mode_user == 1)
         %goWaitBar
         goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Pocessing...');
+        goWB.titleUpdate('Processing...');
     else
         goWB = [];
     end

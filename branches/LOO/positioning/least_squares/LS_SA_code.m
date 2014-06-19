@@ -99,8 +99,6 @@ invQ=diag((diag(Q).^-1));
 %normal matrix
 N = (A'*(invQ)*A);
 
-
-
 if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
     %least squares solution
     x   = (N^-1)*A'*(invQ)*(y0-b);
@@ -145,13 +143,10 @@ else
     else
         bad_epoch=1;
     end
-    
-    
 end
 
 XR  = XR_approx + x(1:3);
 dtR = x(4) / v_light;
-
 
 %computation of the condition number on the eigenvalues of N
 N_min_eig = min(eig(N));
