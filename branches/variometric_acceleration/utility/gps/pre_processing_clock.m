@@ -378,32 +378,45 @@ function [ph] = detect_and_fix_cycle_slips(time, pr, ph, dop, el, err_iono, lamb
 global cutoff flag_doppler_cs
 
 flag_plot = 0;
+flag_doppler_cs = 0;
 
 cutoff_idx = find(el(1,:) > cutoff);
 avail_idx = find(ph(1,:) ~= 0);
 idx = intersect(cutoff_idx, avail_idx);
 
+p = polyfit(idx,err_iono(1,idx),3);
+err_iono_fit = polyval(p,idx);
+if (flag_plot)
+    figure
+    plot(idx,err_iono(1,idx),'r')
+    hold on
+    plot(idx,err_iono_fit,'g')
+end
+
 N_mat = zeros(size(ph));
-N_mat(1,idx) = (pr(1,idx) - lambda(1,1).*ph(1,idx) - 2.*err_iono(1,idx))./lambda(1,1);
+N_mat(1,idx) = (pr(1,idx) - lambda(1,1).*ph(1,idx) - 2.*err_iono_fit)./lambda(1,1);
 
 if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     delta_thres = 1e30; %cycles
-
+    
     %detection
     if (~flag_doppler_cs || ~any(dop) || (sum(~~dop) ~= sum(~~ph)))
-        
         delta = diff(N_mat(1,:))';
     else
         interval = diff(time);
         interval = [interval; interval(end)]';
-        pred_phase = ph - dop.*interval;
-        delta_all = (pred_phase(1:end-1) - ph(2:end))';
+
+        pred_phase = ph(1:end-1) + ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
+%         pred_phase = ph(1:end-1) - ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
+        delta_all = (pred_phase - ph(2:end))';
         delta = delta_all;
     end
     
     delta_test = delta;
     not_zero = find(delta_test ~= 0);
+    %p = polyfit(not_zero,delta_test(not_zero),1);
+    %delta_test(not_zero) = delta_test(not_zero) - polyval(p,not_zero);
     %delta_test(not_zero) = delta_test(not_zero) - median(delta_test(not_zero));
 
     if (~isempty(delta_test(not_zero)))
@@ -473,46 +486,46 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 
             elseif (pos_zeros == 3)
                 
-                N_before_zero = N_mat(1,j);
+%                 N_before_zero = N_mat(1,j);
                 
             elseif (pos_zeros == 2)
                 
-                idx = (N_mat(1,:)==0);
-                cs_correction = round(N_mat(1,j+1) - N_before_zero);
-                N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
-                ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
-                N_mat(1,idx) = 0;
-                ph   (1,idx) = 0;
-                
-                if (flag_plot)
-                    hold on
-                    idx_plot = find(N_mat~=0);
-                    plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
-                    
-                    c = c + 1;
-                end
-                
-                N_before_zero = 0;
-                N_after_zero = N_mat(1,j+1);
+%                 idx = (N_mat(1,:)==0);
+%                 cs_correction = round(N_mat(1,j+1) - N_before_zero);
+%                 N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
+%                 ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+%                 N_mat(1,idx) = 0;
+%                 ph   (1,idx) = 0;
+%                 
+%                 if (flag_plot)
+%                     hold on
+%                     idx_plot = find(N_mat~=0);
+%                     plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
+%                     
+%                     c = c + 1;
+%                 end
+%                 
+%                 N_before_zero = 0;
+%                 N_after_zero = N_mat(1,j+1);
                 
             elseif (pos_zeros == 1)
                 
-                idx = (N_mat(1,:)==0);
-                cs_correction = round(N_mat(1,j+1) - N_after_zero);
-                N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
-                ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
-                N_mat(1,idx) = 0;
-                ph   (1,idx) = 0;
-                
-                if (flag_plot)
-                    hold on
-                    idx_plot = find(N_mat~=0);
-                    plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
-                    
-                    c = c + 1;
-                end
-                
-                N_after_zero = 0;
+%                 idx = (N_mat(1,:)==0);
+%                 cs_correction = round(N_mat(1,j+1) - N_after_zero);
+%                 N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
+%                 ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+%                 N_mat(1,idx) = 0;
+%                 ph   (1,idx) = 0;
+%                 
+%                 if (flag_plot)
+%                     hold on
+%                     idx_plot = find(N_mat~=0);
+%                     plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
+%                     
+%                     c = c + 1;
+%                 end
+%                 
+%                 N_after_zero = 0;
             end
         end
     end

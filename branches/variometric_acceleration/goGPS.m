@@ -1377,41 +1377,44 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     goDX=vel_pos(:,1);
     goDY=vel_pos(:,3);
     goDZ=vel_pos(:,5);
-    %jumps=0.*goDX;
-    jumps=(find(abs(vel_pos(:,8))==9999));
-    njumps=length(jumps);
-    jumps=[0; jumps; length(goDX)-1];
-    mX = zeros(length(jumps)-1,1);
-    mY = zeros(length(jumps)-1,1);
-    mZ = zeros(length(jumps)-1,1);
-    lastX=0;
-    lastY=0;
-    lastZ=0;
-    for step=1:njumps+1
-        nMin=jumps(step)+1;
-        nMax=jumps(step+1);
+%     %jumps=0.*goDX;
+%     jumps=(find(abs(vel_pos(:,8))==9999));
+%     njumps=length(jumps);
+%     jumps=[0; jumps; length(goDX)-1];
+%     mX = zeros(length(jumps)-1,1);
+%     mY = zeros(length(jumps)-1,1);
+%     mZ = zeros(length(jumps)-1,1);
+%     lastX=0;
+%     lastY=0;
+%     lastZ=0;
+%     for step=1:njumps+1
+%         nMin=jumps(step)+1;
+%         nMax=jumps(step+1);
+
+        nMin = 1;
+        nMax = length(goDX);
         
         x = vel_pos(nMin:nMax,1);
         y = vel_pos(nMin:nMax,3);
         z = vel_pos(nMin:nMax,5);
-        n=length(x);
+%         n=length(x);
         
 %         x = cumsum(vel_pos(nMin:nMax-1,7)).*(interval.*time_step);
 %         y = cumsum(vel_pos(nMin:nMax-1,9)).*(interval.*time_step);
 %         z = cumsum(vel_pos(nMin:nMax-1,11)).*(interval.*time_step);
 %         n=length(x)+1;
         
-        t = (0:n-1)';
-        vx = vel_pos(nMin:nMax-1,7);
-        vy = vel_pos(nMin:nMax-1,9);
-        vz = vel_pos(nMin:nMax-1,11);
-        sigma2_v = ones(3,n-1);
-        sigma2_v(1,:) = abs(vel_pos(nMin:nMax-1,8)');
-        sigma2_v(2,:) = abs(vel_pos(nMin:nMax-1,10)');
-        sigma2_v(3,:) = abs(vel_pos(nMin:nMax-1,12)');
-        ax = vel_pos(nMin:nMax-1,13);
-        ay = vel_pos(nMin:nMax-1,15);
-        az = vel_pos(nMin:nMax-1,17);
+%         t = (0:n)';
+        vx = vel_pos(nMin:nMax,7);
+        vy = vel_pos(nMin:nMax,9);
+        vz = vel_pos(nMin:nMax,11);
+%         sigma2_v = ones(3,n);
+%         sigma2_v(1,:) = abs(vel_pos(nMin:nMax,8)');
+%         sigma2_v(2,:) = abs(vel_pos(nMin:nMax,10)');
+%         sigma2_v(3,:) = abs(vel_pos(nMin:nMax,12)');
+        ax = vel_pos(nMin:nMax,13);
+        ay = vel_pos(nMin:nMax,15);
+        az = vel_pos(nMin:nMax,17);
         
         phiX = zeros(length(ax),1);
         lamX = zeros(length(ax),1);
@@ -1512,7 +1515,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         hold on
         plot(x_m,m(:,3),'xr','LineWidth',2)
         linkaxes(axes,'x')
-    end
+%     end
     
     if (mode_user == 1)
         goWB.close();
@@ -3842,6 +3845,26 @@ end
 %         plot(index(1:end-2), ph_der2,'b-');
 %         title(['MASTER: PHASE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
 %     end
+% end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF IONOSPHERIC DELAY
+%----------------------------------------------------------------------------------------------
+
+% corr = zeros(size(elR));
+% for t = 1 : length(time_GPS)
+%     index = find(abs(conf_sat(:,t)) == 1)';
+%     corr(index,t) = iono_error_correction(phi_KAL(t,1), lam_KAL(t,1), azR(index,t), elR(index,t), time_GPS(t), iono, []);
+% end
+% 
+% coltab = jet(2*nSatTot);
+% figure; hold on; grid on; title('Ionospheric delay')
+% xlabel(['epoch [' num2str(interval) ' sec]'])
+% ylabel('[m]')
+% for s = 1 : nSatTot
+%     index = find(abs(conf_sat(s,:)) == 1)';
+%     h = plot(index,corr(s,index),'r.');
+%     set(h,'Color',coltab(2*s-1,:));
 % end
 
 %----------------------------------------------------------------------------------------------
