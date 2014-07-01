@@ -240,6 +240,21 @@ for i = 1 : length(disc)
 end
 
 %----------------------------------------------------------------------------------------------
+% GEOMETRY FREE OBSERVABLE
+%----------------------------------------------------------------------------------------------
+ph_GF = zeros(size(ph1));
+for s = 1 : nSatTot
+    if (any(ph1(s,:)) && any(ph2(s,:)))
+        
+        index_1 = find(ph1(s,:) ~= 0);
+        index_2 = find(ph2(s,:) ~= 0);
+        index = intersect(index_1, index_2);
+
+        ph_GF(s,index) = (lambda(s,1)*ph1(s,index) - lambda(s,2)*ph2(s,index)) - ((goGNSS.F1^2-goGNSS.F2^2)/goGNSS.F2^2)*err_iono(s,index);
+    end
+end
+
+%----------------------------------------------------------------------------------------------
 % OBSERVATION CORRECTION FOR CLOCK ERROR
 %----------------------------------------------------------------------------------------------
 
@@ -275,7 +290,7 @@ for s = 1 : nSatTot
         
         if (length(index) > lagr_order)
             
-            if (flag_jumps_pr1 || flag_jumps_ph1)
+            if (flag_jumps_ph1)
                 pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
             end
 
@@ -292,7 +307,7 @@ for s = 1 : nSatTot
         
         if (length(index) > lagr_order)
             
-            if (flag_jumps_pr2 || flag_jumps_ph2)
+            if (flag_jumps_ph2)
                 pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
             end
             
@@ -309,14 +324,14 @@ for s = 1 : nSatTot
         
         if (length(index) > lagr_order)
             
-            if (flag_jumps_ph1 || flag_jumps_pr1)
+            if (flag_jumps_ph1)
                 ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
                 if (flag_doppler_cs && any(dop1(s,index)))
                     dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
                 end
             end
 
-            ph1(s,:) = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            [ph1(s,:), cs_found] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), ph_GF(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
             
             index_s = find(ph1(s,:) ~= 0);
             index = intersect(index_e,index_s);
@@ -324,6 +339,10 @@ for s = 1 : nSatTot
             ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
 
 %             pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+
+            if (cs_found)
+                fprintf('Pre-processing: %d cycle-slip(s) detected and fixed on L1 for satellite %02d\n', cs_found, s);
+            end
         else
             bad_sats(s) = 1;
         end
@@ -340,14 +359,14 @@ for s = 1 : nSatTot
         
         if (length(index) > lagr_order)
             
-            if (flag_jumps_ph2 || flag_jumps_pr2)
+            if (flag_jumps_ph2)
                 ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
                 if (flag_doppler_cs && any(dop2(s,index)))
                     dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
                 end
             end
             
-            ph2(s,:) = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            [ph2(s,:), cs_found] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), ph_GF(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
             
             index_s = find(ph2(s,:) ~= 0);
             index = intersect(index_e,index_s);
@@ -355,6 +374,10 @@ for s = 1 : nSatTot
             ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
 
 %             pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            
+            if (cs_found)
+                fprintf('Pre-processing: %d cycle-slip(s) detected and fixed on L2 for satellite %02d\n', cs_found, s);
+            end
         else
             bad_sats(s) = 1;
         end
@@ -373,12 +396,14 @@ ph2 = ph2_interp;
 end
 
 
-function [ph] = detect_and_fix_cycle_slips(time, pr, ph, dop, el, err_iono, lambda)
+function [ph, cs_found] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, el, err_iono, lambda)
 
-global cutoff flag_doppler_cs
+global cutoff
 
-flag_plot = 0;
-flag_doppler_cs = 0;
+flag_plot = 1;
+flag_doppler_cs = 1;
+
+cs_found = 0;
 
 cutoff_idx = find(el(1,:) > cutoff);
 avail_idx = find(ph(1,:) ~= 0);
@@ -386,12 +411,12 @@ idx = intersect(cutoff_idx, avail_idx);
 
 p = polyfit(idx,err_iono(1,idx),3);
 err_iono_fit = polyval(p,idx);
-if (flag_plot)
-    figure
-    plot(idx,err_iono(1,idx),'r')
-    hold on
-    plot(idx,err_iono_fit,'g')
-end
+% if (flag_plot)
+%     figure
+%     plot(idx,err_iono(1,idx),'r.')
+%     hold on
+%     plot(idx,err_iono_fit,'g.')
+% end
 
 N_mat = zeros(size(ph));
 N_mat(1,idx) = (pr(1,idx) - lambda(1,1).*ph(1,idx) - 2.*err_iono_fit)./lambda(1,1);
@@ -400,40 +425,115 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     delta_thres = 1e30; %cycles
     
-    %detection
-    if (~flag_doppler_cs || ~any(dop) || (sum(~~dop) ~= sum(~~ph)))
-        delta = diff(N_mat(1,:))';
-    else
-        interval = diff(time);
-        interval = [interval; interval(end)]';
-
-        pred_phase = ph(1:end-1) + ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
-%         pred_phase = ph(1:end-1) - ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
-        delta_all = (pred_phase - ph(2:end))';
-        delta = delta_all;
-    end
+    interval = diff(time);
+    interval = [interval; interval(end)]';
     
-    delta_test = delta;
+    %detection (code)
+    N_mat(1,N_mat(1,:)==0) = NaN;
+    delta_N = diff(N_mat(1,:));
+    delta_code = (diff(N_mat(1,:))./interval(1:end-1))';
+    
+    delta_test = delta_code;
     not_zero = find(delta_test ~= 0);
-    %p = polyfit(not_zero,delta_test(not_zero),1);
-    %delta_test(not_zero) = delta_test(not_zero) - polyval(p,not_zero);
-    %delta_test(not_zero) = delta_test(not_zero) - median(delta_test(not_zero));
 
     if (~isempty(delta_test(not_zero)))
         [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
-        outliers(abs(outliers)<0.5) = [];
-        [~,jmp] = intersect(delta_test,outliers);
-    else
-        return
+        [~,jmp_code] = intersect(delta_test,outliers);
     end
     
-    jmp = sort(jmp);
+    %detection (Doppler)
+    delta_doppler = zeros(size(delta_code));
+    if (flag_doppler_cs && any(dop) && (sum(~~dop) == sum(~~ph)))
+        
+%         pred_phase = ph(1:end-1) + ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
+        pred_phase = ph(1:end-1) - ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
+        
+        delta_doppler_all = ((pred_phase - ph(2:end))./interval(1:end-1))';
+        delta_doppler_all(ph(2:end)==0) = 0;
+        delta_doppler_all(delta_doppler_all == 0) = NaN;
+        delta_doppler_all = diff(delta_doppler_all)'./interval(1:end-2);
+        pos1 = find(idx~=length(N_mat));
+        pos2 = find(idx~=length(N_mat)-1);
+%         pos3 = find(idx~=length(N_mat)-2);
+        pos = intersect(pos1,pos2);
+        delta_doppler(idx(pos)) = delta_doppler_all(idx(pos));
+%         delta_doppler(idx(idx~=length(N_mat))) = delta_doppler_all(idx(idx~=length(N_mat)));
+%         not_zero = find(delta_doppler ~= 0);
+%         p = polyfit(not_zero,delta_doppler(not_zero),1);
+%         delta_doppler(not_zero) = delta_doppler(not_zero) - polyval(p,not_zero);
+        delta_doppler(delta_doppler == 0) = NaN;
+    end
+    
+    delta_test = delta_doppler;
+    not_zero = find(delta_test ~= 0);
+    not_nan  = find(~isnan(delta_test));
+
+    if (~isempty(delta_test(not_zero)))
+        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+        [~,jmp_doppler] = intersect(delta_test,outliers);
+    end
+    
+    idx_interp = intersect(not_zero, not_nan);
+    idx_interp = setdiff(idx_interp,jmp_doppler);
+    p = polyfit(idx_interp,delta_doppler(idx_interp),1);
+    delta_doppler(idx_interp) = delta_doppler(idx_interp) - polyval(p,idx_interp);
+    
+    %detection (phase 3rd order derivative)
+    delta_deriv = zeros(size(delta_code));
+    ph_tmp = ph;
+    ph_tmp(1,ph_tmp(1,:)==0) = NaN;
+    delta_deriv_all = (diff(diff(diff(ph_tmp(1,:))))./interval(1:end-3).^3)';
+    pos1 = find(idx~=length(N_mat));
+    pos2 = find(idx~=length(N_mat)-1);
+    pos3 = find(idx~=length(N_mat)-2);
+    pos = intersect(intersect(pos1,pos2),pos3);
+    delta_deriv(idx(pos)) = delta_deriv_all(idx(pos));
+    delta_deriv(delta_deriv == 0) = NaN;
+    
+    delta_test = delta_deriv;
+    not_zero = find(delta_test ~= 0);
+
+    if (~isempty(delta_test(not_zero)))
+        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+        [~,jmp_deriv] = intersect(delta_test,outliers);
+    end
+    
+    %detection (geometry free)
+    ph_GF(1,ph_GF(1,:)==0) = NaN;
+    delta_GF = (diff(ph_GF)./interval(1:end-1))';
+    
+    delta_test = delta_GF;
+    not_zero = find(delta_test ~= 0);
+
+    if (~isempty(delta_test(not_zero)))
+        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+        [~,jmp_GF] = intersect(delta_test,outliers);
+    else
+        jmp_GF = (1:length(ph))';
+    end
+    
+    delta = delta_N;
+    
+    jmp1 = intersect(jmp_deriv,jmp_doppler);
+    jmp2 = intersect(jmp1, jmp_code);
+    jmp3 = intersect(jmp2, jmp_GF);
+    jmp = sort(jmp3);
+
+    if (isempty(jmp))
+        return
+    else
+        cs_found = length(jmp);
+    end
 
     if (flag_plot)
         figure
-        plot(delta_test)
+        plot(delta_code)
         hold on
-        plot(jmp,delta_test(jmp),'rx')
+        plot(jmp,delta_code(jmp),'mx')
+        plot(delta_doppler,'g')
+        plot(jmp,delta_doppler(jmp),'rx')
+        plot(delta_deriv,'c')
+        plot(jmp,delta_deriv(jmp),'yx')
         
         figure
         idx_plot = find(N_mat~=0);
@@ -442,13 +542,13 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         coltab = colorcube(2*length(jmp));
         c = 1;
     end
+
+%     N_before_zero = 0;
+%     N_after_zero = 0;
     
-    N_before_zero = 0;
-    N_after_zero = 0;
-    
-    if (isempty(jmp))
-        return
-    end
+%     if (isempty(jmp))
+%         return
+%     end
 
     %fixing
     for j = jmp'
@@ -459,7 +559,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
             pos_zeros = find(N_mat(1,j-1:j+1) == 0,1,'last');
             check = isempty(pos_zeros);
         end
-        if (ismember(j,cutoff_idx) || N_before_zero ~= 0)
+        if (ismember(j,cutoff_idx))% || N_before_zero ~= 0)
             if (check)
                 ph_propos = ph(1,j+1) + delta(j);
                 if (j == 1)
