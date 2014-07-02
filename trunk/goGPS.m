@@ -744,7 +744,7 @@ if goGNSS.isPP(mode) % post-processing
                 pos_M_disp(2,1) = pos_M_man(2,1);
                 pos_M_disp(3,1) = pos_M_man(3,1);
             end
-            fprintf('Master position fixed to user-defined values:\n');
+            fprintf('Master position set to user-defined values:\n');
             fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_disp(1,1), pos_M_disp(2,1), pos_M_disp(3,1));
         end
 
