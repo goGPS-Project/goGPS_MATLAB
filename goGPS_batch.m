@@ -53,6 +53,9 @@ addpath(genpath(pwd));
 
 is_batch = 1; %#ok<*NASGU>
 folderOUT = '../data/out/batch';
+if (exist(folderOUT,'dir') ~= 7)
+    mkdir('../data/out/','batch');
+end
 
 %-------------------------------------------------------------------------------
 % INI file

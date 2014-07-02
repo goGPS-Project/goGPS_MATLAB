@@ -50,6 +50,7 @@ sat_types = [];
 num_sat = 0;
 datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
 eof = 0;
+tow = 0;
 if (nargout > 3)
     datee_RequestedInOutputFlag = true;
 else
