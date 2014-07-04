@@ -154,7 +154,7 @@ if (flag_XR == 0)
     %iterative least-squares from the center of the Earth (i.e. [0; 0; 0])
     XR0 = zeros(3,1);
     for i = 1 : 3
-        [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));       
+        XR = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));       
         %bad_sat(sat(bad_obs))=1;
         XR0 = XR;
     end

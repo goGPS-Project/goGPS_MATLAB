@@ -340,7 +340,7 @@ for s = 1 : nSatTot
 
 %             pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
 
-            if (cs_found)
+            if (exist('cs_found', 'var') && cs_found)
                 fprintf('Pre-processing: %d cycle-slip(s) detected and fixed on L1 for satellite %02d\n', cs_found, s);
             end
         else
@@ -375,7 +375,7 @@ for s = 1 : nSatTot
 
 %             pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
             
-            if (cs_found)
+            if (exist('cs_found', 'var') && cs_found)
                 fprintf('Pre-processing: %d cycle-slip(s) detected and fixed on L2 for satellite %02d\n', cs_found, s);
             end
         else
@@ -402,6 +402,7 @@ global cutoff
 
 flag_plot = 1;
 flag_doppler_cs = 1;
+outlier_thres = 1e-3;
 
 cs_found = 0;
 
@@ -428,16 +429,22 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     interval = diff(time);
     interval = [interval; interval(end)]';
     
+    %initialization
+    jmp_code    = (1:length(ph))';
+    jmp_doppler = (1:length(ph))';
+    jmp_deriv   = (1:length(ph))';
+    jmp_GF      = (1:length(ph))';
+    
     %detection (code)
     N_mat(1,N_mat(1,:)==0) = NaN;
     delta_N = diff(N_mat(1,:));
     delta_code = (diff(N_mat(1,:))./interval(1:end-1))';
     
     delta_test = delta_code;
-    not_zero = find(delta_test ~= 0);
+    avail_code = find(delta_test ~= 0);
 
-    if (~isempty(delta_test(not_zero)))
-        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+    if (~isempty(delta_test(avail_code)))
+        [~,~,outliers] = deleteoutliers(delta_test(avail_code),outlier_thres);
         [~,jmp_code] = intersect(delta_test,outliers);
     end
     
@@ -454,29 +461,27 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         delta_doppler_all = diff(delta_doppler_all)'./interval(1:end-2);
         pos1 = find(idx~=length(N_mat));
         pos2 = find(idx~=length(N_mat)-1);
-%         pos3 = find(idx~=length(N_mat)-2);
         pos = intersect(pos1,pos2);
         delta_doppler(idx(pos)) = delta_doppler_all(idx(pos));
-%         delta_doppler(idx(idx~=length(N_mat))) = delta_doppler_all(idx(idx~=length(N_mat)));
-%         not_zero = find(delta_doppler ~= 0);
-%         p = polyfit(not_zero,delta_doppler(not_zero),1);
-%         delta_doppler(not_zero) = delta_doppler(not_zero) - polyval(p,not_zero);
         delta_doppler(delta_doppler == 0) = NaN;
     end
     
     delta_test = delta_doppler;
     not_zero = find(delta_test ~= 0);
     not_nan  = find(~isnan(delta_test));
+    avail_doppler = intersect(not_zero, not_nan);
 
-    if (~isempty(delta_test(not_zero)))
-        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+    if (~isempty(delta_test(avail_doppler)))
+        [~,~,outliers] = deleteoutliers(delta_test(avail_doppler),outlier_thres);
         [~,jmp_doppler] = intersect(delta_test,outliers);
     end
-    
-    idx_interp = intersect(not_zero, not_nan);
-    idx_interp = setdiff(idx_interp,jmp_doppler);
+
+    idx_interp = setdiff(avail_doppler,jmp_doppler);
     p = polyfit(idx_interp,delta_doppler(idx_interp),1);
     delta_doppler(idx_interp) = delta_doppler(idx_interp) - polyval(p,idx_interp);
+
+    jmp_doppler = sort(jmp_doppler);
+    jmp_doppler(diff(jmp_doppler) == 1) = [];
     
     %detection (phase 3rd order derivative)
     delta_deriv = zeros(size(delta_code));
@@ -491,33 +496,47 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     delta_deriv(delta_deriv == 0) = NaN;
     
     delta_test = delta_deriv;
-    not_zero = find(delta_test ~= 0);
+    avail_deriv = find(delta_test ~= 0);
 
-    if (~isempty(delta_test(not_zero)))
-        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+    if (~isempty(delta_test(avail_deriv)))
+        [~,~,outliers] = deleteoutliers(delta_test(avail_deriv),outlier_thres);
         [~,jmp_deriv] = intersect(delta_test,outliers);
     end
-    
+    jmp_deriv = sort(jmp_deriv);
+    jmp_deriv(diff(jmp_deriv) == 1) = [];
+
     %detection (geometry free)
     ph_GF(1,ph_GF(1,:)==0) = NaN;
     delta_GF = (diff(ph_GF)./interval(1:end-1))';
     
     delta_test = delta_GF;
     not_zero = find(delta_test ~= 0);
+    not_nan  = find(~isnan(delta_test));
+    avail_GF = intersect(not_zero, not_nan);
 
-    if (~isempty(delta_test(not_zero)))
-        [~,~,outliers] = deleteoutliers(delta_test(not_zero),0.001);
+    if (~isempty(delta_test(avail_GF)))
+        [~,~,outliers] = deleteoutliers(delta_test(avail_GF),outlier_thres);
         [~,jmp_GF] = intersect(delta_test,outliers);
-    else
-        jmp_GF = (1:length(ph))';
     end
     
-    delta = delta_N;
+    %select the observables with low standard deviation
+    [min_std_code]    = detect_minimum_std(delta_code(avail_code));
+    [min_std_doppler] = detect_minimum_std(delta_doppler(avail_doppler));
+    [min_std_deriv]   = detect_minimum_std(delta_deriv(avail_deriv));
+    [min_std_GF]      = detect_minimum_std(delta_GF(avail_GF));
     
-    jmp1 = intersect(jmp_deriv,jmp_doppler);
-    jmp2 = intersect(jmp1, jmp_code);
-    jmp3 = intersect(jmp2, jmp_GF);
-    jmp = sort(jmp3);
+    min_stds = [min_std_code min_std_doppler min_std_deriv min_std_GF];
+    jmps = {jmp_code; jmp_doppler; jmp_deriv; jmp_GF};
+    
+    [~, pos1] = min(min_stds); min_stds(pos1) = [];
+    [~, pos2] = min(min_stds);
+    
+    jmp = sort(intersect(jmps{pos1},jmps{pos2}));
+
+%     jmp1 = intersect(jmp_deriv,jmp_doppler);
+%     jmp2 = intersect(jmp1, jmp_code);
+%     jmp3 = intersect(jmp2, jmp_GF);
+%     jmp = sort(jmp3);
 
     if (isempty(jmp))
         return
@@ -534,6 +553,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         plot(jmp,delta_doppler(jmp),'rx')
         plot(delta_deriv,'c')
         plot(jmp,delta_deriv(jmp),'yx')
+        plot(delta_GF,'k--')
+        plot(jmp,delta_GF(jmp),'ko')
         
         figure
         idx_plot = find(N_mat~=0);
@@ -549,6 +570,12 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 %     if (isempty(jmp))
 %         return
 %     end
+
+    if (any(delta_doppler))
+        delta = -delta_doppler;
+    else
+        delta = -delta_deriv;
+    end
 
     %fixing
     for j = jmp'
@@ -568,7 +595,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                     ph_propag = interp1(time(j-1:j),ph(1,j-1:j),time(j+1),'linear','extrap');
                 end
                 if (abs(ph_propos - ph_propag) < delta_thres)
-                    idx = (N_mat(1,:)==0);
+                    idx = (ph(1,:)==0);
                     cs_correction = round(delta(j));
                     N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
                     ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
@@ -590,7 +617,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 
             elseif (pos_zeros == 2)
                 
-%                 idx = (N_mat(1,:)==0);
+%                 idx = (ph(1,:)==0);
 %                 cs_correction = round(N_mat(1,j+1) - N_before_zero);
 %                 N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
 %                 ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
@@ -610,7 +637,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 
             elseif (pos_zeros == 1)
                 
-%                 idx = (N_mat(1,:)==0);
+%                 idx = (ph(1,:)==0);
 %                 cs_correction = round(N_mat(1,j+1) - N_after_zero);
 %                 N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
 %                 ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
@@ -660,4 +687,19 @@ for t = 1 : length(x)
         yi(t) = LagrangeInter(x(t-d:t+d), y(t-d:t+d), xi(t));
     end
 end
+end
+
+function [min_std] = detect_minimum_std(time_series)
+d = 5; %half window size
+mov_std = zeros(size(time_series));
+for t = 1 : length(time_series)
+    if (t<=d)
+        mov_std(t) = std(time_series(1:d));
+    elseif (t>(length(time_series)-d))
+        mov_std(t) = std(time_series(end-d-1:end));
+    else
+        mov_std(t) = std(time_series(t-d:t+d));
+    end
+end
+min_std = min(mov_std);
 end

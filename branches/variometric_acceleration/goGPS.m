@@ -1415,19 +1415,27 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         ax = vel_pos(nMin:nMax,13);
         ay = vel_pos(nMin:nMax,15);
         az = vel_pos(nMin:nMax,17);
-        
+%         sigma2_a = ones(3,n);
+%         sigma2_a(1,:) = abs(vel_pos(nMin:nMax,14)');
+%         sigma2_a(2,:) = abs(vel_pos(nMin:nMax,16)');
+%         sigma2_a(3,:) = abs(vel_pos(nMin:nMax,18)');
+
         phiX = zeros(length(ax),1);
         lamX = zeros(length(ax),1);
         xENU = zeros(length(ax),3);
         vENU = zeros(length(ax),3);
         aENU = zeros(length(ax),3);
+
+        first_epoch = find(~isnan(x) & ~isnan(y) & ~isnan(z), 1);
         
         for epo=1:length(ax)
             
-            xENU(epo,:) = global2localPos([x(epo); y(epo); z(epo)], [x(1); y(1); z(1)]);
-            [phiX(epo), lamX(epo)] = cart2geod(x(epo), y(epo), z(epo));
-            vENU(epo,:) = global2localVel([vx(epo); vy(epo); vz(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
-            aENU(epo,:) = global2localVel([ax(epo); ay(epo); az(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
+            if (x(epo) ~= 0)
+                xENU(epo,:) = global2localPos([x(epo); y(epo); z(epo)], [x(first_epoch); y(first_epoch); z(first_epoch)]);
+                [phiX(epo), lamX(epo)] = cart2geod(x(epo), y(epo), z(epo));
+                vENU(epo,:) = global2localVel([vx(epo); vy(epo); vz(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
+                aENU(epo,:) = global2localVel([ax(epo); ay(epo); az(epo)], [phiX(epo), lamX(epo)]'.*180/pi);
+            end
         end
         
 %         for q = 1 : 2
