@@ -402,9 +402,8 @@ function [ph, cs_found] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, e
 
 global cutoff
 
-flag_plot = 1;
+flag_plot = 0;
 flag_doppler_cs = 1;
-outlier_thres = 1e-3;
 
 cs_found = 0;
 
@@ -439,14 +438,16 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     
     %detection (code)
     N_mat(1,N_mat(1,:)==0) = NaN;
-    delta_N = diff(N_mat(1,:));
+%     delta_N = diff(N_mat(1,:));
     delta_code = (diff(N_mat(1,:))./interval(1:end-1))';
     
     delta_test = delta_code;
-    avail_code = find(delta_test ~= 0);
+    not_zero = find(delta_test ~= 0);
+    not_nan  = find(~isnan(delta_test));
+    avail_code = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_code)))
-        [~,~,outliers] = deleteoutliers(delta_test(avail_code),outlier_thres);
+        outliers = batch_outlier_detection(delta_test(avail_code),interval(1));
         [~,jmp_code] = intersect(delta_test,outliers);
     end
     
@@ -474,7 +475,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_doppler = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_doppler)))
-        [~,~,outliers] = deleteoutliers(delta_test(avail_doppler),outlier_thres);
+        outliers = batch_outlier_detection(delta_test(avail_doppler),interval(1));
         [~,jmp_doppler] = intersect(delta_test,outliers);
     end
 
@@ -498,10 +499,12 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     delta_deriv(delta_deriv == 0) = NaN;
     
     delta_test = delta_deriv;
-    avail_deriv = find(delta_test ~= 0);
+    not_zero = find(delta_test ~= 0);
+    not_nan  = find(~isnan(delta_test));
+    avail_deriv = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_deriv)))
-        [~,~,outliers] = deleteoutliers(delta_test(avail_deriv),outlier_thres);
+        outliers = batch_outlier_detection(delta_test(avail_deriv),interval(1));
         [~,jmp_deriv] = intersect(delta_test,outliers);
     end
     jmp_deriv = sort(jmp_deriv);
@@ -512,9 +515,6 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     ph_GF(1,ph_GF(1,:)==0) = NaN;
     delta_GF_all = (diff(ph_GF)./interval(1:end-1))';
     pos = find(idx~=length(N_mat));
-%     pos2 = find(idx~=length(N_mat)-1);
-%     pos3 = find(idx~=length(N_mat)-2);
-%     pos = intersect(intersect(pos1,pos2),pos3);
     delta_GF(idx(pos)) = delta_GF_all(idx(pos));
     
     delta_test = delta_GF;
@@ -523,7 +523,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_GF = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_GF)))
-        [~,~,outliers] = deleteoutliers(delta_test(avail_GF),outlier_thres);
+        outliers = batch_outlier_detection(delta_test(avail_GF),interval(1));
+        outliers(outliers < 0.1) = [];
         [~,jmp_GF] = intersect(delta_test,outliers);
     end
     
@@ -536,7 +537,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     min_stds = [min_std_code min_std_doppler min_std_deriv min_std_GF];
     jmps = {jmp_code; jmp_doppler; jmp_deriv; jmp_GF};
     
-    [~, pos1] = min(min_stds); min_stds(pos1) = [];
+    [~, pos1] = min(min_stds); min_stds(pos1) = 1e30;
     [~, pos2] = min(min_stds);
     
     jmp = sort(intersect(jmps{pos1},jmps{pos2}));
@@ -553,16 +554,23 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     end
 
     if (flag_plot)
-        figure
-        plot(delta_code)
-        hold on
-        plot(jmp,delta_code(jmp),'mx')
-        plot(delta_doppler,'g')
-        plot(jmp,delta_doppler(jmp),'rx')
-        plot(delta_deriv,'c')
-        plot(jmp,delta_deriv(jmp),'yx')
-        plot(delta_GF,'k--')
-        plot(jmp,delta_GF(jmp),'ko')
+        figure; hold on
+        if (pos1 == 1 || pos2 == 1)
+            plot(delta_code)
+            plot(jmp,delta_code(jmp),'mx')
+        end
+        if (pos1 == 2 || pos2 == 2)
+            plot(delta_doppler,'g')
+            plot(jmp,delta_doppler(jmp),'rx')
+        end
+        if (pos1 == 3 || pos2 == 3)
+            plot(delta_deriv,'c')
+            plot(jmp,delta_deriv(jmp),'yx')
+        end
+        if (pos1 == 4 || pos2 == 4)
+            plot(delta_GF,'k--')
+            plot(jmp,delta_GF(jmp),'ko')
+        end
         
         figure
         idx_plot = find(N_mat~=0);
@@ -709,5 +717,35 @@ for t = 1 : length(time_series)
         mov_std(t) = std(time_series(t-d:t+d));
     end
 end
-min_std = min(mov_std);
+if (~isempty(mov_std))
+    min_std = min(mov_std);
+else
+    min_std = 1e30;
+end
+end
+
+function [outliers] = batch_outlier_detection(time_series, interval)
+
+outlier_thres = 1e-3;
+batch_size = 3600; %seconds
+
+num_batches = floor(length(time_series)*interval/batch_size);
+batch_idx = 1 : batch_size/interval : batch_size*num_batches/interval;
+
+if (num_batches == 0 && ~isempty(time_series))
+    num_batches = 1;
+    batch_idx = 1;
+end
+
+outliers = [];
+for b = 1 : num_batches
+    start_idx = batch_idx(b);
+    if (b == num_batches)
+        end_idx = length(time_series);
+    else
+        end_idx = batch_idx(b+1)-1;
+    end
+    [~,~,outliers_batch] = deleteoutliers(time_series(start_idx:end_idx), outlier_thres);
+    outliers = [outliers; outliers_batch];
+end
 end
