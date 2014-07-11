@@ -541,6 +541,30 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     [~, pos2] = min(min_stds);
     
     jmp = sort(intersect(jmps{pos1},jmps{pos2}));
+    
+    if (any(delta_doppler))
+        delta = -delta_doppler;
+    else
+        delta = -delta_deriv;
+    end
+    
+    %cycle slips detected by code and doppler observables must be of the same sign
+    if ((pos1 == 1 && pos2 == 2) || (pos1 == 2 && pos2 == 1))
+        sign_OK = (sign(delta_code(jmp)) .* sign(delta_doppler(jmp)) > 0);
+        jmp = jmp(sign_OK);
+    end
+    
+    %cycle slips detected by code and derivative observables must be of the same sign
+    if ((pos1 == 1 && pos2 == 3) || (pos1 == 3 && pos2 == 1))
+        sign_OK = (sign(delta_code(jmp)) .* sign(delta_deriv(jmp)) > 0);
+        jmp = jmp(sign_OK);
+    end
+    
+    %cycle slips detected by doppler and derivative observables must be of the same sign
+    if ((pos1 == 2 && pos2 == 3) || (pos1 == 3 && pos2 == 2))
+        sign_OK = (sign(delta_doppler(jmp)) .* sign(delta_deriv(jmp)) > 0);
+        jmp = jmp(sign_OK);
+    end
 
 %     jmp1 = intersect(jmp_deriv,jmp_doppler);
 %     jmp2 = intersect(jmp1, jmp_code);
@@ -586,12 +610,6 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 %     if (isempty(jmp))
 %         return
 %     end
-
-    if (any(delta_doppler))
-        delta = -delta_doppler;
-    else
-        delta = -delta_deriv;
-    end
 
     %fixing
     for j = jmp'
