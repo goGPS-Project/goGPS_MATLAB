@@ -121,8 +121,8 @@ min_nsat = 3 + num_sys;
 
 
 % maximum RMS of code single point positioning to accept current epoch
-SPP_threshold=5; %meters 
-bad_sat=[];
+SPP_threshold = 5; %meters 
+bad_sat = [];
 
 %----------------------------------------------------------------------------------------------
 % APPROXIMATE RECEIVER POSITION
@@ -155,7 +155,6 @@ if (flag_XR == 0)
     XR0 = zeros(3,1);
     for i = 1 : 3
         XR = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index));       
-        %bad_sat(sat(bad_obs))=1;
         XR0 = XR;
     end
 else
