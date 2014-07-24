@@ -82,7 +82,7 @@ y0(pivot_index)   = [];
 n = n - 1;
 
 %observation covariance matrix
-weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
+weightMatrix = CWeightMatrix(weights, pivot_index); % TBD - remove once the fuction will be part of a class
 Q = weightMatrix.getCofactorMatrixDD( n, elR, elM, snr_R, snr_M );
 
 %normal matrix

@@ -688,7 +688,7 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         
         %construction of the cofactor matrix
-        weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
+        weightMatrix = CWeightMatrix(weights, pivot_index); % TBD - remove once the fuction will be part of a class
         Q = weightMatrix.getCofactorMatrixDD( length(sat_pr) - 1, elR(sat_pr), elM(sat_pr), snr_R(sat_pr), snr_M(sat_pr) );
         
         %zeroes vector useful in matrix definitions

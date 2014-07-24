@@ -173,7 +173,7 @@ m = (m - 2);
 y = reshape((y0 - b),m,n);
 
 %observation noise covariance matrix
-weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
+weightMatrix = CWeightMatrix(weights, pivot_index); % TBD - remove once the fuction will be part of a class
 Q  = zeros(m);
 Q1 = weightMatrix.getCofactorMatrixDD( m/2, elR, elM, snr_R, snr_M );
 Q(1:m/2,1:m/2) = sigmaq_cod1 * Q1;

@@ -213,7 +213,7 @@ else
     n = length(y0);
     
     %observation noise covariance matrix
-    weightMatrix = CWeightMatrix(pivot_index_pr, weights); % TBD - remove once the fuction will be part of a class
+    weightMatrix = CWeightMatrix(weights, pivot_index_pr); % TBD - remove once the fuction will be part of a class
     Q = zeros(n);    
     Q1 = weightMatrix.getCofactorMatrixDD( n / 2 , elR, elM, snr_R, snr_M );
     Q2 = Q1(index,index);

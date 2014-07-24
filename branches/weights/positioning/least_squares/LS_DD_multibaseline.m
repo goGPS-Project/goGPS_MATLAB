@@ -164,7 +164,7 @@ y0([pivot_index, pivot_index+m/2]) = [];
 m = (m - 2);
  
 %observation noise covariance matrix
-weightMatrix = CWeightMatrix(pivot_index, weights); % TBD - remove once the fuction will be part of a class
+weightMatrix = CWeightMatrix(weights, pivot_index); % TBD - remove once the fuction will be part of a class
 Q  = zeros(m);
 Q1 = weightMatrix.getCofactorMatrixDD( m/2, elR1, elM, snr_R1, snr_M );
 Q(1:m/2,1:m/2) = sigmaq_cod1 * Q1;
