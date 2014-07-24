@@ -33,9 +33,12 @@ if (n == 0)
 end
 icol = isat(1);
 
+delta = 0;
+
 %consider BeiDou time (BDT) for BeiDou satellites
 if (strcmp(char(Eph(31)),'C'))
-    time = time - 14;
+    delta = 14;
+    time = time - delta;
 end
 
 time_eph = Eph(32,icol);
@@ -65,7 +68,7 @@ else
     end
 end
 
-if (fix(abs(dtmin)) > dtmax)
+if (fix(abs(dtmin)) - delta > dtmax)
     icol = [];
     return
 end

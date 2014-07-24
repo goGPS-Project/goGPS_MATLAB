@@ -86,11 +86,12 @@ else
     flag_XR = 1;
 end
 
-err_iono = zeros(32,nEpochs);
-el = zeros(32,nEpochs);
+err_iono = zeros(nSatTot,nEpochs);
+el = zeros(nSatTot,nEpochs);
 cond_num = zeros(nEpochs,1);
 cov_XR = zeros(3,3,nEpochs);
 var_dtR = zeros(nEpochs,1);
+XS = zeros(nSatTot,3,nEpochs);
 
 for i = 1 : nEpochs
     
@@ -110,7 +111,7 @@ for i = 1 : nEpochs
     
     if (length(sat0) >= min_nsat_LS)
 
-        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
+        [~, dtR_tmp, XS_tmp, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
         
         %bad_sats(bad_sat_i)=1;
         
@@ -119,6 +120,7 @@ for i = 1 : nEpochs
             err_iono(sat,i) = err_iono_tmp;
             el(sat,i) = el_tmp;
             cond_num(i,1) = cond_num_tmp;
+            XS(sat,:,i) = XS_tmp;
             if (~isempty(var_dtR_tmp))
                 cov_XR(:,:,i) = cov_XR_tmp;
                 var_dtR(i,1) = var_dtR_tmp;
