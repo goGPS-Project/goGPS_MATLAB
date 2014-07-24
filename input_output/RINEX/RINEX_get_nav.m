@@ -289,7 +289,7 @@ while (~feof(fid))
         Eph(21,i) = toc;
         Eph(22,i) = IODE;
         Eph(23,i) = code_on_L2;
-        Eph(24,i) = weekno;
+        Eph(24,i) = weekno; if (strcmp(sys_id, 'E') && weekno > 2500); weekno = weekno - 1024; end;
         Eph(25,i) = L2flag;
         Eph(26,i) = svaccur;
         Eph(27,i) = svhealth;
