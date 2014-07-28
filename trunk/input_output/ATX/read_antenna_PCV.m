@@ -162,5 +162,5 @@ if (~isempty(filename))
         fclose(fid);
     end
 else
-    fprintf('Warning: PCO/PCV file not loaded.\n');
+    fprintf('... WARNING: PCO/PCV file not loaded.\n');
 end

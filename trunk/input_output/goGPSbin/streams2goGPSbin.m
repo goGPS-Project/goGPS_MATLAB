@@ -112,9 +112,9 @@ if (~isempty(Eph))
         end
     else
         if (nargin == 4)
-            msgbox('Warning: this dataset does not contain ephemerides!');
+            msgbox('Warning: this dataset does not contain ephemerides.');
         else
-            fprintf('Warning: this dataset does not contain ephemerides!\n');
+            fprintf('... WARNING: this dataset does not contain ephemerides.\n');
         end
     end 
 end

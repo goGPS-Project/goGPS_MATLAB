@@ -292,7 +292,7 @@ if goGNSS.isPP(mode) % post-processing
                 antPCO_R=antenna_PCV(1).offset(:,:,1)';
             else
                 antPCO_R=[0 0 0]';
-                fprintf('... WARNING! ROVER antenna PCV corrections set to zero (%s)\n',antenna_PCV(1).name);
+                fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
             end
             
 
@@ -355,7 +355,7 @@ if goGNSS.isPP(mode) % post-processing
                 antPCO_M=antenna_PCV(2).offset(:,:,1)';                
             else
                antPCO_M=[0 0 0]'; 
-               fprintf('WARNING! MASTER antenna PCV corrections set to zero ("%s" not found)\n',antenna_PCV(2).name);   
+               fprintf('... WARNING: MASTER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(2).name);   
             end
             
             %ROVER
@@ -363,12 +363,9 @@ if goGNSS.isPP(mode) % post-processing
                 antPCO_R=antenna_PCV(1).offset(:,:,1)';        
             else
                antPCO_R=[0 0 0]'; 
-               fprintf('WARNING! ROVER antenna PCV corrections set to zero ("%s" not found)\n',antenna_PCV(1).name);   
+               fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);   
             end   
-            
-            
-            
-            
+
             %apply the antenna PCO from the markers (if available) (only for L1 now!) 
             if flag_ms_pos % apply offset to the master position read from RINEX header
                 fprintf('Master position fixed from RINEX\n'); 
@@ -838,9 +835,9 @@ if goGNSS.isPP(mode) % post-processing
                 end
             else
                 if (flag_var_dyn_model)
-                    fprintf('Warning: master data not available, forcing stand-alone mode. Variable dynamic model is not supported in stand-alone mode.\n');
+                    fprintf('... WARNING: master data not available, forcing stand-alone mode. Variable dynamic model is not supported in stand-alone mode.\n');
                 else
-                    fprintf('Warning: master data not available, forcing stand-alone mode.\n');
+                    fprintf('... WARNING: master data not available, forcing stand-alone mode.\n');
                 end
             end
         end
@@ -871,7 +868,7 @@ end
 %check if the dataset was surveyed with a variable dynamic model
 d = dir([filerootIN '_dyn_000.bin']);
 if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
-    disp('Warning: dataset was not surveyed with a variable dynamic model:');
+    disp('... WARNING: dataset was not surveyed with a variable dynamic model:');
     disp(' Switching off variable dynamic model mode...');
     flag_var_dyn_model = 0;
 end
@@ -3715,7 +3712,7 @@ end
 
 if (exist('time_GPS', 'var') && isempty(time_GPS))
     fprintf('\n');
-    fprintf('Warning: no epochs were available/usable for processing. The result files will be empty.\n');
+    fprintf('... WARNING: no epochs were available/usable for processing. The result files will be empty.\n');
     fprintf('\n');
 end
 

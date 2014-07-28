@@ -5,7 +5,7 @@ if (iscell(filename_R_obs))
     %if mode is not multi-receiver, fall back to the first rover filename
     if (~goGNSS.isMR(mode))
         filename_obs{1,1} = [filename_R_obs{1,1} filename_R_obs{1,2}];
-        fprintf('Warning: multiple rover RINEX files in input for a single rover mode; using the first file.\n');
+        fprintf('... WARNING: multiple rover RINEX files in input for a single rover mode; using the first file.\n');
     else
         nFiles = length(filename_R_obs)-1;
         filename_obs = cell(nFiles,1);
