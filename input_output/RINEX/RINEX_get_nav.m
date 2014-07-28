@@ -93,7 +93,7 @@ end
 
 % %if ionosphere parameters were not found
 % if (ioparam == 0)
-%     fprintf('Warning: ionosphere parameters not found in navigation file\n');
+%     fprintf('... WARNING: ionosphere parameters not found in navigation file\n');
 % end
 
 i = 0;
@@ -302,7 +302,7 @@ while (~feof(fid))
         
         %if IODC and IODE do not match, issue a warning
         if (iodc ~= IODE && ~strcmp(sys_id, 'C') && ~strcmp(sys_id, 'E'))
-            fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %1s%02d, time %dh %dm %.1fs)\n',sys_id,svprn,hour,minute,second);
+            fprintf('... WARNING: IODE and IODC values do not match (ephemerides for satellite %1s%02d, time %dh %dm %.1fs)\n',sys_id,svprn,hour,minute,second);
         end
         
     %if GLONASS
