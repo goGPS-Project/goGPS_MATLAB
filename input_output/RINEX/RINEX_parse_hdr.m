@@ -123,7 +123,7 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
     line = fgetl(file);
 end
 
-%apply the antenna offset from the marker (if available)
-if (any(pos_M) && any(antoff))
-    pos_M = local2globalPos(antoff, pos_M);
-end
+% %apply the antenna offset from the marker (if available)
+% if (any(pos_M) && any(antoff))
+%     pos_M = local2globalPos(antoff, pos_M);
+% end

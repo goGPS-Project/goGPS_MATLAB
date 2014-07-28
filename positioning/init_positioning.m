@@ -81,6 +81,8 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %compute inter-frequency factors (for the ionospheric delay)
 ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
+bad_epoch=0;
+
 %----------------------------------------------------------------------------------------------
 % FIRST ESTIMATE OF SATELLITE POSITIONS
 %----------------------------------------------------------------------------------------------

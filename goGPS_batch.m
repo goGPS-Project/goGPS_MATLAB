@@ -60,7 +60,7 @@ end
 %-------------------------------------------------------------------------------
 % INI file
 %-------------------------------------------------------------------------------
-iniFile = './settings/Milano_daily_test_VRS_InputFiles.ini';
+iniFile = './settings/default_InputFiles.ini';
 
 %initialize INI file reading
 global goIni;
@@ -115,6 +115,8 @@ flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> 
 %-------------------------------------------------------------------------------
 
 flag_ms_pos = 0;     % read master station position from RINEX header
+pos_M_crd=[];
+pos_R_crd=[];
 
 if (~flag_ms_pos)
     sta_coord_file = '../data/stations/stations.crd';
@@ -122,6 +124,7 @@ if (~flag_ms_pos)
     %parse file containing station coordinates
     [markers, coords_X, coords_Y, coords_Z] = textread(sta_coord_file,'%s%f%f%f');
     
+    % master
     %find the correct marker
     marker_idx = find(strcmp(markers, markerM));
     
@@ -131,7 +134,22 @@ if (~flag_ms_pos)
     ZM = coords_Z(marker_idx);
     
     %set master station position
-    pos_M_off = [XM; YM; ZM];
+    pos_M_crd = [XM; YM; ZM];
+    
+        
+    % rover
+    %find the correct marker
+    marker_idx = find(strcmp(markers, markerR));
+    
+    if ~isempty(marker_idx)
+        %extract the corresponding coordinates
+        XR = coords_X(marker_idx);
+        YR = coords_Y(marker_idx);
+        ZR = coords_Z(marker_idx);
+        
+        %set rover station position
+        pos_R_crd = [XR; YR; ZR];
+    end
 end
 
 %-------------------------------------------------------------------------------
@@ -182,7 +200,7 @@ cutoff = 15;
 snr_threshold = 0;
 
 %cycle slip threshold [cycles]
-cs_threshold = 1;
+cs_threshold = 0.5;
 
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
@@ -279,57 +297,64 @@ year = two_digit_year(year);
 
 fid_extract = fopen([folderOUT '/' markerM '_' markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_extraction.txt'],'w');
 
-for doy = doy_start : 1 : doy_end
-    
-    if (strcmp(path_R_obs(end),'/') || strcmp(path_R_obs(end),'\'))
-        delim = '';
-    else
-        delim = '/';
-    end
-    filename_R_obs = [path_R_obs delim markerR num2str(doy,'%03d') sessionR '.' num2str(year,'%02d') extR];
-    filename_M_obs = [path_M_obs delim markerM num2str(doy,'%03d') sessionM '.' num2str(year,'%02d') extM];
-    filename_nav   = [path_N_obs delim idN     num2str(doy,'%03d') sessionN '.' num2str(year,'%02d') extN];
-    prefixOUT = [markerM '_' markerR '_' num2str(year,'%02d') num2str(doy,'%03d')];
-    
-    %-------------------------------------------------------------------------------
-    % INPUT/OUTPUT FILENAME PREFIX
-    %-------------------------------------------------------------------------------
-    
-    %dummy values for filerootIN (not used for batch processing)
-    folderIN  = '../data/data_goGPS';
-    prefixIN  = 'yamatogawa';
-    filerootIN  = [folderIN '/' prefixIN];
-    
-    filerootOUT = [folderOUT '/' prefixOUT];
-    
-    i = 1;
-    j = length(filerootOUT);
-    while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_master*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_obs*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_eph*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_sat*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_dop*.bin'])) | ...
-            ~isempty(dir([filerootOUT '_ECEF*.txt'])) | ...
-            ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
-            ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
-            ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
-            ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
-            ~isempty(dir([filerootOUT '.kml'])) )
-        
-        filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
-        i = i + 1;
-    end
+n_session=1;
 
-    goGPS
-    
-    idx = size(date_R,1);
-    fprintf(fid_extract,'%02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
-    
-    delete([filerootOUT '_*.bin']);
+for doy = doy_start : 1 : doy_end
+    for session_i=1:n_session
+        if n_session > 1
+            sessionR=num2str(session_i,'%d');
+            sessionM=num2str(session_i,'%d');
+        end
+        if (strcmp(path_R_obs(end),'/') || strcmp(path_R_obs(end),'\'))
+            delim = '';
+        else
+            delim = '/';
+        end
+        filename_R_obs = [path_R_obs delim markerR num2str(doy,'%03d') sessionR '.' num2str(year,'%02d') extR];
+        filename_M_obs = [path_M_obs delim markerM num2str(doy,'%03d') sessionM '.' num2str(year,'%02d') extM];
+        filename_nav   = [path_N_obs delim idN     num2str(doy,'%03d') sessionN '.' num2str(year,'%02d') extN];
+        prefixOUT = [markerM '_' markerR '_' num2str(year,'%02d') num2str(doy,'%03d') num2str(session_i,'%d')];
+        
+        %-------------------------------------------------------------------------------
+        % INPUT/OUTPUT FILENAME PREFIX
+        %-------------------------------------------------------------------------------
+        
+        %dummy values for filerootIN (not used for batch processing)
+        folderIN  = '../data/data_goGPS';
+        prefixIN  = 'yamatogawa';
+        filerootIN  = [folderIN '/' prefixIN];
+        
+        filerootOUT = [folderOUT '/' prefixOUT];
+        
+        i = 1;
+        j = length(filerootOUT);
+        while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_master*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_obs*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_eph*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_sat*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_dop*.bin'])) | ...
+                ~isempty(dir([filerootOUT '_ECEF*.txt'])) | ...
+                ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
+                ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
+                ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
+                ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
+                ~isempty(dir([filerootOUT '.kml'])) )
+            
+            filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
+            i = i + 1;
+        end
+
+        goGPS
+        
+        idx = size(date_R,1);
+        fprintf(fid_extract,'%02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
+               
+        delete([filerootOUT '_*.bin']);
+    end
 end
 
 fclose(fid_extract);

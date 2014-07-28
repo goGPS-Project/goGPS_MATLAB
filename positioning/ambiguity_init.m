@@ -1,6 +1,6 @@
-function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, ...
+function [N_stim_slip, N_stim_born, var_N_slip, var_N_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, ...
     ph_R, ph_M, snr_R, snr_M, elR, elM, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, distM, ...
-    err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda, N_kalman, Cee_N_kalman)
+    err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot, lambda, N_kalman, Cee_N_kalman, sigmaq_pos_R)
 
 % SYNTAX:
 %   [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, ...
@@ -36,6 +36,8 @@ function [N_stim_slip, N_stim_born] = ambiguity_init(XR_approx, XS, pr_R, pr_M, 
 % OUTPUT:
 %   N_stim_slip = phase ambiguity estimation for slipped satellites
 %   N_stim_born = phase ambiguity estimation for new satellites
+%   var_N_slip = error variance of phase ambiguity estimation for slipped satellites
+%   var_N_born = error variance of phase ambiguity estimation for born satellites
 %
 % DESCRIPTION:
 %   This function estimates phase ambiguities using a least-squares
@@ -66,6 +68,8 @@ global amb_restart_method
 
 N_stim_slip = [];
 N_stim_born = [];
+var_N_slip=[];
+var_N_born=[];
 
 %number of slipped satellites
 nsat_slip = length(sat_slip);
@@ -117,18 +121,20 @@ if (amb_restart_method == 0)
     comb_ph = (ph_R - ph_M) - (ph_R(pivot_index_ph) - ph_M(pivot_index_ph));
     
     %linear combination of initial ambiguity estimate
-    N_stim = comb_pr(index) ./ lambda - comb_ph;
-    %sigmaq_N_stim = 4*sigmaq_cod1 ./ lambda.^2;
+    N_stim = comb_pr(index) ./ lambda(index_amb) - comb_ph;
+    sigmaq_N_stim = 4*sigmaq_cod1 ./ lambda(1).^2;
     
     %new ambiguity for slipped satellites
     N_stim_slip = N_stim(index_slip);
+    var_N_slip = ones(nsat_slip,1)*sigmaq_N_stim;
     
     %new ambiguity for new satellite
     N_stim_born = N_stim(index_born);
+    var_N_born = ones(nsat_born,1)*sigmaq_N_stim;
     
 %if the number of observations is not sufficient to apply least squares adjustment
 %or if the selected method is Kalman-estimated code - phase comparison
-elseif (nsat_pr + nsat_ph - 2 <= 3 + nsat_amb) || (amb_restart_method == 1)
+elseif (nsat_pr + nsat_ph - 2 <= 3 + nsat_amb) || fix(nsat_ph/2) < nsat_amb || (amb_restart_method == 1)
     
     %KEPT AS A REFERENCE: it should be used in the calling functions and
     %passed as an argument
@@ -142,14 +148,16 @@ elseif (nsat_pr + nsat_ph - 2 <= 3 + nsat_amb) || (amb_restart_method == 1)
     comb_ph = (ph_R - ph_M) - (ph_R(pivot_index_ph) - ph_M(pivot_index_ph));
     
     %linear combination of initial ambiguity estimate
-    N_stim = comb_pr(index) ./ lambda - comb_ph;
-    %sigmaq_N_stim = sum(sigmaq_pos_R) ./ lambda.^2;
+    N_stim = comb_pr(index) ./ lambda(index) - comb_ph;
+    sigmaq_N_stim = sum(sigmaq_pos_R) ./ lambda(1).^2;
     
     %new ambiguity for slipped satellites
     N_stim_slip = N_stim(index_slip);
+    var_N_slip = ones(nsat_slip,1)*sigmaq_N_stim;
     
     %new ambiguity for new satellite
     N_stim_born = N_stim(index_born);
+    var_N_born = ones(nsat_born,1)*sigmaq_N_stim;
 
 %if the selected method is Least squares adjustment
 else
@@ -232,10 +240,26 @@ else
     %least squares solution
     x  = (N^-1)*A'*(Q^-1)*(y0-b);
     
-    if (nsat_slip ~= 0)
-        N_stim_slip = x(4 : 4 + nsat_slip - 1);
+    y_hat = A*x + b;
+    v_hat = y0 - y_hat;
+    m=size(A,2);
+    if n-m > 0
+        sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);    
+        Cxx = sigma02_hat * (N^-1);
+        cov_XR  = Cxx(1:3,1:3);
+        cov_N = Cxx(4:end,4:end);
+        var_N = diag(cov_N);
+              
+        if (nsat_slip ~= 0)
+            N_stim_slip = x(4 : 4 + nsat_slip - 1);
+            var_N_slip = var_N(1:nsat_slip);
+        end
+        if (nsat_born ~= 0)
+            N_stim_born = x(4 + nsat_slip : 4 + nsat_amb - 1);
+            var_N_born = var_N(nsat_slip+1:end);
+        end
     end
-    if (nsat_born ~= 0)
-        N_stim_born = x(4 + nsat_slip : 4 + nsat_amb - 1);
-    end
+        
+        
+        
 end
