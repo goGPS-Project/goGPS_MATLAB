@@ -288,7 +288,7 @@ if goGNSS.isPP(mode) % post-processing
             antenna_PCV= read_antenna_PCV(filename_pco, antmod_R);
             
             %ROVER
-            if ~isempty(antenna_PCV(1).n_frequency) %corrections available
+            if (antenna_PCV(1).n_frequency ~= 0) %corrections available
                 antPCO_R=antenna_PCV(1).offset(:,:,1)';
             else
                 antPCO_R=[0 0 0]';
@@ -351,7 +351,7 @@ if goGNSS.isPP(mode) % post-processing
                
             %get antenna PCV offset
             %MASTER
-            if ~isempty(antenna_PCV(2).n_frequency) %corrections available
+            if (antenna_PCV(2).n_frequency ~= 0) %corrections available
                 antPCO_M=antenna_PCV(2).offset(:,:,1)';                
             else
                antPCO_M=[0 0 0]'; 
@@ -359,7 +359,7 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             %ROVER
-            if ~isempty(antenna_PCV(1).n_frequency) %corrections available
+            if (antenna_PCV(1).n_frequency ~= 0) %corrections available
                 antPCO_R=antenna_PCV(1).offset(:,:,1)';        
             else
                antPCO_R=[0 0 0]'; 
