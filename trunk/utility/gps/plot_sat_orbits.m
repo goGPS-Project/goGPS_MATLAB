@@ -81,8 +81,13 @@ for s = 1 : nSatTot
 %             [lam(s,:), idx] = sort(lam(s,:));
 %             phi(s,:) = phi(s,idx);
 %         end
+if (constellations.BeiDou.enabled && nSatTot == 37 && s < 6)
+    marker_size = 10;
+else
+    marker_size = 4;
+end
 
-        m_plot(lam(s,:),phi(s,:),'Marker','.','MarkerSize',4,'Color',color,'LineStyle','none')
+        m_plot(lam(s,:),phi(s,:),'Marker','.','MarkerSize',marker_size,'Color',color,'LineStyle','none')
 %     h = plot(lam(s,:),phi(s,:),'.','MarkerSize',4);
 %     set(h,'Color',coltab(2*s-1,:));
     end
