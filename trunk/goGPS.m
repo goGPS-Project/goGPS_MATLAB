@@ -287,15 +287,16 @@ if goGNSS.isPP(mode) % post-processing
             %read antenna phase center offset (NOTE: only L1 offset for now)
             antenna_PCV= read_antenna_PCV(filename_pco, antmod_R);
             
-            %ROVER
-            if (antenna_PCV(1).n_frequency ~= 0) %corrections available
-                antPCO_R=antenna_PCV(1).offset(:,:,1)';
-            else
-                antPCO_R=[0 0 0]';
-                fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
+            if (~isempty(antenna_PCV))
+                %ROVER
+                if (antenna_PCV(1).n_frequency ~= 0) %corrections available
+                    antPCO_R=antenna_PCV(1).offset(:,:,1)';
+                else
+                    antPCO_R=[0 0 0]';
+                    fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
+                end
             end
             
-
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
             
@@ -350,46 +351,44 @@ if goGNSS.isPP(mode) % post-processing
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
                
             %get antenna PCV offset
-            %MASTER
-            if (antenna_PCV(2).n_frequency ~= 0) %corrections available
-                antPCO_M=antenna_PCV(2).offset(:,:,1)';                
-            else
-               antPCO_M=[0 0 0]'; 
-               fprintf('... WARNING: MASTER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(2).name);   
+            if (~isempty(antenna_PCV))
+                %MASTER
+                if (antenna_PCV(2).n_frequency ~= 0) %corrections available
+                    antPCO_M=antenna_PCV(2).offset(:,:,1)';
+                else
+                    antPCO_M=[0 0 0]';
+                    fprintf('... WARNING: MASTER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(2).name);
+                end
+                
+                %ROVER
+                if (antenna_PCV(1).n_frequency ~= 0) %corrections available
+                    antPCO_R=antenna_PCV(1).offset(:,:,1)';
+                else
+                    antPCO_R=[0 0 0]';
+                    fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
+                end
             end
-            
-            %ROVER
-            if (antenna_PCV(1).n_frequency ~= 0) %corrections available
-                antPCO_R=antenna_PCV(1).offset(:,:,1)';        
-            else
-               antPCO_R=[0 0 0]'; 
-               fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);   
-            end   
 
-            %apply the antenna PCO from the markers (if available) (only for L1 now!) 
-            if flag_ms_pos % apply offset to the master position read from RINEX header
-                fprintf('Master position fixed from RINEX\n'); 
-                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
-                pos_M = local2globalPos(antoff_M+antPCO_M, pos_M);                
+            % set MASTER initial coordinates
+            if (flag_ms_pos) % master position read from RINEX header
+                fprintf('Master position fixed from RINEX:\n'); 
+                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));                
             else
-                if exist('pos_M_crd','var') && ~isempty(pos_M_crd) && any(pos_M_crd) % apply offset to the master position read from coordinate file
+                if (exist('pos_M_crd','var') && ~isempty(pos_M_crd) && any(pos_M_crd)) % master position read from coordinate file
                     fprintf('Master position fixed from coordinate file:\n'); 
                     fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
-                    pos_M = local2globalPos(antoff_M+antPCO_M, pos_M_crd);
-                elseif exist('pos_M_man','var') && any(pos_M_man) % apply offset to the master position read from GUI
+                    pos_M = pos_M_crd;
+                elseif (exist('pos_M_man','var') && any(pos_M_man)) % master position read from GUI
                     fprintf('Master position fixed to user-defined values:\n'); 
                     fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
-                    pos_M = local2globalPos(antoff_M+antPCO_M, pos_M_man);
-                    
-                else % no valid pos_M_man found, so force to RINEX position
+                    pos_M = pos_M_man;
+                else % no valid pos_M_man found, so force positiong read from RINEX header
                     fprintf('WARNING! MASTER coordinates forced fixed from RINEX:\n'); 
                     fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
-                    pos_M = local2globalPos(antoff_M+antPCO_M, pos_M);
-                    
                 end
             end
             
-            % set ROVER initial coordinates if coordinate file is used
+            % set ROVER initial coordinates
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 fprintf('Rover apriori position set from coordinate file:\n');
                 fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));                
@@ -398,10 +397,21 @@ if goGNSS.isPP(mode) % post-processing
                 fprintf('Rover apriori position set from RINEX:\n');
                 fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R(1,1), pos_R(2,1), pos_R(3,1));   
             end
-            % apply antenna offset over the marker to rover apriori
-            % coordinates
-            if any(pos_R)
-                pos_R = local2globalPos(antoff_R, pos_R);
+            
+            % apply antenna offset over the marker to master coordinates
+            if (~isempty(antenna_PCV))
+                pos_M = local2globalPos(antoff_M+antPCO_M, pos_M);
+            else
+                pos_M = local2globalPos(antoff_M, pos_M);
+            end
+            
+            % apply antenna offset over the marker to rover apriori coordinates
+            if (any(pos_R))
+                if (~isempty(antenna_PCV))
+                    pos_R = local2globalPos(antoff_R+antPCO_R, pos_R);
+                else
+                    pos_R = local2globalPos(antoff_R, pos_R);
+                end
             end
 
             if (flag_SP3)
@@ -2526,7 +2536,11 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
             pos_REF(:,i) = pos_KAL(:,1);
         end
 
-        pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R), pos_KAL(:,i));
+        if (~isempty(antenna_PCV))
+            pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R), pos_KAL(:,i));
+        else
+            pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
+        end
     end
 end
 
