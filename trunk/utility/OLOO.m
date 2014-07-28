@@ -126,6 +126,7 @@ if m - n > 0
         %Afin=A;
         %Qfin=Q;
         s2fin=s2cap;
+        Cxx=s2cap*Ninv;
         ufin=um;
     end
     

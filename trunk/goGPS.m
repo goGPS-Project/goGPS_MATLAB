@@ -284,8 +284,17 @@ if goGNSS.isPP(mode) % post-processing
              time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R] = ...
              load_RINEX_obs(filename_obs, constellations);
          
-            %read antenna phase center offset (NOTE: reading only L1 offset for now)
-            antPCO_R = read_antenna_PCO(filename_pco, antmod_R);
+            %read antenna phase center offset (NOTE: only L1 offset for now)
+            antenna_PCV= read_antenna_PCV(filename_pco, antmod_R);
+            
+            %ROVER
+            if ~isempty(antenna_PCV(1).n_frequency) %corrections available
+                antPCO_R=antenna_PCV(1).offset(:,:,1)';
+            else
+                antPCO_R=[0 0 0]';
+                fprintf('... WARNING! ROVER antenna PCV corrections set to zero (%s)\n',antenna_PCV(1).name);
+            end
+            
 
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
@@ -307,7 +316,7 @@ if goGNSS.isPP(mode) % post-processing
 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f)] = pre_processing_clock(time_GPS, time_R(:,1,f), [], pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f)] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB,1);
 
                 if (mode_user == 1)
                     goWB.close();
@@ -323,9 +332,9 @@ if goGNSS.isPP(mode) % post-processing
              time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
          
-            %read antenna phase center offset (NOTE: reading only L1 offset for now)
-            antPCO_RM = read_antenna_PCO(filename_pco, antmod_RM);
-         
+            %read antenna phase center offset
+            antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
+                    
             pr1_R = pr1_RM(:,:,1:end-1); pr1_M = pr1_RM(:,:,end);
             ph1_R = ph1_RM(:,:,1:end-1); ph1_M = ph1_RM(:,:,end);
             pr2_R = pr2_RM(:,:,1:end-1); pr2_M = pr2_RM(:,:,end);
@@ -339,13 +348,73 @@ if goGNSS.isPP(mode) % post-processing
             date_R = date_RM(:,:,1:end-1); date_M = pos_RM(:,:,end);
             pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
-            antPCO_R = antPCO_RM(:,1,1:end-1); antPCO_M = antPCO_RM(:,1,end);
-            
-            %apply the antenna offset from the marker (if available)
-            if (exist('is_batch','var') && any(pos_M_off) && (any(antoff_M) || any(antPCO_M)))
-                pos_M_man = local2globalPos(antoff_M+antPCO_M, pos_M_off);
+               
+            %get antenna PCV offset
+            %MASTER
+            if ~isempty(antenna_PCV(2).n_frequency) %corrections available
+                antPCO_M=antenna_PCV(2).offset(:,:,1)';                
+            else
+               antPCO_M=[0 0 0]'; 
+               fprintf('WARNING! MASTER antenna PCV corrections set to zero ("%s" not found)\n',antenna_PCV(2).name);   
             end
             
+            %ROVER
+            if ~isempty(antenna_PCV(1).n_frequency) %corrections available
+                antPCO_R=antenna_PCV(1).offset(:,:,1)';        
+            else
+               antPCO_R=[0 0 0]'; 
+               fprintf('WARNING! ROVER antenna PCV corrections set to zero ("%s" not found)\n',antenna_PCV(1).name);   
+            end   
+            
+            
+            
+            
+            %apply the antenna PCO from the markers (if available) (only for L1 now!) 
+            if flag_ms_pos % apply offset to the master position read from RINEX header
+                fprintf('Master position fixed from RINEX\n'); 
+                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                pos_M = local2globalPos(antoff_M+antPCO_M, pos_M);                
+            else
+                if exist('pos_M_crd','var') && ~isempty(pos_M_crd) && any(pos_M_crd) % apply offset to the master position read from coordinate file
+                    fprintf('Master position fixed from coordinate file:\n'); 
+                    fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
+                    pos_M = local2globalPos(antoff_M+antPCO_M, pos_M_crd);
+                elseif exist('pos_M_man','var') && any(pos_M_man) % apply offset to the master position read from GUI
+                    fprintf('Master position fixed to user-defined values:\n'); 
+                    fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
+                    pos_M = local2globalPos(antoff_M+antPCO_M, pos_M_man);
+                    
+                else % no valid pos_M_man found, so force to RINEX position
+                    fprintf('WARNING! MASTER coordinates forced fixed from RINEX:\n'); 
+                    fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                    pos_M = local2globalPos(antoff_M+antPCO_M, pos_M);
+                    
+                end
+            end
+            
+            % set ROVER initial coordinates if coordinate file is used
+            if (exist('pos_R_crd','var') && any(pos_R_crd))
+                fprintf('Rover apriori position set from coordinate file:\n');
+                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));                
+                pos_R = pos_R_crd;
+            else
+                fprintf('Rover apriori position set from RINEX:\n');
+                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R(1,1), pos_R(2,1), pos_R(3,1));   
+            end
+            % apply antenna offset over the marker to rover apriori
+            % coordinates
+            if any(pos_R)
+                pos_R = local2globalPos(antoff_R, pos_R);
+            end
+
+            if (flag_SP3)
+                %display message
+                fprintf('Reading SP3 file...\n');
+                
+                SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
+            end
+
+
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
             
@@ -364,9 +433,20 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %pre-processing
-                fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f)] = pre_processing_clock(time_GPS, time_R(:,1,f), [], pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB);
-
+                fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');               
+                
+                aprXR = pos_R;
+                if exist('pos_R_crd','var')                    
+                    flag_XR = 2;
+                else
+                    if any(pos_R)
+                        flag_XR = 1;
+                    else
+                        flag_XR = 0;
+                    end
+                end
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f)] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR);
+                
                 if (mode_user == 1)
                     goWB.close();
                 end
@@ -381,19 +461,14 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             fprintf('%s',['Pre-processing master observations (file ' filename_obs{end} ')...']); fprintf('\n');
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB);
+
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2);
             
             if (mode_user == 1)
                 goWB.close();
             end
         end
         
-        if (flag_SP3)
-            %display message
-            fprintf('Reading SP3 file...\n');
-            
-            SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
-        end
 
 %         %read surveying mode
 %         if (flag_stopGOstop == 0)
@@ -563,7 +638,7 @@ if goGNSS.isPP(mode) % post-processing
 
         %pre-processing
         fprintf('Pre-processing rover observations...\n');
-        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing_clock(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB);
+        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB);
         
         if (mode_user == 1)
             goWB.close();
@@ -579,7 +654,7 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing_clock(time_GPS, time_M, [], pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB);
+            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, [], pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB);
             
             if (mode_user == 1)
                 goWB.close();
@@ -727,26 +802,26 @@ if goGNSS.isPP(mode) % post-processing
     %if relative post-processing positioning (i.e. with master station)
     if goGNSS.isDD(mode) && goGNSS.isPP(mode)
         %master station position management
-        if (flag_ms_pos) && (sum(abs(pos_M)) ~= 0)
-            if (size(pos_M,2) == 1)
-                pos_M(1,1:length(time_GPS)) = pos_M(1);
-                pos_M(2,1:length(time_GPS)) = pos_M(2);
-                pos_M(3,1:length(time_GPS)) = pos_M(3);
-            end
-        else
-            pos_M(1,1:length(time_GPS)) = pos_M_man(1);
-            pos_M(2,1:length(time_GPS)) = pos_M_man(2);
-            pos_M(3,1:length(time_GPS)) = pos_M_man(3);
-            if (exist('is_batch','var') && any(pos_M_off))
-                pos_M_disp = pos_M_off;
-            else
-                pos_M_disp(1,1) = pos_M_man(1,1);
-                pos_M_disp(2,1) = pos_M_man(2,1);
-                pos_M_disp(3,1) = pos_M_man(3,1);
-            end
-            fprintf('Master position set to user-defined values:\n');
-            fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_disp(1,1), pos_M_disp(2,1), pos_M_disp(3,1));
-        end
+%         if (flag_ms_pos) && (sum(abs(pos_M)) ~= 0)
+%             if (size(pos_M,2) == 1)
+%                 pos_M(1,1:length(time_GPS)) = pos_M(1);
+%                 pos_M(2,1:length(time_GPS)) = pos_M(2);
+%                 pos_M(3,1:length(time_GPS)) = pos_M(3);
+%             end
+%         else
+            pos_M(1,1:length(time_GPS)) = pos_M(1);
+            pos_M(2,1:length(time_GPS)) = pos_M(2);
+            pos_M(3,1:length(time_GPS)) = pos_M(3);
+%             if (exist('is_batch','var') && any(pos_M_off))
+%                 pos_M_disp = pos_M_off;
+%             else
+%                 pos_M_disp(1,1) = pos_M_man(1,1);
+%                 pos_M_disp(2,1) = pos_M_man(2,1);
+%                 pos_M_disp(3,1) = pos_M_man(3,1);
+%             end
+%             fprintf('Master position fixed to user-defined values:\n');
+%             fprintf(' X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_disp(1,1), pos_M_disp(2,1), pos_M_disp(3,1));
+%         end
 
         %if master station data are not available
         if (~any(pr1_M(:)))
@@ -1910,8 +1985,14 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             else
                 Eph_t = Eph(:,:,1);
             end
-
-            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, 1, dtMdot(1), flag_IAR);
+            
+            if exist('pos_R_crd','var')
+                flag_XR=2;  % use apriori XR as fixed during kalman init
+            else
+                flag_XR=1;  % use apriori XR as approximated
+            end
+            
+            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, 1, dtMdot(1), flag_IAR, flag_XR);
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -1955,6 +2036,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
         else
             goWB = [];
         end
+       
+        
+        global min_ambfixRMS 
+        min_ambfixRMS=NaN(length(time_GPS),1);
 
         for t = 2 : length(time_GPS)
 
@@ -1964,8 +2049,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
                 Eph_t = Eph(:,:,t);
             end
 
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, dtMdot(t), flag_IAR);
-
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, dtMdot(t), flag_IAR, antenna_PCV);
+            
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
@@ -2443,8 +2528,8 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         else
             pos_REF(:,i) = pos_KAL(:,1);
         end
-        %apply rover antenna offset
-        pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R(:,1,1)), pos_KAL(:,i));
+
+        pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R), pos_KAL(:,i));
     end
 end
 

@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -20,6 +20,9 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processin
 %   lambda  = wavelength matrix (depending on the enabled constellations)
 %   nSatTot = maximum number of satellites (given the enabled constellations)
 %   waitbar_handle = handle to the waitbar object
+%   flag_XR = 2: coordinate fixed to XR0 values
+%           = 1: approximate coordinates available
+%           = 0: no apriori coordinates available
 
 % OUTPUT:
 %   pr1 = processed code observation (L1 carrier)
@@ -78,20 +81,19 @@ bad_epochs=zeros(nEpochs,1);
 % APPROXIMATE POSITION
 %--------------------------------------------------------------------------------------------
 
-if ((sum(abs(XR0)) == 0) || isempty(XR0))
-    %approximate position not available
-    flag_XR = 0;
-else
-    %approximate position available
-    flag_XR = 1;
-end
+% if ((sum(abs(XR0)) == 0) || isempty(XR0))
+%     %approximate position not available
+%     flag_XR = 0;
+% else
+%     %approximate position available
+%     flag_XR = 1;
+% end
 
-err_iono = zeros(nSatTot,nEpochs);
-el = zeros(nSatTot,nEpochs);
+err_iono = zeros(32,nEpochs);
+el = zeros(32,nEpochs);
 cond_num = zeros(nEpochs,1);
 cov_XR = zeros(3,3,nEpochs);
 var_dtR = zeros(nEpochs,1);
-XS = zeros(nSatTot,3,nEpochs);
 
 for i = 1 : nEpochs
     
@@ -111,20 +113,19 @@ for i = 1 : nEpochs
     
     if (length(sat0) >= min_nsat_LS)
 
-        [~, dtR_tmp, XS_tmp, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
-        
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
+
         %bad_sats(bad_sat_i)=1;
         
         if (~isempty(dtR_tmp))
             dtR(i) = dtR_tmp;
             err_iono(sat,i) = err_iono_tmp;
             el(sat,i) = el_tmp;
-            cond_num(i,1) = cond_num_tmp;
-            XS(sat,:,i) = XS_tmp;
-            if (~isempty(var_dtR_tmp))
-                cov_XR(:,:,i) = cov_XR_tmp;
-                var_dtR(i,1) = var_dtR_tmp;
-            end
+%             cond_num(i,1) = cond_num_tmp;
+%             if (~isempty(var_dtR_tmp))
+%                 cov_XR(:,:,i) = cov_XR_tmp;
+%                 var_dtR(i,1) = var_dtR_tmp;
+%             end
         end
         
         if (size(sat,1) >= min_nsat_LS)

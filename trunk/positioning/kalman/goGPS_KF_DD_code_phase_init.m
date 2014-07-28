@@ -1,6 +1,6 @@
 function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
          ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, flag_XR)
 
 % SYNTAX:
 %   [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
@@ -8,7 +8,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 %        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR);
 %
 % INPUT:
-%   XR0 = rover approximate position (X,Y,Z)
+%   XR0 = rover approximate/apriori position (X,Y,Z)
 %   XM  = master known position (X,Y,Z)
 %   time_rx = GPS time
 %   pr1_R  = ROVER-SATELLITE code pseudorange (carrier L1)
@@ -32,6 +32,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 %   phase = carrier L1 (phase=1) carrier L2 (phase=2)
 %   dtMdot = master receiver clock drift
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
+%   flag_XR = 1: XR0 used as fixed, unknown otherwise
 %
 % OUTPUT:
 %   kalman_initialized = flag to point out whether Kalman has been successfully initialized
@@ -173,9 +174,9 @@ if ((sum(abs(XR0)) == 0) || isempty(XR0))
     %approximate position not available
     flag_XR = 0;
     XR0 = [];
-else
-    %approximate position available
-    flag_XR = 1;
+% else
+%     %approximate position available
+%     flag_XR = 1;
 end
 
 %--------------------------------------------------------------------------------------------
@@ -206,6 +207,11 @@ if (length(sat_pr) >= min_nsat_LS)
         
         err_iono1_M = err_iono2_M ./ ionoFactor(sat_pr_M,2);
         err_iono1_R = err_iono2_R ./ ionoFactor(sat_pr_R,2);
+    end
+    
+    if flag_XR==2
+        cov_XR=eye(3).*(0.01^2);  % da sistemare più accurata
+        cond_num=0;
     end
     
     %keep only satellites that rover and master have in common
@@ -307,37 +313,49 @@ else
     
     %find the indices of the satellites with phase available
     [~, index] = intersect(sat_pr,sat);
-
-    %ROVER positioning improvement with code and phase double differences
-    if ~isempty(sat)
-        [     XR, N1(sat),      cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS(index,:), pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono1_R(index), err_tropo_M(index), err_iono1_M(index), pivot_index, lambda(sat,1), 0);
-        [null_XR, N2(sat), null_cov_XR, cov_N2]                   = LS_DD_code_phase(XR, XM, XS(index,:), pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono2_R(index), err_tropo_M(index), err_iono2_M(index), pivot_index, lambda(sat,2), 0); %#ok<ASGLU>
-    end
     
-    if isempty(cov_XR) %if it was not possible to compute the covariance matrix
-        cov_XR = sigmaq0 * eye(3);
-    end
-    sigma2_XR = diag(cov_XR);
-    
-    if isempty(cov_N1) %if it was not possible to compute the covariance matrix
-        cov_N1 = sigmaq0_N * eye(length(sat));
-    end
-    
-    if isempty(cov_N2) %if it was not possible to compute the covariance matrix
-        cov_N2 = sigmaq0_N * eye(length(sat));
-    end
-    
-    if (length(phase) == 2)
-        N = [N1; N2];
+    % if fixed apriori rover coordinates are available, estimation of
+    % ambiguities from geometrical range
+    if flag_XR==2
+        %frequency 1
+        [N1(sat)]=ambiguity_init_from_range(distR(sat), distM(sat), pivot_index, ph1_R(sat), ph1_M(sat), lambda(sat,1));
+        cov_N1=diag(sum(sigma2_XR) ./ (lambda(sat).^2));
+        N=N1;
         sigma2_N(sat) = diag(cov_N1);
-        sigma2_N(sat+nSatTot) = diag(cov_N2);
+        
     else
-        if (phase == 1)
-            N = N1;
+        
+        %ROVER positioning improvement with code and phase double differences
+        if ~isempty(sat)
+            [     XR, N1(sat),      cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS(index,:), pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono1_R(index), err_tropo_M(index), err_iono1_M(index), pivot_index, lambda(sat,1), 0);
+            [null_XR, N2(sat), null_cov_XR, cov_N2]                   = LS_DD_code_phase(XR, XM, XS(index,:), pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R(index), err_iono2_R(index), err_tropo_M(index), err_iono2_M(index), pivot_index, lambda(sat,2), 0); %#ok<ASGLU>
+        end
+        
+        if isempty(cov_XR) %if it was not possible to compute the covariance matrix
+            cov_XR = sigmaq0 * eye(3);
+        end
+        sigma2_XR = diag(cov_XR);
+        
+        if isempty(cov_N1) %if it was not possible to compute the covariance matrix
+            cov_N1 = sigmaq0_N * eye(length(sat));
+        end
+        
+        if isempty(cov_N2) %if it was not possible to compute the covariance matrix
+            cov_N2 = sigmaq0_N * eye(length(sat));
+        end
+        
+        if (length(phase) == 2)
+            N = [N1; N2];
             sigma2_N(sat) = diag(cov_N1);
+            sigma2_N(sat+nSatTot) = diag(cov_N2);
         else
-            N = N1;
-            sigma2_N(sat) = diag(cov_N2);
+            if (phase == 1)
+                N = N1;
+                sigma2_N(sat) = diag(cov_N1);
+            else
+                N = N1;
+                sigma2_N(sat) = diag(cov_N2);
+            end
         end
     end
 end
