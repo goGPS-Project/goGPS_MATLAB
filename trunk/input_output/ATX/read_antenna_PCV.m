@@ -54,7 +54,10 @@ function [antenna_PCV] = read_antenna_PCV(filename, antmod)
 
 
 antenna_PCV=[];
-
+for m = 1 : length(antmod)
+    antenna_PCV(m).name=antmod{m};
+    antenna_PCV(m).n_frequency=0;
+end
 
 if (~isempty(filename))
     
@@ -70,8 +73,8 @@ if (~isempty(filename))
 
             %check if any of the requested antenna models is in this line
             for m = 1 : length(antmod)
-                antenna_PCV(m).name=antmod{m};
-                antenna_PCV(m).n_frequency=0;
+                %antenna_PCV(m).name=antmod{m};
+                %antenna_PCV(m).n_frequency=0;
                 %antenna_PCV(m).offset=[0 0 0];
                 
                 answer1 = strfind(line,antmod{m});

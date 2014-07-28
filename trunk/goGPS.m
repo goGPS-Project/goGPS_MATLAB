@@ -2045,7 +2045,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
         end
        
         
-        global min_ambfixRMS 
+        global min_ambfixRMS  %#ok<TLEV>
         min_ambfixRMS=NaN(length(time_GPS),1);
 
         for t = 2 : length(time_GPS)
