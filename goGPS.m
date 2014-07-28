@@ -645,7 +645,7 @@ if goGNSS.isPP(mode) % post-processing
 
         %pre-processing
         fprintf('Pre-processing rover observations...\n');
-        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB);
+        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB, 0);
         
         if (mode_user == 1)
             goWB.close();
@@ -661,7 +661,7 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, [], pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB);
+            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2);
             
             if (mode_user == 1)
                 goWB.close();
@@ -2536,10 +2536,12 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
             pos_REF(:,i) = pos_KAL(:,1);
         end
 
-        if (~isempty(antenna_PCV))
-            pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R), pos_KAL(:,i));
-        else
-            pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
+        if (exist('antenna_PCV','var'))
+            if(~isempty(antenna_PCV))
+                pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R), pos_KAL(:,i));
+            else
+                pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
+            end
         end
     end
 end
