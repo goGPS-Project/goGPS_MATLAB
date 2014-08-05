@@ -77,18 +77,18 @@ end
 
 %variable initialization
 nEpochs = 86400;
-time = zeros(nEpochs,1,nFiles);
-tow = zeros(nEpochs,1,nFiles);
-week = zeros(nEpochs,1,nFiles);
-pr1 = zeros(nSatTot,nEpochs,nFiles);
-pr2 = zeros(nSatTot,nEpochs,nFiles);
-ph1 = zeros(nSatTot,nEpochs,nFiles);
-ph2 = zeros(nSatTot,nEpochs,nFiles);
-dop1 = zeros(nSatTot,nEpochs,nFiles);
-dop2 = zeros(nSatTot,nEpochs,nFiles);
-snr1 = zeros(nSatTot,nEpochs,nFiles);
-snr2 = zeros(nSatTot,nEpochs,nFiles);
-date = zeros(nEpochs,6,nFiles);
+time = NaN(nEpochs,1,nFiles);
+tow = NaN(nEpochs,1,nFiles);
+week = NaN(nEpochs,1,nFiles);
+pr1 = NaN(nSatTot,nEpochs,nFiles);
+pr2 = NaN(nSatTot,nEpochs,nFiles);
+ph1 = NaN(nSatTot,nEpochs,nFiles);
+ph2 = NaN(nSatTot,nEpochs,nFiles);
+dop1 = NaN(nSatTot,nEpochs,nFiles);
+dop2 = NaN(nSatTot,nEpochs,nFiles);
+snr1 = NaN(nSatTot,nEpochs,nFiles);
+snr2 = NaN(nSatTot,nEpochs,nFiles);
+date = NaN(nEpochs,6,nFiles);
 pos = zeros(3,1,nFiles);
 interval = zeros(1,1,nFiles);
 antoff = zeros(3,1,nFiles);
