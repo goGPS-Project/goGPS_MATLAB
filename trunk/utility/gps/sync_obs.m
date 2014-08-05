@@ -64,21 +64,16 @@ nObsSet = size(pr1_i,3);
 
 %find min and max time tags (in common among all observation datasets)
 time_i_nan = time_i;
-time_i_nan(time_i == 0) = NaN;
+time_i_nan(permute(sum(pr1_i,1),[2 1 3])==0) = NaN; %set NaN to epochs which don't have any pseudorange
 min_time = max(min(time_i_nan,[],1));
 max_time = min(max(time_i_nan,[],1));
-
-tow_i_nan = tow_i;
-tow_i_nan(tow_i == 0) = NaN;
-min_tow = max(min(tow_i_nan,[],1));
-max_tow = min(max(tow_i_nan,[],1));
 
 %find the largest interval
 max_int = max(interval(:));
 
 %define the reference time
 time_ref = (roundmod(min_time,max_int) : max_int : roundmod(max_time,max_int))';
-tow_ref  = (roundmod(min_tow, max_int) : max_int : roundmod(max_tow, max_int))';
+tow_ref = mod(time_ref,60*60*24*7);
 
 %number of reference epochs
 ref_len = length(tow_ref);
