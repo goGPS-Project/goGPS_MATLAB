@@ -819,10 +819,10 @@ if (flag_IAR)
     sat_np = sat(sat ~= pivot);
     if (~isempty(sat_np))
         pos_amb_zero = find(Xhat_t_t(o3+sat_np) == 0);
-        pos_cov_zero = find(sum(abs(Cee(o3+sat_np,o3+sat_np)),1) == 0);
         if (~isempty(pos_amb_zero))
             sat_np(pos_amb_zero) = [];
         end
+        pos_cov_zero = find(sum(abs(Cee(o3+sat_np,o3+sat_np)),1) == 0);
         if (~isempty(pos_cov_zero))
             sat_np(pos_cov_zero) = [];
         end
