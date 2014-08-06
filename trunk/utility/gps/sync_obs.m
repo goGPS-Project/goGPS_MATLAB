@@ -1,5 +1,5 @@
 function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, max_int] = ...
-          sync_obs(time_i, tow_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval)
+          sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval)
 
 % SYNTAX:
 %   [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2] = ...
@@ -66,6 +66,7 @@ nObsSet = size(pr1_i,3);
 time_i_nan = time_i;
 time_i_nan(permute(sum(pr1_i,1),[2 1 3])==0) = NaN; %set NaN to epochs which don't have any pseudorange
 min_time = max(min(time_i_nan,[],1));
+min_time_prog = min(min(time_i_nan,[],1));
 max_time = min(max(time_i_nan,[],1));
 
 %find the largest interval
@@ -91,9 +92,12 @@ dop2 = zeros(nSatTot, ref_len, nObsSet);
 snr1 = zeros(nSatTot, ref_len, nObsSet);
 snr2 = zeros(nSatTot, ref_len, nObsSet);
 
+time_prog = time_i - min_time_prog; % substract the first element to reduce the magnitude of all the values
+time_ref_prog = time_ref - min_time_prog;
+
 for s = 1 : nObsSet
     
-    [~, idx_t, idx_z] = intersect(roundmod(tow_ref, max_int), roundmod(tow_i(:,1,s), max_int));
+   [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), max_int));
     
     time(idx_t, s) = time_i(idx_z, 1, s);
     week(idx_t, s) = week_i(idx_z, 1, s);
