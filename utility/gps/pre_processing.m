@@ -403,7 +403,7 @@ end
 
 function [ph, cs_found] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, el, err_iono, lambda)
 
-global cutoff
+global cutoff cs_threshold
 
 flag_plot = 0;
 flag_doppler_cs = 1;
@@ -550,7 +550,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     else
         delta = -delta_deriv;
     end
-    
+
     %cycle slips detected by code and doppler observables must be of the same sign
     if ((pos1 == 1 && pos2 == 2) || (pos1 == 2 && pos2 == 1))
         sign_OK = (sign(delta_code(jmp)) .* sign(delta_doppler(jmp)) > 0);
@@ -568,6 +568,9 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         sign_OK = (sign(delta_doppler(jmp)) .* sign(delta_deriv(jmp)) > 0);
         jmp = jmp(sign_OK);
     end
+
+    %ignore cycle slips smaller than cs_threshold
+    jmp(abs(delta(jmp)) < cs_threshold) = [];
 
 %     jmp1 = intersect(jmp_deriv,jmp_doppler);
 %     jmp2 = intersect(jmp1, jmp_code);
