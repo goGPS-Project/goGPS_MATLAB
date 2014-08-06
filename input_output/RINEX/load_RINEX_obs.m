@@ -194,7 +194,7 @@ end
 
 %sync observations
 [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval] = ...
-sync_obs(time, tow, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval);
+sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval);
 
 for f = 1 : nFiles
     holes = find(week(:,1,f) == 0);
