@@ -94,7 +94,11 @@ pos_all = union(pos_all, pos_F7);
 pos_all = union(pos_all, pos_4A);
 pos_all = union(pos_all, pos_62);
 
-pos = pos_all(1);
+if (~isempty(pos_all))
+    pos = pos_all(1);
+else
+    return
+end
 
 codeBIN_HDR = codeBIN(1:8);
 
