@@ -215,20 +215,20 @@ for j = 1 : NSV
     
     %assign constellation-specific indexes
     idx = [];
-    if (signal_type == 1 && constellations.GLONASS.enabled)
+    if (SID && signal_type == 1 && constellations.GLONASS.enabled)
         
         idx = constellations.GLONASS.indexes(SID);
         
-    elseif (signal_type == 2 && constellations.GPS.enabled && SID <= 32)
+    elseif (SID && signal_type == 2 && constellations.GPS.enabled && SID <= 32)
         
         idx = constellations.GPS.indexes(SID);
         
-    elseif (signal_type == 2 && constellations.QZSS.enabled && SID == 33)
+    elseif (SID && signal_type == 2 && constellations.QZSS.enabled && SID == 33)
         
         SID = SID-32;
         idx = constellations.QZSS.indexes(SID);
         
-    elseif (signal_type == 8 && constellations.Galileo.enabled)
+    elseif (SID && signal_type == 8 && constellations.Galileo.enabled)
         
         idx = constellations.Galileo.indexes(SID);
     end
