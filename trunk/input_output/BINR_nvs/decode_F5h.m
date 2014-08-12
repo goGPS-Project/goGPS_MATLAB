@@ -202,6 +202,7 @@ for j = 1 : NSV
     esp  = fbin2dec(D1field(2:12));
     mant = fbin2dec(D1field(13:64)) / 2^52;
     D1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    if (abs(D1) > 1e5), D1 = 0; end
     
     %------------------------------------------------
     
