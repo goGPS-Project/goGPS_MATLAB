@@ -35,6 +35,7 @@ Obs_types = cell(0,0);
 sysId = cell(0,0);
 pos_M = [];
 interval = 0;
+antmod = '';
 
 %parse first line
 line = fgetl(file);
