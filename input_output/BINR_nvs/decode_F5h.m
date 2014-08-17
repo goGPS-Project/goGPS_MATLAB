@@ -229,7 +229,7 @@ for j = 1 : NSV
         SID = SID-32;
         idx = constellations.QZSS.indexes(SID);
         
-    elseif (SID && signal_type == 8 && constellations.Galileo.enabled)
+    elseif (SID && signal_type == 8 && constellations.Galileo.enabled && SID <= 30)
         
         idx = constellations.Galileo.indexes(SID);
     end
