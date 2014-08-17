@@ -732,14 +732,23 @@ while flag
         if (waiting_time > 10*approx_msg_rate)
             
             %display message
-            fprintf('Not receiving data. Reconnecting... ');
+            fprintf('Not receiving data. Trying to reconnect... ');
 
             %close master connection
             fclose(master);
             
-            master = tcpip(master_ip,master_port);
-            set(master,'InputBufferSize', 16384);
-            fopen(master);
+            reconnected = 0;
+
+            while (~reconnected)
+                try
+                    master = tcpip(master_ip,master_port);
+                    set(master,'InputBufferSize', 16384);
+                    fopen(master);
+                    reconnected = 1;
+                catch
+                    pause(5);
+                end
+            end
             
             if (flag_NTRIP)
                 ntripstring = NTRIP_string_generator(nmea_init);
