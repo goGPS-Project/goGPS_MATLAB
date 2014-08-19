@@ -114,6 +114,11 @@ data{2} = zeros(33,1);
 %output data save
 data{1} = 'F7h';
 
+%check the minimum allowed length of the message
+if (length(msg) < 16)
+    return
+end
+
 %To check whether GPS(1) or GLONASS(2)
 type = msg(pos:pos+7); pos = pos + 8;
 type = fliplr(reshape(type,8,[]));                % byte order inversion (little endian)
