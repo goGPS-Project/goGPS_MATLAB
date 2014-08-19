@@ -55,7 +55,12 @@ data{2} = zeros(8,1);
 data{1} = '4Ah';
 
 %------------------------------------------------
-% 
+
+%check the minimum allowed length of the message
+if (length(msg) < 256)
+    return
+end
+
 % ionosphere parameter alpha 0 [s]
 a0field = msg(pos:pos+31);
 pos = pos + 32;
