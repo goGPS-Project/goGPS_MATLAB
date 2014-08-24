@@ -434,10 +434,10 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     interval = [interval; interval(end)]';
     
     %initialization
-    jmp_code    = (1:length(ph))';
-    jmp_doppler = (1:length(ph))';
-    jmp_deriv   = (1:length(ph))';
-    jmp_GF      = (1:length(ph))';
+    jmp_code    = (1:(length(ph)-1))';
+    jmp_doppler = (1:(length(ph)-1))';
+    jmp_deriv   = (1:(length(ph)-1))';
+    jmp_GF      = (1:(length(ph)-1))';
     
     %detection (code)
     N_mat(1,N_mat(1,:)==0) = NaN;
@@ -730,7 +730,11 @@ end
 end
 
 function [min_std] = detect_minimum_std(time_series)
+min_std = 1e30;
 d = 5; %half window size
+if (time_series < d)
+    return
+end
 mov_std = zeros(size(time_series));
 for t = 1 : length(time_series)
     if (t<=d)
@@ -743,8 +747,6 @@ for t = 1 : length(time_series)
 end
 if (~isempty(mov_std))
     min_std = min(mov_std);
-else
-    min_std = 1e30;
 end
 end
 
