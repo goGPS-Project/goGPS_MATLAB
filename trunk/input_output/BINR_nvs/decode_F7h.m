@@ -431,7 +431,7 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     weekno = weekno_1 + (weekno_2 * 2^8);                    % little endian
  
     %output and reorder ephemerides data (if IODC == IODE)
-    if (IODC == IODE)
+    if (IODC == IODE && PRN <= constellations.GPS.numSat)
         data{2}(1) = PRN;
         data{2}(2) = af2;
         data{2}(3) = M0;
@@ -636,37 +636,39 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     tk = tb - 10800; %tb is a time interval within the current day (UTC + 3 hours)
     
     %------------------------------------------------
-    data{2}(1) = PRN;
-    data{2}(2) = tn;      %TauN
-    data{2}(3) = gamma_n; %GammaN
-    data{2}(4) = tk;
-    data{2}(5) = Xm;
-    data{2}(6) = Ym;
-    data{2}(7) = Zm;
-    data{2}(8) = Vx;
-    data{2}(9) = Vy;
-    data{2}(10) = Vz;
-    data{2}(11) = Ax;
-    data{2}(12) = Ay;
-    data{2}(13) = Az;
-    data{2}(14) = En;      %E
-    data{2}(15) = Carrier_num;
-    data{2}(16) = tb;
-    data{2}(17) = 0;
-    data{2}(18) = NaN; %toe not available, taken care of by the caller
-    data{2}(19) = 0;
-    data{2}(20) = 0;
-    data{2}(21) = 0;
-    data{2}(22) = 0;
-    data{2}(23) = 0;
-    data{2}(24) = 0; %weekno not available, taken care of by the caller
-    data{2}(25) = 0;
-    data{2}(26) = 0;
-    data{2}(27) = 0; %sv health not available
-    data{2}(28) = 0;
-    data{2}(29) = 0;
-    data{2}(30) = constellations.GLONASS.indexes(PRN);
-    data{2}(31) = int8('R');
-    data{2}(32) = 0; %continuous toe taken care of by the caller
-    data{2}(33) = 0;
+    if (PRN <= constellations.GLONASS.numSat)
+        data{2}(1) = PRN;
+        data{2}(2) = tn;      %TauN
+        data{2}(3) = gamma_n; %GammaN
+        data{2}(4) = tk;
+        data{2}(5) = Xm;
+        data{2}(6) = Ym;
+        data{2}(7) = Zm;
+        data{2}(8) = Vx;
+        data{2}(9) = Vy;
+        data{2}(10) = Vz;
+        data{2}(11) = Ax;
+        data{2}(12) = Ay;
+        data{2}(13) = Az;
+        data{2}(14) = En;      %E
+        data{2}(15) = Carrier_num;
+        data{2}(16) = tb;
+        data{2}(17) = 0;
+        data{2}(18) = NaN; %toe not available, taken care of by the caller
+        data{2}(19) = 0;
+        data{2}(20) = 0;
+        data{2}(21) = 0;
+        data{2}(22) = 0;
+        data{2}(23) = 0;
+        data{2}(24) = 0; %weekno not available, taken care of by the caller
+        data{2}(25) = 0;
+        data{2}(26) = 0;
+        data{2}(27) = 0; %sv health not available
+        data{2}(28) = 0;
+        data{2}(29) = 0;
+        data{2}(30) = constellations.GLONASS.indexes(PRN);
+        data{2}(31) = int8('R');
+        data{2}(32) = 0; %continuous toe taken care of by the caller
+        data{2}(33) = 0;
+    end
 end
