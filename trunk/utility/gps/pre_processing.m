@@ -732,7 +732,7 @@ end
 function [min_std] = detect_minimum_std(time_series)
 min_std = 1e30;
 d = 5; %half window size
-if (time_series < d)
+if (length(time_series) < d)
     return
 end
 mov_std = zeros(size(time_series));
