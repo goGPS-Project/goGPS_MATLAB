@@ -3577,7 +3577,7 @@ classdef goGUIclass < handle
             end
         end
         
-        % Browse output foder
+        % Browse output folder
         function browse4Dir(obj)
             dname = uigetdir(obj.getWorkingDir(),'Choose a directory');
             if (dname ~= 0)
@@ -3609,6 +3609,7 @@ classdef goGUIclass < handle
             
             if (filename ~= 0)
                 str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
         end
