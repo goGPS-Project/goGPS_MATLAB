@@ -121,7 +121,7 @@ if (amb_restart_method == 0)
     comb_ph = (ph_R - ph_M) - (ph_R(pivot_index_ph) - ph_M(pivot_index_ph));
     
     %linear combination of initial ambiguity estimate
-    N_stim = comb_pr(index) ./ lambda(index_amb) - comb_ph;
+    N_stim = comb_pr(index) ./ lambda - comb_ph;
     sigmaq_N_stim = 4*sigmaq_cod1 ./ lambda(1).^2;
     
     %new ambiguity for slipped satellites
@@ -148,7 +148,7 @@ elseif (nsat_pr + nsat_ph - 2 <= 3 + nsat_amb) || fix(nsat_ph/2) < nsat_amb || (
     comb_ph = (ph_R - ph_M) - (ph_R(pivot_index_ph) - ph_M(pivot_index_ph));
     
     %linear combination of initial ambiguity estimate
-    N_stim = comb_pr(index) ./ lambda(index) - comb_ph;
+    N_stim = comb_pr(index) ./ lambda - comb_ph;
     sigmaq_N_stim = sum(sigmaq_pos_R) ./ lambda(1).^2;
     
     %new ambiguity for slipped satellites
