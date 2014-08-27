@@ -134,6 +134,11 @@ data{2}(1) = TOW_GPS;
 data{2}(2) = WEEK;
 data{2}(3) = NSV;
 
+nGLO = 0;
+nGPS = 0;
+nQZS = 0;
+nGAL = 0;
+
 %read the measurements of every satellite
 for j = 1 : NSV
     
@@ -219,19 +224,23 @@ for j = 1 : NSV
     if (SID && signal_type == 1 && constellations.GLONASS.enabled && SID <= constellations.GLONASS.numSat)
         
         idx = constellations.GLONASS.indexes(SID);
+        nGLO = nGLO + 1;
         
     elseif (SID && signal_type == 2 && constellations.GPS.enabled && SID <= constellations.GPS.numSat)
         
         idx = constellations.GPS.indexes(SID);
+        nGPS = nGPS + 1;
         
     elseif (SID && signal_type == 2 && constellations.QZSS.enabled && SID == 33)
         
         SID = SID-32;
         idx = constellations.QZSS.indexes(SID);
+        nQZS = nQZS + 1;
         
     elseif (SID && signal_type == 8 && constellations.Galileo.enabled && SID <= constellations.Galileo.numSat)
         
         idx = constellations.Galileo.indexes(SID);
+        nGAL = nGAL + 1;
     end
     
     %phase, code and doppler measure save
@@ -250,7 +259,7 @@ for j = 1 : NSV
     end
 end
 
-if (any(data{3}(:,2) < 0) || any(data{3}(:,2) > 60e6))
+if (any(data{3}(:,2) < 0) || any(data{3}(:,2) > 60e6) || NSV <= 0 || nGPS+nGLO+nGAL+nQZS == 0)
 
     %discard everything if there is at least one anomalous pseudorange
     % (i.e. if pseudorange ambiguity not solved yet)

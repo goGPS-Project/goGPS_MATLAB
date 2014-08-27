@@ -131,6 +131,8 @@ PRN = fliplr(reshape(PRN,8,[]));                  % byte order inversion (little
 PRN = PRN(:)';
 PRN = fbin2dec((PRN(1:8)));
 
+flag = 1;
+
 %GPS
 if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
 
@@ -141,10 +143,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     Crs = Crs(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(Crs(1));
-    esp  = fbin2dec(Crs(2:9));
-    mant = fbin2dec(Crs(10:32)) / 2^23;
-    Crs = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [Crs, f] = decode_FP32(Crs);
+    flag = flag * f;
+%     sign = str2num(Crs(1));
+%     esp  = fbin2dec(Crs(2:9));
+%     mant = fbin2dec(Crs(10:32)) / 2^23;
+%     Crs = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
     % delta_n 
@@ -153,10 +157,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     delta_n = delta_n(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(delta_n(1));
-    esp  = fbin2dec(delta_n(2:9));
-    mant = fbin2dec(delta_n(10:32)) / 2^23;
-    delta_n = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [delta_n, f] = decode_FP32(delta_n);
+    flag = flag * f;
+%     sign = str2num(delta_n(1));
+%     esp  = fbin2dec(delta_n(2:9));
+%     mant = fbin2dec(delta_n(10:32)) / 2^23;
+%     delta_n = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     delta_n = delta_n*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
@@ -166,10 +172,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     M0 = M0(:)';
 
     % floating point value decoding (double floating point)
-    sign = str2num(M0(1));
-    esp  = fbin2dec(M0(2:12));
-    mant = fbin2dec(M0(13:64)) / 2^52;
-    M0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [M0, f] = decode_FP64(M0);
+    flag = flag * f;
+%     sign = str2num(M0(1));
+%     esp  = fbin2dec(M0(2:12));
+%     mant = fbin2dec(M0(13:64)) / 2^52;
+%     M0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
     % Cuc     
@@ -178,10 +186,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     Cuc = Cuc(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(Cuc(1));
-    esp  = fbin2dec(Cuc(2:9));
-    mant = fbin2dec(Cuc(10:32)) / 2^23;
-    Cuc = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [Cuc, f] = decode_FP32(Cuc);
+    flag = flag * f;
+%     sign = str2num(Cuc(1));
+%     esp  = fbin2dec(Cuc(2:9));
+%     mant = fbin2dec(Cuc(10:32)) / 2^23;
+%     Cuc = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
     % e       
@@ -190,10 +200,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     e = e(:)';
 
     % floating point value decoding (double floating point)
-    sign = str2num(e(1));
-    esp  = fbin2dec(e(2:12));
-    mant = fbin2dec(e(13:64)) / 2^52;
-    e = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [e, f] = decode_FP64(e);
+    flag = flag * f;
+%     sign = str2num(e(1));
+%     esp  = fbin2dec(e(2:12));
+%     mant = fbin2dec(e(13:64)) / 2^52;
+%     e = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
     % Cus    
@@ -202,10 +214,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     Cus = Cus(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(Cus(1));
-    esp  = fbin2dec(Cus(2:9));
-    mant = fbin2dec(Cus(10:32)) / 2^23;
-    Cus = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [Cus, f] = decode_FP32(Cus);
+    flag = flag * f;
+%     sign = str2num(Cus(1));
+%     esp  = fbin2dec(Cus(2:9));
+%     mant = fbin2dec(Cus(10:32)) / 2^23;
+%     Cus = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
     % root_A  
@@ -214,10 +228,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     root_A = root_A(:)';
 
     % floating point value decoding (double floating point)
-    sign = str2num(root_A(1));
-    esp  = fbin2dec(root_A(2:12));
-    mant = fbin2dec(root_A(13:64)) / 2^52;
-    root_A = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [root_A, f] = decode_FP64(root_A);
+    flag = flag * f;
+%     sign = str2num(root_A(1));
+%     esp  = fbin2dec(root_A(2:12));
+%     mant = fbin2dec(root_A(13:64)) / 2^52;
+%     root_A = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
     % toe     
@@ -226,10 +242,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     toe = toe(:)';
 
     % floating point value decoding (double floating point)
-    sign = str2num(toe(1));
-    esp  = fbin2dec(toe(2:12));
-    mant = fbin2dec(toe(13:64)) / 2^52;
-    toe = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [toe, f] = decode_FP64(toe);
+    flag = flag * f;
+%     sign = str2num(toe(1));
+%     esp  = fbin2dec(toe(2:12));
+%     mant = fbin2dec(toe(13:64)) / 2^52;
+%     toe = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     toe = toe*1e-3; %from ms to s
   
     %------------------------------------------------
@@ -239,10 +257,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     Cic = Cic(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(Cic(1));
-    esp  = fbin2dec(Cic(2:9));
-    mant = fbin2dec(Cic(10:32)) / 2^23;
-    Cic = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [Cic, f] = decode_FP32(Cic);
+    flag = flag * f;
+%     sign = str2num(Cic(1));
+%     esp  = fbin2dec(Cic(2:9));
+%     mant = fbin2dec(Cic(10:32)) / 2^23;
+%     Cic = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
     % omega0   
@@ -251,10 +271,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     omega0 = omega0(:)';
 
     % floating point value decoding (double floating point)
-    sign = str2num(omega0(1));
-    esp  = fbin2dec(omega0(2:12));
-    mant = fbin2dec(omega0(13:64)) / 2^52;
-    omega0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [omega0, f] = decode_FP64(omega0);
+    flag = flag * f;
+%     sign = str2num(omega0(1));
+%     esp  = fbin2dec(omega0(2:12));
+%     mant = fbin2dec(omega0(13:64)) / 2^52;
+%     omega0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
     % Cis      
@@ -263,10 +285,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     Cis = Cis(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(Cis(1));
-    esp  = fbin2dec(Cis(2:9));
-    mant = fbin2dec(Cis(10:32)) / 2^23;
-    Cis = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [Cis, f] = decode_FP32(Cis);
+    flag = flag * f;
+%     sign = str2num(Cis(1));
+%     esp  = fbin2dec(Cis(2:9));
+%     mant = fbin2dec(Cis(10:32)) / 2^23;
+%     Cis = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
     % i0     
@@ -275,10 +299,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     i0 = i0(:)';
 
     % floating point value decoding (double floating point)
-    sign = str2num(i0(1));
-    esp  = fbin2dec(i0(2:12));
-    mant = fbin2dec(i0(13:64)) / 2^52;
-    i0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [i0, f] = decode_FP64(i0);
+    flag = flag * f;
+%     sign = str2num(i0(1));
+%     esp  = fbin2dec(i0(2:12));
+%     mant = fbin2dec(i0(13:64)) / 2^52;
+%     i0 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
     % Crc     
@@ -287,10 +313,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     Crc = Crc(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(Crc(1));
-    esp  = fbin2dec(Crc(2:9));
-    mant = fbin2dec(Crc(10:32)) / 2^23;
-    Crc = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [Crc, f] = decode_FP32(Crc);
+    flag = flag * f;
+%     sign = str2num(Crc(1));
+%     esp  = fbin2dec(Crc(2:9));
+%     mant = fbin2dec(Crc(10:32)) / 2^23;
+%     Crc = (-1)^sign * (2^(esp - 127)) * (1 + mant);
 
     %------------------------------------------------
     % W  
@@ -299,10 +327,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     omega = omega(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(omega(1));
-    esp  = fbin2dec(omega(2:12));
-    mant = fbin2dec(omega(13:64)) / 2^52;
-    omega = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [omega, f] = decode_FP64(omega);
+    flag = flag * f;
+%     sign = str2num(omega(1));
+%     esp  = fbin2dec(omega(2:12));
+%     mant = fbin2dec(omega(13:64)) / 2^52;
+%     omega = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
     % omegadot 
@@ -311,10 +341,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     omegadot = omegadot(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(omegadot(1));
-    esp  = fbin2dec(omegadot(2:12));
-    mant = fbin2dec(omegadot(13:64)) / 2^52;
-    omegadot = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [omegadot, f] = decode_FP64(omegadot);
+    flag = flag * f;
+%     sign = str2num(omegadot(1));
+%     esp  = fbin2dec(omegadot(2:12));
+%     mant = fbin2dec(omegadot(13:64)) / 2^52;
+%     omegadot = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     omegadot = omegadot*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
@@ -324,10 +356,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     IDOT = IDOT(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(IDOT(1));
-    esp  = fbin2dec(IDOT(2:12));
-    mant = fbin2dec(IDOT(13:64)) / 2^52;
-    IDOT = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [IDOT, f] = decode_FP64(IDOT);
+    flag = flag * f;
+%     sign = str2num(IDOT(1));
+%     esp  = fbin2dec(IDOT(2:12));
+%     mant = fbin2dec(IDOT(13:64)) / 2^52;
+%     IDOT = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     IDOT = IDOT*1e3; %from rad/ms to rad/s
 
     %------------------------------------------------
@@ -337,10 +371,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     tgd = tgd(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(tgd(1));
-    esp  = fbin2dec(tgd(2:9));
-    mant = fbin2dec(tgd(10:32)) / 2^23;
-    tgd = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [tgd, f] = decode_FP32(tgd);
+    flag = flag * f;
+%     sign = str2num(tgd(1));
+%     esp  = fbin2dec(tgd(2:9));
+%     mant = fbin2dec(tgd(10:32)) / 2^23;
+%     tgd = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     tgd = tgd*1e-3; %from ms to s
    
     %------------------------------------------------
@@ -350,10 +386,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     toc = toc(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(toc(1));
-    esp  = fbin2dec(toc(2:12));
-    mant = fbin2dec(toc(13:64)) / 2^52;
-    toc = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [toc, f] = decode_FP64(toc);
+    flag = flag * f;
+%     sign = str2num(toc(1));
+%     esp  = fbin2dec(toc(2:12));
+%     mant = fbin2dec(toc(13:64)) / 2^52;
+%     toc = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     toc = toc*1e-3; %from ms to s
     
     %------------------------------------------------
@@ -363,10 +401,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     af2 = af2(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(af2(1));
-    esp  = fbin2dec(af2(2:9));
-    mant = fbin2dec(af2(10:32)) / 2^23;
-    af2 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [af2, f] = decode_FP32(af2);
+    flag = flag * f;
+%     sign = str2num(af2(1));
+%     esp  = fbin2dec(af2(2:9));
+%     mant = fbin2dec(af2(10:32)) / 2^23;
+%     af2 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     af2 = af2*1e3; %from ms/ms^2 to s/s^2
     
     %------------------------------------------------
@@ -376,10 +416,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     af1 = af1(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(af1(1));
-    esp  = fbin2dec(af1(2:9));
-    mant = fbin2dec(af1(10:32)) / 2^23;
-    af1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [af1, f] = decode_FP32(af1);
+    flag = flag * f;
+%     sign = str2num(af1(1));
+%     esp  = fbin2dec(af1(2:9));
+%     mant = fbin2dec(af1(10:32)) / 2^23;
+%     af1 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     
     %------------------------------------------------
     % af0
@@ -388,10 +430,12 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     af0 = af0(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(af0(1));
-    esp  = fbin2dec(af0(2:9));
-    mant = fbin2dec(af0(10:32)) / 2^23;
-    af0 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [af0, f] = decode_FP32(af0);
+    flag = flag * f;
+%     sign = str2num(af0(1));
+%     esp  = fbin2dec(af0(2:9));
+%     mant = fbin2dec(af0(10:32)) / 2^23;
+%     af0 = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     af0 = af0*1e-3; %from ms to s
     
     %------------------------------------------------
@@ -427,11 +471,11 @@ if (type == 1 && length(msg(pos:end)) >= 1088 && constellations.GPS.enabled)
     %------------------------------------------------ 
     % weekno
     weekno_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
-    weekno_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+    weekno_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8; %#ok<NASGU>
     weekno = weekno_1 + (weekno_2 * 2^8);                    % little endian
  
     %output and reorder ephemerides data (if IODC == IODE)
-    if (IODC == IODE && PRN <= constellations.GPS.numSat)
+    if (IODC == IODE && PRN <= constellations.GPS.numSat && flag) %#ok<BDLGI>
         data{2}(1) = PRN;
         data{2}(2) = af2;
         data{2}(3) = M0;
@@ -481,10 +525,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Xm = Xm(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Xm(1));
-    esp  = fbin2dec(Xm(2:12));
-    mant = fbin2dec(Xm(13:64)) / 2^52;
-    Xm = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Xm, f] = decode_FP64(Xm);
+    flag = flag * f;
+%     sign = str2num(Xm(1));
+%     esp  = fbin2dec(Xm(2:12));
+%     mant = fbin2dec(Xm(13:64)) / 2^52;
+%     Xm = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     
     %------------------------------------------------
     %Y, m
@@ -493,10 +539,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Ym = Ym(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Ym(1));
-    esp  = fbin2dec(Ym(2:12));
-    mant = fbin2dec(Ym(13:64)) / 2^52;
-    Ym = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Ym, f] = decode_FP64(Ym);
+    flag = flag * f;
+%     sign = str2num(Ym(1));
+%     esp  = fbin2dec(Ym(2:12));
+%     mant = fbin2dec(Ym(13:64)) / 2^52;
+%     Ym = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
 
     %------------------------------------------------
     %Z, m
@@ -505,10 +553,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Zm = Zm(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Zm(1));
-    esp  = fbin2dec(Zm(2:12));
-    mant = fbin2dec(Zm(13:64)) / 2^52;
-    Zm = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Zm, f] = decode_FP64(Zm);
+    flag = flag * f;
+%     sign = str2num(Zm(1));
+%     esp  = fbin2dec(Zm(2:12));
+%     mant = fbin2dec(Zm(13:64)) / 2^52;
+%     Zm = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     
     %------------------------------------------------
     %Vx, m/s
@@ -517,10 +567,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Vx = Vx(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Vx(1));
-    esp  = fbin2dec(Vx(2:12));
-    mant = fbin2dec(Vx(13:64)) / 2^52;
-    Vx = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Vx, f] = decode_FP64(Vx);
+    flag = flag * f;
+%     sign = str2num(Vx(1));
+%     esp  = fbin2dec(Vx(2:12));
+%     mant = fbin2dec(Vx(13:64)) / 2^52;
+%     Vx = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Vx = Vx*1e3; %from m/ms to m/s
     
     %------------------------------------------------
@@ -530,10 +582,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Vy = Vy(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Vy(1));
-    esp  = fbin2dec(Vy(2:12));
-    mant = fbin2dec(Vy(13:64)) / 2^52;
-    Vy = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Vy, f] = decode_FP64(Vy);
+    flag = flag * f;
+%     sign = str2num(Vy(1));
+%     esp  = fbin2dec(Vy(2:12));
+%     mant = fbin2dec(Vy(13:64)) / 2^52;
+%     Vy = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Vy = Vy*1e3; %from m/ms to m/s
     
     %------------------------------------------------
@@ -543,10 +597,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Vz = Vz(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Vz(1));
-    esp  = fbin2dec(Vz(2:12));
-    mant = fbin2dec(Vz(13:64)) / 2^52;
-    Vz = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Vz, f] = decode_FP64(Vz);
+    flag = flag * f;
+%     sign = str2num(Vz(1));
+%     esp  = fbin2dec(Vz(2:12));
+%     mant = fbin2dec(Vz(13:64)) / 2^52;
+%     Vz = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Vz = Vz*1e3; %from m/ms to m/s
     
     %------------------------------------------------
@@ -556,10 +612,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Ax = Ax(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Ax(1));
-    esp  = fbin2dec(Ax(2:12));
-    mant = fbin2dec(Ax(13:64)) / 2^52;
-    Ax = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Ax, f] = decode_FP64(Ax);
+    flag = flag * f;
+%     sign = str2num(Ax(1));
+%     esp  = fbin2dec(Ax(2:12));
+%     mant = fbin2dec(Ax(13:64)) / 2^52;
+%     Ax = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Ax = Ax*1e6; %from m/ms^2 to m/s^2
     
     %------------------------------------------------
@@ -569,10 +627,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Ay = Ay(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Ay(1));
-    esp  = fbin2dec(Ay(2:12));
-    mant = fbin2dec(Ay(13:64)) / 2^52;
-    Ay = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Ay, f] = decode_FP64(Ay);
+    flag = flag * f;
+%     sign = str2num(Ay(1));
+%     esp  = fbin2dec(Ay(2:12));
+%     mant = fbin2dec(Ay(13:64)) / 2^52;
+%     Ay = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Ay = Ay*1e6; %from m/ms^2 to m/s^2
     
     %------------------------------------------------
@@ -582,10 +642,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     Az = Az(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(Az(1));
-    esp  = fbin2dec(Az(2:12));
-    mant = fbin2dec(Az(13:64)) / 2^52;
-    Az = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [Az, f] = decode_FP64(Az);
+    flag = flag * f;
+%     sign = str2num(Az(1));
+%     esp  = fbin2dec(Az(2:12));
+%     mant = fbin2dec(Az(13:64)) / 2^52;
+%     Az = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     Az = Az*1e6; %from m/ms^2 to m/s^2
     
     %------------------------------------------------
@@ -595,10 +657,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     tb = tb(:)';
     
     % floating point value decoding (double floating point)
-    sign = str2num(tb(1));
-    esp  = fbin2dec(tb(2:12));
-    mant = fbin2dec(tb(13:64)) / 2^52;
-    tb = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    [tb, f] = decode_FP64(tb);
+    flag = flag * f;
+%     sign = str2num(tb(1));
+%     esp  = fbin2dec(tb(2:12));
+%     mant = fbin2dec(tb(13:64)) / 2^52;
+%     tb = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
     tb = tb*1e-3; %from ms to s
     
     %------------------------------------------------
@@ -608,10 +672,12 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     gamma_n = gamma_n(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(gamma_n(1));
-    esp  = fbin2dec(gamma_n(2:9));
-    mant = fbin2dec(gamma_n(10:32)) / 2^23;
-    gamma_n = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [gamma_n, f] = decode_FP32(gamma_n);
+    flag = flag * f;
+%     sign = str2num(gamma_n(1));
+%     esp  = fbin2dec(gamma_n(2:9));
+%     mant = fbin2dec(gamma_n(10:32)) / 2^23;
+%     gamma_n = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     
     %------------------------------------------------
     %tn(tb), s
@@ -620,23 +686,25 @@ elseif (type == 2 && length(msg(pos:end)) >= 728 && constellations.GLONASS.enabl
     tn = tn(:)';
 
     % floating point value decoding (single floating point)
-    sign = str2num(tn(1));
-    esp  = fbin2dec(tn(2:9));
-    mant = fbin2dec(tn(10:32)) / 2^23;
-    tn = (-1)^sign * (2^(esp - 127)) * (1 + mant);
+    [tn, f] = decode_FP32(tn);
+    flag = flag * f;
+%     sign = str2num(tn(1));
+%     esp  = fbin2dec(tn(2:9));
+%     mant = fbin2dec(tn(10:32)) / 2^23;
+%     tn = (-1)^sign * (2^(esp - 127)) * (1 + mant);
     tn = tn*1e-3; %from ms to s
     
     %------------------------------------------------
     %En
     En_1 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
-    En_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8;
+    En_2 = fbin2dec(msg(pos:pos+7));  pos = pos + 8; %#ok<NASGU>
     En = En_1 + (En_2 * 2^8);                       % little endian
     
     %------------------------------------------------
     tk = tb - 10800; %tb is a time interval within the current day (UTC + 3 hours)
     
     %------------------------------------------------
-    if (PRN <= constellations.GLONASS.numSat)
+    if (PRN <= constellations.GLONASS.numSat && flag) %#ok<BDLGI>
         data{2}(1) = PRN;
         data{2}(2) = tn;      %TauN
         data{2}(3) = gamma_n; %GammaN
