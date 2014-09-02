@@ -9,7 +9,7 @@
 *          d8888P                                                 *
 \*****************************************************************/
 
-   v0.4.2beta
+   v0.4.2
 
 1. Introduction
    ============
@@ -40,7 +40,7 @@
    For real-time tasks:
    - 'Instrument Control Toolbox' installed on MATLAB
    - GPS receiver providing raw data on a COM port (currently
-     u-blox UBX, Fastrax IT03, SkyTraq and NVS BINR binary
+     u-blox UBX, Fastrax IT03, SkyTraq and NVS BINR* binary
 	 protocols are supported) with their own drivers installed
    - GPS permanent station(s) broadcasting raw data in RTCM 3.x
      format through NTRIP protocol (at least '1002' or '1004'
@@ -50,3 +50,6 @@
          if plotting error ellipses on Google Earth produces odd
          output on Windows, please switch Google Earth rendering
          engine to DirectX.
+   
+   *this development was supported by the JSPS Grant-in-Aid for Scientific Research
+    (Issue No. 24700105)
