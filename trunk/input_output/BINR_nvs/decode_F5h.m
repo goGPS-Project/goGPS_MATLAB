@@ -25,7 +25,7 @@ function [data] = decode_F5h(msg, constellations)
 %   BINR F5h binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

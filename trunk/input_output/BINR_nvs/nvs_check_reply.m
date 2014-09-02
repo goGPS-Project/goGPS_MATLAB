@@ -14,7 +14,7 @@ function [out] = nvs_check_reply(serialObj, check)
 %   Check acknowledge reply after issuing a command to NVS receivers.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

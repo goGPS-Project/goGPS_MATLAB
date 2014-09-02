@@ -16,7 +16,7 @@ function [out] = nvs_message_format(serialObj, format, baudrate)
 %   Set NMEA or BINR binary format output on NVS receivers.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
