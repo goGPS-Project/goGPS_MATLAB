@@ -79,6 +79,8 @@ global PDOP HDOP VDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
 
+global t residuals_fixed residuals_float outliers s02_ls
+
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
 %----------------------------------------------------------------------------------------
@@ -598,20 +600,50 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
         %------------------------------------------------------------------------------------
+
         search_for_outlier = 1;
-       
+        
+        sat_np = sat(sat~=pivot);
+        sat_pr_np = sat_pr(sat_pr~=pivot);
+        
+        y0_residuals=y0;
+        H1_residuals=H;
+        index_residuals_outlier=[sat_pr_np;nSatTot+sat_np];  %[code;phase]
+                
+        y0_noamb=y0;
+        y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+lambda(sat_np,1).*X_t1_t(o1+sat_np); %add predicted ambiguity to y0
+        H1=H(:,1);
+        
+        % decomment to use only phase
+%         y0_noamb=y0_noamb(length(sat_pr_np)+1:end);
+%         H1=H(length(sat_pr_np)+1:end,1);
+%         Cnn = Cnn(length(sat_pr_np)+1:end,length(sat_pr_np)+1:end);
+%         H=H(length(sat_pr_np)+1:end,:);
+%         y0=y0(length(sat_pr_np)+1:end);
+%         index_residuals_outlier=[nSatTot+sat_np];
+
+        % decomment to use only code
+%         y0_noamb=y0_noamb(1:length(sat_pr_np));
+%         H1=H(1:length(sat_pr_np),1);
+%         Cnn = Cnn(1:length(sat_pr_np),1:length(sat_pr_np));
+%         H=H(1:length(sat_pr_np),:);
+%         y0=y0(1:length(sat_pr_np));
+%         index_residuals_outlier=sat_pr_np;
+        
+        index_outlier_i=1:length(y0_noamb);
+
         while (search_for_outlier == 1)
-            sum_H = sum(H,1);
-            H1 = H;
-            H1(:,sum_H == 0) = [];            
-            [index_outlier] = OLOO(H1, y0, Cnn);
             
+            [index_outlier, ~, s02_ls(t)] = OLOO(H1, y0_noamb, Cnn);
             if (index_outlier ~= 0)
-               %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
-               H(index_outlier,:)   = [];
-               y0(index_outlier,:)  = [];
-               Cnn(index_outlier,:) = [];
-               Cnn(:,index_outlier) = [];               
+                %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
+                H(index_outlier_i(index_outlier),:)   = [];
+                y0(index_outlier_i(index_outlier),:)  = [];
+                Cnn(index_outlier_i(index_outlier),:) = [];
+                Cnn(:,index_outlier_i(index_outlier)) = [];
+                y0_noamb(index_outlier,:)  = [];
+                H1(index_outlier,:)  = [];
+                outliers(index_residuals_outlier(index_outlier_i(index_outlier)))=1;
             else
                 search_for_outlier = 0;
             end
@@ -669,12 +701,17 @@ if (nsat >= min_nsat)
     K = T*Cee*T' + Cvv;
 
     G = K*H' * (H*K*H' + Cnn)^(-1);
+    
+    %min_ambfloatRMS(t,1) = min(sqrt(diag(Cee(o1+sat_np,o1+sat_np)))); %#ok<NASGU>
 
     Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
 
     X_t1_t = T*Xhat_t_t;
 
     Cee = (I-G*H)*K;
+    
+    %sat_np = sat(sat ~= pivot);
+    
 else
     %positioning done only by the system dynamics
 
@@ -683,6 +720,11 @@ else
     X_t1_t = T*Xhat_t_t;
 
     Cee = T*Cee*T';
+end
+
+if exist('y0_residuals','var') && exist('sat_np','var')
+    X_est = Xhat_t_t([1;o1+sat_np]);
+    residuals_float([sat_pr_np;nSatTot+sat_np]) = y0_residuals - H1_residuals(:,[1;o1+sat_np])*X_est;
 end
 
 %----------------------------------------------------------------------------------------

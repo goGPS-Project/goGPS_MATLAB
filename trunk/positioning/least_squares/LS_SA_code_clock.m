@@ -133,7 +133,7 @@ dtR = x(1) / v_light;
 %covariance matrix of the estimation error
 if (n > m)
     Cxx = sigma02_hat*(N^-1);
-    var_dtR = Cxx(1,1) / v_light;
+    var_dtR = Cxx(1,1) / v_light^2;
 else
     var_dtR = []; 
 end

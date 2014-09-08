@@ -48,7 +48,7 @@ function goGPS_batch(year, doy_start, doy_end, markerR, sessionR, extR, markerM,
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-
+global min_ambfloatRMS
 addpath(genpath(pwd));
 
 is_batch = 1; %#ok<*NASGU>
@@ -60,7 +60,7 @@ end
 %-------------------------------------------------------------------------------
 % INI file
 %-------------------------------------------------------------------------------
-iniFile = './settings/default_InputFiles.ini';
+iniFile = './settings/Provincia30sec_daily_test_VRS_InputFiles.ini';
 
 %initialize INI file reading
 global goIni;
@@ -297,6 +297,12 @@ year = two_digit_year(year);
 
 fid_extract = fopen([folderOUT '/' markerM '_' markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_extraction.txt'],'w');
 
+fid_extract_OBS = fopen([folderOUT '/' markerM '_' markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_qualityOBS.txt'],'w');
+fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n'); 
+fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
+
+
+
 n_session=1;
 
 for doy = doy_start : 1 : doy_end
@@ -354,7 +360,26 @@ for doy = doy_start : 1 : doy_end
         fprintf(fid_extract,'%02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
                
         delete([filerootOUT '_*.bin']);
+        
+        % append report information in the database
+        fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
+        if fid_rep_i~=-1
+            line=fgetl(fid_rep_i);
+            while (isempty(strfind(line,'Observations                    Start time')))
+                line = fgetl(fid_rep_i);
+            end
+            line=fgetl(fid_rep_i);
+            line1=fgetl(fid_rep_i);
+            line1(33:80)='';
+            line2=fgetl(fid_rep_i);
+            line2(33:80)='';            
+            
+            fprintf(fid_extract_OBS,' %s-%s  %s     %s\n',num2str(year,'%02d'),num2str(doy,'%03d'), line1, line2);
+        end
+        fclose(fid_rep_i);
+
     end
 end
 
 fclose(fid_extract);
+fclose(fid_extract_OBS);

@@ -137,7 +137,7 @@ if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
     cov_N   = Cxx(3+[1:nsat_ph],3+[1:nsat_ph]);
-    var_dtR = Cxx(3+nsat_ph+1,3+nsat_ph+1) / v_light;
+    var_dtR = Cxx(3+nsat_ph+1,3+nsat_ph+1) / v_light^2;
 else
     cov_XR  = [];
     cov_N   = [];
