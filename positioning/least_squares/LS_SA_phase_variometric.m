@@ -116,7 +116,7 @@ sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
-    var_dtR = Cxx(end,end) / v_light;
+    var_dtR = Cxx(end,end) / v_light^2;
 else
     cov_XR  = [];
     var_dtR = []; 

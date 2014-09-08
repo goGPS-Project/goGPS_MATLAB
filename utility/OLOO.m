@@ -30,7 +30,8 @@ if m - n > 0
    
     %% compute the global solution
     
-    invQ=diag((diag(Q).^-1));
+    Q=Q./(min(diag(Q)));
+    invQ=inv(Q);
     Ninv=inv(A'*invQ*A);
     xcap=Ninv*A'*invQ*y;
     um=y-A*xcap;
@@ -84,9 +85,8 @@ if m - n > 0
         %% apply final solution
         % find maximum F(i)/Flim(i)
         [Fmax,imax]=max(abs(F./Flim));
-        
-        
-        if (Fmax<Flim)
+
+        if (Fmax<1)
             % no outlier
             imax=0;
             xfin=xcap;
@@ -137,5 +137,5 @@ else
     Cxx=[];
     %yfin=[];
     ufin=[];
-    s2fin=[];
+    s2fin=NaN;
 end

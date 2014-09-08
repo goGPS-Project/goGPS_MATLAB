@@ -54,6 +54,8 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global fout_report
+
 % Check the input arguments
 if (nargin < 3)
     wait_dlg_PresenceFlag = false;
@@ -188,6 +190,58 @@ for f = 1 : nFiles
     
     %close RINEX files
     fclose(fid);
+
+    if exist('fout_report','var') &&  fout_report~=-1
+        % write report file
+        if f==1
+            % table header
+            fprintf(fout_report,'\n\nSTATION INFORMATION\n');
+            fprintf(fout_report,'-------------------\n\n');
+            fprintf(fout_report,'Observations (RAW)              Start time               End time                 Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
+            fprintf(fout_report,'-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n');
+        end
+        j=strfind(current_file,'\');
+        if isempty(j)
+            j=strfind(current_file,'/');
+        end
+        if isempty(j)
+            j=0;
+        end
+        % create statistics on observations
+        stat_sat = ((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f))) + (ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ...
+            (pr1(:,:,f)~=0 & isfinite(pr1(:,:,f))) + (pr2(:,:,f)~=0 & isfinite(pr2(:,:,f))) + ...
+            (dop1(:,:,f)~=0 & isfinite(dop1(:,:,f))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
+        n_sat=sum(sum(stat_sat,2)~=0);
+        n_epoch=sum(sum(stat_sat,1)~=0);
+        n_ph1 = sum(sum((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f)))));
+        n_ph2 = sum(sum((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f)))));
+        n_pr1 = sum(sum((pr1(:,:,f)~=0 & isfinite(pr1(:,:,f)))));
+        n_pr2 = sum(sum((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))));
+        n_dop1 = sum(sum((dop1(:,:,f)~=0 & isfinite(dop1(:,:,f)))));
+        n_dop2 = sum(sum((dop2(:,:,f)~=0 & isfinite(dop2(:,:,f)))));
+        time_start=sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(1,1,f),date(1,2,f),date(1,3,f),date(1,4,f),date(1,5,f),date(1,6,f));
+        time_end=sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(k-1,1,f),date(k-1,2,f),date(k-1,3,f),date(k-1,4,f),date(k-1,5,f),date(k-1,6,f));
+        
+        stat_sat = ((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
+        if any(stat_sat(:))
+            nfreq=2;
+        else
+            nfreq=1;
+        end
+		
+        n_epoch_expected = length((roundmod(time(1,1,f),interval(1,1,f)) : interval(1,1,f) : roundmod(time(k-1,1,f),interval(1,1,f))));
+
+        epoch_completeness=n_epoch/n_epoch_expected*100;
+        if nfreq == 2
+            L1L2_completeness = sprintf('%6.1f', n_ph2/n_ph1*100);
+        else
+            L1L2_completeness = sprintf('%6s', '0');
+        end
+        
+        fprintf(fout_report,'%-30s  %23s  %23s  %4.1f    %2d   %6d  %6d  %7d %7d %7d %7d %7d %7d  %6.1f %-6s\n', current_file(j(end)+1:end), time_start, time_end, interval(1,1,f), ...
+            n_sat, n_epoch, nfreq, n_pr1, n_pr2, n_ph1, n_ph2, n_dop1, n_dop2, epoch_completeness, L1L2_completeness);
+    end
+    
     
     fprintf('done\n');
 end
@@ -205,3 +259,60 @@ for f = 1 : nFiles
         end
     end
 end
+
+
+if exist('fout_report','var') &&  fout_report~=-1
+    % write report file
+    fprintf(fout_report,'\nObservations (after sync)       Start time               End time                 Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
+    fprintf(fout_report,'-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n');
+    
+    for f = 1 : nFiles        
+        if (iscell(filename))
+            current_file = filename{f,1};
+        else
+            current_file = filename;
+        end
+        
+                j=strfind(current_file,'\');
+        if isempty(j)
+            j=strfind(current_file,'/');
+        end
+        if isempty(j)
+            j=0;
+        end
+        % create statistics on observations
+        stat_sat = ((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f))) + (ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ...
+            (pr1(:,:,f)~=0 & isfinite(pr1(:,:,f))) + (pr2(:,:,f)~=0 & isfinite(pr2(:,:,f))) + ...
+            (dop1(:,:,f)~=0 & isfinite(dop1(:,:,f))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
+        n_sat=sum(sum(stat_sat,2)~=0);
+        n_epoch=sum(sum(stat_sat,1)~=0);
+        n_ph1 = sum(sum((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f)))));
+        n_ph2 = sum(sum((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f)))));
+        n_pr1 = sum(sum((pr1(:,:,f)~=0 & isfinite(pr1(:,:,f)))));
+        n_pr2 = sum(sum((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))));
+        n_dop1 = sum(sum((dop1(:,:,f)~=0 & isfinite(dop1(:,:,f))))); 
+        n_dop2 = sum(sum((dop2(:,:,f)~=0 & isfinite(dop2(:,:,f)))));
+        time_start=sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(1,1,f),date(1,2,f),date(1,3,f),date(1,4,f),date(1,5,f),date(1,6,f));
+        time_end=sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(end,1,f),date(end,2,f),date(end,3,f),date(end,4,f),date(end,5,f),date(end,6,f));
+        
+        stat_sat = ((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
+        if any(stat_sat(:))
+            nfreq=2;
+        else
+            nfreq=1;
+        end
+        
+        n_epoch_expected = size(time,1);
+
+        epoch_completeness=n_epoch/n_epoch_expected*100;
+        if nfreq == 2
+            L1L2_completeness = sprintf('%6.1f', n_ph2/n_ph1*100);
+        else
+            L1L2_completeness = sprintf('%6s', '0');
+        end
+        
+        fprintf(fout_report,'%-30s  %23s  %23s  %4.1f    %2d   %6d  %6d  %7d %7d %7d %7d %7d %7d  %6.1f %-6s\n', current_file(j(end)+1:end), time_start, time_end, interval, ...
+            n_sat, n_epoch, nfreq, n_pr1, n_pr2, n_ph1, n_ph2, n_dop1, n_dop2, epoch_completeness, L1L2_completeness);
+    end
+end
+        
