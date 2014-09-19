@@ -1,13 +1,13 @@
-function [sow] = weektime2tow(week, time)
+function [week, sow] = time2weektow(time)
 
 % SYNTAX:
-%   [sow] = weektime2tow(week, time);
+%   [week, sow] = weektime2tow(time);
 %
 % INPUT:
-%   week = GPS week
 %   time = GPS time (continuous since 6-1-1980)
 %
 % OUTPUT:
+%   week = GPS week
 %   sow  = GPS seconds-of-week
 %
 % DESCRIPTION:
@@ -34,4 +34,8 @@ function [sow] = weektime2tow(week, time)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-sow = time - week*7*86400;
+sec_in_week = 7*86400;
+
+sow  = rem(time, sec_in_week);
+week = (time - sow) / sec_in_week;
+

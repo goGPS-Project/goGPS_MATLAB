@@ -284,8 +284,12 @@ if goGNSS.isPP(mode) % post-processing
              time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R] = ...
              load_RINEX_obs(filename_obs, constellations);
          
-            %read antenna phase center offset (NOTE: reading only L1 offset for now)
+            %read receiver antenna phase center offset (NOTE: reading only L1 offset for now)
             antPCO_R = read_antenna_PCO(filename_pco, antmod_R);
+            
+            %read satellite antenna phase center offset (NOTE: reading only L1 offset for now)
+            antmod_S = sat_antenna_ID(constellations);
+            antPCO_S = read_antenna_PCO(filename_pco, antmod_S, date_R);
 
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
@@ -294,6 +298,18 @@ if goGNSS.isPP(mode) % post-processing
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
             bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
             bad_epochs_R = zeros(length(time_GPS), 1, size(time_R,3));
+
+            %compute sun and moon position
+            fprintf('Computing Sun and Moon position...');
+            [X_sun, X_moon] = sun_moon_pos(date_R);
+            fprintf(' done\n');
+            
+            if (flag_SP3)
+                %display message
+                fprintf('Reading SP3 file...\n');
+                
+                SP3 = load_SP3(filename_nav, time_GPS, week_R, antPCO_S, X_sun, constellations);
+            end
             
             for f = 1 : size(time_R,3)
                 
@@ -386,13 +402,6 @@ if goGNSS.isPP(mode) % post-processing
             if (mode_user == 1)
                 goWB.close();
             end
-        end
-        
-        if (flag_SP3)
-            %display message
-            fprintf('Reading SP3 file...\n');
-            
-            SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
         end
 
 %         %read surveying mode

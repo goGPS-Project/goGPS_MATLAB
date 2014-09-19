@@ -1,6 +1,10 @@
-function [sun_ECEF, moon_ECEF] = sun_moon_pos(year, month, day)
+function [sun_ECEF, moon_ECEF] = sun_moon_pos(epoch)
 
 global iephem km ephname inutate psicor epscor ob2000
+
+year = epoch(:,1);
+month = epoch(:,2);
+day = epoch(:,3) + epoch(:,4)/24 + epoch(:,5)/1440 + epoch(:,6)/86400;
 
 sun_id = 11; moon_id = 10; earth_id = 3;
 
@@ -21,33 +25,39 @@ if (~exist('./utility/sun_moon/jpl_ephem/de421.bin','file'))
     fprintf('-------------------------------------------------------------------\n\n')
 end
 
-jdutc = julian(month, day, year);
-jdtdb = utc2tdb(jdutc);
+sun_ECEF = zeros(length(year),3);
+moon_ECEF = zeros(length(year),3);
 
-%precise celestial pole (disabled)
-[psicor, epscor] = celpol(jdtdb, 1, 0.0d0, 0.0d0);
-
-%compute the Sun position (ICRS coordinates)
-rrd = jplephem(jdtdb, sun_id, earth_id);
-sun_ECI = rrd(1:3);
-sun_ECI = tmatrix*sun_ECI;
-
-%Sun ICRS coordinates to ITRS coordinates
-deltat = getdt;
-jdut1 = jdutc - deltat;
-tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
-sun_ECEF = celter(tjdh, tjdl, xp, yp, sun_ECI);
-
-if (nargout > 1)
-    %compute the Moon position (ICRS coordinates)
-    rrd = jplephem(jdtdb, moon_id, earth_id);
-    moon_ECI = rrd(1:3);
-    moon_ECI = tmatrix*moon_ECI;
+for e = 1 : length(year)
     
-    %Moon ICRS coordinates to ITRS coordinates
+    %UTC to TDB
+    jdutc = julian(month(e,1), day(e,1), year(e,1));
+    jdtdb = utc2tdb(jdutc);
+    
+    %precise celestial pole (disabled)
+    [psicor, epscor] = celpol(jdtdb, 1, 0.0d0, 0.0d0);
+    
+    %compute the Sun position (ICRS coordinates)
+    rrd = jplephem(jdtdb, sun_id, earth_id);
+    sun_ECI = rrd(1:3);
+    sun_ECI = tmatrix*sun_ECI;
+    
+    %Sun ICRS coordinates to ITRS coordinates
     deltat = getdt;
     jdut1 = jdutc - deltat;
     tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
-    moon_ECEF = celter(tjdh, tjdl, xp, yp, moon_ECI);
+    sun_ECEF(e,:) = celter(tjdh, tjdl, xp, yp, sun_ECI);
+    
+    if (nargout > 1)
+        %compute the Moon position (ICRS coordinates)
+        rrd = jplephem(jdtdb, moon_id, earth_id);
+        moon_ECI = rrd(1:3);
+        moon_ECI = tmatrix*moon_ECI;
+        
+        %Moon ICRS coordinates to ITRS coordinates
+        deltat = getdt;
+        jdut1 = jdutc - deltat;
+        tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
+        moon_ECEF(e,:) = celter(tjdh, tjdl, xp, yp, moon_ECI);
+    end
 end
-
