@@ -1,4 +1,4 @@
-function [SP3] = load_SP3(filename_SP3, time, week, antPCO, X_sun, constellations, wait_dlg)
+function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 
 % SYNTAX:
 %   [SP3] = load_SP3(filename_SP3, time, week, antPCO_S, X_sun, constellations, wait_dlg);
@@ -7,8 +7,6 @@ function [SP3] = load_SP3(filename_SP3, time, week, antPCO, X_sun, constellation
 %   filename_SP3 = SP3 file
 %   time = time window (GPS time)
 %   week = GPS week
-%   antPCO = satellite antenna phase center offsets
-%   X_sun = position of the Sun
 %   constellations = struct with multi-constellation settings
 %                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure
@@ -193,21 +191,10 @@ for p = 1 : size(week_dow,1)
                     end
                     
                     index = index + PRN - 1;
-                    
-                    X_sat(1,1) = X*1e3;
-                    X_sat(2,1) = Y*1e3;
-                    X_sat(3,1) = Z*1e3;
-                    
-                    %apply satellite antenna phase center correction
-                    k = -X_sat/norm(X_sat);
-                    e = (X_sun-X_sat)/norm(X_sun-X_sat);
-                    j = dot(k,e);
-                    i = dot(j,k);
-                    X_sat = X_sat + dot([i;j;k],antPCO(:,:,index));
-                    
-                    SP3.coord(1, index, k) = X_sat(1);
-                    SP3.coord(2, index, k) = X_sat(2);
-                    SP3.coord(3, index, k) = X_sat(3);
+
+                    SP3.coord(1, index, k) = X*1e3;
+                    SP3.coord(2, index, k) = Y*1e3;
+                    SP3.coord(3, index, k) = Z*1e3;
                     
                     SP3.clock(index,k) = clk/1e6; %NOTE: clk >= 999999 stands for bad or absent clock values
                     

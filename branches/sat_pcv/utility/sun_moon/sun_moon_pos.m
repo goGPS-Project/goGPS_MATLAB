@@ -25,8 +25,8 @@ if (~exist('./utility/sun_moon/jpl_ephem/de421.bin','file'))
     fprintf('-------------------------------------------------------------------\n\n')
 end
 
-sun_ECEF = zeros(length(year),3);
-moon_ECEF = zeros(length(year),3);
+sun_ECEF = zeros(3,length(year));
+moon_ECEF = zeros(3,length(year));
 
 for e = 1 : length(year)
     
@@ -46,7 +46,7 @@ for e = 1 : length(year)
     deltat = getdt;
     jdut1 = jdutc - deltat;
     tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
-    sun_ECEF(e,:) = celter(tjdh, tjdl, xp, yp, sun_ECI);
+    sun_ECEF(:,e) = celter(tjdh, tjdl, xp, yp, sun_ECI);
     
     if (nargout > 1)
         %compute the Moon position (ICRS coordinates)
@@ -58,6 +58,6 @@ for e = 1 : length(year)
         deltat = getdt;
         jdut1 = jdutc - deltat;
         tjdh = floor(jdut1); tjdl = jdut1 - tjdh;
-        moon_ECEF(e,:) = celter(tjdh, tjdl, xp, yp, moon_ECI);
+        moon_ECEF(:,e) = celter(tjdh, tjdl, xp, yp, moon_ECI);
     end
 end

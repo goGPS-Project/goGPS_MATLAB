@@ -308,7 +308,10 @@ if goGNSS.isPP(mode) % post-processing
                 %display message
                 fprintf('Reading SP3 file...\n');
                 
-                SP3 = load_SP3(filename_nav, time_GPS, week_R, antPCO_S, X_sun, constellations);
+                SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
+                SP3.antPCO = antPCO_S;
+                SP3.t_sun  = time_GPS;
+                SP3.X_sun  = X_sun;
             end
             
             for f = 1 : size(time_R,3)
@@ -680,6 +683,36 @@ if goGNSS.isPP(mode) % post-processing
     %if absolute post-processing positioning
     if goGNSS.isSA(mode) % absolute positioning
 
+%         %if using SP3 ephemeris
+%         if (flag_SP3)
+%             
+%             %----------------------------------------------------------------------------------------------
+%             % LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
+%             %----------------------------------------------------------------------------------------------
+%             
+%             %NOTE: if not using SP3 ephemeris or if DCB files are not available, the
+%             %      'SP3.DCB' structure will be initialized to zero/empty arrays and it will not
+%             %      have any effect on the positioning
+%             
+%             %try first to read .ems files already available
+%             [dcb] = load_dcb('../data/DCB', week_R, time_R);
+%             
+%             %if .DCB files are not available or not sufficient, try to download them
+%             if (isempty(dcb))
+%                 
+%                 %download
+%                 [file_dcb] = download_igs(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+%                 
+%                 %try again to read .ems files
+%                 [sbas] = load_ems('../data/EMS', week_R, time_R);
+%             end
+%             
+%             %check if the survey is within the EMS grids
+%             if (~isempty(sbas))
+%                 [ems_data_available] = check_ems_extents(time_R, pr1_R, snr_R, nSatTot, Eph, iono, sbas, lambda, 1);
+%             end
+%         end
+        
         %if SBAS corrections are requested
         if (flag_SBAS)
             
