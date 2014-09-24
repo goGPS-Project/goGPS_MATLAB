@@ -4164,7 +4164,7 @@ end
 
 %----------------------------------------------------------------------------------------------
 
-fclose(fout_report);
+if (exist('fout_report','var')), fclose(fout_report); end
 
 if (mode_user == 1)
     % close all the opened files
