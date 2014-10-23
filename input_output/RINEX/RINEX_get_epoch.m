@@ -44,13 +44,13 @@ function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-time = 0;
+time = NaN;
 sat = [];
 sat_types = [];
 num_sat = 0;
-datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
+datee=[NaN NaN NaN NaN NaN NaN]; %Preallocation not useful (see last line of code)
 eof = 0;
-tow = 0;
+tow = NaN;
 if (nargout > 3)
     datee_RequestedInOutputFlag = true;
 else

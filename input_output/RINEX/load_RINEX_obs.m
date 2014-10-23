@@ -37,7 +37,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
-% Portions of code contributed by Damiano Triglione (2012)
+% Portions of code contributed by Damiano Triglione and Stefano Caldera
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -54,7 +54,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global fout_report
+global report
 
 % Check the input arguments
 if (nargin < 3)
@@ -140,6 +140,7 @@ for f = 1 : nFiles
         %read data for the current epoch (ROVER)
         [time(k,1,f), date(k,:,f), num_sat, sat, sat_types, tow(k,1,f)] = RINEX_get_epoch(fid);
         
+        
         if (k > nEpochs)
             %variable initialization (GPS)
             pr1(:,k,f) = zeros(nSatTot,1);
@@ -170,7 +171,6 @@ for f = 1 : nFiles
         dop2(:,k,f) = obs.D2;
         snr1(:,k,f) = obs.S1;
         snr2(:,k,f) = obs.S2;
-        
         k = k + 1;
     end
     
@@ -191,15 +191,8 @@ for f = 1 : nFiles
     %close RINEX files
     fclose(fid);
 
-    if exist('fout_report','var') &&  fout_report~=-1
-        % write report file
-        if f==1
-            % table header
-            fprintf(fout_report,'\n\nSTATION INFORMATION\n');
-            fprintf(fout_report,'-------------------\n\n');
-            fprintf(fout_report,'Observations (RAW)              Start time               End time                 Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
-            fprintf(fout_report,'-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n');
-        end
+    if report.opt.write == 1
+        % extract quality parameters for report
         j=strfind(current_file,'\');
         if isempty(j)
             j=strfind(current_file,'/');
@@ -207,41 +200,38 @@ for f = 1 : nFiles
         if isempty(j)
             j=0;
         end
+        report.obs.filename(f)=cellstr(current_file(j(end)+1:end));
         % create statistics on observations
         stat_sat = ((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f))) + (ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ...
             (pr1(:,:,f)~=0 & isfinite(pr1(:,:,f))) + (pr2(:,:,f)~=0 & isfinite(pr2(:,:,f))) + ...
             (dop1(:,:,f)~=0 & isfinite(dop1(:,:,f))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
-        n_sat=sum(sum(stat_sat,2)~=0);
-        n_epoch=sum(sum(stat_sat,1)~=0);
-        n_ph1 = sum(sum((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f)))));
-        n_ph2 = sum(sum((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f)))));
-        n_pr1 = sum(sum((pr1(:,:,f)~=0 & isfinite(pr1(:,:,f)))));
-        n_pr2 = sum(sum((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))));
-        n_dop1 = sum(sum((dop1(:,:,f)~=0 & isfinite(dop1(:,:,f)))));
-        n_dop2 = sum(sum((dop2(:,:,f)~=0 & isfinite(dop2(:,:,f)))));
-        time_start=sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(1,1,f),date(1,2,f),date(1,3,f),date(1,4,f),date(1,5,f),date(1,6,f));
-        time_end=sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(k-1,1,f),date(k-1,2,f),date(k-1,3,f),date(k-1,4,f),date(k-1,5,f),date(k-1,6,f));
+        report.obs_raw.n_sat(f)=sum(sum(stat_sat,2)~=0);
+        report.obs_raw.n_epoch(f)=sum(sum(stat_sat,1)~=0);
+        report.obs_raw.n_ph1(f) = sum(sum((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f)))));
+        report.obs_raw.n_ph2(f) = sum(sum((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f)))));
+        report.obs_raw.n_pr1(f) = sum(sum((pr1(:,:,f)~=0 & isfinite(pr1(:,:,f)))));
+        report.obs_raw.n_pr2(f) = sum(sum((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))));
+        report.obs_raw.n_dop1(f) = sum(sum((dop1(:,:,f)~=0 & isfinite(dop1(:,:,f)))));
+        report.obs_raw.n_dop2(f) = sum(sum((dop2(:,:,f)~=0 & isfinite(dop2(:,:,f)))));
+        report.obs_raw.interval(f) = interval(1,1,f);
+        report.obs_raw.time_start(f)=cellstr(sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(1,1,f),date(1,2,f),date(1,3,f),date(1,4,f),date(1,5,f),date(1,6,f)));
+        report.obs_raw.time_end(f)=cellstr(sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(k-1,1,f),date(k-1,2,f),date(k-1,3,f),date(k-1,4,f),date(k-1,5,f),date(k-1,6,f)));
         
         stat_sat = ((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
         if any(stat_sat(:))
-            nfreq=2;
+            report.obs_raw.nfreq(f)=2;
         else
-            nfreq=1;
+            report.obs_raw.nfreq(f)=1;
         end
-		
-        n_epoch_expected = length((roundmod(time(1,1,f),interval(1,1,f)) : interval(1,1,f) : roundmod(time(k-1,1,f),interval(1,1,f))));
+        report.obs_raw.n_epoch_expected(f) = length((roundmod(time(1,1,f),interval(1,1,f)) : interval(1,1,f) : roundmod(time(k-1,1,f),interval(1,1,f))));
 
-        epoch_completeness=n_epoch/n_epoch_expected*100;
-        if nfreq == 2
-            L1L2_completeness = sprintf('%6.1f', n_ph2/n_ph1*100);
+        report.obs_raw.epoch_completeness(f)=report.obs_raw.n_epoch(f)/report.obs_raw.n_epoch_expected(f)*100;
+        if report.obs_raw.nfreq(f) == 2
+            report.obs_raw.L1L2_completeness(f) = cellstr(sprintf('%6.1f', report.obs_raw.n_ph2(f)/report.obs_raw.n_ph1(f)*100));
         else
-            L1L2_completeness = sprintf('%6s', '0');
-        end
-        
-        fprintf(fout_report,'%-30s  %23s  %23s  %4.1f    %2d   %6d  %6d  %7d %7d %7d %7d %7d %7d  %6.1f %-6s\n', current_file(j(end)+1:end), time_start, time_end, interval(1,1,f), ...
-            n_sat, n_epoch, nfreq, n_pr1, n_pr2, n_ph1, n_ph2, n_dop1, n_dop2, epoch_completeness, L1L2_completeness);
+            report.obs_raw.L1L2_completeness(f) = cellstr(sprintf('%6s', '0'));
+        end        
     end
-    
     
     fprintf('done\n');
 end
@@ -261,58 +251,39 @@ for f = 1 : nFiles
 end
 
 
-if exist('fout_report','var') &&  fout_report~=-1
-    % write report file
-    fprintf(fout_report,'\nObservations (after sync)       Start time               End time                 Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n');
-    fprintf(fout_report,'-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n');
-    
+if report.opt.write == 1
+    % extract quality parameters for report
     for f = 1 : nFiles        
-        if (iscell(filename))
-            current_file = filename{f,1};
-        else
-            current_file = filename;
-        end
-        
-                j=strfind(current_file,'\');
-        if isempty(j)
-            j=strfind(current_file,'/');
-        end
-        if isempty(j)
-            j=0;
-        end
-        % create statistics on observations
+         % create statistics on observations
         stat_sat = ((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f))) + (ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ...
             (pr1(:,:,f)~=0 & isfinite(pr1(:,:,f))) + (pr2(:,:,f)~=0 & isfinite(pr2(:,:,f))) + ...
             (dop1(:,:,f)~=0 & isfinite(dop1(:,:,f))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
-        n_sat=sum(sum(stat_sat,2)~=0);
-        n_epoch=sum(sum(stat_sat,1)~=0);
-        n_ph1 = sum(sum((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f)))));
-        n_ph2 = sum(sum((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f)))));
-        n_pr1 = sum(sum((pr1(:,:,f)~=0 & isfinite(pr1(:,:,f)))));
-        n_pr2 = sum(sum((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))));
-        n_dop1 = sum(sum((dop1(:,:,f)~=0 & isfinite(dop1(:,:,f))))); 
-        n_dop2 = sum(sum((dop2(:,:,f)~=0 & isfinite(dop2(:,:,f)))));
-        time_start=sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(1,1,f),date(1,2,f),date(1,3,f),date(1,4,f),date(1,5,f),date(1,6,f));
-        time_end=sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(end,1,f),date(end,2,f),date(end,3,f),date(end,4,f),date(end,5,f),date(end,6,f));
+        report.obs_sync.n_sat(f)=sum(sum(stat_sat,2)~=0);
+        report.obs_sync.n_epoch(f)=sum(sum(stat_sat,1)~=0);
+        report.obs_sync.n_ph1(f) = sum(sum((ph1(:,:,f)~=0 & isfinite(ph1(:,:,f)))));
+        report.obs_sync.n_ph2(f) = sum(sum((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f)))));
+        report.obs_sync.n_pr1(f) = sum(sum((pr1(:,:,f)~=0 & isfinite(pr1(:,:,f)))));
+        report.obs_sync.n_pr2(f) = sum(sum((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))));
+        report.obs_sync.n_dop1(f) = sum(sum((dop1(:,:,f)~=0 & isfinite(dop1(:,:,f)))));
+        report.obs_sync.n_dop2(f) = sum(sum((dop2(:,:,f)~=0 & isfinite(dop2(:,:,f)))));
+        report.obs_sync.interval(f) = interval;
+        report.obs_sync.time_start(f)=cellstr(sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(1,1,f),date(1,2,f),date(1,3,f),date(1,4,f),date(1,5,f),date(1,6,f)));
+        report.obs_sync.time_end(f)=cellstr(sprintf('%04d-%02d-%02d %02d:%02d:%06.3f',date(size(date,1),1,f),date(size(date,1),2,f),date(size(date,1),3,f),date(size(date,1),4,f),date(size(date,1),5,f),date(size(date,1),6,f)));
         
         stat_sat = ((ph2(:,:,f)~=0 & isfinite(ph2(:,:,f))) + ((pr2(:,:,f)~=0 & isfinite(pr2(:,:,f)))) + (dop2(:,:,f)~=0 & isfinite(dop2(:,:,f))))~=0;
         if any(stat_sat(:))
-            nfreq=2;
+            report.obs_sync.nfreq(f)=2;
         else
-            nfreq=1;
+            report.obs_sync.nfreq(f)=1;
         end
-        
-        n_epoch_expected = size(time,1);
+        report.obs_sync.n_epoch_expected(f) = length((roundmod(time(1,1,f),interval) : interval : roundmod(time(size(date,1),1,f),interval)));
 
-        epoch_completeness=n_epoch/n_epoch_expected*100;
-        if nfreq == 2
-            L1L2_completeness = sprintf('%6.1f', n_ph2/n_ph1*100);
+        report.obs_sync.epoch_completeness(f)=report.obs_sync.n_epoch(f)/report.obs_sync.n_epoch_expected(f)*100;
+        if report.obs_sync.nfreq(f) == 2
+            report.obs_sync.L1L2_completeness(f) = cellstr(sprintf('%6.1f', report.obs_sync.n_ph2(f)/report.obs_sync.n_ph1(f)*100));
         else
-            L1L2_completeness = sprintf('%6s', '0');
-        end
-        
-        fprintf(fout_report,'%-30s  %23s  %23s  %4.1f    %2d   %6d  %6d  %7d %7d %7d %7d %7d %7d  %6.1f %-6s\n', current_file(j(end)+1:end), time_start, time_end, interval, ...
-            n_sat, n_epoch, nfreq, n_pr1, n_pr2, n_ph1, n_ph2, n_dop1, n_dop2, epoch_completeness, L1L2_completeness);
+            report.obs_sync.L1L2_completeness(f) = cellstr(sprintf('%6s', '0'));
+        end        
     end
 end
         

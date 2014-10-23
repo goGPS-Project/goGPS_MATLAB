@@ -169,7 +169,7 @@ classdef goGNSS < handle
         MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code and Phase Stand Alone (BASE FOR FUTURE PPP IMPLEMENTATION)
         MODE_PP_LS_CP_VEL    = 3.1; % Post Proc Least Squares on Code and Phase for Velocity estimation
         MODE_PP_LS_C_DD      = 11;  % Post Proc Least Squares on Code Double Differences
-        MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code Double Differences with LAMBDA
+        MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code and Phase Double Differences with LAMBDA
         MODE_PP_LS_CP_DD_MR  = 16;  % Post Proc Least Squares on Code and Phase Double Differences, Multiple Receivers
         MODE_PP_LS_C_SA_MR   = 17;  % Post Proc Least Squares on Code Stand Alone, Multiple Receivers
         
@@ -178,7 +178,7 @@ classdef goGNSS < handle
         MODE_PP_KF_CP_SA     = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone
         MODE_PP_KF_CP_DD     = 14;  % Post Proc Kalman Filter on Code and Phase Double Differences
         MODE_PP_KF_CP_DD_MR  = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers
-        
+                 
         GMODE_PP = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of post processing modes
             goGNSS.MODE_PP_LS_CP_SA ...
             goGNSS.MODE_PP_LS_C_DD ...
@@ -211,9 +211,28 @@ classdef goGNSS < handle
             goGNSS.MODE_PP_LS_CP_DD_MR ...
             goGNSS.MODE_PP_KF_CP_DD_MR];
         
-        GMODE_MR = [ goGNSS.MODE_PP_LS_C_SA_MR ... % Group of multi-receiver modes
+        GMODE_MR = [ goGNSS.MODE_PP_LS_C_SA_MR ...  % Group of multi-receiver modes
             goGNSS.MODE_PP_LS_CP_DD_MR ...
             goGNSS.MODE_PP_KF_CP_DD_MR];
+       
+        GMODE_PH = [ goGNSS.MODE_RT_NAV ...         % Group of modes using Phase
+            goGNSS.MODE_RT_R_MON ...
+            goGNSS.MODE_RT_M_MON ...
+            goGNSS.MODE_RT_RM_MON ...
+            goGNSS.MODE_PP_LS_CP_SA ...
+            goGNSS.MODE_PP_LS_CP_VEL ...
+            goGNSS.MODE_PP_LS_CP_DD_MR ...
+            goGNSS.MODE_PP_LS_CP_DD_L ...
+            goGNSS.MODE_PP_KF_CP_SA ...
+            goGNSS.MODE_PP_KF_CP_DD ...
+            goGNSS.MODE_PP_KF_CP_DD_MR];
+        
+        GMODE_KM = [ goGNSS.MODE_PP_KF_C_SA ...      % Group of modes using Kalman Filter
+            goGNSS.MODE_PP_KF_C_DD ... 
+            goGNSS.MODE_PP_KF_CP_SA ...
+            goGNSS.MODE_PP_KF_CP_DD ...
+            goGNSS.MODE_PP_KF_CP_DD_MR];
+        
     end
     
     % Creator (empty)
@@ -275,6 +294,17 @@ classdef goGNSS < handle
             % return whether or not the mode given in use is a Stand Alone mode
             isMultiReceiver = sum(intersect(mode, goGNSS.GMODE_MR));
         end
+        
+        function isUsingPhase = isPH(mode)
+            % return whether or not the mode given in use uses Phase
+            isUsingPhase = sum(intersect(mode, goGNSS.GMODE_PH));
+        end
+        
+         function isKalman = isKM(mode)
+            % return whether or not the mode given in use uses Kalman Filter
+            isKalman = sum(intersect(mode, goGNSS.GMODE_KM));
+        end       
+        
     end
     
     

@@ -106,9 +106,18 @@ mode = goGNSS.MODE_PP_KF_CP_DD;
 %-------------------------------------------------------------------------------
 % PROCESSING OPTIONS
 %-------------------------------------------------------------------------------
+GPS_flag = 1;
+GLO_flag = 0;
+GAL_flag = 0;
+BDS_flag = 0;
+QZS_flag = 0;
+SBS_flag = 0;
+[constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 
 flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
 flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
+
+min_epoch = 1440;       % minimum number of observed epoch to process
 
 %-------------------------------------------------------------------------------
 % MASTER STATION POSITION
@@ -292,6 +301,7 @@ end
 %-------------------------------------------------------------------------------
 % ITERATIVE SETTING OF INPUT/OUTPUT FILENAME PREFIX AND goGPS LAUNCH
 %-------------------------------------------------------------------------------
+year4 = year;
 
 year = two_digit_year(year);
 
@@ -307,6 +317,7 @@ n_session=1;
 
 for doy = doy_start : 1 : doy_end
     for session_i=1:n_session
+        delete('../data/EMS/*.ems');
         if n_session > 1
             sessionR=num2str(session_i,'%d');
             sessionM=num2str(session_i,'%d');
@@ -320,63 +331,98 @@ for doy = doy_start : 1 : doy_end
         filename_M_obs = [path_M_obs delim markerM num2str(doy,'%03d') sessionM '.' num2str(year,'%02d') extM];
         filename_nav   = [path_N_obs delim idN     num2str(doy,'%03d') sessionN '.' num2str(year,'%02d') extN];
         prefixOUT = [markerM '_' markerR '_' num2str(year,'%02d') num2str(doy,'%03d') num2str(session_i,'%d')];
-        
-        %-------------------------------------------------------------------------------
-        % INPUT/OUTPUT FILENAME PREFIX
-        %-------------------------------------------------------------------------------
-        
-        %dummy values for filerootIN (not used for batch processing)
-        folderIN  = '../data/data_goGPS';
-        prefixIN  = 'yamatogawa';
-        filerootIN  = [folderIN '/' prefixIN];
-        
-        filerootOUT = [folderOUT '/' prefixOUT];
-        
-        i = 1;
-        j = length(filerootOUT);
-        while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_master*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_obs*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_eph*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_sat*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_dop*.bin'])) | ...
-                ~isempty(dir([filerootOUT '_ECEF*.txt'])) | ...
-                ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
-                ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
-                ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
-                ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
-                ~isempty(dir([filerootOUT '.kml'])) )
+        if exist(filename_R_obs,'file')>0 && exist(filename_M_obs,'file')>0 && exist(filename_nav,'file')>0
             
-            filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
-            i = i + 1;
-        end
 
-        goGPS
-        
-        idx = size(date_R,1);
-        fprintf(fid_extract,'%02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
-               
-        delete([filerootOUT '_*.bin']);
-        
-        % append report information in the database
-        fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
-        if fid_rep_i~=-1
-            line=fgetl(fid_rep_i);
-            while (isempty(strfind(line,'Observations                    Start time')))
-                line = fgetl(fid_rep_i);
-            end
-            line=fgetl(fid_rep_i);
-            line1=fgetl(fid_rep_i);
-            line1(33:80)='';
-            line2=fgetl(fid_rep_i);
-            line2(33:80)='';            
+            %-------------------------------------------------------------------------------
+            % INPUT/OUTPUT FILENAME PREFIX
+            %-------------------------------------------------------------------------------
             
-            fprintf(fid_extract_OBS,' %s-%s  %s     %s\n',num2str(year,'%02d'),num2str(doy,'%03d'), line1, line2);
+
+            %dummy values for filerootIN (not used for batch processing)
+            folderIN  = '../data/data_goGPS';
+            prefixIN  = 'yamatogawa';
+            filerootIN  = [folderIN '/' prefixIN];
+            
+
+            filerootOUT = [folderOUT '/' prefixOUT];
+            
+            i = 1;
+
+
+            j = length(filerootOUT);
+            while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_master*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_obs*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_eph*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_sat*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_dop*.bin'])) | ...
+                    ~isempty(dir([filerootOUT '_ECEF*.txt'])) | ...
+                    ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
+                    ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
+                    ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
+                    ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
+                    ~isempty(dir([filerootOUT '.kml'])) )
+                
+                filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
+                i = i + 1;
+            end
+            
+            clear X_KAL
+            goGPS
+            
+            idx = size(date_R,1);
+            if exist('X_KAL','var')
+                fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
+                delete([filerootOUT '_*.bin']);
+            else
+                fprintf(fid_extract,'%04d-%03d\n', year4, doy);               
+            end
+            
+
+
+
+
+
+
+
+
+
+
+
+            % append report information in the database
+            fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
+            if fid_rep_i~=-1
+                line=fgetl(fid_rep_i);
+                while (isempty(strfind(line,'Observations (RAW)              Start time')))
+                    line = fgetl(fid_rep_i);
+                end
+                line=fgetl(fid_rep_i);
+                line1=fgetl(fid_rep_i);
+                line1(33:80)='';
+                line2=fgetl(fid_rep_i);
+                if ~isempty(line2)
+                    line2(33:80)='';
+                end
+                
+                fprintf(fid_extract_OBS,' %s-%s  %s     %s\n',num2str(year,'%02d'),num2str(doy,'%03d'), line1, line2);
+                fclose(fid_rep_i);
+
+            end
+            
+
+
+
+
+
+            
+
         end
-        fclose(fid_rep_i);
+        
+
 
     end
 end

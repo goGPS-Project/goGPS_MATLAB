@@ -249,7 +249,6 @@ RES_CODE_FLOAT  = [];                    %double differences code residuals (flo
 RES_PHASE_FLOAT = [];                    %phase differences phase residuals (float solution)
 outliers_CODE = [];                      %code double difference outlier? (fixed solution)
 outliers_PHASE = [];                     %phase double difference outlier? (fixed solution)
-
 %observations reading
 i = 0;                                                              %epoch counter
 hour = 0;                                                           %hour index (integer)

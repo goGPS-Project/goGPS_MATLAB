@@ -91,6 +91,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 global order o1 o2 o3 h_antenna cutoff weights t
+global is_bias;
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -209,14 +210,17 @@ end
 % GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
 
-%load multi-constellation settings and initialize 'constellations' struct
-GPS_flag = goIni.getData('Constellations','GPS');
-GLO_flag = goIni.getData('Constellations','GLONASS');
-GAL_flag = goIni.getData('Constellations','Galileo');
-BDS_flag = goIni.getData('Constellations','BeiDou');
-QZS_flag = goIni.getData('Constellations','QZSS');
-SBS_flag = goIni.getData('Constellations','SBAS');
-[constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+if mode_user ~= 0
+    %load multi-constellation settings and initialize 'constellations' struct
+    GPS_flag = goIni.getData('Constellations','GPS');
+    GLO_flag = goIni.getData('Constellations','GLONASS');
+    GAL_flag = goIni.getData('Constellations','Galileo');
+    BDS_flag = goIni.getData('Constellations','BeiDou');
+    QZS_flag = goIni.getData('Constellations','QZSS');
+    SBS_flag = goIni.getData('Constellations','SBAS');
+    [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+end
+
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
@@ -262,192 +266,107 @@ else
 end
 
 
+%-------------------------------------------------------------------------------------------
+% REPORT INITIALIZATION
+%-------------------------------------------------------------------------------------------
+global report
+report = [];
+report.opt.write = 0;
 if goGNSS.isPP(mode) % report only if postprocessing
-    % --------------------------------------------------------------------------------------------
-    %  REPORT INITIALIZATION
-    % --------------------------------------------------------------------------------------------
-    global fout_report %#ok<TLEV>
-    fout_report=fopen([filerootOUT,'_report.txt'],'wt');
-    fprintf(fout_report,'----------------------------------------------------------------------------------------------\n');
-    fprintf(fout_report,'                           goGPS v0.4.2 beta\n\n');
-    fprintf(fout_report,' Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini\n');
-    fprintf(fout_report,'----------------------------------------------------------------------------------------------\n\n');
-    
-    fprintf(fout_report,'INPUT OPTIONS\n');
-    fprintf(fout_report,'-------------\n');
+    report.opt.write = 1;
     
     if exist('is_batch','var') && is_batch==1
-        option_i = 'YES';
+        report.opt.is_batch = 'YES';
     else
-        option_i = 'NO';
+        report.opt.is_batch = 'NO';
     end
-    fprintf(fout_report,'BATCH processing                      : %s\n', option_i);
     
-    switch mode
-        case 24  
-            option_i='Real Time Navigation (Kalman Filter on Code and Phase Double Differences (with/without a constraint)';
-        case 21
-            option_i='% Real Time Rover Monitor';
-        case 22
-            option_i='Real Time Master Monitor';
-        case 23
-            option_i='Real Time Master + Rover Monitor';
-        case 1
-            option_i='Post Proc Least Squares on Code Stand Alone';
-        case 3
-            option_i='Post Proc Least Squares on Code and Phase Stand Alone';
-        case 3.1
-            option_i='Post Proc Least Squares on Code and Phase for Velocity estimation';
-        case 11
-            option_i='Post Proc Least Squares on Code Double Differences';
-        case 13
-            option_i='Post Proc Least Squares on Code Double Differences with LAMBDA';
-        case 16
-            option_i='Post Proc Least Squares on Code and Phase Double Differences, Multiple Receivers';
-        case 17
-            option_i='Post Proc Least Squares on Code Stand Alone, Multiple Receivers';
-        case 2
-            option_i='Post Proc Kalman Filter on Code Stand Alone';
-        case 12
-            option_i='Post Proc Kalman Filter on Code Double Differences';
-        case 4
-            option_i='Post Proc Kalman Filter on Code and Phase Stand Alone';
-        case 14
-            option_i='Post Proc Kalman Filter on Code and Phase Double Differences';
-        case 15
-            option_i='Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers';
-    end   
-    fprintf(fout_report,'Processing MODE                       : %s\n', option_i);
-    
-    if flag_SP3 == 1
-        option_i = 'PRECISE';
-    else
-        option_i = 'BROADCAST';
-    end
-    fprintf(fout_report,'ORBITS type                           : %s\n', option_i);
-    
-    if goGNSS.isDD(mode)
-        if flag_ms_pos == 1
-            option_i = 'YES';
-        else
-            option_i = 'NO';
+    report.opt.constellations = '';
+    report.opt.sat_index=[];
+    report.opt.sat_id={};
+    flag_const='';
+    if constellations.GPS.enabled == 1
+        report.opt.constellations = [report.opt.constellations,flag_const,'GPS (G)'];
+        flag_const=', ';
+        report.opt.sat_index=[report.opt.sat_index,constellations.GPS.indexes];
+        for i = 1:length(constellations.GPS.indexes)
+            report.opt.sat_id(constellations.GPS.indexes(i))=cellstr(sprintf(' G%02d',constellations.GPS.PRN(i)));
         end
-        fprintf(fout_report,'Get MASTER STATION position from RINEX: %s\n', option_i);
+    end
+    if constellations.Galileo.enabled == 1
+        report.opt.constellations = [report.opt.constellations,flag_const,'Galileo (E)'];
+        flag_const=', ';
+        report.opt.sat_index=[report.opt.sat_index,constellations.Galileo.indexes];
+        for i = 1:length(constellations.Galileo.indexes)
+            report.opt.sat_id(constellations.Galileo.indexes(i))=cellstr(sprintf(' E%02d',constellations.Galileo.PRN(i)));
+        end
+    end
+    if constellations.GLONASS.enabled == 1
+        report.opt.constellations = [report.opt.constellations,flag_const,'GLONASS (R)'];
+        flag_const=', ';
+        report.opt.sat_index=[report.opt.sat_index,constellations.GLONASS.indexes];
+        for i = 1:length(constellations.GLONASS.indexes)
+            report.opt.sat_id(constellations.GLONASS.indexes(i))=cellstr(sprintf(' R%02d',constellations.GLONASS.PRN(i)));
+        end
+    end
+    if constellations.BeiDou.enabled == 1
+        report.opt.constellations = [report.opt.constellations,flag_const,'BeiDou (C)'];
+        flag_const=', ';
+        report.opt.sat_index=[report.opt.sat_index,constellations.BeiDou.indexes];
+        for i = 1:length(constellations.BeiDou.indexes)
+            report.opt.sat_id(constellations.BeiDou.indexes(i))=cellstr(sprintf(' C%02d',constellations.BeiDou.PRN(i)));
+        end
+    end
+    if constellations.QZSS.enabled == 1
+        report.opt.constellations = [report.opt.constellations,flag_const,'QZSS (J)'];
+        flag_const=', ';
+        report.opt.sat_index=[report.opt.sat_index,constellations.QZSS.indexes];
+        for i = 1:length(constellations.QZSS.indexes)
+            report.opt.sat_id(constellations.QZSS.indexes(i))=cellstr(sprintf('J%03d',constellations.QZSS.PRN(i)));
+        end
+    end
+    if constellations.SBAS.enabled == 1
+        report.opt.constellations = [report.opt.constellations,flag_const,'SBAS (S)'];
+        report.opt.sat_index=[report.opt.sat_index,constellations.SBAS.indexes];
+        for i = 1:length(constellations.SBAS.indexes)
+            report.opt.sat_id(constellations.SBAS.indexes(i))=cellstr(sprintf(' S%02d',constellations.SBAS.PRN(i)));
+        end
     end
     
-    if flag_SBAS == 1
-        option_i = 'YES';
-    else
-        option_i = 'NO';
-    end
-    fprintf(fout_report,'Apply SBAS corrections                : %s\n', option_i);
-    
-    if flag_IAR == 1
-        option_i = 'YES';
-    else
-        option_i = 'NO';
-    end
-    fprintf(fout_report,'Solve ambiguities with LAMBDA         : %s\n', option_i);
-    fprintf(fout_report,'\n\n');
-    
-    fprintf(fout_report,'INPUT FILENAMES\n');
-    fprintf(fout_report,'---------------\n');
+    report.opt.outfolder = filerootOUT;
+    report.opt.mode = mode;
+    report.opt.flag_SP3 = flag_SP3;
+    report.opt.flag_ms_pos = flag_ms_pos;
+    report.opt.flag_SBAS = flag_SBAS;
+    report.opt.flag_IAR = flag_IAR;
+    report.opt.cutoff = cutoff;
+    report.opt.weights = weights;
     if exist('iniFile','var')
-        fprintf(fout_report,'INI file                      : %s\n', iniFile);
+        report.inp.iniFile = iniFile;
     end
     if goGNSS.isDD(mode)
-        fprintf(fout_report,'MASTER STATION filename       : %s\n', filename_M_obs);
+        report.inp.filename_M_obs = filename_M_obs;
     end
-    if size(filename_R_obs,1) == 1
-        fprintf(fout_report,'ROVER STATION filename        : %s\n', filename_R_obs);
-    else
-        fprintf(fout_report,'ROVER STATIONS filename       : ');
-        for i=2:length(filename_R_obs)
-            fprintf(fout_report, '%s%s\n', char(filename_R_obs(1)),char(filename_R_obs(i)));
-            if i < length(filename_R_obs)
-                fprintf(fout_report, '                                ');
-            end
-        end
-    end
-    fprintf(fout_report,'NAVIGATIONAL filename         : %s\n', filename_nav);
-    fprintf(fout_report,'PHASE CENTER OFFSET filename  : %s\n', filename_pco);
+    report.inp.filename_R_obs = filename_R_obs;
+    report.inp.filename_nav = filename_nav;
+    report.inp.filename_pco = filename_pco;
     if exist('sta_coord_file','var')
-        fprintf(fout_report,'STATION COORDINATES filename  : %s\n', sta_coord_file);
-    end
-    fprintf(fout_report,'\n\n');
-    
-    fprintf(fout_report,'PROCESSING OPTIONS\n');
-    fprintf(fout_report,'------------------\n');
-    global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat cs_threshold IAR_method flag_default_P0 flag_auto_mu mu P0 %#ok<TLEV>
-    
-    fprintf(fout_report,'Variance of CODE 1 observation       : %7.4f m\n', sqrt(sigmaq_cod1));
-    fprintf(fout_report,'Variance of CODE 2 observation       : %7.4f m\n', sqrt(sigmaq_cod2));
-    fprintf(fout_report,'Variance of PHASE observations       : %7.4f m\n', sqrt(sigmaq_ph));
-    fprintf(fout_report,'Variance of ambiguity combinations   : %d cycles \n', sigmaq0_N);
-    fprintf(fout_report,'Min number of sat. for Kalman Filter : %d\n', min_nsat);
-    fprintf(fout_report,'Cut off elevation                    : %.0f degrees\n', cutoff);
-    fprintf(fout_report,'Cycle slip threshold                 : %.2f cycles\n', cs_threshold);
-    fprintf(fout_report,'Outlier test significance            : 0.995\n');
-    switch weights
-        case 0
-            option_i='same weight for all the observations';
-        case 1
-            option_i='weight based on satellite elevation (sin)';
-        case 2
-            option_i='weight based on signal-to-noise ratio';
-        case 3
-            option_i='weight based on combined elevation and signal-to-noise ratio';
-        case 4
-            option_i='weight based on satellite elevation (exp)';
-    end
-    fprintf(fout_report,'Weight of observations               : %s\n', option_i);
-    
-    if flag_IAR == 1
-        fprintf(fout_report,'LAMBDA options:\n');
-        switch IAR_method
-            case 0
-                option_i='ILS method with numeration in search (LAMBDA2)';
-            case 1
-                option_i='ILS method with shrinking ellipsoid during search (LAMBDA3)';
-            case 2
-                option_i='ILS method with numeration in search (LAMBDA3)';
-            case 3
-                option_i='Integer rounding method (LAMBDA3)';
-            case 4
-                option_i='Integer bootstrapping method (LAMBDA3)';
-            case 5
-                option_i='Partial Ambiguity Resolution (PAR) (LAMBDA3)';
-        end
-        
-        fprintf(fout_report,'   -Integer Least Squares estimator  : %s\n', option_i);
-        if flag_default_P0 == 1
-            option_i = 'YES';
-        else
-            option_i = 'NO';
-        end
-        fprintf(fout_report,'   -Automatic determination of P0    : %s\n', option_i);
-        if flag_default_P0 == 0
-            if flag_IAR==1 || flag_IAR==2
-                fprintf(fout_report,'   -Fixed failure rate               : %.5d\n', P0);
-            elseif flag_IAR==5
-                fprintf(fout_report,'   -Minimum required success rate    : %.2d\n', P0);
-            end
-        end
-        fprintf(fout_report,'   -Minimum required success rate    : %.2d\n', P0);
-        
-        if flag_auto_mu == 1
-            option_i = 'YES';
-        else
-            option_i = 'NO';
-        end
-        fprintf(fout_report,'   -Automatic determination of MU    : %s\n', option_i);
-        if flag_auto_mu == 1
-            fprintf(fout_report,'   -Threshold for ratio test (MU)    : %.4f\n', mu);
-        end
+        report.inp.sta_coord_file = sta_coord_file;
     end
     
+    global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat cs_threshold IAR_method flag_default_P0 flag_auto_mu mu P0
+    report.opt.sigmaq_cod1 = sigmaq_cod1;
+    report.opt.sigmaq_cod2 = sigmaq_cod2;
+    report.opt.sigmaq_ph = sigmaq_ph;
+    report.opt.sigmaq0_N = sigmaq0_N;
+    report.opt.min_nsat = min_nsat;
+    report.opt.cs_threshold = cs_threshold;
+    report.opt.IAR_method = IAR_method;
+    report.opt.flag_default_P0 = flag_default_P0;
+    report.opt.flag_auto_mu = flag_auto_mu;
+    report.opt.mu = mu;
+    report.opt.P0 = P0;   
 end
-
 
 %----------------------------------------------------------------------------------------------
 % FILE READING
@@ -456,11 +375,12 @@ end
 if goGNSS.isPP(mode) % post-processing
     
     SP3 = [];
-
+    
     if (mode_data == 0)
         
         %prepare the input for the load_RINEX_obs function
         filename_obs = multiple_RINEX_interface(filename_R_obs, filename_M_obs, mode);
+        
         
         if goGNSS.isSA(mode) % absolute positioning
 
@@ -474,9 +394,7 @@ if goGNSS.isPP(mode) % post-processing
          
             %read antenna phase center offset (NOTE: only L1 offset for now)
             antenna_PCV= read_antenna_PCV(filename_pco, antmod_R);
-            
-
-            
+                       
             if (~isempty(antenna_PCV))  % has to be fixed to manage MR
                 %ROVER
                 if (antenna_PCV(1).n_frequency ~= 0) %corrections available
@@ -487,41 +405,114 @@ if goGNSS.isPP(mode) % post-processing
                 end
             end
             
-            % write report file
-            for i = 1:size(pr1_R,3)
-                if i==1
-                    % table header
-                    fprintf(fout_report,'\n\nAntenna information             Antenna model            EAST   NORTH      UP     PCV\n');
-                    fprintf(fout_report,'-------------------------------------------------------------------------------------\n');
+            % write report file    %%-> must be extented in MR case
+            if report.opt.write == 1
+                % extract quality parameters for report
+                for i = 1:size(pr1_R,3)
+                    if (antenna_PCV(i).n_frequency ~= 0)
+                        report.obs.pcv_yn(i)=cellstr('YES');
+                    else
+                        report.obs.pcv_yn(i)=cellstr('NO');
+                    end
+                    report.obs.antname_R(i) = cellstr(antenna_PCV(i).name);
+                    report.obs.antoff_R(i,:) = antoff_R(:,:,i);
+                    
+                    
+                    % set ROVER initial coordinates
+                    if (exist('pos_R_crd','var') && any(pos_R_crd))
+                        fprintf('Rover apriori position set from coordinate file:\n');
+                        fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
+                        if report.opt.write == 1
+                            report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
+                        end
+                        pos_R = pos_R_crd;
+                    else
+                        fprintf('Rover apriori position set from RINEX:\n');
+                        fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R(1,1), pos_R(2,1), pos_R(3,1));
+                        if report.opt.write == 1
+                            if any(pos_R)
+                                report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from RINEX', char(report.obs.filename(1)), pos_R(1,1), pos_R(2,1), pos_R(3,1));
+                            else
+                                report.obs.coord_R=sprintf('%-30s  apriori coordinates not available          estimated from observations  ', char(report.obs.filename(1)));
+                            end
+                        end
+                    end
+                    
+                    
                 end
-                current_file=char(filename_obs(i));
-                j=strfind(current_file,'\');
-                if isempty(j)
-                    j=strfind(current_file,'/');
-                end
-                if isempty(j)
-                    j=0;
-                end
-
-                
-                if (antenna_PCV(1).n_frequency ~= 0)
-                    pcv_yn='YES';
-                else
-                    pcv_yn='NO';
-                end
-                
-                fprintf(fout_report,'%-30s  %-20s  %7.4f %7.4f %7.4f %7s\n', current_file(j(end)+1:end), char(antenna_PCV(i).name), antoff_R(1,:,i), antoff_R(2,:,i), antoff_R(3,:,i), pcv_yn);
-                
             end
-            
-       
+
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
-            
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
             bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
-            bad_epochs_R = zeros(length(time_GPS), 1, size(time_R,3));
+            status_obs_R = zeros(nSatTot, length(time_GPS), size(time_R,3));
+            bad_epochs_R = NaN(length(time_GPS), 1, size(time_R,3));
+            var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
+            var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
+            
+            if (exist('pos_R_crd','var') && any(pos_R_crd))
+                flag_XR = 2;
+            else
+                if any(pos_R)
+                    flag_XR = 1;
+                else
+                    flag_XR = 0;
+                end
+            end
+            
+            %if SBAS corrections are requested
+            if (flag_SBAS)
+                
+                %----------------------------------------------------------------------------------------------
+                % LOAD SBAS DATA (EGNOS EMS FILES)
+                %----------------------------------------------------------------------------------------------
+                
+                %NOTE: if SBAS corrections are not requested by the user or not available, the
+                %      'sbas' structure will be initialized to zero/empty arrays and it will not
+                %      have any effect on the positioning
+                
+                %try first to read .ems files already available
+                [sbas] = load_ems('../data/EMS', week_R, time_R);
+                
+                %if .ems files are not available or not sufficient, try to download them
+                if (isempty(sbas))
+                    
+                    %EGNOS PRNs
+                    prn = [120, 124, 126];
+                    
+                    %download
+                    for p = 1 : length(prn)
+                        [file_ems] = download_ems(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                        if (~isempty(file_ems))
+                            break
+                        end
+                    end
+                    
+                    %try again to read .ems files
+                    [sbas] = load_ems('../data/EMS', week_R, time_R);
+                end
+                
+                %check if the survey is within the EMS grids
+                if (~isempty(sbas))
+                    [ems_data_available] = check_ems_extents(time_R, pr1_R, snr1_R, nSatTot, Eph, iono, sbas, lambda, 1);
+                end
+            end
+            
+            %if SBAS corrections are not requested or not available
+            if (~flag_SBAS || isempty(sbas) || ~ems_data_available)
+                
+                %initialization
+                sbas = [];
+                
+                %if SBAS corrections are requested but not available
+                if (flag_SBAS && isempty(sbas))
+                    fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+                end
+            end
+            
+
             
             for f = 1 : size(time_R,3)
                 
@@ -535,15 +526,37 @@ if goGNSS.isPP(mode) % post-processing
 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f)] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB,1);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f)] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
+
+                if report.opt.write == 1
+                    report.prep.spp_threshold = 4;
+                    report.prep.flag_R = flag_XR;
+                    report.prep.tot_epoch_R(f)=size(pr1_R(:,:,f),2);
+                    report.prep.proc_epoch_R(f)=length(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f));
+                    report.prep.bad_epoch_R(f)=sum(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f)==1);                    
+                    report.prep.max_varSPP_R(f)=max(var_SPP_R(isfinite(var_SPP_R(:,1,f)),1,f))^0.5;
+                    report.prep.varSPP_R(f)=(sum(var_SPP_R(isfinite(var_SPP_R(:,2,f)),2,f))/sum(var_SPP_R(isfinite(var_SPP_R(:,2,f)),3,f)))^.5;                  
+                    report.prep.tot_obs_R(f)=length(find(isfinite(status_obs_R(:,:,f))));
+                    report.prep.obs_outlier_R(f)=length(find(status_obs_R(:,:,f)==-1));
+                    report.prep.obs_used_R(f)=length(find(status_obs_R(:,:,f)==1));
+                    report.prep.obs_undercutoff_R(f)=length(find(status_obs_R(:,:,f)==0));                    
+                    report.prep.obs_stat_R(:,:,f)=[sum(status_obs_R(:,:,f)==0,2), sum(status_obs_R(:,:,f)==1,2), sum(status_obs_R(:,:,f)==-1,2)]; % [#under_cutoff, #used, #outlier] grouped by satellite
+                end
 
                 if (mode_user == 1)
                     goWB.close();
                 end
             end
+            
+            global residuals_fixed residuals_float outliers s02_ls %#ok<TLEV>
+            residuals_fixed=NaN(2*nSatTot,1);
+            residuals_float=NaN(2*nSatTot,1);
+            outliers=zeros(2*nSatTot,1);
+            s02_ls=NaN(length(time_GPS),1);
 
+            
         else %relative positioning
-
+            
             [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3);
             
             %read observation RINEX file(s)
@@ -586,90 +599,83 @@ if goGNSS.isPP(mode) % post-processing
                     fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
                 end
             end
-
-            % write report file
-            % table header                                           
-            fprintf(fout_report,'\n\nAntenna information             Antenna model            EAST   NORTH      UP     PCO\n');
-            fprintf(fout_report,'-------------------------------------------------------------------------------------\n');
             
-            j=strfind(filename_R_obs,'\');
-            if isempty(j)
-                j=strfind(filename_R_obs,'/');
+            if report.opt.write == 1
+                % extract quality parameters for report
+                for i = 1:1 %size(pr1_R,3) that is because currenty MR is not supported
+                    if (antenna_PCV(i).n_frequency ~= 0)
+                        report.obs.pcv_yn(i)=cellstr('YES');
+                    else
+                        report.obs.pcv_yn(i)=cellstr('NO');
+                    end
+                    report.obs.antname_R(i) = cellstr(antenna_PCV(i).name);
+                    report.obs.antoff_R(i,:) = antoff_R(:,:,i);
+                end
+                
+                report.obs.antname_M = antenna_PCV(end).name;
+                report.obs.antoff_M = antoff_M;                
+                if (antenna_PCV(end).n_frequency ~= 0)
+                    report.obs.pcv_yn(i+1)=cellstr('YES');
+                else
+                    report.obs.pcv_yn(i+1)=cellstr('NO');
+                end
             end
-            if isempty(j)
-                j=0;
-            end
-            if (antenna_PCV(1).n_frequency ~= 0)
-                pcv_yn='YES';
-            else
-                pcv_yn='NO';
-            end
             
-            filename_R_nopath=filename_R_obs(j(end)+1:end);
-            
-            fprintf(fout_report,'%-30s  %-20s  %7.4f %7.4f %7.4f %7s\n', filename_R_nopath, char(antenna_PCV(1).name), antoff_R(1,:), antoff_R(2,:), antoff_R(3,:), pcv_yn);
-           
-
-            j=strfind(filename_M_obs,'\');
-            if isempty(j)
-                j=strfind(filename_M_obs,'/');
-            end
-            if isempty(j)
-                j=0;
-            end 
-            if (antenna_PCV(end).n_frequency ~= 0)
-                pcv_yn='YES';
-            else
-                pcv_yn='NO';
-            end 
-           
-            filename_M_nopath = filename_M_obs(j(end)+1:end);
-            
-            fprintf(fout_report,'%-30s  %-20s  %7.4f %7.4f %7.4f %7s\n', filename_M_nopath, char(antenna_PCV(end).name), antoff_M(1,:), antoff_M(2,:), antoff_M(3,:), pcv_yn);
-            
-            
-            fprintf(fout_report,'\n\nA-priori coordinates                    X             Y             Z      Method                        \n');
-            fprintf(fout_report,'-------------------------------------------------------------------------------------------------------------\n');
             
             
             % set ROVER initial coordinates
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 fprintf('Rover apriori position set from coordinate file:\n');
-                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));    
-                fprintf(fout_report,'%-30s  %13.4f %13.4f %13.4f  approx from coordinate file\n', filename_R_nopath, pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
+                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));   
+                if report.opt.write == 1
+                    report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
+                end
                 pos_R = pos_R_crd;
             else
                 fprintf('Rover apriori position set from RINEX:\n');
                 fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R(1,1), pos_R(2,1), pos_R(3,1));
-                fprintf(fout_report,'%-30s  %13.4f %13.4f %13.4f  approx from RINEX\n', filename_R_nopath, pos_R(1,1), pos_R(2,1), pos_R(3,1));
+                if report.opt.write == 1
+                    if any(pos_R)
+                        report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from RINEX', char(report.obs.filename(1)), pos_R(1,1), pos_R(2,1), pos_R(3,1));
+                    else
+                        report.obs.coord_R=sprintf('%-30s  apriori coordinates not available          estimated from observations  ', char(report.obs.filename(1)));
+                    end
+                end
             end
             
-            
+             
             % set MASTER initial coordinates
             if (flag_ms_pos) % master position read from RINEX header
                 fprintf('Master position fixed from RINEX:\n');
                 fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
-                fprintf(fout_report,'%-30s  %13.4f %13.4f %13.4f  fixed from RINEX\n', filename_M_nopath, pos_M(1,1), pos_M(2,1), pos_M(3,1));
-                
+                if report.opt.write == 1
+                    report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                end
             else
                 if (exist('pos_M_crd','var') && ~isempty(pos_M_crd) && any(pos_M_crd)) % master position read from coordinate file
                     fprintf('Master position fixed from coordinate file:\n');
                     fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
-                    fprintf(fout_report,'%-30s  %13.4f %13.4f %13.4f  fixed from coordinate file\n', filename_M_nopath, pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
+                    if report.opt.write == 1
+                        report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from coordinate file', char(report.obs.filename(end)), pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
+                    end
                     pos_M = pos_M_crd;
                 elseif (exist('pos_M_man','var') && any(pos_M_man)) % master position read from GUI
                     fprintf('Master position fixed to user-defined values:\n');
                     fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
-                    fprintf(fout_report,'%-30s  %13.4f %13.4f %13.4f  fixed to user-defined values\n', filename_M_nopath, pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
+                    if report.opt.write == 1
+                        report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed to user-defined values', char(report.obs.filename(end)), pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
+                    end
                     pos_M = pos_M_man;
                 else % no valid pos_M_man found, so force positiong read from RINEX header
                     fprintf('WARNING! MASTER coordinates forced fixed from RINEX:\n');
                     fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
-                    fprintf(fout_report,'%-30s  %13.4f %13.4f %13.4f  forced fixed from RINEX\n', filename_M_nopath, pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                    if report.opt.write == 1
+                        report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  forced fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                    end
                 end
             end
             
-                       
+      
             
             % apply antenna offset over the marker to master coordinates
             if (~isempty(antenna_PCV))
@@ -701,7 +707,76 @@ if goGNSS.isPP(mode) % post-processing
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
             bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
-            bad_epochs_R = zeros(length(time_GPS), 1, size(time_R,3));
+            status_obs_R = zeros(nSatTot, length(time_GPS), size(time_R,3));
+            bad_epochs_R = NaN(length(time_GPS), 1, size(time_R,3));
+            var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
+            var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
+            
+            
+            report.errors.few_epochs = 0;
+            report.opt.min_epoch = 0;
+
+            
+            if exist('min_epoch','var')
+                report.opt.min_epoch = min_epoch;
+                if size(time_R,1) < min_epoch
+                    fprintf('\nERROR! The number of available epochs is lower than the minimum number\n');
+                    % write report
+                    report.errors.few_epochs = 1;
+                    report_generator(report);  
+                    return
+                end
+            end
+            
+            %if SBAS corrections are requested
+            if (flag_SBAS)
+                
+                %----------------------------------------------------------------------------------------------
+                % LOAD SBAS DATA (EGNOS EMS FILES)
+                %----------------------------------------------------------------------------------------------
+                
+                %NOTE: if SBAS corrections are not requested by the user or not available, the
+                %      'sbas' structure will be initialized to zero/empty arrays and it will not
+                %      have any effect on the positioning
+                
+                %try first to read .ems files already available
+                [sbas] = load_ems('../data/EMS', week_R, time_R);
+                
+                %if .ems files are not available or not sufficient, try to download them
+                if (isempty(sbas))
+                    
+                    %EGNOS PRNs
+                    prn = [120, 124, 126];
+                    
+                    %download
+                    for p = 1 : length(prn)
+                        [file_ems] = download_ems(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                        if (~isempty(file_ems))
+                            break
+                        end
+                    end
+                    
+                    %try again to read .ems files
+                    [sbas] = load_ems('../data/EMS', week_R, time_R);
+                end
+                
+                %check if the survey is within the EMS grids
+                if (~isempty(sbas))
+                    [ems_data_available] = check_ems_extents(time_R, pr1_R, snr1_R, nSatTot, Eph, iono, sbas, lambda, 1);
+                end
+            end
+            
+            %if SBAS corrections are not requested or not available
+            if (~flag_SBAS || isempty(sbas) || ~ems_data_available)
+                
+                %initialization
+                sbas = [];
+                
+                %if SBAS corrections are requested but not available
+                if (flag_SBAS && isempty(sbas))
+                    fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+                end
+            end
             
             for f = 1 : size(time_R,3)
                 if (mode_user == 1)
@@ -725,13 +800,30 @@ if goGNSS.isPP(mode) % post-processing
                         flag_XR = 0;
                     end
                 end
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f)] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
+
+                if report.opt.write == 1
+                    report.prep.spp_threshold = 4;                    
+                    report.prep.flag_R = flag_XR;
+                    report.prep.tot_epoch_R(f)=size(pr1_R(:,:,f),2);
+                    report.prep.proc_epoch_R(f)=length(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f));
+                    report.prep.bad_epoch_R(f)=sum(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f)==1);                    
+                    report.prep.max_varSPP_R(f)=max(var_SPP_R(isfinite(var_SPP_R(:,1,f)),1,f))^0.5;
+                    report.prep.varSPP_R(f)=(sum(var_SPP_R(isfinite(var_SPP_R(:,2,f)),2,f))/sum(var_SPP_R(isfinite(var_SPP_R(:,2,f)),3,f)))^.5;                  
+                    report.prep.tot_obs_R(f)=length(find(isfinite(status_obs_R(:,:,f))));
+                    report.prep.obs_outlier_R(f)=length(find(status_obs_R(:,:,f)==-1));
+                    report.prep.obs_used_R(f)=length(find(status_obs_R(:,:,f)==1));
+                    report.prep.obs_undercutoff_R(f)=length(find(status_obs_R(:,:,f)==0));                    
+                    report.prep.obs_stat_R(:,:,f)=[sum(status_obs_R(:,:,f)==0,2), sum(status_obs_R(:,:,f)==1,2), sum(status_obs_R(:,:,f)==-1,2)]; % [#under_cutoff, #used, #outlier] grouped by satellite
+                    report.prep.CS_R{f}=status_cs;
+                end
+                
                 
                 if (mode_user == 1)
                     goWB.close();
                 end
             end
-            
+
             if (mode_user == 1)
                 %goWaitBar
                 goWB = goWaitBar(length(time_GPS));
@@ -739,16 +831,30 @@ if goGNSS.isPP(mode) % post-processing
             else
                 goWB = [];
             end
-            
+             
             fprintf('%s',['Pre-processing master observations (file ' filename_obs{end} ')...']); fprintf('\n');
-
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2);
             
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2, sbas);
+            if report.opt.write == 1
+                report.prep.tot_epoch_M=size(pr1_M,2);
+                report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
+                report.prep.bad_epoch_M=sum(bad_epochs_M(isfinite(bad_epochs_R))==1);
+                report.prep.max_varSPP_M=max(var_SPP_M(isfinite(var_SPP_M(:,1)),1))^0.5;
+                report.prep.varSPP_M=(sum(var_SPP_M(isfinite(var_SPP_M(:,2)),2))/sum(var_SPP_M(isfinite(var_SPP_M(:,2)),3)))^.5;
+                report.prep.tot_obs_M=length(find(isfinite(status_obs_M)));
+                report.prep.obs_outlier_M=length(find(status_obs_M==-1));
+                report.prep.obs_used_M=length(find(status_obs_M==1));
+                report.prep.obs_undercutoff_M=length(find(status_obs_M==0));  
+                report.prep.obs_stat_M=[sum(status_obs_M==0,2), sum(status_obs_M==1,2), sum(status_obs_M==-1,2)];
+                report.prep.CS_M=status_cs;
+            end
+   
             if (mode_user == 1)
                 goWB.close();
             end
+            
         end
-        
+             
 
 %         %read surveying mode
 %         if (flag_stopGOstop == 0)
@@ -916,6 +1022,7 @@ if goGNSS.isPP(mode) % post-processing
             goWB = [];
         end
 
+       
         %pre-processing
         fprintf('Pre-processing rover observations...\n');
         [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB, 0);
@@ -1076,7 +1183,7 @@ if goGNSS.isPP(mode) % post-processing
             end
         end
     else
-        sbas = [];
+        %sbas = [];
     end
 
     %if relative post-processing positioning (i.e. with master station)
@@ -1125,6 +1232,7 @@ if goGNSS.isPP(mode) % post-processing
             end
         end
     end
+
     
     global residuals_fixed residuals_float outliers s02_ls %#ok<TLEV>
     residuals_fixed=NaN(2*nSatTot,1);
@@ -1180,7 +1288,8 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
     fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
-
+    residuals_dummy = NaN(1,nSatTot);
+    
     nN = nSatTot;
     check_on = 0;
     check_off = 0;
@@ -1197,6 +1306,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
         goWB = [];
     end
 
+    is_bias_tot=NaN(6,length(time_GPS));
     for t = 1 : length(time_GPS)
 
         if (mode_data == 0)
@@ -1207,7 +1317,8 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
         
         sbas_t = find_sbas(sbas, t);
 
-        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, 1);
+        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, 1, pos_R);
+        is_bias_tot(:,t) = is_bias;
 
         if (t == 1)
             fwrite(fid_sat, nSatTot, 'int8');
@@ -1222,8 +1333,8 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             fwrite(fid_sat, [zeros(nSatTot,1); azR; zeros(nSatTot,1); elR; zeros(nSatTot,1); distR], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-            residuals_dummy = NaN(1,nSatTot);
-            fwrite(fid_res, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+            fwrite(fid_res, [residuals_dummy'; residuals_dummy';residuals_float(1:nSatTot); residuals_dummy';outliers(1:nSatTot);residuals_dummy'], 'double');
+
             
             if (flag_plotproc)
                 if (mode_user == 1 && t == 1), goWB.shiftDown(); end
@@ -2315,6 +2426,19 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
         fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
         fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
         
+
+        % apply SBAS corrections on code
+        if ~isempty(sbas)
+            sbas_prc=sbas.prc';
+            index = find(pr1_R~=0);
+            pr1_R(index) = pr1_R(index) + sbas_prc(index);
+            
+            index = find(pr1_M~=0);
+            pr1_M(index) = pr1_M(index) + sbas_prc(index);
+            clear sbas_prc
+        end
+        
+        
         kalman_initialized = 0;
         while (~kalman_initialized)
             if (isempty(time_GPS))
@@ -2328,13 +2452,15 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
                 Eph_t = Eph(:,:,1);
             end
             
+            sbas_t = find_sbas(sbas, 1);
+            
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 flag_XR=2;  % use apriori XR as fixed during kalman init
             else
                 flag_XR=1;  % use apriori XR as approximated
             end
             
-            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, 1, dtMdot(1), flag_IAR, flag_XR);
+            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, 1, dtMdot(1), flag_IAR, flag_XR, sbas_t);
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -2391,8 +2517,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             else
                 Eph_t = Eph(:,:,t);
             end
-
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, dtMdot(t), flag_IAR, antenna_PCV);
+            
+            sbas_t = find_sbas(sbas, t);
+            
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, dtMdot(t), flag_IAR, antenna_PCV, sbas_t);
             
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -2996,14 +3124,31 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
     %display information
     fprintf('Writing report file (PDF)...\n');
 
-    %f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
-    %paperSize = get(f,'PaperSize');
-    %set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-    %plot(s02_ls.^.5,'.r');
+    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+    paperSize = get(f,'PaperSize');
+    set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+    plot(dtR.*goGNSS.V_LIGHT,'.r');
+    set(gca,'FontName','Verdana');
+    set(gca,'FontSize',7);
+    ylabel('Receiver clock (m)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
     %print PDF
-    %print(f, '-dpdf', [filerootOUT '_sigma']);
-    %remove figure
-    %close(f)
+    print(f, '-dpdf', [filerootOUT '_dtR']);
+    close(f)  
+    
+    if goGNSS.isDD(mode) 
+        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+        paperSize = get(f,'PaperSize');
+        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+        plot(dtM.*goGNSS.V_LIGHT,'.r');
+        set(gca,'FontName','Verdana');
+        set(gca,'FontSize',7);
+        ylabel('Receiver clock (m)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
+        %print PDF
+        print(f, '-dpdf', [filerootOUT '_dtM']);
+        close(f)
+    end
+    
+    
     
     if (any(RES_PHASE_FIXED(:)))
         RES_PHASE = RES_PHASE_FIXED;
@@ -3012,55 +3157,9 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         RES_PHASE = RES_PHASE_FLOAT;
         RES_CODE  = RES_CODE_FLOAT;
     end
-
-    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','off');
-    paperSize = get(f,'PaperSize');
-    set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-    for i=1:32
-        %PHASE GRAPHS
-        subplot(7,5,i);
-        hold on;
-        title(['PRN ',num2str(i)],'FontName','Verdana','FontSize',10,'FontWeight','Bold','Color',[0 0 1]);
-        grid on;
-        set(gca,'FontName','Verdana');
-        set(gca,'FontSize',7);
-        ylabel('DD Phase Residual (mm)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
-        xlabel('Epoch','FontName','Verdana','FontSize',6,'FontWeight','Bold');
-        plot(RES_PHASE(i,:)*1000,'.b');
-        hold on
-        plot(find(outliers_PHASE(i,:) == 1),RES_PHASE(i, outliers_PHASE(i,:) == 1)*1000,'*r'); 
-    end
+    plot_residuals(constellations, RES_PHASE, RES_CODE, outliers_PHASE, outliers_CODE, filerootOUT);
     
-    %plot(s02_ls.^.5,'.r');
-    %print PDF
-    print(f, '-dpdf', [filerootOUT '_GNSS_PHASE_residuals']);
-    %remove figure
-    close(f)
     
-    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A3','Visible','on');
-    paperSize = get(f,'PaperSize');
-    set(f,'PaperPosition',[2,2,paperSize(1)-2,paperSize(2)-2]);
-    for i=1:32
-        %CODE GRAPHS
-        subplot(7,5,i);
-        hold on;
-        title(['PRN ',num2str(i)],'FontName','Verdana','FontSize',10,'FontWeight','Bold','Color',[0 0 1]);
-        grid on;
-        set(gca,'FontName','Verdana');
-        set(gca,'FontSize',7);
-        ylabel('DD Code Residual (m)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
-        xlabel('Epoch','FontName','Verdana','FontSize',6,'FontWeight','Bold');
-        plot(RES_CODE(i,:),'.b');
-        hold on
-        plot(find(outliers_CODE(i,:) == 1),RES_CODE(i, outliers_CODE(i,:) == 1),'*r'); 
-    end
-    
-    %plot(s02_ls.^.5,'.r');
-    %print PDF
-    print(f, '-dpdf', [filerootOUT '_GNSS_CODE_residuals']);
-    %remove figure
-    close(f)
-
     f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','portrait','PaperUnits','centimeters','PaperType','A4','Visible','off');
     paperSize = get(f,'PaperSize');
     set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
@@ -4163,8 +4262,22 @@ if (exist('time_GPS', 'var') && isempty(time_GPS))
 end
 
 %----------------------------------------------------------------------------------------------
+% write report          
+report_generator(report);  
+%----------------------------------------------------------------------------------------------
 
+<<<<<<< .mine
+%----------------------------------------------------------------------------------------------
+% % write intersystem biases 
+% dlmwrite('biases.txt',[time_GPS,is_bias_tot'],'delimiter','\t','precision',15,'-append');
+=======
 if (exist('fout_report','var')), fclose(fout_report); end
+>>>>>>> .r954
+
+
+%----------------------------------------------------------------------------------------------
+
+
 
 if (mode_user == 1)
     % close all the opened files
