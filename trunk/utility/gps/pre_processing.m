@@ -1,4 +1,4 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR, sbas)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
@@ -32,7 +32,11 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processin
 %   dtR = receiver clock error
 %   dtRdot receiver clock drift
 %   bad_sats = vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
-%   bad_epochs = vector for flagging "bad" epochs (e.g. least-squares on code observations giving high condition number)
+%   bad_epochs  = vector with 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
+%   var_SPP   = [code single point positioning a posteriori sigma, sum of
+%                weighted squared residuals, redoundancy], one row per epoch
+%   status_obs = for each satellite. NaN: not observed, 0: observed only, 1: used, -1: outlier 
+%   status_cs = [satellite_number, frequency, epoch, cs_correction_fix, cs_correction_float, cs_corrected(0:no, 1:yes)]: vector with cs information
 %
 % DESCRIPTION:
 %   Pre-processing of code and phase observations to correct them for
@@ -42,6 +46,8 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processin
 %                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Stefano Caldera
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -75,7 +81,12 @@ dtRdot = zeros(nEpochs-1,1);
 bad_sats = zeros(nSatTot,1);
 
 %vector with bad epochs definition
-bad_epochs=zeros(nEpochs,1);
+bad_epochs=NaN(nEpochs,1);
+
+% vector with SPP a posteriori sigma
+var_SPP=NaN(nEpochs,3);
+
+
 
 %--------------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
@@ -89,11 +100,14 @@ bad_epochs=zeros(nEpochs,1);
 %     flag_XR = 1;
 % end
 
-err_iono = zeros(32,nEpochs);
-el = zeros(32,nEpochs);
+err_iono = zeros(nSatTot,nEpochs);
+el = zeros(nSatTot,nEpochs);
 cond_num = zeros(nEpochs,1);
 cov_XR = zeros(3,3,nEpochs);
-var_dtR = zeros(nEpochs,1);
+var_dtR = NaN(nEpochs,1);
+status_obs = NaN(nSatTot,nEpochs);
+status_cs=[];
+
 
 for i = 1 : nEpochs
     
@@ -102,8 +116,10 @@ for i = 1 : nEpochs
     %--------------------------------------------------------------------------------------------
     
     sat0 = find(pr1(:,i) ~= 0);
+    status_obs(sat0,i) = 0; % satellite observed
 
     Eph_t = rt_find_eph (Eph, time(i), nSatTot);
+    sbas_t = find_sbas(sbas, i);
     
     %----------------------------------------------------------------------------------------------
     % RECEIVER POSITION AND CLOCK ERROR
@@ -112,10 +128,14 @@ for i = 1 : nEpochs
     min_nsat_LS = 3 + n_sys;
     
     if (length(sat0) >= min_nsat_LS)
-
-        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
-
-        %bad_sats(bad_sat_i)=1;
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
+        
+        if isempty(var_dtR_tmp)
+            var_dtR_tmp=NaN;
+        end
+        
+        status_obs(sat,i) = 1; % satellite used
+        status_obs(find(bad_sat_i==1),i)=-1; % satellite outlier
         
         if (~isempty(dtR_tmp))
             dtR(i) = dtR_tmp;
@@ -336,7 +356,13 @@ for s = 1 : nSatTot
                 end
             end
 
-            [ph1(s,:), cs_found] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), ph_GF(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            [ph1(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), ph_GF(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            
+            if ~isempty(cs_correction_i)
+                cs_correction_i(:,1) = s;
+                cs_correction_i(:,2) = 1;
+                status_cs=[status_cs;cs_correction_i];
+            end
             
             index_s = find(ph1(s,:) ~= 0);
             index = intersect(index_e,index_s);
@@ -371,7 +397,13 @@ for s = 1 : nSatTot
                 end
             end
             
-            [ph2(s,:), cs_found] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), ph_GF(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), ph_GF(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            
+            if ~isempty(cs_correction_i)
+                cs_correction_i(:,1) = s;
+                cs_correction_i(:,2) = 2;
+                status_cs=[status_cs;cs_correction_i];
+            end
             
             index_s = find(ph2(s,:) ~= 0);
             index = intersect(index_e,index_s);
@@ -392,7 +424,6 @@ for s = 1 : nSatTot
         bad_sats(s) = 1;
     end
 end
-
 pr1 = pr1_interp;
 pr2 = pr2_interp;
 ph1 = ph1_interp;
@@ -401,14 +432,20 @@ ph2 = ph2_interp;
 end
 
 
-function [ph, cs_found] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, el, err_iono, lambda)
+function [ph, cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, el, err_iono, lambda)
 
 global cutoff cs_threshold
+cs_resolution = 1;
+% if cs_threshold==0.5
+%     cs_resolution=0.5;
+% end
 
 flag_plot = 0;
 flag_doppler_cs = 1;
 
 cs_found = 0;
+cs_correction_i=[];
+cs_correction_count = 0;
 
 cutoff_idx = find(el(1,:) > cutoff);
 avail_idx = find(ph(1,:) ~= 0);
@@ -635,12 +672,20 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                     ph_propag = interp1(time(j-1:j),ph(1,j-1:j),time(j+1),'linear','extrap');
                 end
                 if (abs(ph_propos - ph_propag) < delta_thres)
-                    idx = (ph(1,:)==0);
-                    cs_correction = round(delta(j));
-                    N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
-                    ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
-                    N_mat(1,idx) = 0;
-                    ph   (1,idx) = 0;
+                    idx = (ph(1,:)==0); 
+                    cs_correction = roundmod(delta(j), cs_resolution);
+                    cs_correction_count = cs_correction_count + 1;
+                    cs_correction_i(cs_correction_count,3)=j;
+                    cs_correction_i(cs_correction_count,4)=cs_correction;
+                    cs_correction_i(cs_correction_count,5)=delta(j);
+                    cs_correction_i(cs_correction_count,6)=0;
+%                     if abs(delta(j)-cs_correction) < 0.05
+                        cs_correction_i(cs_correction_count,6)=1;
+                        N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
+                        ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+                        N_mat(1,idx) = 0;
+                        ph   (1,idx) = 0;
+%                     end
                     
                     if (flag_plot)
                         hold on

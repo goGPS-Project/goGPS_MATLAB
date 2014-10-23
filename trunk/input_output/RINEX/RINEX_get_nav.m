@@ -70,24 +70,30 @@ while (isempty(header_end))
     %if the ionosphere parameters label was found
     if (iono_found)
         %change flag
-%         ioparam = 1;
+        %         ioparam = 1;
         %save the 8 ionosphere parameters
         data = textscan(lin(5:end),'%f%f%f%f%*[^\n]');
-        iono(1) = data{1};
-        iono(2) = data{2};
-        iono(3) = data{3};
-        iono(4) = data{4};
-        lin = [];
-        while isempty(lin)
-            lin = fgetl(fid);
+        if ~isempty(data(4))
+            iono(1) = data{1};
+            iono(2) = data{2};
+            iono(3) = data{3};
+            iono(4) = data{4};
+            lin = [];
+            while isempty(lin)
+                lin = fgetl(fid);
+            end
+            data = textscan(lin(5:end),'%f%f%f%f%*[^\n]');
+            if ~isempty(data(4))
+                iono(5) = data{1};
+                iono(6) = data{2};
+                iono(7) = data{3};
+                iono(8) = data{4};
+            else
+                iono = zeros(8,1);
+            end
         end
-        data = textscan(lin(5:end),'%f%f%f%f%*[^\n]');
-        iono(5) = data{1};
-        iono(6) = data{2};
-        iono(7) = data{3};
-        iono(8) = data{4};
     end
-
+    
     header_end = strfind(lin,'END OF HEADER');
 end
 

@@ -132,23 +132,45 @@ year = four_digit_year(year);
 time_E(:,1) = GPS_wk_e;     % GPS week
 time_E(:,2) = GPS_sec_wk_e; % GPS seconds
 
-%%count lost messages 
+time_E_sec = time_E(:,1)*7*86400 + time_E(:,2); 
+
+index = find(time_E_sec >= (time_R(1)-60*60) & time_E_sec <= (time_R(end)+60*60));
+
+if isempty(index)
+    fprintf(['No matching epochs found in ' data_dir_ems ' directory.\n'])
+    return
+else
+    sv_e   = sv_e(index);
+    year   = year(index);
+    month  = month(index);
+    day    = day(index);
+    hour   = hour(index);
+    minute = minute(index);
+    second = second(index);
+    MT     = MT(index);
+    msg    = msg(index,:);
+    time_E = time_E(index,:);
+end
+
+
+%%count lost messages
 % dt = diff(time_E(:,2)); 
 % tt = dt - 1;
 % lost_mess = sum(tt);
 
-clear GPS_wk_e GPS_sec_wk_e sv_e year month day hour minute second
+clear GPS_wk_e GPS_sec_wk_e sv_e year month day hour minute second time_E_sec
 
 %CRC check
 check_mt = zeros(length(MT), 1);
 for i = 1 : length(MT)
-    
-    [crc, parity] = ems_parity(msg(i,:));
-    
-    if (crc == parity)
-        check_mt(i) = 1;
-    end
+     
+     [crc, parity] = ems_parity(msg(i,:));
+     
+     if (crc == parity)
+         check_mt(i) = 1;
+     end
 end
+%check_mt = ones(length(MT), 1);
 
 %keep only the messages with valid CRC
 mt_ok = find(check_mt);

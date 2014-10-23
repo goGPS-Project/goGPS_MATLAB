@@ -36,11 +36,11 @@ function [sync_data] = sync_ER(data_E, time_E, week_R, time_R)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-
 sync_data = zeros(length(time_R), length(data_E(1,:)));
-
+ 
 for i = 1 : length(time_R)
-    
     r = find(time_E(:,1)*604800 + time_E(:,2) <= week_R(i)*604800 + round(time_R(i)), 1, 'last');
-    sync_data(i,:) = data_E(r,:);
+    if ~isempty(r)
+        sync_data(i,:) = data_E(r,:);
+    end
 end
