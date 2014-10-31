@@ -372,6 +372,14 @@ end
 % FILE READING
 %----------------------------------------------------------------------------------------------
 
+global residuals_fixed residuals_float outliers %s02_ls
+residuals_fixed=NaN(2*nSatTot,1);
+residuals_float=NaN(2*nSatTot,1);
+outliers=zeros(2*nSatTot,1);
+% global min_ambfixRMS
+% min_ambfixRMS=NaN(length(time_GPS),1);
+% s02_ls=NaN(length(time_GPS),1);
+
 if goGNSS.isPP(mode) % post-processing
     
     SP3 = [];
@@ -548,11 +556,11 @@ if goGNSS.isPP(mode) % post-processing
                 end
             end
             
-            global residuals_fixed residuals_float outliers s02_ls %#ok<TLEV>
-            residuals_fixed=NaN(2*nSatTot,1);
-            residuals_float=NaN(2*nSatTot,1);
-            outliers=zeros(2*nSatTot,1);
-            s02_ls=NaN(length(time_GPS),1);
+            %global residuals_fixed residuals_float outliers s02_ls %#ok<TLEV>
+            %residuals_fixed=NaN(2*nSatTot,1);
+            %residuals_float=NaN(2*nSatTot,1);
+            %outliers=zeros(2*nSatTot,1);
+            %s02_ls=NaN(length(time_GPS),1);
 
             
         else %relative positioning
@@ -1234,13 +1242,13 @@ if goGNSS.isPP(mode) % post-processing
     end
 
     
-    global residuals_fixed residuals_float outliers s02_ls %#ok<TLEV>
-    residuals_fixed=NaN(2*nSatTot,1);
-    residuals_float=NaN(2*nSatTot,1);
-    outliers=zeros(2*nSatTot,1);
+    %global residuals_fixed residuals_float outliers s02_ls %#ok<TLEV>
+    %residuals_fixed=NaN(2*nSatTot,1);
+    %residuals_float=NaN(2*nSatTot,1);
+    %outliers=zeros(2*nSatTot,1);
     %global min_ambfixRMS min_ambfloatRMS
     %min_ambfixRMS=NaN(length(time_GPS),1);
-    s02_ls=NaN(length(time_GPS),1);
+    %s02_ls=NaN(length(time_GPS),1);
 
 else %real-time
     
@@ -4266,18 +4274,12 @@ end
 report_generator(report);  
 %----------------------------------------------------------------------------------------------
 
-<<<<<<< .mine
 %----------------------------------------------------------------------------------------------
-% % write intersystem biases 
-% dlmwrite('biases.txt',[time_GPS,is_bias_tot'],'delimiter','\t','precision',15,'-append');
-=======
+% write intersystem biases 
+dlmwrite('biases.txt',[time_GPS,is_bias_tot'],'delimiter','\t','precision',15,'-append');
+%----------------------------------------------------------------------------------------------
+
 if (exist('fout_report','var')), fclose(fout_report); end
->>>>>>> .r954
-
-
-%----------------------------------------------------------------------------------------------
-
-
 
 if (mode_user == 1)
     % close all the opened files
