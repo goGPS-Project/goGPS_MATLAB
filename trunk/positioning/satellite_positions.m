@@ -90,6 +90,7 @@ for i = 1 : nsat
         %relativistic correction term
         dtrel = relativistic_error_correction(time_tx(i,1), Eph, XS_tx(i,:), VS_tx(i,:));
         time_tx(i,1) = time_tx(i,1) - dtrel;
+        dtS(i,1) = dtS(i,1) + dtrel;
         
         %second iteration for taking into account the relativistic effect
         [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
