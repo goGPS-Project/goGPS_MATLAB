@@ -470,6 +470,20 @@ if goGNSS.isPP(mode) % post-processing
                 end
             end
             
+            report.errors.few_epochs = 0;
+            report.opt.min_epoch = 0;
+
+            if exist('min_epoch','var')
+                report.opt.min_epoch = min_epoch;
+                if size(time_R,1) < min_epoch
+                    fprintf('\nERROR! The number of available epochs is lower than the minimum number\n');
+                    % write report
+                    report.errors.few_epochs = 1;
+                    report_generator(report);  
+                    return
+                end
+            end
+            
             %if SBAS corrections are requested
             if (flag_SBAS)
                 
@@ -534,7 +548,7 @@ if goGNSS.isPP(mode) % post-processing
 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f)] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
 
                 if report.opt.write == 1
                     report.prep.spp_threshold = 4;
@@ -549,6 +563,7 @@ if goGNSS.isPP(mode) % post-processing
                     report.prep.obs_used_R(f)=length(find(status_obs_R(:,:,f)==1));
                     report.prep.obs_undercutoff_R(f)=length(find(status_obs_R(:,:,f)==0));                    
                     report.prep.obs_stat_R(:,:,f)=[sum(status_obs_R(:,:,f)==0,2), sum(status_obs_R(:,:,f)==1,2), sum(status_obs_R(:,:,f)==-1,2)]; % [#under_cutoff, #used, #outlier] grouped by satellite
+                    report.prep.CS_R{f}=status_cs;
                 end
 
                 if (mode_user == 1)
@@ -720,11 +735,9 @@ if goGNSS.isPP(mode) % post-processing
             var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
             var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
             
-            
             report.errors.few_epochs = 0;
             report.opt.min_epoch = 0;
 
-            
             if exist('min_epoch','var')
                 report.opt.min_epoch = min_epoch;
                 if size(time_R,1) < min_epoch
@@ -4274,10 +4287,12 @@ end
 report_generator(report);  
 %----------------------------------------------------------------------------------------------
 
-%----------------------------------------------------------------------------------------------
-% write intersystem biases 
-dlmwrite('biases.txt',[time_GPS,is_bias_tot'],'delimiter','\t','precision',15,'-append');
-%----------------------------------------------------------------------------------------------
+if (exist('is_bias_tot', 'var'))
+    %----------------------------------------------------------------------------------------------
+    % write intersystem biases
+    dlmwrite('biases.txt',[time_GPS,is_bias_tot'],'delimiter','\t','precision',15,'-append');
+    %----------------------------------------------------------------------------------------------
+end
 
 if (exist('fout_report','var')), fclose(fout_report); end
 
