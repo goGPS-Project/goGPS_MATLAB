@@ -708,10 +708,11 @@ if (nsat >= min_nsat)
         index_residuals_outlier=[sat_pr_np;nSatTot+sat_np];  %[code;phase]
                 
         y0_noamb=y0;
-        y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+lambda(sat_np,1).*X_t1_t(o3+sat_np); %add predicted ambiguity to y0
+        if (~isempty(sat_np))
+            y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+lambda(sat_np,1).*X_t1_t(o3+sat_np); %add predicted ambiguity to y0
+        end
         H1=H(:,[1 o1+1 o2+1]);
-        
-        
+
         % decomment to use only phase
 %         y0_noamb=y0_noamb(length(sat_pr_np)+1:end);
 %         H1=H(length(sat_pr_np)+1:end,[1 o1+1 o2+1]);
