@@ -532,7 +532,7 @@ if (nsat >= min_nsat)
         %compute PCV: phase and code 1 
         [~, index_ph]=intersect(sat_pr,sat);   
         
-        if (antenna_PCV(2).n_frequency ~= 0) % master
+        if (~isempty(antenna_PCV) && antenna_PCV(2).n_frequency ~= 0) % master
             index_master=2; 
             PCV1_M=PCV_interp(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 1);
             pr1_M(sat_pr)=pr1_M(sat_pr)-PCV1_M;
@@ -545,7 +545,7 @@ if (nsat >= min_nsat)
 %             end
         end
         
-        if (antenna_PCV(1).n_frequency ~= 0) % rover
+        if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0) % rover
             index_rover=1; 
             PCV1_R=PCV_interp(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 1);
             pr1_R(sat_pr)=pr1_R(sat_pr)-PCV1_R;

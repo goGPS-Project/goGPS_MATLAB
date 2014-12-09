@@ -159,6 +159,11 @@ if (~isempty(filename))
                     
                     found = found + 1;
                 end
+                for n = m+1 : length(antmod)
+                    if (strcmp(antmod{n}, antmod{m}))
+                        antenna_PCV(n) = antenna_PCV(m);
+                    end
+                end
             end
         end
 

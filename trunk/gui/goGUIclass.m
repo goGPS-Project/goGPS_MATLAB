@@ -1695,7 +1695,10 @@ classdef goGUIclass < handle
         function setPassword(obj, password)
             
             if isfield(obj.goh,'jPassword')
+                try
                 obj.goh.jPassword.jpwd.setText(password);
+                catch
+                end
             elseif (obj.isInitialized())
                 set(obj.goh.password,'String',password);
             end

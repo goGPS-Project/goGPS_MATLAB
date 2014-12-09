@@ -1034,6 +1034,8 @@ if goGNSS.isPP(mode) % post-processing
         
         %retrieve multi-constellation wavelengths
         lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+        
+        antenna_PCV = [];
 
         if (mode_user == 1)
             %goWaitBar
@@ -1042,11 +1044,17 @@ if goGNSS.isPP(mode) % post-processing
         else
             goWB = [];
         end
-
-       
+        
+        %SBAS initialization
+        sbas = [];
+        %if SBAS corrections are requested
+        if (flag_SBAS)
+            fprintf('SBAS correction not supported for goGPS binary data processing.\n')
+        end
+        
         %pre-processing
         fprintf('Pre-processing rover observations...\n');
-        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB, 0);
+        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB, 0, sbas);
         
         if (mode_user == 1)
             goWB.close();
@@ -1062,7 +1070,7 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2);
+            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2, sbas);
             
             if (mode_user == 1)
                 goWB.close();
@@ -3243,7 +3251,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
     f3 = subplot(7,3,[2 3 5 6 8 9 11 12]);
     %if relative positioning (i.e. with master station)
     if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
-        EAST_O = 0; NORTH_O = 0;
+        EAST_O = EAST_KAL(end); NORTH_O = NORTH_KAL(end);
     else
         EAST_O = EAST_UTM(1); NORTH_O = NORTH_UTM(1);
     end
@@ -3297,10 +3305,17 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         text(0,0.78,sprintf('N: %.3f m', mean(NORTH_KAL)));
         text(0,0.73,sprintf('h: %.3f m', mean(UP_KAL)));
     else
-    text(0,0.62,'----------------');
-    text(0,0.57,'Plot false origin (UTM)');
-    text(0,0.50,sprintf('E: %.3f m', EAST_O));
-    text(0,0.45,sprintf('N: %.3f m', NORTH_O));
+    %if relative positioning (i.e. with master station)
+    if (goGNSS.isDD(mode) || mode == goGNSS.MODE_RT_NAV)
+        text(0,0.62,'----------------');
+        text(0,0.57,'Plot false origin');
+        text(0,0.52,'(last estimated baseline)');
+    else
+        text(0,0.57,'----------------');
+        text(0,0.52,'Plot false origin (UTM)');
+    end
+    text(0,0.45,sprintf('E: %.3f m', EAST_O));
+    text(0,0.40,sprintf('N: %.3f m', NORTH_O));
     end
 
     %satellite number
