@@ -3050,7 +3050,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
             pos_REF(:,i) = pos_KAL(:,1);
         end
 
-        if (exist('antenna_PCV','var'))
+        if (exist('antenna_PCV','var') && exist('antoff_R','var'))
             if(~isempty(antenna_PCV))
                 pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R), pos_KAL(:,i));
             else
@@ -4298,8 +4298,10 @@ if (exist('time_GPS', 'var') && isempty(time_GPS))
 end
 
 %----------------------------------------------------------------------------------------------
-% write report          
-report_generator(report);  
+% write report
+if (mode_data == 0)
+    report_generator(report);
+end
 %----------------------------------------------------------------------------------------------
 
 if (exist('is_bias_tot', 'var'))
