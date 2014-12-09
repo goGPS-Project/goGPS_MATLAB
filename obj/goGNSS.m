@@ -271,22 +271,22 @@ classdef goGNSS < handle
     % function to detect a certain kind of processing
     methods (Static, Access = 'public')
         function isPostProcessing = isPP(mode)
-            % return wheather or not the mode given in use is a Post Processing mode
+            % return whether or not the mode given in use is a Post Processing mode
             isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
         end
         
         function isRealTime = isRT(mode)
-            % return wheather or not the mode given in use is a Real Time mode
+            % return whether or not the mode given in use is a Real Time mode
             isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));
         end
         
         function isDoubleDifferences = isDD(mode)
-            % return wheather or not the mode given in use is a Double Difference mode
+            % return whether or not the mode given in use is a Double Difference mode
             isDoubleDifferences = sum(intersect(mode, goGNSS.GMODE_DD));
         end
         
         function isStandAlone = isSA(mode)
-            % return wheather or not the mode given in use is a Stand Alone mode
+            % return whether or not the mode given in use is a Stand Alone mode
             isStandAlone = sum(intersect(mode, goGNSS.GMODE_SA));
         end
         
