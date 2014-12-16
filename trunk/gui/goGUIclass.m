@@ -1696,7 +1696,7 @@ classdef goGUIclass < handle
             
             if isfield(obj.goh,'jPassword')
                 try
-                obj.goh.jPassword.jpwd.setText(password);
+                eval(sprintf('obj.goh.jPassword.jpwd.setText(''%s'')',password));
                 catch
                 end
             elseif (obj.isInitialized())

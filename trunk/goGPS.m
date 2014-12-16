@@ -33,7 +33,7 @@ save('myBreakpoints.mat', 'myBreakpoints');
 
 % clear all the variables in the workspace
 if (~exist('is_batch','var'))
-    clear all;
+    clear all; %#ok<CLSCR>
     clearvars -global goIni;
 end
 
@@ -354,7 +354,7 @@ if goGNSS.isPP(mode) % report only if postprocessing
         report.inp.sta_coord_file = sta_coord_file;
     end
     
-    global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat cs_threshold IAR_method flag_default_P0 flag_auto_mu mu P0
+    global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat cs_threshold IAR_method flag_default_P0 flag_auto_mu mu P0 %#ok<TLEV>
     report.opt.sigmaq_cod1 = sigmaq_cod1;
     report.opt.sigmaq_cod2 = sigmaq_cod2;
     report.opt.sigmaq_ph = sigmaq_ph;
@@ -4272,7 +4272,7 @@ if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(ref_path)) && (~isempty(EA
 
     ref = [EAST_REF NORTH_REF h_REF];
 
-    [dist2D, proj] = ref_2d_projection(ref,EAST_UTM,NORTH_UTM); %#ok<NASGU>
+    [dist2D, ~] = ref_2d_projection(ref,EAST_UTM,NORTH_UTM);
 
     fprintf('\n');
     fprintf('-------- STATISTICS ------------');

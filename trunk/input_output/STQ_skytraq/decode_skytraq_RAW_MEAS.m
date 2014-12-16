@@ -124,8 +124,8 @@ for j = 1 : NMEAS
 
     % assign constellation-specific indexes
     idx = [];
-    if (SV <= 32)
-        idx = constellations.GPS.indexes(SV);
+    if (PRN <= 32)
+        idx = constellations.GPS.indexes(PRN);
     end
     
     % phase, code and doppler measure save

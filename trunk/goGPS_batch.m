@@ -60,7 +60,7 @@ end
 %-------------------------------------------------------------------------------
 % INI file
 %-------------------------------------------------------------------------------
-iniFile = './settings/Provincia30sec_daily_test_VRS_InputFiles.ini';
+iniFile = './settings/Milano_daily_test_VRS_InputFiles.ini';
 
 %initialize INI file reading
 global goIni;
