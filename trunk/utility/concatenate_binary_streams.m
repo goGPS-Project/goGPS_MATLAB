@@ -36,7 +36,7 @@ hour_str = num2str(hour,'%03d');                                    %hour index 
 d = dir([filerootIN '_' hour_str '.bin']);                          %first input file
 fid_out = fopen(filenameOUT,'w+');                                  %output file opening
 while ~isempty(d)
-    fprintf(['Reading: ' filerootIN '_' hour_str '.bin\n']);
+    fprintf('%s\n',['Reading: ' filerootIN '_' hour_str '.bin']);
     num_bytes = d.bytes;                                            %input file size (number of bytes)
     fid_in = fopen([filerootIN '_' hour_str '.bin'],'r+');          %input file opening
     buf = fread(fid_in,num_bytes,'uint8');                          %input file reading
