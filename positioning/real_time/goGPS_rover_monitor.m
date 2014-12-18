@@ -503,7 +503,7 @@ while flag
             fid_obs{r}    = fopen([filerootOUT '_' recname '_obs_'    hour_str '.bin'],'w+');
             fid_eph{r}    = fopen([filerootOUT '_' recname '_eph_'    hour_str '.bin'],'w+');
             if (flag_var_dyn_model) || (flag_stopGOstop)
-                fid_dyn{r}    = fopen([filerootOUT '_' recname '_dyn_'    hour_str '.bin'],'w+'); %#ok<AGROW>
+                fid_dyn{r}    = fopen([filerootOUT '_' recname '_dyn_'    hour_str '.bin'],'w+');
             end
             
             %write number of satellites
@@ -692,7 +692,7 @@ while flag
                         
                         %if all the visible satellites ephemerides have been transmitted
                         %and the total number of satellites is >= min_nsat_LS
-                        if (ismember(satObs,satEph)) && (length(satObs) >= min_nsat_LS)
+                        if (~isempty(satObs) && ~isempty(satEph) && ismember(satObs,satEph)) && (length(satObs) >= min_nsat_LS)
                             
                             %data save
                             fwrite(fid_obs{r}, [0; 0; time_R; week_R; zeros(num_sat,1); pr_R; zeros(num_sat,1); ph_R; dop_R; zeros(num_sat,1); snr_R; zeros(3,1); iono{r}(:,1)], 'double');
