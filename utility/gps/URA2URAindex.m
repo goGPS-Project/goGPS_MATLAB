@@ -14,7 +14,7 @@ function [URAindex] = URA2URAindex(URA)
 %   document revision E (IS-GPS-200E), page 146.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

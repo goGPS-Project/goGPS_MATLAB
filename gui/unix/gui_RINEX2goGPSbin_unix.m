@@ -25,7 +25,7 @@ function varargout = gui_RINEX2goGPSbin_unix(varargin)
 % Last Modified by GUIDE v2.5 15-Jun-2010 15:53:51
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

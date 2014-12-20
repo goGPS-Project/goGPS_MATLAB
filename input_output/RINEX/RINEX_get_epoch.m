@@ -19,7 +19,7 @@ function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 %   the information it contains.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini.
 %

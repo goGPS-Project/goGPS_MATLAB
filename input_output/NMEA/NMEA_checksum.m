@@ -13,7 +13,7 @@ function checksum = NMEA_checksum(nmeastring)
 %   Checksum computation as required by NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

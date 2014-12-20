@@ -34,7 +34,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   Parses RINEX observation files.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione and Stefano Caldera

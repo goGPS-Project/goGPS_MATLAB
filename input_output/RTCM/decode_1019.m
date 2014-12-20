@@ -47,7 +47,7 @@ function [data] = decode_1019(msg, constellations)
 %   RTCM format 1019 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

@@ -15,7 +15,7 @@ function [gps_week, gps_sow, gps_dow] = date2gps(date)
 %   Conversion from calendar date to GPS time.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

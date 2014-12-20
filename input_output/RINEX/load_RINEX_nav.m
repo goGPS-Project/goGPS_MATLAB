@@ -18,7 +18,7 @@ function [Eph, iono] = load_RINEX_nav(filename, constellations, flag_SP3, wait_d
 %   Parses RINEX navigation files.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)

@@ -22,7 +22,7 @@ function [igp, m_ivd, lat_igp, lon_igp, GPS_time26] = load_ic(iodi_mask, band_ma
 %   Ionospheric vertical delay correction.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

@@ -18,7 +18,7 @@ function [prc_E, GPS_time02] = load_fc(iodp_mask, prn_mask, MT, msg, GPS_time)
 %   Load the Fast Corrections (FC).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

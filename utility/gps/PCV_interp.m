@@ -18,7 +18,7 @@ function PCV_correction = PCV_interp(antenna_PCV, zen, azi, sys, frequency)
 %   az/el of satellite with system in sys and for the specified frequency
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

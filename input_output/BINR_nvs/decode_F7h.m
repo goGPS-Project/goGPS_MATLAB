@@ -78,7 +78,7 @@ function [data] = decode_F7h(msg, constellations)
 %   BINR F7h binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

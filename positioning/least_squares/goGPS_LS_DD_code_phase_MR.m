@@ -27,7 +27,7 @@ function goGPS_LS_DD_code_phase_MR(time_rx, multi_ant_rf, XM, pr1_R, pr1_M, pr2_
 %   (i.e. multi-baseline).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

@@ -8,7 +8,7 @@ function report_generator(report)
 
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
@@ -34,7 +34,7 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
     
     fout_report=fopen([report.opt.outfolder,'_report.txt'],'wt');
     fprintf(fout_report,'----------------------------------------------------------------------------------------------\n');
-    fprintf(fout_report,'                           goGPS v0.4.2 beta\n\n');
+    fprintf(fout_report,'                           goGPS v0.4.2\n\n');
     fprintf(fout_report,' Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini\n');
     fprintf(fout_report,'----------------------------------------------------------------------------------------------\n\n');
     

@@ -18,7 +18,7 @@ function [ncols, nrows, cellsize, xll, yll, nodata] = dtm_hdr_load(hdr_target)
 %   Function that reads a .hdr file containing and ASCII-GRID header.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

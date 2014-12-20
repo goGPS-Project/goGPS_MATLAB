@@ -14,7 +14,7 @@ function [corrTime] = check_t(time)
 %   Interface Specification document revision E (IS-GPS-200E), page 93.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) Kai Borre
 % Kai Borre 04-01-96
