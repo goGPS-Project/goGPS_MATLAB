@@ -21,7 +21,7 @@ function goGPS_LS_SA_code_MR(time_rx, pr1_R, pr2_R, snr_R, Eph, SP3, iono, sbas,
 %   adjustment) on code observations.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

@@ -26,7 +26,7 @@ function [data] = decode_1001(msg, constellations)
 %   RTCM format 1001 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

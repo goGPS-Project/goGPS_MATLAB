@@ -21,7 +21,7 @@ function [out] = italk_PPS_SYNC_TRACK(serialObj, tran_id, enabled)
 %   (http://isuite.fastrax.fi/sdk/341/system/sys_parameters.html)
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

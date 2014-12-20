@@ -22,7 +22,7 @@ function [data] = decode_4Ah(msg)
 %   BINR 4Ah binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

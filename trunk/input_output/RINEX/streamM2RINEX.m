@@ -18,7 +18,7 @@ function streamM2RINEX(fileroot, path, week, rinex_metadata, constellations, wai
 %   File conversion from master stream (RTCM 3.x) to RINEX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

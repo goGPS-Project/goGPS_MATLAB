@@ -21,7 +21,7 @@ function [Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod] = RIN
 %   RINEX observation file header analysis.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) Kai Borre
 % Kai Borre 09-23-97

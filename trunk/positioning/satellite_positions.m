@@ -26,7 +26,7 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions
 % DESCRIPTION:
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

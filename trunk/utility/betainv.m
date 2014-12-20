@@ -6,7 +6,7 @@ function inv = betainv (x, a, b)
 % Description: Quantile function of the Beta distribution
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 1995-2011 Kurt Hornik
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini

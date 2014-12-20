@@ -17,7 +17,7 @@ function [sys, prn] = find_sat_system(sat, constellations)
 %   refer to, and assign the correct PRN code.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
