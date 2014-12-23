@@ -1,11 +1,13 @@
-function concatenate_binary_streams(filerootIN, filenameOUT)
+function concatenate_binary_streams(filerootIN, filenameOUT, hour_idx)
 
 % SYNTAX:
-%   concatenate_binary_streams(filerootIN, filenameOUT);
+%   concatenate_binary_streams(filerootIN, filenameOUT, hour_idx);
 %
 % INPUT:
 %   filerootIN  = prefix of input files (e.g. '../data/VRS_20140819_master')
 %   filenameOUT = output filename (e.g. '../data/VRS_20140819.rtcm')
+%   hour_idx    = starting hour index (e.g. for a file list starting with
+%                 *_rover_036.bin --> hour_idx = 36)
 %
 % DESCRIPTION:
 %   Function that concatenate hourly binary stream files produced by goGPS
@@ -31,7 +33,11 @@ function concatenate_binary_streams(filerootIN, filenameOUT)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-hour = 0;                                                           %hour index (integer)
+if (nargin < 3)
+    hour = 0;                                                       %hour index (integer)
+else
+    hour = hour_idx;
+end
 hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([filerootIN '_' hour_str '.bin']);                          %first input file
 fid_out = fopen(filenameOUT,'w+');                                  %output file opening
