@@ -587,12 +587,17 @@ if (~isempty(data_master_all))
                         fprintf(fid_obs,' %02d %2d %2d %2d %2d %10.7f  0 %2d', ...
                             two_digit_year(date(i,1)), date(i,2), date(i,3), date(i,4), date(i,5), date(i,6), n);
                         if (n>12)
-                            for j = 1 : 12
-                                fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                            lines = floor(n/12);
+                            for l = 1 : lines
+                                for j = 1+(l-1)*12 : 12+(l-1)*12
+                                    fprintf(fid_obs,'%c%02d',sys(j),prn(j));
+                                end
+                                if (l ~= lines || rem(n,12) ~= 0)
+                                    fprintf(fid_obs,'\n');
+                                    fprintf(fid_obs,'%32s','');
+                                end
                             end
-                            fprintf(fid_obs,'\n');
-                            fprintf(fid_obs,'%32s','');
-                            for j = 13 : n
+                            for j = 13+(l-1)*12 : n
                                 fprintf(fid_obs,'%c%02d',sys(j),prn(j));
                             end
                         else

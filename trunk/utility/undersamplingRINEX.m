@@ -1,7 +1,7 @@
-function undersamplingRINEX(filenameIN, filenameOUT, base, step, delta, wait_dlg)
+function undersamplingRINEX(filenameIN, filenameOUT, base, step, delta)
 
 % SYNTAX:
-%   undersamplingRINEX(filenameIN, filenameOUT, base, step, delta, wait_dlg);
+%   undersamplingRINEX(filenameIN, filenameOUT, base, step, delta);
 %
 % INPUT:
 %   filenameIN  = input RINEX observation file
@@ -9,7 +9,6 @@ function undersamplingRINEX(filenameIN, filenameOUT, base, step, delta, wait_dlg
 %   base  = base timing (e.g. if first epoch should be 13  4  5 11 35  1, then base = 1) [sec]
 %   step  = new sampling rate [sec]
 %   delta = original sampling rate [sec]
-%   wait_dlg = optional handler to waitbar figure (optional)
 %
 % OUTPUT:
 %
@@ -58,7 +57,7 @@ fidIN  = fopen(filenameIN,'rt');
 fidOUT = fopen(filenameOUT,'wt');
 
 line = fgets(fidIN);
-while (~strfind(line,'END OF HEADER'))
+while (isempty(strfind(line,'END OF HEADER')))
    fprintf(fidOUT,'%s',line);
    line = fgets(fidIN);
 end
