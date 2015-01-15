@@ -137,7 +137,7 @@ for i = 1 : nEpochs
         status_obs(sat,i) = 1; % satellite used
         status_obs(find(bad_sat_i==1),i)=-1; % satellite outlier
         
-        if (~isempty(dtR_tmp))
+        if (~isempty(dtR_tmp) && ~isempty(sat))
             dtR(i) = dtR_tmp;
             err_iono(sat,i) = err_iono_tmp;
             el(sat,i) = el_tmp;

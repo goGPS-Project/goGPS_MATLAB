@@ -556,8 +556,12 @@ if goGNSS.isPP(mode) % post-processing
                     report.prep.flag_R = flag_XR;
                     report.prep.tot_epoch_R(f)=size(pr1_R(:,:,f),2);
                     report.prep.proc_epoch_R(f)=length(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f));
-                    report.prep.bad_epoch_R(f)=sum(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f)==1);                    
-                    report.prep.max_varSPP_R(f)=max(var_SPP_R(isfinite(var_SPP_R(:,1,f)),1,f))^0.5;
+                    report.prep.bad_epoch_R(f)=sum(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f)==1);
+                    if (~isempty(var_SPP_R(isfinite(var_SPP_R(:,1,f)),1,f)))
+                        report.prep.max_varSPP_R(f)=max(var_SPP_R(isfinite(var_SPP_R(:,1,f)),1,f))^0.5;
+                    else
+                        report.prep.max_varSPP_R(f) = NaN;
+                    end
                     report.prep.varSPP_R(f)=(sum(var_SPP_R(isfinite(var_SPP_R(:,2,f)),2,f))/sum(var_SPP_R(isfinite(var_SPP_R(:,2,f)),3,f)))^.5;                  
                     report.prep.tot_obs_R(f)=length(find(isfinite(status_obs_R(:,:,f))));
                     report.prep.obs_outlier_R(f)=length(find(status_obs_R(:,:,f)==-1));
