@@ -1,5 +1,5 @@
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -2872,6 +2872,7 @@ classdef goGUIclass < handle
                 file_name = goIni.getData('PCO_PCV_file','file_name');
                 filename_pco = [data_path file_name];
             end
+            
             %serial communication
             % global COMportR
             contents = cellstr(get(obj.goh.com_select_0,'String'));
@@ -2966,6 +2967,28 @@ classdef goGUIclass < handle
             else
                 flag_var_dyn_model = 0;
             end
+
+            % atm model
+            iono = goIni.getData('ATM_model','iono');
+            tropo = goIni.getData('ATM_model','tropo');
+            if (isempty(iono))
+                iono_model = 1;
+            else
+                iono_model = iono;
+            end
+            if (isempty(tropo))
+                tropo_model = 1;
+            else
+                tropo_model = tropo;
+            end
+            % mixed
+            fsep = goIni.getData('Various','field_separator');
+            if (isempty(fsep))
+                fsep_char = 'default';
+            else
+                fsep_char = fsep;
+            end           
+            
             mode_ref = get(obj.goh.ref_path,'Value');
             flag_ms_pos = get(obj.goh.master_pos,'Value');
             flag_ms = get(obj.goh.plot_master,'Value');
@@ -3115,7 +3138,7 @@ classdef goGUIclass < handle
             end
             protocol_idx = protocol_idx(~isnan(protocol_idx));
             
-            funout = cell(27,1);
+            funout = cell(30,1);
             
             funout{1} = mode;
             funout{2} = mode_vinc;
@@ -3144,6 +3167,9 @@ classdef goGUIclass < handle
             funout{25} = pos_M_man;
             funout{26} = protocol_idx;
             funout{27} = multi_antenna_rf;
+            funout{28} = iono_model;
+            funout{29} = tropo_model;            
+            funout{30} = fsep_char;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
