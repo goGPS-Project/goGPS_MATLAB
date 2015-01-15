@@ -1,7 +1,5 @@
 function [corr] = tropo_error_correction(el, h)
 
-global tropo_model;
-
 % SYNTAX:
 %   [corr] = tropo_error_correction(el, h);
 %
@@ -17,13 +15,15 @@ global tropo_model;
 %   Saastamoinen algorithm.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
 % Portions of code contributed by Laboratorio di Geomatica, Polo Regionale di Como,
 %    Politecnico di Milano, Italy
 %----------------------------------------------------------------------------------------------
+
+global tropo_model
 
 %Saastamoinen model requires positive ellipsoidal height
 h(h < 0) = 0;

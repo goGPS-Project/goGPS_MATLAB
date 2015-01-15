@@ -1,7 +1,5 @@
 function [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, sbas)
 
-global iono_model
-
 % SYNTAX:
 %   [corr] = iono_error_correction(lat, lon, az, el, time_rx, ionoparams, sbas);
 %
@@ -22,7 +20,7 @@ global iono_model
 %   Klobuchar model or SBAS ionosphere interpolation.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.2
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
@@ -45,6 +43,8 @@ global iono_model
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+global iono_model
 
 v_light = goGNSS.V_LIGHT;
 
