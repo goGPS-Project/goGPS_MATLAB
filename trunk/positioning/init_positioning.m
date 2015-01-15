@@ -1,7 +1,5 @@
 function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, is_bias] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO)
 
-global iono_model tropo_model;
-
 % SYNTAX:
 %   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS);
 %
@@ -250,17 +248,10 @@ if (nsat >= nsat_required)
         lamR = lamR * 180 / pi;
 
         %computation of tropospheric errors
-        if (tropo_model ==0)
-          err_tropo = zeros(size(el));
-        else
-          err_tropo = tropo_error_correction(el, hR);
-        end
+        err_tropo = tropo_error_correction(el, hR);
+
         %computation of ionospheric errors
-        if (iono_model ==0)
-          err_iono = zeros(size(el));
-        else
-          err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);
-        end        
+        err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);      
         
         %correct the ionospheric errors for different frequencies
         err_iono = ionoFactor(:,phase).*err_iono;
