@@ -146,7 +146,9 @@ end
 
 %DOP computation
 if (nargout > 6)
-    cov_XYZ = (A(1:nsat_pr,1:3)'*A(1:nsat_pr,1:3))^-1;
+    A(nsat_pr+1:end,:) = []; A(:,4:end-1) = [];
+    cov_XYZ = (A'*A)^-1;
+    cov_XYZ = cov_XYZ(1:3,1:3);
     cov_ENU = global2localCov(cov_XYZ, XR);
     
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
