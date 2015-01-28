@@ -464,11 +464,7 @@ if goGNSS.isPP(mode) % post-processing
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 flag_XR = 2;
             else
-                if any(pos_R)
-                    flag_XR = 1;
-                else
-                    flag_XR = 0;
-                end
+                flag_XR = 0;
             end
             
             report.errors.few_epochs = 0;
@@ -820,11 +816,7 @@ if goGNSS.isPP(mode) % post-processing
                 if (exist('pos_R_crd','var') && any(pos_R_crd))                 
                     flag_XR = 2;
                 else
-                    if any(pos_R)
-                        flag_XR = 1;
-                    else
-                        flag_XR = 0;
-                    end
+                    flag_XR = 0;
                 end
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
 
