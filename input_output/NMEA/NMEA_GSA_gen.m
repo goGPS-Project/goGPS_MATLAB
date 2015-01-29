@@ -23,7 +23,7 @@ function nmeastring = NMEA_GSA_gen(sat, PDOP, HDOP, VDOP, sel, mode)
 %   Returns a $GPGSA sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

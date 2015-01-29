@@ -19,7 +19,7 @@ function [X,Y,Z] = geod2cart (phi, lam, h, a, f)
 %   Conversion from geodetic to geocentric cartesian coordinates.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

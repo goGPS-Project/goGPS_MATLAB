@@ -15,7 +15,7 @@ function [out, flag] = decode_FP64(in)
 %   Double precision floating point value decoding from BINR format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

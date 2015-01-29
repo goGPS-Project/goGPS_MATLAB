@@ -37,7 +37,7 @@ function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2
 %   Synchronize different sets of observations. Zeros where not available.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 %----------------------------------------------------------------------------------------------

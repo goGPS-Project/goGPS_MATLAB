@@ -18,7 +18,7 @@ function [data] = decode_skytraq_MEAS_TIME(msg)
 %   MEAS_TIME binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

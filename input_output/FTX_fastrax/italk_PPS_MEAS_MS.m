@@ -21,7 +21,7 @@ function [out] = italk_PPS_MEAS_MS(serialObj, tran_id, offset)
 %   (http://isuite.fastrax.fi/sdk/341/system/sys_parameters.html)
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

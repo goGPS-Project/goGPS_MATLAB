@@ -17,7 +17,7 @@ function [file_ems] = download_ems(prn, gps_week, gps_time)
 %   WARNING: .ems files are available with about 1 hour latency
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

@@ -19,7 +19,7 @@ function nmeastring = NMEA_PGGPK_gen(sat, KPDOP, KHDOP, KVDOP, mode)
 %   Returns a $PGGPK goGPS proprietary sentence in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

@@ -14,7 +14,7 @@ function [out] = skytraq_check_ACK(serialObj, MsgID)
 %   Check acknowledge reply after polling/sending SkyTraq messages.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

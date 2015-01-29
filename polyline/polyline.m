@@ -25,7 +25,7 @@ function polyline(filerootIN, angle_threshold, dist_threshold_AGNES, dN1, dN2, .
 %   Polyline simplification algorithm.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

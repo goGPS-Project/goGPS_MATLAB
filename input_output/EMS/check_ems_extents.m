@@ -22,7 +22,7 @@ function [ems_data_available] = check_ems_extents(time_R, pr, snr, nSatTot, Eph,
 %   (first available positioning epoch) is within the EMS grids.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

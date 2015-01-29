@@ -16,7 +16,7 @@ function [Xsat_rot] = earth_rotation_correction(traveltime, Xsat, Omegae_dot)
 %   during signal travel time.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) Kai Borre
 %

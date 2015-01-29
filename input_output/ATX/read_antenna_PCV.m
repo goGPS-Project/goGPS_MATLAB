@@ -14,7 +14,7 @@ function [antenna_PCV] = read_antenna_PCV(filename, antmod)
 %   Extracts antenna phase center offset values from a PCO/PCV file in ATX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 %

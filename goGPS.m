@@ -8,7 +8,7 @@
 %
 %
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -392,7 +392,7 @@ if goGNSS.isPP(mode) % post-processing
         
         
         if goGNSS.isSA(mode) % absolute positioning
-
+            
             %read navigation RINEX file(s)
             [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3);
             
@@ -400,6 +400,11 @@ if goGNSS.isPP(mode) % post-processing
             [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
              time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R] = ...
              load_RINEX_obs(filename_obs, constellations);
+            
+            if (~isfinite(time_GPS))
+                fprintf('... WARNING: no observations available for processing.\n');
+                return
+            end
          
             %read antenna phase center offset (NOTE: only L1 offset for now)
             antenna_PCV= read_antenna_PCV(filename_pco, antmod_R);
@@ -425,8 +430,7 @@ if goGNSS.isPP(mode) % post-processing
                     end
                     report.obs.antname_R(i) = cellstr(antenna_PCV(i).name);
                     report.obs.antoff_R(i,:) = antoff_R(:,:,i);
-                    
-                    
+
                     % set ROVER initial coordinates
                     if (exist('pos_R_crd','var') && any(pos_R_crd))
                         fprintf('Rover apriori position set from coordinate file:\n');
@@ -446,8 +450,6 @@ if goGNSS.isPP(mode) % post-processing
                             end
                         end
                     end
-                    
-                    
                 end
             end
 
@@ -530,9 +532,7 @@ if goGNSS.isPP(mode) % post-processing
                     fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
                 end
             end
-            
 
-            
             for f = 1 : size(time_R,3)
                 
                 if (mode_user == 1)
@@ -587,10 +587,15 @@ if goGNSS.isPP(mode) % post-processing
             [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
              time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
-         
+            
+            if (~isfinite(time_GPS))
+                fprintf('... WARNING: no observations available for processing.\n');
+                return
+            end
+            
             %read antenna phase center offset
             antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
-                    
+            
             pr1_R = pr1_RM(:,:,1:end-1); pr1_M = pr1_RM(:,:,end);
             ph1_R = ph1_RM(:,:,1:end-1); ph1_M = ph1_RM(:,:,end);
             pr2_R = pr2_RM(:,:,1:end-1); pr2_M = pr2_RM(:,:,end);
@@ -826,7 +831,11 @@ if goGNSS.isPP(mode) % post-processing
                     report.prep.tot_epoch_R(f)=size(pr1_R(:,:,f),2);
                     report.prep.proc_epoch_R(f)=length(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f));
                     report.prep.bad_epoch_R(f)=sum(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f)==1);                    
-                    report.prep.max_varSPP_R(f)=max(var_SPP_R(isfinite(var_SPP_R(:,1,f)),1,f))^0.5;
+                    if (~isempty(var_SPP_R(isfinite(var_SPP_R(:,1,f)),1,f)))
+                        report.prep.max_varSPP_R(f)=max(var_SPP_R(isfinite(var_SPP_R(:,1,f)),1,f))^0.5;
+                    else
+                        report.prep.max_varSPP_R(f) = NaN;
+                    end
                     report.prep.varSPP_R(f)=(sum(var_SPP_R(isfinite(var_SPP_R(:,2,f)),2,f))/sum(var_SPP_R(isfinite(var_SPP_R(:,2,f)),3,f)))^.5;                  
                     report.prep.tot_obs_R(f)=length(find(isfinite(status_obs_R(:,:,f))));
                     report.prep.obs_outlier_R(f)=length(find(status_obs_R(:,:,f)==-1));

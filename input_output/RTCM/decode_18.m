@@ -27,7 +27,7 @@ function [data] = decode_18(msg, n_words, modz, constellations)
 %   RTCM 2 format, message '18' decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

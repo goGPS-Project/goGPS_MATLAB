@@ -21,7 +21,7 @@ function [N_stim] = ambiguity_init_from_range(distR, distM, pivot_index, ph_R, p
 %   and phase observations
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 % Portion of code by Stefano Caldera

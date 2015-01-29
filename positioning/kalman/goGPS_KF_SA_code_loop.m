@@ -26,7 +26,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(ti
 %   Standalone positioning using code.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

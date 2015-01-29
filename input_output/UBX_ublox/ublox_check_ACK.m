@@ -15,7 +15,7 @@ function [out] = ublox_check_ACK(serialObj, Class, MsgID)
 %   Check acknowledge reply after polling u-blox messages.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

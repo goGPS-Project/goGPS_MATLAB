@@ -5,7 +5,7 @@ function pdf = betapdf (x, a, b)
 % Description: PDF of the Beta distribution
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 1995-2011 Kurt Hornik
 % Copyright (C) 2010 Christos Dimitrakakis

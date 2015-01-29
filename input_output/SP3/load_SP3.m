@@ -25,7 +25,7 @@ function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 %         http://www.ngs.noaa.gov/orbits/sp3c.txt
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

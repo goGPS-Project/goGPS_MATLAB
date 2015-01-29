@@ -16,7 +16,7 @@ function goGPSbinMerge(filerootR, filerootM, filerootOUT, wait_dlg)
 %   *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

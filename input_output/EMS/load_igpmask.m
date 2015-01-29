@@ -17,7 +17,7 @@ function [iodi_mask, band_mask, igp_mask, n_bands_mask] = load_igpmask(MT, msg)
 %   Load the Iono Grid Point (IGP) masks referring to each band (MT 18).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
