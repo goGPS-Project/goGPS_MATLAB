@@ -18,7 +18,7 @@ function [ems_data_available] = check_ems_availability(GPS_time_fc, GPS_time_ltc
 %   and after the survey timespan.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

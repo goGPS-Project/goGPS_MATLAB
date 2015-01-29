@@ -16,7 +16,7 @@ function [serialObj] = configure_skytraq(serialObj, COMportR, prot_par, rate)
 %   Configure SkyTraq receivers to be used with goGPS.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

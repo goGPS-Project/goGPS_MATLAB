@@ -18,7 +18,7 @@ function [week] = streamR2RINEX(fileroot, path, rinex_metadata, constellations, 
 %   File conversion from rover binary stream to RINEX format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

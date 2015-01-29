@@ -17,7 +17,7 @@ function [out] = ublox_CFG_MSG(serialObj, ClassLab, MsgIDLab, mode)
 %   Poll, enable or disable u-blox messages.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

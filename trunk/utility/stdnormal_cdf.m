@@ -5,7 +5,7 @@ function cdf = stdnormal_cdf (x)
 % Description: CDF of the standard normal distribution
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 1995-2011 Kurt Hornik
 % Copyright (C) 2012-2014 Mirko Reguzzoni, Eugenio Realini

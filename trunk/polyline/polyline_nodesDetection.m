@@ -19,7 +19,7 @@ function [nodes, utm_zone] = polyline_nodesDetection (filename, dN1, dN2, angle_
 %   Determine the nodes using an agglomerative method.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

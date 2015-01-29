@@ -18,7 +18,7 @@ function RINEX2goGPSbin(filename_R_obs, filename_R_nav, filename_M_obs, filename
 %   format (*_obs_* and *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

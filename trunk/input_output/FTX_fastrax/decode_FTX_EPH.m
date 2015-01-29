@@ -46,7 +46,7 @@ function [data] = decode_FTX_EPH(msg, constellations)
 %   FTX_EPH binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

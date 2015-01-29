@@ -15,7 +15,7 @@ function [corr] = sat_clock_error_correction(time, Eph)
 %   Interface Specification document revision E (IS-GPS-200E), page 86.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

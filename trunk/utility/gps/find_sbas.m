@@ -14,7 +14,7 @@ function [sbas_t] = find_sbas(sbas, t)
 %   Extract the SBAS data referred to the current epoch.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

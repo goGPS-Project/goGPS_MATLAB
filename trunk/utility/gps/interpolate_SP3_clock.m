@@ -16,7 +16,7 @@ function [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat)
 %   SP3 (precise ephemeris) clock correction 1-second interpolation by spline.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

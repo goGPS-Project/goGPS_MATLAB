@@ -43,7 +43,7 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_code_phase_MR(XR_approx, F, XM, XS, ..
 %   Epoch-by-epoch solution
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

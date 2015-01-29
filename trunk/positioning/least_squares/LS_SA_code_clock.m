@@ -27,7 +27,7 @@ function [dtR, var_dtR, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias]
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

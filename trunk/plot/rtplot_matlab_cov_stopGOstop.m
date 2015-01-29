@@ -21,7 +21,7 @@ function rtplot_matlab_cov_stopGOstop (t, pos_R, pos_M, covpos_R, P1, P2, origin
 %   a reference path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

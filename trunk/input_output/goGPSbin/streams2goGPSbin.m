@@ -17,7 +17,7 @@ function streams2goGPSbin(filerootIN, filerootOUT, constellations, wait_dlg)
 %   (*_obs_* and *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

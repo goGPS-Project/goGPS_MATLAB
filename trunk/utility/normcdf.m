@@ -7,7 +7,7 @@ function cdf = normcdf (x, m, s)
 % Description: CDF of the normal distribution
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 1995-2011 Kurt Hornik
 % Copyright (C) 2012-2014 Mirko Reguzzoni, Eugenio Realini

@@ -16,7 +16,7 @@ function [EAST, NORTH, utm_zone] = geod2plan(lat, lon)
 %   Conversion from geodetic coordinates to planimetric coordinates (UTM WGS84).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

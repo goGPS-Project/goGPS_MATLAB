@@ -42,7 +42,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 %   initial position (X,Y,Z).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

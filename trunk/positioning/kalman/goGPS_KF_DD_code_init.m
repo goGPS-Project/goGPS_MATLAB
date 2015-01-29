@@ -26,7 +26,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_init(XR0, XM, time_rx, pr1_R, p
 %   Code-only Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
