@@ -1,20 +1,20 @@
 function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold)
 
 % SYNTAX:
-%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys);
+%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold);
 %
 % INPUT:
-%   XR_approx    = receiver approximate position (X,Y,Z)
-%   XS           = satellite position (X,Y,Z)
-%   pr_R         = code observations
-%   snr_R        = signal-to-noise ratio
-%   elR          = satellite elevation (vector)
-%   distR_approx = approximate receiver-satellite distance (vector)
-%   dtS          = satellite clock error (vector)
-%   err_tropo_RS = tropospheric error
-%   err_iono_RS  = ionospheric error
-%   sys          = array with different values for different systems
-%   SPP_threshold= maximum RMS of code single point positioning to accept current epoch
+%   XR_approx     = receiver approximate position (X,Y,Z)
+%   XS            = satellite position (X,Y,Z)
+%   pr_R          = code observations
+%   snr_R         = signal-to-noise ratio
+%   elR           = satellite elevation (vector)
+%   distR_approx  = approximate receiver-satellite distance (vector)
+%   dtS           = satellite clock error (vector)
+%   err_tropo_RS  = tropospheric error
+%   err_iono_RS   = ionospheric error
+%   sys           = array with different values for different systems
+%   SPP_threshold = maximum RMS of code single point positioning to accept current epoch
 %
 % OUTPUT:
 %   XR   = estimated position (X,Y,Z)

@@ -137,7 +137,7 @@ bad_sat=[];
 % APPROXIMATE RECEIVER POSITION
 %----------------------------------------------------------------------------------------------
 
-if (flag_XR == 0 || ~any(XR0))
+if (flag_XR < 2 || ~any(XR0))
     
     index = find(no_eph == 0);
     
@@ -160,12 +160,15 @@ if (flag_XR == 0 || ~any(XR0))
         return
     end
 
-    %iterative least-squares from the center of the Earth (i.e. [0; 0; 0])
-    XR0 = zeros(3,1);
-    for i = 1 : 3
+    %iterative least-squares from XR0,i.e. given coordinates or the center of the Earth (i.e. [0; 0; 0])
+    n_iter_max = 5;
+    n_iter = 0;
+    var_SPP(1) = Inf;
+    while(var_SPP(1) > SPP_threshold^2 && n_iter < n_iter_max)
         [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index), SPP_threshold);       
         %bad_sat(sat(bad_obs))=1;
         XR0 = XR;
+        n_iter = n_iter + 1;
     end
 else
     XR = XR0; %known receiver coordinates
