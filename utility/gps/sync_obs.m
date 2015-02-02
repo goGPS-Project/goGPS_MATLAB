@@ -71,10 +71,12 @@ max_time = min(max(time_i_nan,[],1));
 
 %find the largest interval
 max_int = max(interval(:));
+%max_int = 30;
 
 %define the reference time
 time_ref = (roundmod(min_time,max_int) : max_int : roundmod(max_time,max_int))';
 tow_ref = mod(time_ref,60*60*24*7);
+tow_ref=roundmod(tow_ref,max_int);
 
 %number of reference epochs
 ref_len = length(tow_ref);
@@ -96,9 +98,8 @@ time_prog = time_i - min_time_prog; % substract the first element to reduce the 
 time_ref_prog = time_ref - min_time_prog;
 
 for s = 1 : nObsSet
-    
-   [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), max_int));
-    
+%    [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), max_int));
+    [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), interval(s)));    
     time(idx_t, s) = time_i(idx_z, 1, s);
     week(idx_t, s) = week_i(idx_z, 1, s);
     date(idx_t, :, s) = date_i(idx_z, :, s);
