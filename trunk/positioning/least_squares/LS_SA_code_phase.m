@@ -83,7 +83,7 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ...   %column for X coordinate
 A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ... %column for X coordinate
         (XR_approx(2) - XS(index,2)) ./ distR_approx(index), ... %column for Y coordinate
         (XR_approx(3) - XS(index,3)) ./ distR_approx(index), ... %column for Z coordinate
-         diag(-lambda) .* eye(nsat_ph), ...                      %column for phase ambiguities
+         diag(-lambda(index)) .* eye(nsat_ph), ...               %column for phase ambiguities
          ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
      
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
@@ -105,7 +105,7 @@ b_ph = distR_approx - v_light*dtS + err_tropo - err_iono; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector
-y0 = [pr; lambda.*ph(index)];
+y0 = [pr; lambda(index).*ph(index)];
 
 %observation noise covariance matrix
 Q = zeros(n);
