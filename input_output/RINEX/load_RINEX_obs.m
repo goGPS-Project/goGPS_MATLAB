@@ -78,7 +78,7 @@ else
 end
 
 %variable initialization
-nEpochs = 86400;
+nEpochs = 90000;
 time = NaN(nEpochs,1,nFiles);
 tow = NaN(nEpochs,1,nFiles);
 week = NaN(nEpochs,1,nFiles);
@@ -183,7 +183,7 @@ for f = 1 : nFiles
     
     %observation rate
     if (interval(:,1,f) == 0)
-        interval(:,1,f) = median(time(2:k-1,1,f) - time(1:k-2,1,f));
+        interval(:,1,f) = round((median(time(2:k-1,1,f) - time(1:k-2,1,f)))*1000)/1000;
     end
     
     %-------------------------------------------------------------------------------

@@ -137,6 +137,10 @@ bad_sat=[];
 % APPROXIMATE RECEIVER POSITION
 %----------------------------------------------------------------------------------------------
 
+if (isempty(XR0))
+    XR0 = zeros(3,1);
+end
+
 if (flag_XR < 2 || ~any(XR0))
     
     index = find(no_eph == 0);

@@ -874,7 +874,11 @@ if goGNSS.isPP(mode) % post-processing
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
                 report.prep.bad_epoch_M=sum(bad_epochs_M(isfinite(bad_epochs_R))==1);
-                report.prep.max_varSPP_M=max(var_SPP_M(isfinite(var_SPP_M(:,1)),1))^0.5;
+                if (~isempty(var_SPP_M(isfinite(var_SPP_M(:,1)),1)))
+                    report.prep.max_varSPP_M=max(var_SPP_M(isfinite(var_SPP_M(:,1)),1))^0.5;
+                else
+                    report.prep.max_varSPP_M = NaN;
+                end
                 report.prep.varSPP_M=(sum(var_SPP_M(isfinite(var_SPP_M(:,2)),2))/sum(var_SPP_M(isfinite(var_SPP_M(:,2)),3)))^.5;
                 report.prep.tot_obs_M=length(find(isfinite(status_obs_M)));
                 report.prep.obs_outlier_M=length(find(status_obs_M==-1));

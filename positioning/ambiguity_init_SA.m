@@ -114,7 +114,6 @@ uni_sys = unique(sys(sys ~= 0));
 num_sys = length(uni_sys);
 ISB = zeros(n,1);
 if (num_sys > 1)
-    m = m + num_sys - 1;
     for s = 2 : num_sys
         ISB(sys == uni_sys(s)) = 1;
         A = [A, ISB];
