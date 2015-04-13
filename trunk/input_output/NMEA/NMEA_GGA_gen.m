@@ -140,7 +140,7 @@ end
 
 % survey type
 % 0 = not valid
-% 1 = code stand-alone
+% 1 = code undifferenced
 % 2 = code double differences
 % 4 = code and phase double diff. (integer ambiguities fixed)
 % 5 = code and phase double diff. (float ambiguities)

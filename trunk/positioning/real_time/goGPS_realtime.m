@@ -280,12 +280,12 @@ end
 data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
 
 %-----------------------------------------------------------
-% rover initial positioning (stand-alone)
+% rover initial positioning (undifferenced)
 %-----------------------------------------------------------
 
 %visualization
 fprintf('\n');
-fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
+fprintf('ROVER POSITIONING (undifferenced)...\n');
 fprintf('note: it might take some time to acquire signal from a sufficient number of satellites\n');
 
 %pseudoranges
