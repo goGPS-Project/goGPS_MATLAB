@@ -635,15 +635,15 @@ end
 % INTEGER AMBIGUITY SOLVING BY LAMBDA METHOD
 %--------------------------------------------------------------------------------------------
 
-if (flag_IAR && ~isempty(sat) && nsat >= min_nsat)
-    %try to solve integer ambiguities
-    [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat,o3+sat), Cee([1 o1+1 o2+1],o3+sat));
-else
+% if (flag_IAR && ~isempty(sat) && nsat >= min_nsat)
+%     %try to solve integer ambiguities
+%     [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat,o3+sat), Cee([1 o1+1 o2+1],o3+sat));
+% else
     ratiotest = [ratiotest NaN];
     mutest    = [mutest NaN];
     succ_rate = [succ_rate NaN];
     fixed_solution = [fixed_solution 0];
-end
+% end
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DOP

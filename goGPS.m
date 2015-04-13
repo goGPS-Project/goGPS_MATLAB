@@ -1267,15 +1267,15 @@ if goGNSS.isPP(mode) % post-processing
             %...and warn the user
             if (mode_user == 1)
                 if (flag_var_dyn_model)
-                    uiwait(msgbox('Warning: master data not available, forcing STAND-ALONE mode. Variable dynamic model is not supported in stand-alone mode.','','modal'));
+                    uiwait(msgbox('Warning: master data not available, forcing undifferenced mode. Variable dynamic model is not supported in undifferenced mode.','','modal'));
                 else
-                    uiwait(msgbox('Warning: master data not available, forcing STAND-ALONE mode.','','modal'));
+                    uiwait(msgbox('Warning: master data not available, forcing undifferenced mode.','','modal'));
                 end
             else
                 if (flag_var_dyn_model)
-                    fprintf('... WARNING: master data not available, forcing stand-alone mode. Variable dynamic model is not supported in stand-alone mode.\n');
+                    fprintf('... WARNING: master data not available, forcing undifferenced mode. Variable dynamic model is not supported in undifferenced mode.\n');
                 else
-                    fprintf('... WARNING: master data not available, forcing stand-alone mode.\n');
+                    fprintf('... WARNING: master data not available, forcing undifferenced mode.\n');
                 end
             end
         end
@@ -3224,16 +3224,16 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
     set(f1,'Visible','off');
     switch mode
         case 1
-            text(0,1.00,sprintf('Mode: code\n        stand-alone'));
+            text(0,1.00,sprintf('Mode: code\n        undifferenced'));
             text(0,0.75,sprintf('Kalman filter: no'));
         case 2
-            text(0,1.00,sprintf('Mode: code\n        stand-alone'));
+            text(0,1.00,sprintf('Mode: code\n        undifferenced'));
             text(0,0.75,sprintf('Kalman filter: yes'));
         case 3
-            text(0,1.00,sprintf('Mode: code and phase\n        stand-alone'));
+            text(0,1.00,sprintf('Mode: code and phase\n        undifferenced'));
             text(0,0.75,sprintf('Kalman filter: no'));
         case 4
-            text(0,1.00,sprintf('Mode: code and phase\n        stand-alone'));
+            text(0,1.00,sprintf('Mode: code and phase\n        undifferenced'));
             text(0,0.75,sprintf('Kalman filter: yes'));
         case 11
             text(0,1.00,sprintf('Mode: code\n        double difference'));
@@ -3266,11 +3266,13 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         case 0
             text(0,0,sprintf('Weights: no weights'));
         case 1
-            text(0,0,sprintf('Weights: elevation'));
+            text(0,0,sprintf('Weights: elevation\n           (1/sin(el)^2)'));
         case 2
             text(0,0,sprintf('Weights: SNR'));
         case 3
             text(0,0,sprintf('Weights: elevation\n           and SNR'));
+        case 4
+            text(0,0,sprintf('Weights: elevation\n           (exp)'));
     end
     
     %trajectory plotting
