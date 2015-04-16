@@ -3179,16 +3179,18 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
     %display information
     fprintf('Writing report file (PDF)...\n');
 
-    f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
-    paperSize = get(f,'PaperSize');
-    set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
-    plot(dtR.*goGNSS.V_LIGHT,'.r');
-    set(gca,'FontName','Verdana');
-    set(gca,'FontSize',7);
-    ylabel('Receiver clock (m)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
-    %print PDF
-    print(f, '-dpdf', [filerootOUT '_dtR']);
-    close(f)  
+    if (exist('dtR','var'))
+        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+        paperSize = get(f,'PaperSize');
+        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+        plot(dtR.*goGNSS.V_LIGHT,'.r');
+        set(gca,'FontName','Verdana');
+        set(gca,'FontSize',7);
+        ylabel('Receiver clock (m)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
+        %print PDF
+        print(f, '-dpdf', [filerootOUT '_dtR']);
+        close(f)
+    end
     
     if goGNSS.isDD(mode) 
         f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
@@ -3202,9 +3204,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         print(f, '-dpdf', [filerootOUT '_dtM']);
         close(f)
     end
-    
-    
-    
+
     if (any(RES_PHASE_FIXED(:)))
         RES_PHASE = RES_PHASE_FIXED;
         RES_CODE  = RES_CODE_FIXED;
@@ -3213,8 +3213,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         RES_CODE  = RES_CODE_FLOAT;
     end
     plot_residuals(constellations, RES_PHASE, RES_CODE, outliers_PHASE, outliers_CODE, filerootOUT);
-    
-    
+
     f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','portrait','PaperUnits','centimeters','PaperType','A4','Visible','off');
     paperSize = get(f,'PaperSize');
     set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);

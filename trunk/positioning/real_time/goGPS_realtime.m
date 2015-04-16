@@ -1582,7 +1582,7 @@ while flag
                 %Kalman filter
                 if (mode_vinc == 0)
                     if (~flag_var_dyn_model)
-                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, lambda, 1, [], 0);
+                        kalman_initialized = goGPS_KF_DD_code_phase_init(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, lambda, 1, [], 0, 0, []);
                     else
                         kalman_initialized = goGPS_KF_DD_code_phase_init_model(zeros(3,1), pos_M(:,1), time_M(1), pr_R(:,1), pr_M(:,1), ph_R(:,1), ph_M(:,1), dop_R(:,1), dop1_M(:,1), pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,1), snr_M(:,1), Eph, [], iono, lambda, order, 1, [], 0);
                     end
@@ -2398,7 +2398,7 @@ while flag
                     %Kalman filter
                     if (mode_vinc == 0)
                         if (~flag_var_dyn_model)
-                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, [], 0);
+                            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, 1, [], 0, [], []);
                         else
                             [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop_model(pos_M(:,b), time_M(b), pr_R(:,b), pr_M(:,b), ph_R(:,b), ph_M(:,b), dop_R(:,b), dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, dop2_R, dop2_M, snr_R(:,b), snr_M(:,b), Eph, [], iono, lambda, order, 1, [], 0);
                         end
