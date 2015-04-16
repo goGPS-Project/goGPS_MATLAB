@@ -1,0 +1,1519 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <title>M_Map: A Mapping package for Matlab</title>
+</head>
+<body style="background-color: rgb(255, 245, 238);">
+<h1 align="center">M_Map: User's Guide v1.4 </h1>
+<hr>
+<center> <img src="./mlogo.gif"> </center>
+<br>
+<hr>
+<h2><a name="1._Getting_started_"></a> <a name="p1">1. Getting started
+</a> </h2>
+<p> First, get all the files, either as a <a
+ href="http://www.eos.ubc.ca/%7Erich/m_map1.4.zip"> zip archive </a>or
+a <a href="http://www.eos.ubc.ca/%7Erich/m_map1.4.tar.gz"> gzipped
+tar-file </a>and unpack them. If you are unpacking the zip file MAKE
+SURE YOU ALSO UNPACK SUBDIRECTORIES! Now, start up Matlab (version 5 or
+higher). Make sure that the toolbox is in your path. This can be done
+simply by <code>cd</code>'ing to the correct directory. </p>
+<p> Alternatively, if you have unpacked them into directory <code>/users/rich/m_map</code>
+(and <code>/users/rich/m_map/private</code>), then you can add this to
+your search path: </p>
+<pre>path(path,'/users/rich/m_map');<br></pre>
+or
+<pre>addpath /users/rich/m_map<br></pre>
+To follow along with this document, you would then use a Web-browser to
+open <a href="./mapug.html"><code>file:/users/rich/m_map/map.html</code></a>,
+that is, this HTML document.
+<p> Note: you may want to install M_Map as a toolbox accessible to all
+users. To do this, unpack the files into $MATLAB/toolbox/m_map, add
+that
+directory to the list defined in $MATLAB/toolbox/local/pathdef.m, and
+update
+the cache file using </p>
+<pre>rehash toolboxcache</pre>
+<p> Instructions for installing the (optional) high-resolution
+bathymetry database are given in <a href="#p9"> Section 9 </a>, and
+instructions
+for installing the (optional) high-resolution GSHHS coastline database
+is given in <a href="#p9.5"> Section 10 </a>. However, we should
+first
+check that the basic setup is OK. </p>
+<p> To see an example map, try this: </p>
+<pre>m_proj('oblique mercator');<br>m_coast;<br>m_grid;<br></pre>
+This is a line map of the Oregon/British Columbia coast, using an
+Oblique Mercator projection (A few more complex maps can be generated
+by running the demo function <code>m_demo</code>).
+<p> The first line initializes the projection. Defaults are set for the
+different projection, so you can easily see what a specific projection
+looks
+like, but all projections have a number of optional parameters as well.
+To
+get the same map without using the defaults, you would use </p>
+<pre>m_proj('oblique mercator','longitudes',[-132 -125], ...<br>       'latitudes',[56 40],'direction','vertical','aspect',.5);<br></pre>
+The exact meanings of the various options is given in <a href="#p2">
+Section 2 </a>. However, notice that longitudes are specified using a <em>
+signed </em> notation - East longitudes are positive, whereas West
+longitudes are negative (Also note that a decimal degree notation
+is used, so that a longitude of 120 30'W is specified as -120.5).
+<p> The second line draws a coastline, using the 1/4 degree database.
+Coastlines with greater resolution can be drawn, using your own
+database (see also <a href="#p7"> Section 7 </a>). <code>m_coast</code>
+can be called with
+various line parameters. For example, </p>
+<pre>m_coast('linewidth',2,'color','r');<br></pre>
+draws a thicker red coastline. Filled coastlines can also be drawn,
+using the <code> 'patch' </code> option (followed by any of the usual
+PATCH property/value pairs).
+<pre>m_coast('patch',[.7 .7 .7],'edgecolor','none');<br></pre>
+draws a coastline with a gray fill and no border.
+<p> The third line superimposes a grid. Although there are many
+possible options that can be used to customize the appearance of the
+grid, defaults can always be used (as in the example). These options
+are discussed in <a href="#p4"> Section 4 </a>. You can get a list of
+the options using the GET syntax: </p>
+<pre>m_grid get<br></pre>
+which acts somewhat like the <code> get(gca) </code> syntax for
+regular plots.
+<p> Finally, suppose you want to show and label the location of, say, a
+mooring at 129W, 48 30'N. </p>
+<pre>[X,Y]=m_ll2xy(-129,48.5);<br>line(X,Y,'marker','square','markersize',4,'color','r');<br>text(X,Y,' M5','vertical','top');<br></pre>
+<p> <code> m_ll2xy </code> (and its inverse <code>m_xy2ll</code>)
+convert from longitude/latitude coordinates to those of the projection.
+Various clipping options can also be specified in converting to
+projection coordinates. If you are willing to accept default clipping
+setting, you can use the
+built-in functions <code> m_line </code> and <code> m_text </code>:
+</p>
+<pre>m_line(-129,48.5,'marker','square','markersize',4,'color','r');<br>m_text(-129,48.5,' M5','vertical','top');<br></pre>
+<p> Finally (!), we may want to alter the grid details slightly. Note
+that, a given map must only be initialized once. </p>
+<pre>clf<br>m_coast('patch',[.7 .7 .7],'edgecolor','none');<br>m_grid('xlabeldir','end','fontsize',10);<br>m_line(-129,48.5,'marker','square','markersize',4,'color','r');<br>m_text(-129,48.5,' M5','vertical','top');<br></pre>
+<center><img src="exobl2.gif" align="middle"> </center>
+<hr>
+<h2> <a name="p2"> 2. Specifying projections </a> </h2>
+<p> In order to get a list of the current projections, </p>
+<pre>m_proj get<br></pre>
+or
+<pre>m_proj('set');<br></pre>
+Which currently return the following list:
+<pre>Available projections are:<br>     Stereographic<br>     Orthographic <br>     Azimuthal Equal-area<br>     Azimuthal Equidistant<br>     Gnomonic<br>     Satellite<br>     Albers Equal-Area Conic<br>     Lambert Conformal Conic<br>     Mercator<br>     Miller Cylindrical<br>     Equidistant Cylindrical<br>     Oblique Mercator<br>     Transverse Mercator<br>     Sinusoidal<br>     Gall-Peters<br>     Hammer-Aitoff<br>     Mollweide<br>   Robinson<br>  UTM<br></pre>
+If you want details about the possible options for any of these
+projections, add its name to the above command, e.g.
+<pre>m_proj('set','stereographic');<br>     'Stereographic'                                   <br>     &lt;,'lon&lt;gitude&gt;',center_long&gt;                      <br>     &lt;,'lat&lt;itude&gt;', center_lat&gt;                       <br>     &lt;,'rad&lt;ius&gt;', ( degrees | [longitude latitude] )&gt;<br>     &lt;,'rec&lt;tbox&gt;', ( 'on' | 'off' )&gt;                  <br></pre>
+You can also get details about the current projection. For example, in
+order to see what the default parameters are for the sinusoidal
+projection, we first initialize it, and then use the <code> 'set' </code>
+option:
+<pre>m_proj('sinusoidal');<br>m_proj get<br>Current mapping parameters -<br> Projection: Sinusoidal  (function: mp_tmerc)<br> longitudes: -90  30 (centered at -30)       <br> latitudes: -65  65                          <br> Rectangular border: off                     <br></pre>
+In order to initialize a projection, you usually specify some location
+parameters that define the geometry of the projection (longitudinal
+limits, central parallel, etc.), as well as parameters that define the
+extent
+of the map (whether it is in a rectangular axis, what the border points
+are, etc.). These vary slightly from projection to projection.
+<p> Two useful properties for projections are (1) the ability the
+preserve angles for differentially small regions, and (2) the ability
+to preserve area. Projections satisfying the first condition are called
+<em> conformal </em>, those satisfying the second are called <em>
+equal-area </em>. No
+projection can be both. Many projections (especially global
+projections)
+are neither, instead an attempt has been made to aesthetically balance
+the errors in both conditions. </p>
+<p> Note: Most projections  are currently <em> spherical </em>
+rather than ellipsoidal. UTM is an ellipsoidal projection, and both the lambert conformal
+conic and albers equal-area conic can be specified with ellipses if desired. This
+is sometime useful when you have data (e.g. from a GIS package) at scales of Canadian provinces
+or US states, which are often mapped using one of these projections. 
+It is unlikely that this will be a problem in
+normal usage. </p>
+<ol>
+  <h3><li> <a name="p2.1"> Azimuthal projections </a></li>
+  </h3>
+  <a name="p2.1">Azimuthal projections are those in which points on the
+globe are projected onto a flat tangent plane. Maps using these
+projections have the property that direction or azimuth from the center
+point to all other points is shown correctly. Great circle routes
+passing through the central point appear as straight lines (although
+great circles not passing through the central point may appear curved).
+These maps are usually drawn with circular boundaries. The following
+parameters are needed to define an azimuthal projection: </a>
+  <h4><a name="p2.1"> <code> &lt;,'lon&lt;gitude&gt;',center_long&gt; <br>
+&lt;,'lat&lt;itude&gt;', center_lat&gt; </code> </a></h4>
+  <a name="p2.1"> These parameters define the center point of the
+map. Maps are aligned so that the specified longitude is vertical at
+the
+map center, with its northern end at the top (but see option <code>rotangle</code>
+below). </a>
+  <h4><a name="p2.1"> <code> &lt;,'rad&lt;ius&gt;', ( degrees |
+[longitude latitude] )&gt; </code> </a></h4>
+  <a name="p2.1"> This defines the extent of the map. Either an angular
+distance in degrees can be given (e.g. 90 for a hemisphere), or the
+coordinates of a point on the boundary can be specified. </a>
+  <h4><a name="p2.1"> <code> &lt;,'rec&lt;tbox&gt;', ( 'on' | 'off'
+| 'circle' )&gt; </code> </a></h4>
+  <a name="p2.1"> The default is to enclose the map
+in a circular boundary (chosen using either of the latter two options),
+but a rectangular one can also be specified. However, rectangular maps
+are
+usually better drawn using a cylindrical or conic projection of some
+sort. </a>
+  <h4><a name="p2.1"> <code> &lt;,'rot&lt;angle&gt;', degrees CCW&gt; </code>
+  </a></h4>
+  <a name="p2.1"> This rotates the figure so that the central longitude
+is not vertical. </a>
+  <ol>
+    <a name="p2.1"> </a>
+    <h4><a name="p2.1"> <li>Stereographic </li>
+    </a></h4>
+    <a name="p2.1">The stereographic projection is conformal, but not
+equal-area. This projection is often used for polar regions. </a>
+    <h4><a name="p2.1"> <li>Orthographic </li>
+    </a></h4>
+    <a name="p2.1">This projection is neither equal-area nor conformal,
+but resembles a perspective view of the globe. </a>
+    <h4><a name="p2.1"> <li>Azimuthal Equal-Area </li>
+    </a></h4>
+    <a name="p2.1">Sometimes called the Lambert azimuthal equal-area
+projection, this mapping is equal-area but not conformal. </a>
+    <h4><a name="p2.1"> <li>Azimuthal Equidistant </li>
+    </a></h4>
+    <a name="p2.1">This projection is neither equal-area nor conformal,
+but all distances and directions from the central point are true. </a>
+    <h4><li><a name="p2.1"> Gnomonic </a></li>
+    </h4>
+    <a name="p2.1">This projection is neither equal-area nor conformal,
+but all straight lines on the map (not just those through the center)
+are great circle routes. There is, however, a great degree of
+distortion at the edges of the map, so maximum radii should be kept
+fairly small - 20 or
+30 degrees at most. </a>
+    <h4><li><a name="p2.1"> Satellite </a></li>
+    </h4>
+    <a name="p2.1">This is a perspective view of the earth, as seen by
+a satellite at a specified altitude. Instead of specifying a <code>radius</code>
+for the map, the viewpoint altitude is specified: </a>
+    <h4><a name="p2.1"> <code> &lt;,'alt&lt;itude&gt;',
+altitude_fraction &gt; </code> </a></h4>
+    <a name="p2.1"> the numerical value assigned to this property
+represents the height of the viewpoint in units of earth radii. For
+example, a satellite in an orbit of radius 3 earth radii would have an
+altitude of
+2. </a>
+  </ol>
+   
+  <h3>  <li><a name="p2.2"> Cylindrical and Pseudo-cylindrical Projections </a><br>
+  </li> </h3>
+  <a name="p2.2">Cylindrical projections are formed by projecting
+points onto a plane wrapped around the globe, touching only along some
+great
+circle. These are very useful projections for showing regions of great
+lateral extent, and are also commonly used for global maps of
+mid-latitude
+regions only. Also included here are two pseudo-cylindrical
+projections,
+the sinusoidal and Gall-Peters, which have some similarities to the
+cylindrical
+projections (see below). </a>
+  <p> <a name="p2.2">These maps are usually drawn with rectangular
+boundaries (with the exception of the sinusoidal and sometimes the
+transverse mercator). </a></p>
+  <ol>
+    <a name="p2.2"> </a>
+    <h4><li><a name="p2.2"> Mercator </a></li>
+    </h4>
+    <a name="p2.2">This is a conformal map, based on a tangent cylinder
+wrapped around the equator. Straight lines on this projection are rhumb
+lines (i.e. the track followed by a course of constant bearing). The
+following properties affect this projection: </a>
+    <h4><a name="p2.2"> <code> &lt;,'lon&lt;gitude&gt;',( [min max] |
+center)&gt; </code> </a></h4>
+    <a name="p2.2">Either longitude limits can be set, or a central
+longitude defined implying a global map. </a>
+    <h4><a name="p2.2"> <code> &lt;,'lat&lt;itude&gt;', ( maxlat |
+[min max])&gt; </code> </a></h4>
+    <a name="p2.2"> Latitude limits are most usually the same in
+both N and S latitude, and can be specified with a single value, but
+(if
+desired) unequal limits can also be used. </a>
+    <h4><a name="p2.2"> <li>Miller Cylindrical </li>
+    </a></h4>
+    <a name="p2.2">This projection is neither equal-area nor conformal,
+but "looks nice" for world maps. Properties are the same as for the
+Mercator, above. </a>
+    <h4><a name="p2.2"> <li> Equidistant cylindrical </li>
+    </a></h4>
+    <a name="p2.2">This projection is neither equal-area nor conformal.
+It consists of equally-spaced latitude and longitude lines, and is very
+often used for quick plotting of data. It is included here simply so
+that such maps can take advantage of the grid generation routines. Also
+known as
+the Plate Carree. Properties are the same as for the Mercator, above. </a>
+    <h4><li><a name="p2.2"> Oblique Mercator </a></li>
+    </h4>
+    <a name="p2.2">The oblique mercator arises when the great circle
+of tangency is arbitrary. This is a useful projection for, e.g., long
+coastlines or other awkwardly shaped or aligned regions. It is
+conformal but not equal area. The following properties govern this
+projection: </a>
+    <h4><a name="p2.2"> <code> &lt;,'lon&lt;gitude&gt;',[ G1 G2 ]&gt; <br>
+&lt;,'lat&lt;itude&gt;', [ L1 L2 ]&gt; </code> </a></h4>
+    <a name="p2.2">Two points specify a great circle, and thus the
+limits of this map (it is assumed that the region near the shortest of
+the two arcs is desired). The 2 points (G1,L1) and (G2,L2) are thus at
+the center of either the top/bottom or left/right sides of the map
+(depending on the <code>'direction'</code> property). </a>
+    <h4><a name="p2.2"> <code> &lt;,'asp&lt;ect&gt;',value&gt; </code>
+    </a></h4>
+    <a name="p2.2"> This specifies the size of the map in the direction
+perpendicular to the great circle of tangency, as a proportion of the
+length shown. An aspect ratio of 1 results in a square map, smaller
+numbers
+result in skinnier maps. Aspect ratios &gt;1 are possible, but not
+recommended. </a>
+    <h4><a name="p2.2"> <code> &lt;,'dir&lt;ection&gt;',( 'horizontal'
+| 'vertical' ) </code> </a></h4>
+    <a name="p2.2"> This specifies whether the great circle of tangency
+will be horizontal on the page (for making short wide maps), or
+vertical (for tall thin maps). </a>
+    <h4><li><a name="p2.2"> Transverse Mercator </a></li>
+    </h4>
+    <a name="p2.2">The Transverse Mercator is a special case of the
+oblique mercator when the great circle of tangency lies along a
+meridian of longitude, and is therefore conformal. It is often used for
+large-scale maps and
+charts. The following properties govern this projection: </a>
+    <h4><a name="p2.2"> <code> &lt;,'lon&lt;gitude&gt;',[min max]&gt; <br>
+&lt;,'lat&lt;itude&gt;',[min max]&gt; </code> </a></h4>
+    <a name="p2.2"> These specify the limits of the map. </a>
+    <h4><a name="p2.2"> <code> &lt;,'clo&lt;ngitude&gt;',value&gt; </code>
+    </a></h4>
+    <a name="p2.2"> Although it makes most sense in general
+to specify the central meridian as the meridian of tangency (this is
+the
+default), certain map classification systems (noteably UTM) use only a
+fixed set of central longitudes, which may not be in the map center. </a>
+    <h4><a name="p2.2"> <code> &lt;,'rec&lt;tbox&gt;', ( 'on' | 'off'
+)&gt; </code> </a></h4>
+    <a name="p2.2">The map limits can either be based on
+latitude/longitude (the default), or the map boundaries can form an
+exact rectangle. The
+difference is small for large-scale maps. Note: Although this
+projection
+is similar to the Universal Transverse Mercator (UTM) projection, the
+latter is actually ellipsoidal in nature. </a>
+    <h4><li><a name="p2.2"> Universal Transverse Mercator (UTM) </a></li>
+    </h4>
+    <a name="p2.2">UTM maps are needed only for high-quality maps of
+small regions of the globe (less than a few degrees in longitude). This
+is an ellipsoidal projection. Options are similar to those of the
+Transverse
+Mercator, with the addition of </a>
+    <h4><a name="p2.2"> <code> &lt;,'zon&lt;e&gt;', value 1-60&gt; </code>
+    </a></h4>
+    <a name="p2.2"> </a>
+    <h4><a name="p2.2"> <code> &lt;,'hem&lt;isphere&gt;',value
+0=N,1=S&gt; </code> </a></h4>
+    <a name="p2.2"> These are computed automatically if not specified.
+The ellipsoid defaults to <code>'normal'</code>, a spherical earth of
+radius 1 unit, but other options can also be chosen using the following
+property: </a>
+    <h4><a name="p2.2"> <code> &lt;,'ell&lt;ipsoid&gt;', ellipsoid&gt;
+    </code> </a></h4>
+    <a name="p2.2"> For a list of available ellipsoids try <code>m_proj('set','utm')</code>.
+    </a>
+    <p> <a name="p2.2">The big difference between UTM and all the
+other projections is that for ellipsoids other than <code>'normal'</code>
+the projection
+coordinates are in meters of easting and northing. To take full
+advantage
+of this it is often useful to call <code>m_proj</code> with <code>'rectbox'</code>
+set to <code>'on'</code> and not to use the long/lat grid generated
+by <code>m_grid</code> (since the regular matlab grid will be in units
+of meters). </a></p>
+    <h4><li><a name="p2.2"> Sinusoidal </a></li>
+    </h4>
+    <a name="p2.2">This projection is usually called
+"pseudo-cylindrical" since parallels of latitude appear as straight
+lines, similar to their appearance in cylindrical projections tangent
+to the equator. However, meridians curve together in this projection in
+a sinusoidal way (hence the name), making this map equal-area. </a>
+    <h4><li><a name="p2.2"> Gall-Peters </a></li>
+    </h4>
+    <a name="p2.2">Parallels of latitude and meridians both appear as
+straight lines, but the vertical scale is distorted so that area is
+preserved. This is useful for tropical areas, but the distortion in
+polar areas is extreme. </a>
+  </ol>
+  <h3> <li> <a name="p2.3"> Conic Projections<br>
+  </li>
+   </h3>
+  <a name="p2.3">Conic projections result from projecting onto a cone
+wrapped around the sphere. The vertex of the cone lies on the
+rotational axis of the sphere. The cone is either tangent at a single
+latitude, or can intersect the sphere at two separated latitudes. It is
+a useful projection for mid-latitude areas of large east-west extent.
+The following properties affect these projections: </a>
+  <h4><a name="p2.3"> <code> &lt;,'lon&lt;gitude&gt;',[min max]&gt; <br>
+&lt;,'lat&lt;itude&gt;',[min max]&gt; </code> </a></h4>
+  <a name="p2.3"> These specify the limits of the map. </a>
+  <h4><a name="p2.3"> <code> &lt;,'clo&lt;ngitude&gt;',value&gt; </code>
+  </a></h4>
+  <a name="p2.3"> The central longitude appears as a vertical on the
+page. The default value is the mean longitude, although it may be set
+to any value (even one outside the limits). </a>
+  <h4><a name="p2.3"> <code> &lt;,'par&lt;allels&gt;',[lat1 lat2]&gt; </code>
+  </a></h4>
+  <a name="p2.3">The standard parallels can be specified. Either one or
+two parallels can be given, the default is a single parallel at the
+mean latitude </a>
+  <h4><a name="p2.3"> <code> &lt;,'rec&lt;tbox&gt;', ( 'on' | 'off'
+)&gt; </code> </a></h4>
+  <a name="p2.3">The map limits can either be based on
+latitude/longitude (the default), or the map boundaries can form an
+exact rectangle which
+contain the given limits. Unless the region being mapped is small, it
+is
+best to leave this <code> 'off' </code>. </a>
+
+<p>The default is to use a spherical earth model for the mapping transformations. However, ellipsoidal coordinates can
+also be specified. This tends to be useful only for doing coordinate transformations (e.g., if a particular
+gridded database in in this kind of projection, and you want to find lat/long data), since
+the difference would be impossible to see by eye on a plot.
+The particular ellipsoid used can be chosen using the following
+property: </a>
+    <h4><a name="p2.2"> <code> &lt;,'ell&lt;ipsoid&gt;', ellipsoid&gt;
+    </code> </a></h4>
+    <a name="p2.2"> For a list of available ellipsoids try <code>m_proj('set','albers')</code>.
+    </a>
+
+  <ol>
+    <a name="p2.3"> </a>
+    <h4><li><a name="p2.3"> Albers Equal-Area Conic </a></li>
+    </h4>
+    <a name="p2.3">This projection is equal-area, but not conformal </a>
+    <h4><li><a name="p2.3"> Lambert Conformal Conic </a></li>
+    </h4>
+    <a name="p2.3">This projection is conformal, but not equal-area. </a>
+  </ol>
+  <h3>  <li> <a name="p2.4"> Miscellaneous global projections </a><br>
+  </li> </h3>
+  <a name="p2.4">There are a number of projections which don't really
+fit into any of the above categories. Mostly these are global
+projections (i.e. they show the whole world), and they have been
+designed to be "pleasing to the eye". I'm not sure what use they are in
+general, but they make
+nice logos! </a>
+  <ol>
+    <a name="p2.4"> </a>
+    <h4><li><a name="p2.4"> Hammer-Aitoff </a></li>
+    </h4>
+    <a name="p2.4">An equal-area projection with curved meridians and
+parallels. </a>
+    <h4><li><a name="p2.4"> Mollweide </a></li>
+    </h4>
+    <a name="p2.4"> Also called the Elliptical or Homolographic
+Equal-Area Projection. Parallels are straight (and parallel) in this
+projection.
+Note that </a><a href="../map.html#e4">example 4</a> shows a rather
+sophisticated use designed to reduce distortion, a more standard map
+can be made using
+    <pre>m_proj('mollweide');<br>m_coast('patch','r');<br>m_grid('xaxislocation','middle');<br></pre>
+    <h4><li><a name="p2.4"> Robinson </a></li>
+    </h4>
+    <a name="p2.4"> Not equal-area OR conformal, but supposedly "pleasing to the eye".
+  </ol>
+  <h3> <li> <a name="p2.5"> Yeah, but which projection should I use?</a></li>
+  </h3>
+  <a name="p2.5">Well, it depends really on how large an area you are
+mapping. Usually, maps of the whole world are Mercator, although often
+the Miller Cylindrical projection looks better because it doesn't
+emphasize the polar areas as much. Another choice is the Hammer-Aitoff
+or Mollweide (which has meridians curving together near the poles).
+Both are equal-area. It's probably not a good idea to use these
+projections for maps that don't have the equator somewhere near the
+middle. The Robinson projection is not equal-area or conformal, but was the choice of National Geographic (for a while, anyway),
+and also appears in the IPCC reports.</a>
+  <p> <a name="p2.5">If you are plotting something with a large
+north/south extent, but not very wide (say, North and South America, or
+the North
+and South Atlantic), then the Sinusoidal or Mollweide projections will
+look pretty good. Another choice is the Transverse Mercator, although
+that
+is usually used only for very large-scale maps. </a></p>
+  <p><a name="p2.5"> For smaller areas within one hemisphere or other
+(say, Australia, the United States, the Mediterranean, the North
+Atlantic) you might pick a conic projection. The differences between
+the two available conic projections are subtle, and if you don't know
+much about projections it probably won't make much difference which one
+you use. </a></p>
+  <p> <a name="p2.5">If you get smaller than that, it doesn't matter a
+whole lot which projection you use. One projection I find useful in
+many cases is the Oblique Mercator, since you can align it along a long
+(but narrow) coastal area. If map limits along lines of
+longitude/latitude are OK, use a Transverse Mercator or Conic
+Projection. The UTM projection is also useful. </a></p>
+  <p> <a name="p2.5">Polar areas are traditionally mapped using a
+Stereographic projection, since for some reason it looks nice to have a
+"bullseye" pattern of latitude lines. </a></p>
+  <p> <a name="p2.5">If you want to get a quick idea of what any
+projection looks like, default parameters for all functions are set for
+a "typical" usage, i.e. to get a quick idea of what any projection
+looks like, you
+can do so without having to figure out a lot of numerical values: </a></p>
+  <pre><a name="p2.5">m_proj('stereographic');  % Example for stereographic projection<br>m_coast;<br>m_grid;<br></a></pre>
+  <p> </p>
+  <li>
+    <h3><a name="p2.6">Map scales</a></h3>
+  </li>
+  <a name="p2.6">M_Map usually scales the map so that it fits exactly
+within the current axes. If you just want a nice picture (which is
+mostly the case) then this is exactly what you need. On the other hand,
+sometimes you want to print things out at some exact scale (i.e. if you
+really much prefer sitting at your desk with a ruler and a piece of
+paper trying to figure out how far apart Bangkok and Tokyo are). Use
+the <code>m_scale</code> primitive for this - for a 1:250000 map, call
+  </a>
+  <pre><a name="p2.6">m_scale(250000);<br></a></pre>
+  <a name="p2.6">after you have drawn everything (Be careful - a
+1:250000 map of the world is a lot bigger than 8.5"x11" sheet of
+paper). </a>
+  <p> <a name="p2.6">This option is usually only useful for
+large-scale maps, i.e. maps of very small areas). </a></p>
+  <p> <a name="p2.6">If you wish to know the current scale, calling <code>m_scale</code>
+without any parameters will calculate and return that value. </a></p>
+  <p><a name="p2.6"> To return to the default scaling call <code>m_scale('auto')</code>.
+  </a></p>
+  <p> <a name="p2.6">(PS - If you do want to find distances from
+Bangkok
+to anywhere, plot an azimuthal equidistant projection of the world
+centered on Bangkok (13 44'N, 100 30'E), and choose a fairly small
+scale, like
+1:200,000,000). Another option would be to use range rings, see </a><a
+ href="../map.html#e11">example 11</a>.</p>
+  <h3> <li> <a name="p2.7"> </a> <a name="p2.7">Map coordinate
+systems - geographic and geomagnetic.</a></li>
+  </h3>
+  <a name="p2.7"> </a>
+  <p><a name="p2.7"> </a><a name="p2.6">Latitude/Longitude is the
+usual coordinate system for maps. In some cases UTM coords are also
+used, but these are really just a simple transformation based on the
+location of the equator and certain lines of longitude. On the other
+hand, there are occasions when a coordinate system based on some other
+set of axes is useful. For example, in space
+physics data is often projected in coordinates based on the magnetic
+poles.
+&nbsp;M_Map has a limited capabality to deal with data in these other
+coordinate
+systems. m_coord allows you to chnage the coordinate system from
+geographic
+to geomagnetic.&nbsp; The following code gives you the idea:<br>
+  </a></p>
+  <p><a name="p2.6"><code>&nbsp;lat=[25*ones(1,100) 50*ones(1,100) 25];<br>
+lon=[-99:0 0:-1:-99 -99];<br>
+  <br>
+clf<br>
+subplot(121);<br>
+m_coord('IGRF2000-geomagnetic'); % Treat all lat/longs as geomagnetic<br>
+m_proj('stereographic');<br>
+m_coast;<br>
+m_grid;<br>
+m_line(lon,lat,'color','r');&nbsp;&nbsp;&nbsp;&nbsp; % "lat/ln" assumed
+geomagnetic on the geomagnetic map<br>
+m_coord('geographic');&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+% Switch to assuming geographic<br>
+m_line(lon,lat,'color','c');&nbsp;&nbsp;&nbsp;&nbsp; % Now they are
+treated as geographic<br>
+  <br>
+subplot(122);<br>
+m_coord('geographic');&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;
+&nbsp; % Define all in geographic<br>
+m_proj('stereographic');<br>
+m_coast;<br>
+m_grid;<br>
+m_line(lon,lat,'color','c');<br>
+m_coord('IGRF2000-geomagnetic'); % Now assume that values are in
+geomagnetic<br>
+m_line(lon,lat,'color','r');</code><br>
+  <br>
+  <br>
+  </a></p>
+  <a name="p2.7"> </a>
+  <p><a name="p2.7"> </a><a name="p2.6">Note that this option is not
+used very much, hence is not fully supported. In particular, filled
+coastlines may not work properly. </a></p>
+</ol>
+<a name="p2.7"> </a>
+<hr><a name="p2.7"><br>
+<br>
+</a>
+<h2> <a name="p3"> 3. Coastlines and Bathymetry </a> </h2>
+<p> M_Map includes two fairly simple databases for coastlines and
+global elevation data. Highly-detailed databases are not included in
+this release because they are a) extremely large and b) extremely
+time-consuming to
+process (loops are inherently involved). If more detailed maps are
+required,
+<a href="#p9"> section 9 </a> and <a href="#p9.5"> section 10 </a>
+give instructions on how to add some freely-available high-resolution
+datasets. Read <a href="#p7"> section 7 </a> and <a href="#p8">
+section 8 </a> if you want to add your own coastline/bathymetry data. </p>
+<ol>
+  <h2> <a name="p3.1"> <li> Coastline options </li>
+  </a> </h2>
+  <p> M_Map includes a 1/4 degree resolution coastline database. This
+is suitable for maps covering large portions of the globe, but is
+noticeably coarse for many large-scale applications. Users not
+satisfied with their regional map are directed to <a href="#p7">
+section 7 </a> and/or <a href="#p9.5"> section 10 </a> for more
+information on creating and using high-resolution coastlines. The M_Map
+database is accessed using the <code> m_coast </code> function.
+Coastlines can be drawn as simple lines,
+using </p>
+  <pre>m_coast('line', ...optional line arguments );<br></pre>
+or
+  <pre>m_coast( optional line arguments );<br></pre>
+where the optional arguments are all the standard arguments for
+specifying line style, width, color, etc. Coastlines can also be drawn
+as filled
+patches using
+  <pre>m_coast('patch', ...optional patch arguments );<br></pre>
+where the optional trailing arguments are the standard patch
+properties. For example,
+  <pre>m_coast('patch',[.7 .7 .7],'edgecolor','g');<br></pre>
+draws gray land, outlined in green. When patches are being drawn, lakes
+and inland seas are given the axes background colour.
+  <p> Many older (ocean) maps are created with speckled land
+boundaries, which looks
+very nice in black and white. You can get a speckled boundary with </p>
+  <pre>m_coast('speckle', ....optional m_hatch arguments);<br></pre>
+which calls <code>m_hatch</code>. This only looks nice if there aren't
+too many
+very tiny islands and/or lakes in the image (see <a
+ href="../map.html#12._Speckle">Example 13</a>).
+  <p> Note that line coastlines are usually drawn rather rapidly.
+Filled
+coastlines take considerably more time to generate (because map limits
+are
+not necessarily rectangular, clipping must be accomplished in m-files).
+  </p>
+  <h2> <a name="p3.2"> <li> Topography/Bathymetry options </li>
+  </a> </h2>
+  <p> M_Map can access a 1-degree resolution global elevation database
+(actually, this database is is included in the Matlab distribution,
+used by of <code>$MATLAB/toolbox/matlab/demos/earthmap.m</code>). A
+contour map of elevations at default levels can be drawn using </p>
+  <pre>m_elev;<br></pre>
+Different levels can also be specified:
+  <pre>m_elev('contour',LEVELS, optional contour arguments);<br></pre>
+For example, if you want all the contours to be dark blue, use:
+  <pre>m_elev('contour',LEVELS,'edgecolor','b');<br></pre>
+Filled contours are also possible:
+  <pre>m_elev('contourf',LEVELS, optional contourf arguments);<br></pre>
+Finally, if you want to simply extract the elevation data for your own
+purposes,
+  <pre>[Z,LONG,LAT]=m_elev([LONG_MIN LONG_MAX LAT_MIN LAT_MAX]);<br></pre>
+returns rectangular matrices for depths Z at locations LONG,LAT.
+</ol>
+<hr>
+<h2> <a name="p4"> 4. Customizing axes </a> </h2>
+<p> </p>
+<ol>
+  <h3> <a name="p4.1"><li> Grid lines and labels </li>
+  </a></h3>
+  <a name="p4.1">In order to get the perfect grid, you may want to
+experiment with different grid options. Two functions are useful here,
+M_GRID which draws a grid, and M_UNGRID which erases the current grid
+(but
+leaves all coastlines and user-specified data alone). Try </a>
+  <pre><a name="p4.1">m_proj('Lambert');<br>m_coast;<br>m_grid;<br></a></pre>
+  <a name="p4.1">to get a Lambert conic projection of North America.
+Now try </a>
+  <pre><a name="p4.1">m_ungrid<br></a></pre>
+  <a name="p4.1">The coastline is still there, but the grid has
+disappeared and the axes shows raw X/Y projection coordinates. Now, try
+this: </a>
+  <pre><a name="p4.1">m_grid('xtick',10,'tickdir','out','yaxislocation','right','fontsize',7);<br></a></pre>
+  <a name="p4.1">The various options that can be changed are: </a>
+  <h4><a name="p4.1"> <code> 'box',( 'on' | 'off' | 'fancy' ) </code>
+  </a></h4>
+  <a name="p4.1">This specifies whether or not an outline box is drawn.
+Three types of outline boxes are available: <code>'on'</code>, the
+default, is a a simple line. Two types of fancy outline boxes are
+available. If <code>'tickdir'</code> is <code>'in'</code>, then
+alternating black and white patches are made (see </a><a
+ href="../map.html#e2">example 2</a>). If <code>'tickdir'</code> is
+set to <code>'out'</code>, then a more complex line pattern is drawn
+(see <a href="../map.html#e6">example 6</a>). Fancy boxes are in
+general only available for maps bounded by lat/long limits (i.e. not
+for azimuthal projections), but if this option is chosen
+inappropriately a warning message is issued.
+  <h4> <code> 'xtick',( num | [value1 value2 ...])</code> </h4>
+This specifies the number/location of the longitude grid. If a single
+number is specified, grid lines/values are drawn for approximately that
+number of equally-spaced locations (the number is only approximate
+because the M_GRID attempts to find "nice" intervals, i.e. it rounds to
+even increments). Exact locations can be specified by using a vector of
+location values. There is an analagous <code> 'ytick' </code>
+property.
+  <h4> <code> 'xticklabels',[label1;label2 ...]</code> </h4>
+Special labels can be specified. Labels can either be numerical values
+(which are then formatted by M_GRID), or string values which are used
+without change. There is an analagous <code> 'yticklabels' </code>
+property
+  <h4> <code> 'xlabeldir', ( 'middle' | 'end' )</code> </h4>
+Longitude labels are either middled onto the ends of their prespective
+grid lines (and drawn perpendicular to those lines), or are drawn
+extending outwards fro the ends of those lines. There is an analagous <code>
+'ylabeldir' </code> property.
+  <h4> <code> 'ticklen',value</code> </h4>
+Specifies the length of tickmarks (as a fraction of plot width)
+  <h4> <code> 'tickdir',( 'in' | 'out' )</code> </h4>
+Specifies whether tickmarks point inwards or outwards. If <code>'box'</code>
+is set to <code>'fancy'</code>, this specifies the form of the fancy
+outline box.
+ <h4> <code> 'tickstyle',( 'dd' | 'dm' )</code> </h4>
+ Specified whether axis labels are in decimal degrees (dd) or degrees-minutes (dm, default).
+  <h4> <code> 'color',colorspec <br>
+'linewidth', value <br>
+'linestyle', ( linespec | 'none' ) <br>
+'fontsize',value <br>
+'fontname',name</code> </h4>
+Specify various line/text properties for the grid and its labels.
+  <h4> <code> 'XaxisLocation',( 'bottom' | 'middle' | 'top' ) </code></h4>
+Specifies where the X-axis will be drawn, either at the bottom
+(southermost) end, at the top (northernmost) end, or in the middle.
+  <h4> <code> 'YaxisLocation',( 'left' | 'middle' | 'right' ) </code>
+  </h4>
+Specifies where the Y-axis will be drawn, either at the left
+(westernmostmost) end, at the right (easternmost) end, or in the
+middle.
+  <h3> <a name="p4.2"><li> Titles and x/ylabels </li>
+  </a></h3>
+  <a name="p4.2">Titles and x/ylabels can be added to maps using the <code>title</code>
+and <code>x/ylabel</code> functions in the usual
+way (this is a change from v1.0 in which the 'visible' property had to
+be
+explicitly set to 'on'; this is now done within m_grid). </a>
+  <h3> <a name="p4.3"><li> Legend Boxes </li>
+  </a></h3>
+  <a name="p4.3">A legend box can be added to the map using <code>m_legend</code>.
+Only some of the functionality of <code>legend</code> is currently
+included. The legend box can be dragged and dropped using the mouse
+button. </a>
+  <h3> <a name="p4.4"><li> Scale Bars </li>
+  </a></h3>
+  <a name="p4.4">A scale bar can be added to the map using <code>m_ruler</code>. The
+  bar is drawn horizontally or vertically, and will create a 'nice' number of ticks
+  (although this can be changed with another calling parameter). The location is
+  specified in normalized coordinates (i.e. between 0 and 1) so you can adjust
+  placement on the map. It is probably best to call this AFTER calling <code>m_grid</code>
+  since <code>m_grid</code> resets the normalization. 
+  <p> WARNING - the scalebar is probably not useful for any global
+          (i.e. whole-world) or even a significant-part-of-the-globe
+          map, but I won't stop you using it. Caveat user!
+</a>
+</ol>
+<hr>
+<h2> </a><a name="p5">5. Adding your own data </a> </h2>
+<p> The purpose of this package is to allow you to map your own data!
+Once a suitable grid and (possibly) a coastline have been chosen, you
+can add your own lines, text, or contour plots using built-in M_Map
+drawing functions which handle the conversion from longitude/latitude
+coordinates to projection coordinates. These drawing functions are very
+similar to the standard Matlab plotting functions, and are described in
+the <a href="#p5.3">next section</a>. </p>
+<p> Sometimes you may want to convert between longitude/latitude and
+projection coordinates without immediately plotting the data. This
+might happen if you want to interactively select points using <code>ginput</code>,
+or if you want to draw labels tied to a specific point on the screen
+rather than a particular longitude/latitude. Projection conversion
+routines are described in sections <a href="#p5.1">5.2</a> and <a
+ href="#p5.2">5.3</a>. Once raw longitude/latitude coordinates are
+converted into projection coordinates, standard Matlab plotting
+functions can be used. </p>
+<p> Maps are drawn to fit within the boundaries of the plot axes. Thus
+their scale is somewhat arbitrary. If you are interested in making a
+map to
+a given scale, e.g. 1:200000 or something like that, you can do so by
+using the <code>m_scale</code> primitive, see <a href="#p2.6">
+section 2.6
+</a>. The data units are the projection coordinates, which are
+distances
+expressed as a fraction of earth radii. To get a map "distance" between
+two points, use the Cartesian distance between the points in the
+projection
+coordinate system and multiply by your favourite value for the earth's
+radius, usually around 6370 km (exception - the UTM projection uses
+coordinates
+of northing and easting in meters, so no conversion is necessary). </p>
+<p> Caution: One problem that sometimes occurs is that data does not
+appear on the plot due to ambiguities in longitude values. For example,
+if plot longitude limits are [-180 180], a point with a longitude of,
+say, 200,
+may not appear in cylindrical and conic projections. This is not a bug.
+Handling the clipping in "wrapped around" curves requires adding points
+(rather than just moving them) and is therefore incompatible with
+various
+other requirements (such as keeping input and output matrices the same
+size
+in the conversion routines described below). </p>
+<ol>
+  <h3> <a name="p5.3"><li> Drawing lines, text, arrows, patches,
+hatches, speckles and
+contours </li>
+  </a></h3>
+  <a name="p5.3">For most purposes you do not need to know what the
+projection coordinates actually are - you just want to plot something
+at a specified longitude/latitude. Most of the time you when you want
+to plot something on a map you want to do so by specifying
+longitude/latitude coordinates, instead of the usual X/Y locations. To
+do so in M_Map, replace calls to <code> plot, line, text, quiver,
+patch, contour, and contourf </code> with M_Map equivalents that
+recognize lontgitude/latitude coordinates by prepending "m_" to the
+function name. For example, </a>
+  <pre><a name="p5.3"><br>  m_plot(LONG,LAT,...line properties)   % draw a line on a map (erase current plot) <br>  m_line(LONG,LAT,...line properties)   % draw a line on a map <br>  m_quiver(LONG,LAT,U,V,S)              % A quiver plot <br>  m_text(LONG,LAT,'string')             % Text <br>  m_patch(LONG,LAT,..patch properties)  % Patches. <br>  </a></pre>
+  <a name="p5.3">Each of these functions will handle the coordinate
+conversion internally, and will return a vector of handles to the
+graphic objects if desired. The only difference between these functions
+and the
+standard Matlab functions is that the first two arguments MUST be
+longitude
+and latitude. </a>
+  <p> <a name="p5.3">One caveat applies to <code>m_patch</code>. For
+compatibility reasons this uses the same code that applies to coastline
+filling. Coastlines come either as either "islands" or "lakes", and
+M_Map keeps track of the difference by assuming curves are oriented so
+that the filled area ("land") is always on the right as we go around
+the curve. This is slightly different than the convention used in <code>patch</code>
+which always fills the inside. Keeping track of this difference is
+relatively straightforward in a Cartesian system, but not so easy in
+spherical coordinates. In the absence of other information <code>m_patch</code>
+tries to do the right thing, but (especially when the patch intersects
+a map boundary) it can get confused. If a patch isn't filling
+correctly, try reversing the order of points using <code>flipud</code>
+or <code>fliplr</code>. </a></p>
+  <p> <a name="p5.3">Data gridded in longitude and latitude can also
+be contoured: </a></p>
+  <pre><a name="p5.3">m_contour(LONG,LAT,VALUES)<br>m_contourf(LONG,LAT,VALUES)<br></a></pre>
+  <a name="p5.3">Again, these functions will return handles to graphics
+objects, allowing (for example) the drawing of labelled contours: </a>
+  <pre><a name="p5.3">[cs,h]=m_contour(LONG,LAT,VALUES)<br>clabel(cs,h,'fontsize',6);<br></a></pre>
+  <p> <a name="p5.3">Fancy arrows (i.e. with width, head shape, and
+colour specifications) can be generated using <code> m_vec.m </code>.
+See the on-line help for more details about the use of <code>m_vec</code>.
+  </a></p>
+  <p> You can also get hatched areas by calling <code>m_hatch</code>: </p>
+  <pre>  m_hatch('single',LONG,LAT,...hatch properties)    % Interior Single Hatches. <br>  m_hatch('cross',LONG,LAT,...hatch properties)     % Interior Crossed Hatches. <br></pre>
+Note that this call does not generate the edge lines (an additional <code>m_line</code>
+is required for this. In addition, we can speckle the inside edges of
+patches using:
+  <pre>  <br>  m_hatch('speckle',LONG,LAT,...speckle properties)  % Speckled edges.<br></pre>
+See the on-line help and/or <a href="../map.html#12._Speckle">Example
+13</a> for more details about using <code>m_hatch</code>.
+  <center><a name="p5.3"> <img src="./extspeckle.gif"> </a></center>
+  <h3><li><a name="p5.2new"></a>Drawing images and p_color </li>
+  </h3>
+  <p><a name="p5.4"></a><tt>m_pcolor</tt> is a drop-in replacement for <tt>p_color,</tt>
+&nbsp;but you must be careful with its use near map boundaries. Ideally
+one would want data to extend up to (but not across) a map boundary
+(i.e. polygons are clipped). However, due to the way in which matlab
+handles surfaces this is not easily done. Instead - unless you are
+using a simple cylindrical or conic projection - you will probably get
+a ragged edge for the coloured surface.&nbsp;<br>
+  </p>
+  <p>There is no <tt>m_image</tt>. the <tt>image()</tt> function
+plots data in rectangular pixels only, and in general projected data
+will NOT appear as rectangular pixels. If you want to display a large
+pixel image on your map, there are several options:<br>
+  </p>
+  <ol>
+    <li>If your georeferenced image is in lat/long coordinates (i.e.
+each data row is along a line of constant latitude, each column a line
+of
+equal longitude), then you can use <tt>m_pcolor</tt> with <tt>shading
+flat</tt>. This is reasonably satisfactory (although it can be slow for
+large images), but you MUST remember to offset your coordinates by
+one-half of the pixel spacing. This is because of the different
+behaviors of <tt>p_color</tt> and <tt>image</tt> when given the same
+data.&nbsp;</li>
+    <ol>
+      <li><tt>image</tt> will center the drawn (i,j) pixel on
+the (i,j)th entry of the X/Y matrices.&nbsp;</li>
+      <li><tt>p_color</tt> with shading flat will draw a panel between
+the (i,j),(i+1,j),(i+1,j+1),(i,j+1) coordinates of the X/Y matrices
+with a color corresponding to the data value at (i,j). Thus everything
+will appear shifted by one half a pixel spacing.</li>
+    </ol>
+    <p>Satellite data from mid-latitudes is sometime amenable to this
+solution. See the <a href="../map.html#satellite_examples">examples of
+satellite data manipulation</a>. </p>
+    <li> If your figure has already been placed in some projection, and
+if you know the exact parameters of that projection, you can probably
+use a straight image call and then overplot an M_Map map. For example,
+polar satellite images are often in a polar stereographic projection.
+In this case you should use m_ll2xy to get the screen coordinates of
+the image corners, then use those points in an image() call before
+overplotting your data. See in particular <a
+ href="../map.html#3._Aerial_photos"> This example </a>.
+      <p> HINT - check to see that coastlines overplot to make sure
+this is working correctly. </p>
+    </li>
+  </ol>
+  <h3> <a name="p5.4"><li>Drawing tracklines<br>
+  </li>
+  </a></h3>
+  <a name="p5.4"> </a> <a name="p5.4">It is sometimes useful to
+annotate lines
+representing
+the time-varying location of a ship, aircraft, or satellite with time
+and date annotations. This can be done using <code> m_track</code>. </a>
+  <pre><a name="p5.4">m_proj('UTM','long',[-72 -68],'lat',[40 44]);<br>m_gshhs_i('color','k');<br>m_grid('box','fancy','tickdir','out');<br><br>% fake up a trackline<br>lons=[-71:.1:-67];<br>lats=60*cos((lons+115)*pi/180);<br>dates=datenum(1997,10,23,15,1:41,zeros(1,41));<br><br>m_track(lons,lats,dates,'ticks',0,'times',4,'dates',8,...<br>        'clip','off','color','r','orient','upright');  <br></a></pre>
+  <center><a name="p5.4"> <img src="./track1.gif"> </a></center>
+  <a name="p5.4"> <br>
+See the on-line help for more details about the use of <code>m_track</code>,
+and the different options for setting fontsize, tick spacing, date
+formats, etc. </a>
+  <p> <a name="p5.4">While fiddling with the various parameters, it
+is
+often handy to be able to erase the plotted tracks without erasing the
+coastline and grid. This can be done using </a></p>
+  <pre><a name="p5.4">m_ungrid track<br></a></pre>
+  <a name="p5.4">or </a>
+  <pre><a name="p5.4">m_ungrid('track')<br></a></pre>
+  <h3><a name="p5.4"> </a> <a name="p5.5"><li> Drawing range rings
+and geodesics</li>
+  </a></h3>
+  <a name="p5.5">One nifty thing that is sometimes useful is the
+ability to draw circles at a given range or ranges from a specific
+location. This can be done using <code> m_range_ring</code>, which has
+3 required calling parameters: LONG, LAT, RANGE, followed by any number
+of (optional) line specification property/value pairs. </a><a
+ href="../map.html#e11">Example 11</a> illustrates how to use <code>m_range_ring</code>.
+  <p> If you want to plot circular geodesics (i.e. curves which are
+perpedicular to
+the range rings at all ranges), <code>m_lldist</code> can find both
+distances and
+points along the geodesics between points. <a href="../map.html#e13">Example
+13</a> illustrates how to use <code>m_lldist</code>.<br>
+  </p>
+  <p>If you care about the difference between great circle and
+ellipsoidal geodesics (a very very small proportion of users I would
+bet) then <code>m_fdist</code> (which computes the position at a given
+range/bearing from another), <code>m_idist</code> (distance and
+bearings between points), and <code>m_geodesic</code> (points along
+the geodesic) can be used with a variety of (user-specified) ellipses.
+The calling sequence for these is different than for <code>m_lldist</code>
+for historical reasons.<br>
+  </p>
+  <h3> <a name="p5.1"><li> Converting longitude/latitude to
+projection
+coordinates </li>
+  </a></h3>
+  <a name="p5.1">If you want to use projection coordinates (perhaps
+you
+want to compute map areas, or distances, or you want to make a legend
+in the upper left corner), the following command converts
+longitude/latitude coordinates to projection coordinates. </a>
+  <pre><a name="p5.1">[X,Y]=m_ll2xy(LONG,LAT, ...optional clipping arguments )<br></a></pre>
+  <a name="p5.1">where LONG, LAT, X, and Y are matrices of the same
+size. Projection coordinates are equal to true distances near the
+center of the map, and are expressed as fractions of an earth radius.
+To get a distance, multiply by the radius of the earth (about 6370km).
+The exception is the UTM projection which provides coordinates of
+northing and easting in meters. </a>
+  <p> <a name="p5.1">The possible clipping arguments are </a></p>
+  <h4><a name="p5.1"> <code> 'clip','on' </code> </a></h4>
+  <a name="p5.1">This is the default. Columns of LONG and LAT are
+assumed to form lines, and these are clipped to the map limits. The
+first
+point outside the map is therefore moved to the map edge, and all other
+points are converted the NaN. </a>
+  <h4><a name="p5.1"> <code> 'clip','off' </code> </a></h4>
+  <a name="p5.1">No clipping is performed. This is sometimes useful
+for
+debugging purposes. </a>
+  <h4><a name="p5.1"> <code> 'clip','point' </code> </a></h4>
+  <a name="p5.1">Points are tested against the map limits. Those
+outside the limits are converted to NaN, those inside are converted to
+projection coordinates. No points are moved. This option is useful for
+point data
+(such as station locations). </a>
+  <h4><a name="p5.1"> <code> 'clip','patch' </code> </a></h4>
+  <a name="p5.1">Points are tested against the map limits. Those
+outside the limits changed into a point exactly on the limits. Those
+inside are converted to projection coordinates. This option may be
+useful when trying to draw patches, however it probably won't work
+well. </a>
+  <h3><a name="p5.1"> </a><a name="p5.2"><li> Converting projection
+coordinates to longitude/latitude </li>
+  </a></h3>
+  <a name="p5.2">Conversion from projection coordinates to
+longitude/latitude is straightforward: </a>
+  <pre><a name="p5.2">[LONG,LAT]=m_xy2ll(X,Y)<br></a></pre>
+  <a name="p5.2">There are no options. </a>
+  <h3><a name="p5.2"> </a><a name="p5.6"><li> Computing distances
+between points </li>
+  </a></h3>
+  <a name="p5.6">Geodesic (great circle) distances on a spherical
+earth
+can be computed between pairs of either geographic (long/lat) or map
+(X/Y) coordinates using the functions <code>m_lldist</code> and <code>m_xydist</code>.
+For example, </a>
+  <pre><a name="p5.6">DIST=m_lldist([20 30],[44 45])<br></a></pre>
+  <a name="p5.6">computes the distance from 20E, 44N to 30E, 45N.
+Alternatively, if you want to compute the distance between two points
+selected by the mouse: </a>
+  <pre><a name="p5.6">[X,Y]=ginput(2);<br>DIST=m_xydist(X,Y)<br></a></pre>
+  <a name="p5.6">will return that distance. Because of the
+inaccuracies
+implicit in a spherical earth approximation the true geodesic distances
+may differ by 1% or so from the computed distances. </a>
+
+<p> If you want greater accuracy, then you must calculate geodesics on an
+ellipsoidal earth. There is a very accurate numerical algorithm for
+doing so (<a href="http://www.ngs.noaa.gov/PUBS_LIB/inverse.pdf"> Vincenty's
+algorithm</a>), which is implemented in the functions 
+<code> m_idist</code>, <code>m_fdist</code>, and <code> m_geodesic</code>. For example,
+
+<pre>
+ [distance,a12,a21] = m_idist(lon1,lat1,lon2,lat2,spheroid)
+</pre>
+
+computes the <code>distance </code> in meters between two points <code>(lon1,lat1)</code>
+and <code>(lon2,lat2)</code> on the specified spheroid (<code>'wgs84'</code> is the
+default, for other options see the code or use on of the options shown 
+by <code>m_proj('get','utm')</code>). Forward and reverse azimuths <code>a12</code>
+and <code>a21</code> in degrees are also computed.
+
+<p> <code>m_fdist</code> is used to get the location of a point at a given bearing and
+distance from a specified point.
+
+<p> Finally, if you want to plot a geodesic on a map, then <code> m_geodesic</code>
+can be used to generate a vector of points along the elliptical geodesic between two specified
+points. If you ever find yourself needing this, I'd be interested in knowing about it!
+
+
+
+</ol>
+<hr>
+<h2><a name="p5.6"> </a><a name="p6">6. More complex plots </a> </h2>
+<p> For ideas on how to make more complex plots, see the <a
+ href="../map.html#examples">Examples</a>. These plots are also
+included
+in the function <code>m_demo</code>. </p>
+<hr>
+<h2> <a name="p13">7. Removing data from a plot </a> </h2>
+<p> </p>
+<p> Once a given map includes several elements a certain amount of
+fiddling is usually necessary to satisfy the natural human urge to give
+the image a certain aesthetic quality. If the image includes
+complicated coastlines which take a long time to draw (e.g. those
+discussed below) than clearing the figure and redrawing soon becomes
+tedious. The <code>m_ungrid</code> command introduced above can be
+used to selectively remove parts of the
+figure. For example: </p>
+<pre>m_proj('lambert','long',[-160 -40],'lat',[30 80]);<br>m_coast;<br>m_range_ring(-123,49,[1e3:1e3:10e3],'color','r');<br></pre>
+draws range rings at 1000km increments from my office. But I am
+unsatisfied with this, and want to redraw using only 200km increments.
+I can remove the effects of <code>m_range_ring</code> and redraw
+using:
+<pre>m_ungrid range_ring<br>m_range_ring(-123,49,[200:200:2000],'color','r');<br></pre>
+In general the results of <code>m_ANYTHING</code> can be deleted
+by calling <code>m_ungrid ANYTHING</code>.
+<p> <code>m_ungrid</code> can recognize and delete specific elements
+by searching the <code>'tag'</code> property of all plot elements,
+which is set by the various different M_Map routines. </p>
+<hr>
+<h2> <a name="p7">8. Adding your own coastlines </a> </h2>
+<p> If you are interested in a particular area and want a
+higher-resolution coastline than that used by <code>m_coast</code>,
+the best procedure is to </p>
+<ol>
+  <li> Get a subset of points from some high-resolution database, and </li>
+  <li> convert to screen coordinates using <code>m_ll2xy</code>, and
+plot. </li>
+</ol>
+One place where high-resolution coastline data can be obtained is <a
+ href="http://rimmer.ngdc.noaa.gov/mgg/coast/getcoast.html"> The
+Coastline
+Extractor</a>. Follow the instructions there to get coastline data in
+a matlab-readable file, and download to your computer. If the file is
+saved as "coast.dat", you can plot it (as lines) using the following:
+<pre>load coast.dat<br>m_line(coast(:,1),coast(:,2));<br></pre>
+Filled coastlines will require more work. You should first read the
+instructions there on joining the coastline data into continuous
+segments. If you are lucky, (i.e. no lakes or anything else), you <em>may</em>
+achieve success with
+<pre>load coast.dat<br>[X,Y]=m_ll2xy(coast(:,1),coast(:,2),'clip','patch');<br>k=[find(isnan(X(:,1)))];<br>for i=1:length(k)-1,<br>    x=coast([k(i)+1:(k(i+1)-1) k(i)+1],1);<br>    y=coast([k(i)+1:(k(i+1)-1) k(i)+1],2);<br>    patch(x,y,'r');<br>end;<br></pre>
+If this does not work, read the comments in <code>private/mu_coast</code>,
+orient the curves in the desired fashion, and use <code>m_usercoast</code>
+to load your own data.
+<ol>
+  <h3> <li> <a name="p7.1">
+  
+  DCW political boundaries </a> </li></h3>
+  
+  <h4> As of 2011 the DCW web site has been decommissioned. The following
+  information is retained for historical reasons only. New users see the next
+  section on shapefiles </h4>
+  
+  <p> Files containing political boundaries for various countries and
+US
+states can be downloaded from <a href="http://www.maproom.psu.edu/dcw">
+http://www.maproom.psu.edu/dcw/</a>. Select an area and choose the
+"download
+points" option (rather than "download data"). Once downloaded to your
+machine
+use <code>m_plotbndry</code> to access and plot the desired boundary.
+For
+example, if you downloaded various US states into a subdirectory
+"states:, </p>
+  <pre>m_plotbndry('states/arizona','color,'r')<br></pre>
+would plot arizona on the current map.
+
+  <h3> <a name="p7.2"><li>
+ 
+  </a> ESRI Shapefiles </li></h3>
+<p> A de facto standard for the interchange of vector data are ESRI shapefiles. A dataset
+comes in (at minimum) 3 files, each with the same root name but 
+with <code>.dbf</code>, <code>.shp</code>, and <code>.shx</code> extensions. Files
+can contain point, line or polygon information, as well as other fields in a self-describing
+way. For more information see <a href="http://en.wikipedia.org/wiki/Shapefile"> this
+description </a>.
+
+<p> Many (all?) shapefiles can be read in using <code>m_shaperead</code>, which returns
+a data structure containing the information in the files. However,
+figuring out what to do with the contents requires you to examine the contents of the
+data structure. It may also be useful to examine projection information in the
+<code>.prj</code> text file, which contains information about map projections, especially
+if you are overlaying data from different sources.
+
+
+<p> You can usually at least create a simple plot of the data stored in files
+<code>datafile.shp</code>, <code>datafile.shx</code> and <code>datafile.dbf</code>
+using<br>
+<pre>
+M=m_shaperead('datafile'); 
+clf; 
+for k=1:length(M.ncst), 
+  line(M.ncst{k}(:,1),M.ncst{k}(:,2)); 
+end; 
+</pre>
+
+
+
+</ol>
+<hr>
+<h2> <a name="p8">9. Adding your own topography/bathymetry </a> </h2>
+<p> A number of global and regional topography databases are
+available
+at <a href="http://dss.ucar.edu"> NCAR </a>. Several are available
+for
+free from <a href="http://dss.ucar.edu/catalogs/free.html"> their ftp
+site</a>. </p>
+<p> As long as the data is stored in a mat-file as a rectangular
+matrix
+in longitude/latitude, then <code>m_contour</code> or <code>m_contourf</code>
+can be used to plot that data. </p>
+<ol>
+  <h3> <a name="p8.1"> <li>  
+  
+  </a> <a href="http://topex.ucsd.edu/marine_topo/text/topo.html">Sandwell
+and Smith Bathymetry </a> </li></h3>
+  <p> A recent new bathymetry with approximately 1km resolution in
+lower latitude areas is being used by many people. This dataset is
+described
+at <a href="http://topex.ucsd.edu/marine_topo">
+http://topex.ucsd.edu/marine_topo/&nbsp; </a> and is available as a
+134Mb binary file at <a
+ href="ftp://topex.ucsd.edu/pub/global_topo_2min">
+ftp://topex.ucsd.edu/pub/global_topo_2min/ </a> (get the file
+topo_X.Y.img where X.Y is the version number). The authors have
+included an m-file (<a
+ href="ftp://topex.ucsd.edu/pub/global_topo_2min/matlab/mygrid_sand.m">mygrid_sand.m</a>)
+which can extract portions of the data (you will have to modiy path
+names within the code). Once this database (and the m-file) is
+installed on
+your computer, you can use it in M_Map very easily. A typical usage is
+as follows: </p>
+  <pre>% Extract data<br>[elevations,lat,lon]=mygrid_sand([lat_south lat_north long_west long_east]);<br><br>% Use in M_Map command<br>m_contour(lon,lat,elevations);<br></pre>
+For some projections, you must make sure that the 'lon' values returned
+by <code>mygrid_sand.m</code> fall within the range used in this
+projection (i.e. you may have to add/subtract 360). This seems to
+happen all the time for areas in the west (i.e. negative longitudes),
+if you forget this you often end up with bewildering error messages
+about empty vectors!
+</ol>
+<hr>
+<h2><a name="10._Using_TerrainBase_5-minute_global"></a> <a name="p9">10.
+Using TerrainBase 5-minute or ETOPO2 2-minute global
+bathymetry/topography </a> </h2>
+<ol>
+<li> <p> For many purposes the elevation database accessed by M_Map
+provides
+adequate resolution. However, there are also many cases when more
+detail
+is desired. I have not included a higher-resolution database because it
+would greatly increase the size of the package. However, v1.2 includes
+m-files to access and plot a popular global 5-minute
+bathymetry/topography database, after a few minutes of work. </p>
+<p> This section provides instructions on how to download <a
+ href="http://dss.ucar.edu/datasets/ds759.2/"> TerrainBase</a>, and
+convert it from a 56Mb ASCII file to a 18Mb binary file using <code>
+m_tba2b.m</code>. It is then straightforward to access and plot
+bathymetry from this file using <code> m_tbase.m</code>, which is in
+every way functionally identical to <code>m_elev</code> (see Section <a
+ href="#p3.2">3.2</a>). </p>
+<p> TerrainBase is also available on CDrom, and is also commonly
+stored
+in netcdf (or other) binary format somewhere on many academic networks.
+If you modify <code> m_tbase.m </code> to access data from one of
+these sources, let me know! </p>
+<p> How to install TerrainBase: </p>
+<ol>
+  <li> get and uncompress the tbase.Z file from <a
+ href="http://dss.ucar.edu/datasets/ds759.2/">http://dss.ucar.edu/datasets/ds759.2/
+    </a> into the m_map directory.
+    <p> </p>
+  </li>
+  <li> Run <code> m_tba2b('PATHNAME') </code> to store the
+resulting
+18Mb binary file as <code> PATHNAME/tbase.int</code>.
+    <p> </p>
+  </li>
+  <li> Delete the original ASCII file <code>tbase</code>.
+    <p> </p>
+  </li>
+  <li> Edit the <code>PATHNAME</code> setting in <code>m_tbase</code>
+to point to the location of this file. </li>
+</ol>
+That's it! Test things out with this map of the western mediterranean:
+<pre>m_proj('lambert','lon',[-10 20],'lat',[33 48]);<br>m_tbase('contourf');<br>m_grid('linestyle','none','tickdir','out','linewidth',3);<br></pre>
+<center> <img src="./extbase.gif"> </center>
+<br>
+</li>
+<li> As of Apr 2006, there is a corrected higher-resolution (2 minute) database <a
+ href="http://dss.ucar.edu/datasets/ds759.3/"> ETOPO2</a>. Download 
+ <a href="http://dss.ucar.edu/dsszone/ds759.3/etopo2_2006apr/etopo2_2006apr.raw.gz"> 
+ http://dss.ucar.edu/dsszone/ds759.3/etopo2_2006apr/etopo2_2006apr.raw.gz</a> (a gzipped binary),
+ gunzip it into a 116Mb file, edit the <code>PATHNAME</code> setting in <code>m_etopo2</code>
+to point to the location of this file, and then use it in the same way as <code>m_tbase</code>
+and <code>m_elev</code>. UCAR requires users to register and the second link won't work without you doing
+this (go to first link and follow instructions). 
+</li>
+</ol> 
+
+<h2> <a name="p9.5">11. Using GSHHS high-resolution coastline
+database </a> </h2>
+<p> </p>
+<ol>
+  <h3> <a name="p9.6"> <li> Installing GSHHS </li>
+  </a></h3>
+  <a name="p9.6"> </a>
+  <p> When drawing maps there is always a tradeoff between the
+execution
+time of the generating program and the resolution of the resulting map.
+Included in M_Map is a 1/4 degree coastline database which can be used
+to generate very fast maps, with adequate resolution for many purposes.
+  </p>
+  <p> However, it is often desirable to be able to make detailed maps
+of
+limited geographic areas. For this purpose a higher-resolution
+coastline
+database is necessary. I have not included such a database in M_Map
+because
+it would greatly increase the size of the package. However, I have
+included
+m-files to access and use a popular high-resolution database called <a
+ href="http://www.ngdc.noaa.gov/mgg/shorelines/gshhs.html"> GSHHS </a>
+  </p>
+  <p> As distributed, GSHHS consists of a hierarchical set of
+databases
+at different resolutions. The lowest or "crude" resolution is not as
+good
+as the M_Map database, although it contains many more inland lakes. The
+"high" resolution consists of points about 200m apart. There is also an
+even
+finer "full" resolution. You can install part or all of the database
+(depending on how much disk space you have available). The "full"
+resolution occupies 90Mb of disk space, and successively coarser
+resolutions are smaller by about 1/4. Thus "high" resolution occupies
+21Mb, "intermediate" uses 6Mb, and "low" uses 1.1Mb (one reason for not
+always using "high" resolution
+is that the entire 90Mb database must be read and processed each call,
+which may take some time). </p>
+  <p> How to install GSHHS: </p>
+  <ol>
+    <li> Go to <a
+ href="http://www.ngdc.noaa.gov/mgg/shorelines/data/gshhs/">
+http://www.ngdc.noaa.gov/mgg/shorelines/data/gshhs/</a>. </li>
+    <li> Get and uncompress any or all of the files <code>
+gshhs_c.b.gz, gshhs_l.b.gz, gshhs_i.b.gz</code> and/or <code>gshhs_h.b.gz</code>
+in a convenient directory. One useful place is in <code>m_map/private</code>.
+GSHHS data format has changed between v1.2 and 1.3, and again for v2.0, but m_map
+should be able to figure this out.</li>
+    <li> If the database files are not in subdirectory <code>
+m_map/private </code>, you must edit the <code>FILNAME</code>
+settings in <code>m_gshhs_c.m, m_gshhs_l.m, m_gshhs_i.m, m_gshhs_h.m</code>
+and/or <code>m_gshhs_f.m</code> to point to the appropriate files. </li>
+
+
+  <h3> <a name="p9.7"> <li> Using GSHHS effectively </li>
+  </a></h3>
+  <a name="p9.7"> </a> The simplest calling mechanism is identical
+to
+that for <code> m_coast </code> (<a href="#p3"> Section 3 </a>). For
+example, to draw a gray-filled high-resolution coastline,
+  <pre>m_gshhs_h('patch',[.5 .5 .5]);<br></pre>
+is sufficient. However, execution times may be very, very long, as the
+entire database must be searched and processed. I would not recommend
+trying to draw world maps with the intermediate or high-resolution
+coastlines! There are two ways to speed this up. The first is merely to
+use a lower-resolution database, with fewer points. The second is
+useful if you are going to
+be repeatedly drawing a map (because, for example, it's the base figure
+for your work). In this case I recommend that you save an intermediate
+processed (generally smaller) file as follows:
+  <pre>m_proj ...  % set up projection parameters<br><br>% This command does not draw anything - it merely processes the <br>% high-resolution database using the current projection parameters <br>% to generate a smaller coastline file called "gumby"<br><br>m_gshhs_h('save','gumby');<br><br>% Now we can draw a few maps of the same area much more quickly<br><br>figure(1);<br>m_usercoast('gumby','patch','r');<br>m_grid;<br><br>figure(2);<br>m_usercoast('gumby','linewidth',2,'color','b');<br>m_grid('tickdir','out','yaxisloc','left');<br><br>etc.<br></pre>
+</ol>
+<hr>
+<h2> <a name="p10">12. M_Map toolbox contents and description </a> </h2>
+<p> </p>
+<ol>
+  <li> Contents.m - toolbox contents </li>
+  <li> m_demo.m - demonstrates a few maps. </li>
+</ol>
+User-callable functions
+<ol>
+  <li> m_proj.m - initializes projection</li>
+  <li>m_coord - geomagnstic to geographic coords<br clear="all">
+    <br>
+  </li>
+  <li>m_grid.m - draws grids </li>
+  <li> m_scale.m - forces map to a given scale </li>
+   <li> m_ruler - draws a scale bar </li>
+   <p> </p>
+ 
+  <li> m_ungrid.m - erases map elements (if you want to change
+parameters)
+    <p> </p>
+  </li>
+  <li> m_coast.m - draws a coastline </li>
+  <li> m_elev.m - draws elevation data </li>
+  <li> m_tbase.m - draws elevation data from high-resolution database </li>
+  <li> m_etopo2.m - draws elevation data from (another) high-resolution database </li>
+  <li> m_gshhs_c.m - draws coastline from GSHHS crude database </li>
+  <li> m_gshhs_l.m - draws coastline from GSHHS low-resolution
+database </li>
+  <li> m_gshhs_i.m - draws coastline from GSHHS
+intermediate-resolution
+database </li>
+  <li> m_gshhs_h.m - draws coastline from GSHHS high-resolution
+database </li>
+  <li> m_gshhs_f.m - draws coastline from GSHHS full resolution
+database </li>
+  <li> m_plotbndry.m - draws a political boundary from the DCW </li>
+  <li> m_usercoast.m - draws a coastline using a user-specified
+subset database.
+  <li> m_shaperead.m - reads ESRI shapefiles </li>
+    <p> </p>
+  </li>
+  <li> m_plot.m - draws line data in map coords </li>
+  <li> m_line.m - draws line data in map coords </li>
+  <li> m_text.m - adds text data in map coords </li>
+  <li> m_legend.m - Draw a legend box </li>
+  <li> m_patch.m - adds patch data in map coords</li>
+  <li>m_pcolor - draws pcolor surface<br>
+  </li>
+  <li> m_quiver - draws arrows for vector data </li>
+  <li> m_contour - draws contour lines for gridded data </li>
+  <li> m_contourf - draws filled contours </li>
+  <li> m_track - draws annotated tracklines </li>
+  <li> m_range_ring - draws range rings </li>
+    <p> </p>
+   <li> m_ll2xy.m - converts from long/lat to map coordinates </li>
+  <li> m_xy2ll.m - converts from map coordinates to long/lat</li>
+  <li>m_geo2mag - converts from magnetic to geographic coords</li>
+  <li>m_mag2geo - the reverse<br clear="all">
+    <br>
+  </li>
+  <li> m_lldist - distance between long/lat points </li>
+  <li> m_xydist - distance between map coordinate points</li>
+  <br>
+  <li> m_fdist - location of point at given range/bearing along
+ellipsoidal earth </li>
+  <li> m_idist - range/bearings between points on ellipsoidal earth </li>
+  <li> m_geodesic - points on geodesics between given points on
+ellipsoidal earth <br>
+  </li>
+  <li> m_tba2b.m - used in installing high-resolution elevation
+database.
+    <p> </p>
+  </li>
+  <li> m_vec.m - fancy arrows </li>
+</ol>
+Internal functions (not meant to be user-callable)
+<ol>
+  <li> private/mp_azim.m - azimuthal projections </li>
+  <li> private/mp_cyl.m - cylindrical projections (equatorial) </li>
+  <li> private/mp_conic.m - conic projections </li>
+  <li> private/mp_tmerc.m - transverse cylindrical projections </li>
+  <li> private/mp_utm.m - elliptical universal transverse cylindrical
+projections </li>
+  <li> private/mp_omerc.m - oblique cylindrical projection
+    <p> </p>
+  </li>
+  <li> private/mu_util.m - various utility routines </li>
+  <li> private/mu_coast.m - routines to handle coastlines.</li>
+  <li>private/mc_coords - coordinate conversion.<br>
+  </li>
+  <li> private/clabel.m - patched version of clabel (matlab v5.1
+version does not contain capabilities for different text properties).
+    <p> </p>
+  </li>
+  <li> private/m_coasts.mat - coastline data </li>
+</ol>
+HTML Documentation
+<ol>
+  <li> map.html - documentation intro </li>
+  <li> private/mapug.html - users guide </li>
+  <li> various .gif - examples. </li>
+</ol>
+<hr>
+<h2> <a name="p11">13. Known Problems and Bugs </a> </h2>
+<p> </p>
+<ol>
+  <li> Running M_Map with Matlab5.0 (Student versions?) can sometimes
+produce errors since 5.0 has various bugs and "features" that do not
+appear in later versions. One in particular has cropped up - the file <code>m_coast.mat</code>
+is sometimes not found when using <code>m_coast.m</code>. The easiest
+solution is to put <code>../m_map/private</code> into your path as
+well as <code>../m_map</code> (in later versions matlab can find the
+mat-file).
+    <p> </p>
+  </li>
+  <li> Running M_Map on a PC with Matlab5.1 can sometimes produce
+a lot of
+    <pre>&gt; Warning: Divide by zero.<br></pre>
+messages. This is due to a bug in Matlab (actually due to the compiler
+TMW used) that results in an incorrect warning flag being set when
+dividing some numbers by NaN. You can safely ignore these errors and
+wait for v5.2
+    <p> </p>
+  </li>
+  <li><b> If plotted data is coloured white, this will be changed to
+black in the postscript output.</b> This is due to the workings of the <code>print</code>
+command. In order to avoid this, set the figure
+background to white, i.e.
+    <pre>set(gcf,'color','white')<br></pre>
+    <p> </p>
+  </li>
+  <li><b>Generally weird-looking stuff that happens when you use filled contours.</b>
+  For some reason this has been a glory-hole for all kinds of weird bugs in MATLAB. Most
+  of them relate somehow to the way in which the map background interacts with
+  contourf patches, and how the 'renderer' (the internal matlab code that figures out what
+  goes on top of what) works, or doesn't work. Unfortunately I can't think of way that 
+  works around the problem in
+  all cases, but if you asee something weird, try:
+  
+  
+     <pre> set(findobj('tag','m_grid_color'),'facecolor','none')&nbsp;</pre>
+     
+   <p> after the <pre>m_grid</pre> call, or
+   
+   <pre> set(gcf,'renderer','opengl'); </pre>
+     
+    (under Unix you may have to do this one on starting MATLAB)
+     
+  </li>
+  <li>
+    <p><b>Things not appearing correctly in tiff output</b>. Matlab
+uses
+ghostscript to covert from ps to many other formats. But their version
+has
+some problems. It is better to print to postscript and do the
+conversion
+(say, to tiff) yourself.<br>
+    </p>
+    <p> </p>
+  </li>
+</ol>
+
+
+<h2> <a name="p11a">14. OCTAVE Compatibility Issues </a> </h2>
+<p> </p>
+From their website: "<a href="http://www.gnu.org/software/octave/"> GNU Octave</a> is a high-level interpreted language, 
+primarily intended for numerical computations. [...] The Octave language is quite similar 
+to Matlab so that most programs are easily portable."
+
+<p> M_Map currently runs under Octave, sort of. In M_Map 1.4f a number of small incompatibilities have
+been addressed (mostly by spelling out the full names of graphics objects properties, rather than by using
+the shortened but unique versions allowable in MATLAB) and so it doesn't immediately bomb. However,
+there are still features that either don't work, or don't work properly.
+
+<p> Note: since  "private" subdirectories
+are not implemented (as of Octave 3.2.3), you must add the <code>m_map/private</code> 
+subdirectory explicitly to the path:
+<pre>
+addpath [whatever]/m_map 
+addpath [whatever]/m_map/private
+</pre>
+
+<p> Features that don't work, or don't work well, include:
+<ol>
+<li> Octave <code>line</code> commands do not accept MATRIX x/y parameters. This means your code
+might need to be changed when <code>m_line</code> is called. </li><br>
+<li> 3D patch functionality is not completely implemented in Octave. This means that
+fancy box outlines will not work, and so these have been disabled in M_Map if it recognizes that Octave is
+being used. </li><br>
+<li> 2D Patch functionality is still imperfect. Filled patches are not always correctly filled. This
+means filled coastlines, or filled contours, sometimes just look wrong. Stick with line plots.</li><br>
+<li> Clipping functionality for line objects in Octave is imperfect. Sometimes lines outside the plot 
+boundaries are not drawn even when <code>'clipping'</code> is set to `<code>'off'</code>. Live with it.</li><br>
+<li> The simple bathymetry called by <code>m_elev</code> comes from a built-in Matlab
+demo .mat file and this is not available in Octave. </li><br>
+<li> Things 'in front' or 'behind' other things in plots are not always correctly rendered as being
+in front or behind.</li><br>
+<li> Text label alignment (especially for the lat/long grid) can be a bit odd sometimes. Live with it.</li><br>
+<li> Hatching and speckled outlines require units of 'points' for the axis, and although you can change
+the units property to 'points' it doesn't seem to change the numbers returned for the position. So
+avoid hatching or speckles.
+</ol>
+
+<h2> <a name="p12">15. Changes since last release </a> </h2>
+<p> </p>
+<ol>
+  <p> </p>
+  <li>Finally including m_pcolor. Actually I could have done this a
+long time ago, but there are some philosophical reasons not to - it
+doesn't
+really do the "right" thing. But on the other hand it does do
+*something*
+(and I give examples)
+    <p> </p>
+    <br>
+  </li>
+  <li>geomagnetic/geographic coordinate systems. Let me know if you
+use this. It was an interesting thing to add but perhaps a waste of
+time...
+    <p> </p>
+  </li>
+  <li> Super-accurate geodesics on the ellipsoidal earth! </li>
+      <p> </p>
+
+  <li> Speckled coastlines for the old-fashioned hand-drawn look</li>
+      <p> </p>
+
+  <li> A SHAPEFILE reader. </li>
+  
+</ol>
+<hr> <a href="../map.html"> Back to home page </a>
+<hr> <i> Last changed 4/Dec/2011. Questions and comments to <a
+ href="mailto:rich@eos.ubc.ca">rich@eos.ubc.ca</a> </i><br>
+<br>
+</body>
+</html>
