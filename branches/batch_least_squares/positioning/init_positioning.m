@@ -1,13 +1,12 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, is_bias] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, is_bias, y0, A, b, Q] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO)
 
 % SYNTAX:
-%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO);
+%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch, var_SPP, residuals_obs, is_bias, y0, A, b, Q] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO);
 %
 % INPUT:
 %   time_rx     = reception time
 %   pseudorange = observed code pseudoranges
 %   snr         = observed signal-to-noise ratio
-% 
 %   Eph         = ephemeris
 %   SP3         = structure containing precise ephemeris data
 %   iono        = ionosphere parameters (Klobuchar)
@@ -54,8 +53,12 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   bad_epoch   = 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
 %   var_SPP     = [code single point positioning a posteriori sigma, sum of
 %                weighted squared residuals, redoundancy]
-%   residuals_obs=vector with [residuals of all input observation, computed from the final estimates, correspondent sat id]
+%   residuals_obs =vector with [residuals of all input observation, computed from the final estimates, correspondent sat id]
 %   is_bias     = inter-systems bias (vector with all possibile systems)
+%   y0          = least-squares observation vector
+%   A           = least-squares design matrix
+%   b           = least-squares known term vector
+%   Q           = observation covariance matrix
 %
 % DESCRIPTION:
 %   Compute initial receiver and satellite position and clocks using
@@ -265,7 +268,7 @@ if (nsat >= nsat_required)
 
         if (flag_XR < 2) %if unknown or approximate receiver position
 
-            [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), is_bias] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
+            [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), is_bias, y0, A, b, Q] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
             residuals_obs(index_obs,2)=sat;
             if (exist('flag_OOLO','var') && flag_OOLO==1)
                 if ~isempty(bad_obs)

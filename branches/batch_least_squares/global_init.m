@@ -203,6 +203,12 @@ global ax ay az %#ok<NUSED>
 global Yhat_t_t Y_t1_t %#ok<NUSED>
 
 %-------------------------------------------------------------------------------
+% STATIC POSITIONING BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT
+%-------------------------------------------------------------------------------
+
+global y0_epo A_epo b_epo Q_epo %#ok<NUSED>
+
+%-------------------------------------------------------------------------------
 % REAL-TIME MANAGEMENT
 %-------------------------------------------------------------------------------
 global master rover %#ok<NUSED>

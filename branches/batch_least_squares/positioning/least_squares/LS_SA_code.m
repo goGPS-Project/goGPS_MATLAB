@@ -1,7 +1,7 @@
-function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold)
+function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias, y0, A, b, Q] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold)
 
 % SYNTAX:
-%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold);
+%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias, y0, A, b, Q] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold);
 %
 % INPUT:
 %   XR_approx     = receiver approximate position (X,Y,Z)
@@ -30,7 +30,11 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epo
 %   sigma02_hat = [a posteriori sigma (SPP sigma), v_hat'*(invQ)*v_hat), n-m] 
 %   residuals_obs = vector with residuals of all input observation, computed from the final estimates
 %   is_bias = inter-systems bias (vector with all possibile systems)
-
+%   y0 = observation vector
+%   A = design matrix
+%   b = known term vector
+%   Q = observation covariance matrix
+%
 % DESCRIPTION:
 %   Absolute positioning by means of least squares adjustment on code
 %   observations. Epoch-by-epoch solution.
@@ -108,7 +112,7 @@ invQ=diag((diag(Q).^-1));
 N = (A'*(invQ)*A);
 if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
     %least squares solution
-    x   = (N^-1)*A'*(invQ)*(y0-b);
+    x = (N^-1)*A'*(invQ)*(y0-b);
     %estimation of the variance of the observation error
     y_hat = A*x + b;
     v_hat = y0 - y_hat;

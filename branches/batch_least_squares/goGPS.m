@@ -266,7 +266,6 @@ else
     mat_path = [];
 end
 
-
 %-------------------------------------------------------------------------------------------
 % REPORT INITIALIZATION
 %-------------------------------------------------------------------------------------------
@@ -733,7 +732,6 @@ if goGNSS.isPP(mode) % post-processing
                 SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
             end
 
-
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
             
@@ -893,7 +891,6 @@ if goGNSS.isPP(mode) % post-processing
             end
             
         end
-             
 
 %         %read surveying mode
 %         if (flag_stopGOstop == 0)
@@ -1320,9 +1317,35 @@ if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
     flag_var_dyn_model = 0;
 end
 
-%boolean vector for removing unused epochs in LS processing
 if (goGNSS.isPP(mode))
+    %boolean vector for removing unused epochs in LS processing
     unused_epochs = zeros(size(time_GPS));
+end
+
+%----------------------------------------------------------------------------------------------
+% STATIC POSITIONING BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: INITIALIZATION
+%----------------------------------------------------------------------------------------------
+
+flag_static = 1;
+
+if (flag_static)
+    %number of position solutions to be estimated
+    npos = 1;
+    
+    %vector to keep track of the number of observations available at each epoch
+    n_obs_epoch = NaN(size(time_GPS));
+    
+    %cumulative number of observations, to keep track of where each epoch begins
+    epoch_index = NaN(size(time_GPS));
+    epoch_track = 0;
+    
+    %total number of observations (for matrix initialization)
+    n_obs_tot = sum(sum(pr1_R(:,:,1) ~= 0));
+    
+    y0_all = NaN(n_obs_tot,1);
+    b_all  = NaN(n_obs_tot,1);
+    A_all  = NaN(n_obs_tot,npos*3+length(time_GPS));
+    Q_all  = NaN(n_obs_tot,n_obs_tot);
 end
 
 %----------------------------------------------------------------------------------------------
@@ -1373,7 +1396,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             fwrite(fid_conf, nSatTot, 'int8');
             fwrite(fid_res, nSatTot, 'int8');
         end
-        
+
         if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
             Xhat_t_t_dummy = [Xhat_t_t; zeros(nN,1)];
             Cee_dummy = [Cee zeros(o3,nN); zeros(nN,o3) zeros(nN,nN)];
@@ -1383,7 +1406,6 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             fwrite(fid_res, [residuals_dummy'; residuals_dummy';residuals_float(1:nSatTot); residuals_dummy';outliers(1:nSatTot);residuals_dummy'], 'double');
 
-            
             if (flag_plotproc)
                 if (mode_user == 1 && t == 1), goWB.shiftDown(); end
                 if (flag_cov == 0)
@@ -1401,6 +1423,18 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
+            end
+
+            if (flag_static)
+                if (~isempty(A_epo))
+                    n_obs_epoch(t) = length(y0_epo);
+                    y0_all(epoch_track+1:epoch_track+n_obs_epoch(t)) = y0_epo;
+                    b_all( epoch_track+1:epoch_track+n_obs_epoch(t)) =  b_epo;
+                    A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo(:,1:3);
+                    Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
+                    epoch_index(t) = epoch_track + n_obs_epoch(t);
+                    epoch_track = epoch_index(t);
+                end
             end
         else
             unused_epochs(t) = 1;
@@ -3010,6 +3044,57 @@ end
 if (goGNSS.isPP(mode)) %remove unused epochs from time_GPS (for LS modes)
     time_GPS(unused_epochs == 1) = [];
     week_R(unused_epochs == 1) = [];
+    if (flag_static)
+        n_obs_epoch(unused_epochs == 1) = [];
+    end
+end
+
+%----------------------------------------------------------------------------------------------
+% STATIC POSITIONING BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
+%----------------------------------------------------------------------------------------------
+
+if (flag_static)
+    n_obs_epoch(isnan(n_obs_epoch)) = [];
+    epoch_index(isnan(epoch_index)) = [];
+    
+    index_nan = find(isnan(y0_all),1);
+    y0_all(index_nan:end) = [];
+    b_all(index_nan:end)  = [];
+    
+    n = length(y0_all);
+    m = 3*npos + length(n_obs_epoch);
+
+    A_all = A_all(1:index_nan-1,1:m);
+    Q_all = Q_all(1:index_nan-1,1:index_nan-1);
+    
+    A_all(isnan(A_all)) = 0;
+    Q_all(isnan(Q_all)) = 0;
+    
+    A_all(1:epoch_index(1),3*npos+1) = 1;
+    for e = 2 : length(epoch_index)
+        A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
+    end
+    
+    A  = A_all;
+    y0 = y0_all;
+    b  = b_all;
+    Q  = Q_all;
+    
+    %least-squares solution
+    K = A';
+    P = Q\A;
+    N = K*P;
+    Y = (y0-b);
+    R = Q\Y;
+    L = K*R;
+    x = N\L;
+    
+    %estimation of the variance of the observation error
+    y_hat = A*x + b;
+    v_hat = y0 - y_hat;
+    V = v_hat';
+    T = Q\v_hat;
+    sigma02_hat = (V*T)/(n-m);
 end
 
 %----------------------------------------------------------------------------------------------
@@ -3027,7 +3112,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     %observation file (OBS) and ephemerides file (EPH) reading
     if (mode == goGNSS.MODE_RT_NAV)
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
-            pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
+         pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
     end
 
     %---------------------------------
