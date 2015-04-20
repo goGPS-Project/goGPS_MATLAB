@@ -388,8 +388,7 @@ if goGNSS.isPP(mode) % post-processing
         
         %prepare the input for the load_RINEX_obs function
         filename_obs = multiple_RINEX_interface(filename_R_obs, filename_M_obs, mode);
-        
-        
+
         if goGNSS.isSA(mode) % absolute positioning
             
             %read navigation RINEX file(s)
@@ -454,6 +453,7 @@ if goGNSS.isPP(mode) % post-processing
 
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+            pos_R_new    = zeros(3, length(time_GPS), size(time_R,3));
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
             bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
@@ -548,7 +548,7 @@ if goGNSS.isPP(mode) % post-processing
 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,1,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
 
                 if report.opt.write == 1
                     report.prep.spp_threshold = 4;
@@ -652,10 +652,8 @@ if goGNSS.isPP(mode) % post-processing
                     report.obs.pcv_yn(i+1)=cellstr('NO');
                 end
             end
-            
-            
-            
-            % set ROVER initial coordinates
+
+            %set ROVER initial coordinates
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 fprintf('Rover apriori position set from coordinate file:\n');
                 fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));   
@@ -674,9 +672,8 @@ if goGNSS.isPP(mode) % post-processing
                     end
                 end
             end
-            
-             
-            % set MASTER initial coordinates
+ 
+            %set MASTER initial coordinates
             if (flag_ms_pos) % master position read from RINEX header
                 fprintf('Master position fixed from RINEX:\n');
                 fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
@@ -706,17 +703,15 @@ if goGNSS.isPP(mode) % post-processing
                     end
                 end
             end
-            
-      
-            
-            % apply antenna offset over the marker to master coordinates
+
+            %apply antenna offset over the marker to master coordinates
             if (~isempty(antenna_PCV))
                 pos_M = local2globalPos(antoff_M+antPCO_M, pos_M);
             else
                 pos_M = local2globalPos(antoff_M, pos_M);
             end
             
-            % apply antenna offset over the marker to rover apriori coordinates
+            %apply antenna offset over the marker to rover apriori coordinates
             if (any(pos_R))
                 if (~isempty(antenna_PCV))
                     pos_R = local2globalPos(antoff_R+antPCO_R, pos_R);
@@ -735,6 +730,7 @@ if goGNSS.isPP(mode) % post-processing
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
             
+            pos_R_new    = zeros(3, length(time_GPS), size(time_R,3));
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
             bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
@@ -829,7 +825,7 @@ if goGNSS.isPP(mode) % post-processing
                         flag_XR = 0;
                     end
                 end
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), pos_R_new(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
 
                 if report.opt.write == 1
                     report.prep.spp_threshold = 4;                    
@@ -850,8 +846,7 @@ if goGNSS.isPP(mode) % post-processing
                     report.prep.obs_stat_R(:,:,f)=[sum(status_obs_R(:,:,f)==0,2), sum(status_obs_R(:,:,f)==1,2), sum(status_obs_R(:,:,f)==-1,2)]; % [#under_cutoff, #used, #outlier] grouped by satellite
                     report.prep.CS_R{f}=status_cs;
                 end
-                
-                
+
                 if (mode_user == 1)
                     goWB.close();
                 end
@@ -867,7 +862,7 @@ if goGNSS.isPP(mode) % post-processing
              
             fprintf('%s',['Pre-processing master observations (file ' filename_obs{end} ')...']); fprintf('\n');
             
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2, sbas);
+            [pr1_M, ph1_M, pr2_M, ph2_M, ~, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2, sbas);
             if report.opt.write == 1
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
@@ -890,6 +885,8 @@ if goGNSS.isPP(mode) % post-processing
                 goWB.close();
             end
             
+            %cycle slip detection by single-difference observation analysis
+%             status_cs_SD = cycle_slip_detection_SD(ph1_R, ph2_R, ph1_M, ph2_M);           
         end
 
 %         %read surveying mode
@@ -1046,7 +1043,7 @@ if goGNSS.isPP(mode) % post-processing
         
         %read data from goGPS saved files
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
-            pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
+         pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
         
         %retrieve multi-constellation wavelengths
         lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
@@ -1070,7 +1067,7 @@ if goGNSS.isPP(mode) % post-processing
         
         %pre-processing
         fprintf('Pre-processing rover observations...\n');
-        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB, 0, sbas);
+        [pr1_R, ph1_R, ~, ~, pos_R_new, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, nSatTot, goWB, 0, sbas);
         
         if (mode_user == 1)
             goWB.close();
@@ -1086,7 +1083,7 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2, sbas);
+            [pr1_M, ph1_M, ~, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2, sbas);
             
             if (mode_user == 1)
                 goWB.close();
@@ -1136,7 +1133,7 @@ if goGNSS.isPP(mode) % post-processing
         date_R = gps2date(week_R, time_GPS);
 
         %other variables
-        pos_R = zeros(3,1);
+        pos_R = zeros(3,1); %#ok<PREALL>
         dop1_M = zeros(size(pr1_M));
         pr2_M = zeros(size(pr1_M));
         pr2_R = zeros(size(pr1_R));
@@ -1346,6 +1343,14 @@ if (flag_static)
     b_all  = NaN(n_obs_tot,1);
     A_all  = NaN(n_obs_tot,npos*3+length(time_GPS));
     Q_all  = NaN(n_obs_tot,n_obs_tot);
+    
+    %set a priori coordinates
+    if (exist('pos_R_crd','var') && any(pos_R_crd))
+        pos_R = pos_R_crd;
+    else
+        pos_R = mean(pos_R_new(:,:,1),2);
+    end
+    flag_XR = 1;
 end
 
 %----------------------------------------------------------------------------------------------
@@ -2025,7 +2030,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_LS_DD_code(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1);
+        goGPS_LS_DD_code(time_GPS(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1);
 
         if (t == 1)
             fwrite(fid_sat, nSatTot, 'int8');
@@ -2060,6 +2065,17 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
+            end
+            if (flag_static)
+                if (~isempty(A_epo))
+                    n_obs_epoch(t) = length(y0_epo);
+                    y0_all(epoch_track+1:epoch_track+n_obs_epoch(t)) = y0_epo;
+                    b_all( epoch_track+1:epoch_track+n_obs_epoch(t)) =  b_epo;
+                    A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo(:,1:3);
+                    Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
+                    epoch_index(t) = epoch_track + n_obs_epoch(t);
+                    epoch_track = epoch_index(t);
+                end
             end
         else
             unused_epochs(t) = 1;
@@ -2248,7 +2264,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_LS_DD_code_phase(time_GPS(t), pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR);
+        goGPS_LS_DD_code_phase(time_GPS(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR);
         
         if ~isempty(Xhat_t_t) && ~any(isnan([Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)]))
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -2280,6 +2296,18 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
                 end
                 plot_t = plot_t + 1;
                 pause(0.01);
+            end
+            
+            if (flag_static)
+                if (~isempty(A_epo))
+                    n_obs_epoch(t) = length(y0_epo);
+                    y0_all(epoch_track+1:epoch_track+n_obs_epoch(t)) = y0_epo;
+                    b_all( epoch_track+1:epoch_track+n_obs_epoch(t)) =  b_epo;
+                    A_all( epoch_track+1:epoch_track+n_obs_epoch(t),1:3) = A_epo(:,1:3);
+                    Q_all( epoch_track+1:epoch_track+n_obs_epoch(t),epoch_track+1:epoch_track+n_obs_epoch(t)) = Q_epo;
+                    epoch_index(t) = epoch_track + n_obs_epoch(t);
+                    epoch_track = epoch_index(t);
+                end
             end
         else
             unused_epochs(t) = 1;
@@ -3062,7 +3090,17 @@ if (flag_static)
     b_all(index_nan:end)  = [];
     
     n = length(y0_all);
-    m = 3*npos + length(n_obs_epoch);
+    
+    %determine the number of unknowns, based on the processing mode
+    if (goGNSS.isSA(mode))
+        m = 3*npos + length(n_obs_epoch);
+    else
+        if (goGNSS.isPH(mode))
+            m = 3*npos + nSatTot; %TO BE FIXED
+        else
+            m = 3*npos;
+        end
+    end
 
     A_all = A_all(1:index_nan-1,1:m);
     Q_all = Q_all(1:index_nan-1,1:index_nan-1);
@@ -3070,9 +3108,15 @@ if (flag_static)
     A_all(isnan(A_all)) = 0;
     Q_all(isnan(Q_all)) = 0;
     
-    A_all(1:epoch_index(1),3*npos+1) = 1;
-    for e = 2 : length(epoch_index)
-        A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
+    if (goGNSS.isSA(mode))
+        %set the design matrix to estimate the receiver clock
+        A_all(1:epoch_index(1),3*npos+1) = 1;
+        for e = 2 : length(epoch_index)
+            A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
+        end
+    elseif (goGNSS.isPH(mode))
+        %set the design matrix to estimate phase ambiguities
+        
     end
     
     A  = A_all;

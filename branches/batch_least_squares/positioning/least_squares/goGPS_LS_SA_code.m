@@ -1,7 +1,7 @@
 function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase, XR0)
 
 % SYNTAX:
-%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase);
+%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase, XR0);
 %
 % INPUT:
 %   time_rx = GPS reception time
@@ -14,6 +14,7 @@ function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, 
 %   sbas    = SBAS corrections
 %   lambda  = wavelength matrix (depending on the enabled constellations)
 %   phase   = L1 carrier (phase=1), L2 carrier (phase=2)
+%   XR0     = ROVER approximate position
 %
 % DESCRIPTION:
 %   Computation of the receiver position (X,Y,Z).
@@ -100,7 +101,6 @@ min_nsat = 4;
 
 if any(XR0)
     flag_XR = 1;
-%    flag_XR = 2;
 else
     flag_XR = 0;
 end

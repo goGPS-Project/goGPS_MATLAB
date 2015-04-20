@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR, sbas)
+function [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR, sbas)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
+%   [pr1, ph1, pr2, ph2, XR, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -29,6 +29,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %   ph1 = processed phase observation (L1 carrier)
 %   pr2 = processed code observation (L2 carrier)
 %   ph2 = processed phase observation (L2 carrier)
+%   XR  = receiver position (to provide apriori coordinates to the calling function, in case they needed)
 %   dtR = receiver clock error
 %   dtRdot receiver clock drift
 %   bad_sats = vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
@@ -71,6 +72,9 @@ v_light = goGNSS.V_LIGHT;
 %number of epochs
 nEpochs = length(time);
 
+%receiver position
+XR = zeros(3,nEpochs);
+
 %receiver clock error
 dtR = zeros(nEpochs,1);
 
@@ -85,8 +89,6 @@ bad_epochs=NaN(nEpochs,1);
 
 % vector with SPP a posteriori sigma
 var_SPP=NaN(nEpochs,3);
-
-
 
 %--------------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
@@ -128,7 +130,7 @@ for i = 1 : nEpochs
     min_nsat_LS = 3 + n_sys;
     
     if (length(sat0) >= min_nsat_LS)
-        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
+        [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
         
         if isempty(var_dtR_tmp)
             var_dtR_tmp=NaN;
@@ -138,6 +140,7 @@ for i = 1 : nEpochs
         status_obs(find(bad_sat_i==1),i)=-1; % satellite outlier
         
         if (~isempty(dtR_tmp) && ~isempty(sat))
+            XR(:,i) = XR_tmp; 
             dtR(i) = dtR_tmp;
             err_iono(sat,i) = err_iono_tmp;
             el(sat,i) = el_tmp;

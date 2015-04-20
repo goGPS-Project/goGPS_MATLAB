@@ -1,4 +1,4 @@
-function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
+function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP, y0, A, b, Q] = LS_DD_code_phase ...
          (XR_approx, XM, XS, pr_R, ph_R, snr_R, pr_M, ph_M, snr_M, elR, elM, err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda, flag_LAMBDA, flag_Tykhon, flag_iter, flag_iter_zero)
 
 % SYNTAX:
@@ -36,6 +36,10 @@ function [XR, N_hat, cov_XR, cov_N, PDOP, HDOP, VDOP] = LS_DD_code_phase ...
 %   PDOP = position dilution of precision
 %   HDOP = horizontal dilution of precision
 %   VDOP = vertical dilution of precision
+%   y0 = observation vector
+%   A = design matrix
+%   b = known term vector
+%   Q = observation covariance matrix
 %
 % DESCRIPTION:
 %   Least squares solution using code and phase double differences.
@@ -94,13 +98,13 @@ distM = sqrt(sum((XS-XM_mat).^2 ,2));
 A = [((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
      ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
      ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index)), ... %column for Z coordinate
-     zeros(n/2,n/2)]; %column for phase ambiguities   (here zero)
+       zeros(n/2,n/2)]; %column for phase ambiguities   (here zero)
 
 %design matrix (phase)
 A = [A; ((XR_approx(1) - XS(:,1)) ./ distR_approx) - ((XR_approx(1) - XS(pivot_index,1)) / distR_approx(pivot_index)), ... %column for X coordinate
         ((XR_approx(2) - XS(:,2)) ./ distR_approx) - ((XR_approx(2) - XS(pivot_index,2)) / distR_approx(pivot_index)), ... %column for Y coordinate
         ((XR_approx(3) - XS(:,3)) ./ distR_approx) - ((XR_approx(3) - XS(pivot_index,3)) / distR_approx(pivot_index)), ... %column for Z coordinate
-        diag(-lambda) .* eye(n/2)]; %column for phase ambiguities
+          diag(-lambda) .* eye(n/2)]; %column for phase ambiguities
 
 %known term vector
 b    =     (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
@@ -126,17 +130,18 @@ Q = zeros(n);
 Q1 = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
 Q(1:n/2,1:n/2) = sigmaq_cod1 * Q1;
 Q(n/2+1:end,n/2+1:end) = sigmaq_ph * Q1;
+invQ = Q^-1;
 
 %normal matrix
-N = (A'*(Q^-1)*A);
+N = (A'*invQ*A);
 
 %least squares solution
-x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
+x_hat = (N^-1)*A'*invQ*(y0-b);
 
 %estimation of the variance of the observation error
 y_hat = A*x_hat + b;
 v_hat = y0 - y_hat;
-sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
+sigma02_hat = (v_hat'*invQ*v_hat) / (n-m);
 
 if (~flag_LAMBDA)
     %apply least squares solution
@@ -201,8 +206,8 @@ else %apply LAMBDA
         end
         
         %iterative least squares (float) solution
-        M = ((A'*Q^-1*A) + eye(m))^-1; %normal matrix for iterative LS
-        U = A'*Q^-1*(y0-b); %part A'*P*Y of normal equation
+        M = ((A'*invQ*A) + eye(m))^-1; %normal matrix for iterative LS
+        U = A'*invQ*(y0-b); %part A'*P*Y of normal equation
         dummy = zeros(m);
         x_n = ones(m,1);
         tol = 1e-4; %threshold of iterative process
@@ -212,7 +217,7 @@ else %apply LAMBDA
             x_old = x_hat;
             dummy = dummy + M^(cnt); %compute iterative normal matrix
             x_hat = (dummy)*U + M^(cnt)*x_hat; %estimate parameter
-            Qxx   = (dummy)*A'*Q^-1*A*(dummy)' + M^(cnt)*Qxx*M^(cnt)'; %estimate vcm of parameter
+            Qxx   = (dummy)*A'*invQ*A*(dummy)' + M^(cnt)*Qxx*M^(cnt)'; %estimate vcm of parameter
             
             x_n = x_hat - x_old;
             cnt = cnt + 1;

@@ -117,12 +117,10 @@ end
 % APPROXIMATE POSITION
 %--------------------------------------------------------------------------------------------
 
-if ((sum(abs(XR0)) == 0) || isempty(XR0))
-    %approximate position not available
-    flag_XR = 0;
-else
-    %approximate position available
+if any(XR0)
     flag_XR = 1;
+else
+    flag_XR = 0;
 end
 
 %--------------------------------------------------------------------------------------------

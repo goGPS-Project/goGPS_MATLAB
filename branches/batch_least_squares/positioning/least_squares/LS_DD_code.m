@@ -1,7 +1,7 @@
-function [xR, cov_XR] = LS_DD_code(XR_approx, XS, pr_R, pr_M, snr_R, snr_M, elR, elM, distR_approx, distM, err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index)
+function [xR, cov_XR, y0, A, b, Q] = LS_DD_code(XR_approx, XS, pr_R, pr_M, snr_R, snr_M, elR, elM, distR_approx, distM, err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index)
 
 % SYNTAX:
-%   [xR, cov_XR] = LS_DD_code(XR_approx, XS, pr_R, pr_M, snr_R, snr_M, elR, elM, distR_approx, distM, err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
+%   [xR, cov_XR, y0, A, b, Q] = LS_DD_code(XR_approx, XS, pr_R, pr_M, snr_R, snr_M, elR, elM, distR_approx, distM, err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -23,6 +23,10 @@ function [xR, cov_XR] = LS_DD_code(XR_approx, XS, pr_R, pr_M, snr_R, snr_M, elR,
 % OUTPUT:
 %   xR = estimated position (X,Y,Z)
 %   cov_XR = estimated position error covariance matrix
+%   y0 = observation vector
+%   A = design matrix
+%   b = known term vector
+%   Q = observation covariance matrix
 %
 % DESCRIPTION:
 %   Least squares solution using code double differences.
@@ -81,18 +85,19 @@ n = n - 1;
 
 %observation covariance matrix
 Q = cofactor_matrix(elR, elM, snr_R, snr_M, pivot_index);
+invQ = Q^-1;
 
 %normal matrix
-N = (A'*(Q^-1)*A);
+N = (A'*invQ*A);
 
 %least squares solution
-x  = (N^-1)*A'*(Q^-1)*(y0-b);
+x  = (N^-1)*A'*invQ*(y0-b);
 xR = XR_approx + x;
 
 %estimation of the variance of the observation error
 y_hat = A*x + b;
 v_hat = y0 - y_hat;
-sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
+sigma02_hat = (v_hat'*invQ*v_hat) / (n-m);
 
 %covariance matrix of the estimation error
 if (n > m)

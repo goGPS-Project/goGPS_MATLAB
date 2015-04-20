@@ -1,10 +1,11 @@
-function goGPS_LS_DD_code(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase)
+function goGPS_LS_DD_code(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase)
 
 % SYNTAX:
-%   goGPS_LS_DD_code(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase);
+%   goGPS_LS_DD_code(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase);
 %
 % INPUT:
 %   time_rx = GPS reception time
+%   XR0   = ROVER approximate position
 %   XM    = MASTER position
 %   pr1_R = ROVER code observations (L1 carrier)
 %   pr1_M = MASTER code observations (L1 carrier)
@@ -50,6 +51,13 @@ global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
 global PDOP HDOP VDOP
 
+global flag_static
+global y0_epo A_epo b_epo Q_epo
+y0_epo = [];
+A_epo  = [];
+b_epo  = [];
+Q_epo  = [];
+
 %covariance matrix initialization
 cov_XR = [];
 
@@ -90,16 +98,23 @@ sat = sat(ismember(sat, eph_avail));
 
 min_nsat = 4;
 
+if (flag_static)
+    flag_XR = 2;
+else
+    flag_XR = 0;
+    XR0 = [];
+end
+
 if (size(sat,1) >= min_nsat)
     
     if (phase(1) == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [],  [], sat,   [], lambda(sat,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat),   snr_M(sat),   Eph, SP3, iono, [],  XM, [],  [],   sat,  [],   lambda(sat,:), cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
         if (length(sat_M) < min_nsat); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], [], XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [], XM, [],  [], sat,   [], lambda(sat,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_M, elM(sat_M), azM(sat_M), distM(sat_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat),   snr_M(sat),   Eph, SP3, iono, [],  XM, [],  [],   sat,  [],   lambda(sat,:), cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
         if (length(sat_M) < min_nsat); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], [], XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono_R, sat_R, elR(sat_R), azR(sat_R), distR(sat_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_M), snr_R(sat_M), Eph, SP3, iono, [], XR0, XS, dtS, sat_M, sys, lambda(sat_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
     end
     
     %keep only satellites that rover and master have in common
@@ -136,15 +151,22 @@ if (size(sat,1) >= min_nsat)
     
     %if a sufficient number of satellites is available after the cutoffs, and if the 
     % condition number in the least squares does not exceed the threshold
-    if (size(sat,1) >= min_nsat && cond_num < cond_num_threshold)
+    if (size(sat,1) >= min_nsat && (isempty(cond_num) || cond_num < cond_num_threshold))
+        
+        if (flag_static)
+            n_iter = 1;
+            XR = XR0;
+        else
+            n_iter = 3;
+        end
         
         %loop is needed to improve the atmospheric error correction
-        for i = 1 : 3
+        for i = 1 : n_iter
 
             if (phase == 1)
-                [XR, cov_XR] = LS_DD_code(XR, XS, pr1_R(sat), pr1_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
+                [XR, cov_XR, y0_epo, A_epo, b_epo, Q_epo] = LS_DD_code(XR, XS, pr1_R(sat), pr1_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
             else
-                [XR, cov_XR] = LS_DD_code(XR, XS, pr2_R(sat), pr2_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
+                [XR, cov_XR, y0_epo, A_epo, b_epo, Q_epo] = LS_DD_code(XR, XS, pr2_R(sat), pr2_M(sat), snr_R(sat), snr_M(sat), elR(sat), elM(sat), distR(sat), distM(sat), err_tropo_R, err_tropo_M, err_iono_R, err_iono_M, pivot_index);
             end
             
             [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));

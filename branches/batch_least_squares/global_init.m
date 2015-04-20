@@ -206,7 +206,11 @@ global Yhat_t_t Y_t1_t %#ok<NUSED>
 % STATIC POSITIONING BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT
 %-------------------------------------------------------------------------------
 
+global flag_static
 global y0_epo A_epo b_epo Q_epo %#ok<NUSED>
+
+%flag to enable multi-epoch (batch) least-squares adjustment
+flag_static = 0;
 
 %-------------------------------------------------------------------------------
 % REAL-TIME MANAGEMENT
