@@ -490,7 +490,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_code = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_code)))
-        outliers = batch_outlier_detection(delta_test(avail_code),interval(1));
+        outliers = batch_outlier_detection(delta_test(avail_code),median(round(interval)));
         [~,jmp_code] = intersect(delta_test,outliers);
     end
     
@@ -518,7 +518,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_doppler = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_doppler)))
-        outliers = batch_outlier_detection(delta_test(avail_doppler),interval(1));
+        outliers = batch_outlier_detection(delta_test(avail_doppler),median(round(interval)));
         [~,jmp_doppler] = intersect(delta_test,outliers);
     end
 
@@ -547,7 +547,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_deriv = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_deriv)))
-        outliers = batch_outlier_detection(delta_test(avail_deriv),interval(1));
+        outliers = batch_outlier_detection(delta_test(avail_deriv),median(round(interval)));
         [~,jmp_deriv] = intersect(delta_test,outliers);
     end
     jmp_deriv = sort(jmp_deriv);
@@ -566,7 +566,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_GF = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_GF)))
-        outliers = batch_outlier_detection(delta_test(avail_GF),interval(1));
+        outliers = batch_outlier_detection(delta_test(avail_GF),median(round(interval)));
         outliers(outliers < 0.1) = [];
         [~,jmp_GF] = intersect(delta_test,outliers);
     end
@@ -780,7 +780,7 @@ end
 function [min_std] = detect_minimum_std(time_series)
 min_std = 1e30;
 d = 5; %half window size
-if (length(time_series) < d)
+if (length(time_series) < 2*d)
     return
 end
 mov_std = zeros(size(time_series));

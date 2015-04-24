@@ -60,7 +60,7 @@ end
 %-------------------------------------------------------------------------------
 % INI file
 %-------------------------------------------------------------------------------
-iniFile = './settings/Milano_daily_test_VRS_InputFiles.ini';
+iniFile = './settings/batch_LS_test_15min_InputFiles.ini';
 
 %initialize INI file reading
 global goIni;
@@ -97,11 +97,13 @@ data_path = goIni.getData('PCO_PCV_file','data_path');
 file_name = goIni.getData('PCO_PCV_file','file_name');
 filename_pco = [data_path file_name];
 
+fsep_char = 'default';
+
 %-------------------------------------------------------------------------------
 % FUNCTIONING MODE
 %-------------------------------------------------------------------------------
 
-mode = goGNSS.MODE_PP_KF_CP_DD;
+mode = goGNSS.MODE_PP_LS_CP_DD_L;
 
 %-------------------------------------------------------------------------------
 % PROCESSING OPTIONS
@@ -117,7 +119,7 @@ SBS_flag = 0;
 flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
 flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
 
-min_epoch = 1440;       % minimum number of observed epoch to process
+min_epoch = 10;         % minimum number of observed epoch to process
 
 %-------------------------------------------------------------------------------
 % MASTER STATION POSITION
@@ -144,8 +146,7 @@ if (~flag_ms_pos)
     
     %set master station position
     pos_M_crd = [XM; YM; ZM];
-    
-        
+
     % rover
     %find the correct marker
     marker_idx = find(strcmp(markers, markerR));
@@ -217,7 +218,7 @@ cs_threshold = 0.5;
 %          - weights=2: weight based on signal-to-noise ratio
 %          - weights=3: weight based on combined elevation and signal-to-noise ratio
 %          - weights=4: weight based on satellite elevation (exp)
-weights = 1;
+weights = 4;
 
 %weight function parameters
 snr_a = 30;
@@ -234,7 +235,7 @@ o2 = order*2;
 o3 = order*3;
 
 %ambiguity restart method
-amb_restart_method = 2;
+amb_restart_method = 1;
 
 %-------------------------------------------------------------------------------
 % INTEGER AMBIGUITY RESOLUTION
@@ -311,16 +312,16 @@ fid_extract_OBS = fopen([folderOUT '/' markerM '_' markerR '_' num2str(year,'%02
 fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n'); 
 fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
 
-
-
-n_session=1;
+n_session='o';
 
 for doy = doy_start : 1 : doy_end
-    for session_i=1:n_session
+    for session_i='a':n_session
         delete('../data/EMS/*.ems');
         if n_session > 1
-            sessionR=num2str(session_i,'%d');
-            sessionM=num2str(session_i,'%d');
+%             sessionR=num2str(session_i,'%d');
+%             sessionM=num2str(session_i,'%d');
+            sessionR=session_i;
+            sessionM=session_i;
         end
         if (strcmp(path_R_obs(end),'/') || strcmp(path_R_obs(end),'\'))
             delim = '';
@@ -332,39 +333,35 @@ for doy = doy_start : 1 : doy_end
         filename_nav   = [path_N_obs delim idN     num2str(doy,'%03d') sessionN '.' num2str(year,'%02d') extN];
         prefixOUT = [markerM '_' markerR '_' num2str(year,'%02d') num2str(doy,'%03d') num2str(session_i,'%d')];
         if exist(filename_R_obs,'file')>0 && exist(filename_M_obs,'file')>0 && exist(filename_nav,'file')>0
-            
 
             %-------------------------------------------------------------------------------
             % INPUT/OUTPUT FILENAME PREFIX
             %-------------------------------------------------------------------------------
-            
 
             %dummy values for filerootIN (not used for batch processing)
             folderIN  = '../data/data_goGPS';
             prefixIN  = 'yamatogawa';
             filerootIN  = [folderIN '/' prefixIN];
-            
 
             filerootOUT = [folderOUT '/' prefixOUT];
             
             i = 1;
 
-
             j = length(filerootOUT);
-            while (~isempty(dir([filerootOUT '_rover*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_master*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_obs*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_eph*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_sat*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_kal*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_dt*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_conf*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_dop*.bin'])) | ...
-                    ~isempty(dir([filerootOUT '_ECEF*.txt'])) | ...
-                    ~isempty(dir([filerootOUT '_geod*.txt'])) | ...
-                    ~isempty(dir([filerootOUT '_plan*.txt'])) | ...
-                    ~isempty(dir([filerootOUT '_NMEA*.txt'])) | ...
-                    ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) | ...
+            while (~isempty(dir([filerootOUT '_rover*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_master*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_obs*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_eph*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_sat*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_kal*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_dt*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_conf*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_dop*.bin'])) || ...
+                    ~isempty(dir([filerootOUT '_ECEF*.txt'])) || ...
+                    ~isempty(dir([filerootOUT '_geod*.txt'])) || ...
+                    ~isempty(dir([filerootOUT '_plan*.txt'])) || ...
+                    ~isempty(dir([filerootOUT '_NMEA*.txt'])) || ...
+                    ~isempty(dir([filerootOUT '_ublox_NMEA*.txt'])) || ...
                     ~isempty(dir([filerootOUT '.kml'])) )
                 
                 filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
@@ -381,17 +378,6 @@ for doy = doy_start : 1 : doy_end
             else
                 fprintf(fid_extract,'%04d-%03d\n', year4, doy);               
             end
-            
-
-
-
-
-
-
-
-
-
-
 
             % append report information in the database
             fid_rep_i=fopen([filerootOUT,'_report.txt'],'rt');
@@ -410,20 +396,8 @@ for doy = doy_start : 1 : doy_end
                 
                 fprintf(fid_extract_OBS,' %s-%s  %s     %s\n',num2str(year,'%02d'),num2str(doy,'%03d'), line1, line2);
                 fclose(fid_rep_i);
-
             end
-            
-
-
-
-
-
-            
-
         end
-        
-
-
     end
 end
 
