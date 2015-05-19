@@ -181,7 +181,7 @@ for i = 1 : num_sat
             set(satid(i), 'XData', x(i), 'YData', y(i));
         end
 
-        if (obs(i) == 1)
+        if (obs(i) == 1 || obs(i) == 2)
             set(satid(i), 'Marker', '.');
             set(satid(i), 'MarkerSize', 15);
         elseif (obs(i) == -1)

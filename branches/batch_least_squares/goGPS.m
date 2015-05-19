@@ -885,7 +885,7 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             %cycle slip detection by single-difference observation analysis
-%             status_cs_SD = cycle_slip_detection_SD(ph1_R, ph2_R, ph1_M, ph2_M);           
+%             status_cs_SD = cycle_slip_detection_SD(ph1_R, ph2_R, ph1_M, ph2_M);
         end
 
 %         %read surveying mode
@@ -1323,6 +1323,12 @@ end
 %----------------------------------------------------------------------------------------------
 
 flag_static = 1;
+
+% if (strcmp(filename_R_obs(end-4),'a'))
+%     load conf_cs
+% else
+%     conf_cs = zeros(nSatTot, length(time_GPS));
+% end
 
 if (flag_static)
     %number of position solutions to be estimated
@@ -2272,7 +2278,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             Eph_t = Eph(:,:,t);
         end
 
-        goGPS_LS_DD_code_phase(time_GPS(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR);
+        goGPS_LS_DD_code_phase(time_GPS(t), pos_R, pos_M(:,t), pr1_R(:,t), pr1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph1_R(:,t), ph1_M(:,t), ph2_R(:,t), ph2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, flag_IAR, antenna_PCV);
         
         if (t == 1)
             fwrite(fid_sat, nSatTot, 'int8');
@@ -2317,8 +2323,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
                     epoch_index(t) = epoch_track + n_obs_epoch(t);
                     epoch_track = epoch_index(t);
                     satpr_track(:,t) = 0; satph_track(:,t) = 0;
-                    satpr_track(abs(conf_sat)==1,t) = 1;
-                    satph_track(conf_sat==+1,t) = 1;
+                    satpr_track(conf_sat==-1 | conf_sat==+1,t) = 1;
+                    satph_track(conf_sat==+1 | conf_sat==+2,t) = 1;
                     pivot_track(t) = pivot;
                 end
             end
@@ -3117,7 +3123,7 @@ if (flag_static)
             sat_avail = max(satph_track, [], 2);
             amb_num = sum(sat_avail);
             amb_idx = find(sat_avail);
-            m = 3*npos + amb_num;
+            m = 3*npos + amb_num + sum(conf_cs(:));
         else
             m = 3*npos;
         end
@@ -3156,6 +3162,11 @@ if (flag_static)
             end
             A_all(rows,3*npos+amb_slots) = diag(lambda(amb_idx(amb_slots),1));
             A_all(rows,3*npos+pivot_slot) = -lambda(amb_idx(amb_slots),1);
+            
+%             if (any(conf_cs(:,e)))
+%                 new_amb = find(conf_cs(:,e));
+%                 
+%             end
         end
     end
     

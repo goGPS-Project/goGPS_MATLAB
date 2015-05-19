@@ -1,7 +1,7 @@
-function goGPS_LS_DD_code_phase(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, flag_IAR)
+function goGPS_LS_DD_code_phase(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, flag_IAR, antenna_PCV)
 
 % SYNTAX:
-%   goGPS_LS_DD_code_phase(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, flag_IAR);
+%   goGPS_LS_DD_code_phase(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph1_R, ph1_M, ph2_R, ph2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, flag_IAR, antenna_PCV);
 %
 % INPUT:
 %   time_rx = GPS reception time
@@ -23,6 +23,7 @@ function goGPS_LS_DD_code_phase(time_rx, XR0, XM, pr1_R, pr1_M, pr2_R, pr2_M, ph
 %   lambda = wavelength matrix (depending on the enabled constellations)
 %   phase  = L1 carrier (phase=1), L2 carrier (phase=2)
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
+%   antenna_PCV = antenna phase center variation
 %
 % DESCRIPTION:
 %   Computation of the receiver position (X,Y,Z).
@@ -121,6 +122,10 @@ sigma2_N = zeros(nN,1);
 
 min_nsat_LS = 3 + n_sys;
 
+% maximum RMS of code single point positioning to accept current epoch
+SPP_threshold=4; %meters 
+bad_sat=[];
+
 if (flag_static)
     flag_XR = 2;
 else
@@ -176,6 +181,39 @@ if (size(sat_pr,1) >= min_nsat_LS)
     pivot = sat(pivot_index);
     
     %--------------------------------------------------------------------------------------------
+    % PHASE CENTER VARIATIONS
+    %--------------------------------------------------------------------------------------------
+    
+    %compute PCV: phase and code 1 
+    [~, index_ph]=intersect(sat_pr,sat);
+        
+    if (~isempty(antenna_PCV) && antenna_PCV(2).n_frequency ~= 0) % master
+        index_master=2;
+        PCV1_M=PCV_interp(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 1);
+        pr1_M(sat_pr)=pr1_M(sat_pr)-PCV1_M;
+        ph1_M(sat)=ph1_M(sat)-PCV1_M(index_ph)./lambda(sat,1);
+        
+        %             if (length(phase) == 2)
+        %                 PCV2_M=PCV_interp(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 2, XR0, XS);
+        %                 pr2_M(sat_pr)=pr2_M(sat_pr)-PCV2_M;
+        %                 ph2_M(sat)=ph2_M(sat)-PCV2_M(index_ph)./lambda(sat,1);
+        %             end
+    end
+    
+    if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0) % rover
+        index_rover=1;
+        PCV1_R=PCV_interp(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 1);
+        pr1_R(sat_pr)=pr1_R(sat_pr)-PCV1_R;
+        ph1_R(sat)=ph1_R(sat)-PCV1_R(index_ph)./lambda(sat,1);
+        
+        %             if (length(phase) == 2)
+        %                 PCV2_M=PCV_interp(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 2, XR0, XS);
+        %                 pr2_M(sat_pr)=pr2_M(sat_pr)-PCV2_M;
+        %                 ph2_M(sat)=ph2_M(sat)-PCV2_M(index_ph)./lambda(sat,1);
+        %             end
+    end
+    
+    %--------------------------------------------------------------------------------------------
     % LEAST SQUARES SOLUTION
     %--------------------------------------------------------------------------------------------
     
@@ -194,9 +232,21 @@ if (size(sat_pr,1) >= min_nsat_LS)
         for i = 1 : n_iter
 
             if (phase == 1)
-                [XR, N1(sat), cov_XR, cov_N1, PDOP, HDOP, VDOP, y0_epo, A_epo, b_epo, Q_epo] = LS_DD_code_phase(XR, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,1), flag_IAR);
+                [XR, N1(sat), cov_XR, cov_N1, PDOP, HDOP, VDOP, bad_obs, ~, ~, ~, ~, y0_epo, A_epo, b_epo, Q_epo] = LS_DD_code_phase(XR, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,1), flag_IAR, SPP_threshold);
             else
-                [XR, N2(sat), cov_XR, cov_N2, PDOP, HDOP, VDOP, y0_epo, A_epo, b_epo, Q_epo] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,2), flag_IAR);
+                [XR, N2(sat), cov_XR, cov_N2, PDOP, HDOP, VDOP, bad_obs, ~, ~, ~, ~, y0_epo, A_epo, b_epo, Q_epo] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,2), flag_IAR, SPP_threshold);
+            end
+            
+            if (any(bad_obs))
+                pr_out = bad_obs(bad_obs <= size(sat,1));
+                ph_out = bad_obs(bad_obs >  size(sat,1));
+                only_pr = setdiff(pr_out, ph_out);
+                only_ph = setdiff(ph_out, pr_out);
+
+                conf_sat(sat(pr_out),1) = 0;
+                conf_sat(sat(ph_out),1) = 0;
+                conf_sat(sat(only_pr),1) = +2; %satellite with phase, but without code
+                conf_sat(sat(only_ph),1) = -1;
             end
             
             if (i < 3)

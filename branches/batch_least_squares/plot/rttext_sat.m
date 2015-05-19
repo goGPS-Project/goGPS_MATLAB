@@ -68,7 +68,7 @@ sys = zeros(num_sat,1);
 prn = zeros(num_sat,1);
 
 sat = 1:numel(el);
-sat = sat'.*abs(obs);
+sat = sat'.*(obs~=0);
 
 if (isempty(SP3))
     eph_avail = Eph(30,:);
@@ -101,7 +101,7 @@ for i = 1 : num_sat
         end
 
         if (obs(i) == 0); set(satid(i),'Color',[0.6 0.6 0.6]); end
-        if (obs(i) == 1); set(satid(i),'Color','b'); end
+        if (obs(i) == 1 || obs(i) == 2); set(satid(i),'Color','b'); end
         if (obs(i) == -1); set(satid(i),'Color','g'); end
         if (i == pivot); set(satid(i), 'Color', 'm'); end
 

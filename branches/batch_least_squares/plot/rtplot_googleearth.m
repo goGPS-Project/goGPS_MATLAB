@@ -96,4 +96,4 @@ end
 %-------------------------------------------------------------------------------
 
 %re-writing kml file to show current position in real-time
-KML_write(lamR,phiR,hR,lamM,phiM,hM,sum(abs(conf_sat)),date);
+KML_write(lamR,phiR,hR,lamM,phiM,hM,sum(conf_sat~=0),date);
