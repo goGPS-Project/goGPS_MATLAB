@@ -144,8 +144,7 @@ if (~flag_ms_pos)
     
     %set master station position
     pos_M_crd = [XM; YM; ZM];
-    
-        
+
     % rover
     %find the correct marker
     marker_idx = find(strcmp(markers, markerR));

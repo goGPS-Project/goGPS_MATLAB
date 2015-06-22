@@ -452,6 +452,13 @@ if goGNSS.isPP(mode) % post-processing
                     end
                 end
             end
+            
+            if (flag_SP3)
+                %display message
+                fprintf('Reading SP3 file...\n');
+                
+                SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
+            end
 
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
@@ -582,7 +589,6 @@ if goGNSS.isPP(mode) % post-processing
             %outliers=zeros(2*nSatTot,1);
             %s02_ls=NaN(length(time_GPS),1);
 
-            
         else %relative positioning
             
             [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3);
@@ -653,9 +659,7 @@ if goGNSS.isPP(mode) % post-processing
                     report.obs.pcv_yn(i+1)=cellstr('NO');
                 end
             end
-            
-            
-            
+
             % set ROVER initial coordinates
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 fprintf('Rover apriori position set from coordinate file:\n');
@@ -675,8 +679,7 @@ if goGNSS.isPP(mode) % post-processing
                     end
                 end
             end
-            
-             
+
             % set MASTER initial coordinates
             if (flag_ms_pos) % master position read from RINEX header
                 fprintf('Master position fixed from RINEX:\n');
@@ -707,9 +710,7 @@ if goGNSS.isPP(mode) % post-processing
                     end
                 end
             end
-            
-      
-            
+
             % apply antenna offset over the marker to master coordinates
             if (~isempty(antenna_PCV))
                 pos_M = local2globalPos(antoff_M+antPCO_M, pos_M);
@@ -732,7 +733,6 @@ if goGNSS.isPP(mode) % post-processing
                 
                 SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
             end
-
 
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
