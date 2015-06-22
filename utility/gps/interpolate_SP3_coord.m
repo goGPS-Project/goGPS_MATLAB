@@ -4,7 +4,7 @@ function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
 %   [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat);
 %
 % INPUT:
-%   time = interpolation time (GPS time)
+%   time = interpolation time (GPS time, continuous since 6-1-1980)
 %   SP3  = structure containing precise ephemeris data
 %   sat = satellite PRN
 %
