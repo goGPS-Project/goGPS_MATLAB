@@ -139,8 +139,7 @@ for f = 1 : nFiles
         
         %read data for the current epoch (ROVER)
         [time(k,1,f), date(k,:,f), num_sat, sat, sat_types, tow(k,1,f)] = RINEX_get_epoch(fid);
-        
-        
+
         if (k > nEpochs)
             %variable initialization (GPS)
             pr1(:,k,f) = zeros(nSatTot,1);

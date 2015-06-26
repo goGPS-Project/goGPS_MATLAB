@@ -89,7 +89,7 @@ while (eof==0)
     if (~strcmp(lin(1),'>')) %RINEX v2.xx
         
         %check if it is a string that should be analyzed
-        if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
+        if (strcmp(lin(28:30),' 0 ') || strcmp(lin(28:30),' 1 ') || strcmp(lin(28:30),' 2 '))
             
             %save time information
             data   = textscan(lin(1:26),'%f%f%f%f%f%f');
