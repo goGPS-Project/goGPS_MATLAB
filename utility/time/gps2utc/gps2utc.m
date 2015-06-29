@@ -32,7 +32,8 @@ stepdates = [...
     'Jan 1 1999 0:00:13'
     'Jan 1 2006 0:00:14'
     'Jan 1 2009 0:00:15'
-    'Jul 1 2012 0:00:16'];
+    'Jul 1 2012 0:00:16'
+    'Jul 1 2015 0:00:17'];
 
 %% Convert Steps to datenums and make step offsets
 stepdates = datenum(stepdates)'; %step date coversion
