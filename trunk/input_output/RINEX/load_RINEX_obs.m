@@ -190,7 +190,7 @@ for f = 1 : nFiles
     %close RINEX files
     fclose(fid);
 
-    if report.opt.write == 1
+    if (~isempty(report) && report.opt.write == 1)
         % extract quality parameters for report
         j=strfind(current_file,'\');
         if isempty(j)
@@ -250,7 +250,7 @@ for f = 1 : nFiles
 end
 
 
-if report.opt.write == 1
+if (~isempty(report) && report.opt.write == 1)
     % extract quality parameters for report
     for f = 1 : nFiles        
          % create statistics on observations
