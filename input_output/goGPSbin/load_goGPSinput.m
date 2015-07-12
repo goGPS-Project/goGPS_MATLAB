@@ -74,7 +74,7 @@ hour = 0;                                                           %hour index 
 hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([fileroot '_obs_' hour_str '.bin']);                        %file to be read
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_obs_' hour_str '.bin\n']);
+    fprintf('%s\n',['Reading: ' fileroot '_obs_' hour_str '.bin']);
     fid_obs = fopen([fileroot '_obs_' hour_str '.bin']);            %file opening
     num_sat = fread(fid_obs,1,'int8');                              %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
@@ -131,7 +131,7 @@ if isempty(d)
     Eph = zeros(num_eph,num_sat,length(time_GPS(:,1)));
 end
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_eph_' hour_str '.bin\n']);
+    fprintf('%s\n',['Reading: ' fileroot '_eph_' hour_str '.bin']);
     fid_eph = fopen([fileroot '_eph_' hour_str '.bin']);            %file opening
     num_sat = fread(fid_eph,1,'int8');                              %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
