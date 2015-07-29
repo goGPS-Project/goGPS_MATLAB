@@ -86,7 +86,7 @@ while (eof==0)
     end
 
     %check RINEX version
-    if (~strcmp(lin(1),'>')&&strcmp(lin(1),' ')) %RINEX v2.xx
+    if strcmp(lin(1),' ') %RINEX v2.xx
         
         %check if it is a string that should be analyzed
         if (strcmp(lin(28:30),' 0 ') || strcmp(lin(28:30),' 1 ') || strcmp(lin(28:30),' 2 '))
@@ -141,7 +141,7 @@ while (eof==0)
             eof = 1;
         end
         
-    else %RINEX v3.xx
+    elseif strcmp(lin(1),'>') %RINEX v3.xx
         
         %check if it is a string that should be analyzed
         if (strcmp(lin(32),'0') || strcmp(lin(32),'1') || strcmp(lin(32),'2'))
