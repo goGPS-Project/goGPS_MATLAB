@@ -739,6 +739,7 @@ classdef IniReader < handle
         % Parse the file (cleaned)
         function parseData(obj)
             s = 0;
+            obj.section = {};
             for r=1:length(obj.rawData)
                 sectionName = regexp(obj.rawData{r}, '(?<=^\[).*(?=\])', 'match');
                 if (~isempty(sectionName))
