@@ -459,23 +459,7 @@ if goGNSS.isPP(mode) % post-processing
                 
                 SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
             end
-flag_ERP = 1;
-global ERP;
-            if (flag_ERP)
-                %load IGS Earth Rotation Parameter file
-                ERP_obs_filename='igu';
-                ERP_obs_time='_12';
-                ERP_obs_extension='erp';
-                
-                ERP=struct;
-                [gps_week, gps_sow, gps_dow] = date2gps(date_R(1,:));
-                ERP.filename = ['../data/ERP/' ERP_obs_filename num2str(gps_week,'%04d') num2str(gps_dow,'%1d') ERP_obs_time '.' ERP_obs_extension];
-                ERP.filenameNut = '../data/ERP/nut_IAU1980.dat';
-                ERP.minTime = min(Eph(end-1,:));
-                ERP.maxTime = max(Eph(end-1,:));
-                ERP = load_ERP(ERP);
-            end
-
+            
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
