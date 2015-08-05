@@ -301,7 +301,7 @@ if goGNSS.isPP(mode) % post-processing
 
             %compute sun and moon position
             fprintf('Computing Sun and Moon position...');
-            [X_sun, X_moon] = sun_moon_pos(date_R);
+            [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
             fprintf(' done\n');
             
             if (flag_SP3)

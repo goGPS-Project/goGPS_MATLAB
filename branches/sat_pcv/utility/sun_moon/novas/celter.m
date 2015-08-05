@@ -73,11 +73,13 @@ utjd = utjdh + utjdl;
 
 ttjd = utjd + deltat;
 
-tdbjd = ttjd;
+tdbjd = utc2tdb(ttjd);
 
-[t, secdif] = novas_times (tdbjd);
-
-tdbjd = ttjd + secdif / 86400.0d0;
+% tdbjd = ttjd;
+% 
+% [t, secdif] = novas_times (tdbjd);
+% 
+% tdbjd = ttjd + secdif / 86400.0d0;
 
 % get method/accuracy mode
 

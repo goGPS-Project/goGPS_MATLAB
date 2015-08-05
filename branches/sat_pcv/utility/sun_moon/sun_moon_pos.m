@@ -13,7 +13,8 @@ readleap; iephem = 1; ephname = 'de421.bin'; km = 1; inutate = 1; ob2000 = 0.0d0
 tmatrix = j2000_icrs(1);
 
 setmod(2);
-setdt(3020092e-7);
+% setdt(3020092e-7);
+setdt(5.877122033683494);
 xp = 171209e-6; yp = 414328e-6;
 
 %if the binary JPL ephemeris file is not available, generate it
