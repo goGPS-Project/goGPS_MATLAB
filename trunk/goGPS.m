@@ -401,8 +401,8 @@ if goGNSS.isPP(mode) % post-processing
              time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R] = ...
              load_RINEX_obs(filename_obs, constellations);
             
-            if (~isfinite(time_GPS))
-                fprintf('... WARNING: no observations available for processing.\n');
+            if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
+                fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
                 return
             end
          
@@ -598,8 +598,8 @@ if goGNSS.isPP(mode) % post-processing
              time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
             
-            if (~isfinite(time_GPS))
-                fprintf('... WARNING: no observations available for processing.\n');
+            if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
+                fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
                 return
             end
             
