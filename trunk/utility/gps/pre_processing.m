@@ -86,8 +86,6 @@ bad_epochs=NaN(nEpochs,1);
 % vector with SPP a posteriori sigma
 var_SPP=NaN(nEpochs,3);
 
-
-
 %--------------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
 %--------------------------------------------------------------------------------------------
@@ -107,7 +105,6 @@ cov_XR = zeros(3,3,nEpochs);
 var_dtR = NaN(nEpochs,1);
 status_obs = NaN(nSatTot,nEpochs);
 status_cs=[];
-
 
 for i = 1 : nEpochs
     
@@ -785,7 +782,11 @@ for t = 1 : length(time_series)
     if (t<=d)
         mov_std(t) = std(time_series(1:d));
     elseif (t>(length(time_series)-d))
-        mov_std(t) = std(time_series(end-d-1:end));
+        if (length(time_series)-d-1 == 0)
+            mov_std(t) = mov_std(t-1);
+        else
+            mov_std(t) = std(time_series(end-d-1:end));
+        end
     else
         mov_std(t) = std(time_series(t-d:t+d));
     end
