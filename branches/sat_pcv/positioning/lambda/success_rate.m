@@ -17,7 +17,7 @@ function [up_bound, lo_bound] = success_rate(D, L, bias)
 %   
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

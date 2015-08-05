@@ -18,7 +18,7 @@ function [ncols, nrows, cellsize, xll, yll, nodata] = dtm_hdr_load(hdr_target)
 %   Function that reads a .hdr file containing and ASCII-GRID header.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -46,7 +46,7 @@ fprintf('\n');
 
 %checking file existence
 if (fopen(hdr_target,'r') == -1)
-    error('Warning: header file (.hdr) not found.');
+    error('... ERROR: header file (.hdr) not found.');
 end
 
 %header reading
@@ -92,7 +92,7 @@ if  (isnumeric(hdr_2) & (hdr_rows_1 == 5 | hdr_rows_1 == 6) & ...
                 %value used for cells not containing data
                 nodata = hdr_2(i);
             otherwise
-                error('Warning: header is not standard ASCII-GRID.');
+                error('... ERROR: header is not standard ASCII-GRID.');
         end
     end
     %if cell corners are used
@@ -102,5 +102,5 @@ if  (isnumeric(hdr_2) & (hdr_rows_1 == 5 | hdr_rows_1 == 6) & ...
     end
 else
     %the header does not follow the standard ASCII-GRID format
-    error('Warning: header is not standard ASCII-GRID.');
+    error('... ERROR: header is not standard ASCII-GRID.');
 end

@@ -15,7 +15,7 @@ function [errorcode, varargout] = common_size (varargin)
 %      >> b = [ 5, 5; 5, 5 ]
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 1995-2007 Kurt Hornik
 % Copyright (C) 2008 Dynare Team

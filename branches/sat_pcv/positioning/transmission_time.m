@@ -22,7 +22,7 @@ function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas,
 %   Compute the signal transmission time.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

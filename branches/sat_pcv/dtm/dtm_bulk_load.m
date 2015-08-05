@@ -12,7 +12,7 @@ function dtm_bulk_load(dtm_dir_path, tile_size)
 %   passed in input, saves them in .MAT binary format and splits them in tiles.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -65,11 +65,11 @@ for i = 1 : nmax
 
         %check consistency between cellsize and nodata values
         if (j > 1 & cellsize(j) ~= cellsize(j - 1))
-            error('Warning: cellsize value not consistent among dtm files');
+            error('... ERROR: cellsize value not consistent among dtm files');
         end
 
         if (j > 1 & nodata(j) ~= nodata(j - 1))
-            error('Warning: nodata value not consistent among dtm files');
+            error('... ERROR: nodata value not consistent among dtm files');
         end
 
         target_length = size(dtm_target,2);
@@ -86,7 +86,7 @@ for i = 1 : nmax
 end
 
 if (j == 0)
-    error(['No proper DTM file found in folder ' dtm_dir_path '.']);
+    error(['... ERROR: no proper DTM file found in folder ' dtm_dir_path '.']);
 end
 
 %resolution and nodata value must be the same for all the dtm files, thus

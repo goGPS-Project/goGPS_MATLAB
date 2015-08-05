@@ -20,7 +20,7 @@ function rttext_sat (t, az, el, snr, obs, pivot, Eph, SP3)
 %   Real time textual display of satellite data.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

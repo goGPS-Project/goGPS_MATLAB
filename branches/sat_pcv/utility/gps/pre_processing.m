@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR, sbas)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing_clock(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -20,6 +20,9 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processin
 %   lambda  = wavelength matrix (depending on the enabled constellations)
 %   nSatTot = maximum number of satellites (given the enabled constellations)
 %   waitbar_handle = handle to the waitbar object
+%   flag_XR = 2: coordinate fixed to XR0 values
+%           = 1: approximate coordinates available
+%           = 0: no apriori coordinates available
 
 % OUTPUT:
 %   pr1 = processed code observation (L1 carrier)
@@ -29,16 +32,22 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processin
 %   dtR = receiver clock error
 %   dtRdot receiver clock drift
 %   bad_sats = vector for flagging "bad" satellites (e.g. too few observations, code without phase, etc)
-%   bad_epochs = vector for flagging "bad" epochs (e.g. least-squares on code observations giving high condition number)
+%   bad_epochs  = vector with 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
+%   var_SPP   = [code single point positioning a posteriori sigma, sum of
+%                weighted squared residuals, redoundancy], one row per epoch
+%   status_obs = for each satellite. NaN: not observed, 0: observed only, 1: used, -1: outlier 
+%   status_cs = [satellite_number, frequency, epoch, cs_correction_fix, cs_correction_float, cs_corrected(0:no, 1:yes)]: vector with cs information
 %
 % DESCRIPTION:
 %   Pre-processing of code and phase observations to correct them for
 %    the receiver clock error.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Stefano Caldera
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -72,26 +81,30 @@ dtRdot = zeros(nEpochs-1,1);
 bad_sats = zeros(nSatTot,1);
 
 %vector with bad epochs definition
-bad_epochs=zeros(nEpochs,1);
+bad_epochs=NaN(nEpochs,1);
+
+% vector with SPP a posteriori sigma
+var_SPP=NaN(nEpochs,3);
 
 %--------------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
 %--------------------------------------------------------------------------------------------
 
-if ((sum(abs(XR0)) == 0) || isempty(XR0))
-    %approximate position not available
-    flag_XR = 0;
-else
-    %approximate position available
-    flag_XR = 1;
-end
+% if ((sum(abs(XR0)) == 0) || isempty(XR0))
+%     %approximate position not available
+%     flag_XR = 0;
+% else
+%     %approximate position available
+%     flag_XR = 1;
+% end
 
 err_iono = zeros(nSatTot,nEpochs);
 el = zeros(nSatTot,nEpochs);
 cond_num = zeros(nEpochs,1);
 cov_XR = zeros(3,3,nEpochs);
-var_dtR = zeros(nEpochs,1);
-XS = zeros(nSatTot,3,nEpochs);
+var_dtR = NaN(nEpochs,1);
+status_obs = NaN(nSatTot,nEpochs);
+status_cs=[];
 
 for i = 1 : nEpochs
     
@@ -100,8 +113,10 @@ for i = 1 : nEpochs
     %--------------------------------------------------------------------------------------------
     
     sat0 = find(pr1(:,i) ~= 0);
+    status_obs(sat0,i) = 0; % satellite observed
 
     Eph_t = rt_find_eph (Eph, time(i), nSatTot);
+    sbas_t = find_sbas(sbas, i);
     
     %----------------------------------------------------------------------------------------------
     % RECEIVER POSITION AND CLOCK ERROR
@@ -110,21 +125,24 @@ for i = 1 : nEpochs
     min_nsat_LS = 3 + n_sys;
     
     if (length(sat0) >= min_nsat_LS)
-
-        [~, dtR_tmp, XS_tmp, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, [], XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
         
-        %bad_sats(bad_sat_i)=1;
+        if isempty(var_dtR_tmp)
+            var_dtR_tmp=NaN;
+        end
         
-        if (~isempty(dtR_tmp))
+        status_obs(sat,i) = 1; % satellite used
+        status_obs(find(bad_sat_i==1),i)=-1; % satellite outlier
+        
+        if (~isempty(dtR_tmp) && ~isempty(sat))
             dtR(i) = dtR_tmp;
             err_iono(sat,i) = err_iono_tmp;
             el(sat,i) = el_tmp;
-            cond_num(i,1) = cond_num_tmp;
-            XS(sat,:,i) = XS_tmp;
-            if (~isempty(var_dtR_tmp))
-                cov_XR(:,:,i) = cov_XR_tmp;
-                var_dtR(i,1) = var_dtR_tmp;
-            end
+%             cond_num(i,1) = cond_num_tmp;
+%             if (~isempty(var_dtR_tmp))
+%                 cov_XR(:,:,i) = cov_XR_tmp;
+%                 var_dtR(i,1) = var_dtR_tmp;
+%             end
         end
         
         if (size(sat,1) >= min_nsat_LS)
@@ -335,7 +353,13 @@ for s = 1 : nSatTot
                 end
             end
 
-            [ph1(s,:), cs_found] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), ph_GF(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            [ph1(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), ph_GF(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            
+            if ~isempty(cs_correction_i)
+                cs_correction_i(:,1) = s;
+                cs_correction_i(:,2) = 1;
+                status_cs=[status_cs;cs_correction_i];
+            end
             
             index_s = find(ph1(s,:) ~= 0);
             index = intersect(index_e,index_s);
@@ -370,7 +394,13 @@ for s = 1 : nSatTot
                 end
             end
             
-            [ph2(s,:), cs_found] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), ph_GF(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), ph_GF(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            
+            if ~isempty(cs_correction_i)
+                cs_correction_i(:,1) = s;
+                cs_correction_i(:,2) = 2;
+                status_cs=[status_cs;cs_correction_i];
+            end
             
             index_s = find(ph2(s,:) ~= 0);
             index = intersect(index_e,index_s);
@@ -391,7 +421,6 @@ for s = 1 : nSatTot
         bad_sats(s) = 1;
     end
 end
-
 pr1 = pr1_interp;
 pr2 = pr2_interp;
 ph1 = ph1_interp;
@@ -400,14 +429,20 @@ ph2 = ph2_interp;
 end
 
 
-function [ph, cs_found] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, el, err_iono, lambda)
+function [ph, cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, el, err_iono, lambda)
 
-global cutoff
+global cutoff cs_threshold
+cs_resolution = 1;
+% if cs_threshold==0.5
+%     cs_resolution=0.5;
+% end
 
 flag_plot = 0;
 flag_doppler_cs = 1;
 
 cs_found = 0;
+cs_correction_i=[];
+cs_correction_count = 0;
 
 cutoff_idx = find(el(1,:) > cutoff);
 avail_idx = find(ph(1,:) ~= 0);
@@ -433,10 +468,10 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     interval = [interval; interval(end)]';
     
     %initialization
-    jmp_code    = (1:length(ph))';
-    jmp_doppler = (1:length(ph))';
-    jmp_deriv   = (1:length(ph))';
-    jmp_GF      = (1:length(ph))';
+    jmp_code    = (1:(length(ph)-1))';
+    jmp_doppler = (1:(length(ph)-1))';
+    jmp_deriv   = (1:(length(ph)-1))';
+    jmp_GF      = (1:(length(ph)-1))';
     
     %detection (code)
     N_mat(1,N_mat(1,:)==0) = NaN;
@@ -449,7 +484,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_code = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_code)))
-        outliers = batch_outlier_detection(delta_test(avail_code),interval(1));
+        outliers = batch_outlier_detection(delta_test(avail_code),median(round(interval)));
         [~,jmp_code] = intersect(delta_test,outliers);
     end
     
@@ -477,7 +512,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_doppler = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_doppler)))
-        outliers = batch_outlier_detection(delta_test(avail_doppler),interval(1));
+        outliers = batch_outlier_detection(delta_test(avail_doppler),median(round(interval)));
         [~,jmp_doppler] = intersect(delta_test,outliers);
     end
 
@@ -506,7 +541,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_deriv = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_deriv)))
-        outliers = batch_outlier_detection(delta_test(avail_deriv),interval(1));
+        outliers = batch_outlier_detection(delta_test(avail_deriv),median(round(interval)));
         [~,jmp_deriv] = intersect(delta_test,outliers);
     end
     jmp_deriv = sort(jmp_deriv);
@@ -525,7 +560,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     avail_GF = intersect(not_zero, not_nan);
 
     if (~isempty(delta_test(avail_GF)))
-        outliers = batch_outlier_detection(delta_test(avail_GF),interval(1));
+        outliers = batch_outlier_detection(delta_test(avail_GF),median(round(interval)));
         outliers(outliers < 0.1) = [];
         [~,jmp_GF] = intersect(delta_test,outliers);
     end
@@ -549,7 +584,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     else
         delta = -delta_deriv;
     end
-    
+
     %cycle slips detected by code and doppler observables must be of the same sign
     if ((pos1 == 1 && pos2 == 2) || (pos1 == 2 && pos2 == 1))
         sign_OK = (sign(delta_code(jmp)) .* sign(delta_doppler(jmp)) > 0);
@@ -567,6 +602,9 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         sign_OK = (sign(delta_doppler(jmp)) .* sign(delta_deriv(jmp)) > 0);
         jmp = jmp(sign_OK);
     end
+
+    %ignore cycle slips smaller than cs_threshold
+    jmp(abs(delta(jmp)) < cs_threshold) = [];
 
 %     jmp1 = intersect(jmp_deriv,jmp_doppler);
 %     jmp2 = intersect(jmp1, jmp_code);
@@ -631,12 +669,20 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                     ph_propag = interp1(time(j-1:j),ph(1,j-1:j),time(j+1),'linear','extrap');
                 end
                 if (abs(ph_propos - ph_propag) < delta_thres)
-                    idx = (ph(1,:)==0);
-                    cs_correction = round(delta(j));
-                    N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
-                    ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
-                    N_mat(1,idx) = 0;
-                    ph   (1,idx) = 0;
+                    idx = (ph(1,:)==0); 
+                    cs_correction = roundmod(delta(j), cs_resolution);
+                    cs_correction_count = cs_correction_count + 1;
+                    cs_correction_i(cs_correction_count,3)=j;
+                    cs_correction_i(cs_correction_count,4)=cs_correction;
+                    cs_correction_i(cs_correction_count,5)=delta(j);
+                    cs_correction_i(cs_correction_count,6)=0;
+%                     if abs(delta(j)-cs_correction) < 0.05
+                        cs_correction_i(cs_correction_count,6)=1;
+                        N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
+                        ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+                        N_mat(1,idx) = 0;
+                        ph   (1,idx) = 0;
+%                     end
                     
                     if (flag_plot)
                         hold on
@@ -726,21 +772,27 @@ end
 end
 
 function [min_std] = detect_minimum_std(time_series)
+min_std = 1e30;
 d = 5; %half window size
+if (length(time_series) < 2*d)
+    return
+end
 mov_std = zeros(size(time_series));
 for t = 1 : length(time_series)
     if (t<=d)
         mov_std(t) = std(time_series(1:d));
     elseif (t>(length(time_series)-d))
-        mov_std(t) = std(time_series(end-d-1:end));
+        if (length(time_series)-d-1 == 0)
+            mov_std(t) = mov_std(t-1);
+        else
+            mov_std(t) = std(time_series(end-d-1:end));
+        end
     else
         mov_std(t) = std(time_series(t-d:t+d));
     end
 end
 if (~isempty(mov_std))
     min_std = min(mov_std);
-else
-    min_std = 1e30;
 end
 end
 

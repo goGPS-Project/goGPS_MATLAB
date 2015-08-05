@@ -1,4 +1,4 @@
-function [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
+function [bcheck, acheck, Qzhat, Qbcheck] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 
 % SYNTAX:
 %   [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba);
@@ -19,7 +19,7 @@ function [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 %   A wrapper for LAMBDA function to be used in goGPS.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
@@ -43,6 +43,8 @@ function [bcheck, acheck, Qzhat] = lambdafix(bhat, ahat, Qbb, Qahat, Qba)
 
 global ratiotest mutest succ_rate fixed_solution IAR_method P0 mu flag_auto_mu flag_default_P0
 
+Qbcheck=[];
+
 if (flag_auto_mu)
     mu = [];
 end
@@ -64,6 +66,7 @@ try
         [afixed,sqnorm,Qzhat,Z,D,L] = lambda_routine2(ahat,Qahat);
         % compute the fixed solution
         bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
+        Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
         acheck = afixed(:,1);
         % success rate
         Ps = prod(2*normcdf(0.5./sqrt(D))-1);
@@ -76,6 +79,7 @@ try
         % compute the fixed solution
         bcheck = bhat - Qba*cholinv(Qahat)*(ahat-afixed(:,1));
         acheck = afixed(:,1);
+        Qbcheck = Qbb  - Qba*cholinv(Qahat)*Qba';
         
     elseif (IAR_method == 3 || IAR_method == 4)
         % Integer rounding, method 3

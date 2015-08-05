@@ -18,7 +18,7 @@ function [n_bands, band, iodi, igp_mask] = ems2igpmask(msg)
 %   of the MT 26 to the right IGP (Iono Grid Point).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

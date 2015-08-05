@@ -25,7 +25,7 @@ function varargout = gui_goGPS_unix_mac(varargin)
 % Last Modified by GUIDE v2.5 19-Apr-2013 12:12:09
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
@@ -90,7 +90,7 @@ function varargout = gui_goGPS_unix_OutputFcn(hObject, eventdata, handles)
 global goGUI
     % If I press the exit button
     if(~isstruct(handles))
-        varargout = cell(27,1);
+        varargout = cell(30,1);
         return
     end
     

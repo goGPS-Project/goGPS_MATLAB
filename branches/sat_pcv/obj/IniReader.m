@@ -23,7 +23,7 @@
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
 %
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -739,6 +739,7 @@ classdef IniReader < handle
         % Parse the file (cleaned)
         function parseData(obj)
             s = 0;
+            obj.section = {};
             for r=1:length(obj.rawData)
                 sectionName = regexp(obj.rawData{r}, '(?<=^\[).*(?=\])', 'match');
                 if (~isempty(sectionName))

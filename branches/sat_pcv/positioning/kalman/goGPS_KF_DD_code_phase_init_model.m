@@ -42,7 +42,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init_model(XR0, XM, time_
 %   initial position (X,Y,Z). Variable dynamics.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

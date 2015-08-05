@@ -33,7 +33,7 @@ function [Obs_columns, nObs_types] = obs_type_find(Obs_types, sysId)
 %   measurements (D1, D2).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni,Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
@@ -136,91 +136,109 @@ else %RINEX v3.xx
         
         switch sysId{c}
             case 'G' %GPS
-                idL1 = 'L1C';
-                idL2 = 'L2W';
-                idC1 = 'C1C';
-                idP1 = 'C1P';
-                idP2 = 'C2W';
-                idS1 = 'S1C';
-                idS2 = 'S2W';
-                idD1 = 'D1C';
-                idD2 = 'D2W';
+                idL1 = {'L1C'};
+                idL2 = {'L2W'};
+                idC1 = {'C1C'};
+                idP1 = {'C1P'};
+                idP2 = {'C2W'};
+                idS1 = {'S1C'};
+                idS2 = {'S2W'};
+                idD1 = {'D1C'};
+                idD2 = {'D2W'};
             case 'R' %GLONASS
-                idL1 = 'L1C';
-                idL2 = 'L2P';
-                idC1 = 'C1C';
-                idP1 = 'C1P';
-                idP2 = 'C2P';
-                idS1 = 'S1C';
-                idS2 = 'S2P';
-                idD1 = 'D1C';
-                idD2 = 'D2P';
+                idL1 = {'L1C'};
+                idL2 = {'L2P'};
+                idC1 = {'C1C'};
+                idP1 = {'C1P'};
+                idP2 = {'C2P'};
+                idS1 = {'S1C'};
+                idS2 = {'S2P'};
+                idD1 = {'D1C'};
+                idD2 = {'D2P'};
             case 'E' %Galileo
-                idL1 = 'L1X';
-                idL2 = 'L5X';
-                idC1 = 'C1X';
-                idP1 = '...'; % <-- ?
-                idP2 = 'C5X';
-                idS1 = 'S1X';
-                idS2 = 'S5X';
-                idD1 = 'D1X';
-                idD2 = 'D5X';
+                idL1 = {'L1A';'L1B';'L1C';'L1X';'L1Z'};
+                idL2 = {'L5X'};
+                idC1 = {'C1A';'C1B';'C1C';'C1X';'C1Z'};
+                idP1 = {'...'}; % <-- ?
+                idP2 = {'C5X'};
+                idS1 = {'S1A';'S1B';'S1C';'S1X';'S1Z'};
+                idS2 = {'S5X'};
+                idD1 = {'D1A';'D1B';'D1C';'D1X';'D1Z'};
+                idD2 = {'D5X'};
             case 'C' %Compass/Beidou
-                idL1 = 'L2I';
-                idL2 = 'L7I';
-                idC1 = 'C2I';
-                idP1 = '...'; % <-- ?
-                idP2 = 'C7I';
-                idS1 = 'S2I';
-                idS2 = 'S7I';
-                idD1 = 'D2I';
-                idD2 = 'D7I';
-            case 'Q' %QZSS
-                idL1 = 'L1C';
-                idL2 = 'L2C';
-                idC1 = 'C1C';
-                idP1 = '...'; %QZSS does not use P1
-                idP2 = 'C2C';
-                idS1 = 'S1C';
-                idS2 = 'S2C';
-                idD1 = 'D1C';
-                idD2 = 'D2C';
+                idL1 = {'L1I';'L2I'};
+                idL2 = {'L7I'};
+                idC1 = {'C1I';'C2I'};
+                idP1 = {'...'}; % <-- ?
+                idP2 = {'C7I'};
+                idS1 = {'S1I';'S2I'};
+                idS2 = {'S7I'};
+                idD1 = {'D1I';'D2I'};
+                idD2 = {'D7I'};
+            case 'J' %QZSS
+                idL1 = {'L1C'};
+                idL2 = {'L2C'};
+                idC1 = {'C1C'};
+                idP1 = {'...'}; %QZSS does not use P1
+                idP2 = {'C2C'};
+                idS1 = {'S1C'};
+                idS2 = {'S2C'};
+                idD1 = {'D1C'};
+                idD2 = {'D2C'};
         end
 
         %search L1 column
-        s = strfind(Obs_types.(sysId{c}), idL1);
+        for i = 1 : length(idL1)
+            s = strfind(Obs_types.(sysId{c}), idL1{i}); if (~isempty(s)), break, end;
+        end
         col_L1 = (s+2)/3;
         
         %search L2 column
-        s = strfind(Obs_types.(sysId{c}), idL2);
+        for i = 1 : length(idL2)
+            s = strfind(Obs_types.(sysId{c}), idL2{i}); if (~isempty(s)), break, end;
+        end
         col_L2 = (s+2)/3;
         
         %search C1 column
-        s = strfind(Obs_types.(sysId{c}), idC1);
+        for i = 1 : length(idC1)
+            s = strfind(Obs_types.(sysId{c}), idC1{i}); if (~isempty(s)), break, end;
+        end
         col_C1 = (s+2)/3;
         
         %search P1 column
-        s = strfind(Obs_types.(sysId{c}), idP1);
+        for i = 1 : length(idP1)
+            s = strfind(Obs_types.(sysId{c}), idP1{i}); if (~isempty(s)), break, end;
+        end
         col_P1 = (s+2)/3;
         
         %search P2 column
-        s = strfind(Obs_types.(sysId{c}), idP2);
+        for i = 1 : length(idP2)
+            s = strfind(Obs_types.(sysId{c}), idP2{i}); if (~isempty(s)), break, end;
+        end
         col_P2 = (s+2)/3;
         
         %search S1 column
-        s = strfind(Obs_types.(sysId{c}), idS1);
+        for i = 1 : length(idS1)
+            s = strfind(Obs_types.(sysId{c}), idS1{i}); if (~isempty(s)), break, end;
+        end
         col_S1 = (s+2)/3;
         
         %search S2 column
-        s = strfind(Obs_types.(sysId{c}), idS2);
+        for i = 1 : length(idS2)
+            s = strfind(Obs_types.(sysId{c}), idS2{i}); if (~isempty(s)), break, end;
+        end
         col_S2 = (s+2)/3;
         
         %search D1 column
-        s = strfind(Obs_types.(sysId{c}), idD1);
+        for i = 1 : length(idD1)
+            s = strfind(Obs_types.(sysId{c}), idD1{i}); if (~isempty(s)), break, end;
+        end
         col_D1 = (s+2)/3;
         
         %search D2 column
-        s = strfind(Obs_types.(sysId{c}), idD2);
+        for i = 1 : length(idD2)
+            s = strfind(Obs_types.(sysId{c}), idD2{i}); if (~isempty(s)), break, end;
+        end
         col_D2 = (s+2)/3;
 
         Obs_columns.(sysId{c}).L1 = col_L1;

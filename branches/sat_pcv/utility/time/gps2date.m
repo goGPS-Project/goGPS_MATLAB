@@ -1,7 +1,7 @@
-function [date, doy] = gps2date(gps_week, gps_sow)
+function [date, doy, dow] = gps2date(gps_week, gps_sow)
 
 % SYNTAX:
-%   [date, doy] = gps2date(gps_week, gps_sow);
+%   [date, doy, dow] = gps2date(gps_week, gps_sow);
 %
 % INPUT:
 %   gps_week = GPS week
@@ -10,12 +10,13 @@ function [date, doy] = gps2date(gps_week, gps_sow)
 % OUTPUT:
 %   date = date [year month day hour min sec]
 %   doy  = day of year
+%   dow  = day of week
 %
 % DESCRIPTION:
 %   Conversion from GPS time to calendar date and day of year (DOY).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -47,4 +48,9 @@ date(:,6) = gps_sod - date(:,4)*3600 - date(:,5)*60;      %seconds
 if (nargout > 1)
     doy = date2doy(datenum(date));
     doy = floor(doy);
+end
+
+%day of week
+if (nargout > 2)
+    dow = gps_dow;
 end

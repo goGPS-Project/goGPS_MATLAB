@@ -4,8 +4,7 @@ function [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat)
 %   [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat);
 %
 % INPUT:
-%   timeb = beginning of the interpolation timespan (GPS time)
-%   timee = end of the interpolation timespan (GPS time)
+%   time = interpolation timespan (GPS time, continuous since 6-1-1980)
 %   SP3   = structure containing precise ephemeris data
 %   sat   = satellite PRN
 %
@@ -13,10 +12,10 @@ function [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat)
 %   dt_S_SP3  = interpolated clock correction
 %
 % DESCRIPTION:
-%   SP3 (precise ephemeris) clock correction 1-second interpolation by spline.
+%   SP3 (precise ephemeris) clock correction linear interpolation.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

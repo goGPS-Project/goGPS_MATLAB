@@ -14,7 +14,7 @@ function [y] = global2localPos(x, X)
 %   Rototraslation from Earth-fixed reference frame to local-level reference frame
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -39,7 +39,7 @@ y = zeros(size(x));
 for i = 1 : size(X,2)
 
     %geodetic coordinates
-    [phi, lam, h] = cart2geod(X(1,i), X(2,i), X(3,i)); %#ok<NASGU>
+    [phi, lam] = cart2geod(X(1,i), X(2,i), X(3,i));
 
     %rotation matrix from global to local reference system
     R = [-sin(lam) cos(lam) 0;
@@ -49,5 +49,3 @@ for i = 1 : size(X,2)
     %rototraslation
     y(:,i) = R * (x(:,i)-X(:,i));
 end
-
-%----------------------------------------------------------------------------------------------

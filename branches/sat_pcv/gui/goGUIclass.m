@@ -1,5 +1,5 @@
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -108,13 +108,13 @@ classdef goGUIclass < handle
         strAlgorithm = {}; % string containing the pop-up menu fields
         
         % Processing type
-        idC_SA = 1;      % Code stand-alone
+        idC_SA = 1;      % Code stand-alone (i.e. undifferenced)
         idC_DD = 2;      % Code double difference
         idCP_DD_L = 3;   % Code double difference with LAMBDA
 		idCP_Vel = 4;    % Variometric approach for velocity estimation
-        idCP_SA = 3;     % Code and phase stand-alone        
+        idCP_SA = 3;     % Code and phase stand-alone (i.e. undifferenced)    
         idCP_DD = 4;     % Code and phase double difference
-        idC_SA_MR = 5;   % Code and phase double difference for multiple receivers
+        idC_SA_MR = 5;   % Code and phase stand-alone (i.e. undifferenced) for multiple receivers
         idCP_DD_MR = 6;  % Code and phase double difference for multiple receivers
         strTypeLS = {};  % string containing the pop-up menu fields
         strTypeKF = {};  % string containing the pop-up menu fields
@@ -265,16 +265,16 @@ classdef goGUIclass < handle
             obj.strAlgorithm{obj.idLS} = 'Least squares';
             obj.strAlgorithm{obj.idKF} = 'Kalman filter';
             
-            obj.strTypeLS{obj.idC_SA} = 'Code stand-alone';
+            obj.strTypeLS{obj.idC_SA} = 'Code undifferenced';
             obj.strTypeLS{obj.idC_DD} = 'Code double difference';
             obj.strTypeLS{obj.idCP_DD_L} = 'Code and phase double difference (for LAMBDA)';
 			obj.strTypeLS{obj.idCP_Vel} = 'Variometric approach for velocity estimation';
-            obj.strTypeLS{obj.idC_SA_MR} = 'Code stand-alone for multiple receivers';
+            %obj.strTypeLS{obj.idC_SA_MR} = 'Code undifferenced for multiple receivers';
             %obj.strTypeLS{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
 
-            obj.strTypeKF{obj.idC_SA} = 'Code stand-alone';
+            obj.strTypeKF{obj.idC_SA} = 'Code undifferenced';
             obj.strTypeKF{obj.idC_DD} = 'Code double difference';
-            obj.strTypeKF{obj.idCP_SA} = 'Code and phase stand-alone';
+            obj.strTypeKF{obj.idCP_SA} = 'Code and phase undifferenced';
             obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
             %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
             
@@ -947,7 +947,6 @@ classdef goGUIclass < handle
             % On Real Time
             idG.onRealTime = [idG.ResetStatus id.pConstellations ...
                               id.pMode id.lCaptMode ...
-                              id.pIFiles id.rBin ...
                               id.pIOFiles idG.GoOut ...
                               id.pSettings];
                           
@@ -985,7 +984,7 @@ classdef goGUIclass < handle
                               id.pMode id.lAlgType id.lProcType ...
                               id.pIFiles idG.gINI...
                               id.pIOFiles id.pConstellations idG.GoOut ...
-                              id.pOptions id.cRefPath ...
+                              id.pOptions ...
                               id.pSettings idG.CutOff idG.pW];
             
             % On Post Proc => Least Squares
@@ -1031,16 +1030,16 @@ classdef goGUIclass < handle
             
             % On Post Proc => On Kalman Filter => Code Double Differences
             idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin idG.pAvailableGNSSCode ...
-                               id.pMSt id.cMPos];
+                                id.pMSt id.cMPos];
 
             % On Post Proc => On Kalman Filter => Code and Phase Stand Alone
             idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin idG.pAvailableGNSSPhase ...
                                  idG.StdPhase idG.CS ...
-                                 id.cDoppler id.cUse_SBAS idG.pIntAmb];
+                                 id.cDoppler id.cUse_SBAS];
             
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin id.cConstraint idG.pAvailableGNSSPhase ...
-                                 idG.StdPhase id.bStdDTM ...
+                                 idG.StdPhase id.bStdDTM id.cRefPath ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
                                  id.pMSt id.cMPos id.cDoppler idG.pIntAmb];
 
@@ -1695,7 +1694,10 @@ classdef goGUIclass < handle
         function setPassword(obj, password)
             
             if isfield(obj.goh,'jPassword')
-                obj.goh.jPassword.jpwd.setText(password);
+                try
+                eval(sprintf('obj.goh.jPassword.jpwd.setText(''%s'')',password));
+                catch
+                end
             elseif (obj.isInitialized())
                 set(obj.goh.password,'String',password);
             end
@@ -1742,10 +1744,10 @@ classdef goGUIclass < handle
         % E.g. a flag that activate other fields
         function checkUIdependencies(obj)
 
-            % Check Input file type integrity
-            if ~xor(obj.isRinex(), obj.isBin())
-                obj.setBin();
-            end
+%             % Check Input file type integrity
+%             if ~xor(obj.isRinex(), obj.isBin())
+%                 obj.setRinex();
+%             end
                         
           %   INPUT FILE TYPE
           % --------------------------------------------------------------- 
@@ -2869,6 +2871,7 @@ classdef goGUIclass < handle
                 file_name = goIni.getData('PCO_PCV_file','file_name');
                 filename_pco = [data_path file_name];
             end
+            
             %serial communication
             % global COMportR
             contents = cellstr(get(obj.goh.com_select_0,'String'));
@@ -2963,6 +2966,28 @@ classdef goGUIclass < handle
             else
                 flag_var_dyn_model = 0;
             end
+
+            % atm model
+            iono = goIni.getData('ATM_model','iono');
+            tropo = goIni.getData('ATM_model','tropo');
+            if (isempty(iono))
+                iono_model = 1;
+            else
+                iono_model = iono;
+            end
+            if (isempty(tropo))
+                tropo_model = 1;
+            else
+                tropo_model = tropo;
+            end
+            % mixed
+            fsep = goIni.getData('Various','field_separator');
+            if (isempty(fsep))
+                fsep_char = 'default';
+            else
+                fsep_char = fsep;
+            end           
+            
             mode_ref = get(obj.goh.ref_path,'Value');
             flag_ms_pos = get(obj.goh.master_pos,'Value');
             flag_ms = get(obj.goh.plot_master,'Value');
@@ -3112,7 +3137,7 @@ classdef goGUIclass < handle
             end
             protocol_idx = protocol_idx(~isnan(protocol_idx));
             
-            funout = cell(27,1);
+            funout = cell(30,1);
             
             funout{1} = mode;
             funout{2} = mode_vinc;
@@ -3141,6 +3166,9 @@ classdef goGUIclass < handle
             funout{25} = pos_M_man;
             funout{26} = protocol_idx;
             funout{27} = multi_antenna_rf;
+            funout{28} = iono_model;
+            funout{29} = tropo_model;            
+            funout{30} = fsep_char;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
@@ -3202,7 +3230,7 @@ classdef goGUIclass < handle
             end
             min_nsat = str2double(get(obj.goh.min_sat,'String'));
             if (mode == 2)
-                disp('Minimum number of satellites is forced to 4 (for stand-alone positioning)');
+                disp('Minimum number of satellites is forced to 4 (for undifferenced positioning)');
                 min_nsat = 4;
             end
             goIni.addSection('Generic');
@@ -3577,7 +3605,7 @@ classdef goGUIclass < handle
             end
         end
         
-        % Browse output foder
+        % Browse output folder
         function browse4Dir(obj)
             dname = uigetdir(obj.getWorkingDir(),'Choose a directory');
             if (dname ~= 0)
@@ -3609,6 +3637,7 @@ classdef goGUIclass < handle
             
             if (filename ~= 0)
                 str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
         end

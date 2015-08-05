@@ -32,7 +32,7 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -116,7 +116,7 @@ sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
-    var_dtR = Cxx(end,end) / v_light;
+    var_dtR = Cxx(end,end) / v_light^2;
 else
     cov_XR  = [];
     var_dtR = []; 
@@ -124,7 +124,8 @@ end
 
 %DOP computation
 if (nargout > 6)
-    cov_XYZ = (A(1:nsat_ph,1:3)'*A(1:nsat_ph,1:3))^-1;
+    cov_XYZ = (A'*A)^-1;
+    cov_XYZ = cov_XYZ(1:3,1:3);
     cov_ENU = global2localCov(cov_XYZ, XR);
     
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));

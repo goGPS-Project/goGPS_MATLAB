@@ -25,7 +25,7 @@ function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 %         http://www.ngs.noaa.gov/orbits/sp3c.txt
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -66,12 +66,15 @@ if (nargin > 4)
 end
 
 %extract containing folder
-if (isunix)
-    slash = '/';
-else
-    slash = '\';
+% if (isunix)
+%     slash = '/';
+% else
+%     slash = '\';
+% end
+pos = strfind(filename_SP3, '/');
+if (isempty(pos))
+    pos = strfind(filename_SP3, '\');
 end
-pos = strfind(filename_SP3, slash);
 filename_SP3 = filename_SP3(1:pos(end)+3);
 
 %define time window
@@ -79,11 +82,11 @@ filename_SP3 = filename_SP3(1:pos(end)+3);
 [week_end, time_end] = time2weektow(time(end));
 
 %day-of-week
-dow_start = floor(time_start / 86400);
-dow_end   = floor(time_end / 86400);
+[~, ~, dow_start] = gps2date(week_start, weektime2tow(week_start, time_start));
+[~, ~, dow_end] = gps2date(week_end, weektime2tow(week_end, time_end));
 
 %add a buffer before and after
-if ((time_start-dow_start*86400) < n/2*quarter_sec)
+if (time_start - weektow2time(week_start, dow_start*86400, 'G') < n/2*quarter_sec)
     if (dow_start == 0)
         week_start = week_start - 1;
         dow_start = 6;
@@ -93,7 +96,7 @@ if ((time_start-dow_start*86400) < n/2*quarter_sec)
 else
 end
 
-if (time_end-dow_end*86400 > 86400-n/2*quarter_sec)
+if (time_end - weektow2time(week_end, dow_end*86400, 'G') > 86400-n/2*quarter_sec)
     if (dow_end == 6)
         week_end = week_end + 1;
         dow_end = 0;

@@ -21,7 +21,7 @@ function [Obs_types, pos_M, ifound_types, interval, sysId, antoff, antmod] = RIN
 %   RINEX observation file header analysis.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) Kai Borre
 % Kai Borre 09-23-97
@@ -35,7 +35,7 @@ Obs_types = cell(0,0);
 sysId = cell(0,0);
 pos_M = [];
 interval = 0;
-antmod = [];
+antmod = '';
 
 %parse first line
 line = fgetl(file);
@@ -124,7 +124,7 @@ while isempty(strfind(line,'END OF HEADER')) && ischar(line)
     line = fgetl(file);
 end
 
-%apply the antenna offset from the marker (if available)
-if (any(pos_M) && any(antoff))
-    pos_M = local2globalPos(antoff, pos_M);
-end
+% %apply the antenna offset from the marker (if available)
+% if (any(pos_M) && any(antoff))
+%     pos_M = local2globalPos(antoff, pos_M);
+% end

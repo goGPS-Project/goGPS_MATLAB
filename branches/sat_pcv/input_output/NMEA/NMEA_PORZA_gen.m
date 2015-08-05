@@ -20,7 +20,7 @@ function nmeastring = NMEA_PORZA_gen(port, baudrate, protocol)
 %   Returns a $PORZA sentence (NVS proprietary) in NMEA 0183 format.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

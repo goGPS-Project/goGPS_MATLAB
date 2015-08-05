@@ -10,7 +10,7 @@ function [COMPort] = ublox_COM_find()
 %   Scans all the COM ports and tries to detect if an u-blox receiver is connected.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

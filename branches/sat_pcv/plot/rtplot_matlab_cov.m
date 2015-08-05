@@ -22,7 +22,7 @@ function rtplot_matlab_cov (t, pos_R, pos_M, covpos_R, check_on, check_off, chec
 %   a reference path.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

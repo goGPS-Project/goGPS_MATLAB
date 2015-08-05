@@ -19,7 +19,7 @@ function [ivd_pp] = interp_ivd(igp4, igp, r_ivd, latpp, lonpp, tv)
 %   Valid for piercing points between -85 and +85 degrees.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

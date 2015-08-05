@@ -60,7 +60,7 @@ function [R, N_hat, cov_R, cov_N] = LS_DD_multibaseline(Ant, F, XS, XM, ...
 %   Epoch-by-epoch solution
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni, Eugenio Realini
 %

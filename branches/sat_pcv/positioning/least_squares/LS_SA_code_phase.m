@@ -33,7 +33,7 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -83,7 +83,7 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ...   %column for X coordinate
 A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ... %column for X coordinate
         (XR_approx(2) - XS(index,2)) ./ distR_approx(index), ... %column for Y coordinate
         (XR_approx(3) - XS(index,3)) ./ distR_approx(index), ... %column for Z coordinate
-         diag(-lambda) .* eye(nsat_ph), ...                      %column for phase ambiguities
+         diag(-lambda(index)) .* eye(nsat_ph), ...               %column for phase ambiguities
          ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
      
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
@@ -105,7 +105,7 @@ b_ph = distR_approx - v_light*dtS + err_tropo - err_iono; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector
-y0 = [pr; lambda.*ph(index)];
+y0 = [pr; lambda(index).*ph(index)];
 
 %observation noise covariance matrix
 Q = zeros(n);
@@ -137,7 +137,7 @@ if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
     cov_N   = Cxx(3+[1:nsat_ph],3+[1:nsat_ph]);
-    var_dtR = Cxx(3+nsat_ph+1,3+nsat_ph+1) / v_light;
+    var_dtR = Cxx(3+nsat_ph+1,3+nsat_ph+1) / v_light^2;
 else
     cov_XR  = [];
     cov_N   = [];
@@ -146,7 +146,9 @@ end
 
 %DOP computation
 if (nargout > 6)
-    cov_XYZ = (A(1:nsat_pr,1:3)'*A(1:nsat_pr,1:3))^-1;
+    A(nsat_pr+1:end,:) = []; A(:,4:end-1) = [];
+    cov_XYZ = (A'*A)^-1;
+    cov_XYZ = cov_XYZ(1:3,1:3);
     cov_ENU = global2localCov(cov_XYZ, XR);
     
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));

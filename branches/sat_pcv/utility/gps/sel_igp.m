@@ -22,7 +22,7 @@ function [igp4, tv] = sel_igp(latpp, lonpp, igp, lat_igp, lon_igp)
 %            degrees (central-southern Europe).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

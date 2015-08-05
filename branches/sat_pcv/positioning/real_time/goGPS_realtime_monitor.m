@@ -19,7 +19,7 @@ function goGPS_realtime_monitor(filerootOUT, protocol, flag_NTRIP, flag_ms_pos, 
 %   output data saving (observations).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
@@ -214,12 +214,12 @@ end
 data_rover = fread(rover,rover_1,'uint8'); %#ok<NASGU>
 
 %-----------------------------------------------------------
-% rover initial positioning (stand-alone)
+% rover initial positioning (undifferenced)
 %-----------------------------------------------------------
 
 %visualization
 fprintf('\n');
-fprintf('ROVER POSITIONING (STAND-ALONE)...\n');
+fprintf('ROVER POSITIONING (undifferenced)...\n');
 fprintf('note: it might take some time to acquire signal from 4 satellites\n');
 
 %pseudoranges
@@ -975,7 +975,7 @@ while flag
     fprintf('\n');
 
     %--------------------------------------------------------------
-    %stand-alone approx. positioning for NMEA update
+    % undifferenced approx. positioning for NMEA update
     %--------------------------------------------------------------
 
     if (flag_NTRIP) & (mod(t,nmea_update_rate) == 0)

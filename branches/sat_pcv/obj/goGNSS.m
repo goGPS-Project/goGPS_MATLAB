@@ -11,7 +11,7 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
 %
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -169,7 +169,7 @@ classdef goGNSS < handle
         MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code and Phase Stand Alone (BASE FOR FUTURE PPP IMPLEMENTATION)
         MODE_PP_LS_CP_VEL    = 3.1; % Post Proc Least Squares on Code and Phase for Velocity estimation
         MODE_PP_LS_C_DD      = 11;  % Post Proc Least Squares on Code Double Differences
-        MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code Double Differences with LAMBDA
+        MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code and Phase Double Differences with LAMBDA
         MODE_PP_LS_CP_DD_MR  = 16;  % Post Proc Least Squares on Code and Phase Double Differences, Multiple Receivers
         MODE_PP_LS_C_SA_MR   = 17;  % Post Proc Least Squares on Code Stand Alone, Multiple Receivers
         
@@ -178,7 +178,7 @@ classdef goGNSS < handle
         MODE_PP_KF_CP_SA     = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone
         MODE_PP_KF_CP_DD     = 14;  % Post Proc Kalman Filter on Code and Phase Double Differences
         MODE_PP_KF_CP_DD_MR  = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers
-        
+                 
         GMODE_PP = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of post processing modes
             goGNSS.MODE_PP_LS_CP_SA ...
             goGNSS.MODE_PP_LS_C_DD ...
@@ -211,9 +211,28 @@ classdef goGNSS < handle
             goGNSS.MODE_PP_LS_CP_DD_MR ...
             goGNSS.MODE_PP_KF_CP_DD_MR];
         
-        GMODE_MR = [ goGNSS.MODE_PP_LS_C_SA_MR ... % Group of multi-receiver modes
+        GMODE_MR = [ goGNSS.MODE_PP_LS_C_SA_MR ...  % Group of multi-receiver modes
             goGNSS.MODE_PP_LS_CP_DD_MR ...
             goGNSS.MODE_PP_KF_CP_DD_MR];
+       
+        GMODE_PH = [ goGNSS.MODE_RT_NAV ...         % Group of modes using Phase
+            goGNSS.MODE_RT_R_MON ...
+            goGNSS.MODE_RT_M_MON ...
+            goGNSS.MODE_RT_RM_MON ...
+            goGNSS.MODE_PP_LS_CP_SA ...
+            goGNSS.MODE_PP_LS_CP_VEL ...
+            goGNSS.MODE_PP_LS_CP_DD_MR ...
+            goGNSS.MODE_PP_LS_CP_DD_L ...
+            goGNSS.MODE_PP_KF_CP_SA ...
+            goGNSS.MODE_PP_KF_CP_DD ...
+            goGNSS.MODE_PP_KF_CP_DD_MR];
+        
+        GMODE_KM = [ goGNSS.MODE_PP_KF_C_SA ...      % Group of modes using Kalman Filter
+            goGNSS.MODE_PP_KF_C_DD ... 
+            goGNSS.MODE_PP_KF_CP_SA ...
+            goGNSS.MODE_PP_KF_CP_DD ...
+            goGNSS.MODE_PP_KF_CP_DD_MR];
+        
     end
     
     % Creator (empty)
@@ -252,22 +271,22 @@ classdef goGNSS < handle
     % function to detect a certain kind of processing
     methods (Static, Access = 'public')
         function isPostProcessing = isPP(mode)
-            % return wheather or not the mode given in use is a Post Processing mode
+            % return whether or not the mode given in use is a Post Processing mode
             isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
         end
         
         function isRealTime = isRT(mode)
-            % return wheather or not the mode given in use is a Real Time mode
+            % return whether or not the mode given in use is a Real Time mode
             isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));
         end
         
         function isDoubleDifferences = isDD(mode)
-            % return wheather or not the mode given in use is a Double Difference mode
+            % return whether or not the mode given in use is a Double Difference mode
             isDoubleDifferences = sum(intersect(mode, goGNSS.GMODE_DD));
         end
         
         function isStandAlone = isSA(mode)
-            % return wheather or not the mode given in use is a Stand Alone mode
+            % return whether or not the mode given in use is a Stand Alone mode
             isStandAlone = sum(intersect(mode, goGNSS.GMODE_SA));
         end
         
@@ -275,6 +294,17 @@ classdef goGNSS < handle
             % return whether or not the mode given in use is a Stand Alone mode
             isMultiReceiver = sum(intersect(mode, goGNSS.GMODE_MR));
         end
+        
+        function isUsingPhase = isPH(mode)
+            % return whether or not the mode given in use uses Phase
+            isUsingPhase = sum(intersect(mode, goGNSS.GMODE_PH));
+        end
+        
+         function isKalman = isKM(mode)
+            % return whether or not the mode given in use uses Kalman Filter
+            isKalman = sum(intersect(mode, goGNSS.GMODE_KM));
+        end       
+        
     end
     
     
@@ -484,7 +514,7 @@ classdef goGNSS < handle
                         %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
                         [Eph_G, iono_G] = RINEX_get_nav(filename_nav, constellations);
                     else
-                        fprintf('Warning: GPS navigation file not found. Disabling GPS positioning. \n');
+                        fprintf('... WARNING: GPS navigation file not found. Disabling GPS positioning. \n');
                         constellations.GPS.enabled = 0;
                     end
                 end
@@ -494,7 +524,7 @@ classdef goGNSS < handle
                         %parse RINEX navigation file (GLONASS)
                         [Eph_R, iono_R] = RINEX_get_nav([filename_nav(1:end-1) 'g'], constellations);
                     elseif (~flag_mixed)
-                        fprintf('Warning: GLONASS navigation file not found. Disabling GLONASS positioning. \n');
+                        fprintf('... WARNING: GLONASS navigation file not found. Disabling GLONASS positioning. \n');
                         constellations.GLONASS.enabled = 0;
                     end
                 end
@@ -504,7 +534,7 @@ classdef goGNSS < handle
                         %parse RINEX navigation file (Galileo)
                         [Eph_E, iono_E] = RINEX_get_nav([filename_nav(1:end-1) 'l'], constellations);
                     elseif (~flag_mixed)
-                        fprintf('Warning: Galileo navigation file not found. Disabling Galileo positioning. \n');
+                        fprintf('... WARNING: Galileo navigation file not found. Disabling Galileo positioning. \n');
                         constellations.Galileo.enabled = 0;
                     end
                 end
@@ -514,7 +544,7 @@ classdef goGNSS < handle
                         parse RINEX navigation file (BeiDou)
                         [Eph_C, iono_C] = RINEX_get_nav([filename_nav(1:end-1) 'b'], constellations);
                     elseif (~flag_mixed)
-                        fprintf('Warning: BeiDou navigation file not found. Disabling BeiDou positioning. \n');
+                        fprintf('... WARNING: BeiDou navigation file not found. Disabling BeiDou positioning. \n');
                         constellations.BeiDou.enabled = 0;
                     end
                 end
@@ -524,7 +554,7 @@ classdef goGNSS < handle
                         %parse RINEX navigation file (QZSS)
                         [Eph_J, iono_J] = RINEX_get_nav([filename_nav(1:end-1) 'q'], constellations);
                     elseif (~flag_mixed)
-                        fprintf('Warning: QZSS navigation file not found. Disabling QZSS positioning. \n');
+                        fprintf('... WARNING: QZSS navigation file not found. Disabling QZSS positioning. \n');
                         constellations.QZSS.enabled = 0;
                     end
                 end
@@ -543,7 +573,7 @@ classdef goGNSS < handle
                     iono = iono_J;
                 else
                     iono = zeros(8,1);
-                    fprintf('Warning: ionosphere parameters not found in navigation file(s).\n');
+                    fprintf('... WARNING: ionosphere parameters not found in navigation file(s).\n');
                 end
                 
                 if (wait_dlg_PresenceFlag)

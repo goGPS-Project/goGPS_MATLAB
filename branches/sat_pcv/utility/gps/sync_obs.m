@@ -1,5 +1,5 @@
 function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, max_int] = ...
-          sync_obs(time_i, tow_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval)
+          sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval)
 
 % SYNTAX:
 %   [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2] = ...
@@ -37,7 +37,7 @@ function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2
 %   Synchronize different sets of observations. Zeros where not available.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2013 Mirko Reguzzoni,Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -64,21 +64,19 @@ nObsSet = size(pr1_i,3);
 
 %find min and max time tags (in common among all observation datasets)
 time_i_nan = time_i;
-time_i_nan(time_i == 0) = NaN;
+time_i_nan(permute(sum(pr1_i,1),[2 1 3])==0) = NaN; %set NaN to epochs which don't have any pseudorange
 min_time = max(min(time_i_nan,[],1));
+min_time_prog = min(min(time_i_nan,[],1));
 max_time = min(max(time_i_nan,[],1));
-
-tow_i_nan = tow_i;
-tow_i_nan(tow_i == 0) = NaN;
-min_tow = max(min(tow_i_nan,[],1));
-max_tow = min(max(tow_i_nan,[],1));
 
 %find the largest interval
 max_int = max(interval(:));
+%max_int = 30;
 
 %define the reference time
 time_ref = (roundmod(min_time,max_int) : max_int : roundmod(max_time,max_int))';
-tow_ref  = (roundmod(min_tow, max_int) : max_int : roundmod(max_tow, max_int))';
+tow_ref = mod(time_ref,60*60*24*7);
+tow_ref=roundmod(tow_ref,max_int);
 
 %number of reference epochs
 ref_len = length(tow_ref);
@@ -96,10 +94,12 @@ dop2 = zeros(nSatTot, ref_len, nObsSet);
 snr1 = zeros(nSatTot, ref_len, nObsSet);
 snr2 = zeros(nSatTot, ref_len, nObsSet);
 
+time_prog = time_i - min_time_prog; % substract the first element to reduce the magnitude of all the values
+time_ref_prog = time_ref - min_time_prog;
+
 for s = 1 : nObsSet
-    
-    [~, idx_t, idx_z] = intersect(roundmod(tow_ref, max_int), roundmod(tow_i(:,1,s), max_int));
-    
+%    [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), max_int));
+    [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), interval(s)));    
     time(idx_t, s) = time_i(idx_z, 1, s);
     week(idx_t, s) = week_i(idx_z, 1, s);
     date(idx_t, :, s) = date_i(idx_z, :, s);

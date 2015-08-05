@@ -25,7 +25,7 @@ function [data] = decode_F5h(msg, constellations)
 %   BINR F5h binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
@@ -134,6 +134,11 @@ data{2}(1) = TOW_GPS;
 data{2}(2) = WEEK;
 data{2}(3) = NSV;
 
+nGLO = 0;
+nGPS = 0;
+nQZS = 0;
+nGAL = 0;
+
 %read the measurements of every satellite
 for j = 1 : NSV
     
@@ -202,6 +207,7 @@ for j = 1 : NSV
     esp  = fbin2dec(D1field(2:12));
     mant = fbin2dec(D1field(13:64)) / 2^52;
     D1 = (-1)^sign * (2^(esp - 1023)) * (1 + mant);
+    if (abs(D1) > 1e5), D1 = 0; end
     
     %------------------------------------------------
     
@@ -215,22 +221,26 @@ for j = 1 : NSV
     
     %assign constellation-specific indexes
     idx = [];
-    if (signal_type == 1 && constellations.GLONASS.enabled)
+    if (SID && signal_type == 1 && constellations.GLONASS.enabled && SID <= constellations.GLONASS.numSat)
         
         idx = constellations.GLONASS.indexes(SID);
+        nGLO = nGLO + 1;
         
-    elseif (signal_type == 2 && constellations.GPS.enabled && SID <= 32)
+    elseif (SID && signal_type == 2 && constellations.GPS.enabled && SID <= constellations.GPS.numSat)
         
         idx = constellations.GPS.indexes(SID);
+        nGPS = nGPS + 1;
         
-    elseif (signal_type == 2 && constellations.QZSS.enabled && SID == 33)
+    elseif (SID && signal_type == 2 && constellations.QZSS.enabled && SID == 33)
         
         SID = SID-32;
         idx = constellations.QZSS.indexes(SID);
+        nQZS = nQZS + 1;
         
-    elseif (signal_type == 8 && constellations.Galileo.enabled)
+    elseif (SID && signal_type == 8 && constellations.Galileo.enabled && SID <= constellations.Galileo.numSat)
         
         idx = constellations.Galileo.indexes(SID);
+        nGAL = nGAL + 1;
     end
     
     %phase, code and doppler measure save
@@ -249,7 +259,7 @@ for j = 1 : NSV
     end
 end
 
-if (any(data{3}(:,2) < 0) || any(data{3}(:,2) > 60e6))
+if (any(data{3}(:,2) < 0) || any(data{3}(:,2) > 60e6) || NSV <= 0 || nGPS+nGLO+nGAL+nQZS == 0)
 
     %discard everything if there is at least one anomalous pseudorange
     % (i.e. if pseudorange ambiguity not solved yet)

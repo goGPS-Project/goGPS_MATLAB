@@ -1,4 +1,4 @@
-function [imax,xfin,s2fin,ufin,Cxx]=OLOO(A, y, Q)
+function [imax,xfin,s2fin,ufin,Cxx,uout]=OLOO(A, y, Q)
 %Purpose:   perform LS on blocks of correlated observations
 %           identify one (block) outlier
 %           reject it
@@ -15,6 +15,7 @@ function [imax,xfin,s2fin,ufin,Cxx]=OLOO(A, y, Q)
 %   s2fin: a posteriori sigma without outlier
 %   ufin: estimated residuals without outlier
 %   Cxx: parameters covariance of the final solution
+%   uout: residual of outlier observation
 
 % this version is optimized to manage l.o.o. of 1 observation at time, no
 % blocks!
@@ -25,12 +26,13 @@ global FTABLE;
 
 n_blocks=length(y);
 [m,n]=size(A);           % m: number of observations, n: number of unknowns
-
+uout=NaN;
 if m - n > 0
    
     %% compute the global solution
     
-    invQ=diag((diag(Q).^-1));
+    Q=Q./(min(diag(Q)));
+    invQ=inv(Q);
     Ninv=inv(A'*invQ*A);
     xcap=Ninv*A'*invQ*y;
     um=y-A*xcap;
@@ -84,9 +86,8 @@ if m - n > 0
         %% apply final solution
         % find maximum F(i)/Flim(i)
         [Fmax,imax]=max(abs(F./Flim));
-        
-        
-        if (Fmax<Flim)
+
+        if (Fmax<1)
             % no outlier
             imax=0;
             xfin=xcap;
@@ -100,6 +101,7 @@ if m - n > 0
             
         else
             % if the maximum ratio exceedes the threshold, the observation is eliminated from the solution
+            uout=um(imax);
             xfin=xcap-Bm(:,imax)*Kminv(imax)*um(imax);
             yfin=y;
             yfin(imax)=[];
@@ -126,6 +128,7 @@ if m - n > 0
         %Afin=A;
         %Qfin=Q;
         s2fin=s2cap;
+        Cxx=s2cap*Ninv;
         ufin=um;
     end
     
@@ -136,5 +139,6 @@ else
     Cxx=[];
     %yfin=[];
     ufin=[];
-    s2fin=[];
+    s2fin=NaN;
 end
+

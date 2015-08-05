@@ -16,7 +16,7 @@ function [serialObj] = configure_nvs(serialObj, COMportR, prot_par, rate)
 %   Configure NVS receivers to be used with goGPS.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

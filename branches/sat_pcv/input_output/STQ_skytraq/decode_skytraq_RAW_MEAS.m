@@ -24,7 +24,7 @@ function [data] = decode_skytraq_RAW_MEAS(msg, constellations)
 %   RAW_MEAS binary message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -124,8 +124,8 @@ for j = 1 : NMEAS
 
     % assign constellation-specific indexes
     idx = [];
-    if (SV <= 32)
-        idx = constellations.GPS.indexes(SV);
+    if (PRN <= 32)
+        idx = constellations.GPS.indexes(PRN);
     end
     
     % phase, code and doppler measure save

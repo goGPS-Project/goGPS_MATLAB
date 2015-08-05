@@ -21,7 +21,7 @@ function [flag, prn, IODe, delta_x, delta_y, delta_z, delta_offset] = v_code0(ha
 %   
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

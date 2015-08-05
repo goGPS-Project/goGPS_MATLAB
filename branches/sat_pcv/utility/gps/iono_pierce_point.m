@@ -19,7 +19,7 @@ function [latpp, lonpp, fpp] = iono_pierce_point(latR, lonR, azS, elS)
 %   of its ephemerides.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

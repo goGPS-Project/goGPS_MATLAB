@@ -21,7 +21,7 @@ function [identify, BNR_xhat, BNR_y] = test_statistic(Qy_hat, Qy, A, alpha, e_ha
 %
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

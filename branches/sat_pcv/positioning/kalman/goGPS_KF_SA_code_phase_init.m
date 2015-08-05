@@ -28,7 +28,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %   Standalone phase and code Kalman filter initialization.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %
@@ -333,15 +333,15 @@ Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);
 % INTEGER AMBIGUITY SOLVING BY LAMBDA METHOD
 %--------------------------------------------------------------------------------------------
 
-if (flag_IAR && ~isempty(sat))
-    %try to solve integer ambiguities
-    [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat,o3+sat), Cee([1 o1+1 o2+1],o3+sat));
-else
+% if (flag_IAR && ~isempty(sat))
+%     %try to solve integer ambiguities
+%     [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat,o3+sat), Cee([1 o1+1 o2+1],o3+sat));
+% else
     ratiotest = [ratiotest NaN];
     mutest    = [mutest NaN];
     succ_rate = [succ_rate NaN];
     fixed_solution = [fixed_solution 0];
-end
+% end
 
 %--------------------------------------------------------------------------------------------
 % DOPPLER-BASED PREDICTION OF PHASE RANGES

@@ -15,7 +15,7 @@ function [Q] = cofactor_matrix_SA(elR, snr_R)
 %   strategy (determined by "weights" global variable).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 % Andrea Nardo, 22-Apr-2013: added exponential weighting function (weights == 4)

@@ -17,7 +17,7 @@ function streams2goGPSbin(filerootIN, filerootOUT, constellations, wait_dlg)
 %   (*_obs_* and *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -112,9 +112,9 @@ if (~isempty(Eph))
         end
     else
         if (nargin == 4)
-            msgbox('Warning: this dataset does not contain ephemerides!');
+            msgbox('Warning: this dataset does not contain ephemerides.');
         else
-            fprintf('Warning: this dataset does not contain ephemerides!\n');
+            fprintf('... WARNING: this dataset does not contain ephemerides.\n');
         end
     end 
 end

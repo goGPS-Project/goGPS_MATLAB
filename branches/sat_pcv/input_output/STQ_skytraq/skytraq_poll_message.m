@@ -13,7 +13,7 @@ function skytraq_poll_message(serialObj, MsgID, parameter)
 %   Poll SkyTraq alamanac or ephemeris.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

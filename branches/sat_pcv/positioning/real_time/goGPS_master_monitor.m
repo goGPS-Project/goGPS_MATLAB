@@ -11,7 +11,7 @@ function goGPS_master_monitor(filerootOUT, flag_NTRIP)
 %   Master station monitor: stream reading, output data saving.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -732,14 +732,23 @@ while flag
         if (waiting_time > 10*approx_msg_rate)
             
             %display message
-            fprintf('Not receiving data. Reconnecting... ');
+            fprintf('Not receiving data. Trying to reconnect... ');
 
             %close master connection
             fclose(master);
             
-            master = tcpip(master_ip,master_port);
-            set(master,'InputBufferSize', 16384);
-            fopen(master);
+            reconnected = 0;
+
+            while (~reconnected)
+                try
+                    master = tcpip(master_ip,master_port);
+                    set(master,'InputBufferSize', 16384);
+                    fopen(master);
+                    reconnected = 1;
+                catch
+                    pause(5);
+                end
+            end
             
             if (flag_NTRIP)
                 ntripstring = NTRIP_string_generator(nmea_init);

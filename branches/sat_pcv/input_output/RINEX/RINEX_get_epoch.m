@@ -19,7 +19,7 @@ function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 %   the information it contains.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini.
 %
@@ -44,13 +44,13 @@ function [time, datee, num_sat, sat, sat_types, tow] = RINEX_get_epoch(fid)
 %----------------------------------------------------------------------------------------------
 
 %variable initialization
-time = 0;
+time = NaN;
 sat = [];
 sat_types = [];
 num_sat = 0;
-datee=[0 0 0 0 0 0]; %Preallocation not useful (see last line of code)
+datee=[NaN NaN NaN NaN NaN NaN]; %Preallocation not useful (see last line of code)
 eof = 0;
-tow = 0;
+tow = NaN;
 if (nargout > 3)
     datee_RequestedInOutputFlag = true;
 else
@@ -86,10 +86,10 @@ while (eof==0)
     end
 
     %check RINEX version
-    if (~strcmp(lin(1),'>')) %RINEX v2.xx
+    if strcmp(lin(1),' ') %RINEX v2.xx
         
         %check if it is a string that should be analyzed
-        if (strcmp(lin(29),'0') || strcmp(lin(29),'1') || strcmp(lin(29),'2'))
+        if (strcmp(lin(28:30),' 0 ') || strcmp(lin(28:30),' 1 ') || strcmp(lin(28:30),' 2 '))
             
             %save time information
             data   = textscan(lin(1:26),'%f%f%f%f%f%f');
@@ -141,7 +141,7 @@ while (eof==0)
             eof = 1;
         end
         
-    else %RINEX v3.xx
+    elseif strcmp(lin(1),'>') %RINEX v3.xx
         
         %check if it is a string that should be analyzed
         if (strcmp(lin(32),'0') || strcmp(lin(32),'1') || strcmp(lin(32),'2'))

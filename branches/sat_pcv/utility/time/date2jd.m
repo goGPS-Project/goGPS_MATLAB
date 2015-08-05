@@ -14,7 +14,7 @@ function [jd, mjd] = date2jd(date)
 %   Conversion from date to julian day and modified julian day.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

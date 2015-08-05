@@ -15,7 +15,7 @@ function [out] = nvs_raw_output_rate(serialObj, rate)
 %   Enable raw data output at the specified rate on NVS receivers.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.1 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------

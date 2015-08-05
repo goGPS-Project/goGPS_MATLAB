@@ -52,7 +52,7 @@ function [data] = decode_1020(msg, constellations)
 %   RTCM format 1020 message decoding.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %

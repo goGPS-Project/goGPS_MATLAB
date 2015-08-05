@@ -18,7 +18,7 @@ function RINEX2goGPSbin(filename_R_obs, filename_R_nav, filename_M_obs, filename
 %   format (*_obs_* and *_eph_* files).
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
@@ -72,14 +72,12 @@ if (~isempty(dir(filename_R_obs)))
     
     %ROVER RINEX files reading
     if (nargin >= 6)
-
-        [pr1_R, ~, ph1_R, ~, ~, ~, ~, ~, dop1_R, ~, ~, ~, snr1_R, ~, ~, ~,  ...
-         ~, time_R, ~, week_R, ~, ~, ~, ~, ~, Eph_R, iono_R, interval_R] = ...
-         load_RINEX(filename_nav, filename_R_obs, [], constellations, 0, wait_dlg);
+        
+        [Eph_R, iono_R] = load_RINEX_nav(filename_nav, constellations, 0, wait_dlg);
+        [pr1_R, ph1_R, ~, ~, dop1_R, ~, snr1_R, ~, ~, time_R, week_R, ~, ~, interval_R] = load_RINEX_obs(filename_R_obs, constellations, wait_dlg);
     else
-        [pr1_R, ~, ph1_R, ~, ~, ~, ~, ~, dop1_R, ~, ~, ~, snr1_R, ~, ~, ~,  ...
-         ~, time_R, ~, week_R, ~, ~, ~, ~, ~, Eph_R, iono_R, interval_R] = ...
-         load_RINEX(filename_nav, filename_R_obs, [], constellations, 0);
+        [Eph_R, iono_R] = load_RINEX_nav(filename_nav, constellations, 0);
+        [pr1_R, ph1_R, ~, ~, dop1_R, ~, snr1_R, ~, ~, time_R, week_R, ~, ~, interval_R] = load_RINEX_obs(filename_R_obs, constellations);
     end
     
     %TEMP
@@ -113,13 +111,11 @@ if (~isempty(dir(filename_M_obs)))
     %MASTER RINEX files reading
     if (nargin >= 6)
         
-        [pr1_M, ~, ph1_M, ~, ~, ~, ~, ~, dop1_M, ~, ~, ~, snr1_M, ~, ~, ~,  ...
-         ~, time_M, ~, ~, ~, ~, ~, pos_M, ~, Eph_M, iono_M, interval_M] = ...
-         load_RINEX(filename_nav, filename_M_obs, [], constellations, 0, wait_dlg);
+        [Eph_M, iono_M] = load_RINEX_nav(filename_nav, constellations, 0, wait_dlg);
+        [pr1_M, ph1_M, ~, ~, dop1_M, ~, snr1_M, ~, ~, time_M, ~, ~, ~, interval_M] = load_RINEX_obs(filename_M_obs, constellations, wait_dlg);
     else
-        [pr1_M, ~, ph1_M, ~, ~, ~, ~, ~, dop1_M, ~, ~, ~, snr1_M, ~, ~, ~,  ...
-         ~, time_M, ~, ~, ~, ~, ~, pos_M, ~, Eph_M, iono_M, interval_M] = ...
-         load_RINEX(filename_nav, filename_M_obs, [], constellations, 0);
+        [Eph_M, iono_M] = load_RINEX_nav(filename_nav, constellations, 0);
+        [pr1_M, ph1_M, ~, ~, dop1_M, ~, snr1_M, ~, ~, time_M, ~, ~, ~, interval_M] = load_RINEX_obs(filename_M_obs, constellations);
     end
     
     %TEMP

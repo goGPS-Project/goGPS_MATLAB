@@ -14,7 +14,7 @@ function [pos] = bancroft(B_pass)
 %   having at least 4 visible satellites.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) Kai Borre
 % Kai Borre 04-30-95, improved by C.C. Goad 11-24-96

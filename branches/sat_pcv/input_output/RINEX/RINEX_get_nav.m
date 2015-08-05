@@ -15,7 +15,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 %   Parse a RINEX navigation file.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 % Portions of code contributed by Damiano Triglione (2012)
@@ -70,30 +70,36 @@ while (isempty(header_end))
     %if the ionosphere parameters label was found
     if (iono_found)
         %change flag
-%         ioparam = 1;
+        %         ioparam = 1;
         %save the 8 ionosphere parameters
         data = textscan(lin(5:end),'%f%f%f%f%*[^\n]');
-        iono(1) = data{1};
-        iono(2) = data{2};
-        iono(3) = data{3};
-        iono(4) = data{4};
-        lin = [];
-        while isempty(lin)
-            lin = fgetl(fid);
+        if ~isempty(data(4))
+            iono(1) = data{1};
+            iono(2) = data{2};
+            iono(3) = data{3};
+            iono(4) = data{4};
+            lin = [];
+            while isempty(lin)
+                lin = fgetl(fid);
+            end
+            data = textscan(lin(5:end),'%f%f%f%f%*[^\n]');
+            if ~isempty(data(4))
+                iono(5) = data{1};
+                iono(6) = data{2};
+                iono(7) = data{3};
+                iono(8) = data{4};
+            else
+                iono = zeros(8,1);
+            end
         end
-        data = textscan(lin(5:end),'%f%f%f%f%*[^\n]');
-        iono(5) = data{1};
-        iono(6) = data{2};
-        iono(7) = data{3};
-        iono(8) = data{4};
     end
-
+    
     header_end = strfind(lin,'END OF HEADER');
 end
 
 % %if ionosphere parameters were not found
 % if (ioparam == 0)
-%     fprintf('Warning: ionosphere parameters not found in navigation file\n');
+%     fprintf('... WARNING: ionosphere parameters not found in navigation file\n');
 % end
 
 i = 0;
@@ -302,7 +308,7 @@ while (~feof(fid))
         
         %if IODC and IODE do not match, issue a warning
         if (iodc ~= IODE && ~strcmp(sys_id, 'C') && ~strcmp(sys_id, 'E'))
-            fprintf('Warning: IODE and IODC values do not match (ephemerides for satellite %1s%02d, time %dh %dm %.1fs)\n',sys_id,svprn,hour,minute,second);
+            fprintf('... WARNING: IODE and IODC values do not match (ephemerides for satellite %1s%02d, time %dh %dm %.1fs)\n',sys_id,svprn,hour,minute,second);
         end
         
     %if GLONASS

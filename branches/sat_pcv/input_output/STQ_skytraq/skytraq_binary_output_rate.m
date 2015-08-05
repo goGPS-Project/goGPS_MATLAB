@@ -15,7 +15,7 @@ function [out] = skytraq_binary_output_rate(serialObj, rate)
 %   Set NMEA or binary format output on SkyTraq receivers.
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.2 beta
+%                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
 %----------------------------------------------------------------------------------------------
