@@ -407,7 +407,7 @@ if goGNSS.isPP(mode) % post-processing
             end
          
             %read antenna phase center offset (NOTE: only L1 offset for now)
-            antenna_PCV= read_antenna_PCV(filename_pco, antmod_R);
+            antenna_PCV = read_antenna_PCV(filename_pco, antmod_R);
                        
             if (~isempty(antenna_PCV))  % has to be fixed to manage MR
                 %ROVER
@@ -433,7 +433,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %read satellite antenna phase center offset (NOTE: reading only L1 offset for now)
             antmod_S = sat_antenna_ID(constellations);
-            antPCO_S = read_antenna_PCO(filename_pco, antmod_S, date_R);
+            antenna_PCV_S = read_antenna_PCV(filename_pco, antmod_S, date_R);
 
                     % set ROVER initial coordinates
                     if (exist('pos_R_crd','var') && any(pos_R_crd))
@@ -457,13 +457,6 @@ if goGNSS.isPP(mode) % post-processing
                 end
             end
             
-            if (flag_SP3)
-                %display message
-                fprintf('Reading SP3 file...\n');
-                
-                SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
-            end
-            
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
@@ -484,7 +477,7 @@ if goGNSS.isPP(mode) % post-processing
                 fprintf('Reading SP3 file...\n');
                 
                 SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
-                SP3.antPCO = antPCO_S;
+                SP3.antPCO = antenna_PCV_S.offset;
                 SP3.t_sun  = time_GPS;
                 SP3.X_sun  = X_sun;
             end
