@@ -1,6 +1,6 @@
 function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop ...
          (XM, time_rx, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, antenna_PCV, sbas, distance)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, antenna_PCV, sbas, distance, dh)
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = goGPS_DD_code_phase_loop ...
@@ -752,23 +752,26 @@ if (nsat >= min_nsat)
         end
 
         % pseudo-observation on baseline length
-        if distance>=0
-            H_bls = [2*(XR0(1)-XM(1)) Z_1_om 2*(XR0(2)-XM(2)) Z_1_om 2*(XR0(3)-XM(3)) Z_1_om Z_1_nN];
-            y0_bsl = distance^2-((XR0(1)-XM(1))^2 + (XR0(2)-XM(2))^2 + (XR0(3)-XM(3))^2)+ 2*(XR0(1)-XM(1))*XR0(1) + 2*(XR0(2)-XM(2))*XR0(2) + 2*(XR0(3)-XM(3))*XR0(3);
-            Cnn(end+1,end+1)=min(diag(Cnn))/10^15;
-            H = [H; H_bls];
-            y0 = [y0; y0_bsl];
+        if exist('distance','var')
+            if distance>=0
+                H_bls = [2*(XR0(1)-XM(1)) Z_1_om 2*(XR0(2)-XM(2)) Z_1_om 2*(XR0(3)-XM(3)) Z_1_om Z_1_nN];
+                y0_bsl = distance^2-((XR0(1)-XM(1))^2 + (XR0(2)-XM(2))^2 + (XR0(3)-XM(3))^2)+ 2*(XR0(1)-XM(1))*XR0(1) + 2*(XR0(2)-XM(2))*XR0(2) + 2*(XR0(3)-XM(3))*XR0(3);
+                Cnn(end+1,end+1)=min(diag(Cnn))/10^15;
+                H = [H; H_bls];
+                y0 = [y0; y0_bsl];
+            end
         end
         
-        %pseudo-observation on the height difference (same height for the
-        %two receivers
-         H_dh = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
-         y0_dh = 0 + hM - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
-         Cnn(end+1,end+1)=0.005^2;
-%          Cnn(end+1,end+1)=min(diag(Cnn))*100000;
-         H = [H; H_dh];
-         y0 = [y0; y0_dh];
-%         
+        %pseudo-observation on the height difference
+        if exist('dh','var')
+            H_dh = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
+            y0_dh = dh + hM - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
+            Cnn(end+1,end+1)=0.005^2;
+            %          Cnn(end+1,end+1)=min(diag(Cnn))*100000;
+            H = [H; H_dh];
+            y0 = [y0; y0_dh];
+        end
+        %
         %------------------------------------------------------------------------------------
         % DILUTION OF PRECISION
         %------------------------------------------------------------------------------------

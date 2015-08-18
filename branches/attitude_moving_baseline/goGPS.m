@@ -2599,6 +2599,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
     
       
     constraint_distance=NaN(size(pr1_R,3),1);
+    constraint_dh=NaN(size(pr1_R,3),1);
     sbas_applied_on_master = 0;
 
     % selection of main and second receivers
@@ -2618,7 +2619,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
     for ff = 1 : size(pr1_R,3)
         if ff ~= irec % ff receiver is not local master
             
-            constraint_distance(ff) = sqrt(sum((multi_antenna_rf(:,ff)-multi_antenna_rf(:,1)).^2));  
+            constraint_distance(ff) = sqrt(sum((multi_antenna_rf(:,ff)-multi_antenna_rf(:,1)).^2)); 
+            constraint_dh(ff) = multi_antenna_rf(3,ff)-multi_antenna_rf(3,1);
 %             constraint_distance(ff)=-1;
             % apply SBAS corrections on code
             if ~isempty(sbas)
@@ -2839,7 +2841,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
 
                 [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M_KF, time_GPS(t), pr1_R(:,t,ff), pr1_R(:,t,irec), ph1_R(:,t,ff), ph1_R(:,t,irec), dop1_R(:,t,ff), dop1_R(:,t,irec), ...
                     pr2_R(:,t,ff), pr2_R(:,t,irec), ph2_R(:,t,ff), ph2_R(:,t,irec), dop2_R(:,t,ff), dop2_R(:,t,irec), snr_R(:,t,ff), snr_R(:,t,irec), ...
-                    Eph_t, SP3, iono, lambda, 1, dtRdot(t,1,irec), flag_IAR, antenna_PCV, sbas_t, constraint_distance(ff));
+                    Eph_t, SP3, iono, lambda, 1, dtRdot(t,1,irec), flag_IAR, antenna_PCV, sbas_t, constraint_distance(ff), constraint_dh(ff));
     
                 % switch back to baseline
                 Xhat_t_t([1 o1+1 o2+1])=Xhat_t_t([1 o1+1 o2+1]) - pos_M_KF;
