@@ -1,4 +1,4 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop ...
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_baseline_loop ...
          (XM, time_rx, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
          dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, antenna_PCV, sbas, distance)
 
@@ -184,7 +184,7 @@ Z_app = XR0(3);
 % CONVERSION FROM CARTESIAN TO GEODETIC COORDINATES
 %----------------------------------------------------------------------------------------
 [phiR_app, lamR_app, hR_app] = cart2geod(X_app, Y_app, Z_app);
-[phiM, lamM, hM] = cart2geod(XM(1), XM(2), XM(3));
+%[phiM, lamM, hM] = cart2geod(XM(1), XM(2), XM(3));
 
 %----------------------------------------------------------------------------------------
 % EXTRACTION OF THE HEIGHT PSEUDO-OBSERVATION FROM THE DTM
@@ -622,6 +622,7 @@ if (nsat >= min_nsat)
             H_dtm = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
         end
         
+        
         %construction of the complete H matrix
         H = [H_cod; H_pha; H_dtm];
         
@@ -643,7 +644,7 @@ if (nsat >= min_nsat)
         if (h_dtm ~= tile_header.nodata)
             y0_dtm = h_dtm  - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
         end
-        
+               
         %construction of the total Y0 vector
         if (length(phase) == 2)
             y0_cod = [y0_cod1; y0_cod2];
@@ -695,6 +696,8 @@ if (nsat >= min_nsat)
         if (h_dtm ~= tile_header.nodata)
             Cnn(end+1,end+1) = sigmaq_dtm;
         end
+        
+
         
         %------------------------------------------------------------------------------------
         % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
@@ -751,24 +754,19 @@ if (nsat >= min_nsat)
 
         end
 
+        
         % pseudo-observation on baseline length
         if distance>=0
             H_bls = [2*(XR0(1)-XM(1)) Z_1_om 2*(XR0(2)-XM(2)) Z_1_om 2*(XR0(3)-XM(3)) Z_1_om Z_1_nN];
             y0_bsl = distance^2-((XR0(1)-XM(1))^2 + (XR0(2)-XM(2))^2 + (XR0(3)-XM(3))^2)+ 2*(XR0(1)-XM(1))*XR0(1) + 2*(XR0(2)-XM(2))*XR0(2) + 2*(XR0(3)-XM(3))*XR0(3);
-            Cnn(end+1,end+1)=min(diag(Cnn))/10^15;
+            Cnn(end+1,end+1)=min(diag(Cnn))/100;
             H = [H; H_bls];
             y0 = [y0; y0_bsl];
         end
         
-        %pseudo-observation on the height difference (same height for the
-        %two receivers
-         H_dh = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
-         y0_dh = 0 + hM - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
-         Cnn(end+1,end+1)=0.005^2;
-%          Cnn(end+1,end+1)=min(diag(Cnn))*100000;
-         H = [H; H_dh];
-         y0 = [y0; y0_dh];
-%         
+        
+        
+        
         %------------------------------------------------------------------------------------
         % DILUTION OF PRECISION
         %------------------------------------------------------------------------------------
@@ -834,12 +832,13 @@ if (nsat >= min_nsat)
     
 else
     %positioning done only by the system dynamics
-
+  
     Xhat_t_t = X_t1_t;
 
     X_t1_t = T*Xhat_t_t;
 
     Cee = T*Cee*T';
+     
 end
 
 if exist('y0_residuals','var') && exist('sat_np','var')
@@ -867,7 +866,7 @@ end
 
 if (flag_IAR && ~isempty(sat_np) && nsat >= min_nsat)
     %try to solve integer ambiguities
-    [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), varNfix, varPosfix] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat_np,o3+sat_np), Cee([1 o1+1 o2+1],o3+sat_np)); %#ok<ASGLU,NASGU>
+    [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), varNfix] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat_np,o3+sat_np), Cee([1 o1+1 o2+1],o3+sat_np)); %#ok<ASGLU,NASGU>
         
     %min_ambfixRMS(t,1) = min(sqrt(diag(varNfix)));
 else
@@ -904,3 +903,6 @@ KVDOP = sqrt(Cee_ENU(3,3));
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1) + Cee(o1+1,o1+1) + Cee(o2+1,o2+1));
+
+
+    

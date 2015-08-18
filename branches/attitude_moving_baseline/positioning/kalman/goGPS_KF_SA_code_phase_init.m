@@ -334,7 +334,7 @@ Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);
 %--------------------------------------------------------------------------------------------
 
 % if (flag_IAR && ~isempty(sat))
-%     %try to solve integer ambiguities
+    %try to solve integer ambiguities
 %     [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat,o3+sat), Cee([1 o1+1 o2+1],o3+sat));
 % else
     ratiotest = [ratiotest NaN];
