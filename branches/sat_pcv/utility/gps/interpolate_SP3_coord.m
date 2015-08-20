@@ -38,7 +38,7 @@ function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
 
 SP3_time  = SP3.time;
 SP3_coord = SP3.coord(:, sat, :);
-antPCO    = SP3.antPCO(:, :, sat);
+antPCO    = SP3.antPCO(:, :, sat)';
 t_sun     = SP3.t_sun;
 X_sun     = SP3.X_sun;
 

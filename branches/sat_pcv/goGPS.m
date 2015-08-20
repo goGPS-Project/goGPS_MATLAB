@@ -477,7 +477,10 @@ if goGNSS.isPP(mode) % post-processing
                 fprintf('Reading SP3 file...\n');
                 
                 SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
-                SP3.antPCO = antenna_PCV_S.offset;
+                SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
+                for sat = 1 : size(antenna_PCV_S,2)
+                    SP3.antPCO(:,:,sat) = antenna_PCV_S(sat).offset(:,:,1);
+                end
                 SP3.t_sun  = time_GPS;
                 SP3.X_sun  = X_sun;
             end

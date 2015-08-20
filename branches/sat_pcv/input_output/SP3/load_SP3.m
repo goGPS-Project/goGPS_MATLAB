@@ -82,8 +82,8 @@ filename_SP3 = filename_SP3(1:pos(end)+3);
 [week_end, time_end] = time2weektow(time(end));
 
 %day-of-week
-[~, ~, dow_start] = gps2date(week_start, weektime2tow(week_start, time_start));
-[~, ~, dow_end] = gps2date(week_end, weektime2tow(week_end, time_end));
+[~, ~, dow_start] = gps2date(week_start, time_start);
+[~, ~, dow_end] = gps2date(week_end, time_end);
 
 %add a buffer before and after
 if (time_start - weektow2time(week_start, dow_start*86400, 'G') < n/2*quarter_sec)
