@@ -586,7 +586,7 @@ if goGNSS.isPP(mode) % post-processing
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%                
                               
                 %pre-processing
-                fprintf('%s',['Pre-processing rover observations (file ' char(receiver_name(i)) ')...']); fprintf('\n');
+                fprintf('%s',['Pre-processing rover observations (file ' char(receiver_name(f)) ')...']); fprintf('\n');
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
 
                 if report.opt.write == 1
@@ -904,7 +904,7 @@ if goGNSS.isPP(mode) % post-processing
             if report.opt.write == 1
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
-                report.prep.bad_epoch_M=sum(bad_epochs_M(isfinite(bad_epochs_R))==1);
+                report.prep.bad_epoch_M=sum(bad_epochs_M(isfinite(bad_epochs_M))==1);
                 if (~isempty(var_SPP_M(isfinite(var_SPP_M(:,1)),1)))
                     report.prep.max_varSPP_M=max(var_SPP_M(isfinite(var_SPP_M(:,1)),1))^0.5;
                 else
@@ -1037,8 +1037,8 @@ if goGNSS.isPP(mode) % post-processing
         %exclude flagged epochs (master)
         if (goGNSS.isDD(mode) && exist('bad_epochs_M','var'))
             for f = 1 : size(pr1_M,3)
-                if (any(bad_epochs_M(:,1,f)))
-                    pos = find(bad_epochs_M(:,1,f));
+                if (any(bad_epochs_M(:,1)))
+                    pos = find(bad_epochs_M(:,1));
                     pr1_R(:,pos,f) = 0;
                     pr2_R(:,pos,f) = 0;
                     ph1_R(:,pos,f) = 0;
@@ -2494,13 +2494,13 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
     
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (RELATIVE POSITIONING): KALMAN FILTER ON CODE AND PHASE
-% DOUBLE DIFFERENCES (MULTI-RECEIVER) FOR ATTITUDE ESTIMATION (WITHOUT MS)
+% DOUBLE DIFFERENCES (MULTI-RECEIVER) FOR ATTITUDE ESTIMATION (WITH OR WITHOUT BS)
 %----------------------------------------------------------------------------------------------
 
-elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
+elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR || mode == goGNSS.MODE_PP_KF_CP_DD_MR_BS)
 
     % this mode is composed of:
-    % 1 - PP_KF_CP_SA on the first receiver (used as master) to estimate
+    % 1 - PP_KF_CP_SA or PP_KF_CP_DD on the first receiver (used as object master) to estimate
     % every epoch its position at best
     % 2 - PP_KF_CP_DD_BSL to estimate the baseline among the moving master
     % and the other receivers, with distance btw receivers constraints
@@ -2510,82 +2510,127 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % INITIALIZATION
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
-    
-    % Step 1: PP_KF_CP_SA on the first receiver: INIT    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     fid_kal_MS = fopen([filerootOUT '_kal_000_MS.bin'],'w+');
     fid_sat_MS = fopen([filerootOUT '_sat_000_MS.bin'],'w+');
     fid_dop_MS = fopen([filerootOUT '_dop_000_MS.bin'],'w+');
     fid_conf_MS = fopen([filerootOUT '_conf_000_MS.bin'],'w+');
     fid_res_MS = fopen([filerootOUT '_res_000_MS.bin'],'w+');
     
+    irec = 1; % index of the multi-receiver used as moving master
+    main_receiver = 2; % index of the multi-receiver used as main to compute attitude
+    roll_receiver = 3; % index of the multi-receiver used as main to compute roll (if available)
+
+    if size(pr1_R,3) < 3
+         roll_receiver = 0;     
+    end    
+
+    cs_threshold_orig = cs_threshold;    
+    
+    global sigmaq_vE sigmaq_vN sigmaq_vU;
+
+    sigmaq_vE_orig = sigmaq_vE;
+    sigmaq_vN_orig = sigmaq_vN;
+    sigmaq_vU_orig = sigmaq_vU;
+    
+    sigmaq_vE_baseline = 5;
+    sigmaq_vN_baseline = 5;
+    sigmaq_vU_baseline = 5;
+    
     
     KF_variables=struct; % struct where copy independent KF results
-    cs_threshold_orig = cs_threshold;
-    cs_threshold = 10;
-    kalman_initialized = 0;
-    irec = 1; % index of the receiver used as moving master
-    while (~kalman_initialized)
-        if (isempty(time_GPS))
-            fprintf('It was not possible to initialize the Kalman filter.\n');
-            return
+    if mode == goGNSS.MODE_PP_KF_CP_SA_MR
+        % Step 1: PP_KF_CP_SA on the first receiver: INIT  
+        cs_threshold = 10;
+        kalman_initialized = 0;        
+        while (~kalman_initialized)
+            if (isempty(time_GPS))
+                fprintf('It was not possible to initialize the Kalman filter.\n');
+                return
+            end
+            
+            if (mode_data == 0)
+                Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
+            else
+                Eph_t = Eph(:,:,1);
+            end
+            
+            sbas_t = find_sbas(sbas, 1);
+            
+            kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R(:,:,irec), time_GPS(1), pr1_R(:,1,irec), ph1_R(:,1,irec), dop1_R(:,1,irec), pr2_R(:,1,irec), ph2_R(:,1,irec), dop2_R(:,1,irec), snr_R(:,1,irec), Eph_t, SP3, iono, sbas_t, lambda, 1, flag_IAR);
+            
+            if (~kalman_initialized)
+                time_GPS(1) = []; week_R(1) = [];
+                pr1_R(:,1,:) = []; ph1_R(:,1,:) = []; dop1_R(:,1,:) = [];
+                pr2_R(:,1,:) = []; ph2_R(:,1,:) = []; dop2_R(:,1,:) = [];
+                snr_R(:,1,:) = [];
+            end
         end
         
-        if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
-        else
-            Eph_t = Eph(:,:,1);
-        end
+        pos_M_KF = Xhat_t_t([1,o1+1,o2+1]);
+        pos_M_KF_0 = pos_M_KF;
+        KF_variables = manage_KF_variables(KF_variables, irec, 'archive');
         
-        sbas_t = find_sbas(sbas, 1);
+        cs_threshold = cs_threshold_orig;
         
-        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R(:,:,irec), time_GPS(1), pr1_R(:,1,irec), ph1_R(:,1,irec), dop1_R(:,1,irec), pr2_R(:,1,irec), ph2_R(:,1,irec), dop2_R(:,1,irec), snr_R(:,1,irec), Eph_t, SP3, iono, sbas_t, lambda, 1, flag_IAR);
+        fwrite(fid_kal_MS, [Xhat_t_t; Cee(:)], 'double');
+        fwrite(fid_sat_MS, nSatTot, 'int8');
+        fwrite(fid_sat_MS, [azM; azR; elM; elR; distM; distR], 'double');
+        fwrite(fid_dop_MS, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+        fwrite(fid_conf_MS, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
+        fwrite(fid_res_MS, nSatTot, 'int8');
+        fwrite(fid_res_MS, [residuals_fixed(1:nSatTot); residuals_fixed(nSatTot+1:2*nSatTot);residuals_float(1:nSatTot); residuals_float(nSatTot+1:2*nSatTot);outliers(1:nSatTot);outliers(nSatTot+1:2*nSatTot)], 'double');
         
-        if (~kalman_initialized)
-            time_GPS(1) = []; week_R(1) = [];
-            pr1_R(:,1,:) = []; ph1_R(:,1,:) = []; dop1_R(:,1,:) = [];
-            pr2_R(:,1,:) = []; ph2_R(:,1,:) = []; dop2_R(:,1,:) = [];
-            snr_R(:,1,:) = [];
-        end
-    end
-    
-    pos_M_KF = Xhat_t_t([1,o1+1,o2+1]);
-    pos_M_KF_0 = pos_M_KF;        
-    KF_variables = manage_KF_variables(KF_variables, irec, 'archive');
-               
-    fwrite(fid_kal_MS, [Xhat_t_t; Cee(:)], 'double');
-    fwrite(fid_sat_MS, nSatTot, 'int8');
-    fwrite(fid_sat_MS, [azM; azR; elM; elR; distM; distR], 'double');
-    fwrite(fid_dop_MS, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-    fwrite(fid_conf_MS, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
-    fwrite(fid_res_MS, nSatTot, 'int8');
-    fwrite(fid_res_MS, [residuals_fixed(1:nSatTot); residuals_fixed(nSatTot+1:2*nSatTot);residuals_float(1:nSatTot); residuals_float(nSatTot+1:2*nSatTot);outliers(1:nSatTot);outliers(nSatTot+1:2*nSatTot)], 'double');
-    
-    %     if (flag_plotproc)
-    %         if (flag_cov == 0)
-    %             if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(1,:)), end;
-    %             rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
-    %         else
-    %             if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
-    %             rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
-    %         end
-    %         if (flag_amb == 1)
-    %             rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
-    %         else
-    %             if (flag_skyplot == 1)
-    %                 rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t, SP3);
-    %                 rtplot_snr (snr_R(:,1), Eph_t, SP3);
-    %             else
-    %                 rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
-    %             end
-    %         end
-    %     end
-      
-    
-   
-    
+    else
+        % Step 1: PP_KF_CP_DD on the first receiver: INIT  
 
-    
+        kalman_initialized = 0;
+        while (~kalman_initialized)
+            if (isempty(time_GPS))
+                fprintf('It was not possible to initialize the Kalman filter.\n');
+                return
+            end
+            
+            if (mode_data == 0)
+                Eph_t = rt_find_eph (Eph, time_GPS(1), nSatTot);
+            else
+                Eph_t = Eph(:,:,1);
+            end
+            
+            sbas_t = find_sbas(sbas, 1);
+            
+            if (exist('pos_R_crd','var') && any(pos_R_crd))
+                flag_XR=1;  % use apriori XR as fixed during kalman init
+            else
+                flag_XR=0;  % use apriori XR as approximated
+            end
+            
+            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R(:,:,irec), pos_M(:,1), time_GPS(1), pr1_R(:,1,irec), pr1_M(:,1), ph1_R(:,1,irec), ph1_M(:,1), dop1_R(:,1,irec), dop1_M(:,1), pr2_R(:,1,irec), pr2_M(:,1), ph2_R(:,1,irec), ph2_M(:,1), dop2_R(:,1,irec), dop2_M(:,1), snr_R(:,1,irec), snr_M(:,1), Eph_t, SP3, iono, lambda, 1, dtMdot(1), flag_IAR, flag_XR, sbas_t);
+            
+            
+            if (~kalman_initialized)
+                pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
+                pr1_R(:,1,:) = []; pr1_M(:,1) = []; ph1_R(:,1,:) = []; ph1_M(:,1) = []; dop1_R(:,1,:) = []; dop1_M(:,1) = [];
+                pr2_R(:,1,:) = []; pr2_M(:,1) = []; ph2_R(:,1,:) = []; ph2_M(:,1) = []; dop2_R(:,1,:) = []; dop2_M(:,1) = [];
+                snr_R(:,1,:) = []; snr_M(:,1) = []; dtMdot(1) = [];
+            end
+        end
+        
+        pos_M_KF = Xhat_t_t([1,o1+1,o2+1]);
+        pos_M_KF_0 = pos_M_KF;
+        KF_variables = manage_KF_variables(KF_variables, irec, 'archive');
+        
+        fwrite(fid_kal_MS, [Xhat_t_t; Cee(:)], 'double');
+        fwrite(fid_sat_MS, nSatTot, 'int8');
+        fwrite(fid_sat_MS, [azM; azR; elM; elR; distM; distR], 'double');
+        fwrite(fid_dop_MS, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+        fwrite(fid_conf_MS, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
+        fwrite(fid_res_MS, nSatTot, 'int8');
+        fwrite(fid_res_MS, [residuals_fixed(1:nSatTot); residuals_fixed(nSatTot+1:2*nSatTot);residuals_float(1:nSatTot); residuals_float(nSatTot+1:2*nSatTot);outliers(1:nSatTot);outliers(nSatTot+1:2*nSatTot)], 'double');
+        
+    end
+   
+
     
     % step 2: PP_KF_CP_DD_BSL to estimate the baseline among the moving master
     % and the other receivers, with distance btw receivers constraints:
@@ -2602,23 +2647,13 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
     constraint_dh=NaN(size(pr1_R,3),1);
     sbas_applied_on_master = 0;
 
-    % selection of main and second receivers
-    main_receiver = 0; % main receiver is the receiver (first beyond the master) used to compute yaw and pitch. Its baseline is stored in outputfiles. The roll receiver is used only to compute roll angle.
+    sigmaq_vE = sigmaq_vE_baseline;
+    sigmaq_vN = sigmaq_vN_baseline; 
+    sigmaq_vU = sigmaq_vU_baseline;
+    
+
     for ff = 1 : size(pr1_R,3)
-         if ff ~= irec && ~main_receiver
-             main_receiver = ff;
-         end        
-    end
-    roll_receiver = 0;
-    for ff = 1 : size(pr1_R,3)
-         if ff ~= irec && ff ~= main_receiver && ~roll_receiver
-             roll_receiver = ff;
-         end        
-    end    
-    cs_threshold = cs_threshold_orig;    
-    for ff = 1 : size(pr1_R,3)
-        if ff ~= irec % ff receiver is not local master
-            
+        if ff ~= irec % ff receiver is not local master            
             constraint_distance(ff) = sqrt(sum((multi_antenna_rf(:,ff)-multi_antenna_rf(:,1)).^2)); 
             constraint_dh(ff) = multi_antenna_rf(3,ff)-multi_antenna_rf(3,1);
 %             constraint_distance(ff)=-1;
@@ -2655,14 +2690,9 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
                 
                 sbas_t = find_sbas(sbas, 1);
                 
-                %if (exist('pos_R_crd','var') && any(pos_R_crd))
-                %    flag_XR=2;  % use apriori XR as fixed during kalman init
-                %else
                 flag_XR=1;  % use apriori XR as approximated
-                %end
                 
-                ratiotest = []; mutest = []; succ_rate = []; fixed_solution = [];
-                
+                ratiotest = []; mutest = []; succ_rate = []; fixed_solution = [];                
                 
                 kalman_initialized = goGPS_KF_DD_code_phase_baseline_init(pos_R(:,:,ff), pos_M_KF, time_GPS(1), pr1_R(:,1,ff), pr1_R(:,1,irec), ...
                     ph1_R(:,1,ff), ph1_R(:,1,irec), dop1_R(:,1,ff), dop1_R(:,1,irec), pr2_R(:,1,ff), pr2_R(:,1,irec), ph2_R(:,1,ff), ph2_R(:,1,irec), dop2_R(:,1,ff), dop2_R(:,1,irec), ...
@@ -2673,8 +2703,15 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
                 if (~kalman_initialized)
                     time_GPS(1) = []; week_R(1) = [];
                     pr1_R(:,1,:) = []; ph1_R(:,1,:) = []; dop1_R(:,1,:) = []; 
-                    pr2_R(:,1,:) = []; ph2_R(:,1,:) = []; dop2_R(:,1,:) = []; 
+                    pr2_R(:,1,:) = []; ph2_R(:,1,:) = []; dop2_R(:,1,:) = [];
                     snr_R(:,1,:) = []; dtRdot(1,:,:) = [];
+                    
+                    if mode == goGNSS.MODE_PP_KF_CP_SA_MR
+                        pos_M(:,1) = [];
+                        pr1_M(:,1) = []; ph1_M(:,1) = []; dop1_M(:,1) = [];
+                        pr2_M(:,1) = []; ph2_M(:,1) = []; dop2_M(:,1) = [];
+                        snr_M(:,1) = []; dtMdot(1) = [];
+                    end
                 end
             end
             
@@ -2691,6 +2728,16 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
         end
     end
     
+    if roll_receiver~=0
+        constraint_distance_cross = sqrt(sum((multi_antenna_rf(:,roll_receiver)-multi_antenna_rf(:,main_receiver)).^2));
+        constraint_dh_cross = multi_antenna_rf(3,roll_receiver)-multi_antenna_rf(3,main_receiver);
+    else
+        constraint_distance_cross = [];
+        constraint_dh_cross = [];
+    end
+    
+    
+    
     % compute attitude
     % yaw and pitch from first rover
     % convert baselines in a local reference frame centered in the master
@@ -2705,35 +2752,14 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
         roll=0;
     else
         local_baseline_second = global2localPos(KF_variables(roll_receiver).Xhat_t_t([1,o1+1,o2+1]) + KF_variables(irec).Xhat_t_t([1,o1+1,o2+1]), KF_variables(irec).Xhat_t_t([1,o1+1,o2+1]));
-        roll = atan2(local_baseline_second(3),sqrt(local_baseline_second(1)^2 + local_baseline_second(2)^2))./pi*180;
+        roll = atan2(local_baseline_second(3)-local_baseline_main(3),sqrt((local_baseline_second(1)-local_baseline_main(1))^2 + (local_baseline_second(2)-local_baseline_main(2))^2))./pi*180;
+        %roll = atan2(local_baseline_second(3),sqrt(local_baseline_second(1)^2 + local_baseline_second(2)^2))./pi*180;
     end
     
     Xhat_t_t(:) = 0;
     Xhat_t_t([1,o1+1,o2+1]) = [yaw pitch roll];
     
     fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
-    
-    %             if (flag_plotproc)
-    %                 if (flag_cov == 0)
-    %                     if (flag_ge == 1), rtplot_googleearth (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), date_R(1,:)), end;
-    %                     rtplot_matlab (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
-    %                 else
-    %                     if (flag_ge == 1), rtplot_googleearth_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(1,:)), end;
-    %                     rtplot_matlab_cov (1, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), 0, 0, 0, 0, flag_ms, ref_path, mat_path, flag_amb);
-    %                 end
-    %                 if (flag_amb == 1)
-    %                     rtplot_amb (1, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs)
-    %                 else
-    %                     if (flag_skyplot == 1)
-    %                         rtplot_skyplot (1, azR, elR, conf_sat, pivot, Eph_t, SP3);
-    %                         rtplot_snr (snr_R(:,1), Eph_t, SP3);
-    %                     else
-    %                         rttext_sat (1, azR, elR, snr_R(:,1), conf_sat, pivot, Eph_t, SP3);
-    %                     end
-    %                 end
-    %             end
-    %
-    
     
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2750,73 +2776,91 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
     end
     
     figure(1);
+    title('Map');
     hold on
-    figure(2);
+    axis equal
+%     figure(2);
+%     title('MovingMaster - MainReceiver Baseline: XYZ components');
     hold on
     figure(3);
+    title('MovingMaster - MainReceiver Baseline: ENU components');
     hold on
-    figure(4);
-    hold on
+%     figure(4);
+%     hold on
     figure(5);
+    title('Attitude');
     hold on
     figure(6);
+    title('Baseline length');
     hold on    
     
     for t = 2 : length(time_GPS)
         
-        % Step 1: PP_KF_CP_SA on the first receiver: LOOP
-        % restore global KF variables
-        KF_variables = manage_KF_variables(KF_variables, irec, 'restore');
+        sigmaq_vE = sigmaq_vE_orig;
+        sigmaq_vN = sigmaq_vN_orig;
+        sigmaq_vU = sigmaq_vU_orig;        
         
-        if (mode_data == 0)
-            Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+        if mode == goGNSS.MODE_PP_KF_CP_SA_MR
+            % Step 1: PP_KF_CP_SA on the first receiver: LOOP
+            % restore global KF variables
+            KF_variables = manage_KF_variables(KF_variables, irec, 'restore');
+            
+            if (mode_data == 0)
+                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            else
+                Eph_t = Eph(:,:,t);
+            end
+            
+            sbas_t = find_sbas(sbas, t);
+            cs_threshold = 10;
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t,irec), ph1_R(:,t,irec), dop1_R(:,t,irec), pr2_R(:,t,irec), ph2_R(:,t,irec), ...
+                dop2_R(:,t,irec), snr_R(:,t,irec), Eph_t, SP3, iono, sbas_t, lambda, 1, flag_IAR);
+            
+            fwrite(fid_kal_MS, [Xhat_t_t; Cee(:)], 'double');
+            fwrite(fid_sat_MS, [azM; azR; elM; elR; distM; distR], 'double');
+            fwrite(fid_dop_MS, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+            fwrite(fid_conf_MS, [conf_sat; conf_cs; pivot], 'int8');
+            residuals_dummy = NaN(1,nSatTot);
+            fwrite(fid_res_MS, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+            
+            
+            pos_M_KF = Xhat_t_t([1,o1+1,o2+1]);
+            KF_variables = manage_KF_variables(KF_variables, irec, 'archive');
+            
+
         else
-            Eph_t = Eph(:,:,t);
+            % Step 1: PP_KF_CP_DD on the first receiver: LOOP
+            % restore global KF variables
+            KF_variables = manage_KF_variables(KF_variables, irec, 'restore');
+            
+            residuals_fixed=NaN(2*nSatTot,1);
+            residuals_float=NaN(2*nSatTot,1);
+            outliers=zeros(2*nSatTot,1);
+            
+            if (mode_data == 0)
+                Eph_t = rt_find_eph (Eph, time_GPS(t), nSatTot);
+            else
+                Eph_t = Eph(:,:,t);
+            end
+            
+            sbas_t = find_sbas(sbas, t);
+            
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t,irec), pr1_M(:,t), ph1_R(:,t,irec), ph1_M(:,t), dop1_R(:,t,irec), dop1_M(:,t), ...
+                pr2_R(:,t,irec), pr2_M(:,t), ph2_R(:,t,irec), ph2_M(:,t), dop2_R(:,t,irec), dop2_M(:,t), snr_R(:,t,irec), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, dtMdot(t), flag_IAR, antenna_PCV, sbas_t);
+    
+            
+            fwrite(fid_kal_MS, [Xhat_t_t; Cee(:)], 'double');
+            fwrite(fid_sat_MS, [azM; azR; elM; elR; distM; distR], 'double');
+            fwrite(fid_dop_MS, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+            fwrite(fid_conf_MS, [conf_sat; conf_cs; pivot], 'int8');
+            residuals_dummy = NaN(1,nSatTot);
+            fwrite(fid_res_MS, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+            
+            
+            pos_M_KF = Xhat_t_t([1,o1+1,o2+1]);
+            KF_variables = manage_KF_variables(KF_variables, irec, 'archive');            
+            
         end
-        
-        sbas_t = find_sbas(sbas, t);
-        cs_threshold = 10;
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t,irec), ph1_R(:,t,irec), dop1_R(:,t,irec), pr2_R(:,t,irec), ph2_R(:,t,irec), ...
-            dop2_R(:,t,irec), snr_R(:,t,irec), Eph_t, SP3, iono, sbas_t, lambda, 1, flag_IAR);
-        
-        fwrite(fid_kal_MS, [Xhat_t_t; Cee(:)], 'double');
-        fwrite(fid_sat_MS, [azM; azR; elM; elR; distM; distR], 'double');
-        fwrite(fid_dop_MS, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-        fwrite(fid_conf_MS, [conf_sat; conf_cs; pivot], 'int8');
-        residuals_dummy = NaN(1,nSatTot);
-        fwrite(fid_res_MS, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
-        
-        
-        pos_M_KF = Xhat_t_t([1,o1+1,o2+1]);
-        KF_variables = manage_KF_variables(KF_variables, irec, 'archive');
-        
-        %         if (flag_plotproc)
-        %             if (mode_user == 1 && t == 2), goWB.shiftDown(); end
-        %             if (flag_cov == 0)
-        %                 if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
-        %                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
-        %             else
-        %                 if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
-        %                 rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
-        %             end
-        %             if (flag_amb == 1)
-        %                 rtplot_amb (t, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs);
-        %                 pause(0.1);
-        %             else
-        %                 if (flag_skyplot == 1)
-        %                     rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
-        %                     rtplot_snr (snr_R(:,t), Eph_t, SP3);
-        %                 else
-        %                     rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
-        %                 end
-        %                 pause(0.01);
-        %             end
-        %         end
-        %
-        %         if (mode_user == 1)
-        %             goWB.goTime(t);
-        %         end
-        
         
         
         
@@ -2824,61 +2868,232 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
         % and the other receivers, with distance btw receivers constraints:
         % LOOP
         cs_threshold = cs_threshold_orig;
-        for ff = 1 : size(pr1_R,3)
-            if ff ~= irec % ff receiver is not local master
-                residuals_fixed=NaN(2*nSatTot,1);
-                residuals_float=NaN(2*nSatTot,1);
-                outliers=zeros(2*nSatTot,1);
-                
-                sbas_t = find_sbas(sbas, t);
-                
-                % restore global KF variables
-                KF_variables = manage_KF_variables(KF_variables, ff, 'restore');
-                
-                Xhat_t_t([1 o1+1 o2+1]) = Xhat_t_t([1 o1+1 o2+1]) + pos_M_KF;
-                X_t1_t([1 o1+1 o2+1]) = X_t1_t([1 o1+1 o2+1]) + pos_M_KF;
-                
+        sigmaq_vE = sigmaq_vE_baseline;
+        sigmaq_vN = sigmaq_vN_baseline;
+        sigmaq_vU = sigmaq_vU_baseline;
+        
+        %% BETA: network solution
+        if size(pr1_R,3)==3
+            residuals_fixed=NaN(2*nSatTot,1);
+            residuals_float=NaN(2*nSatTot,1);
+            outliers=zeros(2*nSatTot,1);
+            sbas_t = find_sbas(sbas, t);
+            
 
-                [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M_KF, time_GPS(t), pr1_R(:,t,ff), pr1_R(:,t,irec), ph1_R(:,t,ff), ph1_R(:,t,irec), dop1_R(:,t,ff), dop1_R(:,t,irec), ...
-                    pr2_R(:,t,ff), pr2_R(:,t,irec), ph2_R(:,t,ff), ph2_R(:,t,irec), dop2_R(:,t,ff), dop2_R(:,t,irec), snr_R(:,t,ff), snr_R(:,t,irec), ...
-                    Eph_t, SP3, iono, lambda, 1, dtRdot(t,1,irec), flag_IAR, antenna_PCV, sbas_t, constraint_distance(ff), constraint_dh(ff));
-    
-                % switch back to baseline
-                Xhat_t_t([1 o1+1 o2+1])=Xhat_t_t([1 o1+1 o2+1]) - pos_M_KF;
-                X_t1_t([1 o1+1 o2+1])=X_t1_t([1 o1+1 o2+1]) - pos_M_KF;                
-                
-                KF_variables = manage_KF_variables(KF_variables, ff, 'archive');
-
-                if ff == main_receiver
-                    fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
-                    fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
-                    fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
-                    fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-                    fwrite(fid_res, [residuals_fixed(1:nSatTot); residuals_fixed(nSatTot+1:2*nSatTot);residuals_float(1:nSatTot); residuals_float(nSatTot+1:2*nSatTot);outliers(1:nSatTot);outliers(nSatTot+1:2*nSatTot)], 'double');
+            nsat=[];
+            
+            H_tot=[];
+            y0_tot=[];
+            Cnn_tot=[];
+            Cee_tot=[];
+            Cvv_tot=[];
+            XR0=[];
+            Xhat_t_t_tot=[];
+            X_t1_t_tot=[];
+            sat_np_tot={};
+            
+            
+            for ff = 1 : size(pr1_R,3)
+                if ff ~= irec % ff receiver is not local master
+                    
+                    % restore global KF variables of receiver ff
+                    KF_variables = manage_KF_variables(KF_variables, ff, 'restore');
+                    Xhat_t_t([1 o1+1 o2+1]) = Xhat_t_t([1 o1+1 o2+1]) + pos_M_KF;
+                    X_t1_t([1 o1+1 o2+1]) = X_t1_t([1 o1+1 o2+1]) + pos_M_KF;
+                    
+                    [check_on, check_off, check_pivot, check_cs, H_ff, y0_ff, Cnn_ff, Cvv_ff, Cee_ff, nsat(ff), sat_np_ff] = goGPS_KF_DD_code_phase_loop_network(pos_M_KF, time_GPS(t), pr1_R(:,t,ff), pr1_R(:,t,irec), ph1_R(:,t,ff), ph1_R(:,t,irec), dop1_R(:,t,ff), dop1_R(:,t,irec), ...
+                        pr2_R(:,t,ff), pr2_R(:,t,irec), ph2_R(:,t,ff), ph2_R(:,t,irec), dop2_R(:,t,ff), dop2_R(:,t,irec), snr_R(:,t,ff), snr_R(:,t,irec), ...
+                        Eph_t, SP3, iono, lambda, 1, dtRdot(t,1,irec), flag_IAR, antenna_PCV, sbas_t, constraint_distance(ff), constraint_dh(ff));
+                    
+                    if nsat(ff) > min_nsat
+        
+                        H_tot = blkdiag(H_tot, H_ff);
+                        y0_tot = [y0_tot; y0_ff];
+                        Cnn_tot = blkdiag(Cnn_tot, Cnn_ff);
+                        Cvv_tot = blkdiag(Cvv_tot, Cvv_ff);
+                        Cee_tot = blkdiag(Cee_tot, Cee_ff);
+                        XR0(:,ff)=X_t1_t([1 o1+1 o2+1]);
+                        Xhat_t_t_tot=[Xhat_t_t_tot;Xhat_t_t];
+                        X_t1_t_tot=[X_t1_t_tot;X_t1_t];
+                        sat_np_tot{ff} = sat_np_ff;
+                        
+                        
+                        K = T*Cee_ff*T' + Cvv_ff;
+                        G = K*H_ff' * (H_ff*K*H_ff' + Cnn_ff)^(-1);
+%                         G_indip(:,:,ff)=G;
+                        %min_ambfloatRMS(t,1) = min(sqrt(diag(Cee(o3+sat_np,o3+sat_np)))); %#ok<NASGU>
+                        
+                        Xhat_t_t = (I-G*H_ff)*X_t1_t + G*y0_ff;
+                        X_t1_t = T*Xhat_t_t;
+                        Cee = (I-G*H_ff)*K;
+                        
+                    else
+                        Xhat_t_t = X_t1_t;                        
+                        X_t1_t = T*Xhat_t_t;                        
+                        Cee = T*Cee_ff*T';
+                    end
+                    
+                    % switch back to baseline
+                    Xhat_t_t([1 o1+1 o2+1])=Xhat_t_t([1 o1+1 o2+1]) - pos_M_KF;
+                    X_t1_t([1 o1+1 o2+1])=X_t1_t([1 o1+1 o2+1]) - pos_M_KF;
+                    
+                    KF_variables = manage_KF_variables(KF_variables, ff, 'archive');
+                    
                 end
-%                 if (flag_plotproc)
-%                     if (mode_user == 1 && t == 2), goWB.shiftDown(); end
-%                     if (flag_cov == 0)
-%                         if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
-%                         rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
-%                     else
-%                         if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
-%                         rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
-%                     end
-%                     if (flag_amb == 1)
-%                         rtplot_amb (t, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs);
-%                         pause(0.1);
-%                     else
-%                         if (flag_skyplot == 1)
-%                             rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
-%                             rtplot_snr (snr_R(:,t), Eph_t, SP3);
-%                         else
-%                             rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
-%                         end
-%                         pause(0.01);
-%                     end
-%                 end
+            end
+
+            if ~isempty(H_tot) & (size(H_tot,2) == 2*size(H_ff,2))
+                % add cross constraint
+                Z_1_nN = zeros(1,nN);
+                Z_1_om = zeros(1,o1-1);
                 
+                H_bls = [2*(XR0(1,main_receiver)-XR0(1,roll_receiver)) Z_1_om 2*(XR0(2,main_receiver)-XR0(2,roll_receiver)) Z_1_om 2*(XR0(3,main_receiver)-XR0(3,roll_receiver)) Z_1_om Z_1_nN ...
+                    -2*(XR0(1,main_receiver)-XR0(1,roll_receiver)) Z_1_om -2*(XR0(2,main_receiver)-XR0(2,roll_receiver)) Z_1_om -2*(XR0(3,main_receiver)-XR0(3,roll_receiver)) Z_1_om Z_1_nN];
+                
+                y0_bsl = constraint_distance_cross^2-((XR0(1,main_receiver)-XR0(1,roll_receiver))^2 + (XR0(2,main_receiver)-XR0(2,roll_receiver))^2 + (XR0(3,main_receiver)-XR0(3,roll_receiver))^2) + ...
+                    2*(XR0(1,main_receiver)-XR0(1,roll_receiver))*XR0(1,main_receiver) + 2*(XR0(2,main_receiver)-XR0(2,roll_receiver))*XR0(2,main_receiver) + 2*(XR0(3,main_receiver)-XR0(3,roll_receiver))*XR0(3,main_receiver) - ...
+                    2*(XR0(1,main_receiver)-XR0(1,roll_receiver))*XR0(1,roll_receiver) - 2*(XR0(2,main_receiver)-XR0(2,roll_receiver))*XR0(2,roll_receiver) - 2*(XR0(3,main_receiver)-XR0(3,roll_receiver))*XR0(3,roll_receiver);
+                
+                Cnn_bls = min(diag(Cnn_tot));
+                
+                H = [H_tot; H_bls];
+                Cnn = blkdiag(Cnn_tot, Cnn_bls);
+                y0 = [y0_tot; y0_bsl];
+                T =  blkdiag(T, T);
+                I_tot =  blkdiag(I, I);
+                
+                Cvv=Cvv_tot; Cee=Cee_tot;
+                
+                K_tot = T*Cee*T' + Cvv;
+                G_tot = K_tot*H' * (H*K_tot*H' + Cnn)^(-1);
+%                 G_tot=blkdiag(G_indip(:,:,2),G_indip(:,:,3));
+                %min_ambfloatRMS(t,1) = min(sqrt(diag(Cee(o3+sat_np,o3+sat_np)))); %#ok<NASGU>
+                
+                Xhat_t_t_tot = (I_tot-G_tot*H)*X_t1_t_tot + G_tot*y0;
+                X_t1_t_tot = T*Xhat_t_t_tot;
+                Cee_tot = (I_tot-G_tot*H)*K_tot;
+                
+                %sat_np = sat(sat ~= pivot);
+                
+                i2 = size(Xhat_t_t_tot,1)/2;
+                if (flag_IAR==45434)
+                    
+                    %try to solve integer ambiguities
+                    [Xhat_t_t_tot([1 o1+1 o2+1]), Xhat_t_t_tot(o3+sat_np_tot{2}), varNfix, varPosfix] = lambdafix(Xhat_t_t_tot([1 o1+1 o2+1]), Xhat_t_t_tot(o3+sat_np_tot{2}), ...
+                        Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat_np_tot{2},o3+sat_np_tot{2}), Cee([1 o1+1 o2+1],o3+sat_np_tot{2})); %#ok<ASGLU,NASGU>
+                    
+                    [Xhat_t_t_tot([i2+1 i2+o1+1 i2+o2+1]), Xhat_t_t_tot(i2+o3+sat_np_tot{3}), varNfix, varPosfix] = lambdafix(Xhat_t_t_tot([i2+1 i2+o1+1 i2+o2+1]), Xhat_t_t_tot(i2+o3+sat_np_tot{3}), ...
+                        Cee([i2+1 i2+o1+1 i2+o2+1],[i2+1 i2+o1+1 i2+o2+1]), Cee(i2+o3+sat_np_tot{3},i2+o3+sat_np_tot{3}), Cee([i2+1 i2+o1+1 i2+o2+1],i2+o3+sat_np_tot{3})); %#ok<ASGLU,NASGU>
+
+                    
+                    KF_variables = manage_KF_variables(KF_variables, main_receiver, 'restore');
+                    Xhat_t_t([1 o1+1 o2+1])=Xhat_t_t_tot([1 o1+1 o2+1]) - pos_M_KF;
+                    KF_variables = manage_KF_variables(KF_variables, main_receiver, 'archive');
+                    
+                    KF_variables = manage_KF_variables(KF_variables, roll_receiver, 'restore');
+                    Xhat_t_t([1 o1+1 o2+1])=Xhat_t_t_tot([i2+1 i2+o1+1 i2+o2+1]) - pos_M_KF;
+                    KF_variables = manage_KF_variables(KF_variables, roll_receiver, 'archive');
+                    
+                    
+                    %min_ambfixRMS(t,1) = min(sqrt(diag(varNfix)));
+                else
+                    ratiotest = [ratiotest NaN];
+                    mutest    = [mutest NaN];
+                    succ_rate = [succ_rate NaN];
+                    fixed_solution = [fixed_solution 0];
+                    
+                    KF_variables = manage_KF_variables(KF_variables, main_receiver, 'restore');
+                    Xhat_t_t([1 o1+1 o2+1])=Xhat_t_t_tot([1 o1+1 o2+1]) - pos_M_KF;
+                    KF_variables = manage_KF_variables(KF_variables, main_receiver, 'archive');
+                    
+                    KF_variables = manage_KF_variables(KF_variables, roll_receiver, 'restore');
+                    Xhat_t_t([1 o1+1 o2+1])=Xhat_t_t_tot([i2+1 i2+o1+1 i2+o2+1]) - pos_M_KF;
+                    KF_variables = manage_KF_variables(KF_variables, roll_receiver, 'archive');
+                    
+                    
+                    
+                end
+                
+                %                 if exist('y0_residuals','var')
+                %                     if exist('pos_cov_zero' , 'var') && (~isempty(pos_cov_zero))
+                %                         y0_residuals(length(sat_pr_np)+pos_cov_zero) = [];
+                %                         H1_residuals(length(sat_pr_np)+pos_cov_zero,:) = [];
+                %                         %y0_residuals(pos_cov_zero) = []; % why also on codes?
+                %                         %H1_residuals(pos_cov_zero,:) = [];
+                %                     end
+                %
+                %                     X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np]);
+                %                     residuals_fixed([sat_pr_np;nSatTot+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np])*X_est;
+                %                 end
+                
+                
+                
+                
+            end
+            %
+            
+            %
+        else
+            
+            
+            %%
+           
+            for ff = 1 : size(pr1_R,3)
+                if ff ~= irec % ff receiver is not local master
+                    residuals_fixed=NaN(2*nSatTot,1);
+                    residuals_float=NaN(2*nSatTot,1);
+                    outliers=zeros(2*nSatTot,1);
+                    
+                    sbas_t = find_sbas(sbas, t);
+                    
+                    % restore global KF variables
+                    KF_variables = manage_KF_variables(KF_variables, ff, 'restore');
+                    
+                    Xhat_t_t([1 o1+1 o2+1]) = Xhat_t_t([1 o1+1 o2+1]) + pos_M_KF;
+                    X_t1_t([1 o1+1 o2+1]) = X_t1_t([1 o1+1 o2+1]) + pos_M_KF;
+                    
+                    
+                    [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M_KF, time_GPS(t), pr1_R(:,t,ff), pr1_R(:,t,irec), ph1_R(:,t,ff), ph1_R(:,t,irec), dop1_R(:,t,ff), dop1_R(:,t,irec), ...
+                        pr2_R(:,t,ff), pr2_R(:,t,irec), ph2_R(:,t,ff), ph2_R(:,t,irec), dop2_R(:,t,ff), dop2_R(:,t,irec), snr_R(:,t,ff), snr_R(:,t,irec), ...
+                        Eph_t, SP3, iono, lambda, 1, dtRdot(t,1,irec), flag_IAR, antenna_PCV, sbas_t, constraint_distance(ff), constraint_dh(ff));
+                    
+                    % switch back to baseline
+                    Xhat_t_t([1 o1+1 o2+1])=Xhat_t_t([1 o1+1 o2+1]) - pos_M_KF;
+                    X_t1_t([1 o1+1 o2+1])=X_t1_t([1 o1+1 o2+1]) - pos_M_KF;
+                    
+                    KF_variables = manage_KF_variables(KF_variables, ff, 'archive');
+                    
+                    if ff == main_receiver
+                        fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
+                        fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
+                        fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
+                        fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
+                        fwrite(fid_res, [residuals_fixed(1:nSatTot); residuals_fixed(nSatTot+1:2*nSatTot);residuals_float(1:nSatTot); residuals_float(nSatTot+1:2*nSatTot);outliers(1:nSatTot);outliers(nSatTot+1:2*nSatTot)], 'double');
+                    end
+                    %                 if (flag_plotproc)
+                    %                     if (mode_user == 1 && t == 2), goWB.shiftDown(); end
+                    %                     if (flag_cov == 0)
+                    %                         if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
+                    %                         rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
+                    %                     else
+                    %                         if (flag_ge == 1), rtplot_googleearth_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), date_R(t,:)), end;
+                    %                         rtplot_matlab_cov (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
+                    %                     end
+                    %                     if (flag_amb == 1)
+                    %                         rtplot_amb (t, window, Xhat_t_t(o3+1:o3+nSatTot), sqrt(diag(Cee(o3+1:o3+nSatTot,o3+1:o3+nSatTot))), conf_cs);
+                    %                         pause(0.1);
+                    %                     else
+                    %                         if (flag_skyplot == 1)
+                    %                             rtplot_skyplot (t, azR, elR, conf_sat, pivot, Eph_t, SP3);
+                    %                             rtplot_snr (snr_R(:,t), Eph_t, SP3);
+                    %                         else
+                    %                             rttext_sat (t, azR, elR, snr_R(:,t), conf_sat, pivot, Eph_t, SP3);
+                    %                         end
+                    %                         pause(0.01);
+                    %                     end
+                    %                 end
+                    
+                end
             end
         end
         
@@ -2896,7 +3111,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
             roll=0;
         else
             local_baseline_second = global2localPos(KF_variables(roll_receiver).Xhat_t_t([1,o1+1,o2+1]) + KF_variables(irec).Xhat_t_t([1,o1+1,o2+1]), KF_variables(irec).Xhat_t_t([1,o1+1,o2+1]));
-            roll = atan2(local_baseline_second(3),sqrt(local_baseline_second(1)^2 + local_baseline_second(2)^2))./pi*180;
+            roll = atan2(local_baseline_second(3)-local_baseline_main(3),sqrt((local_baseline_second(1)-local_baseline_main(1))^2 + (local_baseline_second(2)-local_baseline_main(2))^2))./pi*180;
         end
         
         
@@ -2905,10 +3120,15 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
         Xhat_t_t(:) = 0;
         Xhat_t_t([1,o1+1,o2+1]) = [yaw pitch roll];
         
-        figure(5);        
-        plot(t,Xhat_t_t([1]),'.r'); 
-        plot(t,Xhat_t_t([o1+1]),'.b');
-        plot(t,Xhat_t_t([o2+1]),'.g');
+        figure(5);    
+        hold on
+        if Xhat_t_t([1])<0
+             Xhat_t_t([1])= Xhat_t_t([1])+360;
+        end
+        fy=plot(t,Xhat_t_t([1]),'.r'); 
+        fp=plot(t,Xhat_t_t([o1+1]),'.b');
+        fr=plot(t,Xhat_t_t([o2+1]),'.g');
+        legend([fy, fp, fr],'yaw','pitch','roll','location','southoutside','Orientation','Horizontal');
        
         
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
@@ -2924,9 +3144,17 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
         [EAST_M, NORTH_M, h_M, utm_zone] = cart2plan(pos_M_KF(1), pos_M_KF(2),pos_M_KF(3));
         
         figure(1);
-        plot(EAST_M-EAST_0,NORTH_M-NORTH_0,'*r');
-        plot(EAST_M+bsl_ENU(1)-EAST_0,NORTH_M+bsl_ENU(2)-NORTH_0,'.b');
-        plot([EAST_M-EAST_0 EAST_M+bsl_ENU(1)-EAST_0],[NORTH_M-NORTH_0 NORTH_M+bsl_ENU(2)-NORTH_0],'-g');
+        hold on
+        fa=plot(EAST_M-EAST_0,NORTH_M-NORTH_0,'.r');
+        fb=plot(EAST_M+bsl_ENU(1)-EAST_0,NORTH_M+bsl_ENU(2)-NORTH_0,'.b');
+        fc=plot([EAST_M-EAST_0 EAST_M+bsl_ENU(1)-EAST_0],[NORTH_M-NORTH_0 NORTH_M+bsl_ENU(2)-NORTH_0],'-g');
+        if roll_receiver
+            KF_variables = manage_KF_variables(KF_variables, roll_receiver, 'restore');
+            bsl_ENU = global2localPos(Xhat_t_t([1,o1+1,o2+1],:)+pos_M_KF, pos_M_KF);
+            fd=plot(EAST_M+bsl_ENU(1)-EAST_0,NORTH_M+bsl_ENU(2)-NORTH_0,'.b');
+            fe=plot([EAST_M-EAST_0 EAST_M+bsl_ENU(1)-EAST_0],[NORTH_M-NORTH_0 NORTH_M+bsl_ENU(2)-NORTH_0],'-g');
+        end
+        
         
 %         if roll_receiver~=0
 %             KF_variables = manage_KF_variables(KF_variables, roll_receiver, 'restore');
@@ -2935,28 +3163,41 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR)
 %             plot([EAST_M-EAST_0 EAST_M+bsl_ENU(1)-EAST_0],[NORTH_M-NORTH_0 NORTH_M+bsl_ENU(2)-NORTH_0],'-g');%             
 %         end
         
-        figure(2);
-        KF_variables = manage_KF_variables(KF_variables, irec, 'restore');
-        plot(t,KF_variables(irec).Xhat_t_t(1)-pos_M_KF_0(1),'.r');
-        plot(t,KF_variables(irec).Xhat_t_t(o1+1)-pos_M_KF_0(2),'.b');
-        plot(t,KF_variables(irec).Xhat_t_t(o2+1)-pos_M_KF_0(3),'.g');
-        pos_M_KF = Xhat_t_t([1,o1+1,o2+1]);
+%         figure(2);
+%         hold on
+%         KF_variables = manage_KF_variables(KF_variables, irec, 'restore');
+%         fa=plot(t,KF_variables(irec).Xhat_t_t(1)-pos_M_KF_0(1),'.r');
+%         fb=plot(t,KF_variables(irec).Xhat_t_t(o1+1)-pos_M_KF_0(2),'.b');
+%         fc=plot(t,KF_variables(irec).Xhat_t_t(o2+1)-pos_M_KF_0(3),'.g');
+%         pos_M_KF = Xhat_t_t([1,o1+1,o2+1]);
            
         
         KF_variables = manage_KF_variables(KF_variables, main_receiver, 'restore');
         bsl_ENU = global2localPos(Xhat_t_t([1,o1+1,o2+1],:)+pos_M_KF, pos_M_KF);
         figure(3);
-        plot(t,bsl_ENU(1),'.r'); 
-        plot(t,bsl_ENU(2),'.b'); 
-        plot(t,bsl_ENU(3),'.g'); 
+        hold on
+        fa=plot(t,bsl_ENU(1),'.r'); 
+        fb=plot(t,bsl_ENU(2),'.b'); 
+        fc=plot(t,bsl_ENU(3),'.g'); 
+        legend([fa, fb, fc],'EAST','NORTH','UP','location','southoutside','Orientation','Horizontal');
         
         figure(6);
-        plot(t,sqrt(bsl_ENU(1)^2+bsl_ENU(2)^2+bsl_ENU(3)^2),'.r');         
+        hold on
+        fa=plot(t,sqrt(bsl_ENU(1)^2+bsl_ENU(2)^2+bsl_ENU(3)^2),'.r');
+        if roll_receiver
+            KF_variables = manage_KF_variables(KF_variables, roll_receiver, 'restore');
+            bsl_ENU_R = global2localPos(Xhat_t_t([1,o1+1,o2+1],:)+pos_M_KF, pos_M_KF);
+            fb=plot(t,sqrt(bsl_ENU_R(1)^2+bsl_ENU_R(2)^2+bsl_ENU_R(3)^2),'.b');
+            fc=plot(t,sqrt((bsl_ENU_R(1)-bsl_ENU(1))^2+(bsl_ENU_R(2)-bsl_ENU(2))^2+(bsl_ENU_R(3)-bsl_ENU(3))^2),'.g');
+            legend([fa, fb, fc],'main receiver','second receiver', 'cross distance','location','southoutside','Orientation','Horizontal');
+        end
         
-        figure(4);
-        plot(t,KF_variables(main_receiver).Xhat_t_t(1),'.r'); 
-        plot(t,KF_variables(main_receiver).Xhat_t_t(o1),'.b'); 
-        plot(t,KF_variables(main_receiver).Xhat_t_t(o2+1),'.g'); 
+%         figure(4);
+%         hold on
+%         fa=plot(t,KF_variables(main_receiver).Xhat_t_t(1),'.r'); 
+%         fb=plot(t,KF_variables(main_receiver).Xhat_t_t(o1),'.b'); 
+%         fc=plot(t,KF_variables(main_receiver).Xhat_t_t(o2+1),'.g'); 
+%         legend([fa, fb, fc],'X','Y','Z','location','southoutside','Orientation','Horizontal');
 %         
         if (mode_user == 1)
             goWB.goTime(t);

@@ -116,7 +116,8 @@ classdef goGUIclass < handle
         idCP_DD = 4;     % Code and phase double difference
         idC_SA_MR = 5;   % Code and phase stand-alone (i.e. undifferenced) for multiple receivers
         idCP_SA_MR = 5;  % Code and phase stand-alone for multiple receivers and local attitude estimation
-        idCP_DD_MR = 6;  % Code and phase double difference for multiple receivers
+        idCP_DD_MR_BS = 6;  % Code and phase stand-alone for multiple receivers and local attitude estimation, with base station
+        idCP_DD_MR = 7;  % Code and phase double difference for multiple receivers
         strTypeLS = {};  % string containing the pop-up menu fields
         strTypeKF = {};  % string containing the pop-up menu fields
         
@@ -278,6 +279,7 @@ classdef goGUIclass < handle
             obj.strTypeKF{obj.idCP_SA} = 'Code and phase undifferenced';
             obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
             obj.strTypeKF{obj.idCP_SA_MR} = 'Code and phase moving baseline attitude estimation';
+            obj.strTypeKF{obj.idCP_DD_MR_BS} = 'Code and phase moving baseline attitude estimation, with base station';
             %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
             
             obj.strLAMBDAMethod{obj.idILS_enum_old} = 'LAMBDA 2.0 - ILS, enumeration';
@@ -1043,7 +1045,13 @@ classdef goGUIclass < handle
             % baseline attitude estimation
             idG.onPP_KF_CP_SA_MR = [idG.onPP_KF id.rBin idG.pAvailableGNSSPhase ...
                                     idG.StdPhase idG.CS idG.pARAA idG.pIntAmb ...
-                                    id.cDoppler];                
+                                    id.cDoppler];  
+                             
+            % On Post Proc => On Kalman Filter => Code and Phase moving
+            % baseline attitude estimation, with base station
+            idG.onPP_KF_CP_DD_MR_BS = [idG.onPP_KF id.rBin idG.pAvailableGNSSPhase ...
+                                    idG.StdPhase idG.CS idG.pARAA idG.pIntAmb ...
+                                    id.cDoppler id.cConstraint id.pMSt id.cMPos];  
             
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin id.cConstraint idG.pAvailableGNSSPhase ...
@@ -1577,6 +1585,8 @@ classdef goGUIclass < handle
                             mode = goGNSS.MODE_PP_KF_CP_DD_MR;
                         case obj.idCP_SA_MR
                             mode = goGNSS.MODE_PP_KF_CP_SA_MR;
+                        case obj.idCP_DD_MR_BS
+                            mode = goGNSS.MODE_PP_KF_CP_DD_MR_BS;
                     end
                 end
             end
@@ -1623,7 +1633,7 @@ classdef goGUIclass < handle
         end
         
         function isMR = isMultiReceiver(obj)
-            isMR = obj.isProcessingType(obj.idC_SA_MR) || obj.isProcessingType(obj.idCP_DD_MR) || obj.isProcessingType(obj.idCP_SA_MR);
+            isMR = obj.isProcessingType(obj.idC_SA_MR) || obj.isProcessingType(obj.idCP_DD_MR) || obj.isProcessingType(obj.idCP_SA_MR) || obj.isProcessingType(obj.idCP_DD_MR_BS);
         end
 
         %   INTERFACE GETTERS - INPUT FILE TYPE
@@ -2026,7 +2036,9 @@ classdef goGUIclass < handle
                             case obj.idCP_DD_MR                                
                                 obj.setElStatus(obj.idGroup.onPP_KF_CP_DD_MR, 1, 0);
                             case obj.idCP_SA_MR
-                                obj.setElStatus(obj.idGroup.onPP_KF_CP_SA_MR, 1, 0);                                
+                                obj.setElStatus(obj.idGroup.onPP_KF_CP_SA_MR, 1, 0);    
+                            case obj.idCP_DD_MR_BS
+                                obj.setElStatus(obj.idGroup.onPP_KF_CP_DD_MR_BS, 1, 0);  
                         end
                     end
                     obj.getFlag(idEl) = true;
