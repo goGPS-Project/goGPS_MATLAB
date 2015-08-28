@@ -2645,6 +2645,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR || mode == goGNSS.MODE_PP_KF_CP_DD_MR
       
     constraint_distance=NaN(size(pr1_R,3),1);
     constraint_dh=NaN(size(pr1_R,3),1);
+    yaw_offset=NaN(size(pr1_R,3),1); % azimuth between north and each antenna  
+    pitch_offset=NaN(size(pr1_R,3),1); % pitch between north-east plane and each antenna  
     sbas_applied_on_master = 0;
 
     sigmaq_vE = sigmaq_vE_baseline;
@@ -2654,8 +2656,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR || mode == goGNSS.MODE_PP_KF_CP_DD_MR
 
     for ff = 1 : size(pr1_R,3)
         if ff ~= irec % ff receiver is not local master            
-            constraint_distance(ff) = sqrt(sum((multi_antenna_rf(:,ff)-multi_antenna_rf(:,1)).^2)); 
-            constraint_dh(ff) = multi_antenna_rf(3,ff)-multi_antenna_rf(3,1);
+            constraint_distance(ff) = sqrt(sum((multi_antenna_rf(:,ff)-multi_antenna_rf(:,irec)).^2)); 
+            constraint_dh(ff) = multi_antenna_rf(3,ff)-multi_antenna_rf(3,irec);
+            yaw_offset(ff)=atan2(multi_antenna_rf(1,ff)-multi_antenna_rf(1,irec),multi_antenna_rf(2,ff)-multi_antenna_rf(2,irec))/pi*180;
+            pitch_offset(ff)=atan2(constraint_dh(ff),sqrt((multi_antenna_rf(1,ff)-multi_antenna_rf(1,irec))^2 + (multi_antenna_rf(2,ff)-multi_antenna_rf(2,irec))^2 +(multi_antenna_rf(3,ff)-multi_antenna_rf(3,irec))^2))/pi*180;
 %             constraint_distance(ff)=-1;
             % apply SBAS corrections on code
             if ~isempty(sbas)
@@ -2744,8 +2748,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR || mode == goGNSS.MODE_PP_KF_CP_DD_MR
     % moving position
 
     local_baseline_main = global2localPos(KF_variables(main_receiver).Xhat_t_t([1,o1+1,o2+1])+KF_variables(irec).Xhat_t_t([1,o1+1,o2+1]), KF_variables(irec).Xhat_t_t([1,o1+1,o2+1]));
-    yaw = atan2(local_baseline_main(1),local_baseline_main(2))./pi*180;
-    pitch = atan2(local_baseline_main(3),sqrt(local_baseline_main(1)^2 + local_baseline_main(2)^2))./pi*180;
+    yaw = (atan2(local_baseline_main(1),local_baseline_main(2)))./pi*180 -yaw_offset(main_receiver);
+    pitch = (atan2(local_baseline_main(3),sqrt(local_baseline_main(1)^2 + local_baseline_main(2)^2)))./pi*180 -pitch_offset(main_receiver);
     
     % roll from second rover
     if ~roll_receiver
@@ -3103,8 +3107,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR || mode == goGNSS.MODE_PP_KF_CP_DD_MR
         % convert baselines in a local reference frame centered in the master
         % moving position
         local_baseline_main = global2localPos(KF_variables(main_receiver).Xhat_t_t([1,o1+1,o2+1])+KF_variables(irec).Xhat_t_t([1,o1+1,o2+1]), KF_variables(irec).Xhat_t_t([1,o1+1,o2+1]));
-        yaw = atan2(local_baseline_main(1),local_baseline_main(2))./pi*180;
-        pitch = atan2(local_baseline_main(3),sqrt(local_baseline_main(1)^2 + local_baseline_main(2)^2))./pi*180;
+        yaw = (atan2(local_baseline_main(1),local_baseline_main(2)))./pi*180 -yaw_offset(main_receiver);
+        pitch = (atan2(local_baseline_main(3),sqrt(local_baseline_main(1)^2 + local_baseline_main(2)^2)))./pi*180 -pitch_offset(main_receiver);
         
         % roll from second rover
         if ~roll_receiver
@@ -3151,7 +3155,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA_MR || mode == goGNSS.MODE_PP_KF_CP_DD_MR
         if roll_receiver
             KF_variables = manage_KF_variables(KF_variables, roll_receiver, 'restore');
             bsl_ENU = global2localPos(Xhat_t_t([1,o1+1,o2+1],:)+pos_M_KF, pos_M_KF);
-            fd=plot(EAST_M+bsl_ENU(1)-EAST_0,NORTH_M+bsl_ENU(2)-NORTH_0,'.b');
+            fd=plot(EAST_M+bsl_ENU(1)-EAST_0,NORTH_M+bsl_ENU(2)-NORTH_0,'.c');
             fe=plot([EAST_M-EAST_0 EAST_M+bsl_ENU(1)-EAST_0],[NORTH_M-NORTH_0 NORTH_M+bsl_ENU(2)-NORTH_0],'-g');
         end
         

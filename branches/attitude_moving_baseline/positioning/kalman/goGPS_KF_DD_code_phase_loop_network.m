@@ -772,17 +772,17 @@ if (nsat >= min_nsat)
         end
         
         %pseudo-observation on the height difference
-        if exist('dh','var')
-            if t<200
-                H_dh = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
-                y0_dh = dh + hM - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
-                Cnn(end+1,end+1)=0.05^2;
-                %Cnn(end+1,end+1)=min(diag(Cnn))*100000;
-                H = [H; H_dh];
-                y0 = [y0; y0_dh];
-            end
-        end
-        
+%         if exist('dh','var')
+%             if t<200
+%                 H_dh = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
+%                 y0_dh = dh + hM - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
+%                 Cnn(end+1,end+1)=0.05^2;
+%                 %Cnn(end+1,end+1)=min(diag(Cnn))*100000;
+%                 H = [H; H_dh];
+%                 y0 = [y0; y0_dh];
+%             end
+%         end
+%         
         %------------------------------------------------------------------------------------
         % DILUTION OF PRECISION
         %------------------------------------------------------------------------------------
