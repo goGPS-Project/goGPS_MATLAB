@@ -54,7 +54,7 @@ else
     u = -b/quarter_sec;
 end
 
-dt_S_SP3  = [];
+dt_S_SP3  = NaN;
 
 if (isempty(find(SP3_c >= 0.999, 1)))
 

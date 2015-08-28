@@ -1,7 +1,7 @@
-function [file_dcb] = download_dcb(gps_week, gps_time)
+function [file_dcb, compressed] = download_dcb(gps_week, gps_time)
 
 % SYNTAX:
-%   [file_dcb] = download_dcb(gps_week, gps_time);
+%   [file_dcb, compressed] = download_dcb(gps_week, gps_time);
 %
 % INPUT:
 %   gps_week = starting and ending GPS week [vector]
@@ -9,6 +9,8 @@ function [file_dcb] = download_dcb(gps_week, gps_time)
 %
 % OUTPUT:
 %   file_dcb = donwloaded .DCB file names 
+%   compressed = flag to let the calling function know whether the
+%                downloaded files are still compressed
 %
 % DESCRIPTION:
 %   Download of .DCB files from the AIUB FTP server.
@@ -17,9 +19,6 @@ function [file_dcb] = download_dcb(gps_week, gps_time)
 %                           goGPS v0.4.2 beta
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
-%
-% Code contributed by Giuliano Sironi, 2011
-% Adapted by Eugenio Realini, 2013
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -37,6 +36,7 @@ function [file_dcb] = download_dcb(gps_week, gps_time)
 %----------------------------------------------------------------------------------------------
 
 file_dcb = {};
+compressed = 0;
 
 %AIUB FTP server IP address
 aiub_ip = '130.92.9.78'; % ftp.unibe.ch
@@ -98,7 +98,7 @@ for y = 1 : length(year_orig)
         m = m + 1;
         
         %target file
-        s2 = ['P1C1' num2str(two_digit_year(year(m)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
+        s2 = ['P1P2' num2str(two_digit_year(year(m)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
         mget(ftp_server,s2,down_dir);
         if (isunix())
             system(['uncompress -f ' down_dir '/' s2]);
@@ -118,6 +118,7 @@ end
 
 if (~isunix())
     fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
+    compressed = 1;
 end
 
 close(ftp_server);
