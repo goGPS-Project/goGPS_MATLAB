@@ -702,16 +702,24 @@ if (nsat >= min_nsat)
         
         sat_np = sat(sat~=pivot);
         sat_pr_np = sat_pr(sat_pr~=pivot);
-        
-        y0_residuals=y0;
-        H1_residuals=H;
+
         index_residuals_outlier=[sat_pr_np;nSatTot+sat_np];  %[code;phase]
-                
-        y0_noamb=y0;
+        
+        if (h_dtm ~= tile_header.nodata)
+            y0_residuals=y0(1:end-1);
+            H1_residuals=H(1:end-1,:);
+            y0_noamb=y0(1:end-1);
+            H1=H(1:end-1,[1 o1+1 o2+1]);
+        else
+            y0_residuals=y0;
+            H1_residuals=H;
+            y0_noamb=y0;
+            H1=H(:,[1 o1+1 o2+1]);
+        end
+
         if (~isempty(sat_np))
             y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+lambda(sat_np,1).*X_t1_t(o3+sat_np); %add predicted ambiguity to y0
         end
-        H1=H(:,[1 o1+1 o2+1]);
 
         % decomment to use only phase
 %         y0_noamb=y0_noamb(length(sat_pr_np)+1:end);

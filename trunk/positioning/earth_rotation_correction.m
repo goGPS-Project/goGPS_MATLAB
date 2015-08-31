@@ -5,7 +5,7 @@ function [Xsat_rot] = earth_rotation_correction(traveltime, Xsat, Omegae_dot)
 %
 % INPUT:
 %   traveltime = signal travel time
-%   Xsat = satellite position
+%   Xsat = satellite position at transmission time (time_tx) in ECEF (X,Y,Z)
 %   Omegae_dot = angular velocity of the Earth rotation [rad/s]
 %
 % OUTPUT:
