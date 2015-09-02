@@ -67,11 +67,11 @@ for i = 1 : nsat
         no_eph(i) = 1;
         continue
     end
-
+    
     %compute signal transmission time
     [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3, sbas, err_tropo(i), err_iono(i), dtR);
 
-    if (isempty(time_tx(i,1)))
+    if (isempty(time_tx(i,1)) || isnan(time_tx(i,1)))
         no_eph(i) = 1;
         continue
     end
@@ -84,13 +84,19 @@ for i = 1 : nsat
         %detect satellite constellation
         sys = Eph(31,k);
     else
+        
         %interpolate SP3 coordinates at transmission time
         [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
-
+        
         %relativistic correction term
         dtrel = relativistic_error_correction(time_tx(i,1), Eph, XS_tx(i,:), VS_tx(i,:));
         time_tx(i,1) = time_tx(i,1) - dtrel;
         dtS(i,1) = dtS(i,1) + dtrel;
+
+        %group delay correction term
+        tgd = 1/(1-((goGNSS.F1/goGNSS.F2)^2))*SP3.DCB.P1P2.value(sat(i),1)*1e-9;
+        time_tx(i,1) = time_tx(i,1) + tgd;
+        dtS(i,1) = dtS(i,1) - tgd;
         
         %second iteration for taking into account the relativistic effect
         [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));

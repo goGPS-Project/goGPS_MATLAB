@@ -38,6 +38,9 @@ function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
 
 SP3_time  = SP3.time;
 SP3_coord = SP3.coord(:, sat, :);
+antPCO    = SP3.antPCO(:, :, sat)';
+t_sun     = SP3.t_sun;
+X_sun     = SP3.X_sun;
 
 %degree of interpolation polynomial (Lagrange)
 n = 10;
@@ -83,9 +86,22 @@ LI_SP3_X = LagrangeInter(x, SP3_X, u);
 LI_SP3_Y = LagrangeInter(x, SP3_Y, u);
 LI_SP3_Z = LagrangeInter(x, SP3_Z, u);
 
-pos_S(1,1) = LI_SP3_X(2);
-pos_S(2,1) = LI_SP3_Y(2);
-pos_S(3,1) = LI_SP3_Z(2);
+X_sat = [LI_SP3_X(2); LI_SP3_Y(2); LI_SP3_Z(2)];
+
+%apply satellite antenna phase center correction
+[~, q] = min(abs(t_sun - time));
+X_sun = X_sun(:,q);
+e = (X_sun-X_sat)/norm(X_sun-X_sat);
+k = -X_sat/norm(X_sat);
+j = cross(k,e);
+i = cross(j,k);
+j = j/norm(j);
+i = i/norm(i);
+X_sat = X_sat + [i j k]*antPCO;
+
+pos_S(1,1) = X_sat(1);
+pos_S(2,1) = X_sat(2);
+pos_S(3,1) = X_sat(3);
 
 pos_S_v(1,1:2) = [LI_SP3_X(1) LI_SP3_X(3)];
 pos_S_v(2,1:2) = [LI_SP3_Y(1) LI_SP3_Y(3)];
