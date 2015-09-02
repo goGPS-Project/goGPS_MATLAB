@@ -606,11 +606,12 @@ if goGNSS.isPP(mode) % post-processing
                 else
                     goWB = [];
                 end
-%                 
-%                 %apply P1C1 DCBs if needed
-%                 if (codeC1_R)
-%                     pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R,2),1))*1e-9*goGNSS.V_LIGHT;
-%                 end
+                
+                %apply P1C1 DCBs if needed
+                if (codeC1_R)
+                    non_zero_idx = pr1_R(:,:,f) ~= 0;
+                    pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
+                end
 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
