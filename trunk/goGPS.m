@@ -608,7 +608,7 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %apply P1C1 DCBs if needed
-                if (codeC1_R)
+                if (flag_SP3 && codeC1_R)
                     non_zero_idx = pr1_R(:,:,f) ~= 0;
                     pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
                 end
@@ -661,10 +661,7 @@ if goGNSS.isPP(mode) % post-processing
                 fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
                 return
             end
-            
-            %read antenna phase center offset
-            antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
-            
+
             pr1_R = pr1_RM(:,:,1:end-1); pr1_M = pr1_RM(:,:,end);
             ph1_R = ph1_RM(:,:,1:end-1); ph1_M = ph1_RM(:,:,end);
             pr2_R = pr2_RM(:,:,1:end-1); pr2_M = pr2_RM(:,:,end);
@@ -679,6 +676,13 @@ if goGNSS.isPP(mode) % post-processing
             pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
             codeC1_R = codeC1_RM(:,1,1:end-1); codeC1_M = codeC1_RM(:,1,end);
+            
+            %read receiver antenna phase center offset
+            antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
+            
+            %read satellite antenna phase center offset
+            antmod_S = sat_antenna_ID(constellations);
+            antenna_PCV_S = read_antenna_PCV(filename_pco, antmod_S, date_R);
                
             %get antenna PCV offset
             if (~isempty(antenna_PCV))
@@ -792,6 +796,52 @@ if goGNSS.isPP(mode) % post-processing
                 fprintf('Reading SP3 file...\n');
                 
                 SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
+                
+                %store satellite antenna PCO/PCV
+                SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
+                for sat = 1 : size(antenna_PCV_S,2)
+                    if (antenna_PCV_S(sat).n_frequency ~= 0)
+                        SP3.antPCO(:,:,sat) = antenna_PCV_S(sat).offset(:,:,1);
+                    else
+                        SP3.avail(sat) = 0;
+                    end
+                end
+                
+                %compute sun and moon position
+                fprintf('Computing Sun and Moon position...');
+                [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
+                fprintf(' done\n');
+                
+                %store the position of the Sun
+                SP3.t_sun  = time_GPS;
+                SP3.X_sun  = X_sun;
+                
+                %----------------------------------------------------------------------------------------------
+                % LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
+                %----------------------------------------------------------------------------------------------
+                
+                %NOTE: if not using SP3 ephemeris or if DCB files are not available, the
+                %      'SP3.DCB' structure will be initialized to zero/empty arrays and it will not
+                %      have any effect on the positioning
+                
+                %try first to read already available DCB files
+                DCB = load_dcb('../data/DCB', week_R, time_R, and(codeC1_R,codeC1_M), constellations);
+                
+                %if DCB files are not available or not sufficient, try to download them
+                if (isempty(DCB))
+                    
+                    %download
+                    [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                    
+                    if (compressed)
+                        return
+                    end
+                    
+                    %try again to read DCB files
+                    DCB = load_dcb('../data/DCB', week_R, time_R, and(codeC1_R,codeC1_M), constellations);
+                end
+                
+                SP3.DCB = DCB;
             end
 
             %retrieve multi-constellation wavelengths
@@ -891,6 +941,13 @@ if goGNSS.isPP(mode) % post-processing
                         flag_XR = 0;
                     end
                 end
+                
+                %apply P1C1 DCBs if needed
+                if (flag_SP3 && codeC1_R)
+                    non_zero_idx = pr1_R(:,:,f) ~= 0;
+                    pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
+                end
+                
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
 
                 if report.opt.write == 1
@@ -928,6 +985,12 @@ if goGNSS.isPP(mode) % post-processing
             end
              
             fprintf('%s',['Pre-processing master observations (file ' filename_obs{end} ')...']); fprintf('\n');
+            
+            %apply P1C1 DCBs if needed
+            if (flag_SP3 && codeC1_M)
+                non_zero_idx = pr1_M ~= 0;
+                pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
+            end
             
             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, nSatTot, goWB, 2, sbas);
             if report.opt.write == 1
