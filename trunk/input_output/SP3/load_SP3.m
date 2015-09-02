@@ -1,7 +1,7 @@
 function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 
 % SYNTAX:
-%   [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg);
+%   [SP3] = load_SP3(filename_SP3, time, week, antPCO_S, X_sun, constellations, wait_dlg);
 %
 % INPUT:
 %   filename_SP3 = SP3 file
@@ -78,17 +78,15 @@ end
 filename_SP3 = filename_SP3(1:pos(end)+3);
 
 %define time window
-time_start = time(1);
-time_end   = time(end);
-week_start = week(1);
-week_end   = week(end);
+[week_start, time_start] = time2weektow(time(1));
+[week_end, time_end] = time2weektow(time(end));
 
 %day-of-week
-[~, ~, dow_start] = gps2date(week_start, weektime2tow(week_start, time_start));
-[~, ~, dow_end] = gps2date(week_end, weektime2tow(week_end, time_end));
+[~, ~, dow_start] = gps2date(week_start, time_start);
+[~, ~, dow_end] = gps2date(week_end, time_end);
 
 %add a buffer before and after
-if (time_start - weektow2time(week_start, dow_start*86400, 'G') < n/2*quarter_sec)
+if (time(1) - weektow2time(week_start, dow_start*86400, 'G') <= n/2*quarter_sec)
     if (dow_start == 0)
         week_start = week_start - 1;
         dow_start = 6;
@@ -98,7 +96,7 @@ if (time_start - weektow2time(week_start, dow_start*86400, 'G') < n/2*quarter_se
 else
 end
 
-if (time_end - weektow2time(week_end, dow_end*86400, 'G') > 86400-n/2*quarter_sec)
+if (time(end) - weektow2time(week_end, dow_end*86400, 'G') >= 86400-n/2*quarter_sec)
     if (dow_end == 6)
         week_end = week_end + 1;
         dow_end = 0;
@@ -163,6 +161,8 @@ for p = 1 : size(week_dow,1)
 
                 %computation of the GPS time in weeks and seconds of week
                 [week, time] = date2gps([year, month, day, hour, minute, second]);
+                
+                %convert GPS time-of-week to continuous time
                 SP3.time(k,1) = weektow2time(week, time, 'G');
                 
             elseif (strcmp(lin(1),'P'))
@@ -194,7 +194,7 @@ for p = 1 : size(week_dow,1)
                     end
                     
                     index = index + PRN - 1;
-                    
+
                     SP3.coord(1, index, k) = X*1e3;
                     SP3.coord(2, index, k) = Y*1e3;
                     SP3.coord(3, index, k) = Z*1e3;

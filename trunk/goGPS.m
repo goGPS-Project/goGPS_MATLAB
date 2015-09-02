@@ -398,7 +398,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %read observation RINEX file(s)
             [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
-             time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R] = ...
+             time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R] = ...
              load_RINEX_obs(filename_obs, constellations);
             
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
@@ -406,8 +406,8 @@ if goGNSS.isPP(mode) % post-processing
                 return
             end
          
-            %read antenna phase center offset (NOTE: only L1 offset for now)
-            antenna_PCV= read_antenna_PCV(filename_pco, antmod_R);
+            %read receiver antenna phase center offset (NOTE: only L1 offset for now)
+            antenna_PCV = read_antenna_PCV(filename_pco, antmod_R);
                        
             if (~isempty(antenna_PCV))  % has to be fixed to manage MR
                 %ROVER
@@ -418,6 +418,10 @@ if goGNSS.isPP(mode) % post-processing
                     fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
                 end
             end
+            
+            %read satellite antenna phase center offset (NOTE: reading only L1 offset for now)
+            antmod_S = sat_antenna_ID(constellations);
+            antenna_PCV_S = read_antenna_PCV(filename_pco, antmod_S, date_R);
             
             % write report file    %%-> must be extented in MR case
             if report.opt.write == 1
@@ -453,13 +457,6 @@ if goGNSS.isPP(mode) % post-processing
                 end
             end
             
-            if (flag_SP3)
-                %display message
-                fprintf('Reading SP3 file...\n');
-                
-                SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
-            end
-            
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
@@ -469,6 +466,62 @@ if goGNSS.isPP(mode) % post-processing
             bad_epochs_R = NaN(length(time_GPS), 1, size(time_R,3));
             var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
             var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
+
+            if (flag_SP3)
+                %display message
+                fprintf('Reading SP3 file...\n');
+                
+                %----------------------------------------------------------------------------------------------
+                % LOAD SP3 DATA
+                %----------------------------------------------------------------------------------------------
+                SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
+                
+                %store satellite antenna PCO/PCV
+                SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
+                for sat = 1 : size(antenna_PCV_S,2)
+                    if (antenna_PCV_S(sat).n_frequency ~= 0)
+                        SP3.antPCO(:,:,sat) = antenna_PCV_S(sat).offset(:,:,1);
+                    else
+                        SP3.avail(sat) = 0;
+                    end
+                end
+                
+                %compute sun and moon position
+                fprintf('Computing Sun and Moon position...');
+                [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
+                fprintf(' done\n');
+                
+                %store the position of the Sun
+                SP3.t_sun  = time_GPS;
+                SP3.X_sun  = X_sun;
+                
+                %----------------------------------------------------------------------------------------------
+                % LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
+                %----------------------------------------------------------------------------------------------
+                
+                %NOTE: if not using SP3 ephemeris or if DCB files are not available, the
+                %      'SP3.DCB' structure will be initialized to zero/empty arrays and it will not
+                %      have any effect on the positioning
+                
+                %try first to read already available DCB files
+                DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
+                
+                %if DCB files are not available or not sufficient, try to download them
+                if (isempty(DCB))
+                    
+                    %download
+                    [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                    
+                    if (compressed)
+                        return
+                    end
+                    
+                    %try again to read DCB files
+                    DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
+                end
+                
+                SP3.DCB = DCB;
+            end
             
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 flag_XR = 2;
@@ -553,6 +606,11 @@ if goGNSS.isPP(mode) % post-processing
                 else
                     goWB = [];
                 end
+%                 
+%                 %apply P1C1 DCBs if needed
+%                 if (codeC1_R)
+%                     pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R,2),1))*1e-9*goGNSS.V_LIGHT;
+%                 end
 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
@@ -595,7 +653,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %read observation RINEX file(s)
             [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
-             time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM] = ...
+             time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
             
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
@@ -619,6 +677,7 @@ if goGNSS.isPP(mode) % post-processing
             date_R = date_RM(:,:,1:end-1); date_M = date_RM(:,:,end);
             pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
+            codeC1_R = codeC1_RM(:,1,1:end-1); codeC1_M = codeC1_RM(:,1,end);
                
             %get antenna PCV offset
             if (~isempty(antenna_PCV))
@@ -891,9 +950,7 @@ if goGNSS.isPP(mode) % post-processing
             if (mode_user == 1)
                 goWB.close();
             end
-            
         end
-             
 
 %         %read surveying mode
 %         if (flag_stopGOstop == 0)
@@ -1180,7 +1237,7 @@ if goGNSS.isPP(mode) % post-processing
 
     %if absolute post-processing positioning
     if goGNSS.isSA(mode) % absolute positioning
-
+        
         %if SBAS corrections are requested
         if (flag_SBAS)
             

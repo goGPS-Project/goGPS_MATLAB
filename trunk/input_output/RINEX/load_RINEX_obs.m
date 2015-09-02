@@ -1,10 +1,10 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-          time_ref, time, week, date, pos, interval, antoff, antmod] = ...
+          time_ref, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
           load_RINEX_obs(filename, constellations, wait_dlg)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-%    time_ref, time, week, date, pos, interval, antoff, antmod] = ...
+%    time_ref, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
 %    load_RINEX_obs(filename, constellations, wait_dlg);
 %
 % INPUT:
@@ -29,6 +29,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   interval = observation time interval [s]
 %   antoff = antenna offset [m]
 %   antmod = antenna model [string]
+%   codeC1 = boolean variable to notify if the C1 code is used instead of P1
 %
 % DESCRIPTION:
 %   Parses RINEX observation files.
@@ -95,6 +96,7 @@ pos = zeros(3,1,nFiles);
 interval = zeros(1,1,nFiles);
 antoff = zeros(3,1,nFiles);
 antmod = cell(1,1,nFiles);
+codeC1 = zeros(1,1,nFiles);
 
 for f = 1 : nFiles
 
@@ -162,6 +164,7 @@ for f = 1 : nFiles
             pr1(:,k,f) = obs.P1;
         else
             pr1(:,k,f) = obs.C1;
+            codeC1(:,:,f) = 1;
         end
         pr2(:,k,f) = obs.P2;
         ph1(:,k,f) = obs.L1;
