@@ -369,17 +369,26 @@ classdef goGNSS < handle
             constellations.nEnabledSat = nSatTot;
         end
         
-        function [lambda] = getGNSSWavelengths(Eph, nSatTot)
+        function [lambda] = getGNSSWavelengths(Eph, SP3, nSatTot)
             lambda = zeros(nSatTot,2);
             for s = 1 : nSatTot
-                pos = find(Eph(30,:) == s,1);
+                if (isempty(SP3))
+                    pos = find(Eph(30,:) == s,1);
+                else
+                    pos = find(SP3.avail == s,1);
+                end
                 if (~isempty(pos))
-                    switch char(Eph(31,pos))
+                    if (isempty(SP3))
+                        sys = char(Eph(31,pos));
+                    else
+                        sys = SP3.sys(pos);
+                    end
+                    switch sys
                         case 'G'
                             lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GPS, 1);
                             lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GPS, 2);
                         case 'R'
-                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 1, Eph(15,pos));
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 1, Eph(15,pos)); % GLONASS frequency number must be managed for SP3
                             lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 2, Eph(15,pos));
                         case 'E'
                             lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GALILEO, 1);
@@ -391,7 +400,7 @@ classdef goGNSS < handle
                             lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_QZSS, 1);
                             lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_QZSS, 2);
                         otherwise
-                            fprintf('Something went wrong in goGNSS.getGNSSWavelengths()\nUnrecongized Satellite system.\n');
+                            fprintf('Something went wrong in goGNSS.getGNSSWavelengths()\nUnrecognized Satellite system.\n');
                     end
                 end
             end

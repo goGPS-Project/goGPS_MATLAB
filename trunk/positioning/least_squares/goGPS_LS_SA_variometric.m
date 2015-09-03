@@ -108,6 +108,13 @@ end
 %end
 sat_pr = intersect(sat_pr_t0,sat_pr_t1);
 sat = intersect(sat_t0,sat_t1);
+if (isempty(SP3_t0))
+    eph_avail = Eph_t0(30,:);
+else
+    eph_avail = SP3_t0.avail;
+end
+sat_pr = sat_pr(ismember(sat_pr, eph_avail));
+sat = sat(ismember(sat, eph_avail));
 % sat_pr=intersect(sat_pr,sat);
 
 % if length(sat_t0)<length(sat_t1)

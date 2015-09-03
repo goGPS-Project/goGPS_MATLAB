@@ -499,7 +499,7 @@ if (~isempty(data_rover_all))
         pos_R = zeros(3,1);
         
         %retrieve multi-constellation wavelengths
-        lambda = goGNSS.getGNSSWavelengths(Eph_R, size(pr1_R,1));
+        lambda = goGNSS.getGNSSWavelengths(Eph_R, [], size(pr1_R,1));
         
         %if ephemerides are available
         if (~isempty(find(Eph_R(1,:,:) ~= 0, 1)))

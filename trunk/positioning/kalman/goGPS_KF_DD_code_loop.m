@@ -111,7 +111,12 @@ else
         sat = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
     end
 end
-sat = sat(ismember(sat, Eph(30,:)));
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+else
+    eph_avail = SP3.avail;
+end
+sat = sat(ismember(sat, eph_avail));
 
 %previous satellite configuration
 sat_old = find(conf_sat == 1);

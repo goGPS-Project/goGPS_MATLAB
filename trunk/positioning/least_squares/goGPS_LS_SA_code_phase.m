@@ -87,8 +87,13 @@ else
         sat    = find( (pr2 ~= 0) & (ph2 ~= 0) );
     end
 end
-sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
-sat = sat(ismember(sat, Eph(30,:)));
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+else
+    eph_avail = SP3.avail;
+end
+sat_pr = sat_pr(ismember(sat_pr, eph_avail));
+sat = sat(ismember(sat, eph_avail));
 
 %zero vector useful in matrix definitions
 Z_om_1 = zeros(o1-1,1);
