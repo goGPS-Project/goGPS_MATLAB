@@ -458,7 +458,7 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             %retrieve multi-constellation wavelengths
-            lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+            lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
             bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
@@ -845,7 +845,7 @@ if goGNSS.isPP(mode) % post-processing
             end
 
             %retrieve multi-constellation wavelengths
-            lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+            lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
             
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
@@ -1173,7 +1173,7 @@ if goGNSS.isPP(mode) % post-processing
             pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootIN);
         
         %retrieve multi-constellation wavelengths
-        lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+        lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
         
         antenna_PCV = [];
 

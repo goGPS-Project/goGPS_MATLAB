@@ -70,12 +70,12 @@ if (phase == 1)
 else
     sat = find(pr2 ~= 0);
 end
-% if (isempty(SP3))
-%     eph_avail = Eph(30,:);
-% else
-%     eph_avail = SP3.avail;
-% end
-% sat = sat(ismember(sat, eph_avail));
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+else
+    eph_avail = SP3.avail;
+end
+sat = sat(ismember(sat, eph_avail));
 
 %--------------------------------------------------------------------------------------------
 % SBAS FAST CORRECTIONS

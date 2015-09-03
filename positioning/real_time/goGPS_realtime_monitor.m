@@ -366,7 +366,7 @@ while ((length(satObs) < min_nsat_LS | ~ismember(satObs,satEph)))
 end
 
 %retrieve multi-constellation wavelengths
-lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+lambda = goGNSS.getGNSSWavelengths(Eph, [], nSatTot);
 
 %initial positioning
 pos_R = init_positioning(time_GPS, pr_R(satObs,1), zeros(length(satObs),1), Eph, [], iono, [], [], [], [], satObs, [], lambda(satObs,:), 10, 0, 1, 0, 0);
@@ -994,7 +994,7 @@ while flag
         satObs = find(pr_R(:,i) ~= 0);
 
         %retrieve multi-constellation wavelengths
-        lambda = goGNSS.getGNSSWavelengths(Eph, nSatTot);
+        lambda = goGNSS.getGNSSWavelengths(Eph, [], nSatTot);
 
         %position update
         if length(satObs) >= min_nsat_LS

@@ -81,7 +81,12 @@ else
         sat_pr = find( (prod(single(pr2_R ~= 0),2)) );
     end
 end
-sat_pr = sat_pr(ismember(sat_pr, Eph(30,:)));
+if (isempty(SP3))
+    eph_avail = Eph(30,:);
+else
+    eph_avail = SP3.avail;
+end
+sat_pr = sat_pr(ismember(sat_pr, eph_avail));
 
 %--------------------------------------------------------------------------------------------
 % SBAS FAST CORRECTIONS
