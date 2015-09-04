@@ -457,16 +457,6 @@ if goGNSS.isPP(mode) % post-processing
                 end
             end
             
-            %retrieve multi-constellation wavelengths
-            lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
-            dtR          = zeros(length(time_GPS), 1, size(time_R,3));
-            dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
-            bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
-            status_obs_R = zeros(nSatTot, length(time_GPS), size(time_R,3));
-            bad_epochs_R = NaN(length(time_GPS), 1, size(time_R,3));
-            var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
-            var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
-
             if (flag_SP3)
                 %display message
                 fprintf('Reading SP3 file...\n');
@@ -522,6 +512,16 @@ if goGNSS.isPP(mode) % post-processing
                 
                 SP3.DCB = DCB;
             end
+            
+            %retrieve multi-constellation wavelengths
+            lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
+            dtR          = zeros(length(time_GPS), 1, size(time_R,3));
+            dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
+            bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
+            status_obs_R = zeros(nSatTot, length(time_GPS), size(time_R,3));
+            bad_epochs_R = NaN(length(time_GPS), 1, size(time_R,3));
+            var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
+            var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
             
             if (exist('pos_R_crd','var') && any(pos_R_crd))
                 flag_XR = 2;
