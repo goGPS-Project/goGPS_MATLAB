@@ -308,6 +308,7 @@ if (nsat >= nsat_required)
                     err_iono=err_iono(index);
                     sys  = sys(index);
                     ionoFactor = ionoFactor(index,:);
+                    index_obs = index_obs(index);
                     nsat = size(pseudorange,1);
                     if (flag_XS == 1)
                         XS0  = XS0(index,:);
@@ -358,6 +359,7 @@ if (nsat >= nsat_required)
                     err_iono=err_iono(index);
                     sys  = sys(index);
                     ionoFactor = ionoFactor(index,:);
+                    index_obs = index_obs(index);
                     nsat = size(pseudorange,1);
                     if (flag_XS == 1)
                         XS0  = XS0(index,:);
