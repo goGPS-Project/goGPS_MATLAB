@@ -27,19 +27,13 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %---------------------------------------------------------------------------------------------
 
-% store current breakpoints before doing clear all
-myBreakpoints=dbstatus;
-save('myBreakpoints.mat', 'myBreakpoints');
-
-% clear all the variables in the workspace
+% clear all variables
+% NOTE: using only 'clearvars' does not clear global variables, while using
+% 'clear all' removes breakpoints
 if (~exist('is_batch','var'))
-    clear all; %#ok<CLSCR>
-    clearvars -global goIni;
+    clearvars -global;
+    clearvars;
 end
-
-%NOTE: using only clearvars causes crashes, e.g. when launching two
-%constrained positioning processes in a row (not clear why...)
-% clearvars
 
 % if the plotting gets slower than usual, there might be problems with the
 % Java garbage collector. In case, you can try to use the following
@@ -67,12 +61,6 @@ warning off; %#ok<WNOFF>
 
 % include all subdirectories
 addpath(genpath(pwd));
-
-% restoring breakpoints from before doing clear all
-load('myBreakpoints.mat');
-dbstop(myBreakpoints);
-clear myBreakpoints;
-if (exist('myBreakpoints.mat','file')); delete('myBreakpoints.mat'); end
 
 %----------------------------------------------------------------------------------------------
 % INTERFACE TYPE DEFINITION
