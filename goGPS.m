@@ -3519,10 +3519,6 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && ~exist('is_batch','var
     fprintf('Writing NMEA file...\n');
     %file saving
     fid_nmea = fopen([filerootOUT '_NMEA.txt'], 'wt');
-    %date formatting
-    time_NMEA = weektime2tow(week_R(:,1,1), time_GPS);
-    date_NMEA = gps2date(week_R(:,1,1), time_NMEA);
-    date_NMEA(:,1) = two_digit_year(date_NMEA(:,1));
 
     for i = 1 : nObs
 
@@ -3536,7 +3532,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && ~exist('is_batch','var
         %NMEA string generation
         GGAstring = NMEA_GGA_gen(pos_KAL(:,i), nsat, time_GPS(i), HDOP(i), mode);
         if (pivot(i) ~= 0)
-            RMCstring = NMEA_RMC_gen(pos_KAL(:,i), date_NMEA(i,:));
+            RMCstring = NMEA_RMC_gen(pos_KAL(:,i), time_GPS(i));
             GSVstring = NMEA_GSV_gen(vsat, elR(vsat,i), azR(vsat,i), snr_R(vsat,i), constellations);
             GSAstring = NMEA_GSA_gen(sat, PDOP(i), HDOP(i), VDOP(i), 'M', '3');
             if (mode_vinc == 0) && ((mode == goGNSS.MODE_PP_KF_C_SA) || (mode == goGNSS.MODE_PP_KF_CP_SA) || (mode == goGNSS.MODE_PP_KF_C_DD) || (mode == goGNSS.MODE_PP_KF_CP_DD) || (mode == goGNSS.MODE_RT_NAV))

@@ -1,11 +1,11 @@
-function nmeastring = NMEA_RMC_gen(pos_R, date)
+function nmeastring = NMEA_RMC_gen(pos_R, time)
 
 % SYNTAX:
-%   nmeastring = NMEA_RMC_gen(pos_R, date);
+%   nmeastring = NMEA_RMC_gen(pos_R, time);
 %
 % INPUT:
 %   pos_R = estimated ROVER position (X,Y,Z)
-%   date = date (yy mm dd hh mm ss)
+%   time = GPS time of measurements
 %
 % OUTPUT:
 %   nmeastring = $GPRMC sentence (NMEA)
@@ -32,6 +32,16 @@ function nmeastring = NMEA_RMC_gen(pos_R, date)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+%date
+if (nargin > 1)
+    [week, sow] = time2weektow(time);
+    date = datevec(gps2utc(datenum(gps2date(week, sow))));
+    %date = datevec((time / (3600*24)) - fix(time / (3600*24)));
+else
+    %get current date
+    date = clock;
+end
 
 %approximate coordinates X Y Z
 X = pos_R(1);
