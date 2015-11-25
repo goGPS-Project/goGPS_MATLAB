@@ -157,24 +157,24 @@ else %RINEX v3.xx
                 idD2 = {'D2P'};
             case 'E' %Galileo
                 idL1 = {'L1A';'L1B';'L1C';'L1X';'L1Z'};
-                idL2 = {'L5X'};
+                idL2 = {'L5I';'L5Q';'L5X'};
                 idC1 = {'C1A';'C1B';'C1C';'C1X';'C1Z'};
                 idP1 = {'...'}; % <-- ?
-                idP2 = {'C5X'};
+                idP2 = {'C5I';'C5Q';'C5X'};
                 idS1 = {'S1A';'S1B';'S1C';'S1X';'S1Z'};
-                idS2 = {'S5X'};
+                idS2 = {'S5I';'S5Q';'S5X'};
                 idD1 = {'D1A';'D1B';'D1C';'D1X';'D1Z'};
-                idD2 = {'D5X'};
+                idD2 = {'D5I';'D5Q';'D5X'};
             case 'C' %Compass/Beidou
                 idL1 = {'L1I';'L2I'};
-                idL2 = {'L7I'};
+                idL2 = {'L7I';'L7Q';'L7X'};
                 idC1 = {'C1I';'C2I'};
                 idP1 = {'...'}; % <-- ?
-                idP2 = {'C7I'};
+                idP2 = {'C7I';'C7Q';'C7X'};
                 idS1 = {'S1I';'S2I'};
-                idS2 = {'S7I'};
+                idS2 = {'S7I';'S7Q';'S7X'};
                 idD1 = {'D1I';'D2I'};
-                idD2 = {'D7I'};
+                idD2 = {'D7I';'D7Q';'D7X'};
             case 'J' %QZSS
                 idL1 = {'L1C'};
                 idL2 = {'L2C'};

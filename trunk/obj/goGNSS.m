@@ -338,12 +338,12 @@ classdef goGNSS < handle
             QZS_PRN = [193:196];
             SBS_PRN = 0; %SBAS ranging not supported yet
             
-            constellations.GPS     = struct('numSat', numel(GPS_PRN), 'enabled', GPS_flag, 'indexes', 0, 'PRN', GPS_PRN);
-            constellations.GLONASS = struct('numSat', numel(GLO_PRN), 'enabled', GLO_flag, 'indexes', 0, 'PRN', GLO_PRN);
-            constellations.Galileo = struct('numSat', numel(GAL_PRN), 'enabled', GAL_flag, 'indexes', 0, 'PRN', GAL_PRN);
-            constellations.BeiDou  = struct('numSat', numel(BDS_PRN), 'enabled', BDS_flag, 'indexes', 0, 'PRN', BDS_PRN);
-            constellations.QZSS    = struct('numSat', numel(QZS_PRN), 'enabled', QZS_flag, 'indexes', 0, 'PRN', QZS_PRN);
-            constellations.SBAS    = struct('numSat', numel(SBS_PRN), 'enabled', 0,        'indexes', 0, 'PRN', SBS_PRN); %SBAS ranging not supported yet
+            constellations.GPS     = struct('numSat', numel(GPS_PRN), 'enabled', GPS_flag, 'indexes', 0, 'PRN', GPS_PRN, 'sysID', 'G');
+            constellations.GLONASS = struct('numSat', numel(GLO_PRN), 'enabled', GLO_flag, 'indexes', 0, 'PRN', GLO_PRN, 'sysID', 'R');
+            constellations.Galileo = struct('numSat', numel(GAL_PRN), 'enabled', GAL_flag, 'indexes', 0, 'PRN', GAL_PRN, 'sysID', 'E');
+            constellations.BeiDou  = struct('numSat', numel(BDS_PRN), 'enabled', BDS_flag, 'indexes', 0, 'PRN', BDS_PRN, 'sysID', 'C');
+            constellations.QZSS    = struct('numSat', numel(QZS_PRN), 'enabled', QZS_flag, 'indexes', 0, 'PRN', QZS_PRN, 'sysID', 'J');
+            constellations.SBAS    = struct('numSat', numel(SBS_PRN), 'enabled', 0,        'indexes', 0, 'PRN', SBS_PRN, 'sysID', 'S'); %SBAS ranging not supported yet
             
             nSatTot = 0; %total number of satellites used given the enabled constellations
             q = 0;       %counter for enabled constellations
@@ -351,6 +351,7 @@ classdef goGNSS < handle
             systems = fieldnames(constellations);
             constellations.indexes = [];
             constellations.PRN = [];
+            constellations.systems = [];
             for i = 1 : numel(systems)
                 if(constellations.(systems{i}).enabled)
                     nSatTot = nSatTot + constellations.(systems{i}).numSat;
@@ -363,6 +364,7 @@ classdef goGNSS < handle
                     constellations.(systems{i}).indexes = indexes_tmp;
                     constellations.indexes = [constellations.indexes, indexes_tmp];
                     constellations.PRN = [constellations.PRN, constellations.(systems{i}).PRN];
+                    constellations.systems = [constellations.systems char(ones(size(constellations.(systems{i}).indexes))*constellations.(systems{i}).sysID)];
                 end
             end
             
