@@ -377,8 +377,7 @@ if goGNSS.isPP(mode) % post-processing
         
         %prepare the input for the load_RINEX_obs function
         filename_obs = multiple_RINEX_interface(filename_R_obs, filename_M_obs, mode);
-        
-        
+
         if goGNSS.isSA(mode) % absolute positioning
             
             %read navigation RINEX file(s)
@@ -388,7 +387,7 @@ if goGNSS.isPP(mode) % post-processing
             [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
              time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R] = ...
              load_RINEX_obs(filename_obs, constellations);
-            
+
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
                 fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
                 return
@@ -584,7 +583,18 @@ if goGNSS.isPP(mode) % post-processing
                     fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
                 end
             end
-
+            
+            %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
+            zero_time = min(time_GPS,[],1) - 1;
+            time_GPS  = time_GPS  - zero_time;
+            time_R    = time_R    - zero_time;
+            Eph(32,:) = Eph(32,:) - zero_time;
+            Eph(33,:) = Eph(33,:) - zero_time;
+            if (flag_SP3)
+                SP3.time  = SP3.time - zero_time;
+                SP3.t_sun = SP3.t_sun - zero_time;
+            end
+            
             for f = 1 : size(time_R,3)
                 
                 if (mode_user == 1)
@@ -934,6 +944,18 @@ if goGNSS.isPP(mode) % post-processing
                 if (flag_SP3 && codeC1_R)
                     non_zero_idx = pr1_R(:,:,f) ~= 0;
                     pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
+                end
+                
+                %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
+                zero_time = min(time_GPS,[],1) - 1;
+                time_GPS  = time_GPS  - zero_time;
+                time_R    = time_R    - zero_time;
+                time_M    = time_M    - zero_time;
+                Eph(32,:) = Eph(32,:) - zero_time;
+                Eph(33,:) = Eph(33,:) - zero_time;
+                if (flag_SP3)
+                    SP3.time  = SP3.time - zero_time;
+                    SP3.t_sun = SP3.t_sun - zero_time;
                 end
                 
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
@@ -3138,7 +3160,20 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         [time_GPS, week_R, time_R, time_M, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, snr_R, snr_M, ...
             pos_M, Eph, iono, delay, loss_R, loss_M] = load_goGPSinput(filerootOUT);
     end
-
+    
+    %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
+    time_GPS = time_GPS + zero_time;
+    time_R   = time_R   + zero_time;
+    if goGNSS.isDD(mode)
+        time_M   = time_M + zero_time;
+    end
+    Eph(32,:) = Eph(32,:) + zero_time;
+    Eph(33,:) = Eph(33,:) + zero_time;
+    if (flag_SP3)
+        SP3.time  = SP3.time + zero_time;
+        SP3.t_sun = SP3.t_sun + zero_time;
+    end
+    
     %---------------------------------
 
     %reading of the files with Kalman filter results

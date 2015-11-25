@@ -1,7 +1,7 @@
 function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR, sbas)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR, sbas);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -476,7 +476,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     %detection (code)
     N_mat(1,N_mat(1,:)==0) = NaN;
 %     delta_N = diff(N_mat(1,:));
-    delta_code = (diff(N_mat(1,:))./interval(1:end-1))';
+%     delta_code = (diff(N_mat(1,:))./interval(1:end-1))';
+    delta_code = diff(N_mat(1,:))';
     
     delta_test = delta_code;
     not_zero = find(delta_test ~= 0);
@@ -493,12 +494,15 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     if (flag_doppler_cs && any(dop) && (sum(~~dop) == sum(~~ph)))
         
 %         pred_phase = ph(1:end-1) + ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
-        pred_phase = ph(1:end-1) - ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
+%         pred_phase = ph(1:end-1) - ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
+        pred_phase = ph(1:end-1) - (dop(2:end)+dop(1:end-1))/2;
         
-        delta_doppler_all = ((pred_phase - ph(2:end))./interval(1:end-1))';
+%         delta_doppler_all = ((pred_phase - ph(2:end))./interval(1:end-1))';
+        delta_doppler_all = (pred_phase - ph(2:end))';
         delta_doppler_all(ph(2:end)==0) = 0;
         delta_doppler_all(delta_doppler_all == 0) = NaN;
-        delta_doppler_all = diff(delta_doppler_all)'./interval(1:end-2);
+%         delta_doppler_all = diff(delta_doppler_all)'./interval(1:end-2);
+        delta_doppler_all = diff(delta_doppler_all)';
         pos1 = find(idx~=length(N_mat));
         pos2 = find(idx~=length(N_mat)-1);
         pos = intersect(pos1,pos2);
@@ -527,7 +531,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     delta_deriv = zeros(size(delta_code));
     ph_tmp = ph;
     ph_tmp(1,ph_tmp(1,:)==0) = NaN;
-    delta_deriv_all = (diff(diff(diff(ph_tmp(1,:))))./interval(1:end-3).^3)';
+%     delta_deriv_all = (diff(diff(diff(ph_tmp(1,:))))./interval(1:end-3).^3)';
+    delta_deriv_all = diff(diff(diff(ph_tmp(1,:))))';
     pos1 = find(idx~=length(N_mat));
     pos2 = find(idx~=length(N_mat)-1);
     pos3 = find(idx~=length(N_mat)-2);
@@ -550,7 +555,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     %detection (geometry free)
     delta_GF = zeros(size(delta_code));
     ph_GF(1,ph_GF(1,:)==0) = NaN;
-    delta_GF_all = (diff(ph_GF)./interval(1:end-1))';
+%     delta_GF_all = (diff(ph_GF)./interval(1:end-1))';
+    delta_GF_all = diff(ph_GF)';
     pos = find(idx~=length(N_mat));
     delta_GF(idx(pos)) = delta_GF_all(idx(pos));
     
