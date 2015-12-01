@@ -766,7 +766,7 @@ end
 function [yi] = lagrange_interp1(x,y,xi,n)
 d = n/2;
 yi = zeros(size(y));
-for t = 1 : length(x)
+for t = 1 : length(xi)
     if (t<=d)
         yi(t) = LagrangeInter(x(1:n), y(1:n), xi(t));
     elseif (t>(length(x)-d))
