@@ -95,6 +95,11 @@ classdef goGNSS < handle
                                                       %             for computation time reasons; if it's needed to
                                                       %             change it, please update also ecc_anomaly.m and
                                                       %             satellite_orbits.m)
+                                                      
+                                                      % Standard atmosphere - Berg, 1948
+        STD_PRES = 1013.25;                           % pressure [mbar]
+        STD_TEMP = 291.15;                            % temperature [K]
+        STD_HUMI = 50.0;                              % humidity [%]
         
         % CONSTELLATION SPECIFIC ------------------------------------------
         

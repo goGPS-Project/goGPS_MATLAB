@@ -1,11 +1,11 @@
 function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop ...
          (XM, time_rx, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, antenna_PCV, sbas)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, flag_tropo, antenna_PCV, sbas)
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = goGPS_DD_code_phase_loop ...
 %        (XM, time_rx, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, antenna_PCV, sbas);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, flag_tropo, antenna_PCV, sbas);
 %
 % INPUT:
 %   XM = master position (X,Y,Z)
@@ -31,7 +31,9 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %   phase = L1 carrier (phase=1), L2 carrier (phase=2)
 %   dtMdot = master receiver clock drift
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
+%   flag_tropo = boolean variable to enable/disable tropospheric delay estimation
 %   antenna_PCV = antenna phase center variation
+%   sbas = SBAS corrections
 %
 % OUTPUT:
 %   check_on = boolean variable for satellite addition
@@ -71,9 +73,9 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 
 global sigmaq_vE sigmaq_vN sigmaq_vU %sigmaq0_N
 global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq_dtm
-global min_nsat cutoff snr_threshold cs_threshold o1 o2 o3 nN
+global min_nsat cutoff snr_threshold cs_threshold o1 o2 o3 nN nT
 global tile_header tile_georef dtm_dir
-global h_antenna
+global h_antenna zero_time
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM
@@ -115,7 +117,7 @@ ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
 %re-initialization of Cvv matrix of the model error
 % (if a static model is used, no noise is added)
-Cvv = zeros(o3+nN);
+Cvv = zeros(o3+nN+nT);
 if (o1 > 1)
     Cvv(o1,o1) = sigmaq_vE;
     Cvv(o2,o2) = sigmaq_vN;
@@ -187,7 +189,7 @@ Z_app = XR0(3);
 % CONVERSION FROM CARTESIAN TO GEODETIC COORDINATES
 %----------------------------------------------------------------------------------------
 [phiR_app, lamR_app, hR_app] = cart2geod(X_app, Y_app, Z_app);
-%[phiM, lamM, hM] = cart2geod(XM(1), XM(2), XM(3));
+[phiM, lamM, hM] = cart2geod(XM(1), XM(2), XM(3));
 
 %----------------------------------------------------------------------------------------
 % EXTRACTION OF THE HEIGHT PSEUDO-OBSERVATION FROM THE DTM
@@ -254,14 +256,14 @@ if (nsat >= min_nsat)
     sat_pr_nocutoff = sat_pr;
     
     if (phase(1) == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
-        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
+        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
         
         err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
         err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<NASGU,ASGLU>
-        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<NASGU,ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
+        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
         
         err_iono1_M = err_iono2_M ./ ionoFactor(sat_pr_M,2);
         err_iono1_R = err_iono2_R ./ ionoFactor(sat_pr_R,2);
@@ -424,16 +426,21 @@ if (nsat >= min_nsat)
             R(pivot,pivot) = 0;
             
             I0 = eye(o3);
+            IT = eye(nT);
             Z_ns_o3 = zeros(nSatTot,o3);
             Z_o3_ns = zeros(o3,nSatTot);
             Z_ns_ns = zeros(nSatTot,nSatTot);
+            Z_nt_o3 = zeros(nT,o3);
+            Z_o3_nt = zeros(o3,nT);
+            Z_ns_nt = zeros(nSatTot,nT);
+            Z_nt_ns = zeros(nT,nSatTot);
             
             %total matrix construction
             %sat_old, sat
             if (length(phase) == 2)
-                A = [I0 Z_o3_ns Z_o3_ns; Z_ns_o3 R Z_ns_ns; Z_ns_o3 Z_ns_ns R];
+                A = [I0 Z_o3_ns Z_o3_ns Z_o3_nt; Z_ns_o3 R Z_ns_ns Z_ns_nt; Z_ns_o3 Z_ns_ns R Z_ns_nt; Z_nt_o3 Z_nt_ns Z_nt_ns IT];
             else
-                A = [I0 Z_o3_ns; Z_ns_o3 R];
+                A = [I0 Z_o3_ns Z_o3_nt; Z_ns_o3 R Z_ns_nt; Z_nt_o3 Z_nt_ns IT];
             end
             
             %new state estimate
@@ -563,19 +570,61 @@ if (nsat >= min_nsat)
 %             end
         end        
         
+        %when the tropospheric delay is being estimated, only its hydrostatic part is removed from the observations
+        if (flag_tropo)
+            
+            [week, sow] = time2weektow(time_rx + zero_time);
+            date = gps2date(week, sow);
+            [~, mjd] = date2jd(date);
+            
+            %pressure = goGNSS.STD_PRES;
+            %temperature = goGNSS.STD_TEMP;
+            %humidity = goGNSS.STD_HUMI;
+            
+            [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
+            ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app);
+
+            [pres_M, temp_M, undu_M] = gpt(mjd, phiM, lamM, hM); %#ok<ASGLU>
+            ZHD_M = saast_dry(pres_M, hM - undu_M, phiM);
+            
+            gmfh_R = zeros(size(err_tropo_R));
+            gmfw_R = zeros(size(err_tropo_R));
+            gmfh_M = zeros(size(err_tropo_M));
+            gmfw_M = zeros(size(err_tropo_M));
+            err_tropo_R0 = zeros(size(err_tropo_R));
+            err_tropo_M0 = zeros(size(err_tropo_M));
+            beta_R = zeros(n,1);
+            beta_M = zeros(n,1);
+            for s = 1 : length(sat_pr)
+                [gmfh_R(s,1), gmfw_R(s,1)] = gmf_f_hu(mjd, phiR_app, lamR_app, hR_app, (90-elR(sat_pr(s),1))*pi/180);
+                [gmfh_M(s,1), gmfw_M(s,1)] = gmf_f_hu(mjd, phiM,     lamM,     hM,     (90-elM(sat_pr(s),1))*pi/180);
+                
+                err_tropo_R0(s,1) = gmfh_R(s,1)*ZHD_R;
+                err_tropo_M0(s,1) = gmfh_M(s,1)*ZHD_M;
+            end
+            
+            beta_R(:,1) =   gmfw_R(setdiff(1:length(gmfw_R), pivot_index),1) - gmfw_R(pivot_index,1);
+            beta_M(:,1) = -(gmfw_M(setdiff(1:length(gmfw_M), pivot_index),1) - gmfw_M(pivot_index,1));
+        else
+            err_tropo_R0 = err_tropo_R;
+            err_tropo_M0 = err_tropo_M;
+            beta_R = zeros(n,1);
+            beta_M = zeros(n,1);
+        end
         
         %function that calculates the Kalman filter parameters
-        [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman(XR0, XS, pr1_R(sat_pr), ph1_R(sat_pr), pr1_M(sat_pr), ph1_M(sat_pr), pr2_R(sat_pr), ph2_R(sat_pr), pr2_M(sat_pr), ph2_M(sat_pr), err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR(sat_pr), distM(sat_pr), sat_pr, pivot, lambda(sat_pr,:));
+        [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman(XR0, XS, pr1_R(sat_pr), ph1_R(sat_pr), pr1_M(sat_pr), ph1_M(sat_pr), pr2_R(sat_pr), ph2_R(sat_pr), pr2_M(sat_pr), ph2_M(sat_pr), err_tropo_R0, err_iono1_R, err_iono2_R, err_tropo_M0, err_iono1_M, err_iono2_M, distR(sat_pr), distM(sat_pr), sat_pr, pivot, lambda(sat_pr,:));
 
         %zeroes vector useful in matrix definitions
         Z_1_nN = zeros(1,nN);
         Z_n_nN = zeros(n,nN);
         Z_n_om = zeros(n,o1-1);
         Z_1_om = zeros(1,o1-1);
+        Z_1_nT = zeros(1,nT);
         
         %H matrix computation for the code
-        H_cod1 = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN];
-        H_cod2 = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN];
+        H_cod1 = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN beta_R beta_M];
+        H_cod2 = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN beta_R beta_M];
         if (length(phase) == 2)
             H_cod = [H_cod1; H_cod2];
         else
@@ -586,7 +635,7 @@ if (nsat >= min_nsat)
             end
         end
         
-        %lambda positions computation
+        %lambda slot computation
         L_pha1 = zeros(n,nSatTot);
         L_pha2 = zeros(n,nSatTot);
         v = 1;
@@ -600,8 +649,8 @@ if (nsat >= min_nsat)
         
         %H matrix computation for the phase
         if ~isempty(p)
-            H_pha1 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:)];
-            H_pha2 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:)];
+            H_pha1 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:) beta_R(p,:) beta_M(p,:)];
+            H_pha2 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:) beta_R(p,:) beta_M(p,:)];
             if (length(phase) == 2)
                 H_pha1(:,o3+1:o3+nSatTot) = L_pha1(p,:);
                 H_pha2(:,o3+nSatTot+1:o3+nSatTot*2) = L_pha2(p,:);
@@ -622,7 +671,7 @@ if (nsat >= min_nsat)
         %H matrix computation for the DTM pseudo-observation
         H_dtm = [];
         if (h_dtm ~= tile_header.nodata)
-            H_dtm = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN];
+            H_dtm = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN Z_1_nT];
         end
         
         %construction of the complete H matrix
@@ -860,7 +909,7 @@ end
 
 if (flag_IAR && ~isempty(sat_np) && nsat >= min_nsat)
     %try to solve integer ambiguities
-    [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), varNfix, varPosfix] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat_np,o3+sat_np), Cee([1 o1+1 o2+1],o3+sat_np)); %#ok<ASGLU,NASGU>
+    [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), varNfix, varPosfix] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat_np), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat_np,o3+sat_np), Cee([1 o1+1 o2+1],o3+sat_np)); %#ok<ASGLU>
         
     %min_ambfixRMS(t,1) = min(sqrt(diag(varNfix)));
 else

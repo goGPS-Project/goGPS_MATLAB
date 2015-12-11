@@ -169,6 +169,9 @@ global pivot_old
 %number of unknown phase ambiguities
 global nN
 
+%number of unknown tropospheric parameters
+global nT
+
 %method used to estimate phase ambiguities
 %          - amb_estim_method=0: observed code - phase difference
 %          - amb_estim_method=1: Kalman-predicted code - phase difference
@@ -190,6 +193,7 @@ conf_cs = [];
 pivot = [];
 pivot_old = [];
 nN = [];
+nT = [];
 amb_estim_method = 0;
 interval = 1; %default 1 Hz (to avoid problems with real-time modes)
 
@@ -387,3 +391,9 @@ n_sys = 1;
 %-------------------------------------------------------------------------------
 global FTABLE;
 FTABLE=finv(0.9995,1,1:200)';
+
+%-------------------------------------------------------------------------------
+% Time adjustment
+%-------------------------------------------------------------------------------
+global zero_time
+zero_time = 0;

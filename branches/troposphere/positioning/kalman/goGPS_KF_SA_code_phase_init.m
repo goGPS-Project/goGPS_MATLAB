@@ -50,7 +50,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %----------------------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq0_N
-global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN
+global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN nT
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
 global azR elR distR azM elM distM
@@ -76,7 +76,7 @@ elM = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
 
 %--------------------------------------------------------------------------------------------
-% SELECTION SINGLE / DOUBLE FREQUENCY
+% SELECTION SINGLE / DUAL FREQUENCY
 %--------------------------------------------------------------------------------------------
 
 %number of unknown phase ambiguities
@@ -85,6 +85,12 @@ if (length(phase) == 1)
 else
     nN = nSatTot*2;
 end
+
+%--------------------------------------------------------------------------------------------
+% NUMBER OF TROPOSPHERIC PARAMETERS
+%--------------------------------------------------------------------------------------------
+
+nT = 0; %TO BE CHANGED TO 1
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL

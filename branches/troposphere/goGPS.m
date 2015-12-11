@@ -158,6 +158,8 @@ else
         
         flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
         
+        flag_tropo = 0;         % estimate zenith tropospheric delay
+        
         %----------------------------------------------------------------------------------------------
         % USER-DEFINED SETTINGS
         %----------------------------------------------------------------------------------------------
@@ -194,6 +196,8 @@ else
         end
     end
 end
+
+flag_tropo = 1
 
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
@@ -1470,6 +1474,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
     residuals_dummy = NaN(1,nSatTot);
     
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -1569,6 +1574,7 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
 
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -1699,6 +1705,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
 
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -1793,6 +1800,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
     
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -2099,6 +2107,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
 
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -2194,6 +2203,7 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
 
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -2322,6 +2332,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
 
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -2415,6 +2426,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
 
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -2507,6 +2519,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
 
     nN = nSatTot;
+    nT = 0;
     check_on = 0;
     check_off = 0;
     check_pivot = 0;
@@ -2639,7 +2652,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
                 flag_XR=1;  % use apriori XR as approximated
             end
             
-            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, 1, dtMdot(1), flag_IAR, flag_XR, sbas_t);
+            kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, 1, dtMdot(1), flag_IAR, flag_XR, flag_tropo, sbas_t);
             
             if (~kalman_initialized)
                 pos_M(:,1) = []; time_GPS(1) = []; week_R(1) = [];
@@ -2699,7 +2712,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             
             sbas_t = find_sbas(sbas, t);
             
-            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, dtMdot(t), flag_IAR, antenna_PCV, sbas_t);
+            [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop(pos_M(:,t), time_GPS(t), pr1_R(:,t), pr1_M(:,t), ph1_R(:,t), ph1_M(:,t), dop1_R(:,t), dop1_M(:,t), pr2_R(:,t), pr2_M(:,t), ph2_R(:,t), ph2_M(:,t), dop2_R(:,t), dop2_M(:,t), snr_R(:,t), snr_M(:,t), Eph_t, SP3, iono, lambda, 1, dtMdot(t), flag_IAR, flag_tropo, antenna_PCV, sbas_t);
             
             fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
             fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
@@ -3289,7 +3302,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     fprintf(fid_out, head_str);
     for i = 1 : nObs
         if (geoid.ncols ~= 0)
-            %geoid ondulation interpolation
+            %geoid undulation interpolation
             N = grid_bilin_interp(lam_KAL(i), phi_KAL(i), geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
             %orthometric height
             h_ortho(i) = h_KAL(i) - N;

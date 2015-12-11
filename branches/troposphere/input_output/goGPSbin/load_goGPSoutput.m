@@ -56,7 +56,7 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %----------------------------------------------------------------------------------------------
 
 %global variables loading
-global o1 o3 nN
+global o1 o3 nN nT
 
 %-------------------------------------------------------------------------------
 
@@ -102,17 +102,17 @@ else
         fprintf(['Reading: ' fileroot '_kal_' hour_str '.bin\n']);
         num_bytes = d.bytes;                                            %file size (number of bytes)
         num_words = num_bytes / 8;                                      %file size (number of words)
-        dim_packs = (o3+nN)+(o3+nN)^2;                                  %packets size
+        dim_packs = (o3+nN+nT)+(o3+nN+nT)^2;                            %packets size
         num_packs = num_words / dim_packs;                              %file size (number of packets)
         fid_kal = fopen([fileroot '_kal_' hour_str '.bin'],'r+');       %file opening
         buf_kal = fread(fid_kal,num_words,'double');                    %file reading
         fclose(fid_kal);                                                %file closing
-        Xhat_t_t = [Xhat_t_t  zeros(o3+nN,num_packs)];                  %observations concatenation
-        Cee = cat(3,Cee,zeros(o3+nN,o3+nN,num_packs));
+        Xhat_t_t = [Xhat_t_t  zeros(o3+nN+nT,num_packs)];               %observations concatenation
+        Cee = cat(3,Cee,zeros(o3+nN+nT,o3+nN+nT,num_packs));
         for j = 0 : dim_packs : num_words-1
             i = i+1;                                                    %epoch counter increase
-            Xhat_t_t(:,i) = buf_kal(j + [1:o3+nN]);                     %observations logging
-            Cee(:,:,i) = reshape(buf_kal(j + [o3+nN+1:dim_packs]), o3+nN, o3+nN);
+            Xhat_t_t(:,i) = buf_kal(j + [1:o3+nN+nT]);                  %observations logging
+            Cee(:,:,i) = reshape(buf_kal(j + [o3+nN+nT+1:dim_packs]), o3+nN+nT, o3+nN+nT);
         end
         hour = hour+1;                                                  %hour increase
         hour_str = num2str(hour,'%03d');                                %conversion into a string

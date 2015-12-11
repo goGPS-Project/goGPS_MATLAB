@@ -39,13 +39,13 @@ else
 	%conversion to radians
 	el = abs(el) * pi/180;
 
-	    %Standard atmosphere - Berg, 1948 (Bernese)
+	%Standard atmosphere - Berg, 1948 (Bernese)
 	%pressure [mbar]
-	Pr = 1013.25;
+	Pr = goGNSS.STD_PRES;
 	%temperature [K]
-	Tr = 291.15;
-	%numerical constants for the algorithm [-] [m] [mbar]
-	Hr = 50.0;
+	Tr = goGNSS.STD_TEMP;
+	%humidity [%]
+	Hr = goGNSS.STD_HUMI;
 
 	P = Pr * (1-0.0000226*h).^5.225;
 	T = Tr - 0.0065*h;

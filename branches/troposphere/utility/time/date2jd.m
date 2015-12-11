@@ -1,4 +1,4 @@
-function [jd, mjd, frac] = date2jd(date)
+function [jd, mjd] = date2jd(date)
 
 % SYNTAX:
 %   [jd, mjd] = date2jd(date);

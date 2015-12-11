@@ -85,7 +85,7 @@ pos_M_man = [XM; YM; ZM];
 %-------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel %#ok<*TLEV>
-global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
+global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo
 global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global amb_restart_method
 
@@ -107,13 +107,19 @@ sigmaq_cod2 = 0.4^2;
 sigmaq_ph = 0.003^2;
 % sigmaq_ph = 0.001e30;
 
-%variance of ambiguity combinations [cycles]
+%variance of a priori ambiguity combinations [cycles]
 sigmaq0_N = 1000;
 
 %variance of DEM height [m^2]
 %(maximize to disable DEM usage)
 % sigmaq_dtm = 0.09;
 sigmaq_dtm = 1e30;
+
+%variance of a priori tropospheric delay
+sigmaq0_tropo = 1e-2;
+
+%variance of tropospheric delay
+sigmaq_tropo = 1e-4;
 
 %minimum number of satellites to be used in the Kalman filter
 min_nsat = 2;
