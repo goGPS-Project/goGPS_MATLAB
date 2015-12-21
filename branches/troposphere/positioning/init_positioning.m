@@ -261,7 +261,7 @@ if (nsat >= nsat_required)
         err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);      
         
         %correct the ionospheric errors for different frequencies
-        err_iono = ionoFactor(:,phase).*err_iono;
+        err_iono = ionoFactor(:,phase(1)).*err_iono;
 
         if (flag_XR < 2) %if unknown or approximate receiver position
 

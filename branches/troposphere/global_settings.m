@@ -85,7 +85,7 @@ pos_M_man = [XM; YM; ZM];
 %-------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel %#ok<*TLEV>
-global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo
+global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo
 global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global amb_restart_method
 
@@ -101,11 +101,13 @@ sigmaq_vel = 0.1^2;
 %variance of code observations [m^2]
 sigmaq_cod1 = 0.3^2;
 sigmaq_cod2 = 0.4^2;
+sigmaq_codIF = 0.4^2; %TO BE CHANGED
 
 %variance of phase observations [m^2]
 %(maximize to obtain a code-based solution)
 sigmaq_ph = 0.003^2;
 % sigmaq_ph = 0.001e30;
+sigmaq_phIF = 0.003^2; %TO BE CHANGED
 
 %variance of a priori ambiguity combinations [cycles]
 sigmaq0_N = 1000;

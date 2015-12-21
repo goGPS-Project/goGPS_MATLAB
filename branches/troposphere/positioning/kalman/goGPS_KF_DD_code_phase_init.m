@@ -1,11 +1,11 @@
 function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
          ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, flag_XR, flag_tropo, sbas)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, dtMdot, flag_IAR, flag_XR, flag_tropo, sbas)
 
 % SYNTAX:
 %   [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr1_R, pr1_M, ...
 %        ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, flag_XR, flag_tropo, sbas);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, dtMdot, flag_IAR, flag_XR, flag_tropo, sbas);
 %
 % INPUT:
 %   XR0 = rover approximate/apriori position (X,Y,Z)
@@ -29,7 +29,7 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 %   SP3 = structure containing precise ephemeris data
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   lambda = wavelength matrix (depending on the enabled constellations)
-%   phase = carrier L1 (phase=1) carrier L2 (phase=2)
+%   frequencies = L1 carrier (phase=1), L2 carrier (phase=2), L1&L2 (phase=[1 2])
 %   dtMdot = master receiver clock drift
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %   flag_XR = 1: XR0 used as fixed, unknown otherwise
@@ -101,7 +101,7 @@ ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 %--------------------------------------------------------------------------------------------
 
 %number of unknown phase ambiguities
-if (length(phase) == 1)
+if (length(frequencies) == 1)
     nN = nSatTot;
 else
     nN = nSatTot*2;
@@ -160,12 +160,12 @@ I = eye(o3+nN+nT);
 % SELECTION OF THE SATELLITES
 %--------------------------------------------------------------------------------------------
 
-if (length(phase) == 2)
+if (length(frequencies) == 2)
     sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) & (pr2_R ~= 0) & (pr2_M ~= 0) );
     sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & (ph1_R ~= 0) & (ph1_M ~= 0) & ...
                 (pr2_R ~= 0) & (pr2_M ~= 0) & (ph2_R ~= 0) & (ph2_M ~= 0) );
 else
-    if (phase == 1)
+    if (frequencies == 1)
         sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );        
         sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & ...
                     (ph1_R ~= 0) & (ph1_M ~= 0) );
@@ -213,17 +213,17 @@ if (length(sat_pr) >= min_nsat_LS)
     
     sat_pr_old = sat_pr;
     
-    if (phase(1) == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
+    if (frequencies(1) == 1)
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
         
         err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
         err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
         
         err_iono1_M = err_iono2_M ./ ionoFactor(sat_pr_M,2);
         err_iono1_R = err_iono2_R ./ ionoFactor(sat_pr_R,2);
@@ -310,11 +310,11 @@ if (size(sat_pr,1) + size(sat,1) - 2 <= 3 + size(sat,1) - 1 || size(sat,1) <= mi
         [N2(sat), sigma2_N2(sat)] = amb_estimate_observ(pr2_R(sat), pr2_M(sat), ph2_R(sat), ph2_M(sat), pivot, sat, lambda(sat,2));
     end
 
-    if (length(phase) == 2)
+    if (length(frequencies) == 2)
         N = [N1; N2];
         sigma2_N = [sigma2_N1; sigma2_N2];
     else
-        if (phase == 1)
+        if (frequencies == 1)
             N = N1;
             sigma2_N = sigma2_N1;
         else
@@ -364,12 +364,12 @@ else
             cov_N2 = sigmaq0_N * eye(length(sat));
         end
         
-        if (length(phase) == 2)
+        if (length(frequencies) == 2)
             N = [N1; N2];
             sigma2_N(sat) = diag(cov_N1);
             sigma2_N(sat+nSatTot) = diag(cov_N2);
         else
-            if (phase == 1)
+            if (frequencies == 1)
                 N = N1;
                 sigma2_N(sat) = diag(cov_N1);
             else
@@ -422,7 +422,7 @@ Cee(2:o1,2:o1) = sigmaq0 * eye(o1-1);
 Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
 Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);
-Cee(o3+nN+1:o3+nN+2,o3+nN+1:o3+nN+2) = sigmaq0_tropo * eye(nT);
+Cee(o3+nN+1:o3+nN+nT,o3+nN+1:o3+nN+nT) = sigmaq0_tropo * eye(nT);
 
 %--------------------------------------------------------------------------------------------
 % INTEGER AMBIGUITY SOLVING BY LAMBDA METHOD

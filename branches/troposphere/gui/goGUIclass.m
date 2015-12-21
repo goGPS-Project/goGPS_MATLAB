@@ -3171,7 +3171,7 @@ classdef goGUIclass < handle
             funout{30} = fsep_char;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
-            global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo
+            global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo
             global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
             global h_antenna
             global tile_header tile_georef dtm_dir
@@ -3217,8 +3217,10 @@ classdef goGUIclass < handle
             sigmaq_vel = str2double(get(obj.goh.std_vel,'String'))^2;
             sigmaq_cod1 = str2double(get(obj.goh.std_code,'String'))^2;
             sigmaq_cod2 = 0.16;
+            sigmaq_codIF = 0.4^2; %TO BE CHANGED
             if (get(obj.goh.toggle_std_phase,'Value'))
                 sigmaq_ph = str2double(get(obj.goh.std_phase,'String'))^2;
+                sigmaq_phIF = 0.003^2; %TO BE CHANGED
             else
                 sigmaq_ph = 1e30;
             end

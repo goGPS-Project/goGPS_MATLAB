@@ -1,11 +1,11 @@
 function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_loop ...
          (XM, time_rx, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, flag_tropo, antenna_PCV, sbas)
+         dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, obs_comb, dtMdot, flag_IAR, flag_tropo, antenna_PCV, sbas)
 
 % SYNTAX:
 %   [check_on, check_off, check_pivot, check_cs] = goGPS_DD_code_phase_loop ...
 %        (XM, time_rx, pr1_R, pr1_M, ph1_R, ph1_M, dop1_R, dop1_M, pr2_R, pr2_M, ph2_R, ph2_M, ...
-%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, phase, dtMdot, flag_IAR, flag_tropo, antenna_PCV, sbas);
+%        dop2_R, dop2_M, snr_R, snr_M, Eph, SP3, iono, lambda, frequencies, obs_comb, dtMdot, flag_IAR, flag_tropo, antenna_PCV, sbas);
 %
 % INPUT:
 %   XM = master position (X,Y,Z)
@@ -28,7 +28,8 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %   SP3 = structure containing precise ephemeris data
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   lambda = wavelength matrix (depending on the enabled constellations)
-%   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   frequencies = L1 carrier (phase=1), L2 carrier (phase=2), L1&L2 (phase=[1 2])
+%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IF')
 %   dtMdot = master receiver clock drift
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %   flag_tropo = boolean variable to enable/disable tropospheric delay estimation
@@ -71,8 +72,8 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 % KALMAN FILTER PARAMETERS
 %--------------------------------------------------------------------------------------------
 
-global sigmaq_vE sigmaq_vN sigmaq_vU %sigmaq0_N
-global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq_dtm
+global sigmaq_vE sigmaq_vN sigmaq_vU %sigmaq_tropo %sigmaq0_N
+global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq_dtm
 global min_nsat cutoff snr_threshold cs_threshold o1 o2 o3 nN nT
 global tile_header tile_georef dtm_dir
 global h_antenna zero_time
@@ -127,6 +128,10 @@ if (o1 > 1)
     Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
 end
 
+% if (flag_tropo)
+%     Cvv(o3+nN+1:o3+nN+nT,o3+nN+1:o3+nN+nT) = sigmaq_tropo * eye(nT);
+% end
+
 %----------------------------------------------------------------------------------------
 % POSITION ESTIMATION ERROR VARIANCE
 %----------------------------------------------------------------------------------------
@@ -139,19 +144,17 @@ sigmaq_pos_R = sigmaq_pos_R([1,o1+1,o2+1]);
 %------------------------------------------------------------------------------------
 
 %visible satellites
-if (length(phase) == 2)
+if (length(frequencies) == 2)
     sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) & (pr2_R ~= 0) & (pr2_M ~= 0) );
     sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & (ph1_R ~= 0) & (ph1_M ~= 0) & ...
                 (pr2_R ~= 0) & (pr2_M ~= 0) & (ph2_R ~= 0) & (ph2_M ~= 0) );
 else
-    if (phase == 1)
+    if (frequencies == 1)
         sat_pr = find( (pr1_R ~= 0) & (pr1_M ~= 0) );
-        sat = find( (pr1_R ~= 0) & (pr1_M ~= 0) & ...
-                    (ph1_R ~= 0) & (ph1_M ~= 0) );
+        sat    = find( (pr1_R ~= 0) & (pr1_M ~= 0) & (ph1_R ~= 0) & (ph1_M ~= 0) );
     else
         sat_pr = find( (pr2_R ~= 0) & (pr2_M ~= 0) );
-        sat = find( (pr2_R ~= 0) & (pr2_M ~= 0) & ...
-                    (ph2_R ~= 0) & (ph2_M ~= 0) );
+        sat    = find( (pr2_R ~= 0) & (pr2_M ~= 0) & (ph2_R ~= 0) & (ph2_M ~= 0) );
     end
 end
 if (isempty(SP3))
@@ -255,15 +258,15 @@ if (nsat >= min_nsat)
     
     sat_pr_nocutoff = sat_pr;
     
-    if (phase(1) == 1)
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
-        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+    if (frequencies(1) == 1)
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
+        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
         
         err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
         err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, phase,       2, 0); %#ok<ASGLU>
-        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, phase, flag_XR, 1); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM] = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
+        [ ~, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
         
         err_iono1_M = err_iono2_M ./ ionoFactor(sat_pr_M,2);
         err_iono1_R = err_iono2_R ./ ionoFactor(sat_pr_R,2);
@@ -339,11 +342,11 @@ if (nsat >= min_nsat)
             N1 = 0;
             N2 = 0;
             
-            if (length(phase) == 2)
+            if (length(frequencies) == 2)
                 X_t1_t(o3+sat_dead,1) = N1;
                 X_t1_t(o3+nSatTot+sat_dead,1) = N2;
             else
-                if (phase == 1)
+                if (frequencies == 1)
                     X_t1_t(o3+sat_dead,1) = N1;
                 else
                     X_t1_t(o3+sat_dead,1) = N2;
@@ -380,7 +383,7 @@ if (nsat >= min_nsat)
                     sat_slip1 = [];
                     sat_slip2 = [];
                     sat_slip = [];
-                    if (length(phase) == 2)
+                    if (length(frequencies) == 2)
                         [N1_slip, N1_born, sigmaq_N1_slip, sigmaq_N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot_tmp, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
                         [N2_slip, N2_born, sigmaq_N2_slip, sigmaq_N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot_tmp, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
                         
@@ -391,7 +394,7 @@ if (nsat >= min_nsat)
                         %Cvv(o3+sat_born,o3+sat_born) = sigmaq0_N * eye(size(sat_born,1));
                         %Cvv(o3+nSatTot+sat_born,o3+nSatTot+sat_born) = sigmaq0_N * eye(size(sat_born,1));
                     else
-                        if (phase == 1)
+                        if (frequencies == 1)
                             [N_slip, N_born, sigmaq_N_slip, sigmaq_N_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot_tmp, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
                         else
                             [N_slip, N_born, sigmaq_N_slip, sigmaq_N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot_tmp, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
@@ -437,7 +440,7 @@ if (nsat >= min_nsat)
             
             %total matrix construction
             %sat_old, sat
-            if (length(phase) == 2)
+            if (length(frequencies) == 2)
                 A = [I0 Z_o3_ns Z_o3_ns Z_o3_nt; Z_ns_o3 R Z_ns_ns Z_ns_nt; Z_ns_o3 Z_ns_ns R Z_ns_nt; Z_nt_o3 Z_nt_ns Z_nt_ns IT];
             else
                 A = [I0 Z_o3_ns Z_o3_nt; Z_ns_o3 R Z_ns_nt; Z_nt_o3 Z_nt_ns IT];
@@ -458,7 +461,7 @@ if (nsat >= min_nsat)
             
             %Test presence/absence of a cycle-slip at the current epoch.
             %The state of the system is not changed yet
-            if (length(phase) == 2)
+            if (length(frequencies) == 2)
                 [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 
@@ -466,7 +469,7 @@ if (nsat >= min_nsat)
                     check_cs = 1;
                 end
             else
-                if (phase == 1)
+                if (frequencies == 1)
                     [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph1_R(sat), ph1_M(sat), distR(sat), distM(sat), doppler_pred_range1_R(sat), doppler_pred_range1_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 else
                     [check_cs, N_slip, sat_slip] = cycle_slip_detection(X_t1_t(o3+1:o3+nSatTot), ph2_R(sat), ph2_M(sat), distR(sat), distM(sat), doppler_pred_range2_R(sat), doppler_pred_range2_M(sat), pivot, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
@@ -486,7 +489,7 @@ if (nsat >= min_nsat)
         %------------------------------------------------------------------------------------
         
         if (check_on || check_cs)
-            if (length(phase) == 2)
+            if (length(frequencies) == 2)
                 [N1_slip, N1_born, sigmaq_N1_slip, sigmaq_N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R);
                 [N2_slip, N2_born, sigmaq_N2_slip, sigmaq_N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R);
                 
@@ -513,7 +516,7 @@ if (nsat >= min_nsat)
                     %Cvv(o3+nSatTot+sat_slip2,o3+nSatTot+sat_slip2) = sigmaq0_N * eye(size(sat_slip2,1));
                 end
             else
-                if (phase == 1)
+                if (frequencies == 1)
                     [N_slip, N_born, sigmaq_N_slip, sigmaq_N_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R);
                 else
                     [N_slip, N_born, sigmaq_N_slip, sigmaq_N_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R);
@@ -613,7 +616,7 @@ if (nsat >= min_nsat)
         end
         
         %function that calculates the Kalman filter parameters
-        [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman(XR0, XS, pr1_R(sat_pr), ph1_R(sat_pr), pr1_M(sat_pr), ph1_M(sat_pr), pr2_R(sat_pr), ph2_R(sat_pr), pr2_M(sat_pr), ph2_M(sat_pr), err_tropo_R0, err_iono1_R, err_iono2_R, err_tropo_M0, err_iono1_M, err_iono2_M, distR(sat_pr), distM(sat_pr), sat_pr, pivot, lambda(sat_pr,:));
+        [alpha, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman(XR0, XS, pr1_R(sat_pr), ph1_R(sat_pr), pr1_M(sat_pr), ph1_M(sat_pr), pr2_R(sat_pr), ph2_R(sat_pr), pr2_M(sat_pr), ph2_M(sat_pr), err_tropo_R0, err_iono1_R, err_iono2_R, err_tropo_M0, err_iono1_M, err_iono2_M, distR(sat_pr), distM(sat_pr), sat_pr, pivot, lambda(sat_pr,:));
 
         %zeroes vector useful in matrix definitions
         Z_1_nN = zeros(1,nN);
@@ -623,12 +626,17 @@ if (nsat >= min_nsat)
         Z_1_nT = zeros(1,nT);
         
         %H matrix computation for the code
-        H_cod1 = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN beta_R beta_M];
-        H_cod2 = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN beta_R beta_M];
-        if (length(phase) == 2)
-            H_cod = [H_cod1; H_cod2];
+        H_cod1  = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN beta_R beta_M];
+        H_cod2  = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN beta_R beta_M];
+        H_codIF = [alpha(:,1) Z_n_om alpha(:,2) Z_n_om alpha(:,3) Z_n_om Z_n_nN beta_R beta_M];
+        if (length(frequencies) == 2)
+            if (strcmp(obs_comb,'NONE'))
+                H_cod = [H_cod1; H_cod2];
+            elseif (strcmp(obs_comb,'IONO_FREE'))
+                H_cod = H_codIF;
+            end
         else
-            if (phase == 1)
+            if (frequencies == 1)
                 H_cod = H_cod1;
             else
                 H_cod = H_cod2;
@@ -636,27 +644,38 @@ if (nsat >= min_nsat)
         end
         
         %lambda slot computation
-        L_pha1 = zeros(n,nSatTot);
-        L_pha2 = zeros(n,nSatTot);
+        L_pha1  = zeros(n,nSatTot);
+        L_pha2  = zeros(n,nSatTot);
+        L_phaIF1 = zeros(n,nSatTot);
+        L_phaIF2 = zeros(n,nSatTot);
         v = 1;
         for u = 1 : n+1 % with the pivot
             if (sat_pr(u) ~= pivot)
-                L_pha1(v,sat_pr(u)) = -(lambda(sat_pr(u),1));
-                L_pha2(v,sat_pr(u)) = -(lambda(sat_pr(u),2));
+                L_pha1(v,sat_pr(u))   = -(lambda(sat_pr(u),1));
+                L_pha2(v,sat_pr(u))   = -(lambda(sat_pr(u),2));
+                L_phaIF1(v,sat_pr(u)) = -(lambda(sat_pr(u),1)*goGNSS.F1^2)/(goGNSS.F1^2-goGNSS.F2^2);
+                L_phaIF2(v,sat_pr(u)) =  (lambda(sat_pr(u),2)*goGNSS.F2^2)/(goGNSS.F1^2-goGNSS.F2^2);
                 v = v+1;
             end
         end
         
         %H matrix computation for the phase
         if ~isempty(p)
-            H_pha1 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:) beta_R(p,:) beta_M(p,:)];
-            H_pha2 = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:) beta_R(p,:) beta_M(p,:)];
-            if (length(phase) == 2)
-                H_pha1(:,o3+1:o3+nSatTot) = L_pha1(p,:);
-                H_pha2(:,o3+nSatTot+1:o3+nSatTot*2) = L_pha2(p,:);
-                H_pha = [H_pha1; H_pha2];
+            H_pha1  = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:) beta_R(p,:) beta_M(p,:)];
+            H_pha2  = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:) beta_R(p,:) beta_M(p,:)];
+            H_phaIF = [alpha(p,1) Z_n_om(p,:) alpha(p,2) Z_n_om(p,:) alpha(p,3) Z_n_om(p,:) Z_n_nN(p,:) beta_R(p,:) beta_M(p,:)];
+            if (length(frequencies) == 2)
+                if (strcmp(obs_comb,'NONE'))
+                    H_pha1(:,o3+1:o3+nSatTot) = L_pha1(p,:);
+                    H_pha2(:,o3+nSatTot+1:o3+nSatTot*2) = L_pha2(p,:);
+                    H_pha = [H_pha1; H_pha2];
+                elseif (strcmp(obs_comb,'IONO_FREE'))
+                    H_phaIF(:,o3+1:o3+nSatTot) = L_phaIF1(p,:);
+                    H_phaIF(:,o3+nSatTot+1:o3+nSatTot*2) = L_phaIF2(p,:);
+                    H_pha = H_phaIF;
+                end
             else
-                if (phase == 1)
+                if (frequencies == 1)
                     H_pha1(:,o3+1:o3+nSatTot) = L_pha1(p,:);
                     H_pha = H_pha1;
                 else
@@ -678,16 +697,19 @@ if (nsat >= min_nsat)
         H = [H_cod; H_pha; H_dtm];
         
         %Y0 vector computation for the code
-        y0_cod1 = probs_pr1 - prapp_pr1 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
-        y0_cod2 = probs_pr2 - prapp_pr2 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
+        y0_cod1  = probs_pr1 - prapp_pr1 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
+        y0_cod2  = probs_pr2 - prapp_pr2 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
+        y0_codIF = probs_prIF - prapp_prIF + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
         
         %Y0 vector computation for the phase
         if ~isempty(p)
-            y0_pha1 = probs_ph1(p) - prapp_ph1(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
-            y0_pha2 = probs_ph2(p) - prapp_ph2(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+            y0_pha1  = probs_ph1(p) - prapp_ph1(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+            y0_pha2  = probs_ph2(p) - prapp_ph2(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+            y0_phaIF = probs_phIF(p) - prapp_phIF(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
         else
-            y0_pha1 = [];
-            y0_pha2 = [];
+            y0_pha1  = [];
+            y0_pha2  = [];
+            y0_phaIF = [];
         end
         
         %Y0 vector computation for DTM constraint
@@ -697,11 +719,16 @@ if (nsat >= min_nsat)
         end
         
         %construction of the total Y0 vector
-        if (length(phase) == 2)
-            y0_cod = [y0_cod1; y0_cod2];
-            y0_pha = [y0_pha1; y0_pha2];
+        if (length(frequencies) == 2)
+            if (strcmp(obs_comb,'NONE'))
+                y0_cod = [y0_cod1; y0_cod2];
+                y0_pha = [y0_pha1; y0_pha2];
+            elseif (strcmp(obs_comb,'IONO_FREE'))
+                y0_cod = y0_codIF;
+                y0_pha = y0_phaIF;
+            end
         else
-            if (phase == 1)
+            if (frequencies == 1)
                 y0_cod = y0_cod1;
                 y0_pha = y0_pha1;
             else
@@ -723,21 +750,25 @@ if (nsat >= min_nsat)
         
         %multiplication by the code variance and the phase variance to build the matrix
         if ~isempty(p)
-            if (length(phase) == 2)
-                Cnn = [sigmaq_cod1*Q(:,:) Z_n_n(:,:) Z_n_n(:,p) Z_n_n(:,p); Z_n_n(:,:) sigmaq_cod2*Q(:,:) Z_n_n(:,p) Z_n_n(:,p);
-                    Z_n_n(p,:) Z_n_n(p,:) sigmaq_ph*Q(p,p) Z_n_n(p,p); Z_n_n(p,:) Z_n_n(p,:) Z_n_n(p,p) sigmaq_ph*Q(p,p)];
+            if (length(frequencies) == 2)
+                if (strcmp(obs_comb,'NONE'))
+                    Cnn = [sigmaq_cod1*Q(:,:) Z_n_n(:,:) Z_n_n(:,p) Z_n_n(:,p); Z_n_n(:,:) sigmaq_cod2*Q(:,:) Z_n_n(:,p) Z_n_n(:,p);
+                        Z_n_n(p,:) Z_n_n(p,:) sigmaq_ph*Q(p,p) Z_n_n(p,p); Z_n_n(p,:) Z_n_n(p,:) Z_n_n(p,p) sigmaq_ph*Q(p,p)];
+                elseif (strcmp(obs_comb,'IONO_FREE'))
+                    Cnn = [sigmaq_codIF*Q(:,:) Z_n_n(:,p); Z_n_n(p,:) sigmaq_phIF*Q(p,p)];
+                end
             else
-                if (phase == 1)
+                if (frequencies == 1)
                     Cnn = [sigmaq_cod1*Q(:,:) Z_n_n(:,p); Z_n_n(p,:) sigmaq_ph*Q(p,p)];
                 else
                     Cnn = [sigmaq_cod2*Q(:,:) Z_n_n(:,p); Z_n_n(p,:) sigmaq_ph*Q(p,p)];
                 end
             end
         else
-            if (length(phase) == 2)
+            if (length(frequencies) == 2)
                 Cnn = [sigmaq_cod1*Q Z_n_n; Z_n_n sigmaq_cod2*Q];
             else
-                if (phase == 1)
+                if (frequencies == 1)
                     Cnn = sigmaq_cod1*Q;
                 else
                     Cnn = sigmaq_cod2*Q;
@@ -752,7 +783,7 @@ if (nsat >= min_nsat)
         % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
         %------------------------------------------------------------------------------------
                
-        search_for_outlier = 1;
+        search_for_outlier = 0;
         
         sat_np = sat(sat~=pivot);
         sat_pr_np = sat_pr(sat_pr~=pivot);
@@ -885,8 +916,18 @@ else
 end
 
 if exist('y0_residuals','var') && exist('sat_np','var')
-    X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np]);
-    residuals_float([sat_pr_np;nSatTot+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np])*X_est;
+    if (length(frequencies) == 2)
+        if (strcmp(obs_comb,'NONE'))
+            X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np;o3+nSatTot+sat_np]);
+            residuals_float([sat_pr_np;nSatTot+sat_pr_np;nSatTot*2+sat_np;nSatTot*3+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np;o3+nSatTot+sat_np])*X_est;
+        elseif (strcmp(obs_comb,'IONO_FREE'))
+            X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np;o3+nSatTot+sat_np]);
+            residuals_float([sat_pr_np;nSatTot*2+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np;o3+nSatTot+sat_np])*X_est;
+        end
+    else
+        X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np]);
+        residuals_float([sat_pr_np;nSatTot*2+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np])*X_est;
+    end
 end
 
 %--------------------------------------------------------------------------------------------
@@ -926,9 +967,19 @@ if exist('y0_residuals','var')
             %y0_residuals(pos_cov_zero) = []; % why also on codes?
             %H1_residuals(pos_cov_zero,:) = [];
     end
-  
-    X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np]);
-    residuals_fixed([sat_pr_np;nSatTot+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np])*X_est;
+
+    if (length(frequencies) == 2)
+        if (strcmp(obs_comb,'NONE'))
+            X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np;o3+nSatTot+sat_np]);
+            residuals_fixed([sat_pr_np;nSatTot+sat_pr_np;nSatTot*2+sat_np;nSatTot*3+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np;o3+nSatTot+sat_np])*X_est;
+        elseif (strcmp(obs_comb,'IONO_FREE'))
+            X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np;o3+nSatTot+sat_np]);
+            residuals_fixed([sat_pr_np;nSatTot*2+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np;o3+nSatTot+sat_np])*X_est;
+        end
+    else
+        X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat_np]);
+        residuals_fixed([sat_pr_np;nSatTot*2+sat_np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat_np])*X_est;
+    end
 end
 
 %--------------------------------------------------------------------------------------------
