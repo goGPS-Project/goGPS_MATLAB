@@ -72,7 +72,7 @@ if (mode == 14 & mode_vinc == 1)
     hour_str = num2str(hour,'%03d');                                    %hour index (string)
     d = dir([fileroot '_kal_' hour_str '.bin']);                        %file to be read
     while ~isempty(d)
-        fprintf(['Reading: ' fileroot '_kal_' hour_str '.bin\n']);
+        fprintf('%s',['Reading: ' fileroot '_kal_' hour_str '.bin']); fprintf('\n');
         num_bytes = d.bytes;                                            %file size (number of bytes)
         num_words = num_bytes / 8;                                      %file size (number of words)
         dim_packs = (o1+nN)+3+(o1+nN)^2;                                %packets size
@@ -99,7 +99,7 @@ else
     hour_str = num2str(hour,'%03d');                                    %hour index (string)
     d = dir([fileroot '_kal_' hour_str '.bin']);                        %file to be read
     while ~isempty(d)
-        fprintf(['Reading: ' fileroot '_kal_' hour_str '.bin\n']);
+        fprintf('%s',['Reading: ' fileroot '_kal_' hour_str '.bin']); fprintf('\n');
         num_bytes = d.bytes;                                            %file size (number of bytes)
         num_words = num_bytes / 8;                                      %file size (number of words)
         dim_packs = (o3+nN)+(o3+nN)^2;                                  %packets size
@@ -136,7 +136,7 @@ hour = 0;                                                           %hour index 
 hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([fileroot '_sat_' hour_str '.bin']);                        %file to be read
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_sat_' hour_str '.bin\n']);
+    fprintf('%s',['Reading: ' fileroot '_sat_' hour_str '.bin']); fprintf('\n');
     fid_sat = fopen([fileroot '_sat_' hour_str '.bin'],'r+');       %file opening
     num_sat = fread(fid_sat,1,'int8');                              %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
@@ -180,7 +180,7 @@ hour = 0;                                                           %hour index 
 hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([fileroot '_dop_' hour_str '.bin']);                        %file to be read
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_dop_' hour_str '.bin\n']);
+    fprintf('%s',['Reading: ' fileroot '_dop_' hour_str '.bin']); fprintf('\n');
     num_bytes = d.bytes;                                            %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
     num_packs = num_words / 6;                                      %file size (number of packets)
@@ -220,7 +220,7 @@ hour = 0;                                                           %hour index 
 hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([fileroot '_conf_' hour_str '.bin']);                       %file to be read
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_conf_' hour_str '.bin\n']);
+    fprintf('%s',['Reading: ' fileroot '_conf_' hour_str '.bin']); fprintf('\n');
     fid_conf = fopen([fileroot '_conf_' hour_str '.bin'],'r+');     %file opening
     num_sat = fread(fid_conf,1,'int8');                             %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
@@ -255,7 +255,7 @@ hour = 0;                                                           %hour index 
 hour_str = num2str(hour,'%03d');                                    %hour index (string)
 d = dir([fileroot '_res_' hour_str '.bin']);                        %file to be read
 while ~isempty(d)
-    fprintf(['Reading: ' fileroot '_res_' hour_str '.bin\n']);
+    fprintf('%s',['Reading: ' fileroot '_res_' hour_str '.bin']); fprintf('\n');
     fid_sat = fopen([fileroot '_res_' hour_str '.bin'],'r+');       %file opening
     num_sat = fread(fid_sat,1,'int8');                              %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)

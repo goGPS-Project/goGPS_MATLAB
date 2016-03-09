@@ -464,8 +464,10 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %compute sun and moon position
-                fprintf('Computing Sun and Moon position...');
-                [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
+                %fprintf('Computing Sun and Moon position...');
+                %[X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
+                fprintf('Computing Sun position...');
+                X_sun = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
                 fprintf(' done\n');
                 
                 %store the position of the Sun
