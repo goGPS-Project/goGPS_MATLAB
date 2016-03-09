@@ -103,9 +103,9 @@ if (~flag_SP3)
     end
     
     if (constellations.BeiDou.enabled)
-        if (exist([filename(1:end-1) 'b'],'file'))
+        if (exist([filename(1:end-1) 'c'],'file'))
             %parse RINEX navigation file (BeiDou)
-            [Eph_C, iono_C] = RINEX_get_nav([filename(1:end-1) 'b'], constellations);
+            [Eph_C, iono_C] = RINEX_get_nav([filename(1:end-1) 'c'], constellations);
         elseif (~flag_mixed)
             fprintf('... WARNING: BeiDou navigation file not found. Disabling BeiDou positioning. \n');
             constellations.BeiDou.enabled = 0;

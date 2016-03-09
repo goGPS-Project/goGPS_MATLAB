@@ -16,13 +16,16 @@ function download_igs(gpsweek, dow, items, path_download)
 %   corresponding to gpsweek and dow.
 %	items is a vector filled with 1 (download) - 0 (don't download) as
 %	follows:
-%   items =  [igswwwwd.sp3              IGS final orbits           
-%             igrwwwwd.sp3              IGS rapid orbtis           
+%   items =  [igswwwwd.sp3              IGS final orbits
+%             igswwwwd.clk              IGS final clocks
+%             igswwwwd.clk_30s          IGS final clocks (30 sec)
+%             igswwww7.erp              IGS Earth rotation parameters
+%             igrwwwwd.sp3              IGS rapid orbits           
 %             iguwwwwd_00.sp3           IGS ultrarapid orbits 00   
 %             iguwwwwd_06.sp3           IGS ultrarapid orbits 06   
 %             iguwwwwd_12.sp3           IGS ultrarapid orbits 12   
 %             iguwwwwd_18.sp3]          IGS ultrarapid orbits 18
-%   e.g. items=[1 0 0 0 0 0] to download final orbits only
+%   e.g. items=[1 0 0 0 0 0 0 0 0] to download final orbits only
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -50,11 +53,14 @@ else
     
     items_filename={};
     items_filename{1}=sprintf('igs%04d%d.sp3.Z',gpsweek,dow);
-    items_filename{2}=sprintf('igr%04d%d.sp3.Z',gpsweek,dow);
-    items_filename{3}=sprintf('igu%04d%d_00.sp3.Z',gpsweek,dow);
-    items_filename{4}=sprintf('igu%04d%d_06.sp3.Z',gpsweek,dow);
-    items_filename{5}=sprintf('igu%04d%d_12.sp3.Z',gpsweek,dow);
-    items_filename{6}=sprintf('igu%04d%d_18.sp3.Z',gpsweek,dow);    
+    items_filename{2}=sprintf('igs%04d%d.clk.Z',gpsweek,dow);
+    items_filename{3}=sprintf('igs%04d%d.clk_30s.Z',gpsweek,dow);
+    items_filename{4}=sprintf('igs%04d7.erp.Z',gpsweek);
+    items_filename{5}=sprintf('igr%04d%d.sp3.Z',gpsweek,dow);
+    items_filename{6}=sprintf('igu%04d%d_00.sp3.Z',gpsweek,dow);
+    items_filename{7}=sprintf('igu%04d%d_06.sp3.Z',gpsweek,dow);
+    items_filename{8}=sprintf('igu%04d%d_12.sp3.Z',gpsweek,dow);
+    items_filename{9}=sprintf('igu%04d%d_18.sp3.Z',gpsweek,dow);    
 
     items_status=items-1;   % -1: not to be donwloaded, 0: not found, 1: downloaded
     

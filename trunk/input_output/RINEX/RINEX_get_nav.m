@@ -253,6 +253,10 @@ while (~feof(fid))
         code_on_L2 = str2num(lin6(o+[23:41]));
         weekno     = str2num(lin6(o+[42:60]));
         L2flag     = str2num(lin6(o+[61:79]));
+        
+        if (isempty(code_on_L2))
+            code_on_L2 = 0;
+        end
         if (isempty(L2flag))
             L2flag = 0;
         end
