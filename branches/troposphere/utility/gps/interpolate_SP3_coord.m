@@ -56,12 +56,15 @@ b = SP3_time(p) - time;
 pos_S = zeros(3,1);
 
 %extract the SP3 coordinates
-SP3_X = []; SP3_Y = []; SP3_Z = [];
-for i = -n/2 : n/2
-    SP3_X = [SP3_X SP3_coord(1,p+i)];
-    SP3_Y = [SP3_Y SP3_coord(2,p+i)];
-    SP3_Z = [SP3_Z SP3_coord(3,p+i)];
-end
+% SP3_X = []; SP3_Y = []; SP3_Z = [];
+% for i = -n/2 : n/2
+%     SP3_X = [SP3_X SP3_coord(1,p+i)];
+%     SP3_Y = [SP3_Y SP3_coord(2,p+i)];
+%     SP3_Z = [SP3_Z SP3_coord(3,p+i)];
+% end
+SP3_X = SP3_coord(1,p+(-n/2:n/2));
+SP3_Y = SP3_coord(2,p+(-n/2:n/2));
+SP3_Z = SP3_coord(3,p+(-n/2:n/2));
 
 x = 1 : n+1;
 

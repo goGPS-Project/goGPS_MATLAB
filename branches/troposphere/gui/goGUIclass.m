@@ -3217,12 +3217,13 @@ classdef goGUIclass < handle
             sigmaq_vel = str2double(get(obj.goh.std_vel,'String'))^2;
             sigmaq_cod1 = str2double(get(obj.goh.std_code,'String'))^2;
             sigmaq_cod2 = 0.16;
-            sigmaq_codIF = 0.4^2; %TO BE CHANGED
+            sigmaq_codIF = 1.2^2;
             if (get(obj.goh.toggle_std_phase,'Value'))
                 sigmaq_ph = str2double(get(obj.goh.std_phase,'String'))^2;
-                sigmaq_phIF = 0.003^2; %TO BE CHANGED
+                sigmaq_phIF = 0.009^2;
             else
                 sigmaq_ph = 1e30;
+                sigmaq_phIF = 1e30;
             end
             sigmaq0_N = 1000;
             if (get(obj.goh.toggle_std_dtm,'Value'))

@@ -4,9 +4,9 @@ function [ZHD] = saast_dry(P, H, lat)
 %   [ZHD] = saast_dry(P, H, lat);
 %
 % INPUT:
-%   P = atmospheric pressure
-%   H = orthometric height
-%   lat = latitude
+%   P = atmospheric pressure [hPa]
+%   H = orthometric height [m]
+%   lat = latitude [deg]
 %
 % OUTPUT:
 %   ZHD = Zenith Hydrostatic Delay

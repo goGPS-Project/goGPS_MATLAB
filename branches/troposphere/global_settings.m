@@ -101,13 +101,13 @@ sigmaq_vel = 0.1^2;
 %variance of code observations [m^2]
 sigmaq_cod1 = 0.3^2;
 sigmaq_cod2 = 0.4^2;
-sigmaq_codIF = 0.4^2; %TO BE CHANGED
+sigmaq_codIF = 1.2^2;
 
 %variance of phase observations [m^2]
 %(maximize to obtain a code-based solution)
 sigmaq_ph = 0.003^2;
 % sigmaq_ph = 0.001e30;
-sigmaq_phIF = 0.003^2; %TO BE CHANGED
+sigmaq_phIF = 0.009^2;
 
 %variance of a priori ambiguity combinations [cycles]
 sigmaq0_N = 1000;

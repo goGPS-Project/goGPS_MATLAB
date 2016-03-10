@@ -20,7 +20,7 @@ xp = 171209e-6; yp = 414328e-6;
 %if the binary JPL ephemeris file is not available, generate it
 if (~exist('./utility/sun_moon/jpl_ephem/de421.bin','file'))
     fprintf('Warning: file "de421.bin" not found in directory ./utility/sun_moon/jpl_ephem/ ... generating a new "de421.bin" file\n')
-    fprintf('         (this procedure should be done only once on each machine):\n')
+    fprintf('         (this procedure may take a while, but it will be done only once on each installation):\n')
     fprintf('-------------------------------------------------------------------\n\n')
     asc2eph(421, {'ascp1900.421', 'ascp2050.421'}, './utility/sun_moon/jpl_ephem/de421.bin');
     fprintf('-------------------------------------------------------------------\n\n')

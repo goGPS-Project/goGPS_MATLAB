@@ -384,8 +384,8 @@ if (nsat >= min_nsat)
                     sat_slip2 = [];
                     sat_slip = [];
                     if (length(frequencies) == 2)
-                        [N1_slip, N1_born, sigmaq_N1_slip, sigmaq_N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot_tmp, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
-                        [N2_slip, N2_born, sigmaq_N2_slip, sigmaq_N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot_tmp, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
+                        [N1_slip, N1_born, sigmaq_N1_slip, sigmaq_N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot_tmp, lambda(sat_pr,1), X_t1_t(o3+sat_pr),         Cee(o3+sat_pr,         o3+sat_pr),         sigmaq_pos_R); %#ok<ASGLU>
+                        [N2_slip, N2_born, sigmaq_N2_slip, sigmaq_N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot_tmp, lambda(sat_pr,2), X_t1_t(o3+nSatTot+sat_pr), Cee(o3+nSatTot+sat_pr, o3+nSatTot+sat_pr), sigmaq_pos_R); %#ok<ASGLU>
                         
                         X_t1_t(o3+sat_born,1) = N1_born;
                         X_t1_t(o3+nSatTot+sat_born,1) = N2_born;
@@ -490,8 +490,8 @@ if (nsat >= min_nsat)
         
         if (check_on || check_cs)
             if (length(frequencies) == 2)
-                [N1_slip, N1_born, sigmaq_N1_slip, sigmaq_N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R);
-                [N2_slip, N2_born, sigmaq_N2_slip, sigmaq_N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot, lambda(sat_pr,2), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), sigmaq_pos_R);
+                [N1_slip, N1_born, sigmaq_N1_slip, sigmaq_N1_born] = ambiguity_init(XR0, XS, pr1_R(sat_pr), pr1_M(sat_pr), ph1_R(sat_pr), ph1_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono1_R, err_iono1_M, pivot, lambda(sat_pr,1), X_t1_t(o3+sat_pr),         Cee(o3+sat_pr, o3+sat_pr),                 sigmaq_pos_R);
+                [N2_slip, N2_born, sigmaq_N2_slip, sigmaq_N2_born] = ambiguity_init(XR0, XS, pr2_R(sat_pr), pr2_M(sat_pr), ph2_R(sat_pr), ph2_M(sat_pr), snr_R(sat_pr), snr_M(sat_pr), elR(sat_pr), elM(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), distM(sat_pr), err_tropo_R, err_tropo_M, err_iono2_R, err_iono2_M, pivot, lambda(sat_pr,2), X_t1_t(o3+nSatTot+sat_pr), Cee(o3+nSatTot+sat_pr, o3+nSatTot+sat_pr), sigmaq_pos_R);
                 
                 if (check_on)
                     X_t1_t(o3+sat_born,1) = N1_born;
@@ -553,11 +553,11 @@ if (nsat >= min_nsat)
             pr1_M(sat_pr)=pr1_M(sat_pr)-PCV1_M;
             ph1_M(sat)=ph1_M(sat)-PCV1_M(index_ph)./lambda(sat,1);
             
-%             if (length(phase) == 2)
-%                 PCV2_M=PCV_interp(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 2, XR0, XS);
-%                 pr2_M(sat_pr)=pr2_M(sat_pr)-PCV2_M;
-%                 ph2_M(sat)=ph2_M(sat)-PCV2_M(index_ph)./lambda(sat,1);
-%             end
+            if (length(frequencies) == 2 || frequencies(1) == 2)
+                PCV2_M=PCV_interp(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 2, XR0, XS);
+                pr2_M(sat_pr)=pr2_M(sat_pr)-PCV2_M;
+                ph2_M(sat)=ph2_M(sat)-PCV2_M(index_ph)./lambda(sat,2);
+            end
         end
         
         if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0) % rover
@@ -566,11 +566,11 @@ if (nsat >= min_nsat)
             pr1_R(sat_pr)=pr1_R(sat_pr)-PCV1_R;
             ph1_R(sat)=ph1_R(sat)-PCV1_R(index_ph)./lambda(sat,1);
             
-%             if (length(phase) == 2)
-%                 PCV2_M=PCV_interp(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 2, XR0, XS);
-%                 pr2_M(sat_pr)=pr2_M(sat_pr)-PCV2_M;
-%                 ph2_M(sat)=ph2_M(sat)-PCV2_M(index_ph)./lambda(sat,1);
-%             end
+            if (length(frequencies) == 2 || frequencies(1) == 2)
+                PCV2_R=PCV_interp(antenna_PCV(index_rover), 90-elM(sat_pr), azM(sat_pr), sys, 2, XR0, XS);
+                pr2_R(sat_pr)=pr2_R(sat_pr)-PCV2_R;
+                ph2_R(sat)=ph2_R(sat)-PCV2_R(index_ph)./lambda(sat,2);
+            end
         end        
         
         %when the tropospheric delay is being estimated, only its hydrostatic part is removed from the observations
@@ -585,10 +585,10 @@ if (nsat >= min_nsat)
             %humidity = goGNSS.STD_HUMI;
             
             [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
-            ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app);
+            ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
 
             [pres_M, temp_M, undu_M] = gpt(mjd, phiM, lamM, hM); %#ok<ASGLU>
-            ZHD_M = saast_dry(pres_M, hM - undu_M, phiM);
+            ZHD_M = saast_dry(pres_M, hM - undu_M, phiM*180/pi);
             
             gmfh_R = zeros(size(err_tropo_R));
             gmfw_R = zeros(size(err_tropo_R));
@@ -644,8 +644,8 @@ if (nsat >= min_nsat)
         end
         
         %lambda slot computation
-        L_pha1  = zeros(n,nSatTot);
-        L_pha2  = zeros(n,nSatTot);
+        L_pha1   = zeros(n,nSatTot);
+        L_pha2   = zeros(n,nSatTot);
         L_phaIF1 = zeros(n,nSatTot);
         L_phaIF2 = zeros(n,nSatTot);
         v = 1;
@@ -697,14 +697,14 @@ if (nsat >= min_nsat)
         H = [H_cod; H_pha; H_dtm];
         
         %Y0 vector computation for the code
-        y0_cod1  = probs_pr1 - prapp_pr1 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
-        y0_cod2  = probs_pr2 - prapp_pr2 + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
+        y0_cod1  = probs_pr1  - prapp_pr1  + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
+        y0_cod2  = probs_pr2  - prapp_pr2  + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
         y0_codIF = probs_prIF - prapp_prIF + alpha(:,1)*X_app + alpha(:,2)*Y_app + alpha(:,3)*Z_app;
         
         %Y0 vector computation for the phase
         if ~isempty(p)
-            y0_pha1  = probs_ph1(p) - prapp_ph1(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
-            y0_pha2  = probs_ph2(p) - prapp_ph2(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+            y0_pha1  = probs_ph1(p)  - prapp_ph1(p)  + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+            y0_pha2  = probs_ph2(p)  - prapp_ph2(p)  + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
             y0_phaIF = probs_phIF(p) - prapp_phIF(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
         else
             y0_pha1  = [];
@@ -766,7 +766,11 @@ if (nsat >= min_nsat)
             end
         else
             if (length(frequencies) == 2)
-                Cnn = [sigmaq_cod1*Q Z_n_n; Z_n_n sigmaq_cod2*Q];
+                if (strcmp(obs_comb,'NONE'))
+                    Cnn = [sigmaq_cod1*Q Z_n_n; Z_n_n sigmaq_cod2*Q];
+                elseif (strcmp(obs_comb,'IONO_FREE'))
+                    Cnn = [sigmaq_codIF*Q Z_n_n; Z_n_n sigmaq_phIF*Q];
+                end
             else
                 if (frequencies == 1)
                     Cnn = sigmaq_cod1*Q;
@@ -783,13 +787,25 @@ if (nsat >= min_nsat)
         % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
         %------------------------------------------------------------------------------------
                
-        search_for_outlier = 0;
+        search_for_outlier = 1;
         
         sat_np = sat(sat~=pivot);
         sat_pr_np = sat_pr(sat_pr~=pivot);
 
-        index_residuals_outlier=[sat_pr_np;nSatTot+sat_np];  %[code;phase]
-        
+        if (length(frequencies) == 2)
+            if (strcmp(obs_comb,'NONE'))
+                index_residuals_outlier=[sat_pr_np;nSatTot+sat_pr_np;nSatTot*2+sat_np;nSatTot*3+sat_np];  %[code;phase]
+            elseif (strcmp(obs_comb,'IONO_FREE'))
+                index_residuals_outlier=[sat_pr_np;nSatTot*2+sat_np];  %[code;phase]
+            end
+        else
+            if (frequencies == 1)
+                index_residuals_outlier=[sat_pr_np;nSatTot*2+sat_np];  %[code;phase]
+            else
+                index_residuals_outlier=[sat_pr_np;nSatTot*2+sat_np];  %[code;phase]
+            end
+        end
+
         if (h_dtm ~= tile_header.nodata)
             y0_residuals=y0(1:end-1);
             H1_residuals=H(1:end-1,:);
@@ -803,7 +819,22 @@ if (nsat >= min_nsat)
         end
 
         if (~isempty(sat_np))
-            y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+lambda(sat_np,1).*X_t1_t(o3+sat_np); %add predicted ambiguity to y0
+            if (length(frequencies) == 2)
+                if (strcmp(obs_comb,'NONE'))
+                    y0_noamb(length(sat_pr_np)*2+               (1:length(sat_np)))=y0_noamb(length(sat_pr_np)*2+               (1:length(sat_np)))+lambda(sat_np,1).*X_t1_t(o3+        sat_np); %add predicted ambiguity to y0 (L1)
+                    y0_noamb(length(sat_pr_np)*2+length(sat_np)+(1:length(sat_np)))=y0_noamb(length(sat_pr_np)*2+length(sat_np)+(1:length(sat_np)))+lambda(sat_np,2).*X_t1_t(o3+nSatTot+sat_np); %add predicted ambiguity to y0 (L2)
+                elseif (strcmp(obs_comb,'IONO_FREE'))
+                    alpha1 = goGNSS.F1^2/(goGNSS.F1^2-goGNSS.F2^2);
+                    alpha2 = goGNSS.F2^2/(goGNSS.F1^2-goGNSS.F2^2);
+                    y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+(alpha1*lambda(sat_np,1).*X_t1_t(o3+sat_np) - alpha2*lambda(sat_np,2).*X_t1_t(o3+nSatTot+sat_np)); %add predicted ambiguity to y0 (IF)
+                end
+            else
+                if (frequencies == 1)
+                    y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+lambda(sat_np,1).*X_t1_t(o3+sat_np); %add predicted ambiguity to y0 (L1)
+                else
+                    y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+lambda(sat_np,2).*X_t1_t(o3+sat_np); %add predicted ambiguity to y0 (L2)
+                end
+            end
         end
 
         % decomment to use only phase

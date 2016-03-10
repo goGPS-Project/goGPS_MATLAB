@@ -768,11 +768,11 @@ d = n/2;
 yi = zeros(size(y));
 for t = 1 : length(x)
     if (t<=d)
-        yi(t) = LagrangeInter(x(1:n), y(1:n), xi(t));
+        yi(t) = LagrangeInter(x(1:n)', y(1:n), xi(t));
     elseif (t>(length(x)-d))
-        yi(t) = LagrangeInter(x(end-d-1:end), y(end-d-1:end), xi(t));
+        yi(t) = LagrangeInter(x(end-d-1:end)', y(end-d-1:end), xi(t));
     else
-        yi(t) = LagrangeInter(x(t-d:t+d), y(t-d:t+d), xi(t));
+        yi(t) = LagrangeInter(x(t-d:t+d)', y(t-d:t+d), xi(t));
     end
 end
 end
