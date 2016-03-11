@@ -3344,6 +3344,10 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
     %display information
     fprintf('Writing report file (PDF)...\n');
 
+    if (mode == goGNSS.MODE_PP_KF_CP_SA)
+        dtR = Xhat_t_t(end,:)./goGNSS.V_LIGHT;
+    end
+    
     if (exist('dtR','var'))
         f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
         paperSize = get(f,'PaperSize');

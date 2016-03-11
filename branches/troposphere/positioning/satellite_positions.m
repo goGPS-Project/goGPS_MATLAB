@@ -1,7 +1,7 @@
-function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR)
+function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb)
 
 % SYNTAX:
-%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR);
+%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -13,6 +13,8 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions
 %   err_tropo   = tropospheric delays
 %   err_iono    = ionospheric delays
 %   dtR         = receiver clock offset
+%   frequencies = L1 carrier (phase=1), L2 carrier (phase=2)
+%   obs_comb    = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %
 % OUTPUT:
 %   XS      = satellite position at transmission time in ECEF(time_rx) (X,Y,Z)
@@ -69,7 +71,7 @@ for i = 1 : nsat
     end
     
     %compute signal transmission time
-    [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3, sbas, err_tropo(i), err_iono(i), dtR);
+    [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3, sbas, err_tropo(i), err_iono(i), dtR, frequencies, obs_comb);
 
     if (isempty(time_tx(i,1)) || isnan(time_tx(i,1)))
         no_eph(i) = 1;
@@ -94,11 +96,25 @@ for i = 1 : nsat
         dtS(i,1) = dtS(i,1) + dtrel;
 
         %group delay correction term
-        tgd = 1/(1-((goGNSS.F1/goGNSS.F2)^2))*SP3.DCB.P1P2.value(sat(i),1)*1e-9;
-        time_tx(i,1) = time_tx(i,1) + tgd;
-        dtS(i,1) = dtS(i,1) - tgd;
+        if (nargin > 9 && ~strcmp(obs_comb,'IONO_FREE'))
+            gamma = (goGNSS.F1/goGNSS.F2)^2;
+            tgd = 1/(1-gamma)*SP3.DCB.P1P2.value(sat(i),1)*1e-9;
+            if (length(frequencies) == 2)
+                time_tx(i,1) = time_tx(i,1) + tgd;
+                dtS(i,1) = dtS(i,1) - tgd;
+                %dtS(i,2) = dtS(i,1) - gamma*tgd; <--- TO BE DONE!
+            else
+                if (frequencies(1) == 1)
+                    time_tx(i,1) = time_tx(i,1) + tgd;
+                    dtS(i,1) = dtS(i,1) - tgd;
+                else
+                    time_tx(i,1) = time_tx(i,1) + gamma*tgd;
+                    dtS(i,1) = dtS(i,1) - gamma*tgd;
+                end
+            end
+        end
         
-        %second iteration for taking into account the relativistic effect
+        %second iteration for taking into account the relativistic effect and group delay corrections
         [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
         
         %detect satellite constellation

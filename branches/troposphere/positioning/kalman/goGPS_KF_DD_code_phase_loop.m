@@ -29,7 +29,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_DD_code_phase_l
 %   iono =  ionospheric parameters (vector of zeroes if not available)
 %   lambda = wavelength matrix (depending on the enabled constellations)
 %   frequencies = L1 carrier (phase=1), L2 carrier (phase=2), L1&L2 (phase=[1 2])
-%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IF')
+%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   dtMdot = master receiver clock drift
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %   flag_tropo = boolean variable to enable/disable tropospheric delay estimation

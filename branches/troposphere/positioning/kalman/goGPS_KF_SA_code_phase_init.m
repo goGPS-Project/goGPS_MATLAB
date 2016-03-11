@@ -19,7 +19,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %   sbas = SBAS corrections
 %   lambda = wavelength matrix (depending on the enabled constellations)
 %   frequencies = L1 carrier (phase=1) L2 carrier (phase=2)
-%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IF')
+%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %   flag_tropo = boolean variable to enable/disable tropospheric delay estimation
 %
@@ -52,7 +52,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %----------------------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq0_N sigmaq0_tropo zero_time
-global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN nT
+global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN nT nC
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
 global azR elR distR azM elM distM
@@ -99,6 +99,12 @@ end
 nT = 1;
 
 %--------------------------------------------------------------------------------------------
+% NUMBER OF CLOCK PARAMETERS
+%--------------------------------------------------------------------------------------------
+
+nC = 1;
+
+%--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL
 %--------------------------------------------------------------------------------------------
 
@@ -107,13 +113,19 @@ Z_nN_o1 = zeros(nN,o1);
 Z_o1_nN = zeros(o1,nN);
 Z_nT_nN = zeros(nT,nN);
 Z_nN_nT = zeros(nN,nT);
+Z_nC_nN = zeros(nC,nN);
+Z_nN_nC = zeros(nN,nC);
 Z_nT_o1 = zeros(nT,o1);
 Z_o1_nT = zeros(o1,nT);
+Z_nC_o1 = zeros(nC,o1);
+Z_o1_nC = zeros(o1,nC);
+Z_nT_nC = zeros(nT,nC);
+Z_nC_nT = zeros(nC,nT);
 Z_o1_o1 = zeros(o1);
 
 %T matrix construction - system dynamics
 %position and velocity equations
-T0 = eye(o1) + diag(ones(o1-1,1),1)*interval;
+D0 = eye(o1) + diag(ones(o1-1,1),1)*interval;
 
 %second degree polynomial
 % T0 = [1 1; 0 1];
@@ -124,7 +136,10 @@ T0 = eye(o1) + diag(ones(o1-1,1),1)*interval;
 N0 = eye(nN);
 
 %matrix structure of tropospheric parameters
-TT = eye(nT);
+T0 = eye(nT);
+
+%matrix structure of clock parameters
+C0 = eye(nC);
 
 %system dynamics
 %X(t+1)  = X(t) + Vx(t)
@@ -132,14 +147,15 @@ TT = eye(nT);
 %... <-- for the other two variables Y e Z
 %comb_N(t+1) = comb_N(t)
 
-T = [T0      Z_o1_o1 Z_o1_o1 Z_o1_nN Z_o1_nT;
-     Z_o1_o1 T0      Z_o1_o1 Z_o1_nN Z_o1_nT;
-     Z_o1_o1 Z_o1_o1 T0      Z_o1_nN Z_o1_nT;
-     Z_nN_o1 Z_nN_o1 Z_nN_o1 N0      Z_nN_nT;
-     Z_nT_o1 Z_nT_o1 Z_nT_o1 Z_nT_nN TT];
+T = [D0      Z_o1_o1 Z_o1_o1 Z_o1_nN Z_o1_nT Z_o1_nC;
+     Z_o1_o1 D0      Z_o1_o1 Z_o1_nN Z_o1_nT Z_o1_nC;
+     Z_o1_o1 Z_o1_o1 D0      Z_o1_nN Z_o1_nT Z_o1_nC;
+     Z_nN_o1 Z_nN_o1 Z_nN_o1 N0      Z_nN_nT Z_nN_nC;
+     Z_nT_o1 Z_nT_o1 Z_nT_o1 Z_nT_nN T0      Z_nT_nC
+     Z_nC_o1 Z_nC_o1 Z_nC_o1 Z_nC_nN Z_nC_nT C0];
 
 %construction of an identity matrix
-I = eye(o3+nN+nT);
+I = eye(o3+nN+nT+nC);
 
 %--------------------------------------------------------------------------------------------
 % SATELLITE SELECTION
@@ -203,8 +219,12 @@ if (length(sat_pr) >= min_nsat_LS)
 
     sat_pr_old = sat_pr;
 
-    if (frequencies == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
+    if (frequencies(1) == 1)
+        if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
+        else
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
+        end
         
         err_iono2 = err_iono1 .* ionoFactor(sat_pr,2);
     else
@@ -297,7 +317,7 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, sys, lambda(sat_pr,1)); %#ok<ASGLU>
+        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, sys, lambda(sat_pr,1));
         [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, sys, lambda(sat_pr,2));
     end
     
@@ -339,25 +359,24 @@ else
 end
 
 %a-priori tropospheric delay
-% if (flag_tropo)
-%     
-%     [week, sow] = time2weektow(time_rx + zero_time);
-%     date = gps2date(week, sow);
-%     [~, mjd] = date2jd(date);
-%     
-%     [phi_R, lam_R, h_R] = cart2geod(XR(1), XR(2), XR(3));
-% 
-%     %ZTD = tropo_error_correction(90, h);
-%     %ZTD = saast_dry(goGNSS.STD_PRES, H, phi) + saast_wet(goGNSS.STD_TEMP, H); %H here is orthometric
-% 
-%     [pressure_R, temperature_R, undu_R] = gpt(mjd, phi_R, lam_R, h_R); %#ok<ASGLU>
-%     ZWD_R = saast_wet(temperature_R, goGNSS.STD_HUMI, h_R - undu_R);
-% else
+if (flag_tropo)
+    [week, sow] = time2weektow(time_rx + zero_time);
+    date = gps2date(week, sow);
+    [~, mjd] = date2jd(date);
+    
+    [phi_R, lam_R, h_R] = cart2geod(XR(1), XR(2), XR(3));
+
+    %ZTD = tropo_error_correction(90, h);
+    %ZTD = saast_dry(goGNSS.STD_PRES, H, phi) + saast_wet(goGNSS.STD_TEMP, H); %H here is orthometric
+
+    [pressure_R, temperature_R, undu_R] = gpt(mjd, phi_R, lam_R, h_R); %#ok<ASGLU>
+    ZWD_R = saast_wet(temperature_R, goGNSS.STD_HUMI, h_R - undu_R);
+else
     ZWD_R = 0;
-% end
+end
 
 %initialization of the state vector
-Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; ZWD_R];
+Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; ZWD_R; goGNSS.V_LIGHT*dtR];
 
 %state update at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
@@ -368,7 +387,7 @@ X_t1_t = T*Xhat_t_t;
 %--------------------------------------------------------------------------------------------
 
 %initial state covariance matrix
-Cee(:,:) = zeros(o3+nN);
+Cee(:,:) = zeros(o3+nN+nT+nC);
 Cee(1,1) = sigma2_XR(1);
 Cee(o1+1,o1+1) = sigma2_XR(2);
 Cee(o2+1,o2+1) = sigma2_XR(3);
@@ -377,6 +396,7 @@ Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
 Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);
 Cee(o3+nN+1:o3+nN+nT,o3+nN+1:o3+nN+nT) = sigmaq0_tropo * eye(nT);
+Cee(o3+nN+nT+1:o3+nN+nT+nC,o3+nN+nT+1:o3+nN+nT+nC) = goGNSS.V_LIGHT^2*var_dtR * eye(nC);
 
 %--------------------------------------------------------------------------------------------
 % INTEGER AMBIGUITY SOLVING BY LAMBDA METHOD
