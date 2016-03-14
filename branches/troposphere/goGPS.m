@@ -602,8 +602,9 @@ if goGNSS.isPP(mode) % post-processing
             Eph(32,:) = Eph(32,:) - zero_time;
             Eph(33,:) = Eph(33,:) - zero_time;
             if (flag_SP3)
-                SP3.time  = SP3.time - zero_time;
-                SP3.t_sun = SP3.t_sun - zero_time;
+                SP3.time    = SP3.time - zero_time;
+                SP3.time_hr = SP3.time_hr - zero_time;
+                SP3.t_sun   = SP3.t_sun - zero_time;
             end
             
             for f = 1 : size(time_R,3)
@@ -965,8 +966,9 @@ if goGNSS.isPP(mode) % post-processing
                 Eph(32,:) = Eph(32,:) - zero_time;
                 Eph(33,:) = Eph(33,:) - zero_time;
                 if (flag_SP3)
-                    SP3.time  = SP3.time - zero_time;
-                    SP3.t_sun = SP3.t_sun - zero_time;
+                    SP3.time    = SP3.time - zero_time;
+                    SP3.time_hr = SP3.time_hr - zero_time;
+                    SP3.t_sun   = SP3.t_sun - zero_time;
                 end
                 
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, nSatTot, goWB, flag_XR, sbas);
@@ -3191,8 +3193,9 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     Eph(32,:) = Eph(32,:) + zero_time;
     Eph(33,:) = Eph(33,:) + zero_time;
     if (flag_SP3)
-        SP3.time  = SP3.time + zero_time;
-        SP3.t_sun = SP3.t_sun + zero_time;
+        SP3.time    = SP3.time + zero_time;
+        SP3.time_hr = SP3.time_hr + zero_time;
+        SP3.t_sun   = SP3.t_sun + zero_time;
     end
     
     %---------------------------------

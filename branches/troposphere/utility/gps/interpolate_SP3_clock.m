@@ -34,11 +34,15 @@ function [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-SP3_time = SP3.time;
-SP3_clock = SP3.clock(sat,:);
+if (isempty(SP3.clock_hr))
+    SP3_time = SP3.time;
+    SP3_clock = SP3.clock(sat,:);
+else
+    SP3_time = SP3.time_hr;
+    SP3_clock = SP3.clock_hr(sat,:);
+end
 
-%number of seconds in a quarter of an hour
-quarter_sec = 900;
+interval = SP3.clock_rate;
 
 %find the SP3 epoch closest to the interpolation time
 [~, p] = min(abs(SP3_time - time));
@@ -48,10 +52,10 @@ b = SP3_time(p) - time;
 %extract the SP3 clocks
 if (b>0)
     SP3_c = [SP3_clock(p-1) SP3_clock(p)];
-    u = 1 - b/quarter_sec;
+    u = 1 - b/interval;
 else
     SP3_c = [SP3_clock(p) SP3_clock(p+1)];
-    u = -b/quarter_sec;
+    u = -b/interval;
 end
 
 dt_S_SP3  = NaN;
