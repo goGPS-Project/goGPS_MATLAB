@@ -62,7 +62,7 @@ global tile_header tile_georef dtm_dir
 global h_antenna zero_time
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old
-global azR elR distR azM elM distM
+global azR elR distR azM elM distM phwindup
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
@@ -306,6 +306,9 @@ if (nsat >= min_nsat)
     end
     %pivot = find(elR == max(elR));
     
+    %apply phase wind-up correction
+    [ph1(sat), ph2(sat), phwindup(sat,1)] = phase_windup_correction(time_rx, XR0, XS, ph1(sat), ph2(sat), SP3, phwindup(sat,1));
+    
     %if the number of available satellites after the cutoffs is equal or greater than min_nsat
     if (nsat >= min_nsat)
         
@@ -340,6 +343,8 @@ if (nsat >= min_nsat)
                     X_t1_t(o3+sat_dead,1) = N2;
                 end
             end
+            
+            phwindup(sat_dead,1) = 0;
         end
         
         %search for a new satellite
@@ -418,12 +423,16 @@ if (nsat >= min_nsat)
                     conf_cs(sat_slip1) = 1;
                     X_t1_t(o3+sat_slip1) = N1_slip;
                     Cvv(o3+sat_slip1,o3+sat_slip1) = sigmaq0_N * eye(size(sat_slip1,1));
+                    
+                    phwindup(sat_slip1,1) = 0;
                 end
                 
                 if (check_cs2)
                     conf_cs(sat_slip2) = 1;
                     X_t1_t(o3+nSatTot+sat_slip2) = N2_slip;
                     Cvv(o3+nSatTot+sat_slip2,o3+nSatTot+sat_slip2) = sigmaq0_N * eye(size(sat_slip2,1));
+                    
+                    phwindup(sat_slip2,1) = 0;
                 end
             elseif (strcmp(obs_comb,'IONO_FREE'))
                 
@@ -439,6 +448,8 @@ if (nsat >= min_nsat)
                     conf_cs(sat_slip) = 1;
                     X_t1_t(o3+sat_slip) = N_slip;
                     Cvv(o3+sat_slip,o3+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));
+                    
+                    phwindup(sat_slip,1) = 0;
                 end
             end
         else
@@ -458,6 +469,8 @@ if (nsat >= min_nsat)
                 conf_cs(sat_slip) = 1;
                 X_t1_t(o3+sat_slip) = N_slip;
                 Cvv(o3+sat_slip,o3+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));
+                
+                phwindup(sat_slip,1) = 0;
             end
             
         end

@@ -55,7 +55,7 @@ global sigmaq0 sigmaq0_N sigmaq0_tropo zero_time
 global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN nT nC
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
-global azR elR distR azM elM distM
+global azR elR distR azM elM distM phwindup
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
@@ -80,6 +80,9 @@ distR = zeros(nSatTot,1);
 azM = zeros(nSatTot,1);
 elM = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
+
+%phase wind-up matrix initialization
+phwindup = zeros(nSatTot,1);
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DUAL FREQUENCY
@@ -275,6 +278,9 @@ if (length(sat_pr) >= min_nsat_LS)
 else
     return
 end
+
+%apply phase wind-up correction
+[ph1(sat), ph2(sat), phwindup(sat,1)] = phase_windup_correction(time_rx, XR, XS, ph1(sat), ph2(sat), SP3, phwindup(sat,1));
 
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
