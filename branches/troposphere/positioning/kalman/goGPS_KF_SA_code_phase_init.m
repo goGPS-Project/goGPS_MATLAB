@@ -279,8 +279,8 @@ else
     return
 end
 
-%apply phase wind-up correction
-[ph1(sat), ph2(sat), phwindup(sat,1)] = phase_windup_correction(time_rx, XR, XS, ph1(sat), ph2(sat), SP3, phwindup(sat,1));
+%compute phase wind-up correction
+phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS, SP3, phwindup(sat,1));
 
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
@@ -323,8 +323,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, sys, lambda(sat_pr,1));
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, sys, lambda(sat_pr,2));
+        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
+        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix

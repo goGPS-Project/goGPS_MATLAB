@@ -58,9 +58,8 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   is_bias     = inter-systems bias (vector with all possibile systems)
 %
 % DESCRIPTION:
-%   Compute initial receiver and satellite position and clocks using
-%   Bancroft and least-squares iterative correction. Requires at least
-%   four satellites available.
+%   Compute initial receiver and satellite position and clocks by iterative
+%   least-squares. Requires at least four satellites available.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3 beta

@@ -1,5 +1,5 @@
 function [N_stim_slip, N_stim_born] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
-    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, sys, lambda, ...
+    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, phwindup, sys, lambda, ...
     N_kalman, Cee_N_kalman, ZWD_kalman, Cee_ZWD_kalman, dtR_kalman, Cee_dtR_kalman)
 
 % SYNTAX:
@@ -22,6 +22,7 @@ function [N_stim_slip, N_stim_born] = ambiguity_init_SA(XR_approx, XS, dtS, pr, 
 %   distR_approx = approximate range
 %   err_tropo = tropospheric error
 %   err_iono = ionospheric error
+%   phwindup = phase wind-up
 %   sys = array with different values for different systems
 %   lambda = vector containing GNSS wavelengths for available satellites
 %   N_kalman = phase ambiguities estimated by Kalman filter  *** same size as ph ***
@@ -124,7 +125,7 @@ end
 
 %known term vector
 b_pr = distR_approx + dtR_kalman - v_light*dtS + err_tropo + err_iono; %code
-b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono; %phase
+b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + phwindup; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector

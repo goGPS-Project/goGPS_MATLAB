@@ -1,7 +1,7 @@
-function [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR_approx, XS, pr1, ph1, pr2, ph2, distR_approx, dtS, err_tropo, err_iono1, err_iono2, lambda)
+function [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR_approx, XS, pr1, ph1, pr2, ph2, distR_approx, dtS, err_tropo, err_iono1, err_iono2, phwindup, lambda)
 
 % SYNTAX:
-%   [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR_approx, XS, pr1, ph1, pr2, ph2, distR_approx, dtS, err_tropo, err_iono1, err_iono2, lambda);
+%   [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR_approx, XS, pr1, ph1, pr2, ph2, distR_approx, dtS, err_tropo, err_iono1, err_iono2, phwindup, lambda);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -15,11 +15,11 @@ function [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF,
 %   err_tropo = tropospheric error
 %   err_iono1 = ionospheric error (L1 carrier)
 %   err_iono2 = ionospheric error (L2 carrier)
+%   phwindup = phase wind-up
 %   lambda = matrix containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
-%   A = parameters obtained from the linearization of the observation equation,
-%       e.g. (xR-xS)/prRS)
+%   A = parameters obtained from the linearization of the observation equation, e.g. (xR-xS)/prRS)
 %   prapp_pr1 = approximate P1 pseudorange (corrected by clock-tropo-iono delays)
 %   prapp_ph1 = approximate L1 pseudorange (corrected by clock-tropo-iono delays)
 %   prapp_pr2 = approximate P2 pseudorange (corrected by clock-tropo-iono delays)
@@ -64,9 +64,9 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
 %approximate pseudoranges
 prapp_pr  = distR_approx - v_light*dtS + err_tropo;
 prapp_pr1 = prapp_pr + err_iono1;
-prapp_ph1 = prapp_pr - err_iono1;
+prapp_ph1 = prapp_pr - err_iono1 + phwindup;
 prapp_pr2 = prapp_pr + err_iono2;
-prapp_ph2 = prapp_pr - err_iono2;
+prapp_ph2 = prapp_pr - err_iono2 + phwindup;
 
 %observed iono-free combinations
 alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
@@ -76,4 +76,4 @@ probs_phIF  = alpha1 * lambda(:,1) .* ph1 - alpha2 * lambda(:,2) .* ph2; %observ
 
 %approximate iono-free combinations (alpha1 - alpha2 = 1)
 prapp_prIF = prapp_pr;
-prapp_phIF = prapp_pr;
+prapp_phIF = prapp_pr + (alpha1 * lambda(:,1) .* phwindup - alpha2 * lambda(:,2) .* phwindup);

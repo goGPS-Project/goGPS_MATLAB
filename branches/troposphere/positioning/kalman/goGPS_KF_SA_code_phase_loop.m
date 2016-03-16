@@ -306,8 +306,8 @@ if (nsat >= min_nsat)
     end
     %pivot = find(elR == max(elR));
     
-    %apply phase wind-up correction
-    [ph1(sat), ph2(sat), phwindup(sat,1)] = phase_windup_correction(time_rx, XR0, XS, ph1(sat), ph2(sat), SP3, phwindup(sat,1));
+    %compute phase wind-up correction
+    phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS, SP3, phwindup(sat,1));
     
     %if the number of available satellites after the cutoffs is equal or greater than min_nsat
     if (nsat >= min_nsat)
@@ -343,8 +343,6 @@ if (nsat >= min_nsat)
                     X_t1_t(o3+sat_dead,1) = N2;
                 end
             end
-            
-            phwindup(sat_dead,1) = 0;
         end
         
         %search for a new satellite
@@ -407,8 +405,8 @@ if (nsat >= min_nsat)
         if (length(frequencies) == 2)
             if (strcmp(obs_comb,'NONE'))
                 
-                [N1_slip, N1_born] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), err_tropo, err_iono1, sys, lambda(sat_pr,1), X_t1_t(o3+        sat), Cee(o3+        sat, o3+        sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
-                [N2_slip, N2_born] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), err_tropo, err_iono2, sys, lambda(sat_pr,2), X_t1_t(o3+nSatTot+sat), Cee(o3+nSatTot+sat, o3+nSatTot+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
+                [N1_slip, N1_born] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip1, sat_born, distR(sat_pr), err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1), X_t1_t(o3+        sat), Cee(o3+        sat, o3+        sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
+                [N2_slip, N2_born] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip2, sat_born, distR(sat_pr), err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2), X_t1_t(o3+nSatTot+sat), Cee(o3+nSatTot+sat, o3+nSatTot+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
                 
                 if (check_on)
                     X_t1_t(o3+sat_born,1) = N1_born;
@@ -423,20 +421,16 @@ if (nsat >= min_nsat)
                     conf_cs(sat_slip1) = 1;
                     X_t1_t(o3+sat_slip1) = N1_slip;
                     Cvv(o3+sat_slip1,o3+sat_slip1) = sigmaq0_N * eye(size(sat_slip1,1));
-                    
-                    phwindup(sat_slip1,1) = 0;
                 end
                 
                 if (check_cs2)
                     conf_cs(sat_slip2) = 1;
                     X_t1_t(o3+nSatTot+sat_slip2) = N2_slip;
                     Cvv(o3+nSatTot+sat_slip2,o3+nSatTot+sat_slip2) = sigmaq0_N * eye(size(sat_slip2,1));
-                    
-                    phwindup(sat_slip2,1) = 0;
                 end
             elseif (strcmp(obs_comb,'IONO_FREE'))
                 
-                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alpha1*lambda(sat_pr,1).*ph1(sat_pr) - alpha2*lambda(sat_pr,2).*ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, zeros(size(sat_pr)), sys, ones(size(sat_pr)), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
+                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alpha1*lambda(sat_pr,1).*ph1(sat_pr) - alpha2*lambda(sat_pr,2).*ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, zeros(size(sat_pr)), alpha1*lambda(sat_pr,1).*phwindup(sat_pr) - alpha2*lambda(sat_pr,2).*phwindup(sat_pr), sys, ones(size(sat_pr)), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
                 
                 if (check_on)
                     X_t1_t(o3+sat_born,1) = N_born;
@@ -448,15 +442,13 @@ if (nsat >= min_nsat)
                     conf_cs(sat_slip) = 1;
                     X_t1_t(o3+sat_slip) = N_slip;
                     Cvv(o3+sat_slip,o3+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));
-                    
-                    phwindup(sat_slip,1) = 0;
                 end
             end
         else
             if (frequencies == 1)
-                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono1, sys, lambda(sat_pr,1), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
+                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
             else
-                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono2, sys, lambda(sat_pr,2), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
+                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
             end
             
             if (check_on)
@@ -469,8 +461,6 @@ if (nsat >= min_nsat)
                 conf_cs(sat_slip) = 1;
                 X_t1_t(o3+sat_slip) = N_slip;
                 Cvv(o3+sat_slip,o3+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));
-                
-                phwindup(sat_slip,1) = 0;
             end
             
         end
@@ -532,7 +522,7 @@ if (nsat >= min_nsat)
         end
         
         %function that calculates the Kalman filter parameters
-        [alpha, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR0, XS, pr1(sat_pr), ph1(sat_pr), pr2(sat_pr), ph2(sat_pr), distR(sat_pr), dtS, err_tropo0, err_iono1, err_iono2, lambda(sat_pr,:));
+        [alpha, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR0, XS, pr1(sat_pr), ph1(sat_pr), pr2(sat_pr), ph2(sat_pr), distR(sat_pr), dtS, err_tropo0, err_iono1, err_iono2, phwindup(sat_pr), lambda(sat_pr,:));
         
         %zeroes vector useful in matrix definitions
         Z_1_nN = zeros(1,nN);

@@ -479,9 +479,10 @@ if goGNSS.isPP(mode) % post-processing
                 [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
                 fprintf(' done\n');
                 
-                %store the position of the Sun
+                %store the position of Sun and Moon
                 SP3.t_sun  = time_GPS;
                 SP3.X_sun  = X_sun;
+                SP3.X_moon = X_moon;
                 
                 %----------------------------------------------------------------------------------------------
                 % LOAD DCB DATA (DIFFERENTIAL CODE BIASES)

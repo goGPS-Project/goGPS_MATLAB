@@ -85,10 +85,10 @@ for i = 1 : nsat
         end
 
         if (cs)
-            %save of the new phase ambiguity estimation
+            %save the new phase ambiguity estimation
             N_slip = [N_slip; N_stim(i)];
 
-            %save of the slipped satellite
+            %save the slipped satellite
             sat_slip = [sat_slip; sat(i)];
 
             %flag identifying a cycle-slip

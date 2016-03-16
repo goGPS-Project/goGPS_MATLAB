@@ -1,20 +1,16 @@
-function [ph1, ph2, phwindup] = phase_windup_correction(time, XR, XS, ph1, ph2, SP3, phwindup)
+function [phwindup] = phase_windup_correction(time, XR, XS, SP3, phwindup)
 
 % SYNTAX:
-%   [ph1, ph2, phwindup] = phase_windup_correction(time, XR, XS, ph1, ph2, SP3, phwindup);
+%   [phwindup] = phase_windup_correction(time, XR, XS, SP3, phwindup);
 %
 % INPUT:
 %   time = GPS time
 %   XR   = receiver position  (X,Y,Z)
 %   XS   = satellite position (X,Y,Z)
-%   ph1  = ROVER-SATELLITE phase observation (L1 carrier)
-%   ph2  = ROVER-SATELLITE phase observation (L2 carrier)
 %   SP3  = structure containing precise ephemeris data
 %   phwindup = phase wind-up (previous value)
 %
 % OUTPUT:
-%   ph1 = corrected ROVER-SATELLITE phase observation (L1 carrier)
-%   ph2 = corrected ROVER-SATELLITE phase observation (L2 carrier)
 %   phwindup = phase wind-up (updated value)
 %
 % DESCRIPTION:
@@ -40,30 +36,32 @@ function [ph1, ph2, phwindup] = phase_windup_correction(time, XR, XS, ph1, ph2, 
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-for s = 1 : size(ph1,1)
+%east (a) and north (b) local unit vectors
+[phi, lam] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
+a = [-sin(lam); cos(lam); 0];
+b = [-sin(phi)*cos(lam); -sin(phi)*sin(lam); cos(phi)];
+    
+for s = 1 : size(XS,1)
     %satellite-fixed local unit vectors
     [i, j, k] = satellite_fixed_frame(time, XS(s,:)', SP3);
-    
-    %east (a) and north (b) local unit vectors
-    [phi, lam] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
-    a = [-sin(lam); cos(lam); 0];
-    b = [-sin(phi)*cos(lam); -sin(phi)*sin(lam); cos(phi)];
-    
-    %receiver and satellites dipoles
+
+    %receiver and satellites effective dipole vectors
     Dr = a - k*dot(k,a) + cross(k,b);
     Ds = i - k*dot(k,i) - cross(k,j);
     
     %phase wind-up computation
     psi = dot(k, cross(Ds, Dr));
-    dPhi = sign(psi)*acos(dot(Ds,Dr)/(norm(Ds)*norm(Dr)));
+    arg = dot(Ds,Dr)/(norm(Ds)*norm(Dr));
+    if (arg < -1)
+        arg = -1;
+    elseif (arg > 1)
+        arg = 1;
+    end
+    dPhi = sign(psi)*acos(arg)/(2*pi);
     if (isempty(phwindup) || phwindup(s,1) == 0)
         N = 0;
     else
-        N = round((phwindup(s,1) - dPhi)/2*pi);
+        N = round(phwindup(s,1) - dPhi);
     end
-    phwindup(s,1) = 2*N*pi + dPhi;
-    
-    %phase wind-up correction
-    ph1(s,1) = ph1(s,1) + phwindup(s,1);
-    ph2(s,1) = ph2(s,1) + phwindup(s,1);
+    phwindup(s,1) = dPhi + N;
 end

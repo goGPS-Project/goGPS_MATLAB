@@ -1,7 +1,7 @@
-function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, sys, lambda)
+function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda)
 
 % SYNTAX:
-%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, sys, lambda);
+%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -16,6 +16,7 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %   dtS          = satellite clock error (vector)
 %   err_tropo    = tropospheric error
 %   err_iono     = ionospheric error
+%   phwindup     = phase wind-up
 %   sys          = array with different values for different systems
 %   lambda       = vector containing GNSS wavelengths for available satellites
 %
@@ -101,7 +102,7 @@ end
 
 %known term vector
 b_pr = distR_approx - v_light*dtS + err_tropo + err_iono; %code
-b_ph = distR_approx - v_light*dtS + err_tropo - err_iono; %phase
+b_ph = distR_approx - v_light*dtS + err_tropo - err_iono + phwindup; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector
