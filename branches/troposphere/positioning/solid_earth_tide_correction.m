@@ -1,7 +1,7 @@
-function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi)
+function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi, lam)
 
 % SYNTAX:
-%   [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi);
+%   [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi, lam);
 %
 % INPUT:
 %   time = GPS time
@@ -9,6 +9,7 @@ function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi)
 %   XS   = satellite position (X,Y,Z)
 %   SP3  = structure containing precise ephemeris data
 %   phi  = receiver latitude (rad)
+%   lam  = receiver longitude (rad)
 %
 % OUTPUT:
 %   stidecorr = solid Earth tide correction terms (along the satellite-receiver line-of-sight)
@@ -37,8 +38,11 @@ function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi)
 %----------------------------------------------------------------------------------------------
 
 if (nargin < 5)
-    phi = cart2geod(XR(1,1), XR(2,1), XR(3,1));
+    [phi, lam] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
 end
+%north (b) and up (c) local unit vectors
+b = [-sin(phi)*cos(lam); -sin(phi)*sin(lam); cos(phi)];
+c = [+cos(phi)*cos(lam); +cos(phi)*sin(lam); sin(phi)];
 
 %Sun and Moon position
 t_sun  = SP3.t_sun;
@@ -63,11 +67,6 @@ X_moon_u = X_moon / X_moon_n;
 %latitude dependence
 p = (3*sin(phi)^2-1)/2;
 
-%nominal degree 2 Love number
-H2 = 0.6078 - 0.0006*p;
-%nominal degree 2 Shida number
-L2 = 0.0847 + 0.0002*p;
-
 %gravitational parameters
 GE = goGNSS.GM_GAL; %Earth
 GS = GE*332946.0; %Sun
@@ -76,17 +75,37 @@ GM = GE*0.01230002; %Moon
 %Earth equatorial radius
 R = 6378136.6;
 
-%solid Earth tide displacement
+%nominal degree 2 Love number
+H2 = 0.6078 - 0.0006*p;
+%nominal degree 2 Shida number
+L2 = 0.0847 + 0.0002*p;
+
+%solid Earth tide displacement (degree 2)
 Vsun  = dot(X_sun_u,XR_u);
 Vmoon = dot(X_moon_u,XR_u);
-r_sun  = (GS*R^4)/(GE*X_sun_n^3) *(H2*XR_u*(1.5*Vsun^2  - 0.5) + 3*L2*Vsun *(X_sun_u  - Vsun *XR_u));
-r_moon = (GM*R^4)/(GE*X_moon_n^3)*(H2*XR_u*(1.5*Vmoon^2 - 0.5) + 3*L2*Vmoon*(X_moon_u - Vmoon*XR_u));
-r = r_sun + r_moon;
+r_sun2  = (GS*R^4)/(GE*X_sun_n^3) *(H2*XR_u*(1.5*Vsun^2  - 0.5) + 3*L2*Vsun *(X_sun_u  - Vsun *XR_u));
+r_moon2 = (GM*R^4)/(GE*X_moon_n^3)*(H2*XR_u*(1.5*Vmoon^2 - 0.5) + 3*L2*Vmoon*(X_moon_u - Vmoon*XR_u));
+r = r_sun2 + r_moon2;
+
+%nominal degree 3 Love number
+H3 = 0.292;
+%nominal degree 3 Shida number
+L3 = 0.015;
+
+%solid Earth tide displacement (degree 3)
+r_sun3  = (GS*R^5)/(GE*X_sun_n^4) *(H3*XR_u*(2.5*Vsun^3  - 1.5*Vsun)  +   L3*(7.5*Vsun^2  - 1.5)*(X_sun_u  - Vsun *XR_u));
+r_moon3 = (GM*R^5)/(GE*X_moon_n^4)*(H3*XR_u*(2.5*Vmoon^3 - 1.5*Vmoon) +   L3*(7.5*Vmoon^2 - 1.5)*(X_moon_u - Vmoon*XR_u));
+r = r + r_sun3 + r_moon3;
+
+%from "conventional tide free" to "mean tide"
+radial = (-0.1206 + 0.0001*p)*p;
+north  = (-0.0252 + 0.0001*p)*sin(2*phi);
+r = r + radial*c + north*b;
 
 %displacement along the receiver-satellite line-of-sight
 stidecorr = zeros(size(XS,1),1);
 for s = 1 : size(XS,1)
-    LOS  = XS(s,:)' - XR;
+    LOS  = XR - XS(s,:)';
     LOSu = LOS / norm(LOS);
-    stidecorr(s,1) = -dot(r,LOSu);
+    stidecorr(s,1) = dot(r,LOSu);
 end
