@@ -308,7 +308,7 @@ if (nsat >= min_nsat)
     
     %compute phase wind-up correction
     phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS, SP3, phwindup(sat,1));
-    
+
     %if the number of available satellites after the cutoffs is equal or greater than min_nsat
     if (nsat >= min_nsat)
         
@@ -499,11 +499,8 @@ if (nsat >= min_nsat)
             %temperature = goGNSS.STD_TEMP;
             %humidity = goGNSS.STD_HUMI;
             
-            [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app);
+            [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
             ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
-%             ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
-
-%             ZHD_R = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
             ZWD_R = 0.1;
             
             gmfh_R = zeros(size(err_tropo));
@@ -874,6 +871,13 @@ end
 % end
 
 residuals_fixed = residuals_float;
+
+%--------------------------------------------------------------------------------------------
+% RECONSTRUCTION OF FULL ZTD
+%--------------------------------------------------------------------------------------------
+if (flag_tropo)
+    Xhat_t_t(o3+nN+(1:nT)) = ZHD_R + ZWD_R + Xhat_t_t(o3+nN+(1:nT));
+end
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DOP

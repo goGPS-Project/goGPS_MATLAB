@@ -14,7 +14,7 @@ function [phwindup] = phase_windup_correction(time, XR, XS, SP3, phwindup)
 %   phwindup = phase wind-up (updated value)
 %
 % DESCRIPTION:
-%   Correction of carrier phase ranges for the phase wind-up effect.
+%   Computation of the phase wind-up terms.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3

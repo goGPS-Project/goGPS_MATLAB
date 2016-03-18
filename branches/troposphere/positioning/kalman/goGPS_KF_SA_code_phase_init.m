@@ -371,12 +371,9 @@ if (flag_tropo)
     [~, mjd] = date2jd(date);
     
     [phi_R, lam_R, h_R] = cart2geod(XR(1), XR(2), XR(3));
-
-    %ZTD = tropo_error_correction(90, h);
-    %ZTD = saast_dry(goGNSS.STD_PRES, H, phi) + saast_wet(goGNSS.STD_TEMP, H); %H here is orthometric
-
-    [pressure_R, temperature_R, undu_R] = gpt(mjd, phi_R, lam_R, h_R); %#ok<ASGLU>
-    ZWD_R = saast_wet(temperature_R, goGNSS.STD_HUMI, h_R - undu_R);
+    [pres_R, temp_R, undu_R] = gpt(mjd, phi_R, lam_R, h_R);
+    ZHD_R = saast_dry(pres_R, h_R - undu_R, phi_R*180/pi);
+    ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, h_R - undu_R);
 else
     ZWD_R = 0;
 end
@@ -387,6 +384,13 @@ Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; ZWD_R; goGNSS.V_LIGH
 %state update at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
 X_t1_t = T*Xhat_t_t;
+
+%--------------------------------------------------------------------------------------------
+% RECONSTRUCTION OF FULL ZTD
+%--------------------------------------------------------------------------------------------
+if (flag_tropo)
+    Xhat_t_t(o3+nN+(1:nT)) = ZHD_R + Xhat_t_t(o3+nN+(1:nT));
+end
 
 %--------------------------------------------------------------------------------------------
 % INITIAL STATE COVARIANCE MATRIX

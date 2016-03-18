@@ -62,3 +62,6 @@ for e = 1 : length(year)
         moon_ECEF(:,e) = celter(tjdh, tjdl, xp, yp, moon_ECI);
     end
 end
+
+sun_ECEF  = sun_ECEF*1e3;
+moon_ECEF = moon_ECEF*1e3;

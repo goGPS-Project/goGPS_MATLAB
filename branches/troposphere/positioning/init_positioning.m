@@ -254,6 +254,10 @@ if (nsat >= nsat_required)
 
         %cartesian to geodetic conversion of ROVER coordinates
         [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
+        
+        %correct the geometric distance for solid Earth tides
+        stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiR);
+        dist = dist + stidecorr;
 
         %radians to degrees
         phiR = phiR * 180 / pi;
@@ -267,6 +271,10 @@ if (nsat >= nsat_required)
         
         %correct the ionospheric errors for different frequencies
         err_iono = ionoFactor(:,frequencies(1)).*err_iono;
+        
+        if (strcmp(obs_comb,'IONO_FREE'))
+            err_iono = zeros(size(err_iono));
+        end
 
         if (flag_XR < 2) %if unknown or approximate receiver position
 
@@ -385,9 +393,15 @@ if (nsat >= nsat_required)
         [az, el, dist] = topocent(XR, XS);
     end
     
+    %cartesian to geodetic conversion of ROVER coordinates
+    [phiR, ~, ~] = cart2geod(XR(1), XR(2), XR(3));
+    
+    %correct the geometric distance for solid Earth tides
+    stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiR);
+    dist = dist + stidecorr;
+    
 else
     %empty variables
-    
     dtR  = [];
     az   = [];
     el   = [];
