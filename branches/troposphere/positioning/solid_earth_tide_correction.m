@@ -1,14 +1,14 @@
-function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi, lam)
+function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phiC, lam)
 
 % SYNTAX:
-%   [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi, lam);
+%   [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phiC, lam);
 %
 % INPUT:
 %   time = GPS time
 %   XR   = receiver position  (X,Y,Z)
 %   XS   = satellite position (X,Y,Z)
 %   SP3  = structure containing precise ephemeris data
-%   phi  = receiver latitude (rad)
+%   phiC = receiver geocentric latitude (rad)
 %   lam  = receiver longitude (rad)
 %
 % OUTPUT:
@@ -38,11 +38,11 @@ function [stidecorr] = solid_earth_tide_correction(time, XR, XS, SP3, phi, lam)
 %----------------------------------------------------------------------------------------------
 
 if (nargin < 5)
-    [phi, lam] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
+    [~, lam, ~, phiC] = cart2geod(XR(1,1), XR(2,1), XR(3,1));
 end
-%north (b) and up (c) local unit vectors
-b = [-sin(phi)*cos(lam); -sin(phi)*sin(lam); cos(phi)];
-c = [+cos(phi)*cos(lam); +cos(phi)*sin(lam); sin(phi)];
+%north (b) and radial (c) local unit vectors
+b = [-sin(phiC)*cos(lam); -sin(phiC)*sin(lam); cos(phiC)];
+c = [+cos(phiC)*cos(lam); +cos(phiC)*sin(lam); sin(phiC)];
 
 %Sun and Moon position
 t_sun  = SP3.t_sun;
@@ -65,7 +65,7 @@ X_moon_n = norm(X_moon);
 X_moon_u = X_moon / X_moon_n;
 
 %latitude dependence
-p = (3*sin(phi)^2-1)/2;
+p = (3*sin(phiC)^2-1)/2;
 
 %gravitational parameters
 GE = goGNSS.GM_GAL; %Earth
@@ -99,7 +99,7 @@ r = r + r_sun3 + r_moon3;
 
 %from "conventional tide free" to "mean tide"
 radial = (-0.1206 + 0.0001*p)*p;
-north  = (-0.0252 + 0.0001*p)*sin(2*phi);
+north  = (-0.0252 + 0.0001*p)*sin(2*phiC);
 r = r + radial*c + north*b;
 
 %displacement along the receiver-satellite line-of-sight

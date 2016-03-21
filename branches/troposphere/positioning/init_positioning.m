@@ -253,10 +253,10 @@ if (nsat >= nsat_required)
         n_iter = n_iter+1;      %increase iteration counter
 
         %cartesian to geodetic conversion of ROVER coordinates
-        [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
+        [phiR, lamR, hR, phiCR] = cart2geod(XR(1), XR(2), XR(3));
         
         %correct the geometric distance for solid Earth tides
-        stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiR, lamR);
+        stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
         dist = dist + stidecorr;
 
         %radians to degrees
@@ -394,10 +394,10 @@ if (nsat >= nsat_required)
     end
     
     %cartesian to geodetic conversion of ROVER coordinates
-    [phiR, ~, ~] = cart2geod(XR(1), XR(2), XR(3));
+    [~, ~, ~, phiCR] = cart2geod(XR(1), XR(2), XR(3));
     
     %correct the geometric distance for solid Earth tides
-    stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiR, lamR);
+    stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
     dist = dist + stidecorr;
     
 else
