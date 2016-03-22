@@ -32,7 +32,9 @@ function [kalman_initialized] = goGPS_KF_DD_code_phase_init(XR0, XM, time_rx, pr
 %   frequencies = L1 carrier (phase=1), L2 carrier (phase=2), L1&L2 (phase=[1 2])
 %   dtMdot = master receiver clock drift
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
-%   flag_XR = 1: XR0 used as fixed, unknown otherwise
+%   flag_XR  = 0: unknown
+%              1: approximated
+%              2: fixed
 %   flag_tropo = boolean variable to enable/disable tropospheric delay estimation
 %   sbas = SBAS corrections
 %

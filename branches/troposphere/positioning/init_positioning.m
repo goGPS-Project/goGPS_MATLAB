@@ -332,6 +332,7 @@ if (nsat >= nsat_required)
         else
             [dtR, var_dtR, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), is_bias] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
             residuals_obs(index_obs,2)=sat;
+            cond_num = 0;
             if (exist('flag_OOLO','var') && flag_OOLO==1)
                 if ~isempty(bad_obs)
                     % add outlier satellite to obs_outlier

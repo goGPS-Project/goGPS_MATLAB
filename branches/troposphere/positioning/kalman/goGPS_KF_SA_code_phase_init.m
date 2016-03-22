@@ -1,7 +1,7 @@
-function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_tropo)
+function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_XR, flag_tropo)
 
 % SYNTAX:
-%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_tropo);
+%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_XR, flag_tropo);
 %
 % INPUT:
 %   pos_R = rover approximate coordinates (X, Y, Z)
@@ -21,6 +21,9 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %   frequencies = L1 carrier (phase=1) L2 carrier (phase=2)
 %   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
+%   flag_XR  = 0: unknown
+%              1: approximated
+%              2: fixed
 %   flag_tropo = boolean variable to enable/disable tropospheric delay estimation
 %
 % OUTPUT:
@@ -203,9 +206,9 @@ end
 if ((sum(abs(XR0)) == 0) || isempty(XR0))
     %approximate position not available
     flag_XR = 0;
-else
-    %approximate position available
-    flag_XR = 1;
+% else
+%     %approximate position available
+%     flag_XR = 1;
 end
 
 %--------------------------------------------------------------------------------------------

@@ -173,9 +173,9 @@ else
         % DISABLE FUNCTIONS NOT USED FOR BATCH PROCESSING
         %-------------------------------------------------------------------------------------------
 
-        mode_vinc = 0;    % navigation mode
-        mode_data = 0;    % data loading mode
-        mode_ref = 0;     % reference path mode
+        mode_vinc = 0;       % navigation mode
+        mode_data = 0;       % data loading mode
+        mode_ref = 0;        % reference path mode
         flag_ms = 0;         % plot master station position --> no=0, yes=1
         flag_ge = 0;         % use google earth --> no=0, yes=1
         flag_cov = 0;        % plot error ellipse --> no=0, yes=1
@@ -185,6 +185,7 @@ else
         flag_plotproc = 0;   % plot while processing
         flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
         flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
+        fsep_char = 'default';
 
         %----------------------------------------------------------------------------------------------
         % USER-DEFINED SETTINGS
@@ -538,7 +539,7 @@ if goGNSS.isPP(mode) % post-processing
             if exist('min_epoch','var')
                 report.opt.min_epoch = min_epoch;
                 if size(time_R,1) < min_epoch
-                    fprintf('\nERROR! The number of available epochs is lower than the minimum number\n');
+                    fprintf('\nERROR! The number of available epochs is lower than the minimum\n');
                     % write report
                     report.errors.few_epochs = 1;
                     report_generator(report);  
@@ -1475,6 +1476,9 @@ if (goGNSS.isPP(mode))
     unused_epochs = zeros(size(time_GPS));
 end
 
+%update variance of tropospheric delay
+% sigmaq_tropo = 0.005/sqrt(3600/interval);
+
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE
 %----------------------------------------------------------------------------------------------
@@ -2006,7 +2010,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         
         sbas_t = find_sbas(sbas, 1);
         
-        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_IAR, flag_tropo);
+        kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_IAR, flag_XR, flag_tropo);
         
         if (~kalman_initialized)
             time_GPS(1) = []; week_R(1) = [];
@@ -4476,6 +4480,73 @@ end
 %         title(['MASTER: PHASE SECOND DERIVATIVE for SATELLITE ',num2str(i)]);
 %     end
 % end
+
+%----------------------------------------------------------------------------------------------
+% REPRESENTATION OF RESIDUALS MEAN AND STANDARD DEVIATION
+%----------------------------------------------------------------------------------------------
+
+%code
+if (any(RES_CODE1(:)))
+    RES_CODE1_mean = nan(size(RES_CODE1,1),1);
+    RES_CODE1_stdv = nan(size(RES_CODE1,1),1);
+    for s = 1 : nSatTot
+        row = RES_CODE1(s,:);
+        row(outliers_CODE1(s,:) == 1) = [];
+        row(isnan(row(1,:))) = [];
+        RES_CODE1_mean(s,1) = mean(row);
+        RES_CODE1_stdv(s,1) = std(row);
+    end
+    figure;
+    errorbar(1:nSatTot, RES_CODE1_mean, RES_CODE1_stdv,'k*');
+    grid on;
+    title('RESIDUALS MEAN AND ST.DEV: CODE 1st FREQ.');
+end
+if (any(RES_CODE2(:)))
+    RES_CODE2_mean = nan(size(RES_CODE2,1),1);
+    RES_CODE2_stdv = nan(size(RES_CODE2,1),1);
+    for s = 1 : nSatTot
+        row = RES_CODE2(s,:);
+        row(outliers_CODE2(s,:) == 1) = [];
+        row(isnan(row(1,:))) = [];
+        RES_CODE2_mean(s,1) = mean(row);
+        RES_CODE2_stdv(s,1) = std(row);
+    end
+    figure;
+    errorbar(1:nSatTot, RES_CODE2_mean, RES_CODE2_stdv,'k*');
+    grid on;
+    title('RESIDUALS MEAN AND ST.DEV: CODE 2nd FREQ.');
+end
+%phase
+if (any(RES_PHASE1(:)))
+    RES_PHASE1_mean = nan(size(RES_PHASE1,1),1);
+    RES_PHASE1_stdv = nan(size(RES_PHASE1,1),1);
+    for s = 1 : nSatTot
+        row = RES_PHASE1(s,:);
+        row(outliers_PHASE1(s,:) == 1) = [];
+        row(isnan(row(1,:))) = [];
+        RES_PHASE1_mean(s,1) = mean(row);
+        RES_PHASE1_stdv(s,1) = std(row);
+    end
+    figure;
+    errorbar(1:nSatTot, RES_PHASE1_mean, RES_PHASE1_stdv,'k*');
+    grid on;
+    title('RESIDUALS MEAN AND ST.DEV: PHASE 1st FREQ.');
+end
+if (any(RES_PHASE2(:)))
+    RES_PHASE2_mean = nan(size(RES_PHASE2,1),1);
+    RES_PHASE2_stdv = nan(size(RES_PHASE2,1),1);
+    for s = 1 : nSatTot
+        row = RES_PHASE2(s,:);
+        row(outliers_PHASE2(s,:) == 1) = [];
+        row(isnan(row(1,:))) = [];
+        RES_PHASE2_mean(s,1) = mean(row);
+        RES_PHASE2_stdv(s,1) = std(row);
+    end
+    figure;
+    errorbar(1:nSatTot, RES_PHASE2_mean, RES_PHASE2_stdv,'k*');
+    grid on;
+    title('RESIDUALS MEAN AND ST.DEV: PHASE 2nd FREQ.');
+end
 
 %----------------------------------------------------------------------------------------------
 % STATISTICS COMPUTATION AND VISUALIZATION

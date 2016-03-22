@@ -501,6 +501,9 @@ if (nsat >= min_nsat)
             
             [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
             ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
+            %ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
+            
+            %ZHD_R = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
             ZWD_R = 0.1;
             
             gmfh_R = zeros(size(err_tropo));
