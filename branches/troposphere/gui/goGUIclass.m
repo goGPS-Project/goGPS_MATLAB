@@ -3232,7 +3232,7 @@ classdef goGUIclass < handle
                 sigmaq_dtm = 1e30;
             end
             sigmaq0_tropo = 1e-2;
-            sigmaq_tropo = 1e-8;
+            sigmaq_tropo = 2.0834e-07; %(0.005/sqrt(120))^2
             sigmaq_rclock = 1e3;
             min_nsat = str2double(get(obj.goh.min_sat,'String'));
             if (mode == 2)

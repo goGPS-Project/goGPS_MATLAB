@@ -231,20 +231,24 @@ if (~flag_unavail)
         %CLK_30S file
         f_clk_30s = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk_30s'],'r');
         
-        if (f_clk ~= -1)
+        if (f_clk ~= -1 || f_clk_30s ~= -1)
+            
+            if (f_clk ~= -1)
+                flag_clk = 1;
+                if (p == 1)
+                    SP3.time_hr = (SP3.time(1,1) : 300 : SP3.time(k,1)+899)';
+                    SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
+                end
+            end
             
             if (f_clk_30s ~= -1)
-                fclose(f_clk);
+                if (f_clk ~= -1)
+                    fclose(f_clk);
+                end
                 f_clk = f_clk_30s;
                 flag_clk = 2;
                 if (p == 1)
                     SP3.time_hr = (SP3.time(1,1) :  30 : SP3.time(k,1)+899)';
-                    SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
-                end
-            else
-                flag_clk = 1;
-                if (p == 1)
-                    SP3.time_hr = (SP3.time(1,1) : 300 : SP3.time(k,1)+899)';
                     SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
                 end
             end

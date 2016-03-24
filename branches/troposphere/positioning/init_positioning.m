@@ -395,12 +395,11 @@ if (nsat >= nsat_required)
     end
     
     %cartesian to geodetic conversion of ROVER coordinates
-    [~, ~, ~, phiCR] = cart2geod(XR(1), XR(2), XR(3));
+    [~, lamR, ~, phiCR] = cart2geod(XR(1), XR(2), XR(3));
     
     %correct the geometric distance for solid Earth tides
     stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
     dist = dist + stidecorr;
-    
 else
     %empty variables
     dtR  = [];

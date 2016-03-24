@@ -493,24 +493,28 @@ if goGNSS.isPP(mode) % post-processing
                 %      'SP3.DCB' structure will be initialized to zero/empty arrays and it will not
                 %      have any effect on the positioning
                 
-                %try first to read already available DCB files
-                DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
-                
-                %if DCB files are not available or not sufficient, try to download them
-                if (isempty(DCB))
+                %if (~strcmp(obs_comb, 'IONO_FREE'))
+                    %try first to read already available DCB files
+                    DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
                     
-                    %download
-                    [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
-                    
-                    if (compressed)
-                        return
+                    %if DCB files are not available or not sufficient, try to download them
+                    if (isempty(DCB))
+                        
+                        %download
+                        [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                        
+                        if (compressed)
+                            return
+                        end
+                        
+                        %try again to read DCB files
+                        DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
                     end
                     
-                    %try again to read DCB files
-                    DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
-                end
-                
-                SP3.DCB = DCB;
+                    SP3.DCB = DCB;
+                %else
+                    %SP3.DCB = [];
+                %end
             end
             
             %retrieve multi-constellation wavelengths
@@ -523,9 +527,7 @@ if goGNSS.isPP(mode) % post-processing
             var_SPP_R    = NaN(length(time_GPS), 3, size(time_R,3));
             var_dtR      = NaN(length(time_GPS), 1, size(time_R,3));
             
-            if (exist('pos_R_crd','var') && any(pos_R_crd))
-                flag_XR = 2;
-            else
+            if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
                 if any(pos_R)
                     flag_XR = 1;
                 else
@@ -620,7 +622,7 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %apply P1C1 DCBs if needed
-                if (flag_SP3 && codeC1_R)
+                if (flag_SP3 && ~isempty(SP3.DCB) && codeC1_R)
                     non_zero_idx = pr1_R(:,:,f) ~= 0;
                     pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
                 end
@@ -837,24 +839,28 @@ if goGNSS.isPP(mode) % post-processing
                 %      'SP3.DCB' structure will be initialized to zero/empty arrays and it will not
                 %      have any effect on the positioning
                 
-                %try first to read already available DCB files
-                DCB = load_dcb('../data/DCB', week_R, time_R, and(codeC1_R,codeC1_M), constellations);
-                
-                %if DCB files are not available or not sufficient, try to download them
-                if (isempty(DCB))
+                %if (~strcmp(obs_comb, 'IONO_FREE'))
+                    %try first to read already available DCB files
+                    DCB = load_dcb('../data/DCB', week_R, time_R, and(codeC1_R,codeC1_M), constellations);
                     
-                    %download
-                    [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
-                    
-                    if (compressed)
-                        return
+                    %if DCB files are not available or not sufficient, try to download them
+                    if (isempty(DCB))
+                        
+                        %download
+                        [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                        
+                        if (compressed)
+                            return
+                        end
+                        
+                        %try again to read DCB files
+                        DCB = load_dcb('../data/DCB', week_R, time_R, and(codeC1_R,codeC1_M), constellations);
                     end
                     
-                    %try again to read DCB files
-                    DCB = load_dcb('../data/DCB', week_R, time_R, and(codeC1_R,codeC1_M), constellations);
-                end
-                
-                SP3.DCB = DCB;
+                    SP3.DCB = DCB;
+                %else
+                    %SP3.DCB = [];
+                %end
             end
 
             %retrieve multi-constellation wavelengths
@@ -945,9 +951,7 @@ if goGNSS.isPP(mode) % post-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');               
                 
                 aprXR = pos_R;
-                if (exist('pos_R_crd','var') && any(pos_R_crd))
-                    flag_XR = 2;
-                else
+                if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
                     if any(pos_R)
                         flag_XR = 1;
                     else
@@ -956,7 +960,7 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %apply P1C1 DCBs if needed
-                if (flag_SP3 && codeC1_R)
+                if (flag_SP3 && ~isempty(DCB) && codeC1_R)
                     non_zero_idx = pr1_R(:,:,f) ~= 0;
                     pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
                 end
@@ -1014,7 +1018,7 @@ if goGNSS.isPP(mode) % post-processing
             fprintf('%s',['Pre-processing master observations (file ' filename_obs{end} ')...']); fprintf('\n');
             
             %apply P1C1 DCBs if needed
-            if (flag_SP3 && codeC1_M)
+            if (flag_SP3 && ~isempty(DCB) && codeC1_M)
                 non_zero_idx = pr1_M ~= 0;
                 pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
             end
@@ -1477,7 +1481,8 @@ if (goGNSS.isPP(mode))
 end
 
 %update variance of tropospheric delay
-% sigmaq_tropo = 0.005/sqrt(3600/interval);
+global sigmaq_tropo
+sigmaq_tropo = (0.005/sqrt(3600/interval))^2;
 
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE
@@ -2665,12 +2670,6 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             end
             
             sbas_t = find_sbas(sbas, 1);
-            
-            if (exist('pos_R_crd','var') && any(pos_R_crd))
-                flag_XR=2;  % use apriori XR as fixed during kalman init
-            else
-                flag_XR=1;  % use apriori XR as approximated
-            end
             
             kalman_initialized = goGPS_KF_DD_code_phase_init(pos_R, pos_M(:,1), time_GPS(1), pr1_R(:,1), pr1_M(:,1), ph1_R(:,1), ph1_M(:,1), dop1_R(:,1), dop1_M(:,1), pr2_R(:,1), pr2_M(:,1), ph2_R(:,1), ph2_M(:,1), dop2_R(:,1), dop2_M(:,1), snr_R(:,1), snr_M(:,1), Eph_t, SP3, iono, lambda, frequencies, dtMdot(1), flag_IAR, flag_XR, flag_tropo, sbas_t);
             

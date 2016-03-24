@@ -121,7 +121,7 @@ sigmaq_dtm = 1e30;
 sigmaq0_tropo = 1e-2;
 
 %variance of tropospheric delay
-sigmaq_tropo = 1e-8;
+sigmaq_tropo = 2.0834e-07;
 
 %variance of receiver clock
 sigmaq_rclock = 1e3;

@@ -109,7 +109,7 @@ SBS_flag = 0;
 [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 
 flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
-flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
+flag_IAR = 0;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
 
 min_epoch = 1440;       % minimum number of observed epoch to process
 
@@ -125,7 +125,7 @@ if (~flag_ms_pos)
     sta_coord_file = '../data/stations/stations.crd';
     
     %parse file containing station coordinates
-    [markers, coords_X, coords_Y, coords_Z] = textread(sta_coord_file,'%s%f%f%f'); %#ok<DTXTRD>
+    [markers, coords_X, coords_Y, coords_Z, flags] = textread(sta_coord_file,'%s%f%f%f%d'); %#ok<DTXTRD>
     
     % master
     %find the correct marker
@@ -151,6 +151,8 @@ if (~flag_ms_pos)
         
         %set rover station position
         pos_R_crd = [XR; YR; ZR];
+        
+        flag_XR = flags(marker_idx);
     end
 end
 
@@ -195,7 +197,7 @@ sigmaq_dtm = 1e30;
 sigmaq0_tropo = 1e-2;
 
 %variance of tropospheric delay
-sigmaq_tropo = 1e-7;
+sigmaq_tropo = 2.0834e-07;
 
 %variance of receiver clock
 sigmaq_rclock = 1e3;
@@ -221,7 +223,7 @@ cs_threshold = 10;
 %          - weights=2: weight based on signal-to-noise ratio
 %          - weights=3: weight based on combined elevation and signal-to-noise ratio
 %          - weights=4: weight based on satellite elevation (exp)
-weights = 1;
+weights = 0;
 
 %weight function parameters
 snr_a = 30;
@@ -238,7 +240,7 @@ o2 = order*2;
 o3 = order*3;
 
 %ambiguity restart method
-amb_restart_method = 2;
+amb_restart_method = 1;
 
 %-------------------------------------------------------------------------------
 % INTEGER AMBIGUITY RESOLUTION
@@ -316,6 +318,8 @@ else
 end
 fid_extract = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_extraction.txt'],'w');
 
+fid_extract_TRP = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_troposphere.txt'],'w');
+
 fid_extract_OBS = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_qualityOBS.txt'],'w');
 fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n'); 
 fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
@@ -379,11 +383,14 @@ for doy = doy_start : 1 : doy_end
             end
             
             clear X_KAL
+            clear Xhat_t_t
             goGPS
             
             idx = size(date_R,1);
-            if exist('X_KAL','var')
+            if exist('X_KAL','var') && exist('Xhat_t_t','var')
                 fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
+                fprintf(fid_extract_TRP,'%.6f ', Xhat_t_t(end-1,:)); %#ok<NODEF>
+                fprintf(fid_extract_TRP,'\n');
                 delete([filerootOUT '_*.bin']);
             else
                 fprintf(fid_extract,'%04d-%03d\n', year4, doy);               
@@ -412,4 +419,5 @@ for doy = doy_start : 1 : doy_end
 end
 
 fclose(fid_extract);
+fclose(fid_extract_TRP);
 fclose(fid_extract_OBS);

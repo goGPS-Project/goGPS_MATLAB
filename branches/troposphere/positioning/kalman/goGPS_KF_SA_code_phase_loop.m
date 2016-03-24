@@ -878,7 +878,7 @@ residuals_fixed = residuals_float;
 %--------------------------------------------------------------------------------------------
 % RECONSTRUCTION OF FULL ZTD
 %--------------------------------------------------------------------------------------------
-if (flag_tropo)
+if (flag_tropo && exist('ZHD_R','var'))
     Xhat_t_t(o3+nN+(1:nT)) = ZHD_R + ZWD_R + Xhat_t_t(o3+nN+(1:nT));
 end
 
