@@ -64,9 +64,9 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
 %approximate pseudoranges
 prapp_pr  = distR_approx - v_light*dtS + err_tropo;
 prapp_pr1 = prapp_pr + err_iono1;
-prapp_ph1 = prapp_pr - err_iono1 + phwindup;
+prapp_ph1 = prapp_pr - err_iono1 + lambda(:,1).*phwindup;
 prapp_pr2 = prapp_pr + err_iono2;
-prapp_ph2 = prapp_pr - err_iono2 + phwindup;
+prapp_ph2 = prapp_pr - err_iono2 + lambda(:,2).*phwindup;
 
 %observed iono-free combinations
 alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));

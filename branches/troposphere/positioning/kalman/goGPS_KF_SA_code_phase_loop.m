@@ -430,7 +430,7 @@ if (nsat >= min_nsat)
                 end
             elseif (strcmp(obs_comb,'IONO_FREE'))
                 
-                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alpha1*lambda(sat_pr,1).*ph1(sat_pr) - alpha2*lambda(sat_pr,2).*ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, zeros(size(sat_pr)), alpha1*lambda(sat_pr,1).*phwindup(sat_pr) - alpha2*lambda(sat_pr,2).*phwindup(sat_pr), sys, ones(size(sat_pr)), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
+                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alpha1*lambda(sat_pr,1).*ph1(sat_pr) - alpha2*lambda(sat_pr,2).*ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, ones(size(sat_pr)), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
                 
                 if (check_on)
                     X_t1_t(o3+sat_born,1) = N_born;

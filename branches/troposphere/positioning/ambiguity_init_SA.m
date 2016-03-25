@@ -125,7 +125,7 @@ end
 
 %known term vector
 b_pr = distR_approx + dtR_kalman - v_light*dtS + err_tropo + err_iono; %code
-b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + phwindup; %phase
+b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + lambda.*phwindup; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector
