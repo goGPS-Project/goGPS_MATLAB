@@ -1,6 +1,6 @@
 function [ L1_series_pcv,L2_series_pcv ] = pcv_for_cells(L1_series,L2_series,name_series,time_series,elev_series,antenna_name_series,filepath_pcv)
-%PCV_FOR_CELLS この関数の概要をここに記述
-%   詳細説明をここに記述
+%PCV_FOR_CELLS この関?狽ﾌ概要をここに記?q
+%   ?ﾚ?ﾗ?燒ｾをここに記?q
 lambda1 = 0.190293672798365;
 lambda2 = 0.244210213424568;
 
@@ -22,7 +22,7 @@ L1_series_pcv={};L2_series_pcv=L1_series_pcv;
 for target_sta=1:num_sta
     sta(target_sta).pcv1 = zeros(32,length(time_series{target_sta}));
     sta(target_sta).pcv2=sta(target_sta).pcv1;
-    
+
     rec_idx=find(strcmp(antenna_name_series(target_sta),ants)==1);
     rec_idx=find(strcmp('TRM29659.00',ants)==1);
     rec_pcv1=interp1(grid,pcv1(rec_idx,:),finegrid);

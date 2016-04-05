@@ -1,6 +1,6 @@
 function [ pr1, ph1, pr2, ph2, dtR, dtRdot,time_RdtR ] = fix_clock_resets_time_code_phase0930( pr1, ph1, pr2, ph2, Eph, iono, snr1, time_rx, lambda )
-%FIX_CLOCK_RESETS_TIME_CODE_PHASE この関数の概要をここに記述
-%   詳細説明をここに記述
+%FIX_CLOCK_RESETS_TIME_CODE_PHASE この関?狽ﾌ概要をここに記?q
+%   ?ﾚ?ﾗ?燒ｾをここに記?q
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dtR, dtRdot] = fix_clock_resets_code_phase(pr1, ph1, pr2, ph2, Eph, iono, snr1, time_rx);
 %
@@ -64,13 +64,16 @@ for i = 1 : nEpochs
     sat0 = sat0(ismember(sat0, Eph_t(30,:)));
     
     if (size(sat0,1) >= 4)
-    
-    [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat, ~, ~, ~, ~, ~, ~, ~, ~, ~] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, [], iono, [], [], [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, 0, 0);    
+
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, ~, sat, ~, ~, ~, ~, ~, ~, ~, ~, ~] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, [], iono, [], [], [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, 0, 0);
+
 %     [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat, ~, ~, ~, ~, ~, ~, ~, ~, ~] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, [], [], [], iono, [], [], [], [], sat0, cutoff, snr_threshold, 0, 0);
 % for reference;
 % [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pseudorange, snr, Eph, SP3_time, SP3_coor, SP3_clck, iono, sbas, XR0, XS0, dtS0, sat0, cutoff_el, cutoff_snr, flag_XR, flag_XS)
 %     [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, [], iono, [], [], [], [], sat0, cutoff, snr_threshold, 0, 0);
         if (size(sat,1) >= 4)
+            
+            dtR(i) = dtR_tmp;
             
             if (i > 1)
                 %receiver clock drift

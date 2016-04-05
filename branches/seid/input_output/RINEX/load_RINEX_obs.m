@@ -100,7 +100,7 @@ for f = 1 : nFiles
         current_file = filename;
     end
     
-    fprintf(['Reading RINEX file ' current_file ': ... ']);
+    fprintf('%s',['Reading RINEX file ' current_file ': ... ']);
     
     %open RINEX observation file
     fid = fopen(current_file,'r');

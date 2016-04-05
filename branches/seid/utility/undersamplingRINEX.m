@@ -58,7 +58,7 @@ fidIN  = fopen(filenameIN,'rt');
 fidOUT = fopen(filenameOUT,'wt');
 
 line = fgets(fidIN);
-while (~strfind(line,'END OF HEADER'))
+while (isempty(strfind(line,'END OF HEADER')))
    fprintf(fidOUT,'%s',line);
    line = fgets(fidIN);
 end

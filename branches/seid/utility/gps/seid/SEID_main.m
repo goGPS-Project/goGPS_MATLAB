@@ -45,11 +45,13 @@ end
  end
 
  %TODO
- name_series{1} = 'RISH';
- name_series{2} = '0644';
- name_series{3} = '0334';
- name_series{4} = '0335';
- name_series{5} = '0324';
+ name_series{1} = 'GRED';
+ name_series{2} = 'CATU';
+ name_series{3} = 'COMO';
+ name_series{4} = 'MILA';
+ name_series{5} = 'MONZ';
+ name_series{6} = 'NOVR';
+ name_series{7} = 'VARE';
 target_sta = 1; 
  
 % n_sta=length(name_series);
@@ -59,7 +61,7 @@ target_sta = 1;
 %     end
 % end
 
-antenna_name_series={'JAV_GRANT-G3T','TRM29659.00','TRM29659.00','TRM29659.00','TRM29659.00'};
+antenna_name_series={'NONE', 'TPSG3_A1','TPSCR3_GGD','TPSCR3_GGD','LEIAS10','LEIAR25.R3','LEIAR25'};
 L1_series_fix=L1_series;L2_series_fix=L2_series;
 % compute diff_L4
 [diff_L4,P2_time_series,commontime,stations_idx,~,~,L4_series] = compute_diffL4( L1_series_fix,L2_series_fix,P2_series,name_series,time_series,elev_series,antenna_name_series,pcv_file);
@@ -90,16 +92,20 @@ end
 % 
 % write CS fixed non-interpolated RINEX file
 
-outputfile_path=strcat(out_path,'/SEID_output_only_clock_fix.obs') ;
-
-write_RINEX_obs(outputfile_path, 'JAVAD', 'JAV_GRANT-G3T', L1_sta.pr1_R, ...
-    L1_sta.pr2_R, L1_series_fix{target_sta}, L2_series_fix{target_sta}, L1_sta.dop1_R, L1_sta.dop2_R, ...
-    L1_sta.snr1_R, L1_sta.snr2_R, L1_sta.time_R, L1_sta.date_R, L1_sta.pos_R, L1_sta.interval,L1_sta.flag_P1);
+% outputfile_path=strcat(out_path,'/SEID_output_only_clock_fix.obs') ;
+% 
+% write_RINEX_obs(outputfile_path, 'u-blox', 'NONE', L1_sta.pr1_R, ...
+%     L1_sta.pr2_R, L1_series_fix{target_sta}, L2_series_fix{target_sta}, L1_sta.dop1_R, L1_sta.dop2_R, ...
+%     L1_sta.snr1_R, L1_sta.snr2_R, L1_sta.time_R, L1_sta.date_R, L1_sta.pos_R, L1_sta.interval,L1_sta.flag_P1);
 
 
 %write new RINEX file
-outputfile_path=strcat(out_path,'/SEID_output_full.obs') ;
+outputfile_path=strcat(out_path,['/' name_series{target_sta} '_SEID_output.obs']) ;
 
-write_RINEX_obs(outputfile_path, 'JAVAD', 'JAV_GRANT-G3T', L1_sta.pr1_R, ...
+new_interval = 30;
+
+write_RINEX_obs(outputfile_path, 'u-blox', 'NONE', L1_sta.pr1_R, ...
     til_P2, L1_series_fix{target_sta}, fix_til_L2, L1_sta.dop1_R, L1_sta.dop2_R, ...
-    L1_sta.snr1_R, L1_sta.snr2_R, L1_sta.time_R, L1_sta.date_R, L1_sta.pos_R, L1_sta.interval,L1_sta.flag_P1);
+    L1_sta.snr1_R, L1_sta.snr2_R, L1_sta.time_R, L1_sta.date_R, L1_sta.pos_R, new_interval,L1_sta.flag_P1);
+
+undersamplingRINEX(outputfile_path, [L1_station '_new'], 0, new_interval, L1_sta.interval);
