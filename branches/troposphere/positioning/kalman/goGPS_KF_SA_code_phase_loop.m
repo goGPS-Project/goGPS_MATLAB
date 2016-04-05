@@ -96,6 +96,9 @@ ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 %iono-free coefficients
 alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
 alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
+alphat = 77;
+alphan = 60;
+lambdaIF = alphat/(alphat^2-alphan^2)*lambda(:,1);
 
 %----------------------------------------------------------------------------------------
 % MODEL ERROR COVARIANCE MATRIX
@@ -308,6 +311,57 @@ if (nsat >= min_nsat)
     
     %compute phase wind-up correction
     phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS, SP3, phwindup(sat,1));
+    
+    %compute PCV: phase and code 1
+    [~, index_ph]=intersect(sat_pr,sat);
+    
+    if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0) % rover
+        index_rover=1;
+        PCV1=PCV_interp(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 1);
+        pr1(sat_pr)=pr1(sat_pr)-PCV1;
+        ph1(sat)=ph1(sat)-PCV1(index_ph)./lambda(sat,1);
+        
+        if (length(frequencies) == 2 || frequencies(1) == 2)
+            PCV2=PCV_interp(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 2);
+            pr2(sat_pr)=pr2(sat_pr)-PCV2;
+            ph2(sat)=ph2(sat)-PCV2(index_ph)./lambda(sat,2);
+        end
+    end
+    
+    %when the tropospheric delay is estimated, only its hydrostatic part is removed from the observations
+    if (flag_tropo)
+        
+        [week, sow] = time2weektow(time_rx + zero_time);
+        date = gps2date(week, sow);
+        [~, mjd] = date2jd(date);
+        
+        %pressure = goGNSS.STD_PRES;
+        %temperature = goGNSS.STD_TEMP;
+        %humidity = goGNSS.STD_HUMI;
+        
+        [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
+        ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
+        %ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
+        
+        %ZHD_R = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
+        ZWD_R = 0.1;
+        
+        gmfh_R = zeros(size(err_tropo));
+        gmfw_R = zeros(size(err_tropo));
+        err_tropo0 = zeros(size(err_tropo));
+        beta_R = zeros(n,nT);
+        for s = 1 : n
+            [gmfh_R(s,1), gmfw_R(s,1)] = gmf_f_hu(mjd, phiR_app, lamR_app, hR_app, (90-elR(sat_pr(s),1))*pi/180);
+            err_tropo0(s,1) = gmfh_R(s,1)*ZHD_R + gmfw_R(s,1)*ZWD_R;
+        end
+        
+        beta_R(:,nT) = gmfw_R(:,ones(nT,1));
+        
+        err_tropo = err_tropo0 + gmfw_R.*X_t1_t(o3+nN+(1:nT));
+    else
+        err_tropo0 = err_tropo;
+        beta_R = zeros(n,nT);
+    end
 
     %if the number of available satellites after the cutoffs is equal or greater than min_nsat
     if (nsat >= min_nsat)
@@ -373,20 +427,20 @@ if (nsat >= min_nsat)
             %The state of the system is not changed yet
             if (length(frequencies) == 2)
                 if (strcmp(obs_comb,'NONE'))
-                    [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           pr1(sat), ph1(sat), err_iono1(phase_index), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
-                    [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), pr2(sat), ph2(sat), err_iono2(phase_index), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
+                    [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           ph1(sat), distR(sat), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
+                    [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2(sat), distR(sat), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                     
                     if (check_cs1 || check_cs2)
                         check_cs = 1;
                     end
                 elseif (strcmp(obs_comb,'IONO_FREE'))
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), alpha1*pr1(sat) - alpha2*pr2(sat), alpha1*lambda(sat,1).*ph1(sat) - alpha2*lambda(sat,2).*ph2(sat), zeros(size(sat)), alpha1*doppler_pred_range1_R(sat) - alpha2*doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, ones(size(sat_pr))); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), alpha1*doppler_pred_range1_R(sat_pr) - alpha2*doppler_pred_range2_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambdaIF(sat_pr,1)); %#ok<ASGLU>
                 end
             else
                 if (frequencies == 1)
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), pr1(sat), ph1(sat), err_iono1(phase_index), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph1(sat), distR(sat), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 else
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), pr2(sat), ph2(sat), err_iono2(phase_index), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph2(sat), distR(sat), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 end
             end
         else
@@ -430,7 +484,7 @@ if (nsat >= min_nsat)
                 end
             elseif (strcmp(obs_comb,'IONO_FREE'))
                 
-                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alpha1*lambda(sat_pr,1).*ph1(sat_pr) - alpha2*lambda(sat_pr,2).*ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, ones(size(sat_pr)), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
+                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat,1), X_t1_t(o3+sat), Cee(o3+sat, o3+sat), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
                 
                 if (check_on)
                     X_t1_t(o3+sat_born,1) = N_born;
@@ -472,55 +526,6 @@ if (nsat >= min_nsat)
         %rows in which the phase observation is available
         p = find(ismember(sat_pr,sat)==1);
         
-        %compute PCV: phase and code 1 
-        [~, index_ph]=intersect(sat_pr,sat);
-        
-        if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0) % rover
-            index_rover=1; 
-            PCV1=PCV_interp(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 1);
-            pr1(sat_pr)=pr1(sat_pr)-PCV1;
-            ph1(sat)=ph1(sat)-PCV1(index_ph)./lambda(sat,1);
-            
-            if (length(frequencies) == 2 || frequencies(1) == 2)
-                PCV2=PCV_interp(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 2);
-                pr2(sat_pr)=pr2(sat_pr)-PCV2;
-                ph2(sat)=ph2(sat)-PCV2(index_ph)./lambda(sat,2);
-            end
-        end
-        
-        %when the tropospheric delay is estimated, only its hydrostatic part is removed from the observations
-        if (flag_tropo)
-            
-            [week, sow] = time2weektow(time_rx + zero_time);
-            date = gps2date(week, sow);
-            [~, mjd] = date2jd(date);
-            
-            %pressure = goGNSS.STD_PRES;
-            %temperature = goGNSS.STD_TEMP;
-            %humidity = goGNSS.STD_HUMI;
-            
-            [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
-            ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
-            %ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
-            
-            %ZHD_R = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
-            ZWD_R = 0.1;
-            
-            gmfh_R = zeros(size(err_tropo));
-            gmfw_R = zeros(size(err_tropo));
-            err_tropo0 = zeros(size(err_tropo));
-            beta_R = zeros(n,nT);
-            for s = 1 : n
-                [gmfh_R(s,1), gmfw_R(s,1)] = gmf_f_hu(mjd, phiR_app, lamR_app, hR_app, (90-elR(sat_pr(s),1))*pi/180);
-                err_tropo0(s,1) = gmfh_R(s,1)*ZHD_R + gmfw_R(s,1)*ZWD_R;
-            end
-            
-            beta_R(:,nT) = gmfw_R(:,ones(nT,1));
-        else
-            err_tropo0 = err_tropo;
-            beta_R = zeros(n,nT);
-        end
-        
         %function that calculates the Kalman filter parameters
         [alpha, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR0, XS, pr1(sat_pr), ph1(sat_pr), pr2(sat_pr), ph2(sat_pr), distR(sat_pr), dtS, err_tropo0, err_iono1, err_iono2, phwindup(sat_pr), lambda(sat_pr,:));
         
@@ -558,7 +563,7 @@ if (nsat >= min_nsat)
         for u = 1 : n
             L_pha1(u,sat_pr(u))  = -(lambda(sat_pr(u),1));
             L_pha2(u,sat_pr(u))  = -(lambda(sat_pr(u),2));
-            L_phaIF(u,sat_pr(u)) = -1;
+            L_phaIF(u,sat_pr(u)) = -(lambdaIF(sat_pr(u),1));
         end
         
         %H matrix computation for the phase
@@ -604,9 +609,9 @@ if (nsat >= min_nsat)
         
         %Y0 vector computation for the phase
         if ~isempty(p)
-            y0_pha1  = ph1(sat).*lambda(sat,1) - prapp_ph1(p)  + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
-            y0_pha2  = ph2(sat).*lambda(sat,2) - prapp_ph2(p)  + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
-            y0_phaIF = probs_phIF(p)           - prapp_phIF(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+            y0_pha1  = ph1(sat).*lambda(sat,1)        - prapp_ph1(p)  + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+            y0_pha2  = ph2(sat).*lambda(sat,2)        - prapp_ph2(p)  + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
+            y0_phaIF = probs_phIF(p).*lambdaIF(sat,1) - prapp_phIF(p) + alpha(p,1)*X_app + alpha(p,2)*Y_app + alpha(p,3)*Z_app;
         else
             y0_pha1 = [];
             y0_pha2 = [];
@@ -718,7 +723,7 @@ if (nsat >= min_nsat)
                     y0_noamb(length(sat_pr)*2+            (1:length(sat)))=y0_noamb(length(sat_pr)*2+            (1:length(sat)))+lambda(sat,1).*X_t1_t(o3+        sat); %add predicted ambiguity to y0 (L1)
                     y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))=y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+lambda(sat,2).*X_t1_t(o3+nSatTot+sat); %add predicted ambiguity to y0 (L2)
                 elseif (strcmp(obs_comb,'IONO_FREE'))
-                    y0_noamb(length(sat_pr)+1:end)=y0_noamb(length(sat_pr)+1:end)+X_t1_t(o3+sat); %add predicted ambiguity to y0 (IF)
+                    y0_noamb(length(sat_pr)+1:end)=y0_noamb(length(sat_pr)+1:end)+lambdaIF(sat,1).*X_t1_t(o3+sat); %add predicted ambiguity to y0 (IF)
                 end
             else
                 if (frequencies == 1)

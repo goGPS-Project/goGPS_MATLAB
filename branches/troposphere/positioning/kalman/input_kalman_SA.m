@@ -71,8 +71,10 @@ prapp_ph2 = prapp_pr - err_iono2 + lambda(:,2).*phwindup;
 %observed iono-free combinations
 alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
 alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
-probs_prIF  = alpha1 *                pr1 - alpha2 *                pr2; %observed pseudorange (iono-free code)
-probs_phIF  = alpha1 * lambda(:,1) .* ph1 - alpha2 * lambda(:,2) .* ph2; %observed pseudorange (iono-free phase)
+alphat = 77;
+alphan = 60;
+probs_prIF  = alpha1 * pr1 - alpha2 * pr2; %observed pseudorange (iono-free code)
+probs_phIF  = alphat * ph1 - alphan * ph2; %observed pseudorange (iono-free phase)
 
 %approximate iono-free combinations (alpha1 - alpha2 = 1)
 prapp_prIF = prapp_pr;

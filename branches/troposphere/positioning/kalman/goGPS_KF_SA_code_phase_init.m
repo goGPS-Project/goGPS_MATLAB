@@ -75,6 +75,9 @@ ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 %iono-free coefficients
 alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
 alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
+alphat = 77;
+alphan = 60;
+lambdaIF = alphat/(alphat^2-alphan^2)*lambda(:,1);
 
 %topocentric coordinates initialization
 azR = zeros(nSatTot,1);
@@ -323,11 +326,19 @@ else
     %if the satellite is visible, 0 if the satellite is not visible
     N1 = zeros(nSatTot,1);
     N2 = zeros(nSatTot,1);
+    N_IF = zeros(nSatTot,1);
+    cov_N1 = [];
+    cov_N2 = [];
+    cov_N_IF = [];
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
+        if (~strcmp(obs_comb,'IONO_FREE'))
+            [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
+            [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
+        else
+            [XR, dtR, N_IF(sat), cov_XR, var_dtR, cov_N_IF, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
+        end
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix
@@ -343,6 +354,10 @@ else
         cov_N2 = sigmaq0_N * eye(length(sat));
     end
     
+    if isempty(cov_N_IF) %if it was not possible to compute the covariance matrix
+        cov_N_IF = sigmaq0_N * eye(length(sat));
+    end
+    
     if (length(frequencies) == 2)
         if (strcmp(obs_comb,'NONE'))
             N = [N1; N2];
@@ -351,8 +366,8 @@ else
             sigma2_N(sat+nSatTot) = diag(cov_N2);
             %sigma2_N(sat+nSatTot) = (sigmaq_cod2 / lambda2^2) * ones(length(sat),1);
         elseif (strcmp(obs_comb,'IONO_FREE'))
-            N = alpha1 * lambda(:,1) .* N1 - alpha2 * lambda(:,2) .* N2;
-            sigma2_N(sat) = diag(cov_N1);  %TO BE CHANGED
+            N = N_IF;
+            sigma2_N(sat) = diag(cov_N_IF);
         end
     else
         if (frequencies == 1)
