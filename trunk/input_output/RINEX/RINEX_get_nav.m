@@ -55,6 +55,7 @@ fid = fopen(file_nav,'rt');
 
 %read the header
 header_end = [];
+iono_loaded = 0;
 while (isempty(header_end))
     %read the line and search the ionosphere labels
     lin = fgetl(fid);
@@ -68,7 +69,7 @@ while (isempty(header_end))
     end
     
     %if the ionosphere parameters label was found
-    if (iono_found)
+    if (iono_found && ~iono_loaded)
         %change flag
         %         ioparam = 1;
         %save the 8 ionosphere parameters
@@ -92,6 +93,7 @@ while (isempty(header_end))
                 iono = zeros(8,1);
             end
         end
+        iono_loaded = 1;
     end
     
     header_end = strfind(lin,'END OF HEADER');
