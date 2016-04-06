@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 19-Apr-2013 20:03:23
+% Last Modified by GUIDE v2.5 18-Mar-2014 16:50:54
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -1678,6 +1678,14 @@ function about_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 gui_about;
+
+% --------------------------------------------------------------------
+function seid_Callback(hObject, eventdata, handles)
+% hObject    handle to seid (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+gui_seid;
+
 
 % --- Executes on key press with focus on main_panel and none of its controls.
 function main_panel_KeyPressFcn(hObject, eventdata, handles)
