@@ -112,6 +112,13 @@ distM = [];
 elea  = 10; % default value for the exponential elevation weight function
 
 %-------------------------------------------------------------------------------
+% PHASE WIND-UP
+%-------------------------------------------------------------------------------
+global phwindup
+
+phwindup = [];
+
+%-------------------------------------------------------------------------------
 % DILUTION OF PRECISION
 %-------------------------------------------------------------------------------
 
@@ -169,6 +176,12 @@ global pivot_old
 %number of unknown phase ambiguities
 global nN
 
+%number of unknown tropospheric parameters
+global nT
+
+%number of unknown clock parameters
+global nC
+
 %method used to estimate phase ambiguities
 %          - amb_estim_method=0: observed code - phase difference
 %          - amb_estim_method=1: Kalman-predicted code - phase difference
@@ -190,6 +203,8 @@ conf_cs = [];
 pivot = [];
 pivot_old = [];
 nN = [];
+nT = 0;
+nC = 0;
 amb_estim_method = 0;
 interval = 1; %default 1 Hz (to avoid problems with real-time modes)
 
@@ -387,3 +402,9 @@ n_sys = 1;
 %-------------------------------------------------------------------------------
 global FTABLE;
 FTABLE=finv(0.9995,1,1:200)';
+
+%-------------------------------------------------------------------------------
+% Time adjustment
+%-------------------------------------------------------------------------------
+global zero_time
+zero_time = 0;
