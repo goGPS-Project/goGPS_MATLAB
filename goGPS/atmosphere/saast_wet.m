@@ -1,17 +1,18 @@
-function [jd, mjd] = date2jd(date)
+function [ZWD] = saast_wet(T, H, h)
 
 % SYNTAX:
-%   [jd, mjd] = date2jd(date);
+%   [ZWD] = saast_wet(T, H, h);
 %
 % INPUT:
-%   date = date [year, month, day, hour, min, sec]
+%   T = air temperature
+%   H = humidity
+%   h = orthometric height
 %
 % OUTPUT:
-%   jd  = julian day
-%   mjd = modified julian day
+%   ZWD = Zenith Wet Delay
 %
 % DESCRIPTION:
-%   Conversion from date to julian day and modified julian day.
+%   Zenith Wet Delay (ZWD) computation by Saastamoinen model.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -33,19 +34,17 @@ function [jd, mjd] = date2jd(date)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-year  = date(:,1);
-month = date(:,2);
-day   = date(:,3);
-hour  = date(:,4);
-min   = date(:,5);
-sec   = date(:,6);
+% Convert C -> K
+T = T + 273.15;
 
-pos = find(month <= 2);
-year(pos)  = year(pos) - 1;
-month(pos) = month(pos) + 12;
+%height correction
+H = H * exp(-0.0006396*h);
 
-%julian day
-jd = floor(365.25*(year+4716)) + floor(30.6001*(month+1)) + day + hour/24 + min/1440 + sec/86400 - 1537.5;
+% Convert humidity
+H = H./100;
 
-%modified julian day
-mjd = jd - 2400000.5;
+c = -37.2465 + 0.213166*T - 2.56908 * (10^-4) * (T.^2);
+e = H .* exp(c);
+
+%ZWD (Saastamoinen model)
+ZWD = 0.0022768*(((1255/T)+0.05)*e);

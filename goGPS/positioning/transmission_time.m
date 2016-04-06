@@ -1,7 +1,7 @@
-function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR)
+function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb)
 
 % SYNTAX:
-%   [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR);
+%   [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
 %
 % INPUT:
 %   time_rx   = reception time
@@ -13,6 +13,8 @@ function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas,
 %   err_tropo = tropospheric delays
 %   err_iono  = ionospheric delays
 %   dtR       = receiver clock offset
+%   frequencies = L1 carrier (phase=1), L2 carrier (phase=2)
+%   obs_comb    = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %
 % OUTPUT:
 %   time_tx = transmission time
@@ -66,12 +68,22 @@ if (isempty(SP3))
         dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);
     else
         %relativistic correction term
-        dtrel = relativistic_error_correction(time_tx_RAW, Eph);
+        dtrel = relativistic_clock_error_correction(time_tx_RAW, Eph);
         
         %group delay correction term
-        %--- this correction term is only for the benefit of "single-frequency"
-        %    (L1 P(Y) or L2 P(Y)) users
-        tgd = Eph(28);
+        if (nargin > 9 && ~strcmp(obs_comb,'IONO_FREE'))
+            tgd = Eph(28);
+            if (length(frequencies) == 2)
+                %TO BE DONE!
+            else
+                if (frequencies(1) == 2)
+                    gamma = (goGNSS.F1/goGNSS.F2)^2;
+                    tgd = gamma*tgd;
+                end
+            end
+        else
+            tgd = 0;
+        end
         
         dtS = sat_clock_error_correction(time_tx_RAW, Eph);
         dtS = dtS + dtrel - tgd + dtsbas;

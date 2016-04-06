@@ -1,7 +1,7 @@
 function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 
 % SYNTAX:
-%   [SP3] = load_SP3(filename_SP3, time, week, antPCO_S, X_sun, constellations, wait_dlg);
+%   [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg);
 %
 % INPUT:
 %   filename_SP3 = SP3 file
@@ -125,20 +125,23 @@ SP3.clock = zeros(constellations.nEnabledSat,nEpochs);
 SP3.avail = zeros(constellations.nEnabledSat,1);
 SP3.prn   = zeros(constellations.nEnabledSat,1);
 SP3.sys   = zeros(constellations.nEnabledSat,1);
+SP3.time_hr = [];
+SP3.clock_hr = [];
 
 k = 0;
 flag_unavail = 0;
+flag_clk = 0;
 
 for p = 1 : size(week_dow,1)
     
-    %open SP3 file
+    %SP3 file
     f_sp3 = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.sp3'],'r');
-    
+
     if (f_sp3 ~= -1)
-        %skip the SP3 header (first 22 lines)
-        for i = 1 : 22
-            fgetl(f_sp3);
-        end
+%         %skip the SP3 header (first 22 lines)
+%         for i = 1 : 22
+%             fgetl(f_sp3);
+%         end
         
         while (~feof(f_sp3))
             
@@ -216,6 +219,102 @@ for p = 1 : size(week_dow,1)
     else
         fprintf('Missing SP3 file: %s\n', [filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.sp3']);
         flag_unavail = 1;
+    end
+end
+
+if (~flag_unavail)
+    
+    for p = 1 : size(week_dow,1)
+        %CLK file
+        f_clk = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk'],'r');
+        
+        %CLK_30S file
+        f_clk_30s = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk_30s'],'r');
+        
+        if (f_clk ~= -1 || f_clk_30s ~= -1)
+            
+            if (f_clk ~= -1)
+                flag_clk = 1;
+                if (p == 1)
+                    SP3.time_hr = (SP3.time(1,1) : 300 : SP3.time(k,1)+899)';
+                    SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
+                end
+            end
+            
+            if (f_clk_30s ~= -1)
+                if (f_clk ~= -1)
+                    fclose(f_clk);
+                end
+                f_clk = f_clk_30s;
+                flag_clk = 2;
+                if (p == 1)
+                    SP3.time_hr = (SP3.time(1,1) :  30 : SP3.time(k,1)+899)';
+                    SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
+                end
+            end
+            
+            while (~feof(f_clk))
+                %get the next line
+                lin = fgetl(f_clk);
+                
+                if (strcmp(lin(1:3),'AS '))
+                    
+                    sys_id = lin(4);
+                    if (strcmp(sys_id,' ') | strcmp(sys_id,'G') | strcmp(sys_id,'R') | strcmp(sys_id,'E') | ...
+                            strcmp(sys_id,'C') | strcmp(sys_id,'J'))
+                        %read PRN
+                        PRN = sscanf(lin(5:6),'%f');
+                        
+                        %read epoch
+                        data   = textscan(lin(9:34),'%f%f%f%f%f%f');
+                        year   = data{1};
+                        month  = data{2};
+                        day    = data{3};
+                        hour   = data{4};
+                        minute = data{5};
+                        second = data{6};
+                        
+                        %computation of the GPS time in weeks and seconds of week
+                        [week, time] = date2gps([year, month, day, hour, minute, second]);
+                        
+                        %convert GPS time-of-week to continuous time
+                        [~, q] = min(abs(weektow2time(week, time, 'G') - SP3.time_hr(:,1)));
+                        
+                        switch (sys_id)
+                            case 'G'
+                                index = idGPS;
+                            case 'R'
+                                index = idGLONASS;
+                            case 'E'
+                                index = idGalileo;
+                            case 'C'
+                                index = idBeiDou;
+                            case 'J'
+                                index = idQZSS;
+                        end
+                        
+                        index = index + PRN - 1;
+                        
+                        clk = sscanf(lin(41:59),'%f');
+                        
+                        SP3.clock_hr(index,q) = clk;
+                    end
+                end
+            end
+            fclose(f_clk);
+        end
+    end
+    
+    fprintf('Satellite clock rate: ');
+    if (flag_clk == 0)
+        SP3.clock_rate = 900;
+        fprintf('15 minutes.\n');
+    elseif (flag_clk == 1)
+        SP3.clock_rate = 300;
+        fprintf('5 minutes.\n');
+    else
+        SP3.clock_rate = 30;
+        fprintf('30 seconds.\n');
     end
 end
 

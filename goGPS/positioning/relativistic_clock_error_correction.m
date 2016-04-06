@@ -1,17 +1,20 @@
-function [jd, mjd] = date2jd(date)
+function [corr] = relativistic_clock_error_correction(time, Eph, XS, VS)
 
 % SYNTAX:
-%   [jd, mjd] = date2jd(date);
+%   [corr] = relativistic_clock_error_correction(time, Eph, XS, VS);
 %
 % INPUT:
-%   date = date [year, month, day, hour, min, sec]
+%   time = GPS time
+%   Eph = satellite ephemeris vector
+%   XS = satellite position (X,Y,Z)
+%   VS = satellite velocity (X,Y,Z)
 %
 % OUTPUT:
-%   jd  = julian day
-%   mjd = modified julian day
+%   corr = relativistic clock error correction term
 %
 % DESCRIPTION:
-%   Conversion from date to julian day and modified julian day.
+%   Computation of the relativistic clock error correction term. From the
+%   Interface Specification document revision E (IS-GPS-200E), page 86.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -33,19 +36,12 @@ function [jd, mjd] = date2jd(date)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-year  = date(:,1);
-month = date(:,2);
-day   = date(:,3);
-hour  = date(:,4);
-min   = date(:,5);
-sec   = date(:,6);
-
-pos = find(month <= 2);
-year(pos)  = year(pos) - 1;
-month(pos) = month(pos) + 12;
-
-%julian day
-jd = floor(365.25*(year+4716)) + floor(30.6001*(month+1)) + day + hour/24 + min/1440 + sec/86400 - 1537.5;
-
-%modified julian day
-mjd = jd - 2400000.5;
+if (Eph(4)~=0) %if not using SP3 ephemeris
+    roota = Eph(4);
+    ecc   = Eph(6);
+    
+    Ek = ecc_anomaly(time, Eph);
+    corr = -4.442807633e-10 * ecc * roota * sin(Ek);
+else
+    corr = -2*dot(XS,VS)/(goGNSS.V_LIGHT^2);
+end

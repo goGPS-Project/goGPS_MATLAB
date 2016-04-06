@@ -39,7 +39,7 @@ Cyy = zeros(size(Cxx));
 for i = 1 : size(X,2)
 
     %geodetic coordinates
-    [phi, lam, h] = cart2geod(X(1,i), X(2,i), X(3,i)); %#ok<NASGU>
+    [phi, lam] = cart2geod(X(1,i), X(2,i), X(3,i));
 
     %rotation matrix from global to local reference system
     R = [-sin(lam) cos(lam) 0;

@@ -1,11 +1,11 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR, sbas)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, nSatTot, waitbar_handle, flag_XR, sbas);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas);
 %
 % INPUT:
 %   time_ref = GPS reference time
-%   time     = GPS nominal time (as read from RINEX file)
+%   time = GPS nominal time (as read from RINEX file)
 %   XR0 = receiver position (=[] if not available)
 %   pr1 = code observation (L1 carrier)
 %   ph1 = phase observation (L1 carrier)
@@ -17,6 +17,8 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %   Eph = matrix containing 33 ephemerides for each satellite
 %   SP3 = structure with precise ephemeris and clock
 %   iono = ionosphere parameters (Klobuchar)
+%   frequencies = L1 carrier (phase=1) L2 carrier (phase=2)
+%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   lambda  = wavelength matrix (depending on the enabled constellations)
 %   nSatTot = maximum number of satellites (given the enabled constellations)
 %   waitbar_handle = handle to the waitbar object
@@ -68,6 +70,10 @@ global cutoff snr_threshold n_sys flag_doppler_cs
 
 v_light = goGNSS.V_LIGHT;
 
+%iono-free coefficients
+alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
+alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
+
 %number of epochs
 nEpochs = length(time);
 
@@ -100,7 +106,7 @@ var_SPP=NaN(nEpochs,3);
 
 err_iono = zeros(nSatTot,nEpochs);
 el = zeros(nSatTot,nEpochs);
-cond_num = zeros(nEpochs,1);
+cond_num = zeros(nEpochs,1); %#ok<*NASGU>
 cov_XR = zeros(3,3,nEpochs);
 var_dtR = NaN(nEpochs,1);
 status_obs = NaN(nSatTot,nEpochs);
@@ -125,14 +131,22 @@ for i = 1 : nEpochs
     min_nsat_LS = 3 + n_sys;
     
     if (length(sat0) >= min_nsat_LS)
-        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, flag_XR, 0, 1);
+        if (frequencies(1) == 1)
+            if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
+                [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:)] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0); %#ok<ASGLU>
+            else
+                [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:)] = init_positioning(time(i), alpha1*pr1(sat0,i) - alpha2*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 0); %#ok<ASGLU>
+            end
+        else
+            [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:)] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0); %#ok<ASGLU>
+        end
         
         if isempty(var_dtR_tmp)
             var_dtR_tmp=NaN;
         end
         
         status_obs(sat,i) = 1; % satellite used
-        status_obs(find(bad_sat_i==1),i)=-1; % satellite outlier
+        status_obs(find(bad_sat_i==1),i)=-1; %#ok<FNDSB> % satellite outlier
         
         if (~isempty(dtR_tmp) && ~isempty(sat))
             dtR(i) = dtR_tmp;
@@ -624,7 +638,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     end
 
     if (flag_plot)
-        figure; hold on
+        figure; hold on %#ok<UNRCH>
         if (pos1 == 1 || pos2 == 1)
             plot(delta_code)
             plot(jmp,delta_code(jmp),'mx')
@@ -678,7 +692,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                     idx = (ph(1,:)==0); 
                     cs_correction = roundmod(delta(j), cs_resolution);
                     cs_correction_count = cs_correction_count + 1;
-                    cs_correction_i(cs_correction_count,3)=j;
+                    cs_correction_i(cs_correction_count,3)=j; %#ok<*AGROW>
                     cs_correction_i(cs_correction_count,4)=cs_correction;
                     cs_correction_i(cs_correction_count,5)=delta(j);
                     cs_correction_i(cs_correction_count,6)=0;
@@ -691,7 +705,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 %                     end
                     
                     if (flag_plot)
-                        hold on
+                        hold on %#ok<UNRCH>
                         idx_plot = find(N_mat~=0);
                         plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
                         
@@ -748,7 +762,7 @@ end
 end
 
 
-function [pr] = code_range_to_phase_range(pr, ph, el, err_iono, lambda)
+function [pr] = code_range_to_phase_range(pr, ph, el, err_iono, lambda) %#ok<DEFNU>
 
 global cutoff
 
@@ -768,11 +782,11 @@ d = n/2;
 yi = zeros(size(y));
 for t = 1 : length(xi)
     if (t<=d)
-        yi(t) = LagrangeInter(x(1:n), y(1:n), xi(t));
+        yi(t) = LagrangeInter(x(1:n)', y(1:n), xi(t));
     elseif (t>(length(x)-d))
-        yi(t) = LagrangeInter(x(end-d-1:end), y(end-d-1:end), xi(t));
+        yi(t) = LagrangeInter(x(end-d-1:end)', y(end-d-1:end), xi(t));
     else
-        yi(t) = LagrangeInter(x(t-d:t+d), y(t-d:t+d), xi(t));
+        yi(t) = LagrangeInter(x(t-d:t+d)', y(t-d:t+d), xi(t));
     end
 end
 end

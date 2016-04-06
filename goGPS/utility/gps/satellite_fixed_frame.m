@@ -1,17 +1,20 @@
-function [jd, mjd] = date2jd(date)
+function [i, j, k] = satellite_fixed_frame(time, X_sat, SP3)
 
 % SYNTAX:
-%   [jd, mjd] = date2jd(date);
+%   [i, j, k] = satellite_fixed_frame(time, X_sat, SP3);
 %
 % INPUT:
-%   date = date [year, month, day, hour, min, sec]
+%   time  = GPS time
+%   X_sat = satellite position (X,Y,Z)
+%   SP3   = structure containing precise ephemeris data
 %
 % OUTPUT:
-%   jd  = julian day
-%   mjd = modified julian day
+%   i = unit vector that completes the right-handed system
+%   j = resulting unit vector of the cross product of k vector with the unit vector from the satellite to Sun
+%   k = unit vector pointing from the Satellite Mass Centre (MC) to the Earth's centre
 %
 % DESCRIPTION:
-%   Conversion from date to julian day and modified julian day.
+%   Computation of the unit vectors defining the satellite-fixed frame.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -33,19 +36,14 @@ function [jd, mjd] = date2jd(date)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-year  = date(:,1);
-month = date(:,2);
-day   = date(:,3);
-hour  = date(:,4);
-min   = date(:,5);
-sec   = date(:,6);
+t_sun = SP3.t_sun;
+X_sun = SP3.X_sun;
 
-pos = find(month <= 2);
-year(pos)  = year(pos) - 1;
-month(pos) = month(pos) + 12;
-
-%julian day
-jd = floor(365.25*(year+4716)) + floor(30.6001*(month+1)) + day + hour/24 + min/1440 + sec/86400 - 1537.5;
-
-%modified julian day
-mjd = jd - 2400000.5;
+[~, q] = min(abs(t_sun - time));
+X_sun = X_sun(:,q);
+e = (X_sun-X_sat)/norm(X_sun-X_sat);
+k = -X_sat/norm(X_sat);
+j = cross(k,e);
+i = cross(j,k);
+j = j/norm(j);
+i = i/norm(i);

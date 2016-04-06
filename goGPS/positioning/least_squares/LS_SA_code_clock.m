@@ -88,8 +88,7 @@ invQ=diag((diag(Q).^-1));
 %normal matrix
 N = (A'*(invQ)*A);
 
-
-if nargin<8 || (n == m) || exist('SPP_threshold','var')==0
+if nargin<9 || (n == m) || exist('SPP_threshold','var')==0
     %least squares solution
     x   = (N^-1)*A'*(invQ)*(y0-b);
     %estimation of the variance of the observation error

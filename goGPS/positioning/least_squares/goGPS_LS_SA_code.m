@@ -111,6 +111,7 @@ if (size(sat,1) >= min_nsat)
         residuals_float(residuals(:,2))=residuals(:,1);
         outliers(find(obs_outlier==1))=1; 
     end
+    
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
@@ -125,7 +126,7 @@ if (size(sat,1) >= min_nsat)
     %previous pivot
     pivot_old = 0;
     
-    %actual pivot
+    %current pivot
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
 

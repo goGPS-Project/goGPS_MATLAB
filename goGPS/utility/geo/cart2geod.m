@@ -1,7 +1,7 @@
-function [phi, lam, h] = cart2geod(X, Y, Z)
+function [phi, lam, h, phiC] = cart2geod(X, Y, Z)
 
 % SYNTAX:
-%   [phi, lam, h] = cart2geod(X, Y, Z);
+%   [phi, lam, h, phiC] = cart2geod(X, Y, Z);
 %
 % INPUT:
 %   X = X axis cartesian coordinate
@@ -12,6 +12,7 @@ function [phi, lam, h] = cart2geod(X, Y, Z)
 %   phi = latitude
 %   lam = longitude
 %   h = ellipsoidal height
+%   phiC = geocentric latitude
 %
 % DESCRIPTION:
 %   Conversion from cartesian coordinates to geodetic coordinates.

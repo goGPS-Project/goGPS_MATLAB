@@ -1,11 +1,15 @@
 function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-          conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, ...
-          KHDOP, KVDOP, RES_CODE_FIX, RES_PHASE_FIX, RES_CODE_FLOAT, RES_PHASE_FLOAT, outliers_CODE, outliers_PHASE]= load_goGPSoutput (fileroot, mode, mode_vinc)
+          conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP,  ...
+          RES_CODE1_FIX, RES_CODE2_FIX, RES_PHASE1_FIX, RES_PHASE2_FIX, ...
+          RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT, ...
+          outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2]= load_goGPSoutput (fileroot, mode, mode_vinc)
 
 % SYNTAX:
 %   [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
-%    conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, ...
-%    KHDOP, KVDOP]= load_goGPSoutput (fileroot, mode, mode_vinc);
+%    conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP,  ...
+%    RES_CODE1_FIX, RES_CODE2_FIX, RES_PHASE1_FIX, RES_PHASE2_FIX, ...
+%    RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT, ...
+%    outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2]= load_goGPSoutput (fileroot, mode, mode_vinc)
 %
 % INPUT:
 %   fileroot  = name of the file to be read
@@ -56,7 +60,7 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %----------------------------------------------------------------------------------------------
 
 %global variables loading
-global o1 o3 nN
+global o1 o3 nN nT nC
 
 %-------------------------------------------------------------------------------
 
@@ -102,17 +106,17 @@ else
         fprintf('%s',['Reading: ' fileroot '_kal_' hour_str '.bin']); fprintf('\n');
         num_bytes = d.bytes;                                            %file size (number of bytes)
         num_words = num_bytes / 8;                                      %file size (number of words)
-        dim_packs = (o3+nN)+(o3+nN)^2;                                  %packets size
+        dim_packs = (o3+nN+nT+nC)+(o3+nN+nT+nC)^2;                      %packets size
         num_packs = num_words / dim_packs;                              %file size (number of packets)
         fid_kal = fopen([fileroot '_kal_' hour_str '.bin'],'r+');       %file opening
         buf_kal = fread(fid_kal,num_words,'double');                    %file reading
         fclose(fid_kal);                                                %file closing
-        Xhat_t_t = [Xhat_t_t  zeros(o3+nN,num_packs)];                  %observations concatenation
-        Cee = cat(3,Cee,zeros(o3+nN,o3+nN,num_packs));
+        Xhat_t_t = [Xhat_t_t  zeros(o3+nN+nT+nC,num_packs)];            %observations concatenation
+        Cee = cat(3,Cee,zeros(o3+nN+nT+nC,o3+nN+nT+nC,num_packs));
         for j = 0 : dim_packs : num_words-1
             i = i+1;                                                    %epoch counter increase
-            Xhat_t_t(:,i) = buf_kal(j + [1:o3+nN]);                     %observations logging
-            Cee(:,:,i) = reshape(buf_kal(j + [o3+nN+1:dim_packs]), o3+nN, o3+nN);
+            Xhat_t_t(:,i) = buf_kal(j + [1:o3+nN+nT+nC]);               %observations logging
+            Cee(:,:,i) = reshape(buf_kal(j + [o3+nN+nT+nC+1:dim_packs]), o3+nN+nT+nC, o3+nN+nT+nC);
         end
         hour = hour+1;                                                  %hour increase
         hour_str = num2str(hour,'%03d');                                %conversion into a string
@@ -243,12 +247,18 @@ end
 
 %-------------------------------------------------------------------------------
 %initialization
-RES_CODE_FIX  = [];                      %double differences code residuals (fixed solution)
-RES_PHASE_FIX = [];                      %phase differences phase residuals (fixed solution)
-RES_CODE_FLOAT  = [];                    %double differences code residuals (float solution)
-RES_PHASE_FLOAT = [];                    %phase differences phase residuals (float solution)
-outliers_CODE = [];                      %code double difference outlier? (fixed solution)
-outliers_PHASE = [];                     %phase double difference outlier? (fixed solution)
+RES_CODE1_FIX  = [];                      %double differences code residuals (fixed solution)
+RES_CODE2_FIX  = [];                      %double differences code residuals (fixed solution)
+RES_PHASE1_FIX = [];                      %phase differences phase residuals (fixed solution)
+RES_PHASE2_FIX = [];                      %phase differences phase residuals (fixed solution)
+RES_CODE1_FLOAT  = [];                    %double differences code residuals (float solution)
+RES_CODE2_FLOAT  = [];                    %double differences code residuals (float solution)
+RES_PHASE1_FLOAT = [];                    %phase differences phase residuals (float solution)
+RES_PHASE2_FLOAT = [];                    %phase differences phase residuals (float solution)
+outliers_CODE1 = [];                      %code double difference outlier? (fixed solution)
+outliers_CODE2 = [];                      %code double difference outlier? (fixed solution)
+outliers_PHASE1 = [];                     %phase double difference outlier? (fixed solution)
+outliers_PHASE2 = [];                     %phase double difference outlier? (fixed solution)
 %observations reading
 i = 0;                                                              %epoch counter
 hour = 0;                                                           %hour index (integer)
@@ -260,23 +270,35 @@ while ~isempty(d)
     num_sat = fread(fid_sat,1,'int8');                              %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / (num_sat*6);                            %file size (number of packets)
+    num_packs = num_words / (2*num_sat*6);                          %file size (number of packets)
     buf_sat = fread(fid_sat,num_words,'double');                    %file reading
     fclose(fid_sat);                                                %file closing
-    RES_CODE_FIX    = [RES_CODE_FIX    zeros(num_sat,num_packs)];   %observations concatenation
-    RES_PHASE_FIX   = [RES_PHASE_FIX   zeros(num_sat,num_packs)];
-    RES_CODE_FLOAT  = [RES_CODE_FLOAT  zeros(num_sat,num_packs)];
-    RES_PHASE_FLOAT = [RES_PHASE_FLOAT zeros(num_sat,num_packs)];
-    outliers_CODE   = [outliers_CODE   zeros(num_sat,num_packs)];
-    outliers_PHASE  = [outliers_PHASE  zeros(num_sat,num_packs)];
-    for j = 0 : (num_sat*6) : num_words-1
-        i = i+1;                                                    %epoch counter increase
-        RES_CODE_FIX(:,i)    = buf_sat(j + [1:num_sat]);            %observations logging
-        RES_PHASE_FIX(:,i)   = buf_sat(j + [1*num_sat+1:2*num_sat]);
-        RES_CODE_FLOAT(:,i)  = buf_sat(j + [2*num_sat+1:3*num_sat]);
-        RES_PHASE_FLOAT(:,i) = buf_sat(j + [3*num_sat+1:4*num_sat]);
-        outliers_CODE(:,i)   = buf_sat(j + [4*num_sat+1:5*num_sat]);
-        outliers_PHASE(:,i)  = buf_sat(j + [5*num_sat+1:6*num_sat]);
+    RES_CODE1_FIX    = [RES_CODE1_FIX    zeros(num_sat,num_packs)]; %observations concatenation
+    RES_CODE2_FIX    = [RES_CODE2_FIX    zeros(num_sat,num_packs)];
+    RES_PHASE1_FIX   = [RES_PHASE1_FIX   zeros(num_sat,num_packs)];
+    RES_PHASE2_FIX   = [RES_PHASE2_FIX   zeros(num_sat,num_packs)];
+    RES_CODE1_FLOAT  = [RES_CODE1_FLOAT  zeros(num_sat,num_packs)];
+    RES_CODE2_FLOAT  = [RES_CODE2_FLOAT  zeros(num_sat,num_packs)];
+    RES_PHASE1_FLOAT = [RES_PHASE1_FLOAT zeros(num_sat,num_packs)];
+    RES_PHASE2_FLOAT = [RES_PHASE2_FLOAT zeros(num_sat,num_packs)];
+    outliers_CODE1   = [outliers_CODE1   zeros(num_sat,num_packs)];
+    outliers_CODE2   = [outliers_CODE2   zeros(num_sat,num_packs)];
+    outliers_PHASE1  = [outliers_PHASE1  zeros(num_sat,num_packs)];
+    outliers_PHASE2  = [outliers_PHASE2  zeros(num_sat,num_packs)];
+    for j = 0 : (2*num_sat*6) : num_words-1
+        i = i+1;                                                     %epoch counter increase
+        RES_CODE1_FIX(:,i)    = buf_sat(j + [1:num_sat]);            %observations logging
+        RES_CODE2_FIX(:,i)    = buf_sat(j + [1*num_sat+1:2*num_sat]);
+        RES_PHASE1_FIX(:,i)   = buf_sat(j + [2*num_sat+1:3*num_sat]);
+        RES_PHASE2_FIX(:,i)   = buf_sat(j + [3*num_sat+1:4*num_sat]);
+        RES_CODE1_FLOAT(:,i)  = buf_sat(j + [4*num_sat+1:5*num_sat]);
+        RES_CODE2_FLOAT(:,i)  = buf_sat(j + [5*num_sat+1:6*num_sat]);
+        RES_PHASE1_FLOAT(:,i) = buf_sat(j + [6*num_sat+1:7*num_sat]);
+        RES_PHASE2_FLOAT(:,i) = buf_sat(j + [7*num_sat+1:8*num_sat]);
+        outliers_CODE1(:,i)   = buf_sat(j + [8*num_sat+1:9*num_sat]);
+        outliers_CODE2(:,i)   = buf_sat(j + [9*num_sat+1:10*num_sat]);
+        outliers_PHASE1(:,i)  = buf_sat(j + [10*num_sat+1:11*num_sat]);
+        outliers_PHASE2(:,i)  = buf_sat(j + [11*num_sat+1:12*num_sat]);
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%03d');                                %conversion into a string

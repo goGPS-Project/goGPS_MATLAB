@@ -95,6 +95,11 @@ classdef goGNSS < handle
                                                       %             for computation time reasons; if it's needed to
                                                       %             change it, please update also ecc_anomaly.m and
                                                       %             satellite_orbits.m)
+                                                      
+                                                      % Standard atmosphere - Berg, 1948
+        STD_PRES = 1013.25;                           % pressure [mbar]
+        STD_TEMP = 291.15;                            % temperature [K]
+        STD_HUMI = 50.0;                              % humidity [%]
         
         % CONSTELLATION SPECIFIC ------------------------------------------
         
@@ -166,7 +171,7 @@ classdef goGNSS < handle
         MODE_RT_RM_MON       = 23;  % Real Time Master + Rover Monitor
         
         MODE_PP_LS_C_SA      = 1;   % Post Proc Least Squares on Code Stand Alone
-        MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code and Phase Stand Alone (BASE FOR FUTURE PPP IMPLEMENTATION)
+        MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code and Phase Stand Alone
         MODE_PP_LS_CP_VEL    = 3.1; % Post Proc Least Squares on Code and Phase for Velocity estimation
         MODE_PP_LS_C_DD      = 11;  % Post Proc Least Squares on Code Double Differences
         MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code and Phase Double Differences with LAMBDA
@@ -175,7 +180,7 @@ classdef goGNSS < handle
         
         MODE_PP_KF_C_SA      = 2;   % Post Proc Kalman Filter on Code Stand Alone
         MODE_PP_KF_C_DD      = 12;  % Post Proc Kalman Filter on Code Double Differencies
-        MODE_PP_KF_CP_SA     = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone
+        MODE_PP_KF_CP_SA     = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone (PPP)
         MODE_PP_KF_CP_DD     = 14;  % Post Proc Kalman Filter on Code and Phase Double Differences
         MODE_PP_KF_CP_DD_MR  = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers
                  
