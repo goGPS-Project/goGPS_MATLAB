@@ -58,6 +58,7 @@ antenna_PCV=[];
 for m = 1 : length(antmod)
     antenna_PCV(m).name=antmod{m}; %#ok<*AGROW>
     antenna_PCV(m).n_frequency=0;
+    antenna_PCV(m).available=0;
 end
 antenna_found=zeros(length(antmod),1);
 
@@ -95,7 +96,7 @@ for file_pcv=1:size(filename,1)
                                 %antenna_PCV(m).name=antmod{m};
                                 %antenna_PCV(m).n_frequency=0;
                                 %antenna_PCV(m).offset=[0 0 0];
-                                
+
                                 validity_start = [];
                                 validity_end   = [];
                                 answer1 = strfind(line(1:40),antmod{m});
@@ -107,7 +108,7 @@ for file_pcv=1:size(filename,1)
                                     break
                                 end
                                 
-                                if (~isempty(answer1) && ~isempty(answer2) && ~isempty(find(antmod{m} ~= ' ', 1)))
+                                if (~isempty(answer1) && ~isempty(answer2) && ~isempty(find(antmod{m} ~= ' ', 1)) && ~antenna_PCV(m).available)
 
                                     %get DAZI
                                     while (isempty(strfind(line,'DAZI')))
@@ -176,6 +177,9 @@ for file_pcv=1:size(filename,1)
                                         if (~isempty(validity_start)) %satellite antenna
                                             if (datenum(date(1,:)) > datenum(validity_start) && datenum(date(end,:)) < datenum(validity_end))
                                                 antenna_PCV(m).offset(1,1:3,frequencies_found)=[sscanf(line(1:10),'%f'),sscanf(line(11:20),'%f'),sscanf(line(21:30),'%f')].*1e-3; %N,E,U
+                                                if (frequencies_found == antenna_PCV(m).n_frequency)
+                                                    antenna_PCV(m).available = 1;
+                                                end
                                             else
                                                 invalid_date = 1;
                                                 antenna_PCV(m).n_frequency = 0;
