@@ -256,8 +256,10 @@ if (nsat >= nsat_required)
         [phiR, lamR, hR, phiCR] = cart2geod(XR(1), XR(2), XR(3));
         
         %correct the geometric distance for solid Earth tides
-        stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
-        dist = dist + stidecorr;
+        if (~isempty(SP3))
+            stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
+            dist = dist + stidecorr;
+        end
 
         %radians to degrees
         phiR = phiR * 180 / pi;
@@ -398,8 +400,10 @@ if (nsat >= nsat_required)
     [~, lamR, ~, phiCR] = cart2geod(XR(1), XR(2), XR(3));
     
     %correct the geometric distance for solid Earth tides
-    stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
-    dist = dist + stidecorr;
+    if (~isempty(SP3))
+        stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
+        dist = dist + stidecorr;
+    end
 else
     %empty variables
     dtR  = [];
