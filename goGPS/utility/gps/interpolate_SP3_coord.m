@@ -54,29 +54,11 @@ b = SP3_time(p) - time;
 pos_S = zeros(3,1);
 
 %extract the SP3 coordinates
-% SP3_X = []; SP3_Y = []; SP3_Z = [];
-% for i = -n/2 : n/2
-%     SP3_X = [SP3_X SP3_coord(1,p+i)];
-%     SP3_Y = [SP3_Y SP3_coord(2,p+i)];
-%     SP3_Z = [SP3_Z SP3_coord(3,p+i)];
-% end
 SP3_X = SP3_coord(1,p+(-n/2:n/2));
 SP3_Y = SP3_coord(2,p+(-n/2:n/2));
 SP3_Z = SP3_coord(3,p+(-n/2:n/2));
 
 x = 1 : n+1;
-
-% %Lagrange interpolation (coordinates)
-% u = 4 - b/quarter_sec;
-% pos_S(1,1) = LagrangeInter(x, SP3_X, u);
-% pos_S(2,1) = LagrangeInter(x, SP3_Y, u);
-% pos_S(3,1) = LagrangeInter(x, SP3_Z, u);
-% 
-% %interpolate on the previous and following seconds for computing velocity
-% u = [4 - b/quarter_sec - 1/quarter_sec, 4 - b/quarter_sec + 1/quarter_sec];
-% pos_S_v(1,1:2) = LagrangeInter(x, SP3_X, u);
-% pos_S_v(2,1:2) = LagrangeInter(x, SP3_Y, u);
-% pos_S_v(3,1:2) = LagrangeInter(x, SP3_Z, u);
 
 %Lagrange interpolation (coordinates)
 s = 1/quarter_sec;
@@ -103,14 +85,3 @@ pos_S_v(3,1:2) = [LI_SP3_Z(1) LI_SP3_Z(3)];
 
 %compute velocity
 vel_S = (pos_S_v(:,2) - pos_S_v(:,1)) / 2;
-
-% if (nargout > 2)
-%     %compute the relativistic correction term for the satellite clock
-%     dtrel = -2*dot(pos_S,vel_S)/(v_light^2);
-% end
-
-% %Lagrange interpolation (coordinates)
-% u = 5 - b/quarter_sec - dtr/quarter_sec;
-% pos_S(1,1) = LagrangeInter(x, SP3_X, u);
-% pos_S(2,1) = LagrangeInter(x, SP3_Y, u);
-% pos_S(3,1) = LagrangeInter(x, SP3_Z, u);

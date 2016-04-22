@@ -1,7 +1,7 @@
-function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb)
+function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb)
 
 % SYNTAX:
-%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
+%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -22,8 +22,9 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys_idx] = satellite_positions
 %   XS_tx   = satellite position at transmission time in ECEF(time_tx) (X,Y,Z)
 %   VS_tx   = satellite velocity at transmission time in ECEF(time_tx) (X,Y,Z)
 %   time_tx = transmission time (vector)
-%   no_eph  = satellites with no ephemeris available (vector) (0: available, 1: not available)
-%   sys_idx = array with different values for different systems
+%   no_eph   = satellites with no ephemeris available (vector) (0: available, 1: not available)
+%   eclipsed = satellites under eclipse condition (vector) (0: OK, 1: eclipsed)
+%   sys_idx  = array with different values for different systems
 %
 % DESCRIPTION:
 
@@ -57,6 +58,9 @@ VS_tx   = zeros(nsat,3);
 
 %satellites with no ephemeris available
 no_eph  = zeros(nsat,1);
+
+%satellites under eclipse condition
+eclipsed  = zeros(nsat,1);
 
 %system array
 sys_idx = zeros(nsat,1);
@@ -139,4 +143,7 @@ for i = 1 : nsat
             Omegae_dot = goGNSS.OMEGAE_DOT_GPS;
     end
     XS(i,:) = earth_rotation_correction(traveltime, XS_tx(i,:), Omegae_dot);
+    
+    %check eclipse condition
+    eclipsed(i,1) = check_eclipse_condition(time_rx, XS(i,:), SP3);
 end

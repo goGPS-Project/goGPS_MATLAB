@@ -118,7 +118,7 @@ obs_outlier = [];
 
 if (flag_XS == 0)
     %satellite position and clock error
-    [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, sys] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
+    [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
 
 else
     XS  = XS0;
@@ -190,11 +190,11 @@ end
 %satellite topocentric coordinates (azimuth, elevation, distance)
 [az, el, dist] = topocent(XR, XS);
 
-%elevation cutoff, SNR cutoff and removal of satellites without ephemeris
+%elevation cutoff, SNR cutoff and removal of satellites without ephemeris or under eclipse condition
 if (any(snr))
-    index = find((el > cutoff_el) & ((snr ~= 0) & (snr > cutoff_snr)) & (no_eph == 0));
+    index = find((el > cutoff_el) & ((snr ~= 0) & (snr > cutoff_snr)) & (no_eph == 0) & (eclipsed == 0));
 else
-    index = find((el > cutoff_el) & (no_eph == 0));
+    index = find((el > cutoff_el) & (no_eph == 0) & (eclipsed == 0));
 end
 sat   = sat0(index);
 pseudorange = pseudorange(index);
@@ -419,5 +419,4 @@ else
     else
         XR   = [];
     end
-    
 end
