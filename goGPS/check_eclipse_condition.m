@@ -40,10 +40,15 @@ X_sun = SP3.X_sun;
 [~, q] = min(abs(t_sun - time));
 X_sun = X_sun(:,q);
 
+%receiver geocentric position
 XS_n = norm(XS);
-X_sun_n = norm(X_sun);
+XS_u = XS / XS_n;
 
-cosPhi = dot(XS, X_sun)/(XS_n*X_sun_n);
+%sun geocentric position
+X_sun_n = norm(X_sun);
+X_sun_u = X_sun / X_sun_n;
+
+cosPhi = dot(XS_u, X_sun_u);
 
 if (cosPhi < 0 && XS_n*sqrt(1 - cosPhi^2) < goGNSS.ELL_A_GPS)
     eclipsed = 1;

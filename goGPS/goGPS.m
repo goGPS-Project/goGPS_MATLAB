@@ -629,8 +629,8 @@ if goGNSS.isPP(mode) % post-processing
 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas);
-%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas);
+%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas);
                 
                 if report.opt.write == 1
                     report.prep.spp_threshold = 4;
@@ -1023,8 +1023,8 @@ if goGNSS.isPP(mode) % post-processing
                 pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
             end
             
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas);
-%             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas);
+%             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas);
             if report.opt.write == 1
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
@@ -1175,6 +1175,38 @@ if goGNSS.isPP(mode) % post-processing
                     dop1_M(:,pos,f) = 0;
                     dop2_M(:,pos,f) = 0;
                     snr_M(:,pos,f) = 0;
+                end
+            end
+        end
+        
+        %exclude eclipsed satellites (eclipse period + 30 minutes)
+        if (exist('eclipsed','var') && any(eclipsed(:)))
+            [eclipsed_sat, eclipse_end] = find(diff(~eclipsed,1,2) == 1);
+            extra_minutes = 30;
+            extra_epochs = extra_minutes*60/interval;
+            extra_eclipse = zeros(length(eclipsed_sat),extra_epochs);
+            for e = 1 : length(eclipsed_sat)
+                idx1 = eclipse_end(e)+1;
+                idx2 = eclipse_end(e)+extra_epochs;
+                idx2 = min(idx2,size(eclipsed,2));
+                eclipsed(eclipsed_sat(e),idx1:idx2) = 1;
+            end
+            for f = 1 : size(pr1_R,3)
+                pr1_R(:,:,f) = pr1_R(:,:,f).*~eclipsed;
+                pr2_R(:,:,f) = pr2_R(:,:,f).*~eclipsed;
+                ph1_R(:,:,f) = ph1_R(:,:,f).*~eclipsed;
+                ph2_R(:,:,f) = ph2_R(:,:,f).*~eclipsed;
+                dop1_R(:,:,f) = dop1_R(:,:,f).*~eclipsed;
+                dop2_R(:,:,f) = dop2_R(:,:,f).*~eclipsed;
+                snr_R(:,:,f) = snr_R(:,:,f).*~eclipsed;
+                if (goGNSS.isDD(mode))
+                    pr1_M(:,:,f) = pr1_M(:,:,f).*~eclipsed;
+                    pr2_M(:,:,f) = pr2_M(:,:,f).*~eclipsed;
+                    ph1_M(:,:,f) = ph1_M(:,:,f).*~eclipsed;
+                    ph2_M(:,:,f) = ph2_M(:,:,f).*~eclipsed;
+                    dop1_M(:,:,f) = dop1_M(:,:,f).*~eclipsed;
+                    dop2_M(:,:,f) = dop2_M(:,:,f).*~eclipsed;
+                    snr_M(:,:,f) = snr_M(:,:,f).*~eclipsed;
                 end
             end
         end

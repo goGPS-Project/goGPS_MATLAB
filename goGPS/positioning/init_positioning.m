@@ -1,7 +1,7 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, is_bias] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, frequencies, flag_XR, flag_XS, flag_OOLO)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, is_bias, eclipsed] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, frequencies, flag_XR, flag_XS, flag_OOLO)
 
 % SYNTAX:
-%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch, var_SPP, residuals_obs, is_bias] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO);
+%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch, var_SPP, residuals_obs, is_bias, eclipsed] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -56,6 +56,7 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %                weighted squared residuals, redoundancy]
 %   residuals_obs = vector with [residuals of all input observation, computed from the final estimates, correspondent sat id]
 %   is_bias     = inter-systems bias (vector with all possibile systems)
+%   eclipsed    = satellites under eclipse condition (vector) (0: OK, 1: eclipsed)
 %
 % DESCRIPTION:
 %   Compute initial receiver and satellite position and clocks by iterative
@@ -192,9 +193,9 @@ end
 
 %elevation cutoff, SNR cutoff and removal of satellites without ephemeris or under eclipse condition
 if (any(snr))
-    index = find((el > cutoff_el) & ((snr ~= 0) & (snr > cutoff_snr)) & (no_eph == 0) & (eclipsed == 0));
+    index = find((el > cutoff_el) & ((snr ~= 0) & (snr > cutoff_snr)) & (no_eph == 0));
 else
-    index = find((el > cutoff_el) & (no_eph == 0) & (eclipsed == 0));
+    index = find((el > cutoff_el) & (no_eph == 0));
 end
 sat   = sat0(index);
 pseudorange = pseudorange(index);
@@ -211,6 +212,7 @@ if (flag_XS == 1)
     XS0  = XS0(index,:);
 end
 residuals_obs=NaN(nsat,2);
+eclipsed = eclipsed(index);
 
 %--------------------------------------------------------------------------------------------
 % LEAST SQUARES SOLUTION
