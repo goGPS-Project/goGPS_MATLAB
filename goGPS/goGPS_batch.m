@@ -26,7 +26,6 @@ function goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR,
 %
 %   call example:
 %   goGPS_batch(2014, 51, 57, 'UBLX', '0', 'o', 'mila', '_15s', 'O', 'brdc', '0', 'n');
-
 %
 % DESCRIPTION:
 %   Wrapper function to run goGPS multiple times.
@@ -112,6 +111,8 @@ flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
 flag_IAR = 0;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
 
 min_epoch = 1440;       % minimum number of observed epoch to process
+
+seamless_proc = 1;      % seamless RINEX processing (i.e. do not re-initialize the Kalman filter at each DOY)
 
 %-------------------------------------------------------------------------------
 % MASTER STATION POSITION
@@ -206,7 +207,7 @@ sigmaq_rclock = 1e3;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 10;
+cutoff = 15;
 
 %initialization cut-off [degrees]
 % cutoff_init = 15;
@@ -215,7 +216,7 @@ cutoff = 10;
 snr_threshold = 0;
 
 %cycle slip threshold [cycles]
-cs_threshold = 10;
+cs_threshold = 1e30;
 
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
@@ -325,6 +326,9 @@ fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat  
 fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
 
 n_session=1;
+if (seamless_proc)
+    kalman_initialized = 0;
+end
 
 for doy = doy_start : 1 : doy_end
     for session_i=1:n_session
@@ -387,9 +391,9 @@ for doy = doy_start : 1 : doy_end
             goGPS
             
             idx = size(date_R,1);
-            if exist('X_KAL','var') && exist('Xhat_t_t','var')
+            if exist('X_KAL','var') && exist('Xhat_t_t_OUT','var')
                 fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
-                fprintf(fid_extract_TRP,'%.6f ', Xhat_t_t(end-1,:)); %#ok<NODEF>
+                fprintf(fid_extract_TRP,'%.6f ', Xhat_t_t_OUT(end-1,:)); %#ok<NODEF>
                 fprintf(fid_extract_TRP,'\n');
                 delete([filerootOUT '_*.bin']);
             else
@@ -421,3 +425,7 @@ end
 fclose(fid_extract);
 fclose(fid_extract_TRP);
 fclose(fid_extract_OBS);
+
+figure
+tropo = load([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_troposphere.txt']);
+plot(reshape(tropo',1,size(tropo,1)*size(tropo,2)));

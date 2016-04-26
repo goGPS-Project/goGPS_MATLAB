@@ -116,7 +116,9 @@ elea  = 10; % default value for the exponential elevation weight function
 %-------------------------------------------------------------------------------
 global phwindup
 
-phwindup = [];
+if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+    phwindup = [];
+end
 
 %-------------------------------------------------------------------------------
 % DILUTION OF PRECISION
@@ -191,22 +193,24 @@ global amb_estim_method
 %interval between epochs
 global interval
 
-%initialization
-T = [];
-I = [];
-Xhat_t_t = [];
-X_t1_t = [];
-Cee = [];
-nsat = [];
-conf_sat = [];
-conf_cs = [];
-pivot = [];
-pivot_old = [];
-nN = [];
-nT = 0;
-nC = 0;
-amb_estim_method = 0;
-interval = 1; %default 1 Hz (to avoid problems with real-time modes)
+if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+    %initialization
+    T = [];
+    I = [];
+    Xhat_t_t = [];
+    X_t1_t = [];
+    Cee = [];
+    nsat = [];
+    conf_sat = [];
+    conf_cs = [];
+    pivot = [];
+    pivot_old = [];
+    nN = [];
+    nT = 0;
+    nC = 0;
+    amb_estim_method = 0;
+    interval = 1; %default 1 Hz (to avoid problems with real-time modes)
+end
 
 %-------------------------------------------------------------------------------
 % KALMAN FILTER (CONSTRAINED VERSION)
@@ -239,13 +243,15 @@ rec_clock_error = 0;
 %flag to enable Doppler-based cycle slip detection
 flag_doppler_cs = 0;
 
-%Doppler-predicted range (ROVER)
-doppler_pred_range1_R = zeros(nSatTot,1);
-doppler_pred_range2_R = zeros(nSatTot,1);
-
-%Doppler-predicted range (MASTER)
-doppler_pred_range1_M = zeros(nSatTot,1);
-doppler_pred_range2_M = zeros(nSatTot,1);
+if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+    %Doppler-predicted range (ROVER)
+    doppler_pred_range1_R = zeros(nSatTot,1);
+    doppler_pred_range2_R = zeros(nSatTot,1);
+    
+    %Doppler-predicted range (MASTER)
+    doppler_pred_range1_M = zeros(nSatTot,1);
+    doppler_pred_range2_M = zeros(nSatTot,1);
+end
 
 %-------------------------------------------------------------------------------
 % MASTER STATION

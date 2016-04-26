@@ -242,6 +242,30 @@ else
 end
 
 %------------------------------------------------------------------------------------
+% TROPOSPHERE A-PRIORI VALUES
+%------------------------------------------------------------------------------------
+if (flag_tropo)
+    [week, sow] = time2weektow(time_rx + zero_time);
+    date = gps2date(week, sow);
+    [~, mjd] = date2jd(date);
+    
+    %pressure = goGNSS.STD_PRES;
+    %temperature = goGNSS.STD_TEMP;
+    %humidity = goGNSS.STD_HUMI;
+    
+    [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
+    if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
+        %geoid ondulation interpolation
+        undu_R = grid_bilin_interp(lamR_app*180/pi, phiR_app*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+    end
+    ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
+    %ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
+    
+    %ZHD_R = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
+    ZWD_R = 0.1;
+end
+
+%------------------------------------------------------------------------------------
 % OBSERVATION EQUATIONS
 %------------------------------------------------------------------------------------
 
@@ -331,26 +355,6 @@ if (nsat >= min_nsat)
     
     %when the tropospheric delay is estimated, only its hydrostatic part is removed from the observations
     if (flag_tropo)
-        
-        [week, sow] = time2weektow(time_rx + zero_time);
-        date = gps2date(week, sow);
-        [~, mjd] = date2jd(date);
-        
-        %pressure = goGNSS.STD_PRES;
-        %temperature = goGNSS.STD_TEMP;
-        %humidity = goGNSS.STD_HUMI;
-        
-        [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
-        if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
-            %geoid ondulation interpolation
-            undu_R = grid_bilin_interp(lamR_app*180/pi, phiR_app*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
-        end
-        ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
-        %ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
-        
-        %ZHD_R = 2.3 * exp(-0.116e-3 * (hR_app - undu_R));
-        ZWD_R = 0.1;
-        
         gmfh_R = zeros(size(err_tropo));
         gmfw_R = zeros(size(err_tropo));
         err_tropo0 = zeros(size(err_tropo));
@@ -888,7 +892,7 @@ residuals_fixed = residuals_float;
 %--------------------------------------------------------------------------------------------
 % RECONSTRUCTION OF FULL ZTD
 %--------------------------------------------------------------------------------------------
-if (flag_tropo && exist('ZHD_R','var'))
+if (flag_tropo)
     Xhat_t_t(o3+nN+(1:nT)) = ZHD_R + ZWD_R + Xhat_t_t(o3+nN+(1:nT));
 end
 
