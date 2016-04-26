@@ -62,7 +62,7 @@ global azR elR distR azM elM distM phwindup
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
-global n_sys
+global n_sys geoid
 
 kalman_initialized = 0;
 
@@ -390,6 +390,10 @@ if (flag_tropo)
     
     [phi_R, lam_R, h_R] = cart2geod(XR(1), XR(2), XR(3));
     [pres_R, temp_R, undu_R] = gpt(mjd, phi_R, lam_R, h_R);
+    if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
+        %geoid ondulation interpolation
+        undu_R = grid_bilin_interp(lam_R*180/pi, phi_R*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+    end
     ZHD_R = saast_dry(pres_R, h_R - undu_R, phi_R*180/pi);
     ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, h_R - undu_R);
 else

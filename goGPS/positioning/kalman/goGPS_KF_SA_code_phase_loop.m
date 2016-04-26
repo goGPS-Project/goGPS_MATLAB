@@ -66,6 +66,7 @@ global azR elR distR azM elM distM phwindup
 global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
+global geoid
 
 global t residuals_fixed residuals_float outliers s02_ls
 
@@ -340,6 +341,10 @@ if (nsat >= min_nsat)
         %humidity = goGNSS.STD_HUMI;
         
         [pres_R, temp_R, undu_R] = gpt(mjd, phiR_app, lamR_app, hR_app); %#ok<ASGLU>
+        if (exist('geoid','var') && isfield(geoid,'ncols') && geoid.ncols ~= 0)
+            %geoid ondulation interpolation
+            undu_R = grid_bilin_interp(lamR_app*180/pi, phiR_app*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+        end
         ZHD_R = saast_dry(pres_R, hR_app - undu_R, phiR_app*180/pi);
         %ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, hR_app - undu_R);
         
