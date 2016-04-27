@@ -144,6 +144,8 @@ for i = 1 : nsat
     end
     XS(i,:) = earth_rotation_correction(traveltime, XS_tx(i,:), Omegae_dot);
     
-    %check eclipse condition
-    eclipsed(i,1) = check_eclipse_condition(time_rx, XS(i,:), SP3);
+    %check eclipse condition (only for BLOCK IIA satellites)
+    if (~isempty(strfind(SP3.satType{sat(i)},'BLOCK IIA')))
+        eclipsed(i,1) = check_eclipse_condition(time_rx, XS(i,:), SP3);
+    end
 end

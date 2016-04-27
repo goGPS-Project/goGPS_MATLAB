@@ -110,6 +110,9 @@ for file_pcv=1:size(filename,1)
                                 
                                 if (~isempty(answer1) && ~isempty(answer2) && ~isempty(find(antmod{m} ~= ' ', 1)) && ~antenna_PCV(m).available)
 
+                                    %get TYPE
+                                    antenna_PCV(m).type = line(1:20);
+                                    
                                     %get DAZI
                                     while (isempty(strfind(line,'DAZI')))
                                         line = fgetl(fid);

@@ -465,11 +465,13 @@ if goGNSS.isPP(mode) % post-processing
                 %----------------------------------------------------------------------------------------------
                 SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
                 
-                %store satellite antenna PCO/PCV
+                %store satellite antenna PCO/PCV and satellite type
                 SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
+                SP3.satType = cell(1,size(antenna_PCV_S,2));
                 for sat = 1 : size(antenna_PCV_S,2)
                     if (antenna_PCV_S(sat).n_frequency ~= 0)
                         SP3.antPCO(:,:,sat) = antenna_PCV_S(sat).offset(:,:,1);
+                        SP3.satType{1,sat} = antenna_PCV_S(sat).type;
                     else
                         SP3.avail(sat) = 0;
                     end
@@ -812,11 +814,13 @@ if goGNSS.isPP(mode) % post-processing
                 
                 SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
                 
-                %store satellite antenna PCO/PCV
+                %store satellite antenna PCO/PCV and satellite type
                 SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
+                SP3.satType = cell(1,size(antenna_PCV_S,2));
                 for sat = 1 : size(antenna_PCV_S,2)
                     if (antenna_PCV_S(sat).n_frequency ~= 0)
                         SP3.antPCO(:,:,sat) = antenna_PCV_S(sat).offset(:,:,1);
+                        SP3.satType(1,sat) = antenna_PCV_S(sat).type;
                     else
                         SP3.avail(sat) = 0;
                     end
