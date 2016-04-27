@@ -207,7 +207,7 @@ sigmaq_rclock = 1e3;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 15;
+cutoff = 10;
 
 %initialization cut-off [degrees]
 % cutoff_init = 15;
@@ -224,7 +224,7 @@ cs_threshold = 1e30;
 %          - weights=2: weight based on signal-to-noise ratio
 %          - weights=3: weight based on combined elevation and signal-to-noise ratio
 %          - weights=4: weight based on satellite elevation (exp)
-weights = 0;
+weights = 1;
 
 %weight function parameters
 snr_a = 30;
