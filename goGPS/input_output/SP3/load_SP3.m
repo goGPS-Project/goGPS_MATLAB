@@ -45,7 +45,7 @@ function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 %----------------------------------------------------------------------------------------------
 
 if (isempty(constellations)) %then use only GPS as default
-    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
 
 %starting index in the total array for the various constellations
