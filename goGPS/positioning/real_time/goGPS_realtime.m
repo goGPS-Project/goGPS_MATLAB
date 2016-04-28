@@ -235,7 +235,7 @@ end
 % absolute time start
 %------------------------------------------------------
 
-tic
+tic;
 
 %log file initialization
 delete([filerootOUT '_log.txt']);

@@ -48,7 +48,6 @@ end
 if (isempty(constellations)) %then use only GPS as default
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
-tic;
 
 %number of satellite slots for enabled constellations
 nSatTot = constellations.nEnabledSat;
