@@ -53,29 +53,29 @@ if m - n > 0
 %         keyboard
         
 %         clear temp
-%         tic               
+%         tic;               
 %         temp=[];
 %         for i=1:n_blocks
 %            temp= blkdiag(temp,Bm(:,i)');             
 %         end
-%         toc
+%         toc;
 %         %[Bm',zeros((size(Bm',1)-1)*size(Bm',2),size(Bm',1))'];
 %         
-%         tic
+%         tic;
 %         D=reshape([Bm',zeros((size(Bm',1))*size(Bm',2),size(Bm',1))']',[],1)';
 %         D=reshape(D(1:end-(size(Bm',1))*size(Bm',2)),(size(Bm',1))*size(Bm',2),size(Bm,2))';
 %         Qw1=D*(eye(n*m)+reshape(A',[],1).*reshape(repmat(Kminv,1,4)',[],1)*Bm(:)');
-%         toc
+%         toc;
 %         
 %         %Qw2=kron(eye(n_blocks),Bm')*(eye(n*m)+reshape(A',[],1).*reshape(repmat(Kminv,1,4)',[],1)*Bm(:)');
-%         %toc
-% tic
+%         %toc;
+% tic;
         Qw=zeros(n_blocks,1);
         for i=1:n_blocks
             Qw(i)=Qm(i)+Bm(:,i)'*(Im+A(i,:)'*Kminv(i)*Bm(:,i)')*A(i,:)';
             %Qw3=Bm(:,i)'*(Im+A(i,:)'*Kminv(i)*Bm(:,i)');
         end
-%toc
+%toc;
         Qwinv=Qw.^-1;
         deg2=m-n-1;
         

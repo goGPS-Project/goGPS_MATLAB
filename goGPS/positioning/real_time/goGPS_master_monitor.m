@@ -101,7 +101,7 @@ end
 % absolute time startup
 %------------------------------------------------------
 
-tic
+tic;
 
 %file writing initialization
 delete('../data/MASTER_monitor.txt');

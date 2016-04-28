@@ -225,7 +225,7 @@ global_init;
 n_sys = sum([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag]);
 
 % start evaluating computation time
-tic
+tic;
 
 %-------------------------------------------------------------------------------------------
 % REFERENCE PATH LOAD

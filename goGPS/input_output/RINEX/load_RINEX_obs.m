@@ -10,7 +10,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 % INPUT:
 %   filename = RINEX observation file(s)
 %   constellations = struct with multi-constellation settings
-%                   (see 'multi_constellation_settings.m' - empty if not available)
+%                   (see goGNSS.initConstellation - empty if not available)
 %   wait_dlg = optional handler to waitbar figure (optional)
 %
 % OUTPUT:
