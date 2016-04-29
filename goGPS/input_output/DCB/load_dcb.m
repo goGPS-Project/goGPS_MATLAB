@@ -189,10 +189,18 @@ end
 if (codeC1_R && isempty(DCB.P1C1))
     DCB = [];
     fprintf(['The required P1C1 DCB file(s) were not found in ' data_dir_dcb ' directory.\n'])
+    return
+end
+
+%if P1P2 data are needed but not available, return empty
+if (~codeC1_R && isempty(DCB.P1P2))
+    DCB = [];
+    fprintf(['The required P1P2 DCB file(s) were not found in ' data_dir_dcb ' directory.\n'])
+    return
 end
 
 %if no .DCB files are available, return
-if (isempty(DCB))
-    fprintf(['No DCB files found in ' data_dir_dcb ' directory.\n'])
+if (isempty(DCB.P1P2) && isempty(DCB.P1C1))
+    fprintf(['The required DCB files were not found in ' data_dir_dcb ' directory.\n'])
     return
 end

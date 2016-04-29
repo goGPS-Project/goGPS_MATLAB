@@ -1183,18 +1183,28 @@ if goGNSS.isPP(mode) % post-processing
             end
         end
         
-        %exclude eclipsed satellites (eclipse period + 30 minutes)
+        %exclude eclipsed satellites (shadow crossing + 30 minutes; noon and midnight maneuvers)
         if (exist('eclipsed','var') && any(eclipsed(:)))
-            [eclipsed_sat, eclipse_end] = find(diff(~eclipsed,1,2) == 1);
+            eclipse_map = diff(eclipsed,1,2);
+            [eclipsed_sat, eclipse_end]  = find(eclipse_map == -1);
+            %[midnight_sat, midnight_end] = find(eclipse_map == -2);
+            %[noon_sat,     noon_end]     = find(eclipse_map == -3);
+            %purge false shadow/maneuvers endings (due to missing observations)
+            for ee = length(eclipse_end) : -1 : 1
+                if (any(eclipse_map(eclipsed_sat(ee),eclipse_end(ee):end) == 1))
+                    eclipsed_sat(ee) = [];
+                    eclipse_end(ee)  = [];
+                end
+            end
             extra_minutes = 30;
             extra_epochs = extra_minutes*60/interval;
-            extra_eclipse = zeros(length(eclipsed_sat),extra_epochs);
             for e = 1 : length(eclipsed_sat)
                 idx1 = eclipse_end(e)+1;
                 idx2 = eclipse_end(e)+extra_epochs;
                 idx2 = min(idx2,size(eclipsed,2));
                 eclipsed(eclipsed_sat(e),idx1:idx2) = 1;
             end
+            eclipsed(eclipsed>0) = 1;
             for f = 1 : size(pr1_R,3)
                 pr1_R(:,:,f) = pr1_R(:,:,f).*~eclipsed;
                 pr2_R(:,:,f) = pr2_R(:,:,f).*~eclipsed;
