@@ -22,6 +22,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   dop2 = Doppler observation (L2 carrier)
 %   snr1 = signal-to-noise ratio (L1 carrier)
 %   snr2 = signal-to-noise ratio (L2 carrier)
+%   time_ref = reference seconds-of-week
 %   time = receiver seconds-of-week
 %   week = GPS week
 %   date = date (year,month,day,hour,minute,second)

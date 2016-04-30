@@ -1,7 +1,7 @@
-function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
+function [Eph, iono, constellations] = RINEX_get_nav(file_nav, constellations)
 
 % SYNTAX:
-%   [Eph, iono] = RINEX_get_nav(file_nav, constellations);
+%   [Eph, iono, constellations] = RINEX_get_nav(file_nav, constellations);
 %
 % INPUT:
 %   file_nav = RINEX navigation file
@@ -10,6 +10,7 @@ function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 % OUTPUT:
 %   Eph = matrix containing 33 navigation parameters for each satellite
 %   iono = matrix containing ionosphere parameters
+%   constellations = (optional) for the case where "constellations" is empty at input
 %
 % DESCRIPTION:
 %   Parse a RINEX navigation file.
