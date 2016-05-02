@@ -3360,7 +3360,7 @@ classdef goGUIclass < handle
         end
         
         % Function to init the INI editor
-        % creates, objects, load default valuesm, etc...
+        % creates, objects, load default values, etc...
         function initEditINI(obj, h)
             global goIni
             
@@ -3485,7 +3485,7 @@ classdef goGUIclass < handle
             end
         end
      
-        % Browse 4 INI
+        % Save INI
         function saveINI(obj)
             filename = get(obj.edtINI.h.sINIout, 'String');
             try
@@ -3611,7 +3611,7 @@ classdef goGUIclass < handle
             end
         end
         
-        % Browse output folder
+        % Browse output foder
         function browse4Dir(obj)
             dname = uigetdir(obj.getWorkingDir(),'Choose a directory');
             if (dname ~= 0)

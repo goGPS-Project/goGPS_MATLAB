@@ -1,7 +1,7 @@
-function undersamplingRINEX(filenameIN, filenameOUT, base, step, delta)
+function undersamplingRINEX(filenameIN, filenameOUT, base, step, delta, wait_dlg)
 
 % SYNTAX:
-%   undersamplingRINEX(filenameIN, filenameOUT, base, step, delta);
+%   undersamplingRINEX(filenameIN, filenameOUT, base, step, delta, wait_dlg);
 %
 % INPUT:
 %   filenameIN  = input RINEX observation file
@@ -9,6 +9,7 @@ function undersamplingRINEX(filenameIN, filenameOUT, base, step, delta)
 %   base  = base timing (e.g. if first epoch should be 13  4  5 11 35  1, then base = 1) [sec]
 %   step  = new sampling rate [sec]
 %   delta = original sampling rate [sec]
+%   wait_dlg = optional handler to waitbar figure (optional)
 %
 % OUTPUT:
 %

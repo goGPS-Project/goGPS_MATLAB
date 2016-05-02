@@ -225,7 +225,7 @@ end
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)
     fprintf('No constellations selected, setting default: GPS-only processing\n');
-    GPS_flag = 1; GLO_flag = 0; GAL_flag = 0; BDS_flag = 0; QZS_flag = 0;
+    GPS_flag = 1; GLO_flag = 0; GAL_flag = 0; BDS_flag = 0; QZS_flag = 0; SBS_flag = 0;
     [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
     nSatTot = constellations.nEnabledSat;
 end
