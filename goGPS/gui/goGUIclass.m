@@ -3386,10 +3386,14 @@ classdef goGUIclass < handle
             obj.setGuiElStr(h.sINIout, fileName);
 
             if ~isempty(fileName)
-                fid = fopen(fileName,'r');
-                text = fread(fid, '*char');
-                text = text';
-                fclose(fid);
+                if exist(fileName, 'file');
+                    fid = fopen(fileName,'r');
+                    text = fread(fid, '*char');
+                    text = text';
+                    fclose(fid);
+                else
+                    text = '# No INI file found';
+                end
             else
                 text = '# No INI file found';
             end

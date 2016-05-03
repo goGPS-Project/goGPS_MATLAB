@@ -69,13 +69,14 @@ n = length(pr_R);
 m = 4;
 
 if (~any(distR_approx))
-    
-    %receiver-satellite distance, corrected by the Shapiro delay
-    [~, distR_approx] = relativistic_range_error_correction(XR_approx, XS);
-    
-    %approximate receiver-satellite distance
-    %XR_mat = XR_approx(:,ones(n,1))';
-    %distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
+    if (any(XR_approx))
+        %receiver-satellite distance, corrected by the Shapiro delay
+        [~, distR_approx] = relativistic_range_error_correction(XR_approx, XS);
+    else
+        %approximate receiver-satellite distance
+        XR_mat = XR_approx(:,ones(n,1))';
+        distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
+    end
 end
 
 %design matrix

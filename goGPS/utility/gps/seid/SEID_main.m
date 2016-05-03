@@ -1,9 +1,10 @@
 function SEID_main(L1_station, L2_stations, nav_file, pcv_file, out_path)
 
-global cutoff snr_threshold weights
+global cutoff snr_threshold weights cs_threshold
 
 cutoff = 15;
 snr_threshold = 0;
+cs_threshold = 1;
 weights = 1;
 
 % RNX_directory='C:\Users\Iwaki\Desktop\RISH_UBLOX_JAVAD_splitter\UBX\';
@@ -20,6 +21,10 @@ lambda2 = 0.244210213424568;
 
 GPS_flag = 1; GLO_flag = 0; GAL_flag = 0; BDS_flag = 0; QZS_flag = 0; SBS_flag = 0;
 [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+nSatTot = constellations.nEnabledSat;
+
+%initialization of global variables/constants
+global_init;
 
 %load L1 RNX files
 [series(1).L1,series(1).L2,series(1).P2,series(1).elev,series(1).azim,series(1).time,series(1).name,L1_sta]=SEID_input_specific(L1_station,nav_file,constellations,1);
@@ -100,12 +105,18 @@ end
 
 
 %write new RINEX file
-outputfile_path=strcat(out_path,['/' name_series{target_sta} '_SEID_output.obs']) ;
+temporaryfile_path=strcat(out_path,['/' name_series{target_sta} '_SEID_output.obs']);
+outputfile_path=strcat(out_path,['/' name_series{target_sta} '_L1L2.obs']);
 
 new_interval = 30;
 
-write_RINEX_obs(outputfile_path, 'u-blox', 'NONE', L1_sta.pr1_R, ...
+write_RINEX_obs(temporaryfile_path, 'u-blox', 'NONE', L1_sta.pr1_R, ...
     til_P2, L1_series_fix{target_sta}, fix_til_L2, L1_sta.dop1_R, L1_sta.dop2_R, ...
     L1_sta.snr1_R, L1_sta.snr2_R, L1_sta.time_R, L1_sta.date_R, L1_sta.pos_R, new_interval,L1_sta.flag_C1);
 
-undersamplingRINEX(outputfile_path, [L1_station '_new'], 0, new_interval, L1_sta.interval);
+%undersamplingRINEX(temporaryfile_path, [L1_station '_new'], 0, new_interval, L1_sta.interval);
+undersamplingRINEX(temporaryfile_path, outputfile_path, 0, new_interval, L1_sta.interval);
+
+fprintf(['Output file: ' outputfile_path '\n']);
+
+delete(temporaryfile_path);

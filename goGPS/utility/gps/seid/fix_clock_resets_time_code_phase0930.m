@@ -65,7 +65,8 @@ for i = 1 : nEpochs
     
     if (size(sat0,1) >= 4)
 
-        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, ~, sat, ~, ~, ~, ~, ~, ~, ~, ~, ~] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, [], iono, [], [], [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, 0, 0);
+        %[~, dtR_tmp, ~, ~, ~, ~, ~, ~, ~, sat, ~, ~, ~, ~, ~, ~, ~, ~, ~] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, [], iono, [], [], [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, 0, 0);
+        [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, [], iono, [], [], [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, 1, 0, 0, 0); %#ok<ASGLU>
 
 %     [~, dtR(i), ~, ~, ~, ~, ~, ~, ~, sat, ~, ~, ~, ~, ~, ~, ~, ~, ~] = init_positioning(time_rx(i), pr1(sat0,i), snr1(sat0,i), Eph_t, [], [], [], iono, [], [], [], [], sat0, cutoff, snr_threshold, 0, 0);
 % for reference;
