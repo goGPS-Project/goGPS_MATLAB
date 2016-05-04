@@ -128,6 +128,7 @@ else
     VS_tx = [];
     time_tx = [];
     no_eph = zeros(nsat,1);
+    eclipsed = zeros(nsat,1);
     sys = sys0;
 end
 
