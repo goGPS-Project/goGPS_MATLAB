@@ -436,8 +436,8 @@ if (nsat >= min_nsat)
             %The state of the system is not changed yet
             if (length(frequencies) == 2)
                 if (strcmp(obs_comb,'NONE'))
-                    [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           ph1(sat), distR(sat), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
-                    [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2(sat), distR(sat), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
+                    [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           ph1(sat), distR(sat), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono1, phwindup(sat_pr), doppler_pred_range1_R(sat), sat_pr, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
+                    [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2(sat), distR(sat), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono2, phwindup(sat_pr), doppler_pred_range2_R(sat), sat_pr, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                     
                     if (check_cs1 || check_cs2)
                         check_cs = 1;
@@ -447,9 +447,9 @@ if (nsat >= min_nsat)
                 end
             else
                 if (frequencies == 1)
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph1(sat), distR(sat), doppler_pred_range1_R(sat), sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph1(sat), distR(sat), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono1, phwindup(sat_pr), doppler_pred_range1_R(sat), sat_pr, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
                 else
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph2(sat), distR(sat), doppler_pred_range2_R(sat), sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph2(sat), distR(sat), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono2, phwindup(sat_pr), doppler_pred_range2_R(sat), sat_pr, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
                 end
             end
         else
