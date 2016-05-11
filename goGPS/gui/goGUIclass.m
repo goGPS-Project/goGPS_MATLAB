@@ -3172,7 +3172,7 @@ classdef goGUIclass < handle
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq_rclock
-            global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
+            global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
             global h_antenna
             global tile_header tile_georef dtm_dir
             global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
@@ -3246,6 +3246,7 @@ classdef goGUIclass < handle
             snr_threshold = str2double(get(obj.goh.snr_thres,'String'));
             goIni.addKey('Generic','csThr', str2double(get(obj.goh.cs_thresh,'String')));
             cs_threshold = str2double(get(obj.goh.cs_thresh,'String'));
+            cs_threshold_preprocessing = 1;
             if (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_0)
                 weights = 0;
             elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_1)

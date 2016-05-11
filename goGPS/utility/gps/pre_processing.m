@@ -448,10 +448,10 @@ end
 
 function [ph, cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, el, err_iono, lambda)
 
-global cutoff cs_threshold
+global cutoff cs_threshold_preprocessing
 cs_resolution = 1;
-% if cs_threshold==0.5
-%     cs_resolution=0.5;
+% if cs_threshold_preprocessing==0.5
+%     cs_threshold_preprocessing=0.5;
 % end
 
 flag_plot = 0;
@@ -626,8 +626,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         jmp = jmp(sign_OK);
     end
 
-    %ignore cycle slips smaller than cs_threshold
-    jmp(abs(delta(jmp)) < cs_threshold) = [];
+    %ignore cycle slips smaller than cs_threshold_preprocessing
+    jmp(abs(delta(jmp)) < cs_threshold_preprocessing) = [];
 
 %     jmp1 = intersect(jmp_deriv,jmp_doppler);
 %     jmp2 = intersect(jmp1, jmp_code);

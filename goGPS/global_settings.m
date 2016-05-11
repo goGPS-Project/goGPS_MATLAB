@@ -86,7 +86,7 @@ pos_M_man = [XM; YM; ZM];
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel %#ok<*TLEV>
 global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq_rclock
-global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
+global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global amb_restart_method
 
 %variance of initial state
@@ -138,7 +138,10 @@ cutoff = 15;
 %signal-to-noise ratio threshold [dB]
 snr_threshold = 0;
 
-%cycle slip threshold [cycles]
+%cycle slip threshold (pre-processing) [cycles]
+cs_threshold_preprocessing = 1;
+
+%cycle slip threshold (processing) [cycles]
 cs_threshold = 1;
 
 %parameter used to select the weight mode for GPS observations

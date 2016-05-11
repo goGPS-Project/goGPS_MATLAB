@@ -78,8 +78,9 @@ end
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
-global order o1 o2 o3 h_antenna cutoff weights t
+global order o1 o2 o3 h_antenna cutoff weights t;
 global is_bias;
+global cs_threshold_preprocessing cs_threshold;
 global iono_model tropo_model;
 
 % Set global variable for goGPS obj mode
@@ -198,6 +199,10 @@ else
     end
 end
 
+%------------------------------------------------------------------------------------------------------------
+%!!! TEMPORARY SETTINGS !!! --> will be moved to GUI/global settings before merging back to the master branch
+%------------------------------------------------------------------------------------------------------------
+ 
 flag_tropo = 1
 
 % frequencies = [1]
@@ -206,6 +211,10 @@ frequencies = [1 2]
 
 obs_comb = 'IONO_FREE'
 % obs_comb = 'NONE'
+
+cs_threshold_preprocessing = 1
+
+cs_threshold = 1e30 %i.e. disable cycle-slip detection during KF processing
 
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
@@ -355,7 +364,7 @@ if goGNSS.isPP(mode) % report only if postprocessing
         report.inp.sta_coord_file = sta_coord_file;
     end
     
-    global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat cs_threshold IAR_method flag_default_P0 flag_auto_mu mu P0 %#ok<TLEV>
+    global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat IAR_method flag_default_P0 flag_auto_mu mu P0 %#ok<TLEV>
     report.opt.sigmaq_cod1 = sigmaq_cod1;
     report.opt.sigmaq_cod2 = sigmaq_cod2;
     report.opt.sigmaq_ph = sigmaq_ph;
