@@ -594,7 +594,7 @@ if goGNSS.isPP(mode) % post-processing
                 
                 %check if the survey is within the EMS grids
                 if (~isempty(sbas))
-                    [ems_data_available] = check_ems_extents(time_R, pr1_R, snr1_R, nSatTot, Eph, iono, sbas, lambda, 1);
+                    [ems_data_available] = check_ems_extents(time_R, pr1_R, snr1_R, nSatTot, Eph, SP3, iono, sbas, lambda, 1);
                 end
             end
             
@@ -935,7 +935,7 @@ if goGNSS.isPP(mode) % post-processing
                 
                 %check if the survey is within the EMS grids
                 if (~isempty(sbas))
-                    [ems_data_available] = check_ems_extents(time_R, pr1_R, snr1_R, nSatTot, Eph, iono, sbas, lambda, 1);
+                    [ems_data_available] = check_ems_extents(time_R, pr1_R, snr1_R, nSatTot, Eph, SP3, iono, sbas, lambda, 1);
                 end
             end
             
@@ -1386,62 +1386,6 @@ if goGNSS.isPP(mode) % post-processing
         loss_R = loss_R(tMin:tMax);
         loss_M = loss_M(tMin:tMax);
         date_R = date_R(tMin:tMax,:);
-    end
-
-    %if absolute post-processing positioning
-    if goGNSS.isSA(mode) % absolute positioning
-        
-        %if SBAS corrections are requested
-        if (flag_SBAS)
-            
-            %----------------------------------------------------------------------------------------------
-            % LOAD SBAS DATA (EGNOS EMS FILES)
-            %----------------------------------------------------------------------------------------------
-            
-            %NOTE: if SBAS corrections are not requested by the user or not available, the
-            %      'sbas' structure will be initialized to zero/empty arrays and it will not
-            %      have any effect on the positioning
-            
-            %try first to read .ems files already available
-            [sbas] = load_ems('../data/EMS', week_R, time_R);
-            
-            %if .ems files are not available or not sufficient, try to download them
-            if (isempty(sbas))
-                
-                %EGNOS PRNs
-                prn = [120, 124, 126];
-                
-                %download
-                for p = 1 : length(prn)
-                    [file_ems] = download_ems(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
-                    if (~isempty(file_ems))
-                        break
-                    end
-                end
-                
-                %try again to read .ems files
-                [sbas] = load_ems('../data/EMS', week_R, time_R);
-            end
-            
-            %check if the survey is within the EMS grids
-            if (~isempty(sbas))
-                [ems_data_available] = check_ems_extents(time_R, pr1_R, snr_R, nSatTot, Eph, iono, sbas, lambda, 1);
-            end
-        end
-        
-        %if SBAS corrections are not requested or not available
-        if (~flag_SBAS || isempty(sbas) || ~ems_data_available)
-
-            %initialization
-            sbas = [];
-            
-            %if SBAS corrections are requested but not available
-            if (flag_SBAS && isempty(sbas))
-                fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
-            end
-        end
-    else
-        %sbas = [];
     end
 
     %if relative post-processing positioning (i.e. with master station)
