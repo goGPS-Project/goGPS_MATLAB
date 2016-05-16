@@ -333,12 +333,12 @@ if (nsat >= min_nsat)
         pivot = sat_pr(i);
     end
     %pivot = find(elR == max(elR));
-    
-    %compute phase wind-up correction
-    phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS, SP3, phwindup(sat,1));
-    
+
     %compute PCV: phase and code 1
     [~, index_ph]=intersect(sat_pr,sat);
+    
+    %compute phase wind-up correction
+    phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS(index_ph,:), SP3, phwindup(sat,1));
     
     if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0) % rover
         index_rover=1;
@@ -436,8 +436,8 @@ if (nsat >= min_nsat)
             %The state of the system is not changed yet
             if (length(frequencies) == 2)
                 if (strcmp(obs_comb,'NONE'))
-                    [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           ph1(sat), distR(sat), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono1, phwindup(sat_pr), doppler_pred_range1_R(sat), sat_pr, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
-                    [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2(sat), distR(sat), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono2, phwindup(sat_pr), doppler_pred_range2_R(sat), sat_pr, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
+                    [check_cs1, N_slip1, sat_slip1] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot),           ph1(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono1, phwindup(sat_pr), doppler_pred_range1_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambda(sat_pr,1)); %#ok<ASGLU>
+                    [check_cs2, N_slip2, sat_slip2] = cycle_slip_detection_SA(X_t1_t(o3+nSatTot+1:o3+nSatTot*2), ph2(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono2, phwindup(sat_pr), doppler_pred_range2_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambda(sat_pr,2)); %#ok<ASGLU>
                     
                     if (check_cs1 || check_cs2)
                         check_cs = 1;
@@ -447,9 +447,9 @@ if (nsat >= min_nsat)
                 end
             else
                 if (frequencies == 1)
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph1(sat), distR(sat), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono1, phwindup(sat_pr), doppler_pred_range1_R(sat), sat_pr, sat, sat_born, cs_threshold, lambda(sat,1)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph1(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono1, phwindup(sat_pr), doppler_pred_range1_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambda(sat_pr,1)); %#ok<ASGLU>
                 else
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph2(sat), distR(sat), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono2, phwindup(sat_pr), doppler_pred_range2_R(sat), sat_pr, sat, sat_born, cs_threshold, lambda(sat,2)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), ph2(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, err_iono2, phwindup(sat_pr), doppler_pred_range2_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambda(sat_pr,2)); %#ok<ASGLU>
                 end
             end
         else
@@ -748,8 +748,8 @@ if (nsat >= min_nsat)
                 if (flag_tropo)
                     y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))+gmfw_R.*X_t1_t(o3+nN+1);
                     y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(1:length(sat_pr))+gmfw_R.*X_t1_t(o3+nN+1);
-                    y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+gmfw_R.*X_t1_t(o3+nN+1);
-                    y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+gmfw_R.*X_t1_t(o3+nN+1);
+                    y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+gmfw_R(index_ph).*X_t1_t(o3+nN+1);
+                    y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+gmfw_R(index_ph).*X_t1_t(o3+nN+1);
                 end
                 y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))+X_t1_t(o3+nN+2);
                 y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(1:length(sat_pr))+X_t1_t(o3+nN+2);
@@ -758,7 +758,7 @@ if (nsat >= min_nsat)
             else
                 if (flag_tropo)
                     y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +gmfw_R.*X_t1_t(o3+nN+1);
-                    y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+gmfw_R.*X_t1_t(o3+nN+1);
+                    y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+gmfw_R(index_ph).*X_t1_t(o3+nN+1);
                 end
                 y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +X_t1_t(o3+nN+2);
                 y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+X_t1_t(o3+nN+2);

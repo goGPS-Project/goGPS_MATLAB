@@ -68,6 +68,7 @@ index_zero_pr = (pr == 0);
 index_zero_ph = (ph == 0);
 pr(index_zero_pr) = [];
 ph(index_zero_ph) = [];
+lambda_orig = lambda;
 lambda(index_zero_ph) = [];
 
 %number of observations (assuming that sat_ph is a subset of sat_pr)
@@ -125,7 +126,7 @@ end
 
 %known term vector
 b_pr = distR_approx + dtR_kalman - v_light*dtS + err_tropo + err_iono; %code
-b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + lambda.*phwindup; %phase
+b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + lambda_orig.*phwindup; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector
