@@ -3329,6 +3329,12 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
                 pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
             end
         end
+        %if tropospheric delay was estimated in PPP
+        if (goGNSS.isSA(mode) && flag_tropo)
+            estim_tropo = Xhat_t_t_OUT(end-1,:);
+        else
+            estim_tropo = zeros(size(time_GPS));
+        end
     end
 end
 
@@ -3388,11 +3394,11 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
 
     %file saving
     if (strcmp(fsep_char,'default'))
-        head_str = '    Date        GPS time        GPS week         GPS tow        Latitude       Longitude     h (ellips.)          ECEF X          ECEF Y          ECEF Z       UTM North        UTM East     h (orthom.)        UTM zone            HDOP           KHDOP     Local North      Local East         Local H   Ambiguity fix  Success rate\n';
-        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f\n';
+        head_str = '    Date        GPS time         GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD\n';
+        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f %16.3f\n';
     else
-        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'Latitude',fsep_char,'Longitude',fsep_char,'h (ellips.)',fsep_char,'ECEF X',fsep_char,'ECEF Y',fsep_char,'ECEF Z',fsep_char,'UTM North',fsep_char,'UTM East',fsep_char,'h (orthom.)',fsep_char,'UTM zone',fsep_char,'HDOP',fsep_char,'KHDOP',fsep_char,'Local North',fsep_char,'Local East',fsep_char,'Local H',fsep_char,'Ambiguity fix',fsep_char,'Success rate\n');
-        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%s',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%d',fsep_char,'%f\n');
+        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'Latitude',fsep_char,'Longitude',fsep_char,'h (ellips.)',fsep_char,'ECEF X',fsep_char,'ECEF Y',fsep_char,'ECEF Z',fsep_char,'UTM North',fsep_char,'UTM East',fsep_char,'h (orthom.)',fsep_char,'UTM zone',fsep_char,'HDOP',fsep_char,'KHDOP',fsep_char,'Local North',fsep_char,'Local East',fsep_char,'Local H',fsep_char,'Ambiguity fix',fsep_char,'Success rate',fsep_char,'ZTD\n');
+        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%s',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f\n');
     end
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
     fprintf(fid_out, head_str);
@@ -3405,7 +3411,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         end
 
         %file writing
-        fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i));
+        fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i));
     end
     fclose(fid_out);
     
@@ -3441,11 +3447,28 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         paperSize = get(f,'PaperSize');
         set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
         plot(dtR.*goGNSS.V_LIGHT,'.r');
+        grid on;
         set(gca,'FontName','Verdana');
-        set(gca,'FontSize',7);
-        ylabel('Receiver clock (m)','FontName','Verdana','FontSize',6,'FontWeight','Bold');
+        set(gca,'FontSize',10);
+        xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+        ylabel('Receiver clock (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
         %print PDF
         print(f, '-dpdf', [filerootOUT '_dtR']);
+        close(f)
+    end
+    
+    if (any(estim_tropo))
+        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+        paperSize = get(f,'PaperSize');
+        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+        plot(estim_tropo,'.r');
+        grid on;
+        set(gca,'FontName','Verdana');
+        set(gca,'FontSize',10);
+        xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+        ylabel('Zenith Tropospheric Delay (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+        %print PDF
+        print(f, '-dpdf', [filerootOUT '_tropo']);
         close(f)
     end
     
