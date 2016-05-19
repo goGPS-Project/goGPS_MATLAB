@@ -96,6 +96,10 @@ data_path = goIni.getData('PCO_PCV_file','data_path');
 file_name = goIni.getData('PCO_PCV_file','file_name');
 filename_pco = [data_path file_name];
 
+data_path = goIni.getData('OCEAN_LOADING_file','data_path');
+file_name = goIni.getData('OCEAN_LOADING_file','file_name');
+filename_blq = [data_path file_name];
+
 %-------------------------------------------------------------------------------
 % PROCESSING OPTIONS
 %-------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-          time_ref, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
+          time_ref, time, week, date, pos, interval, antoff, antmod, codeC1, marker] = ...
           load_RINEX_obs(filename, constellations, wait_dlg)
 
 % SYNTAX:
@@ -30,6 +30,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   antoff = antenna offset [m]
 %   antmod = antenna model [string]
 %   codeC1 = boolean variable to notify if the C1 code is used instead of P1
+%   marker = marker name [string]
 %
 % DESCRIPTION:
 %   Parses RINEX observation files.
@@ -97,6 +98,7 @@ interval = zeros(1,1,nFiles);
 antoff = zeros(3,1,nFiles);
 antmod = cell(1,1,nFiles);
 codeC1 = zeros(1,1,nFiles);
+marker = cell(1,1,nFiles);
 
 for f = 1 : nFiles
 
@@ -116,7 +118,7 @@ for f = 1 : nFiles
     end
     
     %parse RINEX header
-    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}] = RINEX_parse_hdr(fid);
+    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}, marker{1,1,f}] = RINEX_parse_hdr(fid);
     
     %check the availability of basic data to parse the RINEX file
     if (basic_info == 0)

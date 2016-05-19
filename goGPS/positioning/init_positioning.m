@@ -263,6 +263,10 @@ if (nsat >= nsat_required)
             stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
             dist = dist + stidecorr;
         end
+        
+        %correct the geometric distance for the ocean loading
+        oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
+        dist = dist + oceanloadcorr;
 
         %radians to degrees
         phiR = phiR * 180 / pi;
@@ -407,6 +411,10 @@ if (nsat >= nsat_required)
         stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
         dist = dist + stidecorr;
     end
+    
+    %correct the geometric distance for the ocean loading
+    oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
+    dist = dist + oceanloadcorr;
 else
     %empty variables
     dtR  = [];

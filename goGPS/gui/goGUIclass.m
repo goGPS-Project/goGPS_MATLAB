@@ -684,13 +684,19 @@ classdef goGUIclass < handle
             
             idG.PCO = [id.tPCO id.fPCO];
             
+            % OCEAN LOADING file ------------------------------------------------
+            i=i+1; id.tBLQ          = i;    id2h(i) = obj.goh.tBLQ;
+            i=i+1; id.fBLQ          = i;    id2h(i) = obj.goh.fBLQ;
+            
+            idG.BLQ = [id.tBLQ id.fBLQ];
+            
             % Group of ids in the panel pIOFiles
-            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.BinGoIn idG.GoOut idG.DTM idG.RefPath idG.PCO];
+            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.BinGoIn idG.GoOut idG.DTM idG.RefPath idG.PCO idG.BLQ];
             
             % For a correct LED management these following id groups must be synchronized 
-            idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO];
+            idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ];
             idG.gBinLED =  [id.fBinGoIn];
-            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBinGoIn];
+            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ id.fBinGoIn];
             idG.gDirLED =  [id.fDirGoOut];
             idG.gLED = [idG.gFileLED idG.gBinLED idG.gDirLED];
 
@@ -1054,7 +1060,7 @@ classdef goGUIclass < handle
           
             
             % On RINEX / BIN
-            idG.onRin = [idG.RinRover idG.RinMaster idG.RinNav idG.PCO];
+            idG.onRin = [idG.RinRover idG.RinMaster idG.RinNav idG.PCO idG.BLQ];
             idG.onBin = [idG.BinGoIn];
 
             [idG.gPanels idG.strEl idG.valEl] = obj.autoElClassification(id2h);
@@ -2271,6 +2277,23 @@ classdef goGUIclass < handle
                                     obj.setGUILedStatus(obj.idUI.fPCO, obj.ledCk, 0);
                                 end
                             end
+                            
+                            % OCEAN LOADING file ------------------------------------
+                            data_path = goIni.getData('OCEAN_LOADING_file','data_path');
+                            file_name = goIni.getData('OCEAN_LOADING_file','file_name');
+                            if (isempty(data_path))
+                                data_path = '';
+                            end
+                            if (isempty(file_name))
+                                obj.setGUILedStatus(obj.idUI.fBLQ, obj.ledOp, 0);
+                            else
+                                % Check the presence of all the files
+                                if exist([data_path file_name],'file')
+                                    obj.setGUILedStatus(obj.idUI.fBLQ, obj.ledOk, 0);
+                                else
+                                    obj.setGUILedStatus(obj.idUI.fBLQ, obj.ledCk, 0);
+                                end
+                            end
                         end
                     else
                         obj.setGUILedStatus(obj.idUI.fINI, obj.ledCk, 0);
@@ -2870,6 +2893,9 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('PCO_PCV_file','data_path');
                 file_name = goIni.getData('PCO_PCV_file','file_name');
                 filename_pco = [data_path file_name];
+                data_path = goIni.getData('OCEAN_LOADING_file','data_path');
+                file_name = goIni.getData('OCEAN_LOADING_file','file_name');
+                filename_blq = [data_path file_name];
             end
             
             %serial communication
@@ -3049,6 +3075,9 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('PCO_PCV_file','data_path');
                 file_name = goIni.getData('PCO_PCV_file','file_name');
                 filename_pco = [data_path file_name];
+                data_path = goIni.getData('OCEAN_LOADING_file','data_path');
+                file_name = goIni.getData('OCEAN_LOADING_file','file_name');
+                filename_blq = [data_path file_name];
                 if(obj.isMultiReceiver)
                     [multi_antenna_rf, ~] = goIni.getGeometry();
                 else
@@ -3061,6 +3090,7 @@ classdef goGUIclass < handle
                 filename_nav = '';
                 filename_ref = '';
                 filename_pco = '';
+                filename_blq = '';
                 flag_SP3 = 0;
                 rates = get(obj.goh.pumCaptureRate,'String');                
                 goIni.setCaptureRate(rates{get(obj.goh.pumCaptureRate,'Value')});
@@ -3163,12 +3193,13 @@ classdef goGUIclass < handle
             funout{22} = filename_nav;
             funout{23} = filename_ref;
             funout{24} = filename_pco;
-            funout{25} = pos_M_man;
-            funout{26} = protocol_idx;
-            funout{27} = multi_antenna_rf;
-            funout{28} = iono_model;
-            funout{29} = tropo_model;            
-            funout{30} = fsep_char;
+            funout{25} = filename_blq;
+            funout{26} = pos_M_man;
+            funout{27} = protocol_idx;
+            funout{28} = multi_antenna_rf;
+            funout{29} = iono_model;
+            funout{30} = tropo_model;            
+            funout{31} = fsep_char;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq_rclock

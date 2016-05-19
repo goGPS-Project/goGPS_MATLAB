@@ -97,17 +97,17 @@ if (mode_user == 1)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, filename_pco, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS;
+            filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS;
     elseif (ismac)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, filename_pco, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS_unix_mac;
+            filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS_unix_mac;
     else %linux
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, filename_pco, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS_unix_linux;
+            filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS_unix_linux;
     end
 
     global goIni; %#ok<TLEV>
@@ -204,6 +204,7 @@ end
 %------------------------------------------------------------------------------------------------------------
  
 flag_tropo = 1
+flag_ocean = 1
 
 % frequencies = [1]
 % frequencies = [2]
@@ -360,6 +361,7 @@ if goGNSS.isPP(mode) % report only if postprocessing
     report.inp.filename_R_obs = filename_R_obs;
     report.inp.filename_nav = filename_nav;
     report.inp.filename_pco = filename_pco;
+    report.inp.filename_blq = filename_blq;
     if exist('sta_coord_file','var')
         report.inp.sta_coord_file = sta_coord_file;
     end
@@ -406,7 +408,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %read observation RINEX file(s)
             [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
-             time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R] = ...
+             time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
              load_RINEX_obs(filename_obs, constellations);
 
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
@@ -610,6 +612,11 @@ if goGNSS.isPP(mode) % post-processing
                 end
             end
             
+            %if ocean loading correction is requested
+            if (flag_ocean)
+                ol_disp = load_BLQ(filename_blq, marker_R);
+            end
+            
             %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
             zero_time = min(time_GPS,[],1) - 1;
             time_GPS  = time_GPS  - zero_time;
@@ -680,7 +687,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %read observation RINEX file(s)
             [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
-             time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM] = ...
+             time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
             
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
@@ -949,6 +956,11 @@ if goGNSS.isPP(mode) % post-processing
                 if (flag_SBAS && isempty(sbas))
                     fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
                 end
+            end
+            
+            %if ocean loading correction is requested
+            if (flag_ocean)
+                ol_disp = load_BLQ(filename_blq, marker_RM);
             end
             
             for f = 1 : size(time_R,3)
