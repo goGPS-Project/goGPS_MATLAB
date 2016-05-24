@@ -384,14 +384,6 @@ end
 % FILE READING
 %----------------------------------------------------------------------------------------------
 
-global residuals_fixed residuals_float outliers %s02_ls
-residuals_fixed=NaN(4*nSatTot,1);
-residuals_float=NaN(4*nSatTot,1);
-outliers=zeros(4*nSatTot,1);
-% global min_ambfixRMS
-% min_ambfixRMS=NaN(length(time_GPS),1);
-% s02_ls=NaN(length(time_GPS),1);
-
 if goGNSS.isPP(mode) % post-processing
     
     SP3 = [];
@@ -1606,7 +1598,7 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
     fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
-
+    
     nN = nSatTot;
     nT = 0;
     check_on = 0;
@@ -2021,6 +2013,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
     fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
     fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
+    fid_trp = fopen([filerootOUT '_trp_000.bin'],'w+');
     
     if (~exist('seamless_proc','var') || seamless_proc == 0)
         kalman_initialized = 0;
@@ -2057,6 +2050,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         fwrite(fid_conf, [nSatTot; conf_sat; conf_cs; pivot], 'int8');
         fwrite(fid_res, nSatTot, 'int8');
         fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
+        fwrite(fid_trp, nSatTot, 'int8');
+        fwrite(fid_trp, STDs, 'double');
         
         if (flag_plotproc)
             if (flag_cov == 0)
@@ -2082,6 +2077,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         fwrite(fid_sat, nSatTot, 'int8');
         fwrite(fid_conf, nSatTot, 'int8');
         fwrite(fid_res, nSatTot, 'int8');
+        fwrite(fid_trp, nSatTot, 'int8');
         t1 = 1;
     end
     
@@ -2115,6 +2111,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
         fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
+        fwrite(fid_trp, STDs, 'double');
         
         if (flag_plotproc)
             if (mode_user == 1 && t == 2), goWB.shiftDown(); end
@@ -2153,6 +2150,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
     fclose(fid_dop);
     fclose(fid_conf);
     fclose(fid_res);
+    fclose(fid_trp);
     
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (RELATIVE POSITIONING): LEAST SQUARES ON CODE DOUBLE DIFFERENCES
@@ -3290,7 +3288,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
      conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
      RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
      RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
-     outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
+     outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
   
     %variable saving for final graphical representations
     nObs = size(Xhat_t_t_OUT,2);
@@ -3683,6 +3681,44 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
 end
 
 %----------------------------------------------------------------------------------------------
+% TROPOSPHERE FILE SAVING
+%----------------------------------------------------------------------------------------------
+
+if (goGNSS.isPP(mode) && goGNSS.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(mode) && flag_tropo && (~isempty(EAST)))
+    %display information
+    fprintf('Writing troposphere file...\n');
+    %file saving
+    if (strcmp(fsep_char,'default'))
+        head_str = '    Date        GPS time         GPS week          GPS tow              ZTD';
+        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.3f';
+        for s = 1 : nSatTot
+            head_str = [head_str '         STD ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+            row_str  = [row_str  '%16.3f']; %#ok<AGROW>
+        end
+        head_str = [head_str '\n'];
+        row_str  = [row_str  '\n'];
+    else
+        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZTD');
+        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f');
+        for s = 1 : nSatTot
+            head_str = [head_str,fsep_char,constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
+            row_str  = [row_str, fsep_char,'%16.3f']; %#ok<AGROW>
+        end
+        head_str = [head_str '\n'];
+        row_str  = [row_str  '\n'];
+    end
+    fid_tropo = fopen([filerootOUT '_tropo.txt'], 'wt');
+    fprintf(fid_tropo, head_str);
+    for i = 1 : nObs
+        %file writing
+        fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), estim_tropo(i), STDs(:,i)');
+    end
+    
+    %file closing
+    fclose(fid_tropo);
+end
+
+%----------------------------------------------------------------------------------------------
 % NMEA FILE SAVING
 %----------------------------------------------------------------------------------------------
 
@@ -3967,7 +4003,6 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) %&& ~exist('is_batch','va
     end
     fprintf(fid_kml, '</Document>\n</kml>');
     fclose(fid_kml);
-
 end
 
 
@@ -4023,7 +4058,6 @@ if ((goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST)) && (
             Cee_ENU(1,3,i), Cee_ENU(2,2,i), Cee_ENU(2,3,i), Cee_ENU(3,3,i));
     end
     fclose(fid_cov);
-
 end
 
 %----------------------------------------------------------------------------------------------

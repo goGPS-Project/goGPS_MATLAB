@@ -69,6 +69,7 @@ global ratiotest mutest succ_rate fixed_solution
 global geoid
 
 global t residuals_fixed residuals_float outliers s02_ls
+global STDs
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -90,6 +91,7 @@ elR = zeros(nSatTot,1);
 elM = zeros(nSatTot,1);
 distR = zeros(nSatTot,1);
 distM = zeros(nSatTot,1);
+STDs = zeros(nSatTot,1);
 
 %compute inter-frequency factors (for the ionospheric delay)
 ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
@@ -299,9 +301,6 @@ if (nsat >= min_nsat)
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
-    
-    %index of satellite with phase among those with code
-    [~, phase_index] = intersect(sat_pr,sat);
     
     %----------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
@@ -888,6 +887,14 @@ end
 % end
 
 residuals_fixed = residuals_float;
+
+%--------------------------------------------------------------------------------------------
+% RECONSTRUCTION OF SLANT TOTAL DELAYS (STDs)
+%--------------------------------------------------------------------------------------------
+
+if (flag_tropo)
+    STDs(sat,1) = gmfh_R*ZHD_R + gmfw_R.*(ZWD_R + Xhat_t_t(o3+nN+(1:nT))) + residuals_float(nSatTot*2+sat);
+end
 
 %--------------------------------------------------------------------------------------------
 % RECONSTRUCTION OF FULL ZTD

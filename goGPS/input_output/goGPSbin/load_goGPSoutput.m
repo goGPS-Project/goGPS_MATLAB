@@ -2,14 +2,14 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
           conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP,  ...
           RES_CODE1_FIX, RES_CODE2_FIX, RES_PHASE1_FIX, RES_PHASE2_FIX, ...
           RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT, ...
-          outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2]= load_goGPSoutput (fileroot, mode, mode_vinc)
+          outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, STDs]= load_goGPSoutput (fileroot, mode, mode_vinc)
 
 % SYNTAX:
 %   [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %    conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP,  ...
 %    RES_CODE1_FIX, RES_CODE2_FIX, RES_PHASE1_FIX, RES_PHASE2_FIX, ...
 %    RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT, ...
-%    outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2]= load_goGPSoutput (fileroot, mode, mode_vinc)
+%    outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, STDs]= load_goGPSoutput (fileroot, mode, mode_vinc)
 %
 % INPUT:
 %   fileroot  = name of the file to be read
@@ -70,7 +70,7 @@ Yhat_t_t = [];                     %receiver positions estimate
 Cee = [];                          %estimation error covariance matrix
 
 %observations reading
-if (mode == 14 & mode_vinc == 1)
+if (mode == 14 && mode_vinc == 1)
     i = 0;                                                              %epoch counter
     hour = 0;                                                           %hour index (integer)
     hour_str = num2str(hour,'%03d');                                    %hour index (string)
@@ -84,12 +84,12 @@ if (mode == 14 & mode_vinc == 1)
         fid_kal = fopen([fileroot '_kal_' hour_str '.bin'],'r+');       %file opening
         buf_kal = fread(fid_kal,num_words,'double');                    %file reading
         fclose(fid_kal);                                                %file closing
-        Xhat_t_t = [Xhat_t_t  zeros(o1+nN,num_packs)];                  %observations concatenation
+        Xhat_t_t = [Xhat_t_t  zeros(o1+nN,num_packs)];     %#ok<*AGROW> %observations concatenation
         Yhat_t_t = [Yhat_t_t  zeros(3,num_packs)];
         Cee = cat(3,Cee,zeros(o1+nN,o1+nN,num_packs));
         for j = 0 : dim_packs : num_words-1
             i = i+1;                                                    %epoch counter increase
-            Xhat_t_t(:,i) = buf_kal(j + [1:o1+nN]);                     %observations logging
+            Xhat_t_t(:,i) = buf_kal(j + [1:o1+nN]);        %#ok<*NBRAK> %observations logging
             Yhat_t_t(:,i) = buf_kal(j + [o1+nN+1:o1+nN+3]);
             Cee(:,:,i) = reshape(buf_kal(j + [o1+nN+4:dim_packs]), o1+nN, o1+nN);
         end
@@ -246,6 +246,7 @@ while ~isempty(d)
 end
 
 %-------------------------------------------------------------------------------
+
 %initialization
 RES_CODE1_FIX  = [];                      %double differences code residuals (fixed solution)
 RES_CODE2_FIX  = [];                      %double differences code residuals (fixed solution)
@@ -303,4 +304,33 @@ while ~isempty(d)
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%03d');                                %conversion into a string
     d = dir([fileroot '_res_' hour_str '.bin']);                    %file to be read
+end
+
+%-------------------------------------------------------------------------------
+
+%initialization
+STDs = []; %slant total delays
+
+%observations reading
+i = 0;                                                              %epoch counter
+hour = 0;                                                           %hour index (integer)
+hour_str = num2str(hour,'%03d');                                    %hour index (string)
+d = dir([fileroot '_trp_' hour_str '.bin']);                        %file to be read
+while ~isempty(d)
+    fprintf('%s',['Reading: ' fileroot '_trp_' hour_str '.bin']); fprintf('\n');
+    fid_trp = fopen([fileroot '_trp_' hour_str '.bin'],'r+');       %file opening
+    num_sat = fread(fid_trp,1,'int8');                              %read number of satellites
+    num_bytes = d.bytes-1;                                          %file size (number of bytes)
+    num_words = num_bytes / 8;                                      %file size (number of words)
+    num_packs = num_words / num_sat;                                %file size (number of packets)
+    buf_trp = fread(fid_sat,num_words,'double');                    %file reading
+    fclose(fid_trp);                                                %file closing
+    STDs = [STDs  zeros(num_sat,num_packs)];                        %observations concatenation
+    for j = 0 : num_sat : num_words-1
+        i = i+1;                                                    %epoch counter increase
+        STDs(:,i) = buf_trp(j + [1:num_sat]);                       %observations logging
+    end
+    hour = hour+1;                                                  %hour increase
+    hour_str = num2str(hour,'%03d');                                %conversion into a string
+    d = dir([fileroot '_trp_' hour_str '.bin']);                    %file to be read
 end
