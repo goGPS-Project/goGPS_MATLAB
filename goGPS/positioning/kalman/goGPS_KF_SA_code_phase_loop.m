@@ -892,7 +892,7 @@ residuals_fixed = residuals_float;
 % RECONSTRUCTION OF SLANT TOTAL DELAYS (STDs)
 %--------------------------------------------------------------------------------------------
 
-if (flag_tropo)
+if (flag_tropo && exist('gmfh_R','var'))
     STDs(sat,1) = gmfh_R*ZHD_R + gmfw_R.*(ZWD_R + Xhat_t_t(o3+nN+(1:nT))) + residuals_float(nSatTot*2+sat);
 end
 
