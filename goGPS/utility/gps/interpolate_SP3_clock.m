@@ -60,7 +60,7 @@ end
 
 dt_S_SP3  = NaN;
 
-if (any(SP3_c) && isempty(find(SP3_c >= 0.999, 1)))
+if (sum(SP3_c~=0) == 2 && isempty(find(SP3_c >= 0.999, 1)))
 
     %linear interpolation (clock)
     dt_S_SP3 = (1-u)*SP3_c(1) + u*SP3_c(2);
