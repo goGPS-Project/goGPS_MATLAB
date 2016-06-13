@@ -1,10 +1,11 @@
 function SEID_main(L1_station, L2_stations, nav_file, pcv_file, out_path)
 
-global cutoff snr_threshold weights cs_threshold
+global cutoff snr_threshold weights cs_threshold cs_threshold_preprocessing
 
 cutoff = 15;
 snr_threshold = 0;
 cs_threshold = 1;
+cs_threshold_preprocessing = 1;
 weights = 1;
 
 % RNX_directory='C:\Users\Iwaki\Desktop\RISH_UBLOX_JAVAD_splitter\UBX\';
