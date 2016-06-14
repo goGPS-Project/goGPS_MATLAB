@@ -859,7 +859,6 @@ else
     X_t1_t = T*Xhat_t_t;
 
     Cee = T*Cee*T';
-
 end
 
 if exist('y0_residuals','var')
@@ -892,15 +891,20 @@ residuals_fixed = residuals_float;
 % RECONSTRUCTION OF SLANT TOTAL DELAYS (STDs)
 %--------------------------------------------------------------------------------------------
 
-if (flag_tropo && exist('gmfh_R','var'))
+if (flag_tropo && exist('gmfh_R','var') && nsat >= min_nsat)
     STDs(sat,1) = gmfh_R*ZHD_R + gmfw_R.*(ZWD_R + Xhat_t_t(o3+nN+(1:nT))) + residuals_float(nSatTot*2+sat);
 end
 
 %--------------------------------------------------------------------------------------------
 % RECONSTRUCTION OF FULL ZTD
 %--------------------------------------------------------------------------------------------
+
 if (flag_tropo)
-    Xhat_t_t(o3+nN+(1:nT)) = ZHD_R + ZWD_R + Xhat_t_t(o3+nN+(1:nT));
+    if (nsat >= min_nsat)
+        Xhat_t_t(o3+nN+(1:nT)) = ZHD_R + ZWD_R + Xhat_t_t(o3+nN+(1:nT));
+    else
+        Xhat_t_t(o3+nN+(1:nT)) = NaN;
+    end
 end
 
 %--------------------------------------------------------------------------------------------
