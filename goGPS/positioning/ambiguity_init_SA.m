@@ -72,8 +72,8 @@ lambda_orig = lambda;
 lambda(index_zero_ph) = [];
 
 %number of observations (assuming that sat_ph is a subset of sat_pr)
-nsat_pr = length(pr);
-nsat_ph = length(ph);
+nsat_pr = length(sat_pr);
+nsat_ph = length(sat_ph);
 n = nsat_pr + nsat_ph;
 
 %number of slipped satellites
@@ -130,6 +130,8 @@ b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + lambda_o
 b = [b_pr; b_ph(index)];
 
 %observation vector
+ph = ph(index);
+lambda = lambda(index);
 ph(index_noamb) = ph(index_noamb) + N_kalman(index_noamb);
 y0 = [pr; lambda.*ph];
 
@@ -144,7 +146,7 @@ Q(1:nsat_pr,1:nsat_pr) = sigmaq_cod1 * Q1;
 %     %with respect to input code and phase variances)
 %     Q(nsat_pr+1:end,nsat_pr+1:end) = (sigmaq_ph * eye(nsat_ph) + lambda.^2.*Cee_N_kalman) .* Q2;
 % else
-    Q(nsat_pr+1:end,nsat_pr+1:end) = sigmaq_ph * Q2;
+Q(nsat_pr+1:end,nsat_pr+1:end) = sigmaq_ph * Q2;
 % end
 
 % A_cod = A(1:nsat,:);

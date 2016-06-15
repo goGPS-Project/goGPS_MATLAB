@@ -206,6 +206,9 @@ end
 flag_tropo = 1
 flag_ocean = 1
 
+flag_SEID = 0
+% mode = goGNSS.MODE_PP_KF_CP_DD_MR
+
 % frequencies = [1]
 % frequencies = [2]
 frequencies = [1 2]
@@ -701,30 +704,34 @@ if goGNSS.isPP(mode) % post-processing
             pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
             codeC1_R = codeC1_RM(:,1,1:end-1); codeC1_M = codeC1_RM(:,1,end);
+            marker_R = marker_RM(:,1,1:end-1); marker_M = marker_RM(:,1,end);
             
             %read receiver antenna phase center offset
             antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
             
             %read satellite antenna phase center offset
             antmod_S = sat_antenna_ID(constellations);
-            antenna_PCV_S = read_antenna_PCV(filename_pco, antmod_S, date_R);
-               
+            antenna_PCV_S = read_antenna_PCV(filename_pco, antmod_S, date_M);
+            
             %get antenna PCV offset
             if (~isempty(antenna_PCV))
                 %MASTER
-                if (antenna_PCV(2).n_frequency ~= 0) %corrections available
-                    antPCO_M=antenna_PCV(2).offset(:,:,1)';
+                if (antenna_PCV(end).n_frequency ~= 0) %corrections available
+                    antPCO_M=antenna_PCV(end).offset(:,:,1)';
                 else
                     antPCO_M=[0 0 0]';
                     fprintf('... WARNING: MASTER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(2).name);
                 end
                 
                 %ROVER
-                if (antenna_PCV(1).n_frequency ~= 0) %corrections available
-                    antPCO_R=antenna_PCV(1).offset(:,:,1)';
-                else
-                    antPCO_R=[0 0 0]';
-                    fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
+                antPCO_R = zeros(3,1,size(pr1_R,3));
+                for i = 1 : size(pr1_R,3)
+                    if (antenna_PCV(i).n_frequency ~= 0) %corrections available
+                        antPCO_R(:,:,i) = antenna_PCV(i).offset(:,:,i)';
+                    else
+                        antPCO_R(:,:,i) = [0 0 0]';
+                        fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
+                    end
                 end
             end
             
@@ -809,10 +816,12 @@ if goGNSS.isPP(mode) % post-processing
             
             % apply antenna offset over the marker to rover apriori coordinates
             if (any(pos_R))
-                if (~isempty(antenna_PCV))
-                    pos_R = local2globalPos(antoff_R+antPCO_R, pos_R);
-                else
-                    pos_R = local2globalPos(antoff_R, pos_R);
+                for i = 1 : size(pr1_R,3)
+                    if (~isempty(antenna_PCV))
+                        pos_R(:,:,i) = local2globalPos(antoff_R(:,:,i)+antPCO_R(:,:,i), pos_R(:,:,i));
+                    else
+                        pos_R(:,:,i) = local2globalPos(antoff_R(:,:,i), pos_R(:,:,i));
+                    end
                 end
             end
 
@@ -820,7 +829,7 @@ if goGNSS.isPP(mode) % post-processing
                 %display message
                 fprintf('Reading SP3 file...\n');
                 
-                SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
+                SP3 = load_SP3(filename_nav, time_GPS, week_M, constellations);
                 
                 %store satellite antenna PCO/PCV and satellite type
                 SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
@@ -828,7 +837,7 @@ if goGNSS.isPP(mode) % post-processing
                 for sat = 1 : size(antenna_PCV_S,2)
                     if (antenna_PCV_S(sat).n_frequency ~= 0)
                         SP3.antPCO(:,:,sat) = antenna_PCV_S(sat).offset(:,:,1);
-                        SP3.satType(1,sat) = antenna_PCV_S(sat).type;
+                        SP3.satType{1,sat} = antenna_PCV_S(sat).type;
                     else
                         SP3.avail(sat) = 0;
                     end
@@ -836,12 +845,13 @@ if goGNSS.isPP(mode) % post-processing
                 
                 %compute sun and moon position
                 fprintf('Computing Sun and Moon position...');
-                [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_R))));
+                [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_M))));
                 fprintf(' done\n');
                 
-                %store the position of the Sun
+                %store the position of Sun and Moon
                 SP3.t_sun  = time_GPS;
                 SP3.X_sun  = X_sun;
+                SP3.X_moon = X_moon;
                 
                 %----------------------------------------------------------------------------------------------
                 % LOAD DCB DATA (DIFFERENTIAL CODE BIASES)
@@ -853,20 +863,20 @@ if goGNSS.isPP(mode) % post-processing
                 
                 %if (~strcmp(obs_comb, 'IONO_FREE'))
                     %try first to read already available DCB files
-                    DCB = load_dcb('../data/DCB', week_R, time_R, and(codeC1_R,codeC1_M), constellations);
+                    DCB = load_dcb('../data/DCB', week_M, time_M, and(all(codeC1_R),codeC1_M), constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
                     if (isempty(DCB))
                         
                         %download
-                        [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                        [file_dcb, compressed] = download_dcb([week_M(1) week_M(end)], [time_M(1) time_M(end)]);
                         
                         if (compressed)
                             return
                         end
                         
                         %try again to read DCB files
-                        DCB = load_dcb('../data/DCB', week_R, time_R, and(codeC1_R,codeC1_M), constellations);
+                        DCB = load_dcb('../data/DCB', week_M, time_M, and(all(codeC1_R),codeC1_M), constellations);
                     end
                     
                     SP3.DCB = DCB;
@@ -912,7 +922,7 @@ if goGNSS.isPP(mode) % post-processing
                 %      have any effect on the positioning
                 
                 %try first to read .ems files already available
-                [sbas] = load_ems('../data/EMS', week_R, time_R);
+                [sbas] = load_ems('../data/EMS', week_M, time_M);
                 
                 %if .ems files are not available or not sufficient, try to download them
                 if (isempty(sbas))
@@ -922,19 +932,19 @@ if goGNSS.isPP(mode) % post-processing
                     
                     %download
                     for p = 1 : length(prn)
-                        [file_ems] = download_ems(prn(p), [week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                        [file_ems] = download_ems(prn(p), [week_M(1) week_M(end)], [time_M(1) time_M(end)]);
                         if (~isempty(file_ems))
                             break
                         end
                     end
                     
                     %try again to read .ems files
-                    [sbas] = load_ems('../data/EMS', week_R, time_R);
+                    [sbas] = load_ems('../data/EMS', week_M, time_M);
                 end
                 
                 %check if the survey is within the EMS grids
                 if (~isempty(sbas))
-                    [ems_data_available] = check_ems_extents(time_R, pr1_R, snr1_R, nSatTot, Eph, SP3, iono, sbas, lambda, 1);
+                    [ems_data_available] = check_ems_extents(time_M, pr1_M, snr1_M, nSatTot, Eph, SP3, iono, sbas, lambda, 1);
                 end
             end
             
@@ -977,7 +987,7 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %apply P1C1 DCBs if needed
-                if (flag_SP3 && ~isempty(DCB) && codeC1_R)
+                if (flag_SP3 && ~isempty(DCB) && all(codeC1_R))
                     non_zero_idx = pr1_R(:,:,f) ~= 0;
                     pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
                 end
@@ -995,8 +1005,8 @@ if goGNSS.isPP(mode) % post-processing
                     SP3.t_sun   = SP3.t_sun - zero_time;
                 end
                 
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas);
-%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas);
+%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas);
 
                 if report.opt.write == 1
                     report.prep.spp_threshold = 4;                    
@@ -1045,7 +1055,7 @@ if goGNSS.isPP(mode) % post-processing
             if report.opt.write == 1
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
-                report.prep.bad_epoch_M=sum(bad_epochs_M(isfinite(bad_epochs_R))==1);
+                report.prep.bad_epoch_M=sum(bad_epochs_M(isfinite(bad_epochs_M))==1);
                 if (~isempty(var_SPP_M(isfinite(var_SPP_M(:,1)),1)))
                     report.prep.max_varSPP_M=max(var_SPP_M(isfinite(var_SPP_M(:,1)),1))^0.5;
                 else
@@ -1112,39 +1122,21 @@ if goGNSS.isPP(mode) % post-processing
                     dop1_R(pos,:,f) = 0;
                     dop2_R(pos,:,f) = 0;
                     snr_R(pos,:,f) = 0;
-                    if (goGNSS.isDD(mode))
-                        pr1_M(pos,:,f) = 0;
-                        pr2_M(pos,:,f) = 0;
-                        ph1_M(pos,:,f) = 0;
-                        ph2_M(pos,:,f) = 0;
-                        dop1_M(pos,:,f) = 0;
-                        dop2_M(pos,:,f) = 0;
-                        snr_M(pos,:,f) = 0;
-                    end
                 end
             end
         end
         
         %exclude flagged satellites (master)
         if (goGNSS.isDD(mode) && exist('bad_sats_M','var'))
-            for f = 1 : size(pr1_M,3)
-                if (any(bad_sats_M(:,1,f)))
-                    pos = find(bad_sats_M(:,1,f));
-                    pr1_R(pos,:,f) = 0;
-                    pr2_R(pos,:,f) = 0;
-                    ph1_R(pos,:,f) = 0;
-                    ph2_R(pos,:,f) = 0;
-                    dop1_R(pos,:,f) = 0;
-                    dop2_R(pos,:,f) = 0;
-                    snr_R(pos,:,f) = 0;
-                    pr1_M(pos,:,f) = 0;
-                    pr2_M(pos,:,f) = 0;
-                    ph1_M(pos,:,f) = 0;
-                    ph2_M(pos,:,f) = 0;
-                    dop1_M(pos,:,f) = 0;
-                    dop2_M(pos,:,f) = 0;
-                    snr_M(pos,:,f) = 0;
-                end
+            if (any(bad_sats_M(:,1)))
+                pos = find(bad_sats_M(:,1));
+                pr1_M(pos,:) = 0;
+                pr2_M(pos,:) = 0;
+                ph1_M(pos,:) = 0;
+                ph2_M(pos,:) = 0;
+                dop1_M(pos,:) = 0;
+                dop2_M(pos,:) = 0;
+                snr_M(pos,:) = 0;
             end
         end
 
@@ -1160,39 +1152,21 @@ if goGNSS.isPP(mode) % post-processing
                     dop1_R(:,pos,f) = 0;
                     dop2_R(:,pos,f) = 0;
                     snr_R(:,pos,f) = 0;
-                    if (goGNSS.isDD(mode))
-                        pr1_M(:,pos,f) = 0;
-                        pr2_M(:,pos,f) = 0;
-                        ph1_M(:,pos,f) = 0;
-                        ph2_M(:,pos,f) = 0;
-                        dop1_M(:,pos,f) = 0;
-                        dop2_M(:,pos,f) = 0;
-                        snr_M(:,pos,f) = 0;
-                    end
                 end
             end
         end
         
         %exclude flagged epochs (master)
         if (goGNSS.isDD(mode) && exist('bad_epochs_M','var'))
-            for f = 1 : size(pr1_M,3)
-                if (any(bad_epochs_M(:,1,f)))
-                    pos = find(bad_epochs_M(:,1,f));
-                    pr1_R(:,pos,f) = 0;
-                    pr2_R(:,pos,f) = 0;
-                    ph1_R(:,pos,f) = 0;
-                    ph2_R(:,pos,f) = 0;
-                    dop1_R(:,pos,f) = 0;
-                    dop2_R(:,pos,f) = 0;
-                    snr_R(:,pos,f) = 0;
-                    pr1_M(:,pos,f) = 0;
-                    pr2_M(:,pos,f) = 0;
-                    ph1_M(:,pos,f) = 0;
-                    ph2_M(:,pos,f) = 0;
-                    dop1_M(:,pos,f) = 0;
-                    dop2_M(:,pos,f) = 0;
-                    snr_M(:,pos,f) = 0;
-                end
+            if (any(bad_epochs_M(:,1)))
+                pos = find(bad_epochs_M(:,1));
+                pr1_M(:,pos) = 0;
+                pr2_M(:,pos) = 0;
+                ph1_M(:,pos) = 0;
+                ph2_M(:,pos) = 0;
+                dop1_M(:,pos) = 0;
+                dop2_M(:,pos) = 0;
+                snr_M(:,pos) = 0;
             end
         end
         
@@ -1226,15 +1200,15 @@ if goGNSS.isPP(mode) % post-processing
                 dop1_R(:,:,f) = dop1_R(:,:,f).*~eclipsed;
                 dop2_R(:,:,f) = dop2_R(:,:,f).*~eclipsed;
                 snr_R(:,:,f) = snr_R(:,:,f).*~eclipsed;
-                if (goGNSS.isDD(mode))
-                    pr1_M(:,:,f) = pr1_M(:,:,f).*~eclipsed;
-                    pr2_M(:,:,f) = pr2_M(:,:,f).*~eclipsed;
-                    ph1_M(:,:,f) = ph1_M(:,:,f).*~eclipsed;
-                    ph2_M(:,:,f) = ph2_M(:,:,f).*~eclipsed;
-                    dop1_M(:,:,f) = dop1_M(:,:,f).*~eclipsed;
-                    dop2_M(:,:,f) = dop2_M(:,:,f).*~eclipsed;
-                    snr_M(:,:,f) = snr_M(:,:,f).*~eclipsed;
-                end
+            end
+            if (goGNSS.isDD(mode))
+                pr1_M = pr1_M.*~eclipsed;
+                pr2_M = pr2_M.*~eclipsed;
+                ph1_M = ph1_M.*~eclipsed;
+                ph2_M = ph2_M.*~eclipsed;
+                dop1_M = dop1_M.*~eclipsed;
+                dop2_M = dop2_M.*~eclipsed;
+                snr_M = snr_M.*~eclipsed;
             end
         end
         
@@ -1486,6 +1460,15 @@ end
 %update variance of tropospheric delay
 global sigmaq_tropo
 sigmaq_tropo = (0.005/sqrt(3600/interval))^2;
+
+%----------------------------------------------------------------------------------------------
+% SEID (Satellite-specific Epoch-differenced Ionospheric Delay) interpolation
+%----------------------------------------------------------------------------------------------
+
+if (flag_SEID)
+    SEID_main;
+    return
+end
 
 %----------------------------------------------------------------------------------------------
 % POST-PROCESSING (ABSOLUTE POSITIONING): LEAST SQUARES ON CODE

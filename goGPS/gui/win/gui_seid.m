@@ -180,28 +180,28 @@ function pExecuteSEID_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 global goIni oldIniFile goGUI
-data_path_src = goIni.getData('Receivers','data_path');
-file_name_src = goIni.getData('Receivers','file_name');
-
-data_path_tgt = goIni.getData('Master','data_path');
-file_name_tgt = goIni.getData('Master','file_name');
-
-data_path_nav = goIni.getData('Navigational','data_path');
-file_name_nav = goIni.getData('Navigational','file_name');
-
-data_path_pcv = goIni.getData('PCO_PCV_file','data_path');
-file_name_pcv = goIni.getData('PCO_PCV_file','file_name');
-
-out_path = get(handles.eOutput_folder,'String');
-
-%prepare the input for the load_RINEX_obs function
-src_file = multiple_RINEX_interface([data_path_src file_name_src], [], goGNSS.MODE_PP_LS_C_SA_MR);
-tgt_file = [data_path_tgt file_name_tgt];
-
-nav_file = [data_path_nav file_name_nav];
-pcv_file = [data_path_pcv file_name_pcv];
-
-SEID_main(tgt_file, src_file, nav_file, pcv_file, out_path);
+% data_path_src = goIni.getData('Receivers','data_path');
+% file_name_src = goIni.getData('Receivers','file_name');
+% 
+% data_path_tgt = goIni.getData('Master','data_path');
+% file_name_tgt = goIni.getData('Master','file_name');
+% 
+% data_path_nav = goIni.getData('Navigational','data_path');
+% file_name_nav = goIni.getData('Navigational','file_name');
+% 
+% data_path_pcv = goIni.getData('PCO_PCV_file','data_path');
+% file_name_pcv = goIni.getData('PCO_PCV_file','file_name');
+% 
+% out_path = get(handles.eOutput_folder,'String');
+% 
+% %prepare the input for the load_RINEX_obs function
+% src_file = multiple_RINEX_interface([data_path_src file_name_src], [], goGNSS.MODE_PP_LS_C_SA_MR);
+% tgt_file = [data_path_tgt file_name_tgt];
+% 
+% nav_file = [data_path_nav file_name_nav];
+% pcv_file = [data_path_pcv file_name_pcv];
+% 
+% SEID_main(tgt_file, src_file, nav_file, pcv_file, out_path);
 
 goIni.setFileName(oldIniFile);
 goGUI.setElVal(goGUI.idUI.sINI, oldIniFile);
