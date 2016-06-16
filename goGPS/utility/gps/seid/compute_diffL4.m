@@ -1,10 +1,8 @@
-function [ diff_L4,P2_series2,commontime,stations_idx,L1_series_pcv,L2_series_pcv,L4_series ] = compute_diffL4( L1_series,L2_series,P2_series,name_series,time_series,elev_series,antenna_name_series,pcv_file )
+function [diff_L4, P2_series2, commontime, stations_idx, L1_series, L2_series, L4_series] = compute_diffL4(L1_series, L2_series, P2_series, name_series, time_series)
 
 lambda1 = 0.190293672798365;
 lambda2 = 0.244210213424568;
 
-[L1_series_pcv, L2_series_pcv] = pcv_for_cells(L1_series,L2_series,name_series,time_series,elev_series,antenna_name_series,pcv_file);
-  
 %compute dL4
 n_sta=length(name_series);
 
@@ -27,7 +25,7 @@ for sta= 1:n_sta
     [~,~,stations_idx(sta,:)] = intersect(commontime,time_series{sta});
     
     for PRN=1:32
-        L4_series(PRN,:,sta)=L1_series_pcv{sta}(PRN,stations_idx(sta,:))*lambda1 - L2_series_pcv{sta}(PRN,stations_idx(sta,:))*lambda2;
+        L4_series(PRN,:,sta)=L1_series{sta}(PRN,stations_idx(sta,:))*lambda1 - L2_series{sta}(PRN,stations_idx(sta,:))*lambda2;
         P2_series2(PRN,:,sta)=P2_series{sta}(PRN,stations_idx(sta,:));
         diff_L4(PRN,:,sta)=diff(L4_series(PRN,:,sta));
     end

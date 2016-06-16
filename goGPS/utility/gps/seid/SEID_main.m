@@ -15,6 +15,9 @@ elev = cell(n_sta,1);
 
 time_RM = time_R; time_RM(:,:,n_sta) = time_M;
 pr1_RM = pr1_R; pr1_RM(:,:,n_sta) = pr1_M;
+ph1_RM = ph1_R; ph1_RM(:,:,n_sta) = ph1_M;
+pr2_RM = pr2_R; pr2_RM(:,:,n_sta) = pr2_M;
+ph2_RM = ph2_R; ph2_RM(:,:,n_sta) = ph2_M;
 snr1_RM = snr1_R; snr1_RM(:,:,n_sta) = snr1_M;
 pos_RM = pos_R; pos_RM(:,:,n_sta) = pos_M(:,1);
 
@@ -45,13 +48,29 @@ for k = 1 : n_sta
             end
             
             %compute satellite azimuth and elevation
-            [~, ~, ~, ~, ~, ~, ~, ~, ~, sat, el, az] = init_positioning(time_RM(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, flag_XR, 0, 0);
+            [~, ~, ~, ~, ~, ~, ~, ~, ~, sat, el, az, ~, sys] = init_positioning(time_RM(t,1,k), pr1_RM(sat0,t,k), snr1_RM(sat0,t,k), Eph_t, SP3, iono, [], pos_RM(:,1,k), [], [], sat0, [], lambda(sat0,:), 0, 0, phase, flag_XR, 0, 0);
             
-            L1{k}(sat,t)   = ph1_RM(sat,t,k);
-            L2{k}(sat,t)   = ph2_RM(sat,t,k);
-            P2{k}(sat,t)   = pr2_RM(sat,t,k);
             azim{k}(sat,t) = az;
             elev{k}(sat,t) = el;
+            
+            %apply phase center variation
+            if (~isempty(antenna_PCV) && antenna_PCV(k).n_frequency ~= 0) % rover
+                PCV1 = PCV_interp(antenna_PCV(k), 90-el, az, sys, 1);
+                index_ph = find(ph1_RM(sat,t,k) ~= 0);
+                pr1_RM(sat,t,k) = pr1_RM(sat,t,k) - PCV1;
+                ph1_RM(sat(index_ph),t,k) = ph1_RM(sat(index_ph),t,k) - PCV1(index_ph)./lambda(sat(index_ph),1);
+                
+                if (length(frequencies) == 2 || frequencies(1) == 2)
+                    PCV2 = PCV_interp(antenna_PCV(k), 90-el, az, sys, 2);
+                    index_ph = find(ph2_RM(sat,t,k) ~= 0);
+                    pr2_RM(sat,t,k) = pr2_RM(sat,t,k) - PCV2;
+                    ph2_RM(sat(index_ph),t,k) = ph2_RM(sat(index_ph),t,k) - PCV2(index_ph)./lambda(sat(index_ph),2);
+                end
+            end
+            
+            L1{k}(sat,t) = ph1_RM(sat,t,k);
+            L2{k}(sat,t) = ph2_RM(sat,t,k);
+            P2{k}(sat,t) = pr2_RM(sat,t,k);
         end
     end
 
@@ -62,7 +81,7 @@ for k = 1 : n_sta
 end
 
 %compute diff_L4
-[diff_L4, P2_new, commontime, stations_idx, ~, ~, L4] = compute_diffL4(L1, L2, P2, name, time, elev, antenna, filename_pco);
+[diff_L4, P2_new, commontime, stations_idx, ~, ~, L4] = compute_diffL4(L1, L2, P2, name, time);
 
 til_L2 = NaN(size(L2{target_sta}));
 til_P2 = til_L2;
@@ -79,10 +98,7 @@ for PRN = 1 : nSatTot
     
     %interpolate dP2 and compute ~P2
     [til_P2(PRN,stations_idx(target_sta,:))] = interpolateP2(P2_new, commontime, satel(PRN).ipp_lon, satel(PRN).ipp_lat, PRN,target_sta);
-    
-    %fix til_L4
-    % satel(PRN).fix_tilL4= dL4_fix(satel(PRN).til_L4, elev{target_sta}(:,stations_idx(target_sta,:)), commontime, PRN);
-    
+
     %compute ~L2
     til_L2(PRN,stations_idx(target_sta,:)) = (L1{target_sta}(PRN,stations_idx(target_sta,:))*lambda(PRN,1) - satel(PRN).til_L4)/lambda(PRN,2);
     
