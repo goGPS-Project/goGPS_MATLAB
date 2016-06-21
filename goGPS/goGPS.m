@@ -1091,7 +1091,7 @@ if goGNSS.isPP(mode) % post-processing
         if (~flag_SP3)
             %exclude satellites without ephemerides
             delsat = setdiff(1:nSatTot,unique(Eph(30,:)));
-            %delsat = [delsat 4]; % del satellite 4
+            %delsat = [delsat 4]; % exclude satellite 4
             pr1_R(delsat,:,:) = 0;
             pr2_R(delsat,:,:) = 0;
             ph1_R(delsat,:,:) = 0;

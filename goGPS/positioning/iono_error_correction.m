@@ -56,31 +56,30 @@ if (iono_model == 0)
 else
     %initialization
     corr = zeros(size(el));
-
+    
     %if ionosphere parameters are available and SBAS corrections are disabled/not available
     if ((nargin == 6) & (sum(abs(ionoparams)) > 0)) | ...
-	    ((nargin >  6) & (sum(abs(ionoparams)) > 0)  & (isempty(sbas)))
-	
-	%apply Klobuchar ionosphere model
-	corr = klobuchar_model(lat, lon, az, el, time_rx, ionoparams);
-	
-	%if SBAS corrections are available (and requested by the user)
+       ((nargin >  6) & (sum(abs(ionoparams)) > 0)  & (isempty(sbas)))
+        
+        %apply Klobuchar ionosphere model
+        corr = klobuchar_model(lat, lon, az, el, time_rx, ionoparams);
+        
+    %if SBAS corrections are available (and requested by the user)
     elseif ((nargin > 6) & (~isempty(sbas)))
-	
-	%apply SBAS interpolated ionospheric delay (where possible)
-	corr = sbas_iono_interp(lat, lon, az, el, sbas);
-	
-	%detect if some satellites could not be corrected by SBAS
-	not_corr = isnan(corr);
-	
-	if (any(not_corr))
-	    %apply Klobuchar ionosphere model where it was not possible to apply
-	    % SBAS corrections
-	    corr(not_corr) = klobuchar_model(lat, lon, az(not_corr), el(not_corr), time_rx, ionoparams);
-	end
-	
+        
+        %apply SBAS interpolated ionospheric delay (where possible)
+        corr = sbas_iono_interp(lat, lon, az, el, sbas);
+        
+        %detect if some satellites could not be corrected by SBAS
+        not_corr = isnan(corr);
+        
+        if (any(not_corr))
+            %apply Klobuchar ionosphere model where it was not possible to apply
+            % SBAS corrections
+            corr(not_corr) = klobuchar_model(lat, lon, az(not_corr), el(not_corr), time_rx, ionoparams);
+        end    
     else
-	%a simplified model could be used
+        %a simplified model could be used
     end
 end
 

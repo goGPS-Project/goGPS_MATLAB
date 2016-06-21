@@ -282,14 +282,17 @@ end
 ph_GF = zeros(size(ph1));
 for s = 1 : nSatTot
     if (any(ph1(s,:)) && any(ph2(s,:)))
-        
         index_1 = find(ph1(s,:) ~= 0);
         index_2 = find(ph2(s,:) ~= 0);
-        index_3 = find(err_iono(s,:) ~= 0);
         index = intersect(index_1, index_2);
-        index = intersect(index,   index_3);
-
-        ph_GF(s,index) = (lambda(s,1)*ph1(s,index) - lambda(s,2)*ph2(s,index)) - ((goGNSS.F1^2-goGNSS.F2^2)/goGNSS.F2^2)*err_iono(s,index);
+        if (any(err_iono(s,:)))
+            index_3 = find(err_iono(s,:) ~= 0);
+            index = intersect(index,   index_3);
+            corr = ((goGNSS.F1^2-goGNSS.F2^2)/goGNSS.F2^2)*err_iono(s,index);
+        else
+            corr = zeros(size(err_iono(s,index)));
+        end
+        ph_GF(s,index) = (lambda(s,1)*ph1(s,index) - lambda(s,2)*ph2(s,index)) - corr;
     end
 end
 
