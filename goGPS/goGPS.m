@@ -525,6 +525,22 @@ if goGNSS.isPP(mode) % post-processing
                 %end
             end
             
+            %----------------------------------------------------------------------------------------------
+            % LOAD CRX DATA (SATELLITE PROBLEMS: MANEUVERS OR BAD OBSERVATION INTERVALS)
+            %----------------------------------------------------------------------------------------------
+
+            %try first to read already available CRX files
+            CRX = load_crx('../data/CRX', week_R, time_R, constellations);
+            %if CRX files are not available or not sufficient, try to download them
+            if (isempty(CRX))
+                
+                %download
+                file_crx = download_crx([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                
+                %try again to read CRX files
+                CRX = load_crx('../data/CRX', week_R, time_R, constellations);
+            end
+            
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
