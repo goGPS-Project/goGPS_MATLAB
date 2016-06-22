@@ -277,9 +277,12 @@ for i = 1 : length(disc)
 end
 
 %----------------------------------------------------------------------------------------------
-% GEOMETRY FREE OBSERVABLE
+% GEOMETRY FREE, WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
 %----------------------------------------------------------------------------------------------
 ph_GF = zeros(size(ph1));
+ph_WL = zeros(size(ph1));
+pr_NL = zeros(size(ph1));
+ph_MW = zeros(size(ph1));
 for s = 1 : nSatTot
     if (any(ph1(s,:)) && any(ph2(s,:)))
         index_1 = find(ph1(s,:) ~= 0);
@@ -293,6 +296,9 @@ for s = 1 : nSatTot
             corr = zeros(size(err_iono(s,index)));
         end
         ph_GF(s,index) = (lambda(s,1)*ph1(s,index) - lambda(s,2)*ph2(s,index)) - corr;
+        ph_WL(s,index) = (goGNSS.F1*lambda(s,1)*ph1(s,index) - goGNSS.F2*lambda(s,2)*ph2(s,index))/(goGNSS.F1 - goGNSS.F2);
+        pr_NL(s,index) = (goGNSS.F1*pr1(s,index) + goGNSS.F2*pr2(s,index))/(goGNSS.F1 + goGNSS.F2);
+        ph_MW(s,index) = ph_WL(s,index) - pr_NL(s,index);
     end
 end
 
@@ -373,7 +379,7 @@ for s = 1 : nSatTot
                 end
             end
 
-            [ph1(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), ph_GF(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            [ph1(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), ph_GF(s,:), ph_MW(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
             
             if ~isempty(cs_correction_i)
                 cs_correction_i(:,1) = s;
@@ -414,7 +420,7 @@ for s = 1 : nSatTot
                 end
             end
             
-            [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), ph_GF(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), ph_GF(s,:), ph_MW(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
             
             if ~isempty(cs_correction_i)
                 cs_correction_i(:,1) = s;
@@ -449,7 +455,7 @@ ph2 = ph2_interp;
 end
 
 
-function [ph, cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, dop, el, err_iono, lambda)
+function [ph, cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, ph_MW, dop, el, err_iono, lambda)
 
 global cutoff cs_threshold_preprocessing
 cs_resolution = 1;
@@ -591,14 +597,34 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         [~,jmp_GF] = intersect(delta_test,outliers);
     end
     
+    %detection (Melbourne-Wubbena)
+    delta_MW = zeros(size(delta_code));
+    ph_MW(1,ph_MW(1,:)==0) = NaN;
+%     delta_MW_all = (diff(ph_MW)./interval(1:end-1))';
+    delta_MW_all = diff(ph_MW)';
+    pos = find(idx~=length(N_mat));
+    delta_MW(idx(pos)) = delta_MW_all(idx(pos));
+    
+    delta_test = delta_MW;
+    not_zero = find(delta_test ~= 0);
+    not_nan  = find(~isnan(delta_test));
+    avail_MW = intersect(not_zero, not_nan);
+
+    if (~isempty(delta_test(avail_MW)))
+        outliers = batch_outlier_detection(delta_test(avail_MW),median(round(interval)));
+        outliers(outliers < 0.1) = [];
+        [~,jmp_MW] = intersect(delta_test,outliers);
+    end
+    
     %select two observables with low standard deviation
     [min_std_code]    = detect_minimum_std(delta_code(avail_code));
     [min_std_doppler] = detect_minimum_std(delta_doppler(avail_doppler));
     [min_std_deriv]   = detect_minimum_std(delta_deriv(avail_deriv));
     [min_std_GF]      = detect_minimum_std(delta_GF(avail_GF));
+    [min_std_MW]      = detect_minimum_std(delta_MW(avail_MW));
     
-    min_stds = [min_std_code min_std_doppler min_std_deriv min_std_GF];
-    jmps = {jmp_code; jmp_doppler; jmp_deriv; jmp_GF};
+    min_stds = [min_std_code min_std_doppler min_std_deriv min_std_GF min_std_MW];
+    jmps = {jmp_code; jmp_doppler; jmp_deriv; jmp_GF; jmp_MW};
     
     [~, pos1] = min(min_stds); min_stds(pos1) = 1e30;
     [~, pos2] = min(min_stds);
@@ -660,6 +686,10 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         if (pos1 == 4 || pos2 == 4)
             plot(delta_GF,'k--')
             plot(jmp,delta_GF(jmp),'ko')
+        end
+        if (pos1 == 5 || pos2 == 5)
+            plot(delta_MW,'k--')
+            plot(jmp,delta_MW(jmp),'ko')
         end
         
         figure
