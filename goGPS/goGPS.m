@@ -207,7 +207,9 @@ flag_tropo = 1
 flag_ocean = 1
 
 flag_SEID = 0
-% mode = goGNSS.MODE_PP_KF_CP_DD_MR
+if (flag_SEID == 1)
+    mode = goGNSS.MODE_PP_KF_CP_DD_MR
+end
 
 % frequencies = [1]
 % frequencies = [2]

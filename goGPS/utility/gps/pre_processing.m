@@ -498,6 +498,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     jmp_doppler = (1:(length(ph)-1))';
     jmp_deriv   = (1:(length(ph)-1))';
     jmp_GF      = (1:(length(ph)-1))';
+    jmp_MW      = (1:(length(ph)-1))';
     
     %detection (code)
     N_mat(1,N_mat(1,:)==0) = NaN;
