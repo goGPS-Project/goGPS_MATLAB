@@ -530,15 +530,15 @@ if goGNSS.isPP(mode) % post-processing
             %----------------------------------------------------------------------------------------------
 
             %try first to read already available CRX files
-            CRX = load_crx('../data/CRX', week_R, time_R, constellations);
+            CRX = load_crx('../data/CRX', week_R, time_GPS, nSatTot);
             %if CRX files are not available or not sufficient, try to download them
-            if (isempty(CRX))
+            if (~any(CRX(:)))
                 
                 %download
-                file_crx = download_crx([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
+                file_crx = download_crx([week_R(1) week_R(end)], [time_GPS(1) time_GPS(end)]);
                 
                 %try again to read CRX files
-                CRX = load_crx('../data/CRX', week_R, time_R, constellations);
+                CRX = load_crx('../data/CRX', week_R, time_GPS, nSatTot);
             end
             
             %retrieve multi-constellation wavelengths
@@ -1225,6 +1225,28 @@ if goGNSS.isPP(mode) % post-processing
                 dop1_M = dop1_M.*~eclipsed;
                 dop2_M = dop2_M.*~eclipsed;
                 snr_M = snr_M.*~eclipsed;
+            end
+        end
+        
+        %exclude CRX-flagged satellites
+        if (exist('CRX','var') && any(CRX(:)))
+            for f = 1 : size(pr1_R,3)
+                pr1_R(:,:,f) = pr1_R(:,:,f).*~CRX;
+                pr2_R(:,:,f) = pr2_R(:,:,f).*~CRX;
+                ph1_R(:,:,f) = ph1_R(:,:,f).*~CRX;
+                ph2_R(:,:,f) = ph2_R(:,:,f).*~CRX;
+                dop1_R(:,:,f) = dop1_R(:,:,f).*~CRX;
+                dop2_R(:,:,f) = dop2_R(:,:,f).*~CRX;
+                snr_R(:,:,f) = snr_R(:,:,f).*~CRX;
+            end
+            if (goGNSS.isDD(mode))
+                pr1_M = pr1_M.*~CRX;
+                pr2_M = pr2_M.*~CRX;
+                ph1_M = ph1_M.*~CRX;
+                ph2_M = ph2_M.*~CRX;
+                dop1_M = dop1_M.*~CRX;
+                dop2_M = dop2_M.*~CRX;
+                snr_M = snr_M.*~CRX;
             end
         end
         

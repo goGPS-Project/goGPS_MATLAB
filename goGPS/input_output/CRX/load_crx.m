@@ -1,12 +1,13 @@
-function [CRX] = load_crx(data_dir_crx, gps_week, time_R)
+function [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot)
 
 % SYNTAX:
-%   [CRX] = load_crx(data_dir_crx, gps_week, time_R);
+%   [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot);
 %
 % INPUT:
 %   data_dir_crx = path to the directory containing CRX files [string]
 %   gps_week = reference vector of GPS week numbers
 %   time_R = reference vector of GPS time
+%   nSatTot = total number of satellites
 %
 % OUTPUT:
 %   CRX = matrix containing CRX data
@@ -42,8 +43,11 @@ gps_tow = weektime2tow(gps_week, time_R);
 
 %detect starting and ending year/month
 date = gps2date(gps_week, gps_tow);
-year_start  = two_digit_year(date(1,1));
-year_end    = two_digit_year(date(end,1));
+year_start = date(1,1);
+year_end   = date(end,1);
+dnum = datenum(date);
+date_start = dnum(1);
+date_end   = dnum(end);
 
 %directory containing CRX files
 data_dir = dir(data_dir_crx);
@@ -86,15 +90,15 @@ for j = 1 : nmax
         %warnings
         if (fid_fd ~= -1)
             if (n == 1)
-                fprintf(['Reading CRX files...\n']);
+                fprintf('Reading CRX files...\n');
             end
         else
             fprintf(['WARNING: impossible to open CRX file ', crx_file_name, '\n']);
             break
         end
         
-        line = '';
-        while(~feof(fid_fd) && ~strcmp(line(1:5), '  ***'))
+        line = fgetl(fid_fd);
+        while(~feof(fid_fd) && (isempty(line) || ~strcmp(line(1:5), '  ***')))
             line = fgetl(fid_fd);
         end
         fgetl(fid_fd);
@@ -106,9 +110,29 @@ for j = 1 : nmax
                 continue
             end
             
-            PRN = str2num(line(3:5)); %#ok<ST2NM>
+            PRN = abs(str2num(line(3:5))); %#ok<ST2NM>
+            s = []; e = [];
             if (PRN <= 32)
-                
+                p = str2num(line(12:18)); %problem
+                s = datenum(str2num(line(33:51))); %start date
+                if (length(line) >= 72)
+                    e = datenum(str2num(line(54:72))); %end date
+                end
+                if (isempty(e))
+                    if (p == 0) %satellite maneuver: remove 15 minutes before and after
+                        s = s - datenum([0 0 0 0 15 0]);
+                        e = s + datenum([0 0 0 0 15 0]);
+                    else
+                        e = date_end; %arc split: exclude the satellite for the rest of the processing
+                    end
+                end
+                if ((p == 0 && ((s >= date_start && s <= date_end) || (e >= date_start && e <= date_end))) || ... %satellite maneuver
+                    (p >= 1 && p <= 3 && (s <= date_end && e >= date_start)) || ... %bad code and/or phase data
+                    (p == 4 && s >= date_start && e <= date_end)) % arc split
+                    [~, idx_start] = min(abs(s - dnum));
+                    [~, idx_end]   = min(abs(e - dnum));
+                    CRX(PRN, idx_start:idx_end) = 1;
+                end
             end
         end
         
