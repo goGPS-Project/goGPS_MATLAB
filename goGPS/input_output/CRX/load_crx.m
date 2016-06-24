@@ -1,13 +1,15 @@
-function [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot)
+function [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations)
 
 % SYNTAX:
-%   [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot);
+%   [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations);
 %
 % INPUT:
 %   data_dir_crx = path to the directory containing CRX files [string]
 %   gps_week = reference vector of GPS week numbers
 %   time_R = reference vector of GPS time
 %   nSatTot = total number of satellites
+%   constellations = struct with multi-constellation settings
+%                   (see goGNSS.initConstellation - empty if not available)
 %
 % OUTPUT:
 %   CRX = matrix containing CRX data
@@ -34,6 +36,18 @@ function [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot)
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
+
+if (isempty(constellations)) %then use only GPS as default
+    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+end
+
+%starting index in the total array for the various constellations
+idGPS = constellations.GPS.indexes(1);
+idGLONASS = constellations.GLONASS.indexes(1);
+idGalileo = constellations.Galileo.indexes(1);
+idBeiDou = constellations.BeiDou.indexes(1);
+idQZSS = constellations.QZSS.indexes(1);
+idSBAS = constellations.SBAS.indexes(1);
 
 %output initialization
 CRX = zeros(nSatTot, length(time_R));
@@ -111,28 +125,49 @@ for j = 1 : nmax
             end
             
             PRN = abs(str2num(line(3:5))); %#ok<ST2NM>
-            s = []; e = [];
-            if (PRN <= 32)
-                p = str2num(line(12:18)); %problem
-                s = datenum(str2num(line(33:51))); %start date
-                if (length(line) >= 72)
-                    e = datenum(str2num(line(54:72))); %end date
+            e = [];
+            
+            if (isempty(PRN))
+                continue
+            end
+            
+            if (PRN <= 0+constellations.GPS.numSat && constellations.GPS.enabled) %GPS
+                index = idGPS;
+            elseif (PRN > 100 && PRN <= 100+constellations.GLONASS.numSat && constellations.GLONASS.enabled) %GLONASS
+                index = idGLONASS;
+            elseif (PRN > 200 && PRN <= 200+constellations.Galileo.numSat && constellations.Galileo.enabled) %Galileo
+                index = idGalileo;
+            elseif (PRN > 300 && PRN <= 300+constellations.SBAS.numSat && constellations.SBAS.enabled)    %SBAS
+                index = idSBAS;
+            elseif (PRN > 400 && PRN <= 400+constellations.BeiDou.numSat && constellations.BeiDou.enabled)  %BeiDou
+                index = idBeiDou;
+            elseif (PRN > 500 && PRN <= 500+constellations.QZSS.numSat && constellations.QZSS.enabled)    %QZSS
+                index = idQZSS;
+            else
+                continue
+            end
+            
+            index = index + PRN - 1;
+            
+            p = str2num(line(12:18)); %problem
+            s = datenum(str2num(line(33:51))); %start date
+            if (length(line) >= 72)
+                e = datenum(str2num(line(54:72))); %end date
+            end
+            if (isempty(e))
+                if (p == 0) %satellite maneuver: remove 15 minutes before and after
+                    s = s - datenum([0 0 0 0 15 0]);
+                    e = s + datenum([0 0 0 0 15 0]);
+                else
+                    e = date_end; %arc split: exclude the satellite for the rest of the processing
                 end
-                if (isempty(e))
-                    if (p == 0) %satellite maneuver: remove 15 minutes before and after
-                        s = s - datenum([0 0 0 0 15 0]);
-                        e = s + datenum([0 0 0 0 15 0]);
-                    else
-                        e = date_end; %arc split: exclude the satellite for the rest of the processing
-                    end
-                end
-                if ((p == 0 && ((s >= date_start && s <= date_end) || (e >= date_start && e <= date_end))) || ... %satellite maneuver
+            end
+            if ((p == 0 && ((s >= date_start && s <= date_end) || (e >= date_start && e <= date_end))) || ... %satellite maneuver
                     (p >= 1 && p <= 3 && (s <= date_end && e >= date_start)) || ... %bad code and/or phase data
                     (p == 4 && s >= date_start && e <= date_end)) % arc split
-                    [~, idx_start] = min(abs(s - dnum));
-                    [~, idx_end]   = min(abs(e - dnum));
-                    CRX(PRN, idx_start:idx_end) = 1;
-                end
+                [~, idx_start] = min(abs(s - dnum));
+                [~, idx_end]   = min(abs(e - dnum));
+                CRX(index, idx_start:idx_end) = 1;
             end
         end
         

@@ -4,20 +4,20 @@ function goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR,
 %   goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN);
 %
 % INPUT:
-%   iniFile   = full path to the goGPS .ini file                    [string]
-%   mode      = functioning mode (see goGNSS section 'goGPS MODES') [integer]
-%   year      = year                                                [integer]
-%   doy_start = day-of-year (start)                                 [integer]
-%   doy_end   = day-of-year (end)                                   [integer]
-%   markerR   = rover marker name (e.g. 'UBLX')                     [string]
-%   sessionR  = rover session id (e.g. '0')                         [string]
-%   extR      = rover observation id in file extension (e.g. 'o')   [string]
-%   markerM   = master marker name (e.g. 'mila')                    [string]
-%   sessionM  = master session id (e.g. '_15s')                     [string]
-%   extM      = master observation id in file extension (e.g. 'O')  [string]
-%   idN       = navigation id in filename (e.g. 'brdc', 'igs', ...) [string]
-%   sessionN  = navigation session id (e.g. '0')                    [string]
-%   extN      = navigation id in file extension (e.g. 'n')          [string]
+%   iniFile   = full path to the goGPS .ini file                       [string]
+%   mode      = functioning mode (see goGNSS section 'goGPS MODES')    [integer]
+%   year      = year                                                   [integer]
+%   doy_start = day-of-year (start)                                    [integer]
+%   doy_end   = day-of-year (end)                                      [integer]
+%   markerR   = rover marker name (e.g. 'UBLX')                        [string]
+%   sessionR  = rover session id (e.g. '0')                            [string]
+%   extR      = rover observation id in file extension (e.g. 'o')      [string]
+%   markerM   = master marker name (e.g. 'mila')                       [string]
+%   sessionM  = master session id (e.g. '_15s')                        [string]
+%   extM      = master observation id in file extension (e.g. 'O')     [string]
+%   idN       = navigation id in filename (e.g. 'brdc', 'igs', ...)    [string]
+%   sessionN  = navigation session id (e.g. '0')                       [string]
+%   extN      = navigation id in file extension (e.g. 'n', 'sp3', ...) [string]
 %
 % EXAMPLE:
 %   rover RINEX filename:      UBLX0510.14o

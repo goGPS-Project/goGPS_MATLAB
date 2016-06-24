@@ -532,7 +532,7 @@ if goGNSS.isPP(mode) % post-processing
             %----------------------------------------------------------------------------------------------
 
             %try first to read already available CRX files
-            CRX = load_crx('../data/CRX', week_R, time_GPS, nSatTot);
+            CRX = load_crx('../data/CRX', week_R, time_GPS, nSatTot, constellations);
             %if CRX files are not available or not sufficient, try to download them
             if (~any(CRX(:)))
                 
@@ -540,7 +540,7 @@ if goGNSS.isPP(mode) % post-processing
                 file_crx = download_crx([week_R(1) week_R(end)], [time_GPS(1) time_GPS(end)]);
                 
                 %try again to read CRX files
-                CRX = load_crx('../data/CRX', week_R, time_GPS, nSatTot);
+                CRX = load_crx('../data/CRX', week_R, time_GPS, nSatTot, constellations);
             end
             
             %retrieve multi-constellation wavelengths

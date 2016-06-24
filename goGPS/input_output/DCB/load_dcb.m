@@ -117,7 +117,7 @@ for j = 1 : nmax
         if (fid_fd ~= -1)
             %fprintf(['Reading DCB file ', dcb_file_name, '\n']);
             if (n == 1)
-                fprintf(['Reading DCB files...\n']);
+                fprintf('Reading DCB files...\n');
             end
         else
             fprintf(['WARNING: impossible to open DCB file ', dcb_file_name, '\n']);
