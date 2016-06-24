@@ -95,17 +95,17 @@ if (mode_user == 1)
 
     if (~isunix || (ismac && verLessThan('matlab', '7.14')))
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS;
     elseif (ismac)
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS_unix_mac;
     else %linux
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SP3, flag_SBAS, flag_IAR, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
             filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS_unix_linux;
     end
@@ -281,6 +281,18 @@ else
     mat_path = [];
 end
 
+%-------------------------------------------------------------------------------------------
+% DETECT IF NAVIGATION FILE IS IN SP3 FORMAT
+%-------------------------------------------------------------------------------------------
+
+fid = fopen(filename_nav);
+line1 = fgetl(fid); line2 = fgetl(fid);
+if (strcmp(line1(1),'#') && strcmp(line2(1:2),'##'))
+    flag_SP3 = 1;
+else
+    flag_SP3 = 0;
+end
+fclose(fid);
 
 %-------------------------------------------------------------------------------------------
 % REPORT INITIALIZATION

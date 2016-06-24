@@ -90,7 +90,7 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 global goGUI
     % If I press the exit button
     if(~isstruct(handles))
-        varargout = cell(31,1);
+        varargout = cell(30,1);
         return
     end
     

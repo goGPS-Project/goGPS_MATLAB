@@ -79,15 +79,6 @@ path_N_obs = goIni.getData('Navigational','data_path');
 file_name = goIni.getData('Navigational','file_name');
 filename_nav = [path_N_obs file_name];
 
-flag_SP3 = goIni.getData('Navigational','isSP3');
-if isempty(flag_SP3)
-    if (strcmpi(filename_nav(end-3:end),'.sp3'))
-        flag_SP3 = 1;
-    else
-        flag_SP3 = 0;
-    end
-end
-
 data_path = goIni.getData('RefPath','data_path');
 file_name = goIni.getData('RefPath','file_name');
 filename_ref = [data_path file_name];

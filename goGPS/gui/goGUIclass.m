@@ -3061,14 +3061,6 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('Navigational','data_path');
                 file_name = goIni.getData('Navigational','file_name');
                 filename_nav = [data_path file_name];
-                flag_SP3 = goIni.getData('Navigational','isSP3');
-                if isempty(flag_SP3)
-                    if (strcmpi(filename_nav(end-3:end),'.sp3'))
-                        flag_SP3 = 1;
-                    else
-                        flag_SP3 = 0;
-                    end
-                end
                 data_path = goIni.getData('RefPath','data_path');
                 file_name = goIni.getData('RefPath','file_name');
                 filename_ref = [data_path file_name];
@@ -3091,7 +3083,6 @@ classdef goGUIclass < handle
                 filename_ref = '';
                 filename_pco = '';
                 filename_blq = '';
-                flag_SP3 = 0;
                 rates = get(obj.goh.pumCaptureRate,'String');                
                 goIni.setCaptureRate(rates{get(obj.goh.pumCaptureRate,'Value')});
                 multi_antenna_rf = [];
@@ -3183,23 +3174,22 @@ classdef goGUIclass < handle
             funout{12} = flag_plotproc;
             funout{13} = flag_var_dyn_model;
             funout{14} = flag_stopGOstop;
-            funout{15} = flag_SP3;
-            funout{16} = flag_SBAS;
-            funout{17} = flag_IAR;
-            funout{18} = filerootIN;
-            funout{19} = filerootOUT;
-            funout{20} = filename_R_obs;
-            funout{21} = filename_M_obs;
-            funout{22} = filename_nav;
-            funout{23} = filename_ref;
-            funout{24} = filename_pco;
-            funout{25} = filename_blq;
-            funout{26} = pos_M_man;
-            funout{27} = protocol_idx;
-            funout{28} = multi_antenna_rf;
-            funout{29} = iono_model;
-            funout{30} = tropo_model;            
-            funout{31} = fsep_char;
+            funout{15} = flag_SBAS;
+            funout{16} = flag_IAR;
+            funout{17} = filerootIN;
+            funout{18} = filerootOUT;
+            funout{19} = filename_R_obs;
+            funout{20} = filename_M_obs;
+            funout{21} = filename_nav;
+            funout{22} = filename_ref;
+            funout{23} = filename_pco;
+            funout{24} = filename_blq;
+            funout{25} = pos_M_man;
+            funout{26} = protocol_idx;
+            funout{27} = multi_antenna_rf;
+            funout{28} = iono_model;
+            funout{29} = tropo_model;            
+            funout{30} = fsep_char;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq_rclock
