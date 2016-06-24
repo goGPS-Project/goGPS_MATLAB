@@ -208,7 +208,7 @@ flag_ocean = 1
 
 flag_SEID = 0
 if (flag_SEID == 1)
-    mode = goGNSS.MODE_PP_KF_CP_DD_MR
+    mode = goGNSS.MODE_PP_KF_CP_DD_MR;
 end
 
 % frequencies = [1]
@@ -545,6 +545,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
+            
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
             bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
@@ -901,6 +902,22 @@ if goGNSS.isPP(mode) % post-processing
                 %else
                     %SP3.DCB = [];
                 %end
+            end
+            
+            %----------------------------------------------------------------------------------------------
+            % LOAD CRX DATA (SATELLITE PROBLEMS: MANEUVERS OR BAD OBSERVATION INTERVALS)
+            %----------------------------------------------------------------------------------------------
+
+            %try first to read already available CRX files
+            CRX = load_crx('../data/CRX', week_M, time_GPS, nSatTot, constellations);
+            %if CRX files are not available or not sufficient, try to download them
+            if (~any(CRX(:)))
+                
+                %download
+                file_crx = download_crx([week_M(1) week_M(end)], [time_GPS(1) time_GPS(end)]);
+                
+                %try again to read CRX files
+                CRX = load_crx('../data/CRX', week_M, time_GPS, nSatTot, constellations);
             end
 
             %retrieve multi-constellation wavelengths
@@ -2026,7 +2043,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     week_R = week_R(1:end-time_step);
 
 %----------------------------------------------------------------------------------------------
-% POST-PROCESSING (ABSOLUTE POSITIONING): KALMAN FILTER ON CODE AND PHASE
+% POST-PROCESSING (ABSOLUTE POSITIONING): KALMAN FILTER ON CODE AND PHASE (PPP)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
