@@ -107,10 +107,15 @@ for PRN = 1 : nSatTot
 end
 
 %write new RINEX file
-pos = find(filerootOUT == '/');
+pos = find(filerootOUT == '/'); if(isempty(pos)), pos = find(filerootOUT == '\'); end;
 out_path = filerootOUT(1:pos(end));
-temporaryfile_path = strcat(out_path, ['/' name{target_sta} '_SEID_output.obs']);
-outputfile_path = strcat(out_path, ['/' name{target_sta} '_L1L2.obs']);
+
+pos = find(filename_M_obs == '/'); if(isempty(pos)), pos = find(filename_M_obs == '\'); end;
+pos2 = find(filename_M_obs == '.');
+SEID_filename = filename_M_obs(pos(end)+1:pos2-1);
+SEID_ext = filename_M_obs(pos2:end);
+outputfile_path = strcat(out_path, [SEID_filename '_SEID' SEID_ext]);
+temporaryfile_path = strcat(out_path, [SEID_filename '_SEID_TEMP' SEID_ext]);
 
 new_interval = 30;
 
