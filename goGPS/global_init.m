@@ -368,8 +368,8 @@ try
     %geoid grid and parameters
     geoid.grid = N_05x05;
     geoid.cellsize = 0.5;
-    geoid.Xll = -180;
-    geoid.Yll = -90;
+    geoid.Xll = -179.75;
+    geoid.Yll = -89.75;
     geoid.ncols = 720;
     geoid.nrows = 360;
 
