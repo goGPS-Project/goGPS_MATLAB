@@ -1,4 +1,4 @@
-function write_RINEX_obs(filename, receiver, antenna, pr1_R, pr2_R, ph1_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, time_R, date, pos_R, interval, flag_C1)
+function write_RINEX_obs(filename, receiver, antenna, marker_name, pr1_R, pr2_R, ph1_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, time_R, date, pos_R, interval, flag_C1)
 
 %----------------------------------------------------------------------------------------------
 % RINEX OBSERVATION FILE
@@ -11,12 +11,6 @@ fprintf(['Writing: ' filename '... ']);
 fid_obs = fopen(filename,'wt');
 
 %maximum filename length for MARKER NAME field
-pos = find(filename == '/');
-if (isempty(pos))
-    marker_name = filename(1:4);
-else
-    marker_name = filename(pos(end)+1:pos(end)+4);
-end
 mn_len = min(60,length(marker_name));
 
 if (flag_C1)

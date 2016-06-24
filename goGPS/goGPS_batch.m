@@ -202,7 +202,7 @@ sigmaq_rclock = 1e3;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 10;
+cutoff = 15;
 
 %initialization cut-off [degrees]
 % cutoff_init = 15;
