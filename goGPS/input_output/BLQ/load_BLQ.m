@@ -74,13 +74,16 @@ for file_blq=1:size(filename,1)
             end
             fclose(fid);
         else
+            ocean_load_disp=[];
             fprintf('%s', ['... WARNING: Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']); fprintf('\n');
         end
     else
+        ocean_load_disp=[];
         fprintf('%s', ['... WARNING: Ocean loading file ', char(filename(file_blq,:)), ' could not be read.']); fprintf('\n');
     end
 end
 
 if (found == 0)
+    ocean_load_disp=[];
     fprintf('%s', '... WARNING: Ocean loading parameters not found.'); fprintf('\n');
 end

@@ -258,15 +258,15 @@ if (nsat >= nsat_required)
         %cartesian to geodetic conversion of ROVER coordinates
         [phiR, lamR, hR, phiCR] = cart2geod(XR(1), XR(2), XR(3));
         
-        %correct the geometric distance for solid Earth tides
         if (~isempty(SP3))
+            %correct the geometric distance for solid Earth tides
             stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
             dist = dist + stidecorr;
+            
+            %correct the geometric distance for the ocean loading
+            oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
+            dist = dist + oceanloadcorr;
         end
-        
-        %correct the geometric distance for the ocean loading
-        oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
-        dist = dist + oceanloadcorr;
 
         %radians to degrees
         phiR = phiR * 180 / pi;
@@ -406,15 +406,15 @@ if (nsat >= nsat_required)
     %cartesian to geodetic conversion of ROVER coordinates
     [~, lamR, ~, phiCR] = cart2geod(XR(1), XR(2), XR(3));
     
-    %correct the geometric distance for solid Earth tides
     if (~isempty(SP3))
+        %correct the geometric distance for solid Earth tides
         stidecorr = solid_earth_tide_correction(time_rx, XR, XS, SP3, phiCR, lamR);
         dist = dist + stidecorr;
+        
+        %correct the geometric distance for the ocean loading
+        oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
+        dist = dist + oceanloadcorr;
     end
-    
-    %correct the geometric distance for the ocean loading
-    oceanloadcorr = ocean_loading_correction(time_rx, XR, XS);
-    dist = dist + oceanloadcorr;
 else
     %empty variables
     dtR  = [];
