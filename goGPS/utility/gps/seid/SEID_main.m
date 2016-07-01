@@ -104,7 +104,7 @@ for k = 1 : n_sta
 end
 
 %compute diff_L4
-[diff_L4, diff_P4, commontime, stations_idx, ~, ~, L4, P4] = compute_diffL4(L1, L2, P1, P2, name, time);
+[diff_L4, diff_P4, commontime, stations_idx, ~, ~, L4, P4] = compute_diff(L1, L2, P1, P2, name, time);
 
 til_L2 = NaN(size(L2{target_sta}));
 til_P2 = til_L2;
@@ -115,15 +115,12 @@ fix_til_P2 = til_P2;
 for PRN = 1 : nSatTot
     
     %compute IPP
-    [satel(PRN).ipp_lat, satel(PRN).ipp_lon, satel(PRN).elR] = IPP_satspec(elev, azim, name, commontime, name{target_sta}, stations_idx, PRN);
-    
-    %[satel(PRN).ipp_lat, satel(PRN).ipp_lon, satel(PRN).elR] = IPP_satspec_new(elev, azim, commontime, stations_idx, PRN, pos_RM); %#ok<*SAGROW>
+    [satel(PRN).ipp_lat, satel(PRN).ipp_lon, satel(PRN).elR] = IPP_satspec(elev, azim, commontime, stations_idx, PRN, pos_RM); %#ok<*SAGROW>
     
     %interpolate dL4 and compute ~L4
     [satel(PRN).til_L4] = planefit_satspec_diff_obs(diff_L4, commontime, satel(PRN).ipp_lon, satel(PRN).ipp_lat, PRN, target_sta, 1);
     
     %interpolate P4 and compute ~P4
-    %[til_P2(PRN,stations_idx(target_sta,:))] = interpolateP2(diff_P2, commontime, satel(PRN).ipp_lon, satel(PRN).ipp_lat, PRN, target_sta);
     [satel(PRN).til_P4] = planefit_satspec_diff_obs(P4, commontime, satel(PRN).ipp_lon, satel(PRN).ipp_lat, PRN, target_sta, 0);
 
     %compute ~L2
@@ -133,10 +130,10 @@ for PRN = 1 : nSatTot
     til_P2(PRN,stations_idx(target_sta,:)) = P1{target_sta}(PRN,stations_idx(target_sta,:)) + satel(PRN).til_P4;
     
     %compute fix ~L2 (remove large outliers)
-    fix_til_L2(PRN,:) = fix_jump_L2(til_L2,PRN,0.6*10e7);
+    fix_til_L2(PRN,:) = fix_jump(til_L2,PRN,0.6*10e7);
     
     %compute fix ~P2 (remove large outliers)
-    fix_til_P2(PRN,:) = fix_jump_L2(til_P2,PRN,0.6*10e7);
+    fix_til_P2(PRN,:) = fix_jump(til_P2,PRN,0.6*10e7);
 end
 
 %write new RINEX file

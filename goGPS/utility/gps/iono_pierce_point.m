@@ -15,8 +15,7 @@ function [latpp, lonpp, fpp] = iono_pierce_point(latR, lonR, azS, elS)
 %   fpp   = slant factor (mapping function)
 %
 % DESCRIPTION:
-%   Computation of the satellite position (X,Y,Z) and velocity by means
-%   of its ephemerides.
+%   Computation of the ionosphere piercing point (IPP).
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -54,9 +53,9 @@ latpp = asin(sin(latR)*cos(phipp) + cos(latR)*sin(phipp)*cos(azS));
 if ((latpp >  70*pi/180) & (tan(phipp)*cos(azS)      > tan((pi/2) - latR))) | ...
    ((latpp < -70*pi/180) & (tan(phipp)*cos(azS + pi) > tan((pi/2) + latR)))
     
-    lonpp = lonR + pi - asin((sin(phipp)*sin(azS))/(cos(latpp)));
+    lonpp = lonR + pi - asin(sin(phipp)*sin(azS/cos(latpp)));
 else
-    lonpp = lonR + asin((sin(phipp)*sin(azS))/(cos(latpp)));
+    lonpp = lonR + asin(sin(phipp)*sin(azS/cos(latpp)));
 end
 
 %slant (obliquity) factor

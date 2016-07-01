@@ -1,4 +1,4 @@
-function [diff_L4, diff_P4, commontime, stations_idx, L1_series, L2_series, L4_series, P4_series] = compute_diffL4(L1_series, L2_series, P1_series, P2_series, name_series, time_series)
+function [diff_L4, diff_P4, commontime, stations_idx, L1_series, L2_series, L4_series, P4_series] = compute_diff(L1_series, L2_series, P1_series, P2_series, name_series, time_series)
 
 lambda1 = 0.190293672798365;
 lambda2 = 0.244210213424568;
