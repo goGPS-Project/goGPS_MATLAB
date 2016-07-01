@@ -333,26 +333,28 @@ if (nsat >= min_nsat)
     end
     %pivot = find(elR == max(elR));
 
-    %compute PCV: phase and code 1
     [~, index_ph]=intersect(sat_pr,sat);
     
     %compute phase wind-up correction
     phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS(index_ph,:), SP3, phwindup(sat,1));
     
-    if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0) % rover
-        index_rover=1;
-        PCV1=PCV_interp(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 1);
-        pr1(sat_pr)=pr1(sat_pr)-PCV1;
-        ph1(sat)=ph1(sat)-PCV1(index_ph)./lambda(sat,1);
+    %apply PCO/PCV correction
+    if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0)
+        index_rover = 1;
+        PCO1 = PCO_correction(antenna_PCV(index_rover), XR0, XS, sys, 1);
+        PCV1 = PCV_correction(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 1);
+        pr1(sat_pr) = pr1(sat_pr) - (PCO1           + PCV1);
+        ph1(sat)    = ph1(sat)    - (PCO1(index_ph) + PCV1(index_ph))./lambda(sat,1);
         
         if (length(frequencies) == 2 || frequencies(1) == 2)
-            PCV2=PCV_interp(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 2);
-            pr2(sat_pr)=pr2(sat_pr)-PCV2;
-            ph2(sat)=ph2(sat)-PCV2(index_ph)./lambda(sat,2);
+            PCO2 = PCO_correction(antenna_PCV(index_rover), XR0, XS, sys, 2);
+            PCV2 = PCV_correction(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 2);
+            pr2(sat_pr) = pr2(sat_pr) - (PCO2           + PCV2);
+            ph2(sat)    = ph2(sat)    - (PCO2(index_ph) + PCV2(index_ph))./lambda(sat,2);
         end
     end
     
-    %when the tropospheric delay is estimated, only its hydrostatic part is removed from the observations
+    %when the tropospheric delay is estimated, only its hydrostatic part is modelled
     if (flag_tropo)
         gmfh_R = zeros(size(err_tropo));
         gmfw_R = zeros(size(err_tropo));
@@ -524,7 +526,6 @@ if (nsat >= min_nsat)
                 X_t1_t(o3+sat_slip) = N_slip;
                 Cvv(o3+sat_slip,o3+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));
             end
-            
         end
         
         %------------------------------------------------------------------------------------

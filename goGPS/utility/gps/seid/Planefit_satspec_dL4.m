@@ -1,7 +1,5 @@
 function [ til_L4 ] = Planefit_satspec_dL4(  diff_L4,commontime,ipp_lon,ipp_lat,PRN,target_sta )
-%DL4_PLANEFIT この関数の概要をここに記述
-%   詳細説明をここに記述
-
+%DL4_PLANEFIT この関?狽ﾌ概要をここに記?q
  %find idx to execute interpolation
 isnan_idx=~isnan(ipp_lon(target_sta,:));
 

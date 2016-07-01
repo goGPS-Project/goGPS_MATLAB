@@ -425,18 +425,8 @@ if goGNSS.isPP(mode) % post-processing
                 return
             end
          
-            %read receiver antenna phase center offset (NOTE: only L1 offset for now)
+            %read receiver antenna phase center offset (PCO) and variation (PCV)
             antenna_PCV = read_antenna_PCV(filename_pco, antmod_R);
-                       
-            if (~isempty(antenna_PCV))  % has to be fixed to manage MR
-                %ROVER
-                if (antenna_PCV(1).n_frequency ~= 0) %corrections available
-                    antPCO_R=antenna_PCV(1).offset(:,:,1)';
-                else
-                    antPCO_R=[0 0 0]';
-                    fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
-                end
-            end
             
             %read satellite antenna phase center offset (NOTE: reading only L1 offset for now)
             antmod_S = sat_antenna_ID(constellations);
@@ -744,28 +734,6 @@ if goGNSS.isPP(mode) % post-processing
             antmod_S = sat_antenna_ID(constellations);
             antenna_PCV_S = read_antenna_PCV(filename_pco, antmod_S, date_M);
             
-            %get antenna PCV offset
-            if (~isempty(antenna_PCV))
-                %MASTER
-                if (antenna_PCV(end).n_frequency ~= 0) %corrections available
-                    antPCO_M=antenna_PCV(end).offset(:,:,1)';
-                else
-                    antPCO_M=[0 0 0]';
-                    fprintf('... WARNING: MASTER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(2).name);
-                end
-                
-                %ROVER
-                antPCO_R = zeros(3,1,size(pr1_R,3));
-                for i = 1 : size(pr1_R,3)
-                    if (antenna_PCV(i).n_frequency ~= 0) %corrections available
-                        antPCO_R(:,:,i) = antenna_PCV(i).offset(:,:,i)';
-                    else
-                        antPCO_R(:,:,i) = [0 0 0]';
-                        fprintf('... WARNING: ROVER antenna PCV corrections set to zero (antenna type "%s" not found).\n',antenna_PCV(1).name);
-                    end
-                end
-            end
-            
             if report.opt.write == 1
                 % extract quality parameters for report
                 for i = 1:1 %size(pr1_R,3) that is because currenty MR is not supported
@@ -839,20 +807,12 @@ if goGNSS.isPP(mode) % post-processing
             end
 
             % apply antenna offset over the marker to master coordinates
-            if (~isempty(antenna_PCV))
-                pos_M = local2globalPos(antoff_M+antPCO_M, pos_M);
-            else
-                pos_M = local2globalPos(antoff_M, pos_M);
-            end
-            
+            pos_M = local2globalPos(antoff_M, pos_M);
+           
             % apply antenna offset over the marker to rover apriori coordinates
             if (any(pos_R))
                 for i = 1 : size(pr1_R,3)
-                    if (~isempty(antenna_PCV))
-                        pos_R(:,:,i) = local2globalPos(antoff_R(:,:,i)+antPCO_R(:,:,i), pos_R(:,:,i));
-                    else
-                        pos_R(:,:,i) = local2globalPos(antoff_R(:,:,i), pos_R(:,:,i));
-                    end
+                    pos_R(:,:,i) = local2globalPos(antoff_R(:,:,i), pos_R(:,:,i));
                 end
             end
 
@@ -3372,12 +3332,8 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
             pos_REF(:,i) = pos_KAL(:,1);
         end
 
-        if (exist('antenna_PCV','var') && exist('antoff_R','var'))
-            if(~isempty(antenna_PCV))
-                pos_KAL(:,i) = local2globalPos(-(antoff_R(:,1,1)+antPCO_R), pos_KAL(:,i));
-            else
-                pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
-            end
+        if (exist('antoff_R','var'))
+            pos_KAL(:,i) = local2globalPos(-antoff_R(:,1,1), pos_KAL(:,i));
         end
         %if tropospheric delay was estimated in PPP
         if (goGNSS.isSA(mode) && flag_tropo)
