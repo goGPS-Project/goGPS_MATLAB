@@ -208,8 +208,8 @@ for file_pcv=1:size(filename,1)
                                             antenna_PCV(m).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(number_of_azimuth,1);
                                             antenna_PCV(m).tablePCV(:,:,frequencies_found)=NaN(number_of_azimuth,number_of_zenith);
                                         else
-                                            antenna_PCV(m).tablePCV_azi=NaN;
-                                            antenna_PCV(m).tablePCV=NaN;                                          
+                                            antenna_PCV(m).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(1,1);
+                                            antenna_PCV(m).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
                                         end
                                         
                                         line = fgetl(fid);
@@ -223,7 +223,7 @@ for file_pcv=1:size(filename,1)
                                             antenna_PCV(m).tablePCV_azi(:,1:number_of_azimuth,1)=0:antenna_PCV(m).dazi:360;
                                         end
                                         if number_of_azimuth == 0
-                                            antenna_PCV(m).tablePCV=NaN;
+                                            antenna_PCV(m).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
                                         end
                                     end
                                     if (~invalid_date)
