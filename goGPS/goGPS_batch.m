@@ -427,17 +427,3 @@ fclose(fid_extract_OBS);
 figure
 tropo = load([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_troposphere.txt']);
 plot(reshape(tropo',1,size(tropo,1)*size(tropo,2)));
-
-% cc = [4331296.8765      567556.0646     4633134.0528
-% 4331296.8771      567556.0652     4633134.0524
-% 4331296.8753      567556.0644     4633134.0516
-% 4331296.8763      567556.0644     4633134.0525
-% 4331296.8761      567556.0647     4633134.0523];
-% rr = [4331296.9226 567556.0704 4633134.0631];
-% re = cc(1,:);
-% figure
-% [LOC] = global2localPos(cc', rr(ones(size(cc,1),1),:)');
-% plot(LOC','o-')
-% figure
-% [LOC] = global2localPos(cc', re(ones(size(cc,1),1),:)');
-% plot(LOC(:,2:end)','o-')

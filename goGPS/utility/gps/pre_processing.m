@@ -277,30 +277,16 @@ for i = 1 : length(disc)
 end
 
 %----------------------------------------------------------------------------------------------
-% GEOMETRY FREE, WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
+% GEOMETRY FREE OBSERVABLES
 %----------------------------------------------------------------------------------------------
-ph_GF = zeros(size(ph1));
-ph_WL = zeros(size(ph1));
-pr_NL = zeros(size(ph1));
-ph_MW = zeros(size(ph1));
-for s = 1 : nSatTot
-    if (any(ph1(s,:)) && any(ph2(s,:)))
-        index_1 = find(ph1(s,:) ~= 0);
-        index_2 = find(ph2(s,:) ~= 0);
-        index = intersect(index_1, index_2);
-        if (any(err_iono(s,:)))
-            index_3 = find(err_iono(s,:) ~= 0);
-            index = intersect(index,   index_3);
-            corr = ((goGNSS.F1^2-goGNSS.F2^2)/goGNSS.F2^2)*err_iono(s,index);
-        else
-            corr = zeros(size(err_iono(s,index)));
-        end
-        ph_GF(s,index) = (lambda(s,1)*ph1(s,index) - lambda(s,2)*ph2(s,index)) - corr;
-        ph_WL(s,index) = (goGNSS.F1*lambda(s,1)*ph1(s,index) - goGNSS.F2*lambda(s,2)*ph2(s,index))/(goGNSS.F1 - goGNSS.F2);
-        pr_NL(s,index) = (goGNSS.F1*pr1(s,index) + goGNSS.F2*pr2(s,index))/(goGNSS.F1 + goGNSS.F2);
-        ph_MW(s,index) = ph_WL(s,index) - pr_NL(s,index);
-    end
-end
+
+ph_GF = compute_geometry_free(ph1, ph2, lambda, err_iono);
+
+%----------------------------------------------------------------------------------------------
+% WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
+%----------------------------------------------------------------------------------------------
+
+ph_MW = compute_melbourne_wubbena(ph1, ph2, pr1, pr2, lambda);
 
 %----------------------------------------------------------------------------------------------
 % OBSERVATION CORRECTION FOR CLOCK ERROR
@@ -366,7 +352,6 @@ for s = 1 : nSatTot
     end
     
     if (any(ph1(s,:)))
-        
         index_s = find(ph1(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
@@ -378,8 +363,32 @@ for s = 1 : nSatTot
                     dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
                 end
             end
+        end
+    end
+    
+    if (any(ph2(s,:)))
+        index_s = find(ph2(s,:) ~= 0);
+        index = intersect(index_e,index_s);
+        
+        if (length(index) > lagr_order)
+            
+            if (flag_jumps_ph2)
+                ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
+                if (flag_doppler_cs && any(dop2(s,index)))
+                    dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
+                end
+            end
+        end
+    end
+    
+    if (any(ph1(s,:)))
+        
+        index_s = find(ph1(s,:) ~= 0);
+        index = intersect(index_e,index_s);
+        
+        if (length(index) > lagr_order)
 
-            [ph1(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), ph_GF(s,:), ph_MW(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1));
+            [ph1(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), pr2(s,:), ph2(s,:), ph_GF(s,:), ph_MW(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1), lambda(s,2));
             
             if ~isempty(cs_correction_i)
                 cs_correction_i(:,1) = s;
@@ -413,14 +422,7 @@ for s = 1 : nSatTot
         
         if (length(index) > lagr_order)
             
-            if (flag_jumps_ph2)
-                ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
-                if (flag_doppler_cs && any(dop2(s,index)))
-                    dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
-                end
-            end
-            
-            [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), ph_GF(s,:), ph_MW(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2));
+            [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), pr1(s,:), ph1(s,:), ph_GF(s,:), ph_MW(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2), lambda(s,1));
             
             if ~isempty(cs_correction_i)
                 cs_correction_i(:,1) = s;
@@ -455,23 +457,19 @@ ph2 = ph2_interp;
 end
 
 
-function [ph, cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr, ph, ph_GF, ph_MW, dop, el, err_iono, lambda)
+function [ph_main, cs_correction_count, cs_correction_i] = detect_and_fix_cycle_slips(time, pr_main, ph_main, pr_sec, ph_sec, ph_GF, ph_MW, dop, el, err_iono, lambda_main, lambda_sec)
 
 global cutoff cs_threshold_preprocessing
 cs_resolution = 1;
-% if cs_threshold_preprocessing==0.5
-%     cs_threshold_preprocessing=0.5;
-% end
 
 flag_plot = 0;
 flag_doppler_cs = 1;
 
-cs_found = 0;
 cs_correction_i=[];
 cs_correction_count = 0;
 
 cutoff_idx = find(el(1,:) > cutoff);
-avail_idx = find(ph(1,:) ~= 0);
+avail_idx = find(ph_main(1,:) ~= 0);
 idx = intersect(cutoff_idx, avail_idx);
 
 p = polyfit(idx,err_iono(1,idx),3);
@@ -483,22 +481,20 @@ err_iono_fit = polyval(p,idx);
 %     plot(idx,err_iono_fit,'g.')
 % end
 
-N_mat = zeros(size(ph));
-N_mat(1,idx) = (pr(1,idx) - lambda(1,1).*ph(1,idx) - 2.*err_iono_fit)./lambda(1,1);
+N_mat = zeros(size(ph_main));
+N_mat(1,idx) = (pr_main(1,idx) - lambda_main(1,1).*ph_main(1,idx) - 2.*err_iono_fit)./lambda_main(1,1);
 
 if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
-    delta_thres = 1e30; %cycles
-    
     interval = diff(time);
     interval = [interval; interval(end)]';
     
     %initialization
-    jmp_code    = (1:(length(ph)-1))';
-    jmp_doppler = (1:(length(ph)-1))';
-    jmp_deriv   = (1:(length(ph)-1))';
-    jmp_GF      = (1:(length(ph)-1))';
-    jmp_MW      = (1:(length(ph)-1))';
+    jmp_code    = (1:(length(ph_main)-1))';
+    jmp_doppler = (1:(length(ph_main)-1))';
+    jmp_deriv   = (1:(length(ph_main)-1))';
+    jmp_GF      = (1:(length(ph_main)-1))';
+    jmp_MW      = (1:(length(ph_main)-1))';
     
     %detection (code)
     N_mat(1,N_mat(1,:)==0) = NaN;
@@ -518,15 +514,15 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     
     %detection (Doppler)
     delta_doppler = zeros(size(delta_code));
-    if (flag_doppler_cs && any(dop) && (sum(~~dop) == sum(~~ph)))
+    if (flag_doppler_cs && any(dop) && (sum(~~dop) == sum(~~ph_main)))
         
 %         pred_phase = ph(1:end-1) + ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
 %         pred_phase = ph(1:end-1) - ((dop(2:end)+dop(1:end-1))/2).*interval(1:end-1);
-        pred_phase = ph(1:end-1) - (dop(2:end)+dop(1:end-1))/2;
+        pred_phase = ph_main(1:end-1) - (dop(2:end)+dop(1:end-1))/2;
         
 %         delta_doppler_all = ((pred_phase - ph(2:end))./interval(1:end-1))';
-        delta_doppler_all = (pred_phase - ph(2:end))';
-        delta_doppler_all(ph(2:end)==0) = 0;
+        delta_doppler_all = (pred_phase - ph_main(2:end))';
+        delta_doppler_all(ph_main(2:end)==0) = 0;
         delta_doppler_all(delta_doppler_all == 0) = NaN;
 %         delta_doppler_all = diff(delta_doppler_all)'./interval(1:end-2);
         delta_doppler_all = diff(delta_doppler_all)';
@@ -556,7 +552,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     
     %detection (phase 3rd order derivative)
     delta_deriv = zeros(size(delta_code));
-    ph_tmp = ph;
+    ph_tmp = ph_main;
     ph_tmp(1,ph_tmp(1,:)==0) = NaN;
 %     delta_deriv_all = (diff(diff(diff(ph_tmp(1,:))))./interval(1:end-3).^3)';
     delta_deriv_all = diff(diff(diff(ph_tmp(1,:))))';
@@ -632,7 +628,11 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     
     jmp = sort(intersect(jmps{pos1},jmps{pos2}));
     
-    if (any(delta_doppler))
+    if (any(delta_MW))
+        freq_main = goGNSS.V_LIGHT ./ lambda_main;
+        freq_sec = goGNSS.V_LIGHT ./ lambda_sec;
+        delta = delta_MW*abs((freq_main - freq_sec)/(freq_main*lambda_main));
+    elseif (any(delta_doppler))
         delta = -delta_doppler;
     else
         delta = -delta_deriv;
@@ -666,8 +666,6 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     if (isempty(jmp))
         return
-    else
-        cs_found = length(jmp);
     end
 
     if (flag_plot)
@@ -710,7 +708,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     %fixing
     for j = jmp'
-        if (j <= 1 || j >= length(ph)-1)
+        if (j <= 1 || j >= length(ph_main)-1)
             check = 0;
             pos_zeros = [];
         else
@@ -719,35 +717,38 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         end
         if (ismember(j,cutoff_idx))% || N_before_zero ~= 0)
             if (check)
-                ph_propos = ph(1,j+1) + delta(j);
-                if (j == 1)
-                    ph_propag = ph_propos;
-                else
-                    ph_propag = interp1(time(j-1:j),ph(1,j-1:j),time(j+1),'linear','extrap');
-                end
-                if (abs(ph_propos - ph_propag) < delta_thres)
-                    idx = (ph(1,:)==0); 
-                    cs_correction = roundmod(delta(j), cs_resolution);
-                    cs_correction_count = cs_correction_count + 1;
-                    cs_correction_i(cs_correction_count,3)=j; %#ok<*AGROW>
-                    cs_correction_i(cs_correction_count,4)=cs_correction;
-                    cs_correction_i(cs_correction_count,5)=delta(j);
-                    cs_correction_i(cs_correction_count,6)=0;
-%                     if abs(delta(j)-cs_correction) < 0.05
-                        cs_correction_i(cs_correction_count,6)=1;
-                        N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
-                        ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
-                        N_mat(1,idx) = 0;
-                        ph   (1,idx) = 0;
-%                     end
-                    
-                    if (flag_plot)
-                        hold on %#ok<UNRCH>
-                        idx_plot = find(N_mat~=0);
-                        plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
-                        
-                        c = c + 1;
+                idx = (ph_main(1,:)==0);
+                cs_correction = roundmod(delta(j), cs_resolution);
+                cs_correction_count = cs_correction_count + 1;
+                cs_correction_i(cs_correction_count,3)=j; %#ok<*AGROW>
+                cs_correction_i(cs_correction_count,4)=cs_correction;
+                cs_correction_i(cs_correction_count,5)=delta(j);
+                %cs_correction_i(cs_correction_count,6)=0;
+                cs_correction_i(cs_correction_count,6)=1;
+                
+                if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4)) %if detected only by GF and MW
+                    ph_temp = ph_main;
+                    ph_temp(1,j+1:end) = ph_main(1,j+1:end) + cs_correction;
+                    ph_MW_new = compute_melbourne_wubbena(ph_temp, ph_sec, pr_main, pr_sec, [lambda_main, lambda_sec]);
+                    if (abs(ph_MW_new(1,j+1)-ph_MW_new(1,j)) > cs_threshold_preprocessing) %correction applied to the wrong frequency
+                        cs_correction_i = [];
+                        cs_correction_count = cs_correction_count - 1;
+                        continue
                     end
+                end
+                
+                %apply correction
+                N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
+                ph_main(1,j+1:end) = ph_main(1,j+1:end) + cs_correction;
+                N_mat(1,idx) = 0;
+                ph_main(1,idx) = 0;
+                
+                if (flag_plot)
+                    hold on %#ok<UNRCH>
+                    idx_plot = find(N_mat~=0);
+                    plot(idx_plot, N_mat(idx_plot),'Color',coltab(2*c-1,:));
+                    
+                    c = c + 1;
                 end
                 
             elseif (pos_zeros == 3)
