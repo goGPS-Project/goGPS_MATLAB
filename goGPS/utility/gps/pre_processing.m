@@ -401,8 +401,6 @@ for s = 1 : nSatTot
 
             ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
 
-%             pr1_interp(s,:) = code_range_to_phase_range(pr1_interp(s,:), ph1_interp(s,:), el(s,:), err_iono(s,:), lambda(s,1));
-
             if (exist('cs_found', 'var') && cs_found)
                 fprintf('Pre-processing: %d cycle-slip(s) detected and fixed on L1 for satellite %02d\n', cs_found, s);
             end
@@ -434,9 +432,7 @@ for s = 1 : nSatTot
             index = intersect(index_e,index_s);
             
             ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
-
-%             pr2_interp(s,:) = code_range_to_phase_range(pr2_interp(s,:), ph2_interp(s,:), el(s,:), err_iono(s,:), lambda(s,2));
-            
+         
             if (exist('cs_found', 'var') && cs_found)
                 fprintf('Pre-processing: %d cycle-slip(s) detected and fixed on L2 for satellite %02d\n', cs_found, s);
             end
@@ -453,6 +449,11 @@ pr1 = pr1_interp;
 pr2 = pr2_interp;
 ph1 = ph1_interp;
 ph2 = ph2_interp;
+
+% %flag epochs with 4 or more slipped satellites as "bad"
+% [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
+% idx_cs_occur = num_cs_occur >= 4;
+% bad_epochs(epoch(idx_cs_occur)) = 1;
 
 end
 
@@ -658,19 +659,17 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         jmp = jmp(sign_OK);
     end
     
-    %cycle slips detected by doppler and derivative observables must be of the same sign
-%     if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4))
-%         jmp = sort(union(jmps{pos1},jmps{pos2}));
-%     end
+    %consider cycle slips detected by either geometry-free or Melbourne-Wubbena
+    if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4))
+        jmp = sort(union(jmps{pos1},jmps{pos2}));
+    end
 
     %ignore cycle slips smaller than cs_threshold_preprocessing
-    jmp(abs(delta(jmp)) < cs_threshold_preprocessing) = [];
+    jmp(roundmod(abs(delta(jmp)), cs_resolution) < cs_threshold_preprocessing) = [];
 
-%     jmp1 = intersect(jmp_deriv,jmp_doppler);
-%     jmp2 = intersect(jmp1, jmp_code);
-%     jmp3 = intersect(jmp2, jmp_GF);
-%     jmp = sort(jmp3);
-
+    %ignore cycle slips that cannot be fixed
+    jmp(isnan(delta(jmp))) = [];
+    
     if (isempty(jmp))
         return
     end
@@ -705,14 +704,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         coltab = colorcube(2*length(jmp));
         c = 1;
     end
-
-%     N_before_zero = 0;
-%     N_after_zero = 0;
     
-%     if (isempty(jmp))
-%         return
-%     end
-
     %fixing
     for j = jmp'
         if (j <= 1 || j >= length(ph_main)-1)
@@ -740,8 +732,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                     e(idx) = err_iono_fit;
                     ph_GF_new = compute_geometry_free(ph_temp, ph_sec, [lambda_main, lambda_sec], e);
                     ph_MW_new = compute_melbourne_wubbena(ph_temp, ph_sec, pr_main, pr_sec, [lambda_main, lambda_sec]);
-                    if (abs(ph_MW_new(1,j+1)-ph_MW_new(1,j)) > abs(ph_MW(1,j+1)-ph_MW(1,j)) || ...
-                        abs(ph_GF_new(1,j+1)-ph_GF_new(1,j)) > abs(ph_GF(1,j+1)-ph_GF(1,j))) %correction applied to the wrong frequency
+                    %if (abs(ph_MW_new(1,j+1)-ph_MW_new(1,j)) > abs(ph_MW(1,j+1)-ph_MW(1,j)) && ...
+                    if (abs(ph_GF_new(1,j+1)-ph_GF_new(1,j)) > abs(ph_GF(1,j+1)-ph_GF(1,j))) %correction applied to the wrong frequency
                         cs_correction_i = [];
                         cs_correction_count = cs_correction_count - 1;
                         continue
@@ -807,22 +799,6 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
             end
         end
     end
-end
-end
-
-
-function [pr] = code_range_to_phase_range(pr, ph, el, err_iono, lambda) %#ok<DEFNU>
-
-global cutoff
-
-N_mat = zeros(size(ph));
-cutoff_idx = find(el(1,:) > cutoff);
-N_mat(1,cutoff_idx) = (pr(1,cutoff_idx) - lambda(1,1).*ph(1,cutoff_idx) - 2.*err_iono(1,cutoff_idx))./lambda(1,1);
-if (~isempty(N_mat(1,N_mat(1,:)~=0)))
-    N = round(mean(N_mat(1,N_mat(1,:)~=0)));
-    idx = find(ph(1,:) ~= 0);
-    pr = zeros(size(ph));
-    pr(1,idx) = lambda(1,1).*(ph(1,idx)+N);
 end
 end
 
