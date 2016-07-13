@@ -44,7 +44,9 @@ for s = 1 : size(ph1,1)
         if (any(err_iono(s,:)))
             index_3 = find(err_iono(s,:) ~= 0);
             index = intersect(index,   index_3);
-            corr = ((goGNSS.F1^2-goGNSS.F2^2)/goGNSS.F2^2)*err_iono(s,index);
+            p = polyfit(index,err_iono(s,index),3);
+            err_iono_fit = polyval(p,index);
+            corr = ((goGNSS.F1^2-goGNSS.F2^2)/goGNSS.F2^2)*err_iono_fit;
         else
             corr = zeros(size(err_iono(s,index)));
         end

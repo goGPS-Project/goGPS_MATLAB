@@ -590,7 +590,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     if (~isempty(delta_test(avail_GF)))
         outliers = batch_outlier_detection(delta_test(avail_GF),median(round(interval)));
-        outliers(outliers < 0.1) = [];
+        outliers(abs(outliers) < 0.1) = [];
         [~,jmp_GF] = intersect(delta_test,outliers);
     end
     
@@ -609,7 +609,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     if (~isempty(delta_test(avail_MW)))
         outliers = batch_outlier_detection(delta_test(avail_MW),median(round(interval)));
-        outliers(outliers < 0.1) = [];
+        outliers(abs(outliers) < 0.1) = [];
         [~,jmp_MW] = intersect(delta_test,outliers);
     end
     
@@ -628,7 +628,9 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     
     jmp = sort(intersect(jmps{pos1},jmps{pos2}));
     
-    if (any(delta_MW))
+    if (any(delta_GF))
+        delta = delta_GF/lambda_main;
+    elseif (any(delta_MW))
         freq_main = goGNSS.V_LIGHT ./ lambda_main;
         freq_sec = goGNSS.V_LIGHT ./ lambda_sec;
         delta = delta_MW*abs((freq_main - freq_sec)/(freq_main*lambda_main));
@@ -655,6 +657,11 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         sign_OK = (sign(delta_doppler(jmp)) .* sign(delta_deriv(jmp)) > 0);
         jmp = jmp(sign_OK);
     end
+    
+    %cycle slips detected by doppler and derivative observables must be of the same sign
+%     if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4))
+%         jmp = sort(union(jmps{pos1},jmps{pos2}));
+%     end
 
     %ignore cycle slips smaller than cs_threshold_preprocessing
     jmp(abs(delta(jmp)) < cs_threshold_preprocessing) = [];
@@ -717,7 +724,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         end
         if (ismember(j,cutoff_idx))% || N_before_zero ~= 0)
             if (check)
-                idx = (ph_main(1,:)==0);
+                idx_zeros = (ph_main(1,:)==0);
                 cs_correction = roundmod(delta(j), cs_resolution);
                 cs_correction_count = cs_correction_count + 1;
                 cs_correction_i(cs_correction_count,3)=j; %#ok<*AGROW>
@@ -729,8 +736,12 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4)) %if detected only by GF and MW
                     ph_temp = ph_main;
                     ph_temp(1,j+1:end) = ph_main(1,j+1:end) + cs_correction;
+                    e = err_iono;
+                    e(idx) = err_iono_fit;
+                    ph_GF_new = compute_geometry_free(ph_temp, ph_sec, [lambda_main, lambda_sec], e);
                     ph_MW_new = compute_melbourne_wubbena(ph_temp, ph_sec, pr_main, pr_sec, [lambda_main, lambda_sec]);
-                    if (abs(ph_MW_new(1,j+1)-ph_MW_new(1,j)) > cs_threshold_preprocessing) %correction applied to the wrong frequency
+                    if (abs(ph_MW_new(1,j+1)-ph_MW_new(1,j)) > abs(ph_MW(1,j+1)-ph_MW(1,j)) || ...
+                        abs(ph_GF_new(1,j+1)-ph_GF_new(1,j)) > abs(ph_GF(1,j+1)-ph_GF(1,j))) %correction applied to the wrong frequency
                         cs_correction_i = [];
                         cs_correction_count = cs_correction_count - 1;
                         continue
@@ -740,8 +751,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 %apply correction
                 N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
                 ph_main(1,j+1:end) = ph_main(1,j+1:end) + cs_correction;
-                N_mat(1,idx) = 0;
-                ph_main(1,idx) = 0;
+                N_mat(1,idx_zeros) = 0;
+                ph_main(1,idx_zeros) = 0;
                 
                 if (flag_plot)
                     hold on %#ok<UNRCH>
