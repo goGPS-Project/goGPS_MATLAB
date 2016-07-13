@@ -3443,10 +3443,6 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
     %display information
     fprintf('Writing report file (PDF)...\n');
 
-    if (mode == goGNSS.MODE_PP_KF_CP_SA)
-        dtR = Xhat_t_t_OUT(end,:)./goGNSS.V_LIGHT;
-    end
-    
     if (exist('dtR','var'))
         f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
         paperSize = get(f,'PaperSize');
@@ -3456,9 +3452,26 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         set(gca,'FontName','Verdana');
         set(gca,'FontSize',10);
         xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-        ylabel('Receiver clock (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+        ylabel('Epoch-by-epoch code-estimated receiver clock (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
         %print PDF
         print(f, '-dpdf', [filerootOUT '_dtR']);
+        close(f)
+    end
+    
+    if (mode == goGNSS.MODE_PP_KF_CP_SA)
+        dtR_KAL = Xhat_t_t_OUT(end,:)./goGNSS.V_LIGHT;
+        
+        f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+        paperSize = get(f,'PaperSize');
+        set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+        plot(dtR_KAL.*goGNSS.V_LIGHT,'.r');
+        grid on;
+        set(gca,'FontName','Verdana');
+        set(gca,'FontSize',10);
+        xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+        ylabel('Kalman-estimated receiver clock (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+        %print PDF
+        print(f, '-dpdf', [filerootOUT '_dtR_KAL']);
         close(f)
     end
     
