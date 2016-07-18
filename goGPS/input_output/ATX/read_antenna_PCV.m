@@ -228,6 +228,7 @@ for file_pcv=1:size(filename,1)
                                     end
                                     if (~invalid_date)
                                         found = found + 1;
+                                        antenna_found(m) = 1;
                                     end
                                 end
                                 for n = m+1 : length(antmod)
@@ -264,5 +265,7 @@ for file_pcv=1:size(filename,1)
     end
 end
 
-
-
+idx_not_found = find(~antenna_found);
+for a = 1 : length(idx_not_found)
+    fprintf('%s', ['... WARNING: PCO/PCV model for antenna "' cell2mat(antmod(idx_not_found(a))) '" was not found.']); fprintf('\n');
+end

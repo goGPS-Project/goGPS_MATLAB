@@ -102,21 +102,28 @@ for y = 1 : length(year_orig)
         for p = 1 : length(ff)
             %target file
             s2 = [ff{p} num2str(two_digit_year(year(m)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
-            mget(ftp_server,s2,down_dir);
-            if (isunix())
-                system(['uncompress -f ' down_dir '/' s2]);
+            try
+                mget(ftp_server,s2,down_dir);
+                if (isunix())
+                    system(['uncompress -f ' down_dir '/' s2]);
+                else
+                    fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
+                    compressed = 1;
+                end
+                fprintf(['Downloaded DCB file: ' s2 '\n']);
+            catch
+                cd(ftp_server, '..');
+                s1 = [ff{p} '.DCB'];
+                mget(ftp_server,s1,down_dir);
+                cd(ftp_server, num2str(year_orig(y)));
+                s2 = [s2(1:end-2) '_TMP'];
+                movefile([down_dir '/' s1], [down_dir '/' s2]);
+                fprintf(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2 '\n']);
             end
             
             %cell array with the paths to the downloaded files
             entry = {[down_dir, '/', s2]};
-            file_dcb = [file_dcb; entry];
-            
-            fprintf(['Downloaded DCB file: ' s2 '\n']);
-            
-            if (~isunix())
-                fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
-                compressed = compressed + 1;
-            end
+            file_dcb = [file_dcb; entry]; %#ok<AGROW>
         end
         
         if (month(m) == 12)

@@ -234,12 +234,14 @@ if (length(sat_pr) >= min_nsat_LS)
         else
             [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
         end
-        
+    else
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
+    end
+    
+    if (~isempty(sat_pr))
         err_iono2 = err_iono1 .* ionoFactor(sat_pr,2);
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono2, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
-        
-        err_iono1 = err_iono2 ./ ionoFactor(sat_pr,2);
+        err_iono2 = [];
     end
 
     %apply cutoffs also to phase satellites
@@ -300,7 +302,7 @@ if (length(sat) < min_nsat)
     sigma2_N1 = zeros(nSatTot,1);
     sigma2_N2 = zeros(nSatTot,1);
     
-    %computation of the phase double differences in order to estimate N
+    %estimate N
     if ~isempty(sat)
         [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), lambda(sat,1));
         [N2(sat), sigma2_N2(sat)] = amb_estimate_observ_SA(pr2(sat), ph2(sat), lambda(sat,2));
@@ -331,7 +333,7 @@ else
     cov_N2 = [];
     cov_N_IF = [];
 
-    %ROVER positioning improvement with code and phase double differences
+    %estimate N
     if ~isempty(sat)
         if (~strcmp(obs_comb,'IONO_FREE'))
             [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));

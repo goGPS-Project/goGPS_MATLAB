@@ -189,11 +189,8 @@ Z_app = XR0(3);
 % EXTRACTION OF THE HEIGHT PSEUDO-OBSERVATION FROM THE DTM
 %----------------------------------------------------------------------------------------
 
-%conversion from cartesian to geodetic coordinates
-[phi_app, lam_app, h_app] = cart2geod(X_app, Y_app, Z_app);
-
 %projection to UTM coordinates
-[E_app, N_app] = geod2plan(phi_app, lam_app);
+[E_app, N_app] = geod2plan(phiR_app, lamR_app);
 
 %dtm tile detection (in which the approximated position lies)
 [tile_row,tile_col] = find ( (E_app > tile_georef(:,:,1)) & (E_app <= tile_georef(:,:,4)) & (N_app >= tile_georef(:,:,3)) & (N_app < tile_georef(:,:,2)));
@@ -286,16 +283,14 @@ if (nsat >= min_nsat)
         else
             [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0);
         end
-        
-        if (~isempty(sat_pr))
-            err_iono2 = err_iono1 .* ionoFactor(sat_pr,2);
-        end
     else
-        [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono2, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0);
-        
-        if (~isempty(sat_pr))
-            err_iono1 = err_iono2 ./ ionoFactor(sat_pr,2);
-        end
+        [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0);
+    end
+    
+    if (~isempty(sat_pr))
+        err_iono2 = err_iono1 .* ionoFactor(sat_pr,2);
+    else
+        err_iono2 = [];
     end
     
     %apply cutoffs also to phase satellites
@@ -605,7 +600,7 @@ if (nsat >= min_nsat)
         %H matrix computation for the DTM pseudo-observation
         H_dtm = [];
         if (h_dtm ~= tile_header.nodata)
-            H_dtm = [cos(phi_app)*cos(lam_app) Z_1_om cos(phi_app)*sin(lam_app) Z_1_om sin(phi_app) Z_1_om Z_1_nN Z_1_nT Z_1_nC];
+            H_dtm = [cos(phiR_app)*cos(lamR_app) Z_1_om cos(phiR_app)*sin(lamR_app) Z_1_om sin(phiR_app) Z_1_om Z_1_nN Z_1_nT Z_1_nC];
         end
         
         %construction of the complete H matrix
@@ -630,7 +625,7 @@ if (nsat >= min_nsat)
         %Y0 vector computation for DTM constrain
         y0_dtm = [];
         if (h_dtm ~= tile_header.nodata)
-            y0_dtm = h_dtm - h_app + cos(phi_app)*cos(lam_app)*X_app + cos(phi_app)*sin(lam_app)*Y_app + sin(phi_app)*Z_app;
+            y0_dtm = h_dtm - hR_app + cos(phiR_app)*cos(lamR_app)*X_app + cos(phiR_app)*sin(lamR_app)*Y_app + sin(phiR_app)*Z_app;
         end
         
         %construction of the total Y0 vector

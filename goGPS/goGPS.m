@@ -656,11 +656,10 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %apply P1C1 DCBs if needed
-                if (flag_SP3 && ~isempty(SP3.DCB) && codeC1_R)
-                    non_zero_idx = pr1_R(:,:,f) ~= 0;
-                    pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
+                if (flag_SP3 && ~isempty(SP3.DCB) && any(codeC1_R(:)))
+                    pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_R(:,:,f);
                 end
-
+                
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas);
@@ -994,9 +993,8 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %apply P1C1 DCBs if needed
-                if (flag_SP3 && ~isempty(DCB) && all(codeC1_R))
-                    non_zero_idx = pr1_R(:,:,f) ~= 0;
-                    pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
+                if (flag_SP3 && ~isempty(SP3.DCB) && any(codeC1_R(:)))
+                    pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_R(:,:,f);
                 end
                 
                 %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
@@ -1053,8 +1051,7 @@ if goGNSS.isPP(mode) % post-processing
             
             %apply P1C1 DCBs if needed
             if (flag_SP3 && ~isempty(DCB) && codeC1_M)
-                non_zero_idx = pr1_M ~= 0;
-                pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*non_zero_idx;
+                pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M;
             end
             
             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas);
@@ -1540,7 +1537,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
         
         sbas_t = find_sbas(sbas, t);
 
-        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies(1), pos_R);
+        goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, pos_R);
         is_bias_tot(:,t) = is_bias;
 
         if (t == 1)
@@ -1556,7 +1553,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             fwrite(fid_sat, [zeros(nSatTot,1); azR; zeros(nSatTot,1); elR; zeros(nSatTot,1); distR], 'double');
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
-            fwrite(fid_res, [residuals_dummy'; residuals_dummy';residuals_float(1:nSatTot); residuals_dummy';outliers(1:nSatTot);residuals_dummy'], 'double');
+            fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_float(1:nSatTot); residuals_dummy'; residuals_dummy'; residuals_dummy';outliers(1:nSatTot); residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
 
             if (flag_plotproc)
                 if (mode_user == 1 && t == 1), goWB.shiftDown(); end
@@ -1796,7 +1793,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             residuals_dummy = NaN(1,nSatTot);
-            fwrite(fid_res, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+            fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
             
             if (flag_plotproc)
                 if (mode_user == 1 && t == 1), goWB.shiftDown(); end
@@ -1902,7 +1899,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
                 fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
                 fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
                 residuals_dummy = NaN(1,nSatTot);
-                fwrite(fid_res, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+                fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
                 
                 %if (flag_plotproc)
                 %    if (flag_cov == 0)
@@ -2217,7 +2214,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             residuals_dummy = NaN(1,nSatTot);
-            fwrite(fid_res, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+            fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
             
             if (flag_plotproc)
                 if (mode_user == 1 && t == 1), goWB.shiftDown(); end
@@ -2365,7 +2362,7 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
         residuals_dummy = NaN(1,nSatTot);
-        fwrite(fid_res, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+        fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
 
         if (flag_plotproc)
             if (mode_user == 1 && t == 2), goWB.shiftDown(); end
@@ -2450,7 +2447,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             residuals_dummy = NaN(1,nSatTot);
-            fwrite(fid_res, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+            fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
             
             if (flag_plotproc)
                 if (mode_user == 1 && t == 1), goWB.shiftDown(); end
@@ -2641,7 +2638,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
             fwrite(fid_dop, [PDOP; HDOP; VDOP; 0; 0; 0], 'double');
             fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
             residuals_dummy = NaN(1,nSatTot);
-            fwrite(fid_res, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
+            fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
             
             if (flag_plotproc)
                 if (mode_user == 1 && t == 1), goWB.shiftDown(); end
@@ -4637,67 +4634,69 @@ end
 % REPRESENTATION OF RESIDUALS MEAN AND STANDARD DEVIATION
 %----------------------------------------------------------------------------------------------
 
-%code
-if (any(RES_CODE1(:)))
-    RES_CODE1_mean = nan(size(RES_CODE1,1),1);
-    RES_CODE1_stdv = nan(size(RES_CODE1,1),1);
-    for s = 1 : nSatTot
-        row = RES_CODE1(s,:);
-        row(outliers_CODE1(s,:) == 1) = [];
-        row(isnan(row(1,:))) = [];
-        RES_CODE1_mean(s,1) = mean(row);
-        RES_CODE1_stdv(s,1) = std(row);
+if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
+    %code
+    if (any(RES_CODE1(:)))
+        RES_CODE1_mean = nan(size(RES_CODE1,1),1);
+        RES_CODE1_stdv = nan(size(RES_CODE1,1),1);
+        for s = 1 : nSatTot
+            row = RES_CODE1(s,:);
+            row(outliers_CODE1(s,:) == 1) = [];
+            row(isnan(row(1,:))) = [];
+            RES_CODE1_mean(s,1) = mean(row);
+            RES_CODE1_stdv(s,1) = std(row);
+        end
+        figure;
+        errorbar(1:nSatTot, RES_CODE1_mean, RES_CODE1_stdv,'k*');
+        grid on;
+        title('RESIDUALS MEAN AND ST.DEV: CODE 1st FREQ.');
     end
-    figure;
-    errorbar(1:nSatTot, RES_CODE1_mean, RES_CODE1_stdv,'k*');
-    grid on;
-    title('RESIDUALS MEAN AND ST.DEV: CODE 1st FREQ.');
-end
-if (any(RES_CODE2(:)))
-    RES_CODE2_mean = nan(size(RES_CODE2,1),1);
-    RES_CODE2_stdv = nan(size(RES_CODE2,1),1);
-    for s = 1 : nSatTot
-        row = RES_CODE2(s,:);
-        row(outliers_CODE2(s,:) == 1) = [];
-        row(isnan(row(1,:))) = [];
-        RES_CODE2_mean(s,1) = mean(row);
-        RES_CODE2_stdv(s,1) = std(row);
+    if (any(RES_CODE2(:)))
+        RES_CODE2_mean = nan(size(RES_CODE2,1),1);
+        RES_CODE2_stdv = nan(size(RES_CODE2,1),1);
+        for s = 1 : nSatTot
+            row = RES_CODE2(s,:);
+            row(outliers_CODE2(s,:) == 1) = [];
+            row(isnan(row(1,:))) = [];
+            RES_CODE2_mean(s,1) = mean(row);
+            RES_CODE2_stdv(s,1) = std(row);
+        end
+        figure;
+        errorbar(1:nSatTot, RES_CODE2_mean, RES_CODE2_stdv,'k*');
+        grid on;
+        title('RESIDUALS MEAN AND ST.DEV: CODE 2nd FREQ.');
     end
-    figure;
-    errorbar(1:nSatTot, RES_CODE2_mean, RES_CODE2_stdv,'k*');
-    grid on;
-    title('RESIDUALS MEAN AND ST.DEV: CODE 2nd FREQ.');
-end
-%phase
-if (any(RES_PHASE1(:)))
-    RES_PHASE1_mean = nan(size(RES_PHASE1,1),1);
-    RES_PHASE1_stdv = nan(size(RES_PHASE1,1),1);
-    for s = 1 : nSatTot
-        row = RES_PHASE1(s,:);
-        row(outliers_PHASE1(s,:) == 1) = [];
-        row(isnan(row(1,:))) = [];
-        RES_PHASE1_mean(s,1) = mean(row);
-        RES_PHASE1_stdv(s,1) = std(row);
+    %phase
+    if (any(RES_PHASE1(:)))
+        RES_PHASE1_mean = nan(size(RES_PHASE1,1),1);
+        RES_PHASE1_stdv = nan(size(RES_PHASE1,1),1);
+        for s = 1 : nSatTot
+            row = RES_PHASE1(s,:);
+            row(outliers_PHASE1(s,:) == 1) = [];
+            row(isnan(row(1,:))) = [];
+            RES_PHASE1_mean(s,1) = mean(row);
+            RES_PHASE1_stdv(s,1) = std(row);
+        end
+        figure;
+        errorbar(1:nSatTot, RES_PHASE1_mean, RES_PHASE1_stdv,'k*');
+        grid on;
+        title('RESIDUALS MEAN AND ST.DEV: PHASE 1st FREQ.');
     end
-    figure;
-    errorbar(1:nSatTot, RES_PHASE1_mean, RES_PHASE1_stdv,'k*');
-    grid on;
-    title('RESIDUALS MEAN AND ST.DEV: PHASE 1st FREQ.');
-end
-if (any(RES_PHASE2(:)))
-    RES_PHASE2_mean = nan(size(RES_PHASE2,1),1);
-    RES_PHASE2_stdv = nan(size(RES_PHASE2,1),1);
-    for s = 1 : nSatTot
-        row = RES_PHASE2(s,:);
-        row(outliers_PHASE2(s,:) == 1) = [];
-        row(isnan(row(1,:))) = [];
-        RES_PHASE2_mean(s,1) = mean(row);
-        RES_PHASE2_stdv(s,1) = std(row);
+    if (any(RES_PHASE2(:)))
+        RES_PHASE2_mean = nan(size(RES_PHASE2,1),1);
+        RES_PHASE2_stdv = nan(size(RES_PHASE2,1),1);
+        for s = 1 : nSatTot
+            row = RES_PHASE2(s,:);
+            row(outliers_PHASE2(s,:) == 1) = [];
+            row(isnan(row(1,:))) = [];
+            RES_PHASE2_mean(s,1) = mean(row);
+            RES_PHASE2_stdv(s,1) = std(row);
+        end
+        figure;
+        errorbar(1:nSatTot, RES_PHASE2_mean, RES_PHASE2_stdv,'k*');
+        grid on;
+        title('RESIDUALS MEAN AND ST.DEV: PHASE 2nd FREQ.');
     end
-    figure;
-    errorbar(1:nSatTot, RES_PHASE2_mean, RES_PHASE2_stdv,'k*');
-    grid on;
-    title('RESIDUALS MEAN AND ST.DEV: PHASE 2nd FREQ.');
 end
 
 %----------------------------------------------------------------------------------------------

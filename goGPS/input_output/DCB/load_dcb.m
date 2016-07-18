@@ -92,11 +92,12 @@ for j = 1 : nmax
     
     %check if the filename corresponds to that expected from a standard DCB file required by goGPS (e.g. "P1C1xxyy.DCB",
     % with 'xx' = two-digit year and 'yy' = two-digit month)
-    if (dcb_fn_length == 12  && (strcmpi(dcb_file_name(1:4), 'P1P2') || strcmpi(dcb_file_name(1:4), 'P1C1')) && ...
+    if ((strcmpi(dcb_file_name(1:4), 'P1P2') || strcmpi(dcb_file_name(1:4), 'P1C1')) && ...
        ((year >  year_start && year  <  year_end)    || ...
         (year == year_start && month >= month_start) && ...
         (year == year_end   && month <= month_end))  && ...
-         strcmpi(dcb_file_name(dcb_fn_length - 3 : dcb_fn_length), '.DCB')) %#ok<*ST2NM>
+        ((dcb_fn_length == 12 && strcmpi(dcb_file_name(dcb_fn_length - 3 : dcb_fn_length), '.DCB')) || ...
+         (dcb_fn_length == 16 && strcmpi(dcb_file_name(dcb_fn_length - 7 : dcb_fn_length), '.DCB_TMP')))) %#ok<*ST2NM>
         
         n = n + 1;
         
@@ -186,21 +187,15 @@ for j = 1 : nmax
 end
 
 %if P1C1 data are needed but not available, return empty
-if (codeC1_R && isempty(DCB.P1C1))
+if (any(codeC1_R(:)) && isempty(DCB.P1C1))
     DCB = [];
     fprintf(['The required P1C1 DCB file(s) were not found in ' data_dir_dcb ' directory.\n'])
     return
 end
 
 %if P1P2 data are needed but not available, return empty
-if (~codeC1_R && isempty(DCB.P1P2))
+if (isempty(DCB.P1P2))
     DCB = [];
     fprintf(['The required P1P2 DCB file(s) were not found in ' data_dir_dcb ' directory.\n'])
-    return
-end
-
-%if no .DCB files are available, return
-if (isempty(DCB.P1P2) && isempty(DCB.P1C1))
-    fprintf(['The required DCB files were not found in ' data_dir_dcb ' directory.\n'])
     return
 end

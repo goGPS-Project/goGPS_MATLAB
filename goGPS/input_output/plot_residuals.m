@@ -1,13 +1,13 @@
 function plot_residuals(constellations, RES_PHASE, RES_CODE, outliers_PHASE, outliers_CODE, filerootOUT)
 
 
-if length(find(isfinite(outliers_PHASE))) > 1
+if length(find(isfinite(RES_PHASE))) > 1
     plot_phase=1;
 else
     plot_phase=0;
 end
 
-if length(find(isfinite(outliers_CODE))) > 1
+if length(find(isfinite(RES_CODE))) > 1
     plot_code=1;
 else
     plot_code=0;

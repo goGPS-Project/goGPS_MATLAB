@@ -1,9 +1,9 @@
-function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, max_int] = ...
-          sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval)
+function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, max_int] = ...
+          sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval)
 
 % SYNTAX:
-%   [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2] = ...
-%   sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, interval);
+%   [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, max_int] = ...
+%   sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval);
 %
 % INPUT:
 %   time_i = receiver seconds-of-week
@@ -93,6 +93,7 @@ dop1 = zeros(nSatTot, ref_len, nObsSet);
 dop2 = zeros(nSatTot, ref_len, nObsSet);
 snr1 = zeros(nSatTot, ref_len, nObsSet);
 snr2 = zeros(nSatTot, ref_len, nObsSet);
+codeC1 = zeros(nSatTot, ref_len, nObsSet);
 
 time_prog = time_i - min_time_prog; % substract the first element to reduce the magnitude of all the values
 time_ref_prog = time_ref - min_time_prog;
@@ -111,4 +112,5 @@ for s = 1 : nObsSet
     dop2(:, idx_t, s) = dop2_i(:, idx_z, s);
     snr1(:, idx_t, s) = snr1_i(:, idx_z, s);
     snr2(:, idx_t, s) = snr2_i(:, idx_z, s);
+    codeC1(:, idx_t, s) = codeC1_i(:, idx_z, s);
 end
