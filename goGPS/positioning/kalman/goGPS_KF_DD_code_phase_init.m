@@ -219,17 +219,14 @@ if (length(sat_pr) >= min_nsat_LS)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
         [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
-        
-        err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
-        err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
     else
-        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono2_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
+        [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono1_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr2_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, sbas,  XM,  [],  [], sat_pr,    [], lambda(sat_pr,:),   cutoff, snr_threshold, frequencies,       2, 0); %#ok<ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
-        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono2_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
-        
-        err_iono1_M = err_iono2_M ./ ionoFactor(sat_pr_M,2);
-        err_iono1_R = err_iono2_R ./ ionoFactor(sat_pr_R,2);
+        [XR, dtR, XS, dtS,     ~,     ~,       ~, err_tropo_R, err_iono1_R, sat_pr_R, elR(sat_pr_R), azR(sat_pr_R), distR(sat_pr_R), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2_R(sat_pr_M), snr_R(sat_pr_M), Eph, SP3, iono, sbas,  XR0, XS, dtS, sat_pr_M, sys, lambda(sat_pr_M,:), cutoff, snr_threshold, frequencies, flag_XR, 1); %#ok<ASGLU>
     end
+    
+    err_iono2_M = err_iono1_M .* ionoFactor(sat_pr_M,2);
+    err_iono2_R = err_iono1_R .* ionoFactor(sat_pr_R,2);
     
     if flag_XR==2
         cov_XR=eye(3).*(0.01^2);  % da sistemare più accurata

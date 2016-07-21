@@ -64,12 +64,11 @@ global sigmaq_cod1 sigmaq_ph
 v_light = goGNSS.V_LIGHT;
 
 %remove zeros
-index_zero_pr = (pr == 0);
+% index_zero_pr = (pr == 0);
 index_zero_ph = (ph == 0);
-pr(index_zero_pr) = [];
-ph(index_zero_ph) = [];
-lambda_orig = lambda;
-lambda(index_zero_ph) = [];
+% pr(index_zero_pr) = [];
+% ph(index_zero_ph) = [];
+lambda_ph = lambda(~index_zero_ph);
 
 %number of observations (assuming that sat_ph is a subset of sat_pr)
 nsat_pr = length(sat_pr);
@@ -97,7 +96,7 @@ index_amb = [index_slip; index_born];         %satellites for which the ambiguit
 %ambiguity columns in design matrix (lambda positions)
 A_amb = zeros(nsat_ph,nsat_amb);
 for i = 1:nsat_amb
-    A_amb(index_amb(i),i) = -lambda(index_amb(i));
+    A_amb(index_amb(i),i) = -lambda_ph(index_amb(i));
 end
 
 %design matrix (code)
@@ -126,7 +125,7 @@ end
 
 %known term vector
 b_pr = distR_approx + dtR_kalman - v_light*dtS + err_tropo + err_iono; %code
-b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + lambda_orig.*phwindup; %phase
+b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + lambda.*phwindup; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector

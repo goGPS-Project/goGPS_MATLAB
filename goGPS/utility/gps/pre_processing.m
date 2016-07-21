@@ -330,7 +330,7 @@ for s = 1 : nSatTot
 
             pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), lagr_order);
         else
-            bad_sats(s) = 1;
+            bad_sats(s,1) = 1;
         end
     end
     
@@ -347,7 +347,7 @@ for s = 1 : nSatTot
             
             pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), lagr_order);
         else
-            bad_sats(s) = 1;
+            bad_sats(s,1) = 1;
         end
     end
     
@@ -402,15 +402,15 @@ for s = 1 : nSatTot
             ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
 
             if (exist('cs_found', 'var') && cs_found)
-                fprintf('Pre-processing: %d cycle-slip(s) detected and fixed on L1 for satellite %02d\n', cs_found, s);
+                fprintf('Pre-processing: %d cycle-slip(s) detected on L1 for satellite %02d\n', cs_found, s);
             end
         else
-            bad_sats(s) = 1;
+            bad_sats(s,1) = 1;
         end
         
     elseif (any(pr1(s,:)))
         
-        bad_sats(s) = 1;
+        bad_sats(s,1) = 1;
     end
     
     if (any(ph2(s,:)))
@@ -434,15 +434,15 @@ for s = 1 : nSatTot
             ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
          
             if (exist('cs_found', 'var') && cs_found)
-                fprintf('Pre-processing: %d cycle-slip(s) detected and fixed on L2 for satellite %02d\n', cs_found, s);
+                fprintf('Pre-processing: %d cycle-slip(s) detected on L2 for satellite %02d\n', cs_found, s);
             end
         else
-            bad_sats(s) = 1;
+            bad_sats(s,1) = 1;
         end
         
     elseif (any(pr2(s,:)))
         
-        bad_sats(s) = 1;
+        bad_sats(s,1) = 1;
     end
 end
 pr1 = pr1_interp;
@@ -627,8 +627,14 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     [~, pos1] = min(min_stds); min_stds(pos1) = 1e30;
     [~, pos2] = min(min_stds);
     
-    jmp = sort(intersect(jmps{pos1},jmps{pos2}));
-    
+    %consider cycle slips detected by either geometry-free or Melbourne-Wubbena
+    if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4))
+        jmp = sort(union(jmps{pos1},jmps{pos2}));
+    else
+        jmp = sort(intersect(jmps{pos1},jmps{pos2}));
+    end
+
+    %compute the dataset from which to extract the potential cs correction
     if (any(delta_GF))
         delta = delta_GF/lambda_main;
     elseif (any(delta_MW))
@@ -639,6 +645,32 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         delta = -delta_doppler;
     else
         delta = -delta_deriv;
+    end
+    
+    %ignore cycle slips smaller than cs_threshold_preprocessing
+    jmp(roundmod(abs(delta(jmp)), cs_resolution) < cs_threshold_preprocessing) = [];
+
+    %ignore cycle slips that cannot be fixed
+    jmp(isnan(delta(jmp))) = [];
+    
+    %exclude observation epochs with subsequent cycle slips
+    idx_bad_obs1 = find(diff(jmp) == 1);
+    idx_bad_obs1 = unique([idx_bad_obs1; idx_bad_obs1+1]);
+    
+    %exclude observation epochs with computed cycle slip corrections "far" from integer values
+    idx_bad_obs2 = find(abs(delta(jmp) - roundmod(delta(jmp), cs_resolution)) > 0.1);
+    
+    idx_bad_obs = union(idx_bad_obs1, idx_bad_obs2);
+    if (~isempty(idx_bad_obs))
+        ph_main(jmp(idx_bad_obs)) = 0;
+        for j = jmp(idx_bad_obs)'
+            cs_correction_count = cs_correction_count + 1;
+            cs_correction_i(cs_correction_count,3)=j; %#ok<*AGROW>
+            cs_correction_i(cs_correction_count,4)=0;
+            cs_correction_i(cs_correction_count,5)=delta(j);
+            cs_correction_i(cs_correction_count,6)=0;
+        end
+        jmp(idx_bad_obs) = [];
     end
 
     %cycle slips detected by code and doppler observables must be of the same sign
@@ -658,18 +690,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
         sign_OK = (sign(delta_doppler(jmp)) .* sign(delta_deriv(jmp)) > 0);
         jmp = jmp(sign_OK);
     end
-    
-    %consider cycle slips detected by either geometry-free or Melbourne-Wubbena
-    if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4))
-        jmp = sort(union(jmps{pos1},jmps{pos2}));
-    end
 
-    %ignore cycle slips smaller than cs_threshold_preprocessing
-    jmp(roundmod(abs(delta(jmp)), cs_resolution) < cs_threshold_preprocessing) = [];
-
-    %ignore cycle slips that cannot be fixed
-    jmp(isnan(delta(jmp))) = [];
-    
     if (isempty(jmp))
         return
     end
@@ -722,7 +743,6 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 cs_correction_i(cs_correction_count,3)=j; %#ok<*AGROW>
                 cs_correction_i(cs_correction_count,4)=cs_correction;
                 cs_correction_i(cs_correction_count,5)=delta(j);
-                %cs_correction_i(cs_correction_count,6)=0;
                 cs_correction_i(cs_correction_count,6)=1;
                 
                 if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4)) %if detected only by GF and MW
