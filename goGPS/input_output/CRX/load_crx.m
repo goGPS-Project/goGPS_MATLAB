@@ -1,7 +1,7 @@
-function [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations)
+function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations)
 
 % SYNTAX:
-%   [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations);
+%   [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations);
 %
 % INPUT:
 %   data_dir_crx = path to the directory containing CRX files [string]
@@ -13,6 +13,7 @@ function [CRX] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellation
 %
 % OUTPUT:
 %   CRX = matrix containing CRX data
+%   found = flag to check if the required file was found
 %
 % DESCRIPTION:
 %   Tool for loading .CRX files: information on satellite problems.
@@ -71,6 +72,9 @@ nmax = size(data_dir,1);
 
 %file counter
 n = 0;
+
+%CRX file found
+found = 0;
 
 %find files with ".CRX" extension
 for j = 1 : nmax
@@ -179,4 +183,7 @@ end
 if (n == 0)
     fprintf(['The required (updated) CRX files were not found in ' data_dir_crx ' directory.\n'])
     return
+else
+    %CRX file found
+    found = 1;
 end

@@ -723,7 +723,7 @@ if goGNSS.isPP(mode) % post-processing
             date_R = date_RM(:,:,1:end-1); date_M = date_RM(:,:,end);
             pos_R = pos_RM(:,1,1:end-1); pos_M = pos_RM(:,1,end);
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
-            codeC1_R = codeC1_RM(:,1,1:end-1); codeC1_M = codeC1_RM(:,1,end);
+            codeC1_R = codeC1_RM(:,:,1:end-1); codeC1_M = codeC1_RM(:,:,end);
             marker_R = marker_RM(:,1,1:end-1); marker_M = marker_RM(:,1,end);
             
             %read receiver antenna phase center offset
@@ -853,7 +853,7 @@ if goGNSS.isPP(mode) % post-processing
                 
                 %if (~strcmp(obs_comb, 'IONO_FREE'))
                     %try first to read already available DCB files
-                    DCB = load_dcb('../data/DCB', week_M, time_M, and(all(codeC1_R),codeC1_M), constellations);
+                    DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M), constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
                     if (isempty(DCB))
@@ -880,15 +880,15 @@ if goGNSS.isPP(mode) % post-processing
             %----------------------------------------------------------------------------------------------
 
             %try first to read already available CRX files
-            CRX = load_crx('../data/CRX', week_M, time_GPS, nSatTot, constellations);
+            [CRX, found] = load_crx('../data/CRX', week_M, time_GPS, nSatTot, constellations);
             %if CRX files are not available or not sufficient, try to download them
-            if (~any(CRX(:)))
+            if (~found)
                 
                 %download
                 file_crx = download_crx([week_M(1) week_M(end)], [time_GPS(1) time_GPS(end)]);
                 
                 %try again to read CRX files
-                CRX = load_crx('../data/CRX', week_M, time_GPS, nSatTot, constellations);
+                [CRX, found] = load_crx('../data/CRX', week_M, time_GPS, nSatTot, constellations);
             end
 
             %retrieve multi-constellation wavelengths
@@ -1050,7 +1050,7 @@ if goGNSS.isPP(mode) % post-processing
             fprintf('%s',['Pre-processing master observations (file ' filename_obs{end} ')...']); fprintf('\n');
             
             %apply P1C1 DCBs if needed
-            if (flag_SP3 && ~isempty(DCB) && codeC1_M)
+            if (flag_SP3 && ~isempty(DCB) && any(codeC1_M(:)))
                 pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M;
             end
             
