@@ -460,7 +460,7 @@ end
 
 function [ph_main, cs_correction_count, cs_correction_i] = detect_and_fix_cycle_slips(time, pr_main, ph_main, pr_sec, ph_sec, ph_GF, ph_MW, dop, el, err_iono, lambda_main, lambda_sec)
 
-global cutoff cs_threshold_preprocessing
+global cutoff %cs_threshold_preprocessing
 cs_resolution = 1;
 
 flag_plot = 0;
@@ -580,9 +580,14 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     delta_GF = zeros(size(delta_code));
     ph_GF(1,ph_GF(1,:)==0) = NaN;
 %     delta_GF_all = (diff(ph_GF)./interval(1:end-1))';
-    delta_GF_all = diff(ph_GF)';
-    pos = find(idx~=length(N_mat));
+    delta_GF_all_ref = diff(ph_GF)';
+    delta_GF_all = diff(diff(ph_GF))';
+    pos1 = find(idx~=length(N_mat));
+    pos2 = find(idx~=length(N_mat)-1);
+    pos = intersect(pos1,pos2);
+    delta_GF_ref(idx(pos1)) = delta_GF_all_ref(idx(pos1));
     delta_GF(idx(pos)) = delta_GF_all(idx(pos));
+    delta_GF(delta_GF == 0) = NaN;
     
     delta_test = delta_GF;
     not_zero = find(delta_test ~= 0);
@@ -591,9 +596,11 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 
     if (~isempty(delta_test(avail_GF)))
         outliers = batch_outlier_detection(delta_test(avail_GF),median(round(interval)));
-        outliers(abs(outliers) < 0.1) = [];
+        outliers(abs(outliers) < 0.04) = [];
         [~,jmp_GF] = intersect(delta_test,outliers);
     end
+    jmp_GF = sort(jmp_GF);
+    jmp_GF(diff(jmp_GF) == 1) = [];
     
     %detection (Melbourne-Wubbena)
     delta_MW = zeros(size(delta_code));
@@ -635,8 +642,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     end
 
     %compute the dataset from which to extract the potential cs correction
-    if (any(delta_GF))
-        delta = delta_GF/lambda_main;
+    if (any(delta_GF_ref))
+        delta = delta_GF_ref/lambda_main;
     elseif (any(delta_MW))
         freq_main = goGNSS.V_LIGHT ./ lambda_main;
         freq_sec = goGNSS.V_LIGHT ./ lambda_sec;
@@ -648,7 +655,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     end
     
     %ignore cycle slips smaller than cs_threshold_preprocessing
-    jmp(roundmod(abs(delta(jmp)), cs_resolution) < cs_threshold_preprocessing) = [];
+    %jmp(roundmod(abs(delta(jmp)), cs_resolution) < cs_threshold_preprocessing) = [];
 
     %ignore cycle slips that cannot be fixed
     jmp(isnan(delta(jmp))) = [];
@@ -658,17 +665,20 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     idx_bad_obs1 = unique([idx_bad_obs1; idx_bad_obs1+1]);
     
     %exclude observation epochs with computed cycle slip corrections "far" from integer values
-    idx_bad_obs2 = find(abs(delta(jmp) - roundmod(delta(jmp), cs_resolution)) > 0.1);
+    %thres = 0.1;   %ENABLED
+    thres = 1e-10; %DISABLED
+    idx_bad_obs2 = find(abs(delta(jmp) - roundmod(delta(jmp), cs_resolution)) > thres);
     
     idx_bad_obs = union(idx_bad_obs1, idx_bad_obs2);
     if (~isempty(idx_bad_obs))
         ph_main(jmp(idx_bad_obs)) = 0;
-        for j = jmp(idx_bad_obs)'
+        jmp_bad_obs = jmp(idx_bad_obs);
+        for j = 1 : length(jmp_bad_obs)
             cs_correction_count = cs_correction_count + 1;
-            cs_correction_i(cs_correction_count,3)=j; %#ok<*AGROW>
-            cs_correction_i(cs_correction_count,4)=0;
-            cs_correction_i(cs_correction_count,5)=delta(j);
-            cs_correction_i(cs_correction_count,6)=0;
+            cs_correction_i(cs_correction_count,3) = jmp_bad_obs(j); %#ok<*AGROW>
+            cs_correction_i(cs_correction_count,4) = 0;
+            cs_correction_i(cs_correction_count,5) = delta(jmp_bad_obs(j));
+            cs_correction_i(cs_correction_count,6) = 0;
         end
         jmp(idx_bad_obs) = [];
     end
@@ -727,33 +737,33 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     end
     
     %fixing
-    for j = jmp'
-        if (j <= 1 || j >= length(ph_main)-1)
+    for j = 1 : length(jmp)
+        if (jmp(j) <= 1 || jmp(j) >= length(ph_main)-1)
             check = 0;
             pos_zeros = [];
         else
-            pos_zeros = find(N_mat(1,j-1:j+1) == 0,1,'last');
+            pos_zeros = find(N_mat(1,jmp(j)-1:jmp(j)+1) == 0,1,'last');
             check = isempty(pos_zeros);
         end
-        if (ismember(j,cutoff_idx))% || N_before_zero ~= 0)
+        if (ismember(jmp(j),cutoff_idx))% || N_before_zero ~= 0)
             if (check)
                 idx_zeros = (ph_main(1,:)==0);
-                cs_correction = roundmod(delta(j), cs_resolution);
+                cs_correction = roundmod(delta(jmp(j)), cs_resolution);
                 cs_correction_count = cs_correction_count + 1;
-                cs_correction_i(cs_correction_count,3)=j; %#ok<*AGROW>
+                cs_correction_i(cs_correction_count,3)=jmp(j); %#ok<*AGROW>
                 cs_correction_i(cs_correction_count,4)=cs_correction;
-                cs_correction_i(cs_correction_count,5)=delta(j);
+                cs_correction_i(cs_correction_count,5)=delta(jmp(j));
                 cs_correction_i(cs_correction_count,6)=1;
                 
                 if ((pos1 == 4 && pos2 == 5) || (pos1 == 5 && pos2 == 4)) %if detected only by GF and MW
                     ph_temp = ph_main;
-                    ph_temp(1,j+1:end) = ph_main(1,j+1:end) + cs_correction;
+                    ph_temp(1,jmp(j)+1:end) = ph_main(1,jmp(j)+1:end) + cs_correction;
                     e = err_iono;
                     e(idx) = err_iono_fit;
                     ph_GF_new = compute_geometry_free(ph_temp, ph_sec, [lambda_main, lambda_sec], e);
                     ph_MW_new = compute_melbourne_wubbena(ph_temp, ph_sec, pr_main, pr_sec, [lambda_main, lambda_sec]);
-                    %if (abs(ph_MW_new(1,j+1)-ph_MW_new(1,j)) > abs(ph_MW(1,j+1)-ph_MW(1,j)) && ...
-                    if (abs(ph_GF_new(1,j+1)-ph_GF_new(1,j)) > abs(ph_GF(1,j+1)-ph_GF(1,j))) %correction applied to the wrong frequency
+                    %if (abs(ph_MW_new(1,jmp(j)+1)-ph_MW_new(1,jmp(j))) > abs(ph_MW(1,jmp(j)+1)-ph_MW(1,jmp(j))) && ...
+                    if (abs(ph_GF_new(1,jmp(j)+1)-ph_GF_new(1,jmp(j))) > abs(ph_GF(1,jmp(j)+1)-ph_GF(1,jmp(j)))) %correction applied to the wrong frequency
                         cs_correction_i = [];
                         cs_correction_count = cs_correction_count - 1;
                         continue
@@ -761,8 +771,8 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 end
                 
                 %apply correction
-                N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
-                ph_main(1,j+1:end) = ph_main(1,j+1:end) + cs_correction;
+                N_mat(1,jmp(j)+1:end) = N_mat(1,jmp(j)+1:end) - cs_correction;
+                ph_main(1,jmp(j)+1:end) = ph_main(1,jmp(j)+1:end) + cs_correction;
                 N_mat(1,idx_zeros) = 0;
                 ph_main(1,idx_zeros) = 0;
                 
@@ -776,14 +786,14 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
                 
             elseif (pos_zeros == 3)
                 
-%                 N_before_zero = N_mat(1,j);
+%                 N_before_zero = N_mat(1,jmp(j));
                 
             elseif (pos_zeros == 2)
                 
 %                 idx = (ph(1,:)==0);
-%                 cs_correction = round(N_mat(1,j+1) - N_before_zero);
-%                 N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
-%                 ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+%                 cs_correction = round(N_mat(1,jmp(j)+1) - N_before_zero);
+%                 N_mat(1,jmp(j)+1:end) = N_mat(1,jmp(j)+1:end) - cs_correction;
+%                 ph   (1,jmp(j)+1:end) = ph   (1,jmp(j)+1:end) + cs_correction;
 %                 N_mat(1,idx) = 0;
 %                 ph   (1,idx) = 0;
 %                 
@@ -796,14 +806,14 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
 %                 end
 %                 
 %                 N_before_zero = 0;
-%                 N_after_zero = N_mat(1,j+1);
+%                 N_after_zero = N_mat(1,jmp(j)+1);
                 
             elseif (pos_zeros == 1)
                 
 %                 idx = (ph(1,:)==0);
-%                 cs_correction = round(N_mat(1,j+1) - N_after_zero);
-%                 N_mat(1,j+1:end) = N_mat(1,j+1:end) - cs_correction;
-%                 ph   (1,j+1:end) = ph   (1,j+1:end) + cs_correction;
+%                 cs_correction = round(N_mat(1,jmp(j)+1) - N_after_zero);
+%                 N_mat(1,jmp(j)+1:end) = N_mat(1,jmp(j)+1:end) - cs_correction;
+%                 ph   (1,jmp(j)+1:end) = ph   (1,jmp(j)+1:end) + cs_correction;
 %                 N_mat(1,idx) = 0;
 %                 ph   (1,idx) = 0;
 %                 

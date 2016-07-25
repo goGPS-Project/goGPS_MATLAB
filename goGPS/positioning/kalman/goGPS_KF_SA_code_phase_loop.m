@@ -761,20 +761,20 @@ if (nsat >= min_nsat)
         end
 
         % decomment to use only phase
-%         y0_noamb=y0_noamb(length(sat_pr_np)+1:end);
-%         H1=H(length(sat_pr_np)+1:end,[1 o1+1 o2+1]);
-%         Cnn = Cnn(length(sat_pr_np)+1:end,length(sat_pr_np)+1:end);
-%         H=H(length(sat_pr_np)+1:end,:);
-%         y0=y0(length(sat_pr_np)+1:end);
-%         index_residuals_outlier=[nSatTot+sat_np];
+        y0_noamb=y0_noamb(length(sat_pr)+1:end);
+        H1=H(length(sat_pr)+1:end,[1 o1+1 o2+1]);
+        Cnn = Cnn(length(sat_pr)+1:end,length(sat_pr)+1:end);
+        H=H(length(sat_pr)+1:end,:);
+        y0=y0(length(sat_pr)+1:end);
+        index_residuals_outlier=[nSatTot*2+sat];
 
         % decomment to use only code
-%         y0_noamb=y0_noamb(1:length(sat_pr_np));
-%         H1=H(1:length(sat_pr_np),[1 o1+1 o2+1]);
-%         Cnn = Cnn(1:length(sat_pr_np),1:length(sat_pr_np));
-%         H=H(1:length(sat_pr_np),:);
-%         y0=y0(1:length(sat_pr_np));
-%         index_residuals_outlier=sat_pr_np;
+%         y0_noamb=y0_noamb(1:length(sat_pr));
+%         H1=H(1:length(sat_pr),[1 o1+1 o2+1]);
+%         Cnn = Cnn(1:length(sat_pr),1:length(sat_pr));
+%         H=H(1:length(sat_pr),:);
+%         y0=y0(1:length(sat_pr));
+%         index_residuals_outlier=sat_pr;
         
         index_outlier_i=1:length(y0_noamb);
 

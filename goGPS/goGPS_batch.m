@@ -319,6 +319,10 @@ fid_extract = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02
 
 fid_extract_TRP = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_troposphere.txt'],'w');
 
+fid_extract_POS = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_position.txt'],'w');
+fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n'); 
+fprintf(fid_extract_POS,'+--------+----------+----------------+----------------+----------------+----------------+----------------+\n');
+
 fid_extract_OBS = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year,'%02d') num2str(doy_start,'%03d') num2str(doy_end,'%03d') '_qualityOBS.txt'],'w');
 fprintf(fid_extract_OBS,' yy-ddd  Rover observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1    Master observation file            Rate  #Sat   #Epoch    #Frq   #C1/P1  #C2/P2     #L1     #L2   #DOP1   #DOP2  %%Epoch %%L2/L1\n'); 
 fprintf(fid_extract_OBS,'+------+------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+---------------------------------+--------+-----+--------+-------+--------+-------+-------+-------+-------+-------+-------+------+\n');
@@ -393,9 +397,12 @@ for doy = doy_start : 1 : doy_end
                 fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
                 fprintf(fid_extract_TRP,'%.6f ', Xhat_t_t_OUT(end-1,:)); %#ok<NODEF>
                 fprintf(fid_extract_TRP,'\n');
+                for e = 1 : idx
+                    fprintf(fid_extract_POS,' %04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %15.6f\n', year4, doy, date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(e), NORTH_UTM(e), h_KAL(e), Xhat_t_t_OUT(end-1,e));
+                end
                 delete([filerootOUT '_*.bin']);
             else
-                fprintf(fid_extract,'%04d-%03d\n', year4, doy);               
+                fprintf(fid_extract,'%04d-%03d\n', year4, doy);
             end
 
             % append report information in the database
@@ -422,6 +429,7 @@ end
 
 fclose(fid_extract);
 fclose(fid_extract_TRP);
+fclose(fid_extract_POS);
 fclose(fid_extract_OBS);
 
 figure

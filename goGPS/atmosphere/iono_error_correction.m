@@ -79,7 +79,8 @@ else
         end    
     else
         %apply a simplified model
-        corr = simplified_model(lat, lon, az, el, mjd);
+        %corr = simplified_model(lat, lon, az, el, mjd);
+        corr = zeros(size(el));
     end
 end
 
