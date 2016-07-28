@@ -89,7 +89,6 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
 uni_sys = unique(sys(sys ~= 0));
 num_sys = length(uni_sys);
 ISB = zeros(n,1);
-
 if (num_sys > 1)
     m = m + num_sys - 1;
     for s = 2 : num_sys
@@ -111,6 +110,7 @@ invQ=diag((diag(Q).^-1));
 
 %normal matrix
 N = (A'*(invQ)*A);
+
 if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
     %least squares solution
     x   = (N^-1)*A'*(invQ)*(y0-b);
@@ -148,7 +148,6 @@ else
         [index_outlier,x,sigma02_hat(1,1),v_hat]=OLOO(A, y0-b, Q);        
         if index_outlier~=0
             bad_obs=[bad_obs;index_obs(index_outlier)];
-            %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
             if (num_sys > 1)
                 sys(index_outlier)=[];
                 uni_sys = unique(sys(sys ~= 0));
@@ -157,6 +156,7 @@ else
                     A(:,4+find(uni_sys0==sys0(index_outlier))-1)=[];
                 end
             end
+            %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
             A(index_outlier,:)=[];
             y0(index_outlier,:)=[];
             b(index_outlier,:)=[];

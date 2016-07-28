@@ -1,11 +1,9 @@
-function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda)
+function [dtR, N_hat, var_dtR, cov_N] = LS_SA_code_phase_clock(pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda)
 
 % SYNTAX:
-%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda);
+%   [dtR, N_hat, var_dtR, cov_N] = LS_SA_code_phase(pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda);
 %
 % INPUT:
-%   XR_approx    = receiver approximate position (X,Y,Z)
-%   XS           = satellite position (X,Y,Z) (with both code and phase)
 %   pr           = code observations
 %   ph           = phase observations
 %   snr          = signal-to-noise ratio
@@ -21,15 +19,10 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 %   lambda       = vector containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
-%   XR = estimated position (X,Y,Z)
 %   dtR = estimated receiver clock
 %   N_hat = linear combination of ambiguity estimate
-%   cov_XR = covariance matrix of estimation errors (rover position)
 %   var_dtR = variance of estimation errors (receiver clock)
 %   cov_N = covariance matrix of estimation errors (ambiguity values)
-%   PDOP = position dilution of precision
-%   HDOP = horizontal dilution of precision
-%   VDOP = vertical dilution of precision
 %
 % DESCRIPTION:
 %   Absolute positioning by means of least squares adjustment on code
@@ -69,24 +62,18 @@ nsat_ph = length(sat_ph);
 n = nsat_pr + nsat_ph;
 
 %number of unknown parameters
-m = 4 + nsat_ph;
+m = 1 + nsat_ph;
 
 % %approximate receiver-satellite distance
 % XR_mat = XR_approx(:,ones(n,1))';
 % distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
 
 %design matrix (code)
-A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ...   %column for X coordinate
-     (XR_approx(2) - XS(:,2)) ./ distR_approx, ...   %column for Y coordinate
-     (XR_approx(3) - XS(:,3)) ./ distR_approx, ...   %column for Z coordinate
-      zeros(nsat_pr,nsat_ph), ... %column for phase ambiguities   (here zero)
+A = [ zeros(nsat_pr,nsat_ph), ... %column for phase ambiguities   (here zero)
       ones(nsat_pr,1)];    %column for receiver clock delay (multiplied by c)
 
 %design matrix (phase)
-A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ... %column for X coordinate
-        (XR_approx(2) - XS(index,2)) ./ distR_approx(index), ... %column for Y coordinate
-        (XR_approx(3) - XS(index,3)) ./ distR_approx(index), ... %column for Z coordinate
-         diag(-lambda(index)) .* eye(nsat_ph), ...               %column for phase ambiguities
+A = [A;  diag(-lambda(index)) .* eye(nsat_ph), ...          %column for phase ambiguities
          ones(nsat_ph,1)];             %column for receiver clock delay (multiplied by c)
      
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
@@ -122,13 +109,12 @@ N = (A'*(Q^-1)*A);
 
 %least squares solution
 x_hat = (N^-1)*A'*(Q^-1)*(y0-b);
-XR = XR_approx + x_hat(1:3);
 
 %estimated phase ambiguities
-N_hat = x_hat(3+[1:nsat_ph]);
+N_hat = x_hat(1:nsat_ph);
 
 %estimated receiver clock
-dtR = x_hat(3+nsat_ph+1) / v_light;
+dtR = x_hat(nsat_ph+1) / v_light;
 
 %estimation of the variance of the observation error
 y_hat = A*x_hat + b;
@@ -138,23 +124,9 @@ sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 %covariance matrix of the estimation error
 if (n > m)
     Cxx = sigma02_hat * (N^-1);
-    cov_XR  = Cxx(1:3,1:3);
-    cov_N   = Cxx(3+[1:nsat_ph],3+[1:nsat_ph]);
-    var_dtR = Cxx(3+nsat_ph+1,3+nsat_ph+1) / v_light^2;
+    cov_N   = Cxx(1:nsat_ph,1:nsat_ph);
+    var_dtR = Cxx(nsat_ph+1,nsat_ph+1) / v_light^2;
 else
-    cov_XR  = [];
     cov_N   = [];
     var_dtR = []; 
-end
-
-%DOP computation
-if (nargout > 6)
-    A(nsat_pr+1:end,:) = []; A(:,4:end-1) = [];
-    cov_XYZ = (A'*A)^-1;
-    cov_XYZ = cov_XYZ(1:3,1:3);
-    cov_ENU = global2localCov(cov_XYZ, XR);
-    
-    PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
-    HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
-    VDOP = sqrt(cov_ENU(3,3));
 end

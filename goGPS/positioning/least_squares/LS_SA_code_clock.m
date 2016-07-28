@@ -101,7 +101,6 @@ if nargin<9 || (n == m) || exist('SPP_threshold','var')==0
     if (num_sys > 1)
         is_bias(uni_sys(2:end))=x(end-(num_sys-2):end);
     end
-    
     if n==m
         bad_epoch=-1;
     else
