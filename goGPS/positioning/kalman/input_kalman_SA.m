@@ -1,7 +1,7 @@
-function [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR_approx, XS, pr1, ph1, pr2, ph2, distR_approx, dtS, err_tropo, err_iono1, err_iono2, phwindup, lambda)
+function [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR_approx, XS, pr1, ph1, pr2, ph2, distR_approx, dtS, err_tropo, err_iono1, err_iono2, phwindup, lambda, PCV_S)
 
 % SYNTAX:
-%   [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR_approx, XS, pr1, ph1, pr2, ph2, distR_approx, dtS, err_tropo, err_iono1, err_iono2, phwindup, lambda);
+%   [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR_approx, XS, pr1, ph1, pr2, ph2, distR_approx, dtS, err_tropo, err_iono1, err_iono2, phwindup, lambda, PCV_S);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -17,6 +17,7 @@ function [A, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF,
 %   err_iono2 = ionospheric error (L2 carrier)
 %   phwindup = phase wind-up
 %   lambda = matrix containing GNSS wavelengths for available satellites
+%   PCV_S = satellite PCV corrections (iono-free only)
 %
 % OUTPUT:
 %   A = parameters obtained from the linearization of the observation equation, e.g. (xR-xS)/prRS)
@@ -77,5 +78,5 @@ probs_prIF  = alpha1 * pr1 - alpha2 * pr2; %observed pseudorange (iono-free code
 probs_phIF  = alphat * ph1 - alphan * ph2; %observed pseudorange (iono-free phase)
 
 %approximate iono-free combinations (alpha1 - alpha2 = 1)
-prapp_prIF = prapp_pr;
-prapp_phIF = prapp_pr + (alpha1 * lambda(:,1) .* phwindup - alpha2 * lambda(:,2) .* phwindup);
+prapp_prIF = prapp_pr + PCV_S;
+prapp_phIF = prapp_pr + (alpha1 * lambda(:,1) .* phwindup - alpha2 * lambda(:,2) .* phwindup) + PCV_S;

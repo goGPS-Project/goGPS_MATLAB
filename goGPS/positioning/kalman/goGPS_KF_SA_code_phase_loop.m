@@ -1,7 +1,7 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_tropo, antenna_PCV) %#ok<INUSL>
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_tropo, antenna_PCV, antenna_PCV_S) %#ok<INUSL>
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_tropo, antenna_PCV);
+%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_tropo, antenna_PCV, antenna_PCV_S);
 %
 % INPUT:
 %   time_rx = GPS time
@@ -21,7 +21,8 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_l
 %   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
 %   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %   flag_tropo = boolean variable to enable/disable tropospheric delay estimation
-%   antenna_PCV = antenna phase center variation
+%   antenna_PCV = receiver antenna phase center offset/variation
+%   antenna_PCV_S = satellite antenna phase center offset/variation
 %
 % OUTPUT:
 %   check_on = boolean variable for satellite addition
@@ -349,6 +350,24 @@ if (nsat >= min_nsat)
         end
     end
     
+    %if using the iono-free combination, compute the observable and apply satellite PCV corrections
+    PCV_S = zeros(size(PCV1));
+    if (strcmp(obs_comb,'IONO_FREE'))
+        prIF = zeros(size(pr1));
+        phIF = zeros(size(ph1));
+        prIF(sat_pr) = alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr);
+        phIF(sat)    = alphat*ph1(sat)    - alphan*ph2(sat);
+        
+        %compute the nadir angle
+        z = asin((goGNSS.ELL_A_GPS/norm(XS)).*sind(90-elR(sat_pr)));
+        
+        for s = 1 : length(sat_pr)
+            PCV_S(s) = PCV_correction(antenna_PCV_S(sat_pr(s)), z(s), azR(sat_pr(s)), sys(s), 1);
+        end
+        prIF(sat_pr) = prIF(sat_pr) - PCV_S;
+        phIF(sat)    = phIF(sat)    - PCV_S(index_ph)./lambdaIF(sat,1);
+    end
+    
     %when the tropospheric delay is estimated, only its hydrostatic part is modelled
     if (flag_tropo)
         gmfh_R = zeros(size(err_tropo));
@@ -439,7 +458,7 @@ if (nsat >= min_nsat)
                         check_cs = 1;
                     end
                 elseif (strcmp(obs_comb,'IONO_FREE'))
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), alpha1*doppler_pred_range1_R(sat_pr) - alpha2*doppler_pred_range2_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambdaIF(sat_pr,1)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), phIF(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), alpha1*doppler_pred_range1_R(sat_pr) - alpha2*doppler_pred_range2_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambdaIF(sat_pr,1)); %#ok<ASGLU>
                 end
             else
                 if (frequencies == 1)
@@ -489,7 +508,7 @@ if (nsat >= min_nsat)
                 end
             elseif (strcmp(obs_comb,'IONO_FREE'))
                 
-                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
+                [N_slip, N_born] = ambiguity_init_SA(XR0, XS, dtS, prIF(sat_pr), phIF(sat_pr), snr(sat_pr), elR(sat_pr), sat_pr, sat, sat_slip, sat_born, distR(sat_pr), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1), X_t1_t(o3+sat_pr), Cee(o3+sat_pr, o3+sat_pr), X_t1_t(o3+nN+(1:nT)), Cee(o3+nN+(1:nT), o3+nN+(1:nT)), X_t1_t(o3+nN+nT+(1:nC)), Cee(o3+nN+nT+(1:nC), o3+nN+nT+(1:nC)));
                 
                 if (check_on)
                     X_t1_t(o3+sat_born,1) = N_born;
@@ -531,7 +550,7 @@ if (nsat >= min_nsat)
         p = find(ismember(sat_pr,sat)==1);
         
         %function that calculates the Kalman filter parameters
-        [alpha, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR0, XS, pr1(sat_pr), ph1(sat_pr), pr2(sat_pr), ph2(sat_pr), distR(sat_pr), dtS, err_tropo0, err_iono1, err_iono2, phwindup(sat_pr), lambda(sat_pr,:));
+        [alpha, prapp_pr1, prapp_ph1, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman_SA(XR0, XS, pr1(sat_pr), ph1(sat_pr), pr2(sat_pr), ph2(sat_pr), distR(sat_pr), dtS, err_tropo0, err_iono1, err_iono2, phwindup(sat_pr), lambda(sat_pr,:), PCV_S);
         
         %zeroes vector useful in matrix definitions
         Z_1_nN = zeros(1,nN);
@@ -695,30 +714,30 @@ if (nsat >= min_nsat)
         
         search_for_outlier = 1;
 
-        if (length(frequencies) == 2)
-            if (strcmp(obs_comb,'NONE'))
-                index_residuals_outlier=[sat_pr;nSatTot+sat_pr;nSatTot*2+sat;nSatTot*3+sat];  %[code;phase]
-            elseif (strcmp(obs_comb,'IONO_FREE'))
-                index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
-            end
-        else
-            if (frequencies == 1)
-                index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
-            else
-                index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
-            end
-        end
+%         if (length(frequencies) == 2)
+%             if (strcmp(obs_comb,'NONE'))
+%                 index_residuals_outlier=[sat_pr;nSatTot+sat_pr;nSatTot*2+sat;nSatTot*3+sat];  %[code;phase]
+%             elseif (strcmp(obs_comb,'IONO_FREE'))
+%                 index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
+%             end
+%         else
+%             if (frequencies == 1)
+%                 index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
+%             else
+%                 index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
+%             end
+%         end
 
         if (h_dtm ~= tile_header.nodata)
             y0_residuals=y0(1:end-1);
             H1_residuals=H(1:end-1,:);
             y0_noamb=y0(1:end-1);
-            H1=H(1:end-1,[1 o1+1 o2+1]);
+%             H1=H(1:end-1,[1 o1+1 o2+1]);
         else
             y0_residuals=y0;
             H1_residuals=H;
             y0_noamb=y0;
-            H1=H(:,[1 o1+1 o2+1]);
+%             H1=H(:,[1 o1+1 o2+1]);
         end
 
         if (~isempty(sat))
@@ -766,7 +785,7 @@ if (nsat >= min_nsat)
         Cnn = Cnn(length(sat_pr)+1:end,length(sat_pr)+1:end);
         H=H(length(sat_pr)+1:end,:);
         y0=y0(length(sat_pr)+1:end);
-        index_residuals_outlier=[nSatTot*2+sat];
+        index_residuals_outlier=nSatTot*2+sat;
 
         % decomment to use only code
 %         y0_noamb=y0_noamb(1:length(sat_pr));

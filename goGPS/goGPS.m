@@ -2113,7 +2113,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         
         sbas_t = find_sbas(sbas, t);
 
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_IAR, flag_tropo, antenna_PCV);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_IAR, flag_tropo, antenna_PCV, antenna_PCV_S);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');

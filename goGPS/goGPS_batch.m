@@ -394,11 +394,12 @@ for doy = doy_start : 1 : doy_end
             
             idx = size(date_R,1);
             if exist('X_KAL','var') && exist('Xhat_t_t_OUT','var')
-                fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
-                fprintf(fid_extract_TRP,'%.6f ', Xhat_t_t_OUT(end-1,:)); %#ok<NODEF>
+                fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
+                tropo_vec = nan(1,86400/interval); tropo_vec(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:); %#ok<NODEF>
+                fprintf(fid_extract_TRP,'%.6f ', tropo_vec);
                 fprintf(fid_extract_TRP,'\n');
                 for e = 1 : idx
-                    fprintf(fid_extract_POS,' %04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.4f %16.4f %16.4f %15.6f\n', year4, doy, date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(e), NORTH_UTM(e), h_KAL(e), Xhat_t_t_OUT(end-1,e));
+                    fprintf(fid_extract_POS,' %04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', year4, doy, date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(e), NORTH_UTM(e), h_KAL(e), Xhat_t_t_OUT(end-1,e));
                 end
                 delete([filerootOUT '_*.bin']);
             else

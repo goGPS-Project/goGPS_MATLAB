@@ -72,7 +72,7 @@ for j=1:length(constellation)
             tableNOAZI=antenna_PCV.tableNOAZI(:,:,index_freq);
             table_zen=antenna_PCV.tablePCV_zen;
             
-            %detection of the grid node nearest to the interpolation point
+            % detection of the grid node nearest to the interpolation point
             [~, posX] = min(abs(repmat(table_zen,length(zen_i),1) - repmat(zen_i,1,length(table_zen))),[],2);
             posX(zen_i-table_zen(posX)'<0)= posX(zen_i-table_zen(posX)'<0)-1;   % get the lower node
             mX=zen_i-table_zen(posX)';
@@ -84,6 +84,9 @@ for j=1:length(constellation)
             
             % interpolation
             PCV_corr_i=(tableNOAZI(posX+1)'-tableNOAZI(posX)')/antenna_PCV.dzen.*mX+tableNOAZI(posX)';
+            
+            % keep only the corrections included in the range from zen1 to zen2
+            PCV_corr_i(zen_i > antenna_PCV.zen2) = 0;
         else
             % compute azi-zen depending corrections
             tablePCV=antenna_PCV.tablePCV(:,:,index_freq);
