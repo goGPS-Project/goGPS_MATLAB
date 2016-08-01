@@ -84,6 +84,8 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global SPP_threshold
+
 if (any(lambda(:)))
     %compute inter-frequency factors (for the ionospheric delay)
     ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
@@ -136,8 +138,6 @@ end
 num_sys  = length(unique(sys(sys ~= 0)));
 min_nsat = 3 + num_sys;
 
-% maximum RMS of code single point positioning to accept current epoch
-SPP_threshold=4; %meters 
 bad_sat=[];
 
 %----------------------------------------------------------------------------------------------

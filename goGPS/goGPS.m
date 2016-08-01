@@ -666,7 +666,7 @@ if goGNSS.isPP(mode) % post-processing
 %                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas);
                 
                 if report.opt.write == 1
-                    report.prep.spp_threshold = 4;
+                    report.prep.spp_threshold = SPP_threshold;
                     report.prep.flag_R = flag_XR;
                     report.prep.tot_epoch_R(f)=size(pr1_R(:,:,f),2);
                     report.prep.proc_epoch_R(f)=length(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f));
@@ -1014,7 +1014,7 @@ if goGNSS.isPP(mode) % post-processing
 %                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas);
 
                 if report.opt.write == 1
-                    report.prep.spp_threshold = 4;                    
+                    report.prep.spp_threshold = SPP_threshold;                    
                     report.prep.flag_R = flag_XR;
                     report.prep.tot_epoch_R(f)=size(pr1_R(:,:,f),2);
                     report.prep.proc_epoch_R(f)=length(bad_epochs_R(isfinite(bad_epochs_R(:,1,f)),1,f));
