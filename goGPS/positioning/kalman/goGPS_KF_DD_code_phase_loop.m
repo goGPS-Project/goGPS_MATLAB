@@ -870,13 +870,15 @@ if (nsat >= min_nsat)
             index_outlier_i(idx_out) = [];
         end
 
-%         % decomment to use only phase
-%         y0_noamb=y0_noamb(length(sat_pr_np)+1:end);
-%         H1=H(length(sat_pr_np)+1:end,[1 o1+1 o2+1]);
-%         Cnn = Cnn(length(sat_pr_np)+1:end,length(sat_pr_np)+1:end);
-%         H=H(length(sat_pr_np)+1:end,:);
-%         y0=y0(length(sat_pr_np)+1:end);
-%         index_residuals_outlier=[nSatTot+sat_np];
+        % decomment to use only phase
+        y0_noamb=y0_noamb(length(sat_pr_np)+1:end);
+        H1=H(length(sat_pr_np)+1:end,[1 o1+1 o2+1]);
+        Cnn = Cnn(length(sat_pr_np)+1:end,length(sat_pr_np)+1:end);
+        H=H(length(sat_pr_np)+1:end,:);
+        y0=y0(length(sat_pr_np)+1:end);
+        index_residuals_outlier=index_residuals_outlier(length(sat_pr_np)+1:end);
+        index_outlier_i=index_outlier_i(length(sat_pr_np)+1:end)-length(sat_pr_np);
+        sat_pr_np = [];
 
 %         % decomment to use only code
 %         y0_noamb=y0_noamb(1:length(sat_pr_np));
@@ -884,7 +886,9 @@ if (nsat >= min_nsat)
 %         Cnn = Cnn(1:length(sat_pr_np),1:length(sat_pr_np));
 %         H=H(1:length(sat_pr_np),:);
 %         y0=y0(1:length(sat_pr_np));
-%         index_residuals_outlier=sat_pr_np;
+%         index_residuals_outlier=index_residuals_outlier(1:length(sat_pr_np));
+%         index_outlier_i=index_outlier_i(1:length(sat_pr_np));
+%         sat_np = [];
 
         while (search_for_outlier == 1)
             
@@ -906,9 +910,13 @@ if (nsat >= min_nsat)
                 idx_ph = index_outlier(index_outlier  > length(sat_pr_np)) - length(sat_pr_np);
                 conf_sat(sat_pr_np(idx_pr)) = 0;
                 conf_sat(sat_np(idx_ph)) = 0;
-                sat_pr_np(idx_pr) = [];
+                sat_pr_np(idx_pr) = []; %#ok<AGROW>
                 sat_np(idx_ph) = [];
-                nsat = size(sat_pr_np,1) + 1;
+                if (~isempty(sat_pr_np))
+                    nsat = size(sat_pr_np,1) + 1;
+                else
+                    nsat = size(sat_np,1) + 1;
+                end
             else
                 search_for_outlier = 0;
             end
