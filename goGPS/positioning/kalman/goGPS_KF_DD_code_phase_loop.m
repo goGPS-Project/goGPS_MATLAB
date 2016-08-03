@@ -844,7 +844,11 @@ if (nsat >= min_nsat)
         
         index_outlier_i=1:length(y0_noamb);
         
-        compute_residuals(X_t1_t,'float');
+        %temporary Kalman filter update, to check residuals
+        K = T*Cee*T' + Cvv;
+        G = K*H' * (H*K*H' + Cnn)^(-1);
+        Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
+        compute_residuals(Xhat_t_t,'float');
         
         % remove observations with residuals exceeding thresholds
         out_pr = find(abs(residuals_float(1:nSatTot*2)) > max_code_residual);

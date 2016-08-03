@@ -69,7 +69,7 @@ global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
 global geoid
 
-global t residuals_fixed residuals_float outliers s02_ls s02_ls_threshold
+global t residuals_fixed residuals_float outliers s02_ls
 global max_code_residual max_phase_residual
 global STDs
 
@@ -813,7 +813,7 @@ if (nsat >= min_nsat)
             Cnn(idx_out,:) = [];
             Cnn(:,idx_out) = [];
             y0_noamb(idx_out,:) = [];
-            H1(idx_out,:) = [];
+            H1(idx_out,:) = []; %#ok<NASGU>
             outliers(index_residuals_outlier(index_outlier_i(idx_out)))=1;
             index_outlier_i(idx_out) = [];
         end
