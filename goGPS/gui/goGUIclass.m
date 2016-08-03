@@ -3201,12 +3201,17 @@ classdef goGUIclass < handle
             global flag_doppler_cs
             global COMportR
             global IAR_method P0 mu flag_auto_mu flag_default_P0
+            global SPP_threshold max_code_residual max_phase_residual
 
             IAR_method = get(obj.goh.lLAMBDAMethod,'Value') - 1;
             P0 = str2double(get(obj.goh.nP0,'String'));
             mu = str2double(get(obj.goh.nMu,'String'));
             flag_auto_mu = get(obj.goh.cMu,'Value') && ~obj.isLambda2;
             flag_default_P0 = get(obj.goh.cP0,'Value') && ~obj.isLambda2;
+            
+            SPP_threshold = 4;
+            max_code_residual = 30;
+            max_phase_residual = 0.2;
             
             contents = cellstr(get(obj.goh.com_select_0,'String'));
             COMportR0 = contents{get(obj.goh.com_select_0,'Value')};

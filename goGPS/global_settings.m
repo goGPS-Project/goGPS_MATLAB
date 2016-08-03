@@ -196,6 +196,20 @@ flag_auto_mu = 1;
 flag_default_P0 = 1;
 
 %-------------------------------------------------------------------------------
+% THRESHOLDS
+%-------------------------------------------------------------------------------
+global SPP_threshold max_code_residual max_phase_residual
+
+SPP_threshold = 4;         %threshold on the code point-positioning least squares
+                           %   estimation error [m]
+                          
+max_code_residual = 30;    %threshold on the maximum residual of code
+                           %   observations [m]
+                          
+max_phase_residual = 0.2; %threshold on the maximum residual of phase
+                           %   observations [m]
+
+%-------------------------------------------------------------------------------
 % RECEIVER
 %-------------------------------------------------------------------------------
 

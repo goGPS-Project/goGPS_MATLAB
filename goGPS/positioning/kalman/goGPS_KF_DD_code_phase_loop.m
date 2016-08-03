@@ -550,13 +550,13 @@ if (nsat >= min_nsat)
             PCO1_M = PCO_correction(antenna_PCV(index_master), XR0, XS, sys, 1);
             PCV1_M = PCV_correction(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 1);
             pr1_M(sat_pr) = pr1_M(sat_pr) - (PCO1_M + PCV1_M);
-            ph1_M(sat)    = ph1_M(sat)    - (PCO1_M + PCV1_M(index_ph))./lambda(sat,1);
+            ph1_M(sat)    = ph1_M(sat)    - (PCO1_M(index_ph) + PCV1_M(index_ph))./lambda(sat,1);
             
             if (length(frequencies) == 2 || frequencies(1) == 2)
                 PCO2_M = PCO_correction(antenna_PCV(index_master), XR0, XS, sys, 2);
                 PCV2_M = PCV_correction(antenna_PCV(index_master), 90-elM(sat_pr), azM(sat_pr), sys, 2);
                 pr2_M(sat_pr) = pr2_M(sat_pr) - (PCO2_M + PCV2_M);
-                ph2_M(sat)    = ph2_M(sat)    - (PCO2_M + PCV2_M(index_ph))./lambda(sat,2);
+                ph2_M(sat)    = ph2_M(sat)    - (PCO2_M(index_ph) + PCV2_M(index_ph))./lambda(sat,2);
             end
         end
         
@@ -565,13 +565,13 @@ if (nsat >= min_nsat)
             PCO1_R = PCO_correction(antenna_PCV(index_rover), XR0, XS, sys, 1);
             PCV1_R = PCV_correction(antenna_PCV(index_rover), 90-elR(sat_pr), azR(sat_pr), sys, 1);
             pr1_R(sat_pr) = pr1_R(sat_pr) - (PCO1_R + PCV1_R);
-            ph1_R(sat)    = ph1_R(sat)    - (PCO1_R + PCV1_R(index_ph))./lambda(sat,1);
+            ph1_R(sat)    = ph1_R(sat)    - (PCO1_R(index_ph) + PCV1_R(index_ph))./lambda(sat,1);
             
             if (length(frequencies) == 2 || frequencies(1) == 2)
                 PCO1_R = PCO_correction(antenna_PCV(index_rover), XR0, XS, sys, 2);
                 PCV2_R = PCV_correction(antenna_PCV(index_rover), 90-elM(sat_pr), azM(sat_pr), sys, 2);
                 pr2_R(sat_pr) = pr2_R(sat_pr) - (PCO1_R + PCV2_R);
-                ph2_R(sat)    = ph2_R(sat)    - (PCO1_R + PCV2_R(index_ph))./lambda(sat,2);
+                ph2_R(sat)    = ph2_R(sat)    - (PCO1_R(index_ph) + PCV2_R(index_ph))./lambda(sat,2);
             end
         end        
         

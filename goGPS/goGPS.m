@@ -78,10 +78,11 @@ end
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
-global order o1 o2 o3 h_antenna cutoff weights t;
-global is_bias;
-global cs_threshold_preprocessing cs_threshold;
-global iono_model tropo_model;
+global order o1 o2 o3 h_antenna cutoff weights t
+global is_bias
+global cs_threshold_preprocessing cs_threshold
+global iono_model tropo_model
+global max_code_residual max_phase_residual SPP_threshold
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -221,6 +222,10 @@ obs_comb = 'IONO_FREE'
 cs_threshold_preprocessing = 1
 
 cs_threshold = 1e30 %i.e. disable cycle-slip detection during KF processing
+
+max_code_residual = 30;
+                          
+max_phase_residual = 0.05;
 
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start

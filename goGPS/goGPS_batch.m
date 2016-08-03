@@ -1,7 +1,7 @@
-function goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN) %#ok<INUSL>
+function goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN, folder) %#ok<INUSL>
 
 % SYNTAX:
-%   goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN);
+%   goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN, folder);
 %
 % INPUT:
 %   iniFile   = full path to the goGPS .ini file                       [string]
@@ -18,6 +18,7 @@ function goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR,
 %   idN       = navigation id in filename (e.g. 'brdc', 'igs', ...)    [string]
 %   sessionN  = navigation session id (e.g. '0')                       [string]
 %   extN      = navigation id in file extension (e.g. 'n', 'sp3', ...) [string]
+%   folder    = name of the directory (under ../data/batch) where to store results [string]
 %
 % EXAMPLE:
 %   rover RINEX filename:      UBLX0510.14o
@@ -25,7 +26,7 @@ function goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR,
 %   navigation RINEX filename: brdc0510.14n
 %
 %   call example:
-%   goGPS_batch(2014, 51, 57, 'UBLX', '0', 'o', 'mila', '_15s', 'O', 'brdc', '0', 'n');
+%   goGPS_batch('./settings/test_Polimi_InputFiles.ini', goGNSS.MODE_PP_KF_CP_DD, 2014, 51, 57, 'UBLX', '0', 'o', 'mila', '_15s', 'O', 'brdc', '0', 'n');
 %
 % DESCRIPTION:
 %   Wrapper function to run goGPS multiple times.
@@ -52,10 +53,14 @@ function goGPS_batch(iniFile, mode, year, doy_start, doy_end, markerR, sessionR,
 %global min_ambfloatRMS
 addpath(genpath(pwd));
 
+if (~exist('folder', 'var'))
+    folder = '';
+end
+
 is_batch = 1; %#ok<*NASGU>
-folderOUT = '../data/out/batch';
+folderOUT = ['../data/out/batch/' folder];
 if (exist(folderOUT,'dir') ~= 7)
-    mkdir('../data/out/','batch');
+    mkdir('../data/out/',['batch/' folder]);
 end
 
 %-------------------------------------------------------------------------------
@@ -202,7 +207,7 @@ sigmaq_rclock = 1e3;
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 15;
+cutoff = 10;
 
 %initialization cut-off [degrees]
 % cutoff_init = 15;
@@ -214,7 +219,7 @@ snr_threshold = 0;
 cs_threshold_preprocessing = 1;
 
 %cycle slip threshold (processing) [cycles]
-cs_threshold = 1e30;
+cs_threshold = 1;
 
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
@@ -266,6 +271,20 @@ flag_auto_mu = 1;
 
 %flag for enabling the default value for P0
 flag_default_P0 = 1;
+
+%-------------------------------------------------------------------------------
+% THRESHOLDS
+%-------------------------------------------------------------------------------
+global SPP_threshold max_code_residual max_phase_residual
+
+SPP_threshold = 4;         %threshold on the code point-positioning least squares
+                           %   estimation error [m]
+                          
+max_code_residual = 30;    %threshold on the maximum residual of code
+                           %   observations [m]
+                          
+max_phase_residual = 0.05; %threshold on the maximum residual of phase
+                           %   observations [m]
 
 %-------------------------------------------------------------------------------
 % RECEIVER

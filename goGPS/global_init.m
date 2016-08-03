@@ -341,22 +341,12 @@ kml_filename = '../data/google_earth/goGPS.kml';
 %-------------------------------------------------------------------------------
 % THRESHOLDS
 %-------------------------------------------------------------------------------
-global clock_delay_thresh cond_num_threshold SPP_threshold
-global max_code_residual max_phase_residual
+global clock_delay_thresh cond_num_threshold
 
 clock_delay_thresh = 100;
 
 cond_num_threshold = 1e6;  %threshold on the condition number on the
                            %   eigenvalues of the N matrix (least squares)
-                          
-SPP_threshold = 4;         %threshold on the code point-positioning least squares
-                           %   estimation error [m]
-                          
-max_code_residual = 30;    %threshold on the maximum residual of code
-                           %   observations [m]
-                          
-max_phase_residual = 0.05; %threshold on the maximum residual of phase
-                           %   observations [m]
 
 %-------------------------------------------------------------------------------
 % PHASE-SMOOTHED CODE

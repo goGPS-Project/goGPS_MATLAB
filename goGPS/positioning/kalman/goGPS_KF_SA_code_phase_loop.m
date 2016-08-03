@@ -69,7 +69,8 @@ global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
 global geoid
 
-global t residuals_fixed residuals_float outliers s02_ls
+global t residuals_fixed residuals_float outliers s02_ls s02_ls_threshold
+global max_code_residual max_phase_residual
 global STDs
 
 %----------------------------------------------------------------------------------------
@@ -115,6 +116,9 @@ if (o1 > 1)
     Cvv(o1,o1) = sigmaq_vE;
     Cvv(o2,o2) = sigmaq_vN;
     Cvv(o3,o3) = sigmaq_vU;
+    
+    %propagate error standard deviation from position to velocity/acceleration
+    %Cvv = Cvv/interval^(o1-1);
     
     %propagate diagonal local cov matrix to global cov matrix
     Cvv([o1 o2 o3],[o1 o2 o3]) = local2globalCov(Cvv([o1 o2 o3],[o1 o2 o3]), X_t1_t([1 o1+1 o2+1]));
@@ -351,7 +355,7 @@ if (nsat >= min_nsat)
     end
     
     %if using the iono-free combination, compute the observable and apply satellite PCV corrections
-    PCV_S = zeros(size(PCV1));
+    PCV_S = zeros(size(sat_pr));
     if (strcmp(obs_comb,'IONO_FREE'))
         prIF = zeros(size(pr1));
         phIF = zeros(size(ph1));
@@ -714,31 +718,34 @@ if (nsat >= min_nsat)
         
         search_for_outlier = 1;
 
-%         if (length(frequencies) == 2)
-%             if (strcmp(obs_comb,'NONE'))
-%                 index_residuals_outlier=[sat_pr;nSatTot+sat_pr;nSatTot*2+sat;nSatTot*3+sat];  %[code;phase]
-%             elseif (strcmp(obs_comb,'IONO_FREE'))
-%                 index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
-%             end
-%         else
-%             if (frequencies == 1)
-%                 index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
-%             else
-%                 index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
-%             end
-%         end
+        if (length(frequencies) == 2)
+            if (strcmp(obs_comb,'NONE'))
+                index_residuals_outlier=[sat_pr;nSatTot+sat_pr;nSatTot*2+sat;nSatTot*3+sat];  %[code;phase]
+            elseif (strcmp(obs_comb,'IONO_FREE'))
+                index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
+            end
+        else
+            if (frequencies == 1)
+                index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
+            else
+                index_residuals_outlier=[sat_pr;nSatTot*2+sat];  %[code;phase]
+            end
+        end
 
         if (h_dtm ~= tile_header.nodata)
             y0_residuals=y0(1:end-1);
             H1_residuals=H(1:end-1,:);
             y0_noamb=y0(1:end-1);
-%             H1=H(1:end-1,[1 o1+1 o2+1]);
+            H1=H(1:end-1,[1 o1+1 o2+1]);
         else
             y0_residuals=y0;
             H1_residuals=H;
             y0_noamb=y0;
-%             H1=H(:,[1 o1+1 o2+1]);
+            H1=H(:,[1 o1+1 o2+1]);
         end
+        
+        sat_pr_residuals = sat_pr;
+        sat_residuals = sat;
 
         if (~isempty(sat))
             if (length(frequencies) == 2)
@@ -756,7 +763,7 @@ if (nsat >= min_nsat)
                 end
             end
         end
-        
+
         if (~isempty(sat_pr))
             if (length(frequencies) == 2 && strcmp(obs_comb,'NONE'))
                 if (flag_tropo)
@@ -778,14 +785,48 @@ if (nsat >= min_nsat)
                 y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+X_t1_t(o3+nN+2);
             end
         end
+        
+        index_outlier_i=1:length(y0_noamb);
+        
+        %temporary Kalman filter update, to check residuals
+        K = T*Cee*T' + Cvv;
+        G = K*H' * (H*K*H' + Cnn)^(-1);
+        Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
+        compute_residuals(Xhat_t_t,'float');
 
+        % remove observations with residuals exceeding thresholds
+        out_pr = find(abs(residuals_float(1:nSatTot*2)) > max_code_residual);
+        out_ph = find(abs(residuals_float(nSatTot*2+1:end)) > max_phase_residual);
+        idx_pr = ismember(sat_pr, out_pr);
+        idx_ph = ismember(sat, out_ph);
+        conf_sat(sat_pr(idx_pr)) = 0;
+        conf_sat(sat(idx_ph)) = 0;
+        sat_pr(idx_pr) = [];
+        sat(idx_ph) = [];
+        index_ph(idx_ph) = [];
+        idx_pr = find(idx_pr);
+        idx_ph = length(sat_pr) + find(idx_ph);
+        idx_out = union(idx_pr, idx_ph);
+        if (~isempty(idx_out))
+            H(idx_out,:) = [];
+            y0(idx_out,:) = [];
+            Cnn(idx_out,:) = [];
+            Cnn(:,idx_out) = [];
+            y0_noamb(idx_out,:) = [];
+            H1(idx_out,:) = [];
+            outliers(index_residuals_outlier(index_outlier_i(idx_out)))=1;
+            index_outlier_i(idx_out) = [];
+        end
+        
         % decomment to use only phase
         y0_noamb=y0_noamb(length(sat_pr)+1:end);
         H1=H(length(sat_pr)+1:end,[1 o1+1 o2+1]);
         Cnn = Cnn(length(sat_pr)+1:end,length(sat_pr)+1:end);
         H=H(length(sat_pr)+1:end,:);
         y0=y0(length(sat_pr)+1:end);
-        index_residuals_outlier=nSatTot*2+sat;
+        index_residuals_outlier=index_residuals_outlier(length(sat_pr)+1:end);
+        index_outlier_i=index_outlier_i(length(sat_pr)+1:end)-length(sat_pr);
+        sat_pr = [];
 
         % decomment to use only code
 %         y0_noamb=y0_noamb(1:length(sat_pr));
@@ -793,26 +834,38 @@ if (nsat >= min_nsat)
 %         Cnn = Cnn(1:length(sat_pr),1:length(sat_pr));
 %         H=H(1:length(sat_pr),:);
 %         y0=y0(1:length(sat_pr));
-%         index_residuals_outlier=sat_pr;
-        
-        index_outlier_i=1:length(y0_noamb);
+%         index_residuals_outlier=index_residuals_outlier(1:length(sat_pr));
+%         index_outlier_i=index_outlier_i(1:length(sat_pr));
+%         sat = [];
 
         while (search_for_outlier == 1)
             
             [index_outlier, ~, s02_ls(t)] = OLOO(H1, y0_noamb, Cnn);
-            if (index_outlier ~= 0)
-                %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
-                H(index_outlier_i(index_outlier),:)   = [];
-                y0(index_outlier_i(index_outlier),:)  = [];
-                Cnn(index_outlier_i(index_outlier),:) = [];
-                Cnn(:,index_outlier_i(index_outlier)) = [];
+            if (all(index_outlier ~= 0))
+                H(index_outlier,:)   = [];
+                y0(index_outlier,:)  = [];
+                Cnn(index_outlier,:) = [];
+                Cnn(:,index_outlier) = [];
                 y0_noamb(index_outlier,:)  = [];
                 H1(index_outlier,:)  = [];
                 outliers(index_residuals_outlier(index_outlier_i(index_outlier)))=1;
+                index_outlier_i(index_outlier) = [];
+                idx_pr = index_outlier(index_outlier <= length(sat_pr));
+                idx_ph = index_outlier(index_outlier  > length(sat_pr)) - length(sat_pr);
+                conf_sat(sat_pr(idx_pr)) = 0;
+                conf_sat(sat(idx_ph)) = 0;
+                sat_pr(idx_pr) = []; %#ok<AGROW>
+                sat(idx_ph) = [];
+                index_ph(idx_ph) = [];
             else
                 search_for_outlier = 0;
             end
-
+        end
+        
+        if (~isempty(sat_pr))
+            nsat = size(sat_pr,1);
+        else
+            nsat = size(sat,1);
         end
         
         %------------------------------------------------------------------------------------
@@ -837,7 +890,6 @@ if (nsat >= min_nsat)
         if (dop2(sat))
             doppler_pred_range2_R(sat,1) = ph2(sat) - dop2(sat);
         end
-        
     else
         %to point out that notwithstanding the satellite configuration,
         %data were not analysed (motion by dynamics only).
@@ -876,15 +928,7 @@ else
     Cee = T*Cee*T';
 end
 
-if exist('y0_residuals','var')
-    if (length(frequencies) == 2 && strcmp(obs_comb,'NONE'))
-        X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat;o3+nSatTot+sat]);
-        residuals_float([sat_pr;nSatTot+sat_pr;nSatTot*2+sat;nSatTot*3+sat]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat;o3+nSatTot+sat])*X_est;
-    else
-        X_est = Xhat_t_t([[1 o1+1 o2+1]';o3+sat;o3+nN+nT;o3+nN+nT+nC]);
-        residuals_float([sat_pr;nSatTot*2+sat]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+sat;o3+nN+nT;o3+nN+nT+nC])*X_est;
-    end
-end
+compute_residuals(Xhat_t_t, 'float');
 
 %--------------------------------------------------------------------------------------------
 % INTEGER AMBIGUITY SOLVING BY LAMBDA METHOD
@@ -937,3 +981,24 @@ KVDOP = sqrt(Cee_ENU(3,3));
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1,end) + Cee(o1+1,o1+1,end) + Cee(o2+1,o2+1,end));
+
+    function compute_residuals(X, type)
+        residuals = NaN(size(residuals_float));
+        if exist('y0_residuals','var') && exist('sat_residuals','var')
+            nc = sat_pr_residuals;
+            np = sat_residuals;
+            if (length(frequencies) == 2 && strcmp(obs_comb,'NONE'))
+                X_est = X([[1 o1+1 o2+1]';o3+np;o3+nSatTot+np]);
+                residuals([nc;nSatTot+nc;nSatTot*2+np;nSatTot*3+np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nSatTot+np])*X_est;
+            else
+                X_est = X([[1 o1+1 o2+1]';o3+np;o3+nN+nT;o3+nN+nT+nC]);
+                residuals([nc;nSatTot*2+np]) = y0_residuals - H1_residuals(:,[[1 o1+1 o2+1]';o3+np;o3+nN+nT;o3+nN+nT+nC])*X_est;
+            end
+        end
+        if(strcmp(type, 'float'))
+            residuals_float = residuals;
+        else
+            residuals_fixed = residuals;
+        end
+    end
+end
