@@ -870,7 +870,7 @@ if goGNSS.isPP(mode) % post-processing
                         end
                         
                         %try again to read DCB files
-                        DCB = load_dcb('../data/DCB', week_M, time_M, and(all(codeC1_R),codeC1_M), constellations);
+                        DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M), constellations);
                     end
                     
                     SP3.DCB = DCB;

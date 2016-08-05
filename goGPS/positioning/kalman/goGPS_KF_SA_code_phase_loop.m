@@ -805,7 +805,7 @@ if (nsat >= min_nsat)
         sat(idx_ph) = [];
         index_ph(idx_ph) = [];
         idx_pr = find(idx_pr);
-        idx_ph = length(sat_pr) + find(idx_ph);
+        idx_ph = length(sat_pr_residuals) + find(idx_ph);
         idx_out = union(idx_pr, idx_ph);
         if (~isempty(idx_out))
             H(idx_out,:) = [];

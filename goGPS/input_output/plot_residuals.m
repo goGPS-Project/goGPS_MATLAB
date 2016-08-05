@@ -13,6 +13,9 @@ else
     plot_code=0;
 end
 
+outliers_PHASE(isnan(outliers_PHASE)) = 0;
+outliers_CODE(isnan(outliers_CODE)) = 0;
+
 systems = fieldnames(constellations);
 for s = 1 : numel(unique(constellations.systems))
     if constellations.(systems{s}).enabled == 1
