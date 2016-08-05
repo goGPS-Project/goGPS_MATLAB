@@ -151,14 +151,23 @@ for j = 1 : nmax
                 switch (sys_id)
                     case 'G'
                         index = idGPS;
+                        system = 'GPS';
                     case 'R'
                         index = idGLONASS;
+                        system = 'GLONASS';
                     case 'E'
                         index = idGalileo;
+                        system = 'Galileo';
                     case 'C'
                         index = idBeiDou;
+                        system = 'BeiDou';
                     case 'J'
                         index = idQZSS;
+                        system = 'QZSS';
+                end
+                
+                if(~ismember(PRN,constellations.(system).PRN))
+                    continue
                 end
                 
                 index = index + PRN - 1;
