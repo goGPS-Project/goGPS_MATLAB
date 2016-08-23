@@ -48,8 +48,6 @@ if (nargin < 2 || isempty(constellations)) %then use only GPS as default
     constellations.PRN     = constellations.GPS.PRN;
 end
 
-fprintf('%s',['Reading RINEX file ' file_nav ': ... ']);
-
 %open navigation file
 fid = fopen(file_nav,'rt');
 
@@ -387,5 +385,3 @@ while (~feof(fid))
 end
 
 fclose(fid);
-
-fprintf(['done\n']);

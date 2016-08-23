@@ -416,14 +416,14 @@ if goGNSS.isPP(mode) % post-processing
         filename_obs = multiple_RINEX_interface(filename_R_obs, filename_M_obs, mode);
 
         if goGNSS.isSA(mode) % absolute positioning
-            
-            %read navigation RINEX file(s)
-            [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3);
-            
+
             %read observation RINEX file(s)
             [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
-             time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
-             load_RINEX_obs(filename_obs, constellations);
+                time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
+                load_RINEX_obs(filename_obs, constellations);
+            
+            %read navigation RINEX file(s)
+            [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
 
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
                 fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
@@ -701,13 +701,13 @@ if goGNSS.isPP(mode) % post-processing
             %s02_ls=NaN(length(time_GPS),1);
 
         else %relative positioning
-            
-            [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3);
-            
+
             %read observation RINEX file(s)
             [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
              time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
+            
+            [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
             
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
                 fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
@@ -729,7 +729,7 @@ if goGNSS.isPP(mode) % post-processing
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
             codeC1_R = codeC1_RM(:,:,1:end-1); codeC1_M = codeC1_RM(:,:,end);
             marker_R = marker_RM(:,1,1:end-1); marker_M = marker_RM(:,1,end);
-            
+
             %read receiver antenna phase center offset
             antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
             
@@ -763,7 +763,11 @@ if goGNSS.isPP(mode) % post-processing
                 fprintf('Rover apriori position set from coordinate file:\n');
                 fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));   
                 if report.opt.write == 1
-                    report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
+                    if (flag_XR ~= 2)
+                        report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
+                    else
+                        report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
+                    end
                 end
                 pos_R = pos_R_crd;
             else

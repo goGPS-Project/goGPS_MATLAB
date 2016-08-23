@@ -51,37 +51,32 @@ v_light = goGNSS.V_LIGHT;
 [week, sow] = time2weektow(zero_time + time_rx);
 [~, mjd] = date2jd(gps2date(week, sow));
 
-% If in ATM_model section in config file iono is set to 0 it does not use ionospheric model
-% [ATM_model]
-% iono=0
-if (iono_model == 0)
-    corr = zeros(size(el));
-else
-    %if ionosphere parameters are available and SBAS corrections are disabled/not available
-    if ((nargin == 6) & (sum(abs(ionoparams)) > 0)) | ...
-       ((nargin >  6) & (sum(abs(ionoparams)) > 0)  & (isempty(sbas)))
-        
-        %apply Klobuchar ionosphere model
-        corr = klobuchar_model(lat, lon, az, el, sow, ionoparams);
-        
-    %if SBAS corrections are available (and requested by the user)
-    elseif ((nargin > 6) & (~isempty(sbas)))
-        
-        %apply SBAS interpolated ionospheric delay (where possible)
-        corr = sbas_iono_interp(lat, lon, az, el, sbas);
-        
-        %detect if some satellites could not be corrected by SBAS
-        not_corr = isnan(corr);
-        
-        if (any(not_corr))
-            %apply Klobuchar ionosphere model where it was not possible to apply SBAS corrections
-            corr(not_corr) = klobuchar_model(lat, lon, az(not_corr), el(not_corr), sow, ionoparams);
-        end    
-    else
-        %apply a simplified model
-        %corr = simplified_model(lat, lon, az, el, mjd);
+switch iono_model
+    case 0 %no model
         corr = zeros(size(el));
-    end
+    case 1 %Geckle and Feen model
+        corr = simplified_model(lat, lon, az, el, mjd);
+    case 2 %Klobuchar model
+        if (nargin >= 6 & any(ionoparams))
+            corr = klobuchar_model(lat, lon, az, el, sow, ionoparams);
+        else
+            corr = zeros(size(el));
+        end
+    case 3 %SBAS grid
+        if (nargin > 6 & ~isempty(sbas))
+            %apply SBAS interpolated ionospheric delay (where possible)
+            corr = sbas_iono_interp(lat, lon, az, el, sbas);
+            
+            %detect if some satellites could not be corrected by SBAS
+            not_corr = isnan(corr);
+            
+            if (any(not_corr) & (sum(abs(ionoparams)) > 0))
+                %apply Klobuchar ionosphere model where it was not possible to apply SBAS corrections
+                corr(not_corr) = klobuchar_model(lat, lon, az(not_corr), el(not_corr), sow, ionoparams);
+            end
+        end
+    otherwise
+        error('Unrecognized ionosperic delay model parameter.');
 end
 
 % -------------------------------------------------------------------------

@@ -2997,7 +2997,7 @@ classdef goGUIclass < handle
             iono = goIni.getData('ATM_model','iono');
             tropo = goIni.getData('ATM_model','tropo');
             if (isempty(iono))
-                iono_model = 1;
+                iono_model = 2;
             else
                 iono_model = iono;
             end
@@ -3006,6 +3006,7 @@ classdef goGUIclass < handle
             else
                 tropo_model = tropo;
             end
+            
             % mixed
             fsep = goIni.getData('Various','field_separator');
             if (isempty(fsep))

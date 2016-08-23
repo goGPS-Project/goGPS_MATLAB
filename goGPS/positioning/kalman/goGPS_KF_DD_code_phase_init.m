@@ -389,7 +389,6 @@ if (flag_tropo)
     [phi_R, lam_R, h_R] = cart2geod(XR(1), XR(2), XR(3));
     [phi_M, lam_M, h_M] = cart2geod(XM(1), XM(2), XM(3));
 
-    %ZTD = tropo_error_correction(90, h);
     %ZTD = saast_dry(goGNSS.STD_PRES, H, phi) + saast_wet(goGNSS.STD_TEMP, H); %H here is orthometric
 
     [pressure_R, temperature_R, undu_R] = gpt(mjd, phi_R, lam_R, h_R); %#ok<ASGLU>

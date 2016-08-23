@@ -273,7 +273,7 @@ if (nsat >= nsat_required)
         lamR = lamR * 180 / pi;
 
         %computation of tropospheric errors
-        err_tropo = tropo_error_correction(el, hR);
+        err_tropo = tropo_error_correction(time_rx, phiR, lamR, hR, el);
 
         %computation of ionospheric errors
         err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);      

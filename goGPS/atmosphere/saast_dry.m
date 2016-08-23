@@ -1,11 +1,11 @@
-function [ZHD] = saast_dry(P, H, lat)
+function [ZHD] = saast_dry(P, h, lat)
 
 % SYNTAX:
-%   [ZHD] = saast_dry(P, H, lat);
+%   [ZHD] = saast_dry(P, h, lat);
 %
 % INPUT:
 %   P = atmospheric pressure [hPa]
-%   H = orthometric height [m]
+%   h = orthometric height [m]
 %   lat = latitude [deg]
 %
 % OUTPUT:
@@ -35,4 +35,4 @@ function [ZHD] = saast_dry(P, H, lat)
 %----------------------------------------------------------------------------------------------
 
 %ZHD (Saastamoinen model)
-ZHD = 0.0022768*P*(1+0.00266*cosd(2*lat)+0.00000028*H);
+ZHD = 0.0022768*P*(1+0.00266*cosd(2*lat)+0.00000028*h);

@@ -170,6 +170,20 @@ o3 = order*3;
 amb_restart_method = 2;
 
 %-------------------------------------------------------------------------------
+% ATMOSPHERIC MODELS
+%-------------------------------------------------------------------------------
+global iono_model tropo_model
+
+% iono_model = 0; %no model
+% iono_model = 1; %Geckle and Feen model
+iono_model = 2; %Klobuchar model
+% iono_model = 3; %SBAS grid
+
+% tropo_model = 0; %no model
+tropo_model = 1; %Saastamoinen model (with standard atmosphere parameters)
+% tropo_model = 2; %Saastamoinen model (with Global Pressure Temperature model)
+
+%-------------------------------------------------------------------------------
 % INTEGER AMBIGUITY RESOLUTION
 %-------------------------------------------------------------------------------
 global IAR_method P0 mu flag_auto_mu

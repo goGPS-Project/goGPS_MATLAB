@@ -96,6 +96,19 @@ data_path = goIni.getData('OCEAN_LOADING_file','data_path');
 file_name = goIni.getData('OCEAN_LOADING_file','file_name');
 filename_blq = [data_path file_name];
 
+iono = goIni.getData('ATM_model','iono');
+tropo = goIni.getData('ATM_model','tropo');
+if (isempty(iono))
+    iono_model = 1;
+else
+    iono_model = iono;
+end
+if (isempty(tropo))
+    tropo_model = 1;
+else
+    tropo_model = tropo;
+end
+
 %-------------------------------------------------------------------------------
 % PROCESSING OPTIONS
 %-------------------------------------------------------------------------------
@@ -139,6 +152,8 @@ if (~flag_ms_pos)
     
     %set master station position
     pos_M_crd = [XM; YM; ZM];
+    
+    flag_XM = flags(marker_idx);
 
     % rover
     %find the correct marker
