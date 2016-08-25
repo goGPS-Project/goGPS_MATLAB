@@ -423,7 +423,10 @@ if goGNSS.isPP(mode) % post-processing
                 load_RINEX_obs(filename_obs, constellations);
             
             %read navigation RINEX file(s)
-            [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
+            [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
+            if (flag_return)
+                return
+            end
 
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
                 fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
@@ -707,7 +710,10 @@ if goGNSS.isPP(mode) % post-processing
              time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
              load_RINEX_obs(filename_obs, constellations);
             
-            [Eph, iono] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
+            [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
+            if (flag_return)
+                return
+            end
             
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
                 fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');

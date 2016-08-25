@@ -16,7 +16,7 @@ sec_day = 86400;
 nSatTot = constellations.nEnabledSat;
 
 % [pr1_R, ~, ~, ~, ~, ~, ~, ~, ~, ~, ~, ~, ~, interval, ~, ~] = load_RINEX_obs(filename_obs, constellations);
-Eph = load_RINEX_nav(filename_nav, constellations, 0);
+Eph = load_RINEX_nav(filename_nav, constellations, 0, 0, 0);
 
 %computation interval [s]
 interval = 30;

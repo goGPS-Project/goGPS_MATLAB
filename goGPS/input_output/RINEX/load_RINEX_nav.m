@@ -1,7 +1,7 @@
-function [Eph, iono] = load_RINEX_nav(filename, constellations, flag_SP3, iono_model, time, wait_dlg)
+function [Eph, iono, flag_return] = load_RINEX_nav(filename, constellations, flag_SP3, iono_model, time, wait_dlg)
 
 % SYNTAX:
-%   [Eph, iono] = load_RINEX_nav(filename, constellations, flag_SP3, iono_model, time, wait_dlg);
+%   [Eph, iono, flag_return] = load_RINEX_nav(filename, constellations, flag_SP3, iono_model, time, wait_dlg);
 %
 % INPUT:
 %   filename = RINEX navigation file
@@ -13,6 +13,8 @@ function [Eph, iono] = load_RINEX_nav(filename, constellations, flag_SP3, iono_m
 % OUTPUT:
 %   Eph = matrix containing 33 navigation parameters for each satellite
 %   iono = vector containing ionosphere parameters
+%   flag_return = notify the parent function that it should return 
+%                 (downloaded navigation file still compressed).
 %
 % DESCRIPTION:
 %   Parses RINEX navigation files.
@@ -45,6 +47,8 @@ else
     wait_dlg_PresenceFlag = true;
 end
 
+flag_return = 0;
+
 if (isempty(constellations)) %then use only GPS as default
     [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
 end
@@ -66,21 +70,32 @@ if (iono_model == 2 && ~any(iono))
     [week, sow] = time2weektow(time(1));
     [date, DOY] = gps2date(week, sow);
     
-    filename_brdc = ['brdc' num2str(DOY) '0.' num2str(two_digit_year(date(1,1))) 'n'];
-    filename_CGIM = ['CGIM' num2str(DOY) '0.' num2str(two_digit_year(date(1,1))) 'N'];
+    filename_brdc = ['brdc' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'n'];
+    filename_CGIM = ['CGIM' num2str(DOY,'%03d') '0.' num2str(two_digit_year(date(1,1)),'%02d') 'N'];
     
     pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end;
     nav_path = filename(1:pos(end));
     
+    file_avail = 0;
     if (exist([nav_path filename_CGIM],'file'))
         filename = [nav_path filename_CGIM];
+        file_avail = 1;
     elseif (exist([nav_path filename_brdc],'file'))
         filename = [nav_path filename_brdc];
+        file_avail = 1;
     else
-        %TO DO: downloader
+        [download_successful, compressed] = download_nav(filename);
+        if (download_successful)
+            file_avail = 1;
+        end
+        if (compressed)
+            flag_return = 1;
+        end
     end
     
-    parse_file(1);
+    if (file_avail)
+        parse_file(1);
+    end
 end
 
     function parse_file(only_iono)

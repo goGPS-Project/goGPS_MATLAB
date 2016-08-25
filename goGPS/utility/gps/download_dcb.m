@@ -53,7 +53,7 @@ date_f = gps2date(gps_week(1), gps_tow(1));
 % ending time
 date_l = gps2date(gps_week(end), gps_tow(end));
 
-fprintf(['FTP connection to the AIUB server (http://' aiub_ip '). Please wait...'])
+fprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])
 
 year_orig  = date_f(1) : 1 : date_l(1);
 if (length(year_orig) < 1)
