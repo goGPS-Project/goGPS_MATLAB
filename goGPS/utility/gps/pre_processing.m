@@ -93,6 +93,9 @@ bad_epochs=NaN(nEpochs,1);
 % vector with SPP a posteriori sigma
 var_SPP=NaN(nEpochs,3);
 
+%Lagrange interpolation order
+lagr_order = 10;
+
 %--------------------------------------------------------------------------------------------
 % APPROXIMATE POSITION
 %--------------------------------------------------------------------------------------------
@@ -113,6 +116,12 @@ cov_XR = zeros(3,3,nEpochs);
 var_dtR = NaN(nEpochs,1);
 status_obs = NaN(nSatTot,nEpochs);
 status_cs=[];
+
+%remove short arcs
+[pr1] = remove_short_arcs(pr1, lagr_order);
+[pr2] = remove_short_arcs(pr2, lagr_order);
+[ph1] = remove_short_arcs(ph1, lagr_order);
+[ph2] = remove_short_arcs(ph2, lagr_order);
 
 for i = 1 : nEpochs
     
@@ -311,9 +320,6 @@ pr1_interp = zeros(size(pr1));
 ph1_interp = zeros(size(ph1));
 pr2_interp = zeros(size(pr2));
 ph2_interp = zeros(size(ph2));
-
-%Lagrange interpolation order
-lagr_order = 10;
 
 for s = 1 : nSatTot
 
