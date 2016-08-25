@@ -61,6 +61,9 @@ line = fgets(fidIN);
 while (isempty(strfind(line,'END OF HEADER')))
    fprintf(fidOUT,'%s',line);
    line = fgets(fidIN);
+   if (~isempty(strfind(line,'INTERVAL')))
+       line = sprintf('%10.3f                                                  INTERVAL            \n', step);
+   end
 end
 fprintf(fidOUT,line);
 
