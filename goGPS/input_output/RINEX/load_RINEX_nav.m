@@ -84,7 +84,9 @@ if (iono_model == 2 && ~any(iono))
         filename = [nav_path filename_brdc];
         file_avail = 1;
     else
+        filename = filename_brdc;
         [download_successful, compressed] = download_nav(filename);
+        filename = [nav_path filename];
         if (download_successful)
             file_avail = 1;
         end

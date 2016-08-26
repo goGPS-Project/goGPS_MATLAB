@@ -87,8 +87,14 @@ try
     if (isunix())
         system(['uncompress -f ' down_dir '/' filename]);
     else
-        fprintf(['Please decompress the ' filename ' file before trying to use it in goGPS.\n']);
-        compressed = 1;
+        try
+            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir '/' filename '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+            delete([down_dir '/' filename]);
+            filename = filename(1:end-2);
+        catch
+            fprintf(['Please decompress the ' filename ' file before trying to use it in goGPS.\n']);
+            compressed = 1;
+        end
     end
     fprintf(['Downloaded ' filename(1:4) ' file: ' filename '\n']);
     download_successful = 1;
