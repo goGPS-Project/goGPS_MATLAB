@@ -107,8 +107,14 @@ for y = 1 : length(year_orig)
                 if (isunix())
                     system(['uncompress -f ' down_dir '/' s2]);
                 else
-                    fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
-                    compressed = 1;
+                    try
+                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir '/' s2 '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                        delete([down_dir '/' s2]);
+                        s2 = s2(1:end-2);
+                    catch
+                        fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
+                        compressed = 1;
+                    end
                 end
                 fprintf(['Downloaded DCB file: ' s2 '\n']);
             catch
