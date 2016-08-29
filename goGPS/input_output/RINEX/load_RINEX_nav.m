@@ -66,7 +66,7 @@ else
 end
 
 %if Klobuchar ionospheric delay correction is requested but parameters are not available in the navigation file, try to download them
-if (iono_model == 2 && ~any(iono))
+if (iono_model == 2 & ~any(iono))
     [week, sow] = time2weektow(time(1));
     [date, DOY] = gps2date(week, sow);
     

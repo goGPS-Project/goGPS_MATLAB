@@ -100,7 +100,7 @@ filename_blq = [data_path file_name];
 iono = goIni.getData('ATM_model','iono');
 tropo = goIni.getData('ATM_model','tropo');
 if (isempty(iono))
-    iono_model = 1;
+    iono_model = 2;
 else
     iono_model = iono;
 end
