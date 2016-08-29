@@ -109,6 +109,7 @@ nsat = size(pseudorange,1);
 dtR = 0;
 err_tropo = zeros(nsat,1);
 err_iono  = zeros(nsat,1);
+residuals_obs=NaN(nsat,2);
 
 %output variable initialization
 cov_XR = [];

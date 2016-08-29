@@ -80,7 +80,7 @@ end
 
 global order o1 o2 o3 h_antenna cutoff weights t
 global is_bias
-global cs_threshold_preprocessing cs_threshold
+global cs_threshold_preprocessing cs_threshold amb_restart_method
 global iono_model tropo_model
 global max_code_residual max_phase_residual SPP_threshold
 
@@ -220,8 +220,8 @@ frequencies = [1 2]
 obs_comb = 'IONO_FREE'
 
 cs_threshold_preprocessing = 1
-
 cs_threshold = 1e30 %i.e. disable cycle-slip detection during KF processing
+amb_restart_method = 1
 
 max_code_residual = 30;
                           
@@ -2059,9 +2059,9 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
             
             if (~kalman_initialized)
                 time_GPS(1) = []; week_R(1) = [];
-                pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-                pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-                snr_R(:,1) = []; snr_M(:,1) = [];
+                pr1_R(:,1) = []; ph1_R(:,1) = []; dop1_R(:,1) = [];
+                pr2_R(:,1) = []; ph2_R(:,1) = []; dop2_R(:,1) = [];
+                snr_R(:,1) = [];
             end
         end
         

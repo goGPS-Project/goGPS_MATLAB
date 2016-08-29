@@ -699,7 +699,11 @@ if (nsat >= min_nsat)
             end
         else
             if (length(frequencies) == 2)
-                Cnn = [sigmaq_cod1*Q Z_n_n; Z_n_n sigmaq_cod2*Q];
+                if (strcmp(obs_comb,'NONE'))
+                    Cnn = [sigmaq_cod1*Q Z_n_n; Z_n_n sigmaq_cod2*Q];
+                elseif (strcmp(obs_comb,'IONO_FREE'))
+                    Cnn = sigmaq_codIF*Q;
+                end
             else
                 if (frequencies == 1)
                     Cnn = sigmaq_cod1*Q;
