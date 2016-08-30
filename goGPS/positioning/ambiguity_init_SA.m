@@ -76,10 +76,10 @@ nsat_ph = length(sat_ph);
 n = nsat_pr + nsat_ph;
 
 %number of slipped satellites
-nsat_slip = size(sat_slip,1);
+nsat_slip = length(sat_slip);
 
 %number of new satellites
-nsat_born = size(sat_born,1);
+nsat_born = length(sat_born);
 
 %merge new and slipped satellites
 sat_amb = [sat_slip; sat_born];

@@ -99,6 +99,8 @@ filename_blq = [data_path file_name];
 
 iono = goIni.getData('ATM_model','iono');
 tropo = goIni.getData('ATM_model','tropo');
+
+global iono_model tropo_model
 if (isempty(iono))
     iono_model = 2;
 else
@@ -144,7 +146,7 @@ if (~flag_ms_pos)
     
     % master
     %find the correct marker
-    marker_idx = find(strcmp(markers, markerM));
+    marker_idx = find(strcmp(markers, markerM),1,'last');
     
     %extract the corresponding coordinates
     XM = coords_X(marker_idx);
@@ -158,7 +160,7 @@ if (~flag_ms_pos)
 
     % rover
     %find the correct marker
-    marker_idx = find(strcmp(markers, markerR));
+    marker_idx = find(strcmpi(markers, markerR),1,'last');
     
     if ~isempty(marker_idx)
         %extract the corresponding coordinates
@@ -178,7 +180,7 @@ end
 %-------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
-global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm  sigmaq0_tropo sigmaq_tropo sigmaq_rclock
+global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm  sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
 global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global amb_restart_method
 
@@ -215,6 +217,9 @@ sigmaq0_tropo = 1e-2;
 
 %variance of tropospheric delay
 sigmaq_tropo = 2.0834e-07;
+
+%variance of apriori receiver clock
+sigmaq0_rclock = 2e-17;
 
 %variance of receiver clock
 sigmaq_rclock = 1e3;
@@ -442,9 +447,10 @@ for year = year_start : 1 : year_end
                 goGPS
                 
                 idx = size(date_R,1);
+                tropo_vec = nan(1,86400/interval);
                 if exist('X_KAL','var') && exist('Xhat_t_t_OUT','var')
                     fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
-                    tropo_vec = nan(1,86400/interval); tropo_vec(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:); %#ok<NODEF>
+                    tropo_vec(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:); %#ok<NODEF>
                     fprintf(fid_extract_TRP,'%.6f ', tropo_vec);
                     fprintf(fid_extract_TRP,'\n');
                     for e = 1 : idx
@@ -452,7 +458,9 @@ for year = year_start : 1 : year_end
                     end
                     delete([filerootOUT '_*.bin']);
                 else
-                    fprintf(fid_extract,'%04d-%03d\n', year4, doy);
+                    %fprintf(fid_extract,'%04d-%03d\n', year4, doy);
+                    %fprintf(fid_extract_TRP,'%.6f ', tropo_vec);
+                    %fprintf(fid_extract_TRP,'\n');
                 end
                 
                 % append report information in the database

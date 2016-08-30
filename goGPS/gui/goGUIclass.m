@@ -3193,7 +3193,7 @@ classdef goGUIclass < handle
             funout{30} = fsep_char;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
-            global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq_rclock
+            global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
             global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
             global h_antenna
             global tile_header tile_georef dtm_dir
@@ -3260,6 +3260,7 @@ classdef goGUIclass < handle
             end
             sigmaq0_tropo = 1e-2;
             sigmaq_tropo = 2.0834e-07; %(0.005/sqrt(120))^2
+            sigmaq0_rclock = 2e-17;
             sigmaq_rclock = 1e3;
             min_nsat = str2double(get(obj.goh.min_sat,'String'));
             if (mode == 2)

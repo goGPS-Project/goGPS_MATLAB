@@ -54,7 +54,7 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global sigmaq0 sigmaq0_N sigmaq0_tropo zero_time
+global sigmaq0 sigmaq0_N sigmaq0_tropo sigmaq0_rclock zero_time
 global cutoff snr_threshold cond_num_threshold o1 o2 o3 nN nT nC
 
 global Xhat_t_t X_t1_t T I Cee conf_sat conf_cs pivot pivot_old interval
@@ -356,6 +356,10 @@ else
         cov_XR = sigmaq0 * eye(3);
     end
     sigma2_XR = diag(cov_XR);
+    
+    if isempty(var_dtR) %if it was not possible to compute the receiver clock estimation error variance
+        var_dtR = sigmaq0_rclock;
+    end
     
     if isempty(cov_N1) %if it was not possible to compute the covariance matrix
         cov_N1 = sigmaq0_N * eye(length(sat));

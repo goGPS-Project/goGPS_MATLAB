@@ -85,7 +85,7 @@ pos_M_man = [XM; YM; ZM];
 %-------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel %#ok<*TLEV>
-global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq_rclock
+global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
 global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global amb_restart_method
 
@@ -117,11 +117,14 @@ sigmaq0_N = 1000;
 % sigmaq_dtm = 0.09;
 sigmaq_dtm = 1e30;
 
-%variance of a priori tropospheric delay
+%variance of apriori tropospheric delay
 sigmaq0_tropo = 1e-2;
 
 %variance of tropospheric delay
 sigmaq_tropo = 2.0834e-07;
+
+%variance of apriori receiver clock
+sigmaq0_rclock = 2e-17;
 
 %variance of receiver clock
 sigmaq_rclock = 1e3;
