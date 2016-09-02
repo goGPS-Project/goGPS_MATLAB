@@ -185,15 +185,35 @@ for p = 1 : size(week_dow,1)
                     
                     switch (sys_id)
                         case 'G'
-                            index = idGPS;
+                            if (constellations.GPS.enabled)
+                                index = idGPS;
+                            else
+                                continue
+                            end
                         case 'R'
-                            index = idGLONASS;
+                            if (constellations.GLONASS.enabled)
+                                index = idGLONASS;
+                            else
+                                continue
+                            end
                         case 'E'
-                            index = idGalileo;
+                            if (constellations.Galileo.enabled)
+                                index = idGalileo;
+                            else
+                                continue
+                            end
                         case 'C'
-                            index = idBeiDou;
+                            if (constellations.BeiDou.enabled)
+                                index = idBeiDou;
+                            else
+                                continue
+                            end
                         case 'J'
-                            index = idQZSS;
+                            if (constellations.QZSS.enabled)
+                                index = idQZSS;
+                            else
+                                continue
+                            end
                     end
                     
                     index = index + PRN - 1;
@@ -203,6 +223,7 @@ for p = 1 : size(week_dow,1)
                     SP3.coord(3, index, k) = Z*1e3;
                     
                     SP3.clock(index,k) = clk/1e6; %NOTE: clk >= 999999 stands for bad or absent clock values
+                    SP3.clock_rate = 900;
                     
                     SP3.prn(index) = PRN;
                     SP3.sys(index) = sys_id;
@@ -224,6 +245,10 @@ end
 
 if (~flag_unavail)
     
+    week = zeros(constellations.nEnabledSat,1);
+    time = zeros(constellations.nEnabledSat,1);
+    clk = zeros(constellations.nEnabledSat,1);
+    q = zeros(constellations.nEnabledSat,1);
     for p = 1 : size(week_dow,1)
         %CLK file
         f_clk = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk'],'r');
@@ -233,35 +258,22 @@ if (~flag_unavail)
         
         if (f_clk ~= -1 || f_clk_30s ~= -1)
             
-            if (f_clk ~= -1)
-                flag_clk = 1;
-                if (p == 1)
-                    SP3.time_hr = (SP3.time(1,1) : 300 : SP3.time(k,1)+899)';
-                    SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
-                end
-            end
-            
             if (f_clk_30s ~= -1)
                 if (f_clk ~= -1)
                     fclose(f_clk);
                 end
                 f_clk = f_clk_30s;
-                flag_clk = 2;
-                if (p == 1)
-                    SP3.time_hr = (SP3.time(1,1) :  30 : SP3.time(k,1)+899)';
-                    SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
-                end
             end
-            
+
             while (~feof(f_clk))
                 %get the next line
                 lin = fgetl(f_clk);
-                
+
                 if (strcmp(lin(1:3),'AS '))
                     
                     sys_id = lin(4);
-                    if (strcmp(sys_id,' ') | strcmp(sys_id,'G') | strcmp(sys_id,'R') | strcmp(sys_id,'E') | ...
-                            strcmp(sys_id,'C') | strcmp(sys_id,'J'))
+                    if (strcmp(sys_id,' ') | strcmp(sys_id,'G') | strcmp(sys_id,'R') | ...
+                        strcmp(sys_id,'E') | strcmp(sys_id,'C') | strcmp(sys_id,'J'))
                         %read PRN
                         PRN = sscanf(lin(5:6),'%f');
                         
@@ -273,48 +285,73 @@ if (~flag_unavail)
                         hour   = data{4};
                         minute = data{5};
                         second = data{6};
-                        
-                        %computation of the GPS time in weeks and seconds of week
-                        [week, time] = date2gps([year, month, day, hour, minute, second]);
-                        
-                        %convert GPS time-of-week to continuous time
-                        [~, q] = min(abs(weektow2time(week, time, 'G') - SP3.time_hr(:,1)));
-                        
+
                         switch (sys_id)
                             case 'G'
+                            if (constellations.GPS.enabled)
                                 index = idGPS;
-                            case 'R'
+                            else
+                                continue
+                            end
+                        case 'R'
+                            if (constellations.GLONASS.enabled)
                                 index = idGLONASS;
-                            case 'E'
+                            else
+                                continue
+                            end
+                        case 'E'
+                            if (constellations.Galileo.enabled)
                                 index = idGalileo;
-                            case 'C'
+                            else
+                                continue
+                            end
+                        case 'C'
+                            if (constellations.BeiDou.enabled)
                                 index = idBeiDou;
-                            case 'J'
+                            else
+                                continue
+                            end
+                        case 'J'
+                            if (constellations.QZSS.enabled)
                                 index = idQZSS;
+                            else
+                                continue
+                            end
                         end
                         
                         index = index + PRN - 1;
+                        q(index) = q(index) + 1;
                         
-                        clk = sscanf(lin(41:59),'%f');
-                        
-                        SP3.clock_hr(index,q) = clk;
+                        %computation of the GPS time in weeks and seconds of week
+                        [week(index,q(index)), time(index,q(index))] = date2gps([year, month, day, hour, minute, second]);
+                        clk(index,q(index)) = sscanf(lin(41:59),'%f');
                     end
                 end
             end
             fclose(f_clk);
+            
+            SP3.clock_rate = median(median(diff(time,1,2)));
+            rmndr = 86400/SP3.clock_rate - mod((SP3.time(k,1)-SP3.time(1,1))/SP3.clock_rate,86400/SP3.clock_rate) - 1;
+            SP3.time_hr = (SP3.time(1,1) : SP3.clock_rate : (SP3.time(k,1)+rmndr*SP3.clock_rate))';
+            SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
+            
+            for e = 1 : max(q)
+                for s = 1 : constellations.nEnabledSat
+                    if (week(s,e) ~= 0)
+                        [~, idx] = min(abs(weektow2time(week(s,e), time(s,e), 'G') - SP3.time_hr(:,1)));
+                        SP3.clock_hr(s,idx) = clk(s,e);
+                    end
+                end
+            end
         end
     end
     
     fprintf('Satellite clock rate: ');
-    if (flag_clk == 0)
-        SP3.clock_rate = 900;
-        fprintf('15 minutes.\n');
-    elseif (flag_clk == 1)
-        SP3.clock_rate = 300;
-        fprintf('5 minutes.\n');
+    if (SP3.clock_rate > 60)
+        fprintf([num2str(SP3.clock_rate/60) ' minutes.\n']);
     else
         SP3.clock_rate = 30;
-        fprintf('30 seconds.\n');
+        fprintf([num2str(SP3.clock_rate) ' seconds.\n']);
     end
 end
 

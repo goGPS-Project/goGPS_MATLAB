@@ -1,7 +1,7 @@
-function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda)
+function [XR, dtR, ISBs, N_hat, cov_XR, var_dtR, var_ISBs, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda)
 
 % SYNTAX:
-%   [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda);
+%   [XR, dtR, ISBs, N_hat, cov_XR, var_dtR, var_ISBs, cov_N, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR_approx, XS, pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda);
 %
 % INPUT:
 %   XR_approx    = receiver approximate position (X,Y,Z)
@@ -23,9 +23,11 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 % OUTPUT:
 %   XR = estimated position (X,Y,Z)
 %   dtR = estimated receiver clock
+%   ISBs = estimated inter-system biases
 %   N_hat = linear combination of ambiguity estimate
 %   cov_XR = covariance matrix of estimation errors (rover position)
 %   var_dtR = variance of estimation errors (receiver clock)
+%   var_ISBs = variance of estimation errors (inter-system biases)
 %   cov_N = covariance matrix of estimation errors (ambiguity values)
 %   PDOP = position dilution of precision
 %   HDOP = horizontal dilution of precision
@@ -59,6 +61,8 @@ function [XR, dtR, N_hat, cov_XR, var_dtR, cov_N, PDOP, HDOP, VDOP] = LS_SA_code
 global sigmaq_cod1 sigmaq_ph
 
 v_light = goGNSS.V_LIGHT;
+ISBs = [];
+var_ISBs = [];
 
 %data indexes
 [~, index] = intersect(sat_pr,sat_ph); %sat_ph is a subset of sat_pr
@@ -130,6 +134,11 @@ N_hat = x_hat(3+[1:nsat_ph]);
 %estimated receiver clock
 dtR = x_hat(3+nsat_ph+1) / v_light;
 
+%estimated inter-system biases
+if (num_sys > 1)
+    ISBs = x_hat(3+nsat_ph+1+[1:num_sys-1]) / v_light;
+end
+
 %estimation of the variance of the observation error
 y_hat = A*x_hat + b;
 v_hat = y0 - y_hat;
@@ -138,13 +147,16 @@ sigma02_hat = (v_hat'*(Q^-1)*v_hat) / (n-m);
 %covariance matrix of the estimation error
 if (n > m)
     Cxx = sigma02_hat * (N^-1);
-    cov_XR  = Cxx(1:3,1:3);
-    cov_N   = Cxx(3+[1:nsat_ph],3+[1:nsat_ph]);
-    var_dtR = Cxx(3+nsat_ph+1,3+nsat_ph+1) / v_light^2;
+    cov_XR   = Cxx(1:3,1:3);
+    cov_N    = Cxx(3+[1:nsat_ph],3+[1:nsat_ph]);
+    var_dtR  = Cxx(3+nsat_ph+1,3+nsat_ph+1) / v_light^2;
+    if (num_sys > 1)
+        var_ISBs = Cxx(3+nsat_ph+1+[1:num_sys-1],3+nsat_ph+1+[1:num_sys-1]) / v_light^2;
+    end
 else
-    cov_XR  = [];
-    cov_N   = [];
-    var_dtR = []; 
+    cov_XR   = [];
+    cov_N    = [];
+    var_dtR  = []; 
 end
 
 %DOP computation

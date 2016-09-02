@@ -52,6 +52,15 @@ idQZSS = constellations.QZSS.indexes(1);
 DCB = [];
 DCB.P1C1 = [];
 DCB.P1P2 = [];
+DCB.P1C1.time  = 0;
+DCB.P1C1.value = zeros(constellations.nEnabledSat, 1);
+DCB.P1C1.rms   = zeros(constellations.nEnabledSat, 1);
+DCB.P1C1.prn   = zeros(constellations.nEnabledSat, 1);
+DCB.P1C1.sys   = zeros(constellations.nEnabledSat, 1);
+DCB.P1P2.value = zeros(constellations.nEnabledSat, 1);
+DCB.P1P2.rms   = zeros(constellations.nEnabledSat, 1);
+DCB.P1P2.prn   = zeros(constellations.nEnabledSat, 1);
+DCB.P1P2.sys   = zeros(constellations.nEnabledSat, 1);
 
 %convert GPS time to time-of-week
 gps_tow = weektime2tow(gps_week, time_R);

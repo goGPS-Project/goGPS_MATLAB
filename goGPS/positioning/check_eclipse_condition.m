@@ -61,6 +61,8 @@ elseif (~isempty(strfind(SP3.satType{sat},'BLOCK IIR')))
     t = 2.6*pi/180; % maximum yaw rate of 0.2 deg/sec (Kouba, 2009)
 elseif (~isempty(strfind(SP3.satType{sat},'BLOCK IIF')))
     t = 4.35*pi/180; % maximum yaw rate of 0.11 deg/sec (Dilssner, 2010)
+else
+    t = 0; %ignore noon/midnight maneuvers for other constellations (TBD)
 end
 
 %shadow crossing affects only BLOCK IIA satellites

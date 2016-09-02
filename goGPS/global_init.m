@@ -430,12 +430,18 @@ ol_disp = [];
 % Code and phase residuals
 %-------------------------------------------------------------------------------
 global residuals_fixed residuals_float outliers
-residuals_fixed=NaN(4*nSatTot,1);
-residuals_float=NaN(4*nSatTot,1);
-outliers=zeros(4*nSatTot,1);
+residuals_fixed = NaN(4*nSatTot,1);
+residuals_float = NaN(4*nSatTot,1);
+outliers = zeros(4*nSatTot,1);
+
+%-------------------------------------------------------------------------------
+% Zenith hydrostatic delay
+%-------------------------------------------------------------------------------
+global ZHD
+ZHD = 0;
 
 %-------------------------------------------------------------------------------
 % Slant total delays
 %-------------------------------------------------------------------------------
 global STDs
-STDs=zeros(nSatTot,1);
+STDs = zeros(nSatTot,1);

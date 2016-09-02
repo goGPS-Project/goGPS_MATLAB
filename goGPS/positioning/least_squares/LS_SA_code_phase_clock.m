@@ -1,7 +1,7 @@
-function [dtR, N_hat, var_dtR, cov_N] = LS_SA_code_phase_clock(pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda)
+function [dtR, ISBs, N_hat, var_dtR, var_ISBs, cov_N] = LS_SA_code_phase_clock(pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda)
 
 % SYNTAX:
-%   [dtR, N_hat, var_dtR, cov_N] = LS_SA_code_phase(pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda);
+%   [dtR, ISBs, N_hat, var_dtR, var_ISBs, cov_N] = LS_SA_code_phase(pr, ph, snr, elR, distR_approx, sat_pr, sat_ph, dtS, err_tropo, err_iono, phwindup, sys, lambda);
 %
 % INPUT:
 %   pr           = code observations
@@ -20,12 +20,14 @@ function [dtR, N_hat, var_dtR, cov_N] = LS_SA_code_phase_clock(pr, ph, snr, elR,
 %
 % OUTPUT:
 %   dtR = estimated receiver clock
+%   ISBs = estimated inter-system biases
 %   N_hat = linear combination of ambiguity estimate
 %   var_dtR = variance of estimation errors (receiver clock)
+%   var_ISBs = variance of estimation errors (inter-system biases)
 %   cov_N = covariance matrix of estimation errors (ambiguity values)
 %
 % DESCRIPTION:
-%   Absolute positioning by means of least squares adjustment on code
+%   Receiver clock estimation by means of least squares adjustment on code
 %   observations. Epoch-by-epoch solution.
 
 %----------------------------------------------------------------------------------------------
@@ -52,6 +54,8 @@ function [dtR, N_hat, var_dtR, cov_N] = LS_SA_code_phase_clock(pr, ph, snr, elR,
 global sigmaq_cod1 sigmaq_ph
 
 v_light = goGNSS.V_LIGHT;
+ISBs = [];
+var_ISBs = [];
 
 %data indexes
 [~, index] = intersect(sat_pr,sat_ph); %sat_ph is a subset of sat_pr
@@ -116,6 +120,11 @@ N_hat = x_hat(1:nsat_ph);
 %estimated receiver clock
 dtR = x_hat(nsat_ph+1) / v_light;
 
+%estimated inter-system biases
+if (num_sys > 1)
+    ISBs = x_hat(nsat_ph+1+[1:num_sys-1]) / v_light;
+end
+
 %estimation of the variance of the observation error
 y_hat = A*x_hat + b;
 v_hat = y0 - y_hat;
@@ -126,6 +135,9 @@ if (n > m)
     Cxx = sigma02_hat * (N^-1);
     cov_N   = Cxx(1:nsat_ph,1:nsat_ph);
     var_dtR = Cxx(nsat_ph+1,nsat_ph+1) / v_light^2;
+    if (num_sys > 1)
+        var_ISBs = Cxx(nsat_ph+1+[1:num_sys-1],nsat_ph+1+[1:num_sys-1]) / v_light^2;
+    end
 else
     cov_N   = [];
     var_dtR = []; 

@@ -124,8 +124,8 @@ if (num_sys > 1)
 end
 
 %known term vector
-b_pr = distR_approx + dtR_kalman - v_light*dtS + err_tropo + err_iono; %code
-b_ph = distR_approx + dtR_kalman - v_light*dtS + err_tropo - err_iono + lambda.*phwindup; %phase
+b_pr = distR_approx + sum(dtR_kalman) - v_light*dtS + err_tropo + err_iono; %code
+b_ph = distR_approx + sum(dtR_kalman) - v_light*dtS + err_tropo - err_iono + lambda.*phwindup; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector

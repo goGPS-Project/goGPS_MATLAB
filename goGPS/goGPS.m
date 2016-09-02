@@ -518,7 +518,7 @@ if goGNSS.isPP(mode) % post-processing
                     DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
-                    if (isempty(DCB))
+                    if (~any(DCB.P1C1.value) || ~any(DCB.P1P2.value))
                         
                         %download
                         [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
@@ -577,7 +577,7 @@ if goGNSS.isPP(mode) % post-processing
             if exist('min_epoch','var')
                 report.opt.min_epoch = min_epoch;
                 if size(time_R,1) < min_epoch
-                    fprintf('\nERROR! The number of available epochs is lower than the minimum\n');
+                    fprintf('\nERROR! The number of available epochs is lower than the minimum. The processing will not be performed.\n');
                     % write report
                     report.errors.few_epochs = 1;
                     report_generator(report);  
@@ -870,7 +870,7 @@ if goGNSS.isPP(mode) % post-processing
                     DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M), constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
-                    if (isempty(DCB))
+                    if (~any(DCB.P1C1.value) || ~any(DCB.P1P2.value))
                         
                         %download
                         [file_dcb, compressed] = download_dcb([week_M(1) week_M(end)], [time_M(1) time_M(end)]);
@@ -921,7 +921,7 @@ if goGNSS.isPP(mode) % post-processing
             if exist('min_epoch','var')
                 report.opt.min_epoch = min_epoch;
                 if size(time_R,1) < min_epoch
-                    fprintf('\nERROR! The number of available epochs is lower than the minimum number\n');
+                    fprintf('\nERROR! The number of available epochs is lower than the minimum. The processing will not be performed.\n');
                     % write report
                     report.errors.few_epochs = 1;
                     report_generator(report);  
@@ -2055,7 +2055,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
             
             sbas_t = find_sbas(sbas, 1);
             
-            kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_IAR, flag_XR, flag_tropo);
+            kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
             
             if (~kalman_initialized)
                 time_GPS(1) = []; week_R(1) = [];
@@ -2073,7 +2073,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         fwrite(fid_res, nSatTot, 'int8');
         fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
         fwrite(fid_trp, nSatTot, 'int8');
-        fwrite(fid_trp, STDs, 'double');
+        fwrite(fid_trp, [ZHD; STDs], 'double');
         
         if (flag_plotproc)
             if (flag_cov == 0)
@@ -2126,14 +2126,14 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         
         sbas_t = find_sbas(sbas, t);
 
-        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_IAR, flag_tropo, antenna_PCV, antenna_PCV_S);
+        [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_phase_loop(time_GPS(t), pr1_R(:,t), ph1_R(:,t), dop1_R(:,t), pr2_R(:,t), ph2_R(:,t), dop2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_tropo, antenna_PCV, antenna_PCV_S);
 
         fwrite(fid_kal, [Xhat_t_t; Cee(:)], 'double');
         fwrite(fid_sat, [azM; azR; elM; elR; distM; distR], 'double');
         fwrite(fid_dop, [PDOP; HDOP; VDOP; KPDOP; KHDOP; KVDOP], 'double');
         fwrite(fid_conf, [conf_sat; conf_cs; pivot], 'int8');
         fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
-        fwrite(fid_trp, STDs, 'double');
+        fwrite(fid_trp, [ZHD; STDs], 'double');
         
         if (flag_plotproc)
             if (mode_user == 1 && t == 2), goWB.shiftDown(); end
@@ -3309,7 +3309,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
      conf_sat_OUT, conf_cs, pivot_OUT, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP, ...
      RES_CODE1_FIXED, RES_CODE2_FIXED, RES_PHASE1_FIXED, RES_PHASE2_FIXED,...
      RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT,...
-     outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
+     outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, ZHD, STDs] = load_goGPSoutput(filerootOUT, mode, mode_vinc);
   
     %variable saving for final graphical representations
     nObs = size(Xhat_t_t_OUT,2);
@@ -3719,8 +3719,8 @@ if (goGNSS.isPP(mode) && goGNSS.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(m
     fprintf('Writing troposphere file...\n');
     %file saving
     if (strcmp(fsep_char,'default'))
-        head_str = '    Date        GPS time         GPS week          GPS tow              ZTD';
-        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.3f';
+        head_str = '    Date        GPS time         GPS week          GPS tow              ZHD              ZTD';
+        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.3f %16.3f';
         for s = 1 : nSatTot
             head_str = [head_str '         STD ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
             row_str  = [row_str  '%16.3f']; %#ok<AGROW>
@@ -3728,8 +3728,8 @@ if (goGNSS.isPP(mode) && goGNSS.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(m
         head_str = [head_str '\n'];
         row_str  = [row_str  '\n'];
     else
-        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZTD');
-        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f');
+        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD',fsep_char,'ZTD');
+        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
         for s = 1 : nSatTot
             head_str = [head_str,fsep_char,constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
             row_str  = [row_str, fsep_char,'%16.3f']; %#ok<AGROW>
@@ -3741,7 +3741,7 @@ if (goGNSS.isPP(mode) && goGNSS.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(m
     fprintf(fid_tropo, head_str);
     for i = 1 : nObs
         %file writing
-        fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), estim_tropo(i), STDs(:,i)');
+        fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), STDs(:,i)');
     end
     
     %file closing

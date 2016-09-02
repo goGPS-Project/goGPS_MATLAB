@@ -56,7 +56,7 @@ nsat = size(sat_ph,1);
 [~, index] = intersect(sat_pr,sat_ph);
 
 %phase ambiguities estimation
-rho = distR + dtR - v_light*dtS + err_tropo - err_iono + lambda.*phwindup;
+rho = distR + sum(dtR) - v_light*dtS + err_tropo - err_iono + lambda.*phwindup;
 N_stim = (rho(index) - lambda(index,1).*ph(index))./lambda(index,1);
 
 %initialization

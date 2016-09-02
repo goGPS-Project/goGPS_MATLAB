@@ -1,7 +1,7 @@
-function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_XR, flag_tropo)
+function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_XR, flag_tropo)
 
 % SYNTAX:
-%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_IAR, flag_XR, flag_tropo);
+%   [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, ph1, dop1, pr2, ph2, dop2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
 %
 % INPUT:
 %   pos_R = rover approximate coordinates (X, Y, Z)
@@ -20,7 +20,6 @@ function [kalman_initialized] = goGPS_KF_SA_code_phase_init(XR0, time_rx, pr1, p
 %   lambda = wavelength matrix (depending on the enabled constellations)
 %   frequencies = L1 carrier (phase=1) L2 carrier (phase=2)
 %   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
-%   flag_IAR = boolean variable to enable/disable integer ambiguity resolution
 %   flag_XR  = 0: unknown
 %              1: approximated
 %              2: fixed
@@ -63,6 +62,7 @@ global PDOP HDOP VDOP KPDOP KHDOP KVDOP
 global doppler_pred_range1_R doppler_pred_range2_R
 global ratiotest mutest succ_rate fixed_solution
 global n_sys geoid
+global ZHD
 
 kalman_initialized = 0;
 
@@ -101,6 +101,13 @@ else
     nN = nSatTot;
 end
 
+%number of satellite constellations
+if (~isempty(SP3))
+    nsys = length(unique(SP3.sys(SP3.sys~=0)));
+else
+    nsys = length(unique(Eph(31,Eph(31,:)~=0)));
+end
+
 %--------------------------------------------------------------------------------------------
 % NUMBER OF TROPOSPHERIC PARAMETERS
 %--------------------------------------------------------------------------------------------
@@ -108,10 +115,10 @@ end
 nT = 1;
 
 %--------------------------------------------------------------------------------------------
-% NUMBER OF CLOCK PARAMETERS
+% NUMBER OF CLOCK PARAMETERS (1 RECEIVER CLOCK & nsys-1 INTER-SYSTEM BIASES)
 %--------------------------------------------------------------------------------------------
 
-nC = 1;
+nC = nsys;
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL
@@ -337,17 +344,17 @@ else
     if ~isempty(sat)
         if (~strcmp(obs_comb,'IONO_FREE'))
             if (flag_XR < 2)
-                [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
-                [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
+                [XR, dtR, ISB, N1(sat), cov_XR, var_dtR, var_ISB, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
+                [ ~,   ~,   ~, N2(sat),      ~,       ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
             else
-                [dtR, N1(sat), var_dtR, cov_N1] = LS_SA_code_phase_clock(pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
-                [  ~, N2(sat),       ~, cov_N2] = LS_SA_code_phase_clock(pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
+                [dtR, ISB, N1(sat), var_dtR, var_ISB, cov_N1] = LS_SA_code_phase_clock(pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
+                [  ~,   ~, N2(sat),       ~,       ~, cov_N2] = LS_SA_code_phase_clock(pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
             end
         else
             if (flag_XR < 2)
-                [XR, dtR, N_IF(sat), cov_XR, var_dtR, cov_N_IF, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
+                [XR, dtR, ISB, N_IF(sat), cov_XR, var_dtR, var_ISB, cov_N_IF, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
             else
-                [dtR, N_IF(sat), var_dtR, cov_N_IF] = LS_SA_code_phase_clock(alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
+                [dtR, ISB, N_IF(sat), var_dtR, var_ISB, cov_N_IF] = LS_SA_code_phase_clock(alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
             end
         end
     end
@@ -359,6 +366,10 @@ else
     
     if isempty(var_dtR) %if it was not possible to compute the receiver clock estimation error variance
         var_dtR = sigmaq0_rclock;
+    end
+    
+    if isempty(var_ISB) %if it was not possible to compute the inter-system biases estimation error variance
+        var_ISB = sigmaq0_rclock;
     end
     
     if isempty(cov_N1) %if it was not possible to compute the covariance matrix
@@ -409,14 +420,14 @@ if (flag_tropo)
         %geoid ondulation interpolation
         undu_R = grid_bilin_interp(lam_R*180/pi, phi_R*180/pi, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
     end
-    ZHD_R = saast_dry(pres_R, h_R - undu_R, phi_R*180/pi);
-    ZWD_R = saast_wet(temp_R, goGNSS.STD_HUMI, h_R - undu_R);
+    ZHD = saast_dry(pres_R, h_R - undu_R, phi_R*180/pi);
+    ZWD = saast_wet(temp_R, goGNSS.STD_HUMI, h_R - undu_R);
 else
-    ZWD_R = 0;
+    ZWD = 0;
 end
 
 %initialization of the state vector
-Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; ZWD_R; goGNSS.V_LIGHT*dtR];
+Xhat_t_t = [XR(1); Z_om_1; XR(2); Z_om_1; XR(3); Z_om_1; N; ZWD; goGNSS.V_LIGHT*dtR; goGNSS.V_LIGHT*ISB];
 
 %state update at step t+1 X Vx Y Vy Z Vz comb_N
 %estimation at step t, because the initial velocity is equal to 0
@@ -426,7 +437,7 @@ X_t1_t = T*Xhat_t_t;
 % RECONSTRUCTION OF FULL ZTD
 %--------------------------------------------------------------------------------------------
 if (flag_tropo)
-    Xhat_t_t(o3+nN+(1:nT)) = ZHD_R + Xhat_t_t(o3+nN+(1:nT));
+    Xhat_t_t(o3+nN+(1:nT)) = ZHD + Xhat_t_t(o3+nN+(1:nT));
 end
 
 %--------------------------------------------------------------------------------------------
@@ -445,19 +456,10 @@ Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);
 Cee(o3+nN+1:o3+nN+nT,o3+nN+1:o3+nN+nT) = sigmaq0_tropo * eye(nT);
 Cee(o3+nN+nT+1:o3+nN+nT+nC,o3+nN+nT+1:o3+nN+nT+nC) = goGNSS.V_LIGHT^2*var_dtR * eye(nC);
 
-%--------------------------------------------------------------------------------------------
-% INTEGER AMBIGUITY SOLVING BY LAMBDA METHOD
-%--------------------------------------------------------------------------------------------
-
-% if (flag_IAR && ~isempty(sat))
-%     %try to solve integer ambiguities
-%     [Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat)] = lambdafix(Xhat_t_t([1 o1+1 o2+1]), Xhat_t_t(o3+sat), Cee([1 o1+1 o2+1],[1 o1+1 o2+1]), Cee(o3+sat,o3+sat), Cee([1 o1+1 o2+1],o3+sat));
-% else
-    ratiotest = [ratiotest NaN];
-    mutest    = [mutest NaN];
-    succ_rate = [succ_rate NaN];
-    fixed_solution = [fixed_solution 0];
-% end
+ratiotest = [ratiotest NaN];
+mutest    = [mutest NaN];
+succ_rate = [succ_rate NaN];
+fixed_solution = [fixed_solution 0];
 
 %--------------------------------------------------------------------------------------------
 % DOPPLER-BASED PREDICTION OF PHASE RANGES

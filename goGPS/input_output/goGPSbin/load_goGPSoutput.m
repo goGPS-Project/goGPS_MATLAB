@@ -2,14 +2,14 @@ function [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
           conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP,  ...
           RES_CODE1_FIX, RES_CODE2_FIX, RES_PHASE1_FIX, RES_PHASE2_FIX, ...
           RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT, ...
-          outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, STDs]= load_goGPSoutput (fileroot, mode, mode_vinc)
+          outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, ZHD, STDs]= load_goGPSoutput (fileroot, mode, mode_vinc)
 
 % SYNTAX:
 %   [Xhat_t_t, Yhat_t_t, Cee, azM, azR, elM, elR, distM, distR, ...
 %    conf_sat, conf_cs, pivot, PDOP, HDOP, VDOP, KPDOP, KHDOP, KVDOP,  ...
 %    RES_CODE1_FIX, RES_CODE2_FIX, RES_PHASE1_FIX, RES_PHASE2_FIX, ...
 %    RES_CODE1_FLOAT, RES_CODE2_FLOAT, RES_PHASE1_FLOAT, RES_PHASE2_FLOAT, ...
-%    outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, STDs]= load_goGPSoutput (fileroot, mode, mode_vinc)
+%    outliers_CODE1, outliers_CODE2, outliers_PHASE1, outliers_PHASE2, ZHD, STDs]= load_goGPSoutput (fileroot, mode, mode_vinc)
 %
 % INPUT:
 %   fileroot  = name of the file to be read
@@ -309,6 +309,7 @@ end
 %-------------------------------------------------------------------------------
 
 %initialization
+ZHD  = []; %zenith hydrostatic delay
 STDs = []; %slant total delays
 
 %observations reading
@@ -322,13 +323,15 @@ while ~isempty(d)
     num_sat = fread(fid_trp,1,'int8');                              %read number of satellites
     num_bytes = d.bytes-1;                                          %file size (number of bytes)
     num_words = num_bytes / 8;                                      %file size (number of words)
-    num_packs = num_words / num_sat;                                %file size (number of packets)
+    num_packs = num_words / (1+num_sat);                            %file size (number of packets)
     buf_trp = fread(fid_sat,num_words,'double');                    %file reading
     fclose(fid_trp);                                                %file closing
-    STDs = [STDs  zeros(num_sat,num_packs)];                        %observations concatenation
-    for j = 0 : num_sat : num_words-1
+    ZHD  = [ZHD   zeros(num_packs,1)];                              %observations concatenation
+    STDs = [STDs  zeros(num_sat,num_packs)];                        
+    for j = 0 : (num_sat+1) : num_words-1
         i = i+1;                                                    %epoch counter increase
-        STDs(:,i) = buf_trp(j + [1:num_sat]);                       %observations logging
+        ZHD(i,1)  = buf_trp(j +  1);
+        STDs(:,i) = buf_trp(j + [1:num_sat] + 1);                   %observations logging
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%03d');                                %conversion into a string

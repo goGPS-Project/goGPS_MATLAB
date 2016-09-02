@@ -139,14 +139,19 @@ for j = 1 : nmax
                 index = idGPS;
             elseif (PRN > 100 && PRN <= 100+constellations.GLONASS.numSat && constellations.GLONASS.enabled) %GLONASS
                 index = idGLONASS;
+                PRN = PRN - 100;
             elseif (PRN > 200 && PRN <= 200+constellations.Galileo.numSat && constellations.Galileo.enabled) %Galileo
                 index = idGalileo;
+                PRN = PRN - 200;
             elseif (PRN > 300 && PRN <= 300+constellations.SBAS.numSat && constellations.SBAS.enabled)    %SBAS
                 index = idSBAS;
+                PRN = PRN - 300;
             elseif (PRN > 400 && PRN <= 400+constellations.BeiDou.numSat && constellations.BeiDou.enabled)  %BeiDou
                 index = idBeiDou;
+                PRN = PRN - 400;
             elseif (PRN > 500 && PRN <= 500+constellations.QZSS.numSat && constellations.QZSS.enabled)    %QZSS
                 index = idQZSS;
+                PRN = PRN - 500;
             else
                 continue
             end
