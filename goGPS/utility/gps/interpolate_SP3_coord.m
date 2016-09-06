@@ -44,7 +44,7 @@ antPCO    = SP3.antPCO(:, :, sat)';
 n = 10;
 
 %number of seconds in a quarter of an hour
-quarter_sec = 900;
+interval = SP3.coord_rate;
 
 %find the SP3 epoch closest to the interpolation time
 [~, p] = min(abs(SP3_time - time));
@@ -61,8 +61,8 @@ SP3_Z = SP3_coord(3,p+(-n/2:n/2));
 x = 1 : n+1;
 
 %Lagrange interpolation (coordinates)
-s = 1/quarter_sec;
-t = n/2+1 - b/quarter_sec;
+s = 1/interval;
+t = n/2+1 - b/interval;
 u = t - s : s : t + s;
 
 LI_SP3_X = LagrangeInter(x, SP3_X, u);

@@ -373,7 +373,7 @@ if (nsat >= min_nsat)
     end
     
     %when the tropospheric delay is estimated, only its hydrostatic part is modelled
-    if (flag_tropo)
+    if (flag_tropo && n > 0)
         gmfh_R = zeros(size(err_tropo));
         gmfw_R = zeros(size(err_tropo));
         err_tropo0 = zeros(size(err_tropo));

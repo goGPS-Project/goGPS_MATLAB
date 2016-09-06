@@ -127,10 +127,11 @@ SP3.prn   = zeros(constellations.nEnabledSat,1);
 SP3.sys   = zeros(constellations.nEnabledSat,1);
 SP3.time_hr = [];
 SP3.clock_hr = [];
+SP3.coord_rate = 900;
+SP3.clock_rate = 900;
 
 k = 0;
 flag_unavail = 0;
-flag_clk = 0;
 
 for p = 1 : size(week_dow,1)
     
@@ -147,6 +148,12 @@ for p = 1 : size(week_dow,1)
             
             %get the next line
             lin = fgetl(f_sp3);
+            
+            if (strcmp(lin(1:2),'##'))
+                rate = str2num(lin(25:38));
+                SP3.coord_rate = rate;
+                SP3.clock_rate = rate;
+            end
             
             if (strcmp(lin(1),'*'))
                 
@@ -223,7 +230,6 @@ for p = 1 : size(week_dow,1)
                     SP3.coord(3, index, k) = Z*1e3;
                     
                     SP3.clock(index,k) = clk/1e6; %NOTE: clk >= 999999 stands for bad or absent clock values
-                    SP3.clock_rate = 900;
                     
                     SP3.prn(index) = PRN;
                     SP3.sys(index) = sys_id;
@@ -330,7 +336,7 @@ if (~flag_unavail)
             end
             fclose(f_clk);
             
-            SP3.clock_rate = median(median(diff(time,1,2)));
+            SP3.clock_rate = median(median(diff(time(sum(time,2)~=0,:),1,2)));
             rmndr = 86400/SP3.clock_rate - mod((SP3.time(k,1)-SP3.time(1,1))/SP3.clock_rate,86400/SP3.clock_rate) - 1;
             SP3.time_hr = (SP3.time(1,1) : SP3.clock_rate : (SP3.time(k,1)+rmndr*SP3.clock_rate))';
             SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));

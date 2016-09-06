@@ -118,7 +118,7 @@ end
             flag_mixed = 0;
         end
         
-        if (constellations.GPS.enabled || flag_mixed)
+        if (constellations.GPS.enabled || flag_mixed || only_iono)
             if (exist(filename,'file'))
                 %parse RINEX navigation file (GPS) NOTE: filename expected to
                 %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
@@ -131,7 +131,7 @@ end
             end
         end
         
-        if (constellations.GLONASS.enabled)
+        if (constellations.GLONASS.enabled && ~only_iono)
             if (exist([filename(1:end-1) 'g'],'file'))
                 %parse RINEX navigation file (GLONASS)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
@@ -143,7 +143,7 @@ end
             end
         end
         
-        if (constellations.Galileo.enabled)
+        if (constellations.Galileo.enabled && ~only_iono)
             if (exist([filename(1:end-1) 'l'],'file'))
                 %parse RINEX navigation file (Galileo)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
@@ -155,7 +155,7 @@ end
             end
         end
         
-        if (constellations.BeiDou.enabled)
+        if (constellations.BeiDou.enabled && ~only_iono)
             if (exist([filename(1:end-1) 'c'],'file'))
                 %parse RINEX navigation file (BeiDou)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
@@ -167,7 +167,7 @@ end
             end
         end
         
-        if (constellations.QZSS.enabled)
+        if (constellations.QZSS.enabled && ~only_iono)
             if (exist([filename(1:end-1) 'q'],'file'))
                 %parse RINEX navigation file (QZSS)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
