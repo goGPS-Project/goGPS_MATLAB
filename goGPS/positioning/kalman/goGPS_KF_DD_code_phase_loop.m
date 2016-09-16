@@ -829,9 +829,9 @@ if (nsat >= min_nsat)
                     y0_noamb(length(sat_pr_np)*2+               (1:length(sat_np)))=y0_noamb(length(sat_pr_np)*2+               (1:length(sat_np)))+lambda(sat_np,1).*X_t1_t(o3+        sat_np); %add predicted ambiguity to y0 (L1)
                     y0_noamb(length(sat_pr_np)*2+length(sat_np)+(1:length(sat_np)))=y0_noamb(length(sat_pr_np)*2+length(sat_np)+(1:length(sat_np)))+lambda(sat_np,2).*X_t1_t(o3+nSatTot+sat_np); %add predicted ambiguity to y0 (L2)
                 elseif (strcmp(obs_comb,'IONO_FREE'))
-                    alpha1 = goGNSS.F1^2/(goGNSS.F1^2-goGNSS.F2^2);
-                    alpha2 = goGNSS.F2^2/(goGNSS.F1^2-goGNSS.F2^2);
-                    y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+(alpha1*lambda(sat_np,1).*X_t1_t(o3+sat_np) - alpha2*lambda(sat_np,2).*X_t1_t(o3+nSatTot+sat_np)); %add predicted ambiguity to y0 (IF)
+                    alpha1 = lambda(:,4);
+                    alpha2 = lambda(:,5);
+                    y0_noamb(length(sat_pr_np)+1:end)=y0_noamb(length(sat_pr_np)+1:end)+(alpha1(sat_np).*lambda(sat_np,1).*X_t1_t(o3+sat_np) - alpha2(sat_np).*lambda(sat_np,2).*X_t1_t(o3+nSatTot+sat_np)); %add predicted ambiguity to y0 (IF)
                 end
             else
                 if (frequencies == 1)

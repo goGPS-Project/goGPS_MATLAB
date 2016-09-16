@@ -1,7 +1,7 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, is_bias, eclipsed] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, frequencies, flag_XR, flag_XS, flag_OOLO)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, eclipsed, ISBs, var_ISBs, y0, b, A, Q] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, frequencies, flag_XR, flag_XS, flag_OOLO, flag_static_batch)
 
 % SYNTAX:
-%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch, var_SPP, residuals_obs, is_bias, eclipsed] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO);
+%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch, var_SPP, residuals_obs, eclipsed, ISBs, var_ISBs, y0, b, A, Q] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO, flag_static_batch);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -28,6 +28,8 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %                 1: already estimated
 %   flag_OOLO   = 0: outlier detection enabled
 %                 1: outlier detection disabled
+%   flag_static_batch = 0: parent function does not require least-squares variables for static batch processing
+%                       1: parent function requires least-squares variables for static batch processing (i.e. keep the same linearization coordinates XR0)
 %
 % OUTPUT:
 %   XR          = receiver position (X,Y,Z)
@@ -55,8 +57,13 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %   var_SPP     = [code single point positioning a posteriori sigma, sum of
 %                weighted squared residuals, redoundancy]
 %   residuals_obs = vector with [residuals of all input observation, computed from the final estimates, correspondent sat id]
-%   is_bias     = inter-systems bias (vector with all possibile systems)
 %   eclipsed    = satellites under eclipse condition (vector) (0: OK, 1: eclipsed)
+%   ISBs        = estimated inter-system biases
+%   var_ISBs    = variance of estimation errors (inter-system biases)
+%   y0 = least-squares observation vector
+%   A = least-squares design matrix
+%   b = least-squares known term vector
+%   Q = observation covariance matrix
 %
 % DESCRIPTION:
 %   Compute initial receiver and satellite position and clocks by iterative
@@ -95,9 +102,18 @@ else
     obs_comb = 'IONO_FREE';
 end
 
+if (~exist('flag_static_batch','var'))
+    flag_static_batch = 0;
+end
+
 bad_epoch=NaN;
 var_SPP = NaN(1,3);
-is_bias=NaN(6,1);
+ISBs = [];
+var_ISBs = [];
+y0 = [];
+b = [];
+A = [];
+Q = [];
 
 %----------------------------------------------------------------------------------------------
 % FIRST ESTIMATE OF SATELLITE POSITIONS
@@ -122,7 +138,7 @@ obs_outlier = [];
 
 if (flag_XS == 0)
     %satellite position and clock error
-    [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
+    [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys] = satellite_positions(time_rx, pseudorange, sat0, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda);
 
 else
     XS  = XS0;
@@ -149,7 +165,7 @@ if (isempty(XR0))
     XR0 = zeros(3,1);
 end
 
-if (flag_XR < 2 || ~any(XR0))
+if ((flag_XR < 2 || ~any(XR0)) && ~flag_static_batch)
     
     index = find(no_eph == 0);
     
@@ -172,18 +188,22 @@ if (flag_XR < 2 || ~any(XR0))
         return
     end
 
-    %iterative least-squares from XR0,i.e. given coordinates or the center of the Earth (i.e. [0; 0; 0])
+    %iterative least-squares from XR0, i.e. given coordinates or the center of the Earth (i.e. [0; 0; 0])
     n_iter_max = 5;
     n_iter = 0;
     var_SPP(1) = Inf;
     while(var_SPP(1) > SPP_threshold^2 && n_iter < n_iter_max)
-        [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index), SPP_threshold);       
+        [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index), SPP_threshold);       
         %bad_sat(sat(bad_obs))=1;
         XR0 = XR;
         n_iter = n_iter + 1;
     end
 else
     XR = XR0; %known receiver coordinates
+end
+
+if (flag_static_batch)
+    flag_XR = 1;
 end
 
 %----------------------------------------------------------------------------------------------
@@ -288,7 +308,7 @@ if (nsat >= nsat_required)
 
         if (flag_XR < 2) %if unknown or approximate receiver position
 
-            [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), is_bias] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
+            [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), y0, b, A, Q] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
             residuals_obs(index_obs,2)=sat;
             if (exist('flag_OOLO','var') && flag_OOLO==1)
                 if ~isempty(bad_obs)
@@ -340,7 +360,7 @@ if (nsat >= nsat_required)
             end
             
         else
-            [dtR, var_dtR, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), is_bias] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
+            [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), y0, b, A, Q] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
             residuals_obs(index_obs,2)=sat;
             cond_num = 0;
             if (exist('flag_OOLO','var') && flag_OOLO==1)
@@ -394,7 +414,7 @@ if (nsat >= nsat_required)
 
         if (flag_XS == 0)
             %satellite position and clock error
-            [XS, dtS, XS_tx, VS_tx, time_tx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
+            [XS, dtS, XS_tx, VS_tx, time_tx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda);
         else
             XS  = XS0;
             dtS = dtS0;

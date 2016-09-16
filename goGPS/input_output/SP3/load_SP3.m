@@ -353,10 +353,10 @@ if (~flag_unavail)
     end
     
     fprintf('Satellite clock rate: ');
-    if (SP3.clock_rate > 60)
+    if (SP3.clock_rate >= 60)
         fprintf([num2str(SP3.clock_rate/60) ' minutes.\n']);
     else
-        SP3.clock_rate = 30;
+        %SP3.clock_rate = 30;
         fprintf([num2str(SP3.clock_rate) ' seconds.\n']);
     end
 end

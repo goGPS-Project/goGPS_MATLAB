@@ -73,11 +73,11 @@ nSatTot = size(pr1,1);
 ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
 %iono-free coefficients
-alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
-alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
-alphat = 77;
-alphan = 60;
-lambdaIF = alphat/(alphat^2-alphan^2)*lambda(:,1);
+lambdaIF = lambda(:,3);
+alpha1   = lambda(:,4);
+alpha2   = lambda(:,5);
+alphat   = lambda(:,6);
+alphan   = lambda(:,7);
 
 %topocentric coordinates initialization
 azR = zeros(nSatTot,1);
@@ -89,6 +89,9 @@ distM = zeros(nSatTot,1);
 
 %phase wind-up matrix initialization
 phwindup = zeros(nSatTot,1);
+
+%inter-system biases
+ISB = [];
 
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DUAL FREQUENCY
@@ -118,7 +121,9 @@ nT = 1;
 % NUMBER OF CLOCK PARAMETERS (1 RECEIVER CLOCK & nsys-1 INTER-SYSTEM BIASES)
 %--------------------------------------------------------------------------------------------
 
-nC = nsys;
+% nC = nsys;
+%disable epoch-by-epoch ISB estimation
+nC = 1;
 
 %--------------------------------------------------------------------------------------------
 % KALMAN FILTER DYNAMIC MODEL
@@ -239,7 +244,7 @@ if (length(sat_pr) >= min_nsat_LS)
         if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
             [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
         else
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
         end
     else
         [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
@@ -254,6 +259,9 @@ if (length(sat_pr) >= min_nsat_LS)
     %apply cutoffs also to phase satellites
     sat_removed = setdiff(sat_pr_old, sat_pr);
     sat(ismember(sat,sat_removed)) = [];
+    
+    %disable epoch-by-epoch ISB estimation
+    sys = ones(size(sys));
     
     %if multi-system observations, then an additional parameter to estimate the inter-system bias
     %for each additional system is needed
@@ -345,16 +353,16 @@ else
         if (~strcmp(obs_comb,'IONO_FREE'))
             if (flag_XR < 2)
                 [XR, dtR, ISB, N1(sat), cov_XR, var_dtR, var_ISB, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
-                [ ~,   ~,   ~, N2(sat),      ~,       ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
+                [ ~,   ~,   ~, N2(sat),      ~,       ~,       ~, cov_N2] = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
             else
                 [dtR, ISB, N1(sat), var_dtR, var_ISB, cov_N1] = LS_SA_code_phase_clock(pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono1, phwindup(sat_pr), sys, lambda(sat_pr,1));
                 [  ~,   ~, N2(sat),       ~,       ~, cov_N2] = LS_SA_code_phase_clock(pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono2, phwindup(sat_pr), sys, lambda(sat_pr,2));
             end
         else
             if (flag_XR < 2)
-                [XR, dtR, ISB, N_IF(sat), cov_XR, var_dtR, var_ISB, cov_N_IF, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
+                [XR, dtR, ISB, N_IF(sat), cov_XR, var_dtR, var_ISB, cov_N_IF, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), alphat(sat_pr).*ph1(sat_pr) - alphan(sat_pr).*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
             else
-                [dtR, ISB, N_IF(sat), var_dtR, var_ISB, cov_N_IF] = LS_SA_code_phase_clock(alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), alphat*ph1(sat_pr) - alphan*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
+                [dtR, ISB, N_IF(sat), var_dtR, var_ISB, cov_N_IF] = LS_SA_code_phase_clock(alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), alphat(sat_pr).*ph1(sat_pr) - alphan(sat_pr).*ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), sys, lambdaIF(sat_pr,1));
             end
         end
     end
@@ -454,7 +462,10 @@ Cee(o1+2:o2,o1+2:o2) = sigmaq0 * eye(o1-1);
 Cee(o2+2:o3,o2+2:o3) = sigmaq0 * eye(o1-1);
 Cee(o3+1:o3+nN,o3+1:o3+nN) = diag(sigma2_N);
 Cee(o3+nN+1:o3+nN+nT,o3+nN+1:o3+nN+nT) = sigmaq0_tropo * eye(nT);
-Cee(o3+nN+nT+1:o3+nN+nT+nC,o3+nN+nT+1:o3+nN+nT+nC) = goGNSS.V_LIGHT^2*var_dtR * eye(nC);
+Cee(o3+nN+nT+1,o3+nN+nT+1) = goGNSS.V_LIGHT^2*var_dtR;
+if (~isempty(ISB))
+    Cee(o3+nN+nT+2:o3+nN+nT+nC,o3+nN+nT+2:o3+nN+nT+nC) = goGNSS.V_LIGHT^2*var_ISB * eye(nC-1);
+end
 
 ratiotest = [ratiotest NaN];
 mutest    = [mutest NaN];

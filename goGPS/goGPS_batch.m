@@ -1,13 +1,13 @@
-function goGPS_batch(iniFile, mode, year_start, year_end, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN, folder) %#ok<INUSL>
+function goGPS_batch(iniFile, mode, year_start, year_end, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN, folder, seamless_proc) %#ok<INUSL>
 
 % SYNTAX:
-%   goGPS_batch(iniFile, mode, year_start, year_end, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN, folder);
+%   goGPS_batch(iniFile, mode, year_start, year_end, doy_start, doy_end, markerR, sessionR, extR, markerM, sessionM, extM, idN, sessionN, extN, folder, seamless_proc);
 %
 % INPUT:
 %   iniFile    = full path to the goGPS .ini file                       [string]
 %   mode       = functioning mode (see goGNSS section 'goGPS MODES')    [integer]
 %   year_start = year (start)                                           [integer]
-%   year_end   = year (end)                                           [integer]
+%   year_end   = year (end)                                             [integer]
 %   doy_start  = day-of-year (start)                                    [integer]
 %   doy_end    = day-of-year (end)                                      [integer]
 %   markerR    = rover marker name (e.g. 'UBLX')                        [string]
@@ -128,7 +128,9 @@ flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> 
 
 min_epoch = 1440;       % minimum number of observed epoch to process
 
-seamless_proc = 1;      % seamless RINEX processing (i.e. do not re-initialize the Kalman filter at each DOY)
+if (nargin < 17)
+    seamless_proc = 0;      % seamless RINEX processing (i.e. do not re-initialize the Kalman filter at each DOY)
+end
 
 %-------------------------------------------------------------------------------
 % MASTER STATION POSITION
@@ -267,6 +269,9 @@ o3 = order*3;
 %ambiguity restart method
 amb_restart_method = 2;
 
+%processing interval
+processing_interval = 0; %[sec]
+
 %-------------------------------------------------------------------------------
 % INTEGER AMBIGUITY RESOLUTION
 %-------------------------------------------------------------------------------
@@ -355,7 +360,8 @@ else
 end
 fid_extract = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_extraction.txt'],'w');
 
-fid_extract_TRP = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_troposphere.txt'],'w');
+fid_extract_ZTD = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_ZTD.txt'],'w');
+fid_extract_ZWD = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_ZWD.txt'],'w');
 
 fid_extract_POS = fopen([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_position.txt'],'w');
 fprintf(fid_extract_POS,' yyyy-ddd   date          time           UTM east         UTM north      ellips. height        ZTD\n'); 
@@ -447,12 +453,18 @@ for year = year_start : 1 : year_end
                 goGPS
                 
                 idx = size(date_R,1);
-                tropo_vec = nan(1,86400/interval);
+                tropo_vec_ZTD = nan(1,86400/interval);
+                tropo_vec_ZWD = nan(1,86400/interval);
                 if exist('X_KAL','var') && exist('Xhat_t_t_OUT','var')
                     fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
-                    tropo_vec(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:); %#ok<NODEF>
-                    fprintf(fid_extract_TRP,'%.6f ', tropo_vec);
-                    fprintf(fid_extract_TRP,'\n');
+                    tropo_vec_ZTD(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:); %#ok<NODEF>
+                    fprintf(fid_extract_ZTD,'%.6f ', tropo_vec_ZTD);
+                    fprintf(fid_extract_ZTD,'\n');
+                    if (~isempty(ZHD))
+                        tropo_vec_ZWD(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:)-ZHD';
+                        fprintf(fid_extract_ZWD,'%.6f ', tropo_vec_ZWD);
+                        fprintf(fid_extract_ZWD,'\n');
+                    end
                     for e = 1 : idx
                         fprintf(fid_extract_POS,' %04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', year4, doy, date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(e), NORTH_UTM(e), h_KAL(e), Xhat_t_t_OUT(end-1,e));
                     end
@@ -487,10 +499,11 @@ for year = year_start : 1 : year_end
 end
 
 fclose(fid_extract);
-fclose(fid_extract_TRP);
+fclose(fid_extract_ZTD);
+fclose(fid_extract_ZWD);
 fclose(fid_extract_POS);
 fclose(fid_extract_OBS);
 
-figure
-tropo = load([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_troposphere.txt']);
-plot(reshape(tropo',1,size(tropo,1)*size(tropo,2)));
+% figure
+% tropo = load([folderOUT '/' markerM_undersc markerR '_' num2str(year_start,'%04d') num2str(doy_start,'%03d') '-' num2str(year_end,'%04d') num2str(doy_end,'%03d') '_ZWD.txt']);
+% plot(reshape(tropo',1,size(tropo,1)*size(tropo,2)));

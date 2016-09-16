@@ -1,7 +1,7 @@
-function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb)
+function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda)
 
 % SYNTAX:
-%   [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
+%   [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda);
 %
 % INPUT:
 %   time_rx   = reception time
@@ -15,6 +15,7 @@ function [time_tx, dtS] = transmission_time(time_rx, range, sat, Eph, SP3, sbas,
 %   dtR       = receiver clock offset
 %   frequencies = L1 carrier (phase=1), L2 carrier (phase=2)
 %   obs_comb    = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
+%   lambda      = matrix containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   time_tx = transmission time
@@ -77,7 +78,7 @@ if (isempty(SP3))
                 %TO BE DONE!
             else
                 if (frequencies(1) == 2)
-                    gamma = (goGNSS.F1/goGNSS.F2)^2;
+                    gamma = (lambda(1,2)/lambda(1,1))^2;
                     tgd = gamma*tgd;
                 end
             end

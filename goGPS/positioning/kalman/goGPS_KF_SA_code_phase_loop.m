@@ -99,18 +99,17 @@ ZHD = 0;
 ionoFactor = goGNSS.getInterFreqIonoFactor(lambda);
 
 %iono-free coefficients
-alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
-alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
-alphat = 77;
-alphan = 60;
-lambdaIF = alphat/(alphat^2-alphan^2)*lambda(:,1);
+lambdaIF = lambda(:,3);
+alpha1   = lambda(:,4);
+alpha2   = lambda(:,5);
+alphat   = lambda(:,6);
+alphan   = lambda(:,7);
 
 %----------------------------------------------------------------------------------------
 % MODEL ERROR COVARIANCE MATRIX
 %----------------------------------------------------------------------------------------
 
-%re-initialization of Cvv matrix of the model error
-% (if a static model is used, no noise is added)
+%re-initialization of Cvv matrix of the model error (if a static model is used, no noise is added)
 Cvv = zeros(o3+nN+nT+nC);
 if (o1 > 1)
     Cvv(o1,o1) = sigmaq_vE;
@@ -126,7 +125,7 @@ end
 if (flag_tropo)
     Cvv(o3+nN+1:o3+nN+nT,o3+nN+1:o3+nN+nT) = sigmaq_tropo * eye(nT);
 end
-Cvv(o3+nN+nT+1:o3+nN+nT+nC,o3+nN+nT+1:o3+nN+nT+nC) = sigmaq_rclock * eye(nC);
+Cvv(o3+nN+nT+1,o3+nN+nT+1) = sigmaq_rclock;
 
 %------------------------------------------------------------------------------------
 % SATELLITE SELECTION
@@ -286,7 +285,7 @@ if (nsat >= min_nsat)
         if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
             [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0);
         else
-            [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0);
+            [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0);
         end
     else
         [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0);
@@ -359,8 +358,8 @@ if (nsat >= min_nsat)
     if (strcmp(obs_comb,'IONO_FREE'))
         prIF = zeros(size(pr1));
         phIF = zeros(size(ph1));
-        prIF(sat_pr) = alpha1*pr1(sat_pr) - alpha2*pr2(sat_pr);
-        phIF(sat)    = alphat*ph1(sat)    - alphan*ph2(sat);
+        prIF(sat_pr) = alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr);
+        phIF(sat)    = alphat(sat).*ph1(sat) - alphan(sat).*ph2(sat);
         
         %compute the nadir angle
         z = asin((goGNSS.ELL_A_GPS/norm(XS)).*sind(90-elR(sat_pr)));
@@ -390,6 +389,9 @@ if (nsat >= min_nsat)
         err_tropo0 = err_tropo;
         beta_R = zeros(n,nT);
     end
+    
+    %disable epoch-by-epoch ISB estimation
+    sys = ones(size(sys));
 
     %if the number of available satellites after the cutoffs is equal or greater than min_nsat
     if (nsat >= min_nsat)
@@ -445,6 +447,7 @@ if (nsat >= min_nsat)
             check_pivot = 1;
         end
         
+        
         %------------------------------------------------------------------------------------
         % CYCLE-SLIP
         %------------------------------------------------------------------------------------
@@ -462,7 +465,7 @@ if (nsat >= min_nsat)
                         check_cs = 1;
                     end
                 elseif (strcmp(obs_comb,'IONO_FREE'))
-                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), phIF(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), alpha1*doppler_pred_range1_R(sat_pr) - alpha2*doppler_pred_range2_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambdaIF(sat_pr,1)); %#ok<ASGLU>
+                    [check_cs, N_slip, sat_slip] = cycle_slip_detection_SA(X_t1_t(o3+1:o3+nSatTot), phIF(sat_pr), distR(sat_pr), dtS, X_t1_t(o3+nN+nT+(1:nC)), err_tropo, zeros(size(sat_pr)), phwindup(sat_pr), alpha1(sat_pr).*doppler_pred_range1_R(sat_pr) - alpha2(sat_pr).*doppler_pred_range2_R(sat_pr), sat_pr, sat, sat_born, cs_threshold, lambdaIF(sat_pr,1)); %#ok<ASGLU>
                 end
             else
                 if (frequencies == 1)
@@ -789,22 +792,22 @@ if (nsat >= min_nsat)
         if (~isempty(sat_pr))
             if (length(frequencies) == 2 && strcmp(obs_comb,'NONE'))
                 if (flag_tropo)
-                    y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))+sum(gmfw_R.*X_t1_t(o3+nN+nT));
-                    y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(1:length(sat_pr))+sum(gmfw_R.*X_t1_t(o3+nN+nT));
-                    y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+nT));
-                    y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+nT));
+                    y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))+sum(gmfw_R.*X_t1_t(o3+nN+[1:nT]));
+                    y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(1:length(sat_pr))+sum(gmfw_R.*X_t1_t(o3+nN+[1:nT]));
+                    y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+[1:nT]));
+                    y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+[1:nT]));
                 end
-                y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))+sum(X_t1_t(o3+nN+nT+nC));
-                y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(1:length(sat_pr))+sum(X_t1_t(o3+nN+nT+nC));
-                y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+sum(X_t1_t(o3+nN+nT+nC));
-                y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+sum(X_t1_t(o3+nN+nT+nC));
+                y0_noamb(1:length(sat_pr))                  = y0_noamb(1:length(sat_pr))+sum(X_t1_t(o3+nN+nT+[1:nC]));
+                y0_noamb(length(sat_pr)+(1:length(sat_pr))) = y0_noamb(1:length(sat_pr))+sum(X_t1_t(o3+nN+nT+[1:nC]));
+                y0_noamb(length(sat_pr)*2+            (1:length(sat))) = y0_noamb(length(sat_pr)*2+            (1:length(sat)))+sum(X_t1_t(o3+nN+nT+[1:nC]));
+                y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat))) = y0_noamb(length(sat_pr)*2+length(sat)+(1:length(sat)))+sum(X_t1_t(o3+nN+nT+[1:nC]));
             else
                 if (flag_tropo)
-                    y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +sum(gmfw_R.*X_t1_t(o3+nN+nT));
-                    y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+nT));
+                    y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +sum(gmfw_R.*X_t1_t(o3+nN+[1:nT]));
+                    y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+sum(gmfw_R(index_ph).*X_t1_t(o3+nN+[1:nT]));
                 end
-                y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +sum(X_t1_t(o3+nN+nT+nC));
-                y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+sum(X_t1_t(o3+nN+nT+nC));
+                y0_noamb(1:length(sat_pr))     = y0_noamb(1:length(sat_pr))    +sum(X_t1_t(o3+nN+nT+[1:nC]));
+                y0_noamb(length(sat_pr)+1:end) = y0_noamb(length(sat_pr)+1:end)+sum(X_t1_t(o3+nN+nT+[1:nC]));
             end
         end
         

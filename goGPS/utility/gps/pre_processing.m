@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -25,6 +25,8 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %   flag_XR = 2: coordinate fixed to XR0 values
 %           = 1: approximate coordinates available
 %           = 0: no apriori coordinates available
+%   sbas = SBAS corrections
+%   constellations = struct with multi-constellation settings
 
 % OUTPUT:
 %   pr1 = processed code observation (L1 carrier)
@@ -40,6 +42,8 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %   status_obs = for each satellite. NaN: not observed, 0: observed only, 1: used, -1: outlier 
 %   status_cs = [satellite_number, frequency, epoch, cs_correction_fix, cs_correction_float, cs_corrected(0:no, 1:yes)]: vector with cs information
 %   eclipsed = satellites under eclipse condition (vector) (0: OK, 1: eclipsed)
+%   ISBs        = estimated inter-system biases
+%   var_ISBs    = variance of estimation errors (inter-system biases)
 %
 % DESCRIPTION:
 %   Pre-processing of code and phase observations to correct them for
@@ -72,14 +76,26 @@ global cutoff snr_threshold n_sys flag_doppler_cs
 v_light = goGNSS.V_LIGHT;
 
 %iono-free coefficients
-alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
-alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
+alpha1 = lambda(:,4);
+alpha2 = lambda(:,5);
 
 %number of epochs
 nEpochs = length(time);
 
 %receiver clock error
 dtR = zeros(nEpochs,1);
+
+%inter-system biases
+if (~isempty(SP3))
+    nsys = length(unique(SP3.sys(SP3.sys~=0)));
+else
+    nsys = length(unique(Eph(31,Eph(31,:)~=0)));
+end
+if (nsys > 1)
+    ISBs = zeros(nsys-1, nEpochs);
+else 
+    ISBs = [];
+end
 
 %receiver clock drift
 dtRdot = zeros(nEpochs-1,1);
@@ -114,6 +130,7 @@ eclipsed = zeros(nSatTot,nEpochs);
 cond_num = zeros(nEpochs,1); %#ok<*NASGU>
 cov_XR = zeros(3,3,nEpochs);
 var_dtR = NaN(nEpochs,1);
+var_ISBs = NaN(nsys-1,nEpochs);
 status_obs = NaN(nSatTot,nEpochs);
 status_cs=[];
 
@@ -123,20 +140,51 @@ status_cs=[];
 [ph1] = remove_short_arcs(ph1, lagr_order);
 [ph2] = remove_short_arcs(ph2, lagr_order);
 
+%------------------------------------------------------------------------------------------------------------------
+% RECEIVER CLOCK  AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: INITIALIZATION
+%------------------------------------------------------------------------------------------------------------------
+
+%number of position solutions to be estimated
+npos = 1;
+
+%vector to keep track of the number of observations available at each epoch
+n_obs_epoch = NaN(size(time));
+
+%cumulative number of observations, to keep track of where each epoch begins
+epoch_index = NaN(size(time));
+epoch_track = 0;
+
+%total number of observations (for matrix initialization)
+n_obs_tot = sum(sum(pr1(:,:,1) ~= 0));
+
+y0_all = NaN(n_obs_tot,1);
+b_all  = NaN(n_obs_tot,1);
+A_all  = NaN(n_obs_tot,npos*3+length(time)+(nsys-1));
+Q_all  = NaN(n_obs_tot,1);
+
 for i = 1 : nEpochs
     
     %--------------------------------------------------------------------------------------------
     % SATELLITE AND EPHEMERIS SELECTION
     %--------------------------------------------------------------------------------------------
     
-    sat0 = find(pr1(:,i) ~= 0);
+    if (frequencies(1) == 1)
+        if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
+            sat0 = find(pr1(:,i) ~= 0);
+        else
+            sat0 = find(pr1(:,i) ~= 0 & pr2(:,i) ~= 0);
+        end
+    else
+        sat0 = find(pr2(:,i) ~= 0);
+    end
+    
     status_obs(sat0,i) = 0; % satellite observed
 
     Eph_t = rt_find_eph (Eph, time(i), nSatTot);
     sbas_t = find_sbas(sbas, i);
     
     %----------------------------------------------------------------------------------------------
-    % RECEIVER POSITION AND CLOCK ERROR
+    % EPOCH-BY-EPOCH RECEIVER POSITION AND CLOCK ERROR
     %----------------------------------------------------------------------------------------------
     
     min_nsat_LS = 3 + n_sys;
@@ -144,12 +192,25 @@ for i = 1 : nEpochs
     if (length(sat0) >= min_nsat_LS)
         if (frequencies(1) == 1)
             if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-                [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, ~, eclipsed_tmp] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0); %#ok<ASGLU>
+                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, 1); %#ok<ASGLU>
             else
-                [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, ~, eclipsed_tmp] = init_positioning(time(i), alpha1*pr1(sat0,i) - alpha2*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 0); %#ok<ASGLU>
+                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, 1); %#ok<ASGLU>
             end
         else
-            [~, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, ~, eclipsed_tmp] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0); %#ok<ASGLU>
+            [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, 1); %#ok<ASGLU>
+        end
+        
+        if (~isempty(A))
+            n_obs_epoch(i) = length(y0);
+            y0_all(epoch_track+1:epoch_track+n_obs_epoch(i)) = y0;
+            b_all( epoch_track+1:epoch_track+n_obs_epoch(i)) =  b;
+            A_all( epoch_track+1:epoch_track+n_obs_epoch(i),1:3) = A(:,1:3);
+            if (nsys > 1)
+                A_all( epoch_track+1:epoch_track+n_obs_epoch(i),end-(nsys-2):end) = A(:,end-(nsys-2):end);
+            end
+            Q_all( epoch_track+1:epoch_track+n_obs_epoch(i),1) = diag(Q);
+            epoch_index(i) = epoch_track + n_obs_epoch(i);
+            epoch_track = epoch_index(i);
         end
         
         if isempty(var_dtR_tmp)
@@ -161,6 +222,9 @@ for i = 1 : nEpochs
         
         if (~isempty(dtR_tmp) && ~isempty(sat))
             dtR(i) = dtR_tmp;
+            if (~isempty(ISBs_tmp))
+                ISBs(:,i) = ISBs_tmp;
+            end
             err_iono(sat,i) = err_iono_tmp;
             el(sat,i) = el_tmp;
             eclipsed(sat,i) = eclipsed_tmp;
@@ -197,7 +261,65 @@ for i = 1 : nEpochs
     end
 end
 
-%bad_epochs = (var_dtR(:,1) > 5e-6);
+%-------------------------------------------------------------------------------------------------------------
+% RECEIVER CLOCK AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
+%-------------------------------------------------------------------------------------------------------------
+
+unknown_index = find(~isnan(n_obs_epoch));
+n_obs_epoch(isnan(n_obs_epoch)) = [];
+epoch_index(isnan(epoch_index)) = [];
+
+index_nan = find(isnan(y0_all),1);
+y0_all(index_nan:end) = [];
+b_all(index_nan:end)  = [];
+
+n = length(y0_all);
+m = 3*npos + length(n_obs_epoch) + (nsys-1);
+if (~isempty(index_nan))
+    A_all = A_all(1:index_nan-1,1:size(A_all,2));
+    Q_all = Q_all(1:index_nan-1,1);
+end
+A_all(isnan(A_all)) = 0;
+Q_all(isnan(Q_all)) = 0;
+
+%set the design matrix to estimate the receiver clock
+A_all(1:epoch_index(1),3*npos+unknown_index(1)) = 1;
+for e = 2 : length(epoch_index)
+    A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+unknown_index(e)) = 1;
+end
+
+%remove unavailable epochs from the unknowns (receiver clock)
+avail_index = any(A_all,1);
+A_all(:,~avail_index) = [];
+m = m - length(find(~avail_index));
+
+A  = A_all;
+y0 = y0_all;
+b  = b_all;
+Q  = diag(Q_all);
+
+%least-squares solution (broken down to improve computation speed)
+K = A';
+P = Q\A;
+N = K*P;
+Y = (y0-b);
+R = Q\Y;
+L = K*R;
+x = N\L;
+
+%variance of the estimation error
+y_hat = A*x + b;
+v_hat = y0 - y_hat;
+V = v_hat';
+T = Q\v_hat;
+sigma02_hat = (V*T)/(n-m);
+
+%estimated values
+dtR = zeros(size(dtR));
+dtR(avail_index(4:end-(nsys-1))) = x(4:end-(nsys-1))/v_light;
+if (nsys > 1)
+    ISBs = x(end-(nsys-2):end)/v_light;
+end
 
 %----------------------------------------------------------------------------------------------
 % RECEIVER CLOCK DRIFT DISCONTINUITIES
@@ -455,6 +577,21 @@ pr1 = pr1_interp;
 pr2 = pr2_interp;
 ph1 = ph1_interp;
 ph2 = ph2_interp;
+
+if (nsys > 1)
+    [~, idx] = unique(constellations.systems,'stable');
+    for c = 2 : nsys
+        if (c~=nsys)
+            e = idx(c+1)-1;
+        else
+            e = size(pr1,1);
+        end
+        pr1(idx(c):e,:) = pr1(idx(c):e,:) - ISBs(c-1)*v_light*(pr1(idx(c):e,:)~=0);
+        pr2(idx(c):e,:) = pr2(idx(c):e,:) - ISBs(c-1)*v_light*(pr2(idx(c):e,:)~=0);
+        ph1(idx(c):e,:) = ph1(idx(c):e,:) - ISBs(c-1)*v_light*(ph1(idx(c):e,:)~=0)/max(lambda(idx(c):e,1));
+        ph2(idx(c):e,:) = ph2(idx(c):e,:) - ISBs(c-1)*v_light*(ph2(idx(c):e,:)~=0)/max(lambda(idx(c):e,2));
+    end
+end
 
 % %flag epochs with 4 or more slipped satellites as "bad"
 % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));

@@ -1,7 +1,7 @@
-function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb)
+function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda)
 
 % SYNTAX:
-%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb);
+%   [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite_positions(time_rx, pseudorange, sat, Eph, SP3, sbas, err_tropo, err_iono, dtR, frequencies, obs_comb, lambda);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -15,6 +15,7 @@ function [XS, dtS, XS_tx, VS_tx, time_tx, no_eph, eclipsed, sys_idx] = satellite
 %   dtR         = receiver clock offset
 %   frequencies = L1 carrier (phase=1), L2 carrier (phase=2)
 %   obs_comb    = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
+%   lambda      = matrix containing GNSS wavelengths for available satellites
 %
 % OUTPUT:
 %   XS      = satellite position at transmission time in ECEF(time_rx) (X,Y,Z)
@@ -65,6 +66,8 @@ eclipsed  = zeros(nsat,1);
 %system array
 sys_idx = zeros(nsat,1);
 
+gamma = (lambda(:,2)/lambda(:,1))^2;
+
 for i = 1 : nsat
     
     k = find_eph(Eph, sat(i), time_rx);
@@ -75,7 +78,7 @@ for i = 1 : nsat
     end
     
     %compute signal transmission time
-    [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3, sbas, err_tropo(i), err_iono(i), dtR, frequencies, obs_comb);
+    [time_tx(i,1), dtS(i,1)] = transmission_time(time_rx, pseudorange(i), sat(i), Eph(:,k), SP3, sbas, err_tropo(i), err_iono(i), dtR, frequencies, obs_comb, lambda(i,:));
 
     if (isempty(time_tx(i,1)) || isnan(time_tx(i,1)))
         no_eph(i) = 1;
@@ -101,8 +104,7 @@ for i = 1 : nsat
 
         %group delay correction term
         if (nargin > 9 && ~strcmp(obs_comb,'IONO_FREE'))
-            gamma = (goGNSS.F1/goGNSS.F2)^2;
-            tgd = 1/(1-gamma)*SP3.DCB.P1P2.value(sat(i),1)*1e-9;
+            tgd = 1/(1-gamma(i))*SP3.DCB.P1P2.value(sat(i),1)*1e-9;
             if (length(frequencies) == 2)
                 time_tx(i,1) = time_tx(i,1) + tgd;
                 dtS(i,1) = dtS(i,1) - tgd;
@@ -112,8 +114,8 @@ for i = 1 : nsat
                     time_tx(i,1) = time_tx(i,1) + tgd;
                     dtS(i,1) = dtS(i,1) - tgd;
                 else
-                    time_tx(i,1) = time_tx(i,1) + gamma*tgd;
-                    dtS(i,1) = dtS(i,1) - gamma*tgd;
+                    time_tx(i,1) = time_tx(i,1) + gamma(i)*tgd;
+                    dtS(i,1) = dtS(i,1) - gamma(i)*tgd;
                 end
             end
         end

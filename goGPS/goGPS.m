@@ -78,8 +78,7 @@ end
 % INTERFACE STARTUP
 %----------------------------------------------------------------------------------------------
 
-global order o1 o2 o3 h_antenna cutoff weights t
-global is_bias
+global order o1 o2 o3 h_antenna cutoff weights t nC
 global cs_threshold_preprocessing cs_threshold amb_restart_method
 global iono_model tropo_model
 global max_code_residual max_phase_residual SPP_threshold
@@ -222,6 +221,7 @@ obs_comb = 'IONO_FREE'
 cs_threshold_preprocessing = 1
 cs_threshold = 1e30 %i.e. disable cycle-slip detection during KF processing
 amb_restart_method = 1
+processing_interval = 30 %[sec]
 
 max_code_residual = 30;
                           
@@ -420,7 +420,7 @@ if goGNSS.isPP(mode) % post-processing
             %read observation RINEX file(s)
             [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
                 time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
-                load_RINEX_obs(filename_obs, constellations);
+                load_RINEX_obs(filename_obs, constellations, processing_interval);
             
             %read navigation RINEX file(s)
             [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
@@ -518,7 +518,7 @@ if goGNSS.isPP(mode) % post-processing
                     DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
-                    if (~any(DCB.P1C1.value) || ~any(DCB.P1P2.value))
+                    if ((~any(DCB.P1C1.value) || ~any(DCB.P1P2.value)) && constellations.GPS.enabled)
                         
                         %download
                         [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
@@ -641,16 +641,18 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
-            zero_time = min(time_GPS,[],1) - 1;
+            if (flag_SP3)
+                zero_time = min(SP3.time,[],1) - 1;
+                SP3.time    = SP3.time - zero_time;
+                SP3.time_hr = SP3.time_hr - zero_time;
+                SP3.t_sun   = SP3.t_sun - zero_time;
+            else
+                zero_time = min(time_GPS,[],1) - 1;
+            end
             time_GPS  = time_GPS  - zero_time;
             time_R    = time_R    - zero_time;
             Eph(32,:) = Eph(32,:) - zero_time;
             Eph(33,:) = Eph(33,:) - zero_time;
-            if (flag_SP3)
-                SP3.time    = SP3.time - zero_time;
-                SP3.time_hr = SP3.time_hr - zero_time;
-                SP3.t_sun   = SP3.t_sun - zero_time;
-            end
             
             for f = 1 : size(time_R,3)
                 
@@ -669,8 +671,8 @@ if goGNSS.isPP(mode) % post-processing
                 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas);
-%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas);
+%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas, constellations);
                 
                 if report.opt.write == 1
                     report.prep.spp_threshold = SPP_threshold;
@@ -708,7 +710,7 @@ if goGNSS.isPP(mode) % post-processing
             %read observation RINEX file(s)
             [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
              time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
-             load_RINEX_obs(filename_obs, constellations);
+             load_RINEX_obs(filename_obs, constellations, processing_interval);
             
             [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
             if (flag_return)
@@ -870,7 +872,7 @@ if goGNSS.isPP(mode) % post-processing
                     DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M), constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
-                    if (~any(DCB.P1C1.value) || ~any(DCB.P1P2.value))
+                    if ((~any(DCB.P1C1.value) || ~any(DCB.P1P2.value)) && constellations.GPS.enabled)
                         
                         %download
                         [file_dcb, compressed] = download_dcb([week_M(1) week_M(end)], [time_M(1) time_M(end)]);
@@ -1011,20 +1013,22 @@ if goGNSS.isPP(mode) % post-processing
                 end
                 
                 %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
-                zero_time = min(time_GPS,[],1) - 1;
+                if (flag_SP3)
+                    zero_time = min(SP3.time,[],1) - 1;
+                    SP3.time    = SP3.time - zero_time;
+                    SP3.time_hr = SP3.time_hr - zero_time;
+                    SP3.t_sun   = SP3.t_sun - zero_time;
+                else
+                    zero_time = min(time_GPS,[],1) - 1;
+                end
                 time_GPS  = time_GPS  - zero_time;
                 time_R    = time_R    - zero_time;
                 time_M    = time_M    - zero_time;
                 Eph(32,:) = Eph(32,:) - zero_time;
                 Eph(33,:) = Eph(33,:) - zero_time;
-                if (flag_SP3)
-                    SP3.time    = SP3.time - zero_time;
-                    SP3.time_hr = SP3.time_hr - zero_time;
-                    SP3.t_sun   = SP3.t_sun - zero_time;
-                end
                 
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas);
-%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas);
+%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas, constellations);
 
                 if report.opt.write == 1
                     report.prep.spp_threshold = SPP_threshold;                    
@@ -1067,8 +1071,8 @@ if goGNSS.isPP(mode) % post-processing
                 pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M;
             end
             
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas);
-%             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas);
+%             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas, constellations);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas, constellations);
             if report.opt.write == 1
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
@@ -1539,7 +1543,6 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
         goWB = [];
     end
 
-    is_bias_tot=NaN(6,length(time_GPS));
     for t = 1 : length(time_GPS)
 
         if (mode_data == 0)
@@ -1551,7 +1554,6 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
         sbas_t = find_sbas(sbas, t);
 
         goGPS_LS_SA_code(time_GPS(t), pr1_R(:,t), pr2_R(:,t), snr_R(:,t), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, pos_R);
-        is_bias_tot(:,t) = is_bias;
 
         if (t == 1)
             fwrite(fid_sat, nSatTot, 'int8');
@@ -3346,7 +3348,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         end
         %if tropospheric delay was estimated in PPP
         if (goGNSS.isSA(mode) && flag_tropo)
-            estim_tropo = Xhat_t_t_OUT(end-1,:);
+            estim_tropo = Xhat_t_t_OUT(end-nC,:);
         else
             estim_tropo = zeros(size(time_GPS));
         end
@@ -3469,7 +3471,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
     end
     
     if (mode == goGNSS.MODE_PP_KF_CP_SA)
-        dtR_KAL = Xhat_t_t_OUT(end,:)./goGNSS.V_LIGHT;
+        dtR_KAL = Xhat_t_t_OUT(end-nC+1,:)./goGNSS.V_LIGHT;
         
         f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
         paperSize = get(f,'PaperSize');
@@ -3483,6 +3485,36 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         %print PDF
         print(f, '-dpdf', [filerootOUT '_dtR_KAL']);
         close(f)
+        
+        if (nC > 1)
+            sys = unique(constellations.systems);
+            for ISB = (nC-1) : -1 : 0
+                ISB_KAL = Xhat_t_t_OUT(end-ISB,:)./goGNSS.V_LIGHT;
+                switch sys(end-ISB)
+                    case 'R'
+                        sys_label = 'GLONASS';
+                    case 'E'
+                        sys_label = 'Galileo';
+                    case 'C'
+                        sys_label = 'BeiDou';
+                    case 'J'
+                        sys_label = 'QZSS';
+                end
+                
+                f = figure('Name','goGPS processing report','NumberTitle','off','PaperOrientation','landscape','PaperUnits','centimeters','PaperType','A4','Visible','off');
+                paperSize = get(f,'PaperSize');
+                set(f,'PaperPosition',[1,1,paperSize(1)-1,paperSize(2)-1]);
+                plot(ISB_KAL.*goGNSS.V_LIGHT,'.r');
+                grid on;
+                set(gca,'FontName','Verdana');
+                set(gca,'FontSize',10);
+                xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                ylabel(['Kalman-estimated ' sys_label ' inter-system bias (m)'],'FontName','Verdana','FontSize',10,'FontWeight','Bold');
+                %print PDF
+                print(f, '-dpdf', [filerootOUT '_' sys_label '_ISB_KAL']);
+                close(f)
+            end
+        end
     end
     
     if (any(estim_tropo))
@@ -3494,7 +3526,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         set(gca,'FontName','Verdana');
         set(gca,'FontSize',10);
         xlabel('Epoch','FontName','Verdana','FontSize',10,'FontWeight','Bold');
-        ylabel('Zenith Tropospheric Delay (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
+        ylabel('Zenith Total Delay (m)','FontName','Verdana','FontSize',10,'FontWeight','Bold');
         %print PDF
         print(f, '-dpdf', [filerootOUT '_tropo']);
         close(f)
@@ -4663,6 +4695,8 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         errorbar(1:nSatTot, RES_CODE1_mean, RES_CODE1_stdv,'k*');
         grid on;
         title('RESIDUALS MEAN AND ST.DEV: CODE 1st FREQ.');
+        xlabel('Satellite ID');
+        ylabel('[m]');
     end
     if (any(RES_CODE2(:)))
         RES_CODE2_mean = nan(size(RES_CODE2,1),1);
@@ -4678,6 +4712,8 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         errorbar(1:nSatTot, RES_CODE2_mean, RES_CODE2_stdv,'k*');
         grid on;
         title('RESIDUALS MEAN AND ST.DEV: CODE 2nd FREQ.');
+        xlabel('Satellite ID');
+        ylabel('[m]');
     end
     %phase
     if (any(RES_PHASE1(:)))
@@ -4694,6 +4730,8 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         errorbar(1:nSatTot, RES_PHASE1_mean, RES_PHASE1_stdv,'k*');
         grid on;
         title('RESIDUALS MEAN AND ST.DEV: PHASE 1st FREQ.');
+        xlabel('Satellite ID');
+        ylabel('[m]');
     end
     if (any(RES_PHASE2(:)))
         RES_PHASE2_mean = nan(size(RES_PHASE2,1),1);
@@ -4709,6 +4747,8 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         errorbar(1:nSatTot, RES_PHASE2_mean, RES_PHASE2_stdv,'k*');
         grid on;
         title('RESIDUALS MEAN AND ST.DEV: PHASE 2nd FREQ.');
+        xlabel('Satellite ID');
+        ylabel('[m]');
     end
 end
 
@@ -4753,13 +4793,6 @@ if (mode_data == 0)
     report_generator(report);
 end
 %----------------------------------------------------------------------------------------------
-
-% if (exist('is_bias_tot', 'var'))
-%     %----------------------------------------------------------------------------------------------
-%     % write intersystem biases
-%     dlmwrite('biases.txt',[time_GPS,is_bias_tot'],'delimiter','\t','precision',15,'-append');
-%     %----------------------------------------------------------------------------------------------
-% end
 
 if (exist('fout_report','var')), fclose(fout_report); end
 

@@ -53,6 +53,12 @@ for j = 1 : length(constellation)
     sysfreq_i = sys_i*10 + frequency;
     index_freq = find(antenna_PCV.sysfreq == sysfreq_i, 1);
     
+    %if frequency is not available, use G01/G02 instead (as specified in the IGS ATX file)
+    if (isempty(index_freq))
+        sysfreq_i = 1*10 + frequency;
+        index_freq = find(antenna_PCV.sysfreq == sysfreq_i, 1);
+    end
+    
     if ~isempty(index_freq) % corrections are available
         
         %index of input satellites belonging to constellation sys_i

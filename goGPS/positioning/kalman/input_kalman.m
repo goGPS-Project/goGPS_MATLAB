@@ -85,10 +85,10 @@ probs_ph1  = (lambda1 .* ph1_R - lambda1 .* ph1_M) - (lambda1(pivot_index) * ph1
 probs_ph2  = (lambda2 .* ph2_R - lambda2 .* ph2_M) - (lambda2(pivot_index) * ph2_R(pivot_index) - lambda2(pivot_index) * ph2_M(pivot_index)); %observed pseudorange DD (L2 phase)
 
 %observed iono-free combinations
-alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
-alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
-probs_prIF  = alpha1 * probs_pr1 - alpha2 * probs_pr2; %observed pseudorange DD (iono-free code)
-probs_phIF  = alpha1 * probs_ph1 - alpha2 * probs_ph2; %observed pseudorange DD (iono-free phase)
+alpha1 = lambda(:,4);
+alpha2 = lambda(:,5);
+probs_prIF  = alpha1 .* probs_pr1 - alpha2 .* probs_pr2; %observed pseudorange DD (iono-free code)
+probs_phIF  = alpha1 .* probs_ph1 - alpha2 .* probs_ph2; %observed pseudorange DD (iono-free phase)
 
 %approximate pseudoranges
 prapp_pr  =            (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
@@ -99,8 +99,8 @@ prapp_pr2 = prapp_pr + (err_iono2_R - err_iono2_M) - (err_iono2_R(pivot_index)  
 prapp_ph2 = prapp_pr - (err_iono2_R - err_iono2_M) + (err_iono2_R(pivot_index)  - err_iono2_M(pivot_index)); %ionoshperic error DD (L2 phase)
 
 %approximate iono-free combinations
-prapp_prIF = (alpha1 - alpha2) * prapp_pr;
-prapp_phIF = (alpha1 - alpha2) * prapp_pr;
+prapp_prIF = (alpha1 - alpha2) .* prapp_pr;
+prapp_phIF = (alpha1 - alpha2) .* prapp_pr;
 
 %remove pivot-pivot lines
 A(pivot_index, :)      = [];

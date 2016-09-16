@@ -61,6 +61,6 @@ end
 
 if (constellations.QZSS.enabled)
     for p = 1 : constellations.QZSS.numSat
-        antmod{constellations.QZSS.indexes(p)} = ['J' num2str(constellations.QZSS.PRN(p),'%02d')];
+        antmod{constellations.QZSS.indexes(p)} = ['J' num2str(constellations.QZSS.PRN(p)-192,'%02d')];
     end
 end

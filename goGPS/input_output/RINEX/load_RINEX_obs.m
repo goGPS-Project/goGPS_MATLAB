@@ -1,16 +1,17 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
           time_ref, time, week, date, pos, interval, antoff, antmod, codeC1, marker] = ...
-          load_RINEX_obs(filename, constellations, wait_dlg)
+          load_RINEX_obs(filename, constellations, processing_interval, wait_dlg)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %    time_ref, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
-%    load_RINEX_obs(filename, constellations, wait_dlg);
+%    load_RINEX_obs(filename, constellations, processing_interval, wait_dlg);
 %
 % INPUT:
 %   filename = RINEX observation file(s)
 %   constellations = struct with multi-constellation settings
 %                   (see 'multi_constellation_settings.m' - empty if not available)
+%   processing_interval = user-requested processing interval
 %   wait_dlg = optional handler to waitbar figure (optional)
 %
 % OUTPUT:
@@ -59,10 +60,14 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 global report
 
 % Check the input arguments
-if (nargin < 3)
+if (nargin < 4)
     wait_dlg_PresenceFlag = false;
 else
     wait_dlg_PresenceFlag = true;
+end
+
+if (nargin < 3 || processing_interval < 0)
+    processing_interval = 0;
 end
 
 if (nargin < 2 || isempty(constellations)) %then use only GPS as default
@@ -202,6 +207,10 @@ for f = 1 : nFiles
     
     %close RINEX files
     fclose(fid);
+    
+    if (processing_interval > 0)
+        interval(:,1,f) = processing_interval;
+    end
 
     if (~isempty(report) && report.opt.write == 1)
         % extract quality parameters for report

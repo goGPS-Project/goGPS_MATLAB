@@ -38,6 +38,7 @@ function [ph_GF] = compute_geometry_free(ph1, ph2, lambda, err_iono)
 ph_GF = zeros(size(ph1));
 for s = 1 : size(ph1,1)
     if (any(ph1(s,:)) && any(ph2(s,:)))
+        freq = goGNSS.V_LIGHT ./ lambda(s,1:2);
         index_1 = find(ph1(s,:) ~= 0);
         index_2 = find(ph2(s,:) ~= 0);
         index = intersect(index_1, index_2);
@@ -46,7 +47,7 @@ for s = 1 : size(ph1,1)
             index = intersect(index,   index_3);
             p = polyfit(index,err_iono(s,index),3);
             err_iono_fit = polyval(p,index);
-            corr = ((goGNSS.F1^2-goGNSS.F2^2)/goGNSS.F2^2)*err_iono_fit;
+            corr = ((freq(1,1)^2-freq(1,2)^2)/freq(1,2)^2)*err_iono_fit;
         else
             corr = zeros(size(err_iono(s,index)));
         end

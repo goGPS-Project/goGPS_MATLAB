@@ -53,13 +53,18 @@ if (strcmp(filename(1:4),'brdc'))
     name = 'IGS';
     path = '/pub/gps/data/daily/';
     subdir = '/brdc/';
+elseif (strcmp(filename(1:4),'brdm'))
+    url = igs_url;
+    name = 'IGS';
+    path = '/pub/gps/data/campaign/mgex/daily/rinex3';
+    subdir = '/brdm/';
 elseif (strcmp(filename(1:4),'CGIM'))
     url = aiub_url;
     name = 'AIUB';
     path = '/aiub/CODE/';
     subdir = '';
 else
-    error('Only "brdc" (IGS) and "CGIM" (AIUB) files are supported.');
+    error('Only "brdc", "brdm" (IGS) and "CGIM" (AIUB) files are supported.');
 end
 
 fprintf(['FTP connection to the ' name ' server (ftp://' url '). Please wait...'])

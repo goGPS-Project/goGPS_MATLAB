@@ -222,8 +222,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, phwindup(sat_pr), sys, lambda(sat_pr,1)); %#ok<ASGLU>
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, phwindup(sat_pr), sys, lambda(sat_pr,2));
+        [XR, dtR, ISBs, N1(sat), cov_XR, var_dtR, var_ISBs, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, phwindup(sat_pr), sys, lambda(sat_pr,1)); %#ok<ASGLU>
+        [ ~,   ~, ISBs, N2(sat),      ~,       ~, var_ISBs, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, phwindup(sat_pr), sys, lambda(sat_pr,2));
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix

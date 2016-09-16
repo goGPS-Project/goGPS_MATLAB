@@ -52,9 +52,6 @@ global residuals_float outliers
 residuals_float(:)=NaN; 
 outliers(:)=NaN;
 
-global is_bias
-is_bias=NaN(6,1);
-
 %covariance matrix initialization
 cov_XR = [];
 
@@ -67,8 +64,8 @@ elR   = zeros(nSatTot,1);
 distR = zeros(nSatTot,1);
 
 %iono-free coefficients
-alpha1 = (goGNSS.F1^2/(goGNSS.F1^2 - goGNSS.F2^2));
-alpha2 = (goGNSS.F2^2/(goGNSS.F1^2 - goGNSS.F2^2));
+alpha1 = lambda(:,4);
+alpha2 = lambda(:,5);
 
 %available satellites
 if (length(frequencies) == 2)
@@ -113,12 +110,12 @@ if (size(sat,1) >= min_nsat)
 
     if (frequencies(1) == 1)
         if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals, is_bias] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
         else
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals, is_bias] = init_positioning(time_rx, alpha1*pr1(sat) - alpha2*pr2(sat), snr(sat), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat, [], zeros(length(sat),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, alpha1(sat).*pr1(sat) - alpha2(sat).*pr2(sat), snr(sat), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat, [], zeros(length(sat),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
         end
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals, is_bias] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     end
     
     if ~isempty(dtR)
