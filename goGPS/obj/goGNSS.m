@@ -145,8 +145,8 @@ classdef goGNSS < handle
         FR2 = goGNSS.FR_channels' .* goGNSS.FR_delta(2) + goGNSS.FR_base(2);
         FR = [goGNSS.FR1 goGNSS.FR2]*1e6;                                     % GLONASS carriers frequencies [Hz]
         LAMBDAR = goGNSS.V_LIGHT ./ goGNSS.FR;                                % GLONASS carriers wavelengths [m]
-        ALPHA1R = goGNSS.FR(1,1).^2./(goGNSS.FR(1,1).^2 - goGNSS.FR(1,2).^2); % GLONASS iono-free combination parameter
-        ALPHA2R = goGNSS.FR(1,2).^2./(goGNSS.FR(1,1).^2 - goGNSS.FR(1,2).^2); % GLONASS iono-free combination parameter
+        ALPHA1R = goGNSS.FR(:,1).^2./(goGNSS.FR(:,1).^2 - goGNSS.FR(:,2).^2); % GLONASS iono-free combination parameter
+        ALPHA2R = goGNSS.FR(:,2).^2./(goGNSS.FR(:,1).^2 - goGNSS.FR(:,2).^2); % GLONASS iono-free combination parameter
         ALPHATR = 9;                                                          % GLONASS iono-free combination parameter
         ALPHANR = 7;                                                          % GLONASS iono-free combination parameter
         
@@ -424,11 +424,13 @@ classdef goGNSS < handle
                             lambda(s,6) = goGNSS.ALPHATG;
                             lambda(s,7) = goGNSS.ALPHANG;
                         case 'R'
-                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 1, Eph(15,pos)); % GLONASS frequency number must be managed for SP3
-                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 2, Eph(15,pos));
+                            pos = find(Eph(30,:) == s,1);
+                            GLO_id = Eph(15,pos);
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 1, GLO_id); % GLONASS frequency number must be managed for SP3
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 2, GLO_id);
                             lambda(s,3) = goGNSS.ALPHATR/(goGNSS.ALPHATR^2-goGNSS.ALPHANR^2)*lambda(s,1);
-                            lambda(s,4) = goGNSS.ALPHA1R;
-                            lambda(s,5) = goGNSS.ALPHA2R;
+                            lambda(s,4) = goGNSS.ALPHA1R(goGNSS.FR_channels == GLO_id);
+                            lambda(s,5) = goGNSS.ALPHA2R(goGNSS.FR_channels == GLO_id);
                             lambda(s,6) = goGNSS.ALPHATR;
                             lambda(s,7) = goGNSS.ALPHANR;
                         case 'E'

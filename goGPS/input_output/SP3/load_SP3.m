@@ -291,34 +291,36 @@ if (~flag_unavail)
                         hour   = data{4};
                         minute = data{5};
                         second = data{6};
+                        
+                        index = [];
 
                         switch (sys_id)
                             case 'G'
-                            if (constellations.GPS.enabled)
+                            if (constellations.GPS.enabled && PRN <= constellations.GPS.numSat)
                                 index = idGPS;
                             else
                                 continue
                             end
                         case 'R'
-                            if (constellations.GLONASS.enabled)
+                            if (constellations.GLONASS.enabled && PRN <= constellations.GLONASS.numSat)
                                 index = idGLONASS;
                             else
                                 continue
                             end
                         case 'E'
-                            if (constellations.Galileo.enabled)
+                            if (constellations.Galileo.enabled && PRN <= constellations.Galileo.numSat)
                                 index = idGalileo;
                             else
                                 continue
                             end
                         case 'C'
-                            if (constellations.BeiDou.enabled)
+                            if (constellations.BeiDou.enabled && PRN <= constellations.BeiDou.numSat)
                                 index = idBeiDou;
                             else
                                 continue
                             end
                         case 'J'
-                            if (constellations.QZSS.enabled)
+                            if (constellations.QZSS.enabled && PRN <= constellations.QZSS.numSat)
                                 index = idQZSS;
                             else
                                 continue

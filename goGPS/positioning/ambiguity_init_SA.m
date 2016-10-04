@@ -115,6 +115,7 @@ A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ...  %column for X 
 uni_sys = unique(sys(sys ~= 0));
 num_sys = length(uni_sys);
 ISB = zeros(n,1);
+sys = [sys; sys];
 if (num_sys > 1)
     for s = 2 : num_sys
         ISB(sys == uni_sys(s)) = 1;

@@ -98,7 +98,7 @@ for i = 1 : nsat
         [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));
         
         %relativistic correction term
-        dtrel = relativistic_clock_error_correction(time_tx(i,1), Eph, XS_tx(i,:), VS_tx(i,:));
+        dtrel = relativistic_clock_error_correction(time_tx(i,1), Eph, SP3, XS_tx(i,:), VS_tx(i,:));
         time_tx(i,1) = time_tx(i,1) - dtrel;
         dtS(i,1) = dtS(i,1) + dtrel;
 
@@ -133,7 +133,7 @@ for i = 1 : nsat
         case 'G'
             Omegae_dot = goGNSS.OMEGAE_DOT_GPS; sys_idx(i,1) = 1;
         case 'R'
-            Omegae_dot = goGNSS.OMEGAE_DOT_GLO; sys_idx(i,1) = 2;
+            Omegae_dot = goGNSS.OMEGAE_DOT_GLO; sys_idx(i,1) = 2 + (Eph(15,k) + 7)/100; %different decimal values for different GLONASS channels
         case 'E'
             Omegae_dot = goGNSS.OMEGAE_DOT_GAL; sys_idx(i,1) = 3;
         case 'C'

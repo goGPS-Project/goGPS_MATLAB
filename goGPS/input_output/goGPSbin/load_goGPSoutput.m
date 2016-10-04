@@ -202,9 +202,9 @@ while ~isempty(d)
         PDOP(i,1)  = buf_dop(j + 1);                                %observations logging
         HDOP(i,1)  = buf_dop(j + 2);                                %observations logging
         VDOP(i,1)  = buf_dop(j + 3);                                %observations logging
-        KPDOP(i,1)  = buf_dop(j + 4);                               %observations logging
-        KHDOP(i,1)  = buf_dop(j + 5);                               %observations logging
-        KVDOP(i,1)  = buf_dop(j + 6);                               %observations logging
+        KPDOP(i,1) = buf_dop(j + 4);                                %observations logging
+        KHDOP(i,1) = buf_dop(j + 5);                                %observations logging
+        KVDOP(i,1) = buf_dop(j + 6);                                %observations logging
     end
     hour = hour+1;                                                  %hour increase
     hour_str = num2str(hour,'%03d');                                %conversion into a string

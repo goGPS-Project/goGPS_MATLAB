@@ -93,6 +93,13 @@ phwindup = zeros(nSatTot,1);
 %inter-system biases
 ISB = [];
 
+PDOP = NaN;
+HDOP = NaN;
+VDOP = NaN;
+KPDOP = NaN;
+KHDOP = NaN;
+KVDOP = NaN;
+
 %--------------------------------------------------------------------------------------------
 % SELECTION SINGLE / DUAL FREQUENCY
 %--------------------------------------------------------------------------------------------
@@ -242,12 +249,12 @@ if (length(sat_pr) >= min_nsat_LS)
 
     if (frequencies(1) == 1)
         if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
         else
-            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
         end
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     end
     
     if (~isempty(sat_pr))
@@ -303,7 +310,8 @@ else
 end
 
 %compute phase wind-up correction
-phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS, SP3, phwindup(sat,1));
+[~, index_ph]=intersect(sat_pr,sat);
+phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS(index_ph,:), SP3, phwindup(sat,1));
 
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of

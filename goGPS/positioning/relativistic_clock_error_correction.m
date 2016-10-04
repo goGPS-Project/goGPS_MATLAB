@@ -1,11 +1,12 @@
-function [corr] = relativistic_clock_error_correction(time, Eph, XS, VS)
+function [corr] = relativistic_clock_error_correction(time, Eph, SP3, XS, VS)
 
 % SYNTAX:
-%   [corr] = relativistic_clock_error_correction(time, Eph, XS, VS);
+%   [corr] = relativistic_clock_error_correction(time, Eph, SP3, XS, VS);
 %
 % INPUT:
 %   time = GPS time
 %   Eph = satellite ephemeris vector
+%   SP3 = struct with SP3 data
 %   XS = satellite position (X,Y,Z)
 %   VS = satellite velocity (X,Y,Z)
 %
@@ -36,7 +37,7 @@ function [corr] = relativistic_clock_error_correction(time, Eph, XS, VS)
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-if (Eph(4)~=0) %if not using SP3 ephemeris
+if (isempty(SP3)) %if not using SP3 ephemeris
     roota = Eph(4);
     ecc   = Eph(6);
     

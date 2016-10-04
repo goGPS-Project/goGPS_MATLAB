@@ -105,6 +105,15 @@ alpha2   = lambda(:,5);
 alphat   = lambda(:,6);
 alphan   = lambda(:,7);
 
+conf_cs = zeros(nSatTot,1);
+
+PDOP = NaN;
+HDOP = NaN;
+VDOP = NaN;
+KPDOP = NaN;
+KHDOP = NaN;
+KVDOP = NaN;
+
 %----------------------------------------------------------------------------------------
 % MODEL ERROR COVARIANCE MATRIX
 %----------------------------------------------------------------------------------------
@@ -283,12 +292,12 @@ if (nsat >= min_nsat)
     
     if (frequencies(1) == 1)
         if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-            [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0);
+            [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, pr1(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1);
         else
-            [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0);
+            [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, alpha1(sat_pr).*pr1(sat_pr) - alpha2(sat_pr).*pr2(sat_pr), snr(sat_pr), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat_pr, [], zeros(length(sat_pr),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 1);
         end
     else
-        [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0);
+        [~, ~, XS, dtS, ~, ~, ~, err_tropo, err_iono1, sat_pr, elR(sat_pr), azR(sat_pr), distR(sat_pr), sys] = init_positioning(time_rx, pr2(sat_pr), snr(sat_pr), Eph, SP3, iono, sbas, XR0, [], [], sat_pr, [], lambda(sat_pr,:), cutoff, snr_threshold, frequencies, flag_XR, 0,1 );
     end
     
     if (~isempty(sat_pr))
@@ -309,9 +318,6 @@ if (nsat >= min_nsat)
     conf_sat = zeros(nSatTot,1);
     conf_sat(sat_pr) = -1;
     conf_sat(sat) = +1;
-    
-    %cycle-slip configuration
-    conf_cs = zeros(nSatTot,1);
     
     %number of visible satellites
     nsat = size(sat_pr,1);
@@ -503,13 +509,13 @@ if (nsat >= min_nsat)
                 end
                 
                 if (check_cs1)
-                    conf_cs(sat_slip1) = 1;
+                    conf_cs(sat_slip1,1) = 1;
                     X_t1_t(o3+sat_slip1) = N1_slip;
                     Cvv(o3+sat_slip1,o3+sat_slip1) = sigmaq0_N * eye(size(sat_slip1,1));
                 end
                 
                 if (check_cs2)
-                    conf_cs(sat_slip2) = 1;
+                    conf_cs(sat_slip2,1) = 1;
                     X_t1_t(o3+nSatTot+sat_slip2) = N2_slip;
                     Cvv(o3+nSatTot+sat_slip2,o3+nSatTot+sat_slip2) = sigmaq0_N * eye(size(sat_slip2,1));
                 end
@@ -524,7 +530,7 @@ if (nsat >= min_nsat)
                 end
                 
                 if (check_cs)
-                    conf_cs(sat_slip) = 1;
+                    conf_cs(sat_slip,1) = 1;
                     X_t1_t(o3+sat_slip) = N_slip;
                     Cvv(o3+sat_slip,o3+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));
                 end
@@ -543,7 +549,7 @@ if (nsat >= min_nsat)
             end
             
             if (check_cs)
-                conf_cs(sat_slip) = 1;
+                conf_cs(sat_slip,1) = 1;
                 X_t1_t(o3+sat_slip) = N_slip;
                 Cvv(o3+sat_slip,o3+sat_slip) = sigmaq0_N * eye(size(sat_slip,1));
             end
@@ -985,14 +991,16 @@ end
 % KALMAN FILTER DOP
 %--------------------------------------------------------------------------------------------
 
-%covariance propagation
-Cee_XYZ = Cee([1 o1+1 o2+1],[1 o1+1 o2+1]);
-Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
-
-%KF DOP computation
-KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
-KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
-KVDOP = sqrt(Cee_ENU(3,3));
+if (nsat >= min_nsat)
+    %covariance propagation
+    Cee_XYZ = Cee([1 o1+1 o2+1],[1 o1+1 o2+1]);
+    Cee_ENU = global2localCov(Cee_XYZ, Xhat_t_t([1 o1+1 o2+1]));
+    
+    %KF DOP computation
+    KPDOP = sqrt(Cee_XYZ(1,1) + Cee_XYZ(2,2) + Cee_XYZ(3,3));
+    KHDOP = sqrt(Cee_ENU(1,1) + Cee_ENU(2,2));
+    KVDOP = sqrt(Cee_ENU(3,3));
+end
 
 %positioning error
 %sigma_rho = sqrt(Cee(1,1,end) + Cee(o1+1,o1+1,end) + Cee(o2+1,o2+1,end));

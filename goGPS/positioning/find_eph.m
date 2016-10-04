@@ -1,4 +1,4 @@
-function icol = find_eph(Eph, sat, time)
+function icol = find_eph(Eph, sat, time, override_dtmax)
 
 % SYNTAX:
 %   icol = find_eph(Eph, sat, time);
@@ -66,6 +66,10 @@ else
         otherwise
             dtmax = 7200;
     end
+end
+
+if (exist('override_dtmax','var'))
+    dtmax = override_dtmax;
 end
 
 if (fix(abs(dtmin)) - delta > dtmax)

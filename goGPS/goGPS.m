@@ -554,6 +554,16 @@ if goGNSS.isPP(mode) % post-processing
             
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
+                                    
+            %exclude for which lambda could not be computed
+            delsat = ~any(lambda,2);
+            pr1_R(delsat,:,:) = 0;
+            pr2_R(delsat,:,:) = 0;
+            ph1_R(delsat,:,:) = 0;
+            ph2_R(delsat,:,:) = 0;
+            dop1_R(delsat,:,:) = 0;
+            dop2_R(delsat,:,:) = 0;
+            snr_R(delsat,:,:) = 0;
             
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
@@ -671,8 +681,8 @@ if goGNSS.isPP(mode) % post-processing
                 
                 %pre-processing
                 fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
-%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations);
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas, constellations);
+%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations, order);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas, constellations, order);
                 
                 if report.opt.write == 1
                     report.prep.spp_threshold = SPP_threshold;
@@ -909,6 +919,23 @@ if goGNSS.isPP(mode) % post-processing
             %retrieve multi-constellation wavelengths
             lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
             
+            %exclude for which lambda could not be computed
+            delsat = ~any(lambda,2);
+            pr1_R(delsat,:,:) = 0;
+            pr2_R(delsat,:,:) = 0;
+            ph1_R(delsat,:,:) = 0;
+            ph2_R(delsat,:,:) = 0;
+            dop1_R(delsat,:,:) = 0;
+            dop2_R(delsat,:,:) = 0;
+            snr_R(delsat,:,:) = 0;
+            pr1_M(delsat,:,:) = 0;
+            pr2_M(delsat,:,:) = 0;
+            ph1_M(delsat,:,:) = 0;
+            ph2_M(delsat,:,:) = 0;
+            dop1_M(delsat,:,:) = 0;
+            dop2_M(delsat,:,:) = 0;
+            snr_M(delsat,:,:) = 0;
+            
             dtR          = zeros(length(time_GPS), 1, size(time_R,3));
             dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
             bad_sats_R   = zeros(nSatTot, 1, size(time_R,3));
@@ -1027,8 +1054,8 @@ if goGNSS.isPP(mode) % post-processing
                 Eph(32,:) = Eph(32,:) - zero_time;
                 Eph(33,:) = Eph(33,:) - zero_time;
                 
-%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations);
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas, constellations);
+%                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations, order);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas, constellations, order);
 
                 if report.opt.write == 1
                     report.prep.spp_threshold = SPP_threshold;                    
@@ -1071,8 +1098,8 @@ if goGNSS.isPP(mode) % post-processing
                 pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M;
             end
             
-%             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas, constellations);
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas, constellations);
+%             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas, constellations, order);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas, constellations, order);
             if report.opt.write == 1
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
@@ -1302,8 +1329,8 @@ if goGNSS.isPP(mode) % post-processing
         
         %pre-processing
         fprintf('Pre-processing rover observations...\n');
-        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 0, sbas);
-%         [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 0, sbas);
+        [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 0, sbas, constellations, order);
+%         [pr1_R, ph1_R, ~, ~, dtR, dtRdot, bad_sats_R] = pre_processing(time_GPS, time_R, [], pr1_R, ph1_R, zeros(size(pr1_R)), zeros(size(ph1_R)), dop1_R, zeros(size(dop1_R)), snr_R, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 0, sbas, constellations, order);
         
         if (mode_user == 1)
             goWB.close();
@@ -1319,8 +1346,8 @@ if goGNSS.isPP(mode) % post-processing
             end
             
             fprintf('Pre-processing master observations...\n');
-            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas);
-%             [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas);
+            [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas, constellations, order);
+%             [pr1_M, ph1_M, ~, ~, dtM, dtMdot, bad_sats_M] = pre_processing(time_GPS, time_M, pos_M(:,1), pr1_M, ph1_M, zeros(size(pr1_M)), zeros(size(ph1_M)), zeros(size(dop1_R)), zeros(size(dop1_R)), snr_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas, constellations, order);
             
             if (mode_user == 1)
                 goWB.close();
@@ -2031,7 +2058,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
-
+    
     fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');
     fid_dop = fopen([filerootOUT '_dop_000.bin'],'w+');
@@ -2043,6 +2070,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         kalman_initialized = 0;
     end
     if (~kalman_initialized)
+        
+        [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS, pr1_R, ph1_R, pr2_R, ph2_R, ISBs, Eph, constellations, lambda);
+        ISBs_init = ISBs;
+            
         while (~kalman_initialized)
             if (isempty(time_GPS))
                 fprintf('It was not possible to initialize the Kalman filter.\n');
@@ -2056,7 +2087,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
             end
             
             sbas_t = find_sbas(sbas, 1);
-            
+
             kalman_initialized = goGPS_KF_SA_code_phase_init(pos_R, time_GPS(1), pr1_R(:,1), ph1_R(:,1), dop1_R(:,1), pr2_R(:,1), ph2_R(:,1), dop2_R(:,1), snr_R(:,1), Eph_t, SP3, iono, sbas_t, lambda, frequencies, obs_comb, flag_XR, flag_tropo);
             
             if (~kalman_initialized)
@@ -2103,6 +2134,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA)
         fwrite(fid_res, nSatTot, 'int8');
         fwrite(fid_trp, nSatTot, 'int8');
         t1 = 1;
+        [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS, pr1_R, ph1_R, pr2_R, ph2_R, ISBs_init, Eph, constellations, lambda);
     end
     
     fprintf('Processing...\n');

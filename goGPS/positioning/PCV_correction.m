@@ -43,6 +43,8 @@ function PCV_corr = PCV_correction(antenna_PCV, zen, azi, sys, frequency)
 %----------------------------------------------------------------------------------------------
 PCV_corr=zeros(size(zen));
 
+sys = floor(sys);
+
 % extract constellations that have to be analyzed
 constellation=unique(sys);
 

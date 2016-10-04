@@ -16,8 +16,11 @@ end
 outliers_PHASE(isnan(outliers_PHASE)) = 0;
 outliers_CODE(isnan(outliers_CODE)) = 0;
 
+nrows = 7;
+ncols = 6;
+
 systems = fieldnames(constellations);
-for s = 1 : numel(unique(constellations.systems))
+for s = 1 : 6 %numel(unique(constellations.systems))
     if constellations.(systems{s}).enabled == 1
         
         %PHASE GRAPHS (no outliers)
@@ -28,7 +31,7 @@ for s = 1 : numel(unique(constellations.systems))
             for i=1:constellations.(systems{s}).numSat
                 
                 figure(f);
-                subplot(7,5,i);
+                subplot(nrows,ncols,i);
                 hold on;
                 title(sprintf('%c%02d',constellations.(systems{s}).sysID,constellations.(systems{s}).PRN(i)),'FontName','Verdana','FontSize',10,'FontWeight','Bold','Color',[0 0 1]);
                 grid on;
@@ -53,7 +56,7 @@ for s = 1 : numel(unique(constellations.systems))
             for i=1:constellations.(systems{s}).numSat
                 
                 figure(f1);
-                subplot(7,5,i);
+                subplot(nrows,ncols,i);
                 hold on;
                 title(sprintf('%c%02d',constellations.(systems{s}).sysID,constellations.(systems{s}).PRN(i)),'FontName','Verdana','FontSize',10,'FontWeight','Bold','Color',[0 0 1]);
                 grid on;
@@ -76,7 +79,7 @@ for s = 1 : numel(unique(constellations.systems))
             for i=1:constellations.(systems{s}).numSat
                 
                 figure(f);
-                subplot(7,5,i);
+                subplot(nrows,ncols,i);
                 hold on;
                 title(sprintf('%c%02d',constellations.(systems{s}).sysID,constellations.(systems{s}).PRN(i)),'FontName','Verdana','FontSize',10,'FontWeight','Bold','Color',[0 0 1]);
                 grid on;
@@ -103,7 +106,7 @@ for s = 1 : numel(unique(constellations.systems))
             for i=1:constellations.(systems{s}).numSat
                 
                 figure(f1);
-                subplot(7,5,i);
+                subplot(nrows,ncols,i);
                 hold on;
                 title(sprintf('%c%02d',constellations.(systems{s}).sysID,constellations.(systems{s}).PRN(i)),'FontName','Verdana','FontSize',10,'FontWeight','Bold','Color',[0 0 1]);
                 grid on;

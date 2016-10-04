@@ -1,11 +1,12 @@
-function [download_successful, compressed] = download_nav(filename)
+function [download_successful, compressed] = download_nav(filename, nav_path)
 
 % SYNTAX:
-%   [download_successful, compressed] = download_nav(filename);
+%   [download_successful, compressed] = download_nav(filename, nav_path);
 %
 % INPUT:
 %   filename = name of the RINEX navigation file to be downloaded
-%   (brdcddd0.yyn and CGIMddd0.yyN supported)
+%   (brdcddd0.yyn, brdmddd0.yyp and CGIMddd0.yyN supported)
+%   nav_path = download path
 %
 % OUTPUT:
 %   download_successful = flag to identify unsuccessful downloads
@@ -45,7 +46,11 @@ igs_url = 'cddis.gsfc.nasa.gov';
 aiub_url = 'ftp.unibe.ch';
 
 %download directory
-down_dir = '../data/ORB';
+if (nargin < 2)
+    down_dir = '../data/ORB/';
+else
+    down_dir = nav_path;
+end
 
 %identify requested file type
 if (strcmp(filename(1:4),'brdc'))
@@ -56,7 +61,7 @@ if (strcmp(filename(1:4),'brdc'))
 elseif (strcmp(filename(1:4),'brdm'))
     url = igs_url;
     name = 'IGS';
-    path = '/pub/gps/data/campaign/mgex/daily/rinex3';
+    path = '/pub/gps/data/campaign/mgex/daily/rinex3/';
     subdir = '/brdm/';
 elseif (strcmp(filename(1:4),'CGIM'))
     url = aiub_url;
@@ -90,11 +95,11 @@ filename = [filename '.Z'];
 try
     mget(ftp_server,filename,down_dir);
     if (isunix())
-        system(['uncompress -f ' down_dir '/' filename]);
+        system(['uncompress -f ' down_dir filename]);
     else
         try
-            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir '/' filename '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
-            delete([down_dir '/' filename]);
+            [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir filename '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+            delete([down_dir filename]);
             filename = filename(1:end-2);
         catch
             fprintf(['Please decompress the ' filename ' file before trying to use it in goGPS.\n']);

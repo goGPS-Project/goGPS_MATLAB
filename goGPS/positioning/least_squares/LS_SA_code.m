@@ -92,12 +92,19 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
       ones(n,1)];        %column for receiver clock delay (multiplied by c)
   
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
-uni_sys = unique(sys(sys ~= 0));
+uni_sys = unique(sys(sys ~= 0),'stable');
 num_sys = length(uni_sys);
 ISB = zeros(n,1);
 if (num_sys > 1)
-    m = m + num_sys - 1;
-    for s = 2 : num_sys
+    if (any(floor(uni_sys) ~= 2)) %not only GLONASS
+        ref_clock = 1;
+    else %only GLONASS
+        ref_clock = 0;
+        A = [];
+        m = m - 1;
+    end
+    m = m + num_sys - ref_clock;
+    for s = (1 + ref_clock) : num_sys
         ISB(sys == uni_sys(s)) = 1;
         A = [A, ISB]; %#ok<AGROW>
         ISB = zeros(n,1);
@@ -191,7 +198,7 @@ dtR = x(4) / v_light;
 
 %estimated inter-system biases
 if (num_sys > 1)
-    ISBs = x(3+1+[1:num_sys-1]) / v_light;
+    ISBs = x(3+ref_clock+[1:num_sys-ref_clock]) / v_light;
 end
 
 %computation of the condition number on the eigenvalues of N
@@ -222,4 +229,22 @@ if (nargout > 4)
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
     HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
     VDOP = sqrt(cov_ENU(3,3));
+end
+
+%prepare A and ISBs variables for output (only when GLONASS is enabled)
+if (any(floor(uni_sys) == 2))
+    pos = find(floor(uni_sys) == 2);
+    GLO_slots = single((uni_sys(pos) - 2)*100 + 1);
+    GLO_IFBs = zeros(14,1);
+    GLO_IFBs(GLO_slots) = ISBs(pos-ref_clock);
+    ISBs = [GLO_IFBs; ISBs(pos(end)+1:end)];
+    GLO_rows = find(floor(sys) == 2);
+    if (ref_clock ~= 0)
+        A = [A(:,1:3) zeros(n,14) A(:,4+pos(end)+1:end)];
+    else
+        A = zeros(n,14);
+    end
+    for r = 1 : length(GLO_rows)
+        A(GLO_rows(r),4+GLO_slots(r)) = 1;
+    end
 end

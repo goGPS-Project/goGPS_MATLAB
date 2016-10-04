@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, order)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, order);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -27,6 +27,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %           = 0: no apriori coordinates available
 %   sbas = SBAS corrections
 %   constellations = struct with multi-constellation settings
+%   order = dynamic model order (1: static; >1 kinematic or epoch-by-epoch)
 
 % OUTPUT:
 %   pr1 = processed code observation (L1 carrier)
@@ -91,8 +92,17 @@ if (~isempty(SP3))
 else
     nsys = length(unique(Eph(31,Eph(31,:)~=0)));
 end
+if (any(strfind(char(Eph(31,Eph(31,:)~=0)),'R')) || (~isempty(SP3) && any(strfind(char(SP3.sys(SP3.sys~=0))','R'))))
+    if (constellations.GLONASS.enabled)
+        if (nsys == 1)
+            nsys = nsys + 14; %if only GLONASS is present, just add IFBs
+        else
+            nsys = nsys - 1 + 14; %if GLONASS is present with other constellations, remove the GLONASS ISB and add IFBs
+        end
+    end
+end
 if (nsys > 1)
-    ISBs = zeros(nsys-1, nEpochs);
+    ISBs = zeros(nsys-1, 1);
 else 
     ISBs = [];
 end
@@ -144,24 +154,34 @@ status_cs=[];
 % RECEIVER CLOCK  AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: INITIALIZATION
 %------------------------------------------------------------------------------------------------------------------
 
+%modulo time
+interval = median(diff(time)); %seconds
+mt = ceil(interval/3);
+nEpochs_reduced = floor(length(time)/mt);
+
 %number of position solutions to be estimated
-npos = 1;
+if (order == 1)
+    npos = 1;
+else
+    npos = nEpochs_reduced;
+end
 
 %vector to keep track of the number of observations available at each epoch
-n_obs_epoch = NaN(size(time));
+n_obs_epoch = NaN(nEpochs_reduced, 1);
 
 %cumulative number of observations, to keep track of where each epoch begins
-epoch_index = NaN(size(time));
+epoch_index = NaN(nEpochs_reduced, 1);
 epoch_track = 0;
 
 %total number of observations (for matrix initialization)
-n_obs_tot = sum(sum(pr1(:,:,1) ~= 0));
+n_obs_tot = floor(sum(sum(pr1(:,:,1) ~= 0))/mt);
 
 y0_all = NaN(n_obs_tot,1);
 b_all  = NaN(n_obs_tot,1);
-A_all  = NaN(n_obs_tot,npos*3+length(time)+(nsys-1));
+A_all  = NaN(n_obs_tot,npos*3+nEpochs_reduced+(nsys-1));
 Q_all  = NaN(n_obs_tot,1);
 
+r = 1;
 for i = 1 : nEpochs
     
     %--------------------------------------------------------------------------------------------
@@ -200,19 +220,20 @@ for i = 1 : nEpochs
             [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, 1); %#ok<ASGLU>
         end
         
-        if (~isempty(A))
-            n_obs_epoch(i) = length(y0);
-            y0_all(epoch_track+1:epoch_track+n_obs_epoch(i)) = y0;
-            b_all( epoch_track+1:epoch_track+n_obs_epoch(i)) =  b;
-            A_all( epoch_track+1:epoch_track+n_obs_epoch(i),1:3) = A(:,1:3);
+        if (~isempty(A) && (size(A,2) >= 3+nsys-1) && (mod(i,mt) == 0))
+            n_obs_epoch(r) = length(y0);
+            y0_all(epoch_track+1:epoch_track+n_obs_epoch(r)) = y0;
+            b_all( epoch_track+1:epoch_track+n_obs_epoch(r)) =  b;
+            A_all( epoch_track+1:epoch_track+n_obs_epoch(r),(1:3)+any(npos-1)*(r-1)*3) = A(:,1:3);
             if (nsys > 1)
-                A_all( epoch_track+1:epoch_track+n_obs_epoch(i),end-(nsys-2):end) = A(:,end-(nsys-2):end);
+                A_all( epoch_track+1:epoch_track+n_obs_epoch(r),end-(nsys-2):end) = A(:,end-(nsys-2):end);
             end
-            Q_all( epoch_track+1:epoch_track+n_obs_epoch(i),1) = diag(Q);
-            epoch_index(i) = epoch_track + n_obs_epoch(i);
-            epoch_track = epoch_index(i);
+            Q_all( epoch_track+1:epoch_track+n_obs_epoch(r),1) = diag(Q);
+            epoch_index(r) = epoch_track + n_obs_epoch(r);
+            epoch_track = epoch_index(r);
+            r = r + 1;
         end
-        
+
         if isempty(var_dtR_tmp)
             var_dtR_tmp=NaN;
         end
@@ -222,9 +243,9 @@ for i = 1 : nEpochs
         
         if (~isempty(dtR_tmp) && ~isempty(sat))
             dtR(i) = dtR_tmp;
-            if (~isempty(ISBs_tmp))
-                ISBs(:,i) = ISBs_tmp;
-            end
+%             if (~isempty(ISBs_tmp))
+%                 ISBs(:,i) = ISBs_tmp;
+%             end
             err_iono(sat,i) = err_iono_tmp;
             el(sat,i) = el_tmp;
             eclipsed(sat,i) = eclipsed_tmp;
@@ -265,7 +286,7 @@ end
 % RECEIVER CLOCK AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
 %-------------------------------------------------------------------------------------------------------------
 
-unknown_index = find(~isnan(n_obs_epoch));
+%unknown_index = find(~isnan(n_obs_epoch));
 n_obs_epoch(isnan(n_obs_epoch)) = [];
 epoch_index(isnan(epoch_index)) = [];
 
@@ -283,13 +304,19 @@ A_all(isnan(A_all)) = 0;
 Q_all(isnan(Q_all)) = 0;
 
 %set the design matrix to estimate the receiver clock
-A_all(1:epoch_index(1),3*npos+unknown_index(1)) = 1;
+A_all(1:epoch_index(1),3*npos+1) = 1;
 for e = 2 : length(epoch_index)
-    A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+unknown_index(e)) = 1;
+    A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
 end
 
 %remove unavailable epochs from the unknowns (receiver clock)
 avail_index = any(A_all,1);
+avail_IFBs = [];
+if (constellations.GLONASS.enabled)
+    %check if one of the GLONASS IFBs was removed from the unknowns
+    avail_IFBs = avail_index(3*npos+nEpochs_reduced+1:3*npos+nEpochs_reduced+14);
+end
+avail_ISBs = [avail_IFBs avail_index(3*npos+nEpochs_reduced+length(avail_IFBs)+1:end)];
 A_all(:,~avail_index) = [];
 m = m - length(find(~avail_index));
 
@@ -315,10 +342,10 @@ T = Q\v_hat;
 sigma02_hat = (V*T)/(n-m);
 
 %estimated values
-dtR = zeros(size(dtR));
-dtR(avail_index(4:end-(nsys-1))) = x(4:end-(nsys-1))/v_light;
+% dtR = zeros(size(dtR));
+% dtR(avail_index(4:end-(nsys-1))) = x(4:end-(nsys-1))/v_light;
 if (nsys > 1)
-    ISBs = x(end-(nsys-2):end)/v_light;
+    ISBs(avail_ISBs) = x(end-(nsys-2-sum(~avail_IFBs)):end)/v_light;
 end
 
 %----------------------------------------------------------------------------------------------
@@ -577,21 +604,6 @@ pr1 = pr1_interp;
 pr2 = pr2_interp;
 ph1 = ph1_interp;
 ph2 = ph2_interp;
-
-if (nsys > 1)
-    [~, idx] = unique(constellations.systems,'stable');
-    for c = 2 : nsys
-        if (c~=nsys)
-            e = idx(c+1)-1;
-        else
-            e = size(pr1,1);
-        end
-        pr1(idx(c):e,:) = pr1(idx(c):e,:) - ISBs(c-1)*v_light*(pr1(idx(c):e,:)~=0);
-        pr2(idx(c):e,:) = pr2(idx(c):e,:) - ISBs(c-1)*v_light*(pr2(idx(c):e,:)~=0);
-        ph1(idx(c):e,:) = ph1(idx(c):e,:) - ISBs(c-1)*v_light*(ph1(idx(c):e,:)~=0)/max(lambda(idx(c):e,1));
-        ph2(idx(c):e,:) = ph2(idx(c):e,:) - ISBs(c-1)*v_light*(ph2(idx(c):e,:)~=0)/max(lambda(idx(c):e,2));
-    end
-end
 
 % %flag epochs with 4 or more slipped satellites as "bad"
 % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));

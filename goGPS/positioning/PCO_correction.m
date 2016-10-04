@@ -41,7 +41,7 @@ function PCO_corr = PCO_correction(antenna_PCV, XR, XS, sys, frequency)
 PCO_corr   = zeros(size(sys));
 
 %extract constellations that have to be analyzed
-constellation=unique(sys);
+constellation=unique(floor(sys));
 
 %compute PCO correction: loop on every requested constellation
 for j = 1 : length(constellation)  
