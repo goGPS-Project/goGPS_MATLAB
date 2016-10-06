@@ -1,4 +1,4 @@
-function [ipp_lat, ipp_lon, elS] = IPP_satspec_new(elev_series, azim_series, commontime, stations_idx, PRN, pos_RM)
+function [ipp_lat, ipp_lon, elS] = IPP_satspec(elev_series, azim_series, commontime, stations_idx, PRN, pos_RM)
 
 n_sta=length(elev_series);
 

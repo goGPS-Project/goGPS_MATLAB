@@ -879,7 +879,7 @@ if goGNSS.isPP(mode) % post-processing
                 
                 %if (~strcmp(obs_comb, 'IONO_FREE'))
                     %try first to read already available DCB files
-                    DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M), constellations);
+                    DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M(:,:,ones(1,size(codeC1_R,3)))), constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
                     if ((~any(DCB.P1C1.value) || ~any(DCB.P1P2.value)) && constellations.GPS.enabled)
@@ -892,7 +892,7 @@ if goGNSS.isPP(mode) % post-processing
                         end
                         
                         %try again to read DCB files
-                        DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M), constellations);
+                        DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M(:,:,ones(1,size(codeC1_R,3)))), constellations);
                     end
                     
                     SP3.DCB = DCB;

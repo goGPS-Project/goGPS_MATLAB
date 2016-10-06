@@ -150,10 +150,15 @@ temporaryfile_path = strcat(out_path, [SEID_filename '_SEID_TEMP' SEID_ext]);
 new_interval = 30;
 
 %add back PCO, PCV
-%P1_new = P1{target_sta}(:,1:end-1) + (PCO1{target_sta}(:,1:end-1) + PCV1{target_sta}(:,1:end-1));
-%L1_new = L1{target_sta}(:,1:end-1) + (PCO1{target_sta}(:,1:end-1) + PCV1{target_sta}(:,1:end-1))./repmat(lambda(:,1),1,size(P1_new,2));
-P2_new =     fix_til_P2(:,1:end-1) + (PCO2{target_sta}(:,1:end-1) + PCV2{target_sta}(:,1:end-1));
-L2_new =     fix_til_L2(:,1:end-1) + (PCO2{target_sta}(:,1:end-1) + PCV2{target_sta}(:,1:end-1))./repmat(lambda(:,2),1,size(P2_new,2));
+if (~isempty(antenna_PCV) && antenna_PCV(target_sta).n_frequency ~= 0)
+    %P1_new = P1{target_sta}(:,1:end-1) + (PCO1{target_sta}(:,1:end-1) + PCV1{target_sta}(:,1:end-1));
+    %L1_new = L1{target_sta}(:,1:end-1) + (PCO1{target_sta}(:,1:end-1) + PCV1{target_sta}(:,1:end-1))./repmat(lambda(:,1),1,size(P1_new,2));
+    P2_new = fix_til_P2(:,1:end-1) + (PCO2{target_sta}(:,1:end-1) + PCV2{target_sta}(:,1:end-1));
+    L2_new = fix_til_L2(:,1:end-1) + (PCO2{target_sta}(:,1:end-1) + PCV2{target_sta}(:,1:end-1))./repmat(lambda(:,2),1,size(P2_new,2));
+else
+    P2_new = fix_til_P2(:,1:end-1);
+    L2_new = fix_til_L2(:,1:end-1);
+end
 
 write_RINEX_obs(temporaryfile_path, '', antenna_PCV(target_sta).name, cell2mat(marker_M), ...
                  pr1_M(:,1:end-1), P2_new, ph1_M(:,1:end-1), L2_new, dop1_M(:,1:end-1), dop2_M(:,1:end-1), ...
