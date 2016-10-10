@@ -62,8 +62,8 @@ x = 1 : n+1;
 
 %Lagrange interpolation (coordinates)
 s = 1/interval;
-t = n/2+1 - b/interval;
-u = t - s : s : t + s;
+d = n/2+1 - b/interval;
+u = d - s : s : d + s;
 
 LI_SP3_X = LagrangeInter(x, SP3_X, u);
 LI_SP3_Y = LagrangeInter(x, SP3_Y, u);

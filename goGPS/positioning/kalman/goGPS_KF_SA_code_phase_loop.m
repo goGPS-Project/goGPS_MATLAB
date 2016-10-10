@@ -342,8 +342,9 @@ if (nsat >= min_nsat)
     
     %compute phase wind-up correction
     phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS(index_ph,:), SP3, phwindup(sat,1));
+    phwindup(setdiff(1:nSatTot,sat),1) = 0;
     
-    %apply PCO/PCV correction
+    %apply receiver antenna PCO/PCV corrections
     if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0)
         index_rover = 1;
         PCO1 = PCO_correction(antenna_PCV(index_rover), XR0, XS, sys, 1);
@@ -359,7 +360,7 @@ if (nsat >= min_nsat)
         end
     end
     
-    %if using the iono-free combination, compute the observable and apply satellite PCV corrections
+    %if using the iono-free combination, compute the observable and apply satellite antenna PCV corrections
     PCV_S = zeros(size(sat_pr));
     if (strcmp(obs_comb,'IONO_FREE'))
         prIF = zeros(size(pr1));
