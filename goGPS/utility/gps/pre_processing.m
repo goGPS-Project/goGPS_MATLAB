@@ -821,7 +821,7 @@ if (~isempty(N_mat(1,N_mat(1,:)~=0)))
     
     %exclude observation epochs with computed cycle slip corrections "far" from integer values
     %thres = 0.1;   %ENABLED
-    thres = 1e-10; %DISABLED
+    thres = 1e-10; %DISABLED (i.e. just exclude all)
     idx_bad_obs2 = find(abs(delta(jmp) - roundmod(delta(jmp), cs_resolution)) > thres);
     
     idx_bad_obs = union(idx_bad_obs1, idx_bad_obs2);

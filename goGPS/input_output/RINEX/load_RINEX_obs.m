@@ -265,8 +265,13 @@ for f = 1 : nFiles
     holes = find(week(:,1,f) == 0);
     for h = holes'
         if (h > 1)
+            time(h,:,f) = time(h-1,1,f) + interval;
             week(h,1,f) = week(h-1,1,f);
             date(h,:,f) = datevec(datenum(date(h-1,:,f)) + datenum([0 0 0 0 0 interval]));
+        elseif (holes(end)+1 <= length(week(:,1,f)))
+            time(h,1,f) = time(holes(end)+1,1,f) - interval*holes(end);
+            week(h,1,f) = week(holes(end)+1,1,f);
+            date(h,:,f) = datevec(datenum(date(holes(end)+1,:,f)) - datenum([0 0 0 0 0 interval*holes(end)]));
         end
     end
 end

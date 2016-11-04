@@ -69,7 +69,7 @@ if (isempty(SP3))
         dtS = sat_clock_error_correction(time_tx_RAW - dtS, Eph);
     else
         %relativistic correction term
-        dtrel = relativistic_clock_error_correction(time_tx_RAW, Eph);
+        dtrel = relativistic_clock_error_correction(time_tx_RAW, Eph, SP3);
         
         %group delay correction term
         if (nargin > 9 && ~strcmp(obs_comb,'IONO_FREE'))

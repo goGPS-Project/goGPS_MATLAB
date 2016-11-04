@@ -313,49 +313,48 @@ end
 [~, index_ph]=intersect(sat_pr,sat);
 phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS(index_ph,:), SP3, phwindup(sat,1));
 
-%do not use least squares ambiguity estimation
+%ambiguity initialization: initialized value
+%if the satellite is visible, 0 if the satellite is not visible
+N1 = zeros(nSatTot,1);
+N2 = zeros(nSatTot,1);
+sigma2_N1 = zeros(nSatTot,1);
+sigma2_N2 = zeros(nSatTot,1);
+N_IF = zeros(nSatTot,1);
+cov_N1 = [];
+cov_N2 = [];
+cov_N_IF = [];
+    
+%force least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
 if (length(sat) < min_nsat)
     
-    %ambiguity initialization: initialized value
-    %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(nSatTot,1);
-    N2 = zeros(nSatTot,1);
-    sigma2_N1 = zeros(nSatTot,1);
-    sigma2_N2 = zeros(nSatTot,1);
+    return
     
-    %estimate N
-    if ~isempty(sat)
-        [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), lambda(sat,1));
-        [N2(sat), sigma2_N2(sat)] = amb_estimate_observ_SA(pr2(sat), ph2(sat), lambda(sat,2));
-    end
-
-    if (length(frequencies) == 2)
-        N = [N1; N2];
-        sigma2_N = [sigma2_N1; sigma2_N2];
-    else
-        if (frequencies == 1)
-            N = N1;
-            sigma2_N = sigma2_N1;
-        else
-            N = N2;
-            sigma2_N = sigma2_N2;
-        end
-    end
-
-%use least squares ambiguity estimation
+%     %estimate N
+%     if ~isempty(sat)
+%         [N1(sat), sigma2_N1(sat)] = amb_estimate_observ_SA(pr1(sat), ph1(sat), lambda(sat,1));
+%         [N2(sat), sigma2_N2(sat)] = amb_estimate_observ_SA(pr2(sat), ph2(sat), lambda(sat,2));
+%     end
+% 
+%     if (length(frequencies) == 2)
+%         if (strcmp(obs_comb,'NONE'))
+%             N = [N1; N2];
+%             sigma2_N = [sigma2_N1; sigma2_N2];
+%         elseif (strcmp(obs_comb,'IONO_FREE'))
+%             N = alphat.*N1 - alphan.*N2;
+%             sigma2_N = alphat.*sigma2_N1 + alphan.*sigma2_N2;
+%         end
+%     else
+%         if (frequencies == 1)
+%             N = N1;
+%             sigma2_N = sigma2_N1;
+%         else
+%             N = N2;
+%             sigma2_N = sigma2_N2;
+%         end
+%     end
 else
-    
-    %ambiguity initialization: initialized value
-    %if the satellite is visible, 0 if the satellite is not visible
-    N1 = zeros(nSatTot,1);
-    N2 = zeros(nSatTot,1);
-    N_IF = zeros(nSatTot,1);
-    cov_N1 = [];
-    cov_N2 = [];
-    cov_N_IF = [];
-
     %estimate N
     if ~isempty(sat)
         if (~strcmp(obs_comb,'IONO_FREE'))
