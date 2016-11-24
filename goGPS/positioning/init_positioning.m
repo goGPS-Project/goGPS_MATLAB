@@ -1,7 +1,7 @@
-function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, eclipsed, ISBs, var_ISBs, y0, b, A, Q] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, frequencies, flag_XR, flag_XS, flag_OOLO, flag_static_batch)
+function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, bad_epoch, var_SPP, residuals_obs, eclipsed, ISBs, var_ISBs, y0, b, A, Q] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, lambda, cutoff_el, cutoff_snr, frequencies, flag_XR, flag_XS, flag_OOLO, flag_static_batch, flag_ISBs)
 
 % SYNTAX:
-%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch, var_SPP, residuals_obs, eclipsed, ISBs, var_ISBs, y0, b, A, Q] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO, flag_static_batch);
+%   [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el, az, dist, sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_sat, bad_epoch, var_SPP, residuals_obs, eclipsed, ISBs, var_ISBs, y0, b, A, Q] = init_positioning(time_rx, pseudorange, snr, Eph, SP3, iono, sbas, XR0, XS0, dtS0, sat0, sys0, sys0, lambda, cutoff_el, cutoff_snr, phase, flag_XR, flag_XS, flag_OOLO, flag_static_batch, flag_ISBs);
 %
 % INPUT:
 %   time_rx     = reception time
@@ -30,6 +30,8 @@ function [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, el,
 %                 1: outlier detection disabled
 %   flag_static_batch = 0: parent function does not require least-squares variables for static batch processing
 %                       1: parent function requires least-squares variables for static batch processing (i.e. keep the same linearization coordinates XR0)
+%   flag_ISBs   = 0: do not estimate ISBs (e.g. if already applied by parent function)
+%                 1: estimate ISBs
 %
 % OUTPUT:
 %   XR          = receiver position (X,Y,Z)
@@ -106,6 +108,10 @@ if (~exist('flag_static_batch','var'))
     flag_static_batch = 0;
 end
 
+if (~exist('flag_ISBs','var'))
+    flag_ISBs = 0;
+end
+
 bad_epoch=NaN;
 var_SPP = NaN(1,3);
 ISBs = [];
@@ -149,6 +155,10 @@ else
     no_eph = zeros(nsat,1);
     eclipsed = zeros(nsat,1);
     sys = sys0;
+end
+
+if (~flag_ISBs)
+    sys = ones(size(sys));
 end
 
 %if multi-system observations, then an inter-system bias parameter for each additional system must be estimated

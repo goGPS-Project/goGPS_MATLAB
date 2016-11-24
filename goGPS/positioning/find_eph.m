@@ -60,7 +60,7 @@ if (fit_interval ~= 0)
 else
     switch (char(Eph(31,icol)))
         case 'R' %GLONASS
-            dtmax = 900;
+            dtmax = 950; %900 + 50 to account for leap seconds difference
         case 'J' %QZSS
             dtmax = 3600;
         otherwise

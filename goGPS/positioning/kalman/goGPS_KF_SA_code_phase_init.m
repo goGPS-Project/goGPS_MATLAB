@@ -156,9 +156,9 @@ Z_o1_o1 = zeros(o1);
 D0 = eye(o1) + diag(ones(o1-1,1),1)*interval;
 
 %second degree polynomial
-% T0 = [1 1; 0 1];
+% D0 = [1 1; 0 1];
 %third degree polynomial
-% T0 = [1 1 0; 0 1 1; 0 0 1]
+% D0 = [1 1 0; 0 1 1; 0 0 1]
 
 %matrix structure of initial comb_N
 N0 = eye(nN);

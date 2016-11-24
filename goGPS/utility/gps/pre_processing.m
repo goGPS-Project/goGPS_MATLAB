@@ -88,21 +88,21 @@ dtR = zeros(nEpochs,1);
 
 %inter-system biases
 if (~isempty(SP3))
-    nsys = length(unique(SP3.sys(SP3.sys~=0)));
+    nisbs = length(unique(SP3.sys(SP3.sys~=0)));
 else
-    nsys = length(unique(Eph(31,Eph(31,:)~=0)));
+    nisbs = length(unique(Eph(31,Eph(31,:)~=0)));
 end
 if (any(strfind(char(Eph(31,Eph(31,:)~=0)),'R')) || (~isempty(SP3) && any(strfind(char(SP3.sys(SP3.sys~=0))','R'))))
     if (constellations.GLONASS.enabled)
-        if (nsys == 1)
-            nsys = nsys + 14; %if only GLONASS is present, just add IFBs
+        if (nisbs == 1)
+            nisbs = nisbs + 14; %if only GLONASS is present, just add IFBs
         else
-            nsys = nsys - 1 + 14; %if GLONASS is present with other constellations, remove the GLONASS ISB and add IFBs
+            nisbs = nisbs - 1 + 14; %if GLONASS is present with other constellations, remove the GLONASS ISB and add IFBs
         end
     end
 end
-if (nsys > 1)
-    ISBs = zeros(nsys-1, 1);
+if (nisbs > 1)
+    ISBs = zeros(nisbs-1, 1);
 else 
     ISBs = [];
 end
@@ -140,7 +140,7 @@ eclipsed = zeros(nSatTot,nEpochs);
 cond_num = zeros(nEpochs,1); %#ok<*NASGU>
 cov_XR = zeros(3,3,nEpochs);
 var_dtR = NaN(nEpochs,1);
-var_ISBs = NaN(nsys-1,nEpochs);
+var_ISBs = NaN(nisbs-1,nEpochs);
 status_obs = NaN(nSatTot,nEpochs);
 status_cs=[];
 
@@ -178,7 +178,7 @@ n_obs_tot = floor(sum(sum(pr1(:,:,1) ~= 0))/mt);
 
 y0_all = NaN(n_obs_tot,1);
 b_all  = NaN(n_obs_tot,1);
-A_all  = NaN(n_obs_tot,npos*3+nEpochs_reduced+(nsys-1));
+A_all  = NaN(n_obs_tot,npos*3+nEpochs_reduced+(nisbs-1));
 Q_all  = NaN(n_obs_tot,1);
 
 r = 1;
@@ -212,21 +212,21 @@ for i = 1 : nEpochs
     if (length(sat0) >= min_nsat_LS)
         if (frequencies(1) == 1)
             if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, 1); %#ok<ASGLU>
+                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
             else
-                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, 1); %#ok<ASGLU>
+                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
             end
         else
-            [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, 1); %#ok<ASGLU>
+            [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
         end
         
-        if (~isempty(A) && (size(A,2) >= 3+nsys-1) && (mod(i,mt) == 0))
+        if (~isempty(A) && (size(A,2) >= 3+nisbs-1) && (mod(i,mt) == 0))
             n_obs_epoch(r) = length(y0);
             y0_all(epoch_track+1:epoch_track+n_obs_epoch(r)) = y0;
             b_all( epoch_track+1:epoch_track+n_obs_epoch(r)) =  b;
             A_all( epoch_track+1:epoch_track+n_obs_epoch(r),(1:3)+any(npos-1)*(r-1)*3) = A(:,1:3);
-            if (nsys > 1)
-                A_all( epoch_track+1:epoch_track+n_obs_epoch(r),end-(nsys-2):end) = A(:,end-(nsys-2):end);
+            if (nisbs > 1)
+                A_all( epoch_track+1:epoch_track+n_obs_epoch(r),end-(nisbs-2):end) = A(:,end-(nisbs-2):end);
             end
             Q_all( epoch_track+1:epoch_track+n_obs_epoch(r),1) = diag(Q);
             epoch_index(r) = epoch_track + n_obs_epoch(r);
@@ -286,66 +286,67 @@ end
 % RECEIVER CLOCK AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
 %-------------------------------------------------------------------------------------------------------------
 
-%unknown_index = find(~isnan(n_obs_epoch));
-n_obs_epoch(isnan(n_obs_epoch)) = [];
-epoch_index(isnan(epoch_index)) = [];
+if (nisbs > 1)
+    %unknown_index = find(~isnan(n_obs_epoch));
+    n_obs_epoch(isnan(n_obs_epoch)) = [];
+    epoch_index(isnan(epoch_index)) = [];
+    
+    index_nan = find(isnan(y0_all),1);
+    y0_all(index_nan:end) = [];
+    b_all(index_nan:end)  = [];
+    
+    n = length(y0_all);
+    m = 3*npos + length(n_obs_epoch) + (nisbs-1);
+    if (~isempty(index_nan))
+        A_all = A_all(1:index_nan-1,1:size(A_all,2));
+        Q_all = Q_all(1:index_nan-1,1);
+    end
+    A_all(isnan(A_all)) = 0;
+    Q_all(isnan(Q_all)) = 0;
+    
+    %set the design matrix to estimate the receiver clock
+    A_all(1:epoch_index(1),3*npos+1) = 1;
+    for e = 2 : length(epoch_index)
+        A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
+    end
+    
+    %remove unavailable epochs from the unknowns (receiver clock)
+    avail_index = any(A_all,1);
+    avail_IFBs = [];
+    if (constellations.GLONASS.enabled)
+        %check if one of the GLONASS IFBs was removed from the unknowns
+        avail_IFBs = avail_index(3*npos+nEpochs_reduced+1:3*npos+nEpochs_reduced+14);
+    end
+    avail_ISBs = [avail_IFBs avail_index(3*npos+nEpochs_reduced+length(avail_IFBs)+1:end)];
+    A_all(:,~avail_index) = [];
+    m = m - length(find(~avail_index));
+    
+    A  = A_all;
+    y0 = y0_all;
+    b  = b_all;
+    Q  = diag(Q_all);
+    
+    %least-squares solution (broken down to improve computation speed)
+    K = A';
+    P = Q\A;
+    N = K*P;
+    Y = (y0-b);
+    R = Q\Y;
+    L = K*R;
+    x = N\L;
+    
+    %variance of the estimation error
+    y_hat = A*x + b;
+    v_hat = y0 - y_hat;
+    V = v_hat';
+    T = Q\v_hat;
+    sigma02_hat = (V*T)/(n-m);
+    
+    %estimated values
+    % dtR = zeros(size(dtR));
+    % dtR(avail_index(4:end-(nisbs-1))) = x(4:end-(nisbs-1))/v_light;
 
-index_nan = find(isnan(y0_all),1);
-y0_all(index_nan:end) = [];
-b_all(index_nan:end)  = [];
-
-n = length(y0_all);
-m = 3*npos + length(n_obs_epoch) + (nsys-1);
-if (~isempty(index_nan))
-    A_all = A_all(1:index_nan-1,1:size(A_all,2));
-    Q_all = Q_all(1:index_nan-1,1);
-end
-A_all(isnan(A_all)) = 0;
-Q_all(isnan(Q_all)) = 0;
-
-%set the design matrix to estimate the receiver clock
-A_all(1:epoch_index(1),3*npos+1) = 1;
-for e = 2 : length(epoch_index)
-    A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
-end
-
-%remove unavailable epochs from the unknowns (receiver clock)
-avail_index = any(A_all,1);
-avail_IFBs = [];
-if (constellations.GLONASS.enabled)
-    %check if one of the GLONASS IFBs was removed from the unknowns
-    avail_IFBs = avail_index(3*npos+nEpochs_reduced+1:3*npos+nEpochs_reduced+14);
-end
-avail_ISBs = [avail_IFBs avail_index(3*npos+nEpochs_reduced+length(avail_IFBs)+1:end)];
-A_all(:,~avail_index) = [];
-m = m - length(find(~avail_index));
-
-A  = A_all;
-y0 = y0_all;
-b  = b_all;
-Q  = diag(Q_all);
-
-%least-squares solution (broken down to improve computation speed)
-K = A';
-P = Q\A;
-N = K*P;
-Y = (y0-b);
-R = Q\Y;
-L = K*R;
-x = N\L;
-
-%variance of the estimation error
-y_hat = A*x + b;
-v_hat = y0 - y_hat;
-V = v_hat';
-T = Q\v_hat;
-sigma02_hat = (V*T)/(n-m);
-
-%estimated values
-% dtR = zeros(size(dtR));
-% dtR(avail_index(4:end-(nsys-1))) = x(4:end-(nsys-1))/v_light;
-if (nsys > 1)
-    ISBs(avail_ISBs) = x(end-(nsys-2-sum(~avail_IFBs)):end)/v_light;
+    ISBs(avail_ISBs) = x(end-(nisbs-2-sum(~avail_IFBs)):end)/v_light;
 end
 
 %----------------------------------------------------------------------------------------------

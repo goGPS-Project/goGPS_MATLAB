@@ -226,6 +226,7 @@ processing_interval = 30 %[sec]
 max_code_residual = 30;
                           
 max_phase_residual = 0.05;
+% max_phase_residual = 0.15;
 
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
@@ -518,7 +519,7 @@ if goGNSS.isPP(mode) % post-processing
                     DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
-                    if ((~any(DCB.P1C1.value) || ~any(DCB.P1P2.value)) && constellations.GPS.enabled)
+                    if ((~any(DCB.P1C1.value(:)) | ~any(DCB.P1P2.value(:))) && constellations.GPS.enabled)
                         
                         %download
                         [file_dcb, compressed] = download_dcb([week_R(1) week_R(end)], [time_R(1) time_R(end)]);
@@ -882,7 +883,7 @@ if goGNSS.isPP(mode) % post-processing
                     DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M(:,:,ones(1,size(codeC1_R,3)))), constellations);
                     
                     %if DCB files are not available or not sufficient, try to download them
-                    if ((~any(DCB.P1C1.value) || ~any(DCB.P1P2.value)) && constellations.GPS.enabled)
+                    if ((~any(DCB.P1C1.value(:)) | ~any(DCB.P1P2.value(:))) && constellations.GPS.enabled)
                         
                         %download
                         [file_dcb, compressed] = download_dcb([week_M(1) week_M(end)], [time_M(1) time_M(end)]);
@@ -1530,6 +1531,7 @@ end
 %update variance of tropospheric delay
 global sigmaq_tropo
 sigmaq_tropo = (0.005/sqrt(3600/interval))^2;
+% sigmaq_tropo = (0.05/sqrt(3600/interval))^2;
 
 %----------------------------------------------------------------------------------------------
 % SEID (Satellite-specific Epoch-differenced Ionospheric Delay) interpolation
@@ -1552,6 +1554,8 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
     fid_conf = fopen([filerootOUT '_conf_000.bin'],'w+');
     fid_res = fopen([filerootOUT '_res_000.bin'],'w+');
     residuals_dummy = NaN(1,nSatTot);
+    
+    [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS, pr1_R, ph1_R, pr2_R, ph2_R, ISBs, Eph, constellations, lambda);
     
     nN = nSatTot;
     nT = 0;
