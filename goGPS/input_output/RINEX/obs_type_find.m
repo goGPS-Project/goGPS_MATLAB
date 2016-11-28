@@ -148,10 +148,10 @@ else %RINEX v3.xx
                 idS2 = {'S2W';'S2P'};         %L2
                 idD2 = {'D2W';'D2P'};         %L2
                 %--------------------------------
-                %idP2 = {'C2C';'C2W';'C2P'};  %L2C
-                %idL2 = {'L2C';'L2W';'L2P'};  %L2C
-                %idS2 = {'S2C';'S2W';'S2P'};  %L2C
-                %idD2 = {'D2C';'D2W';'D2P'};  %L2C
+                %idP2 = {'C2S';'C2W';'C2P'};  %L2C
+                %idL2 = {'L2S';'L2W';'L2P'};  %L2C
+                %idS2 = {'S2S';'S2W';'S2P'};  %L2C
+                %idD2 = {'D2S';'D2W';'D2P'};  %L2C
                 %--------------------------------
                 %idP2 = {'C5X'};               %L5
                 %idL2 = {'L5X'};               %L5

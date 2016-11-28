@@ -93,6 +93,10 @@ for i = 1 : nsat
         %detect satellite constellation
         sys = Eph(31,k);
     else
+        if (~any(SP3.antPCO(:, :, sat(i))))
+            no_eph(i) = 1;
+            continue
+        end
         
         %interpolate SP3 coordinates at transmission time
         [XS_tx(i,:), VS_tx(i,:)] = interpolate_SP3_coord(time_tx(i,1), SP3, sat(i));

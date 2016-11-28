@@ -72,7 +72,8 @@ if (exist('override_dtmax','var'))
     dtmax = override_dtmax;
 end
 
-if (fix(abs(dtmin)) - delta > dtmax)
+%if (fix(abs(dtmin)) - delta > dtmax)
+if (fix(abs(dtmin)) > dtmax)
     icol = [];
     return
 end

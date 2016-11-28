@@ -471,9 +471,12 @@ ph1_interp = zeros(size(ph1));
 pr2_interp = zeros(size(pr2));
 ph2_interp = zeros(size(ph2));
 
+freq1_required = (frequencies(1) == 1 || length(frequencies) > 1);
+freq2_required = (frequencies(1) == 2 || length(frequencies) > 1);
+
 for s = 1 : nSatTot
 
-    if (any(pr1(s,:)))
+    if (any(pr1(s,:)) && freq1_required)
 
         index_s = find(pr1(s,:) ~= 0);
         index = intersect(index_e,index_s);
@@ -490,7 +493,7 @@ for s = 1 : nSatTot
         end
     end
     
-    if (any(pr2(s,:)))
+    if (any(pr2(s,:)) && freq2_required)
         
         index_s = find(pr2(s,:) ~= 0);
         index = intersect(index_e,index_s);
@@ -507,7 +510,7 @@ for s = 1 : nSatTot
         end
     end
     
-    if (any(ph1(s,:)))
+    if (any(ph1(s,:)) && freq1_required)
         index_s = find(ph1(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
@@ -522,7 +525,7 @@ for s = 1 : nSatTot
         end
     end
     
-    if (any(ph2(s,:)))
+    if (any(ph2(s,:)) && freq2_required)
         index_s = find(ph2(s,:) ~= 0);
         index = intersect(index_e,index_s);
         
@@ -537,7 +540,7 @@ for s = 1 : nSatTot
         end
     end
     
-    if (any(ph1(s,:)))
+    if (any(ph1(s,:)) && freq1_required)
         
         index_s = find(ph1(s,:) ~= 0);
         index = intersect(index_e,index_s);
@@ -564,12 +567,12 @@ for s = 1 : nSatTot
             bad_sats(s,1) = 1;
         end
         
-    elseif (any(pr1(s,:)))
+    elseif (any(pr1(s,:)) && freq1_required)
         
         bad_sats(s,1) = 1;
     end
     
-    if (any(ph2(s,:)))
+    if (any(ph2(s,:)) && freq2_required)
         
         index_s = find(ph2(s,:) ~= 0);
         index = intersect(index_e,index_s);
@@ -596,7 +599,7 @@ for s = 1 : nSatTot
             bad_sats(s,1) = 1;
         end
         
-    elseif (any(pr2(s,:)))
+    elseif (any(pr2(s,:)) && freq2_required)
         
         bad_sats(s,1) = 1;
     end
