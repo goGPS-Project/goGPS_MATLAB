@@ -206,17 +206,19 @@ end
 flag_tropo = 1
 flag_ocean = 1
 
-flag_SEID = 0
-if (flag_SEID == 1)
-    mode = goGNSS.MODE_PP_KF_CP_DD_MR;
-end
-
 % frequencies = [1]
 % frequencies = [2]
 frequencies = [1 2]
 
 % obs_comb = 'NONE'
 obs_comb = 'IONO_FREE'
+
+flag_SEID = 0
+if (flag_SEID == 1)
+    mode = goGNSS.MODE_PP_KF_CP_DD_MR;
+    frequencies = [1 2];
+    obs_comb = 'NONE';
+end
 
 cs_threshold_preprocessing = 1
 cs_threshold = 1e30 %i.e. disable cycle-slip detection during KF processing
