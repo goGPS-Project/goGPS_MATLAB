@@ -2,3 +2,5 @@
 /goGPS/settings/
 /goGPS/positioning/lambda/lambda_v3
 de421.bin
+.DS_Store
+*.m~
