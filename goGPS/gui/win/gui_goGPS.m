@@ -195,20 +195,6 @@ function code_dd_sa_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-%   INPUT FILE TYPE
-% ===============================================================
-    
-% --- Executes when selected object is changed in file_type.
-function file_type_SelectionChangeFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in file_type
-% eventdata  structure with the following fields (see UIBUTTONGROUP)
-%	EventName: string 'SelectionChanged' (read only)
-%	OldValue: handle of the previously selected object or empty if none was selected
-%	NewValue: handle of the currently selected object
-% handles    structure with handles and user data (see GUIDATA)
-global goGUI;
-    goGUI.syncFromGUI(goGUI.idGroup.gIFiles);
     
 %   OPTIONS
 % ===============================================================

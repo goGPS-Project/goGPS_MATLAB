@@ -117,11 +117,7 @@ classdef goGUIclass < handle
         idC_SA_MR = 5;   % Code and phase stand-alone (i.e. undifferenced) for multiple receivers
         idCP_DD_MR = 6;  % Code and phase double difference for multiple receivers
         strTypeLS = {};  % string containing the pop-up menu fields
-        strTypeKF = {};  % string containing the pop-up menu fields
-        
-        % File types
-        idRin = 1;
-        idBin = 2;
+        strTypeKF = {};  % string containing the pop-up menu fields        
         
         % Integer ambiguity resolution method
         idILS_enum_old = 1;   % ILS method based enumeration in search             (LAMBDA 2.0)
@@ -532,7 +528,6 @@ classdef goGUIclass < handle
             i=i+1; id.pOptions      = i;    id2h(i) = obj.goh.uipOptions;
             i=i+1; id.pConstellations = i;  id2h(i) = obj.goh.pConstellations;
             i=i+1; id.pIntAmb       = i;    id2h(i) = obj.goh.pIntAmb;
-            i=i+1; id.pIFiles       = i;    id2h(i) = obj.goh.file_type;
             i=i+1; id.pIOFiles      = i;    id2h(i) = obj.goh.uipInOutFiles;
             i=i+1; id.pSettings     = i;    id2h(i) = obj.goh.uipSettings;
             i=i+1; id.pKF           = i;    id2h(i) = obj.goh.uipKF;
@@ -553,16 +548,6 @@ classdef goGUIclass < handle
             i=i+1; id.lProcType     = i;    id2h(i) = obj.goh.code_dd_sa;
             
             idG.pMode = [id.pMode id.lProcMode:id.lProcType];
-
-          %   INPUT FILE TYPE
-          % --------------------------------------------------------------- 
-
-            i=i+1; id.rRin          = i;    id2h(i) = obj.goh.rinex_files;
-            i=i+1; id.rBin          = i;    id2h(i) = obj.goh.gogps_data;
-            
-            % Group of ids in the panel pIFiles
-            idG.gIFiles = [id.rRin id.rBin]; 
-            idG.pIFiles = [id.pIFiles idG.gIFiles]; 
             
           %   OPTIONS
           % --------------------------------------------------------------- 
@@ -647,13 +632,7 @@ classdef goGUIclass < handle
             i=i+1; id.tRinNav       = i;    id2h(i) = obj.goh.tRinNav;
             i=i+1; id.fRinNav       = i;    id2h(i) = obj.goh.fRinNav;
             
-            idG.RinNav = [id.tRinNav id.fRinNav ];
-            
-            % Binary In ---------------------------------------------------
-            i=i+1; id.tBinGoIn      = i;    id2h(i) = obj.goh.tBinGoIn;
-            i=i+1; id.fBinGoIn      = i;    id2h(i) = obj.goh.fBinGoIn;
-            
-            idG.BinGoIn = [id.tBinGoIn id.fBinGoIn];            
+            idG.RinNav = [id.tRinNav id.fRinNav ];            
 
             % Output ------------------------------------------------------
             i=i+1; id.tDirGoOut     = i;    id2h(i) = obj.goh.tDirGoOut;
@@ -691,14 +670,13 @@ classdef goGUIclass < handle
             idG.BLQ = [id.tBLQ id.fBLQ];
             
             % Group of ids in the panel pIOFiles
-            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.BinGoIn idG.GoOut idG.DTM idG.RefPath idG.PCO idG.BLQ];
+            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.GoOut idG.DTM idG.RefPath idG.PCO idG.BLQ];
             
             % For a correct LED management these following id groups must be synchronized 
             idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ];
-            idG.gBinLED =  [id.fBinGoIn];
-            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ id.fBinGoIn];
+            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ];
             idG.gDirLED =  [id.fDirGoOut];
-            idG.gLED = [idG.gFileLED idG.gBinLED idG.gDirLED];
+            idG.gLED = [idG.gFileLED idG.gDirLED];
 
           %   SETTINGS - KALMAN FILTER - STD
           % --------------------------------------------------------------- 
@@ -988,14 +966,13 @@ classdef goGUIclass < handle
             % On Post Proc
             idG.onPostProc = [idG.ResetStatus ...
                               id.pMode id.lAlgType id.lProcType ...
-                              id.pIFiles idG.gINI...
+                              idG.gINI...
                               id.pIOFiles id.pConstellations idG.GoOut ...
                               id.pOptions ...
                               id.pSettings idG.CutOff idG.pW];
             
             % On Post Proc => Least Squares
-            idG.onPP_LS = [idG.onPostProc  ...
-                           id.rBin id.rRin];
+            idG.onPP_LS = [idG.onPostProc];
                           
             % On Post Proc => Least Squares => Code Stand Alone
             idG.onPP_LS_C_SA = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSCode ...
@@ -1026,25 +1003,25 @@ classdef goGUIclass < handle
 
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc id.cPlotProc ...
-                           id.rRin idG.pDynModel ...
+                           idG.pDynModel ...
                            id.pKF id.pEStD idG.pKF_ENU idG.StdCode idG.StdT0 ...
                            idG.SNR idG.MaxNumSat];
                           
             % On Post Proc => On Kalman Filter => Code Stand Alone
-            idG.onPP_KF_C_SA = [idG.onPP_KF id.rBin idG.pAvailableGNSSCode ...
+            idG.onPP_KF_C_SA = [idG.onPP_KF idG.pAvailableGNSSCode ...
                                id.cUse_SBAS];
             
             % On Post Proc => On Kalman Filter => Code Double Differences
-            idG.onPP_KF_C_DD = [idG.onPP_KF id.rBin idG.pAvailableGNSSCode ...
+            idG.onPP_KF_C_DD = [idG.onPP_KF idG.pAvailableGNSSCode ...
                                 id.pMSt id.cMPos];
 
             % On Post Proc => On Kalman Filter => Code and Phase Stand Alone
-            idG.onPP_KF_CP_SA = [idG.onPP_KF id.rBin idG.pAvailableGNSSPhase ...
+            idG.onPP_KF_CP_SA = [idG.onPP_KF idG.pAvailableGNSSPhase ...
                                  idG.StdPhase idG.CS ...
                                  id.cDoppler id.cUse_SBAS];
             
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
-            idG.onPP_KF_CP_DD = [idG.onPP_KF id.rBin id.cConstraint idG.pAvailableGNSSPhase ...
+            idG.onPP_KF_CP_DD = [idG.onPP_KF id.cConstraint idG.pAvailableGNSSPhase ...
                                  idG.StdPhase id.bStdDTM id.cRefPath ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
                                  id.pMSt id.cMPos id.cDoppler idG.pIntAmb];
@@ -1061,7 +1038,6 @@ classdef goGUIclass < handle
             
             % On RINEX / BIN
             idG.onRin = [idG.RinRover idG.RinMaster idG.RinNav idG.PCO idG.BLQ];
-            idG.onBin = [idG.BinGoIn];
 
             [idG.gPanels idG.strEl idG.valEl] = obj.autoElClassification(id2h);
             
@@ -1624,15 +1600,7 @@ classdef goGUIclass < handle
 
         %   INTERFACE GETTERS - INPUT FILE TYPE
         % =================================================================
-
-        % Get file type
-        function isRin = isRinex(obj)
-            isRin = obj.isActive(obj.idUI.rRin);
-        end        
-        function isBin = isBin(obj)
-            isBin = obj.isActive(obj.idUI.rBin);
-        end        
-        
+       
         % Set a new password
         function pwd = getPassword(obj)
             if isfield(obj.goh,'jPassword')
@@ -1668,34 +1636,7 @@ classdef goGUIclass < handle
     %   GUI SETTERS
     % -------------------------------------------------------------------------
     % Functions that set specific statuses
-    methods 
-        % Select one of the two possible file type
-        function toggleFileType(obj, value)
-            if (nargin == 1)
-                if obj.isRinex()
-                    value = obj.idBin;
-                else
-                    value = obj.idRin;
-                end
-            end
-            if (ismember(value, [obj.idRin obj.idBin]))
-                obj.setElStatus(obj.idUI.pIFiles, 1);
-                if value == obj.idRin
-                    obj.setElStatus(obj.idUI.rRin, 1);
-                else
-                    obj.setElStatus(obj.idUI.rBin, 1);
-                end
-                obj.setElVal(obj.idUI.rRin, (value == obj.idRin),0);
-                obj.setElVal(obj.idUI.rBin,(value == obj.idBin),1);
-            end            
-        end
-        function setRinex(obj)
-            obj.toggleFileType(obj.idRin);
-        end        
-        function setBin(obj)
-            obj.toggleFileType(obj.idBin);
-        end        
-        
+    methods             
         % Set a new password
         function setPassword(obj, password)
             
@@ -1749,24 +1690,16 @@ classdef goGUIclass < handle
         % Test every logical dependence in the GUI
         % E.g. a flag that activate other fields
         function checkUIdependencies(obj)
-
-%             % Check Input file type integrity
-%             if ~xor(obj.isRinex(), obj.isBin())
-%                 obj.setRinex();
-%             end
                         
           %   INPUT FILE TYPE
           % --------------------------------------------------------------- 
 
             % Check File input dependencies
-            obj.setElStatus([obj.idGroup.onRin], ~obj.isBin(), 0);
-            if obj.isRinex()
-                if obj.isStandAlone()
-                    obj.setElStatus([obj.idGroup.RinMaster], 0, 0);
-                end
+            obj.setElStatus([obj.idGroup.onRin], 1, 0);
+            if obj.isStandAlone()
+                obj.setElStatus([obj.idGroup.RinMaster], 0, 0);
             end
-            obj.setElStatus([obj.idGroup.onBin], obj.isBin() && ~obj.isRealTime(), 0);
-            
+                        
           %   OPTIONS
           % --------------------------------------------------------------- 
 
@@ -1985,10 +1918,6 @@ classdef goGUIclass < handle
             end        
             
             if sum(intersect(idEl, obj.idUI.lProcType)) > 0
-                if obj.isKF() && (obj.getElVal(obj.idUI.lProcType) == obj.idCP_DD_MR)
-                    obj.setRinex();
-                end
-
                 % Enable / Disable elements
                 if obj.isPostProc()
                     if obj.isLS()
@@ -2213,24 +2142,7 @@ classdef goGUIclass < handle
                                     obj.setGUILedStatus(obj.idUI.fRinNav, obj.ledCk, 0);
                                 end
                             end
-                            
-                            % Bin file --------------------------------------------
-                            data_path = goIni.getData('Bin','data_path');
-                            file_prefix = goIni.getData('Bin','file_prefix');
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_prefix))
-                                obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledKo, 0);
-                            else
-                                % Check the presence of the files
-                                if ~(isempty(dir([data_path file_prefix '_obs*.bin'])) || isempty(dir([data_path file_prefix '_eph*.bin'])))
-                                    obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledOk, 0);
-                                else
-                                    obj.setGUILedStatus(obj.idUI.fBinGoIn, obj.ledCk, 0);
-                                end
-                            end
-                            
+                                                        
                             % DTM file -----------------------------------------------
                             data_path = goIni.getData('DTM','data_path');
                             if (isempty(data_path))
@@ -2411,21 +2323,7 @@ classdef goGUIclass < handle
                 obj.setElVal(obj.idUI.sRinNav, fullfile(pathname, filename));
             end
             obj.updateGUI();
-        end
-        
-        % Browse for a binary file
-        function browseBinaryFile(obj)
-            [filename, pathname] = uigetfile( ...
-                {'*.bin','goGPS binary data (*.bin)'}, ...
-                'Choose goGPS binary data','../data');
-            
-            if (filename ~= 0)
-                pos = find(filename == '_');
-                filename = filename(1:pos(end-1)-1);
-                obj.setElVal(obj.idUI.sBinGoIn, fullfile(pathname, filename));
-            end
-            obj.updateGUI();            
-        end
+        end               
         
         % Browse output foder fo binary data
         function browseOutDir(obj)
@@ -2532,13 +2430,7 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.lAlgType, state.kalman_ls, 0);
             obj.initProcessingType();
             obj.setElVal(obj.idUI.lProcType, state.code_dd_sa, 0);
-            
-            %   INPUT FILE TYPE
-            % ===============================================================
-            
-            obj.setElVal(obj.idUI.rRin, state.rinex_files, 0);
-            obj.setElVal(obj.idUI.rBin, state.gogps_data, 1);
-            
+                        
             %   OPTIONS
             % ===============================================================
             
@@ -2694,12 +2586,6 @@ classdef goGUIclass < handle
             state.nav_mon           = obj.getElVal(obj.idUI.lCaptMode);
             state.kalman_ls         = obj.getElVal(obj.idUI.lAlgType);
             state.code_dd_sa        = obj.getElVal(obj.idUI.lProcType);
-
-            %   INPUT FILE TYPE
-            % ===============================================================
-
-            state.rinex_files       = obj.getElVal(obj.idUI.rRin);
-            state.gogps_data        = obj.getElVal(obj.idUI.rBin);
 
             %   OPTIONS
             % ===============================================================
@@ -2981,11 +2867,6 @@ classdef goGUIclass < handle
             obj.saveConstellations();
             mode = obj.getgoGPSMode();
             mode_vinc = get(obj.goh.constraint,'Value') * obj.isActive(obj.idUI.cConstraint);
-            if (get(obj.goh.file_type, 'SelectedObject') == obj.goh.rinex_files)
-                mode_data = 0;
-            else %goGPS data
-                mode_data = 1;
-            end
             contents_dyn_mod = cellstr(get(obj.goh.dyn_mod,'String'));
             if (strcmp(contents_dyn_mod{get(obj.goh.dyn_mod,'Value')},'Variable') || get(obj.goh.stopGOstop,'Value'))
                 flag_var_dyn_model = 1;
@@ -3163,7 +3044,7 @@ classdef goGUIclass < handle
             
             funout{1} = mode;
             funout{2} = mode_vinc;
-            funout{3} = mode_data;
+            funout{3} = 0;  % it was mode_data, now goGPS bin files are unsupported, dropping support
             funout{4} = mode_ref;
             funout{5} = flag_ms_pos;
             funout{6} = flag_ms;
@@ -3628,22 +3509,7 @@ classdef goGUIclass < handle
                 clipboard('copy', str);
             end
         end
-        
-        % Browse for a binary file
-        function browse4Bin(obj)
-            [filename, pathname] = uigetfile( ...
-                {'*.bin','goGPS binary data (*.bin)'}, ...
-                'Choose goGPS binary data',obj.getWorkingDir());
-            
-            if (filename ~= 0)
-                pos = find(filename == '_');
-                filename = filename(1:pos(end-1)-1);
-                str = sprintf('data_path = "%s"\nfile_prefix = "%s"', pathname, filename);
-                obj.edtINI.jEdit.jBrowse.setText(str);
-                clipboard('copy', str);
-            end
-        end
-        
+                
         % Browse output foder
         function browse4Dir(obj)
             dname = uigetdir(obj.getWorkingDir(),'Choose a directory');
