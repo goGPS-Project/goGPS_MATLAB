@@ -161,13 +161,13 @@ for p = 1 : size(week_dow,1)
                 
                 %read the epoch header
                 %example 1: "*  1994 12 17  0  0  0.00000000"
-                data   = textscan(lin(2:31),'%f%f%f%f%f%f');
-                year   = data{1};
-                month  = data{2};
-                day    = data{3};
-                hour   = data{4};
-                minute = data{5};
-                second = data{6};
+                data   = sscanf(lin(2:31),'%f');
+                year   = data(1);
+                month  = data(2);
+                day    = data(3);
+                hour   = data(4);
+                minute = data(5);
+                second = data(6);
 
                 %computation of the GPS time in weeks and seconds of week
                 [week, time] = date2gps([year, month, day, hour, minute, second]);
@@ -241,8 +241,6 @@ for p = 1 : size(week_dow,1)
             end
         end
         
-        %close SP3 file
-        fclose(f_sp3);
     else
         fprintf('Missing SP3 file: %s\n', [filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.sp3']);
         flag_unavail = 1;
@@ -270,28 +268,35 @@ if (~flag_unavail)
                 end
                 f_clk = f_clk_30s;
             end
-
-            while (~feof(f_clk))
+            
+            % Read the entire clk file in memory
+            clk_file = textscan(f_clk,'%s','Delimiter', '\n');
+            if (length(clk_file) == 1)
+                clk_file = clk_file{1};
+            end
+            clk_cur_line = 1;
+            fclose(f_clk);
+            
+            while (clk_cur_line <= length(clk_file))
                 %get the next line
-                lin = fgetl(f_clk);
+                lin = clk_file{clk_cur_line};  clk_cur_line = clk_cur_line + 1;
 
                 if (strcmp(lin(1:3),'AS '))
                     
                     sys_id = lin(4);
-                    if (strcmp(sys_id,' ') | strcmp(sys_id,'G') | strcmp(sys_id,'R') | ...
-                        strcmp(sys_id,'E') | strcmp(sys_id,'C') | strcmp(sys_id,'J'))
+                    if (strcmp(sys_id,' ') || strcmp(sys_id,'G') || strcmp(sys_id,'R') || ...
+                        strcmp(sys_id,'E') || strcmp(sys_id,'C') || strcmp(sys_id,'J'))
                         %read PRN
                         PRN = sscanf(lin(5:6),'%f');
                         
                         %read epoch
-                        data   = textscan(lin(9:34),'%f%f%f%f%f%f');
-                        year   = data{1};
-                        month  = data{2};
-                        day    = data{3};
-                        hour   = data{4};
-                        minute = data{5};
-                        second = data{6};
-                        
+                        data   = sscanf(lin(9:34),'%f');
+                        year   = data(1);
+                        month  = data(2);
+                        day    = data(3);
+                        hour   = data(4);
+                        minute = data(5);
+                        second = data(6);
                         index = [];
 
                         switch (sys_id)
@@ -336,21 +341,40 @@ if (~flag_unavail)
                     end
                 end
             end
-            fclose(f_clk);
             
             SP3.clock_rate = median(median(diff(time(sum(time,2)~=0,:),1,2)));
             rmndr = 86400/SP3.clock_rate - mod((SP3.time(k,1)-SP3.time(1,1))/SP3.clock_rate,86400/SP3.clock_rate) - 1;
             SP3.time_hr = (SP3.time(1,1) : SP3.clock_rate : (SP3.time(k,1)+rmndr*SP3.clock_rate))';
             SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
             
+            % original code with no optimizations
+%             for e = 1 : max(q)
+%                 for s = 1 : constellations.nEnabledSat
+%                     if (week(s,e) ~= 0)
+%                         [~, idx] = min(abs(weektow2time(week(s,e), time(s,e), 'G') - SP3.time_hr(:,1)));
+%                         SP3.clock_hr(s,idx) = clk(s,e);
+%                     end
+%                 end
+%             end
+            
+            % What is exactly SP3.clock_hr ???
+            % Supposing idx always increasing slowly, I can search for it in a smaller window from the last idx to 100 positions in advance: idxS(s):min(idxS(s)+10
+            idxS = zeros(constellations.nEnabledSat,1);
             for e = 1 : max(q)
                 for s = 1 : constellations.nEnabledSat
-                    if (week(s,e) ~= 0)
-                        [~, idx] = min(abs(weektow2time(week(s,e), time(s,e), 'G') - SP3.time_hr(:,1)));
-                        SP3.clock_hr(s,idx) = clk(s,e);
+                    if (week(s,e) ~= 0)                        
+                        if (idxS(s) == 0)
+                            [~, idx] = min(abs(weektow2time(week(s,e), time(s,e), 'G') - SP3.time_hr(:,1)));
+                            SP3.clock_hr(s,idx) = clk(s,e);
+                            idxS(s) = idx;
+                        else
+                            [~, idx] = min(abs(weektow2time(week(s,e), time(s,e), 'G') - SP3.time_hr(idxS(s):min(idxS(s)+100,length(SP3.time_hr)),1)));
+                            idxS(s) = idxS(s) - 1 + idx;
+                            SP3.clock_hr(s,idxS(s)) = clk(s,e);
+                        end
                     end
                 end
-            end
+            end            
         end
     end
     
