@@ -1,29 +1,33 @@
-function [imax,xfin,s2fin,ufin,Cxx,uout]=OLOO(A, y, Q)
-%Purpose:   perform LS on blocks of correlated observations
-%           identify one (block) outlier
-%           reject it
-%           re-estimate unknowns
-%           according to the theory in "L. Biagi and S. Caldera.An efficient leave one block out approach to identify outliers.Journal of Applied Geodesy, Volume 7, Issue 1, pages 11?19, 2013"
-%1.0: Stefano Caldera, 22.05.2014
-%1.1: Stefano Caldera, Andrea Gatti 08.12.2016
-%           speedup improvements by Andrea Gatti
-%input:
+function [imax, xfin, s2fin, ufin, Cxx, uout] = OLOO(A, y, Q)
+% SYNTAX:
+%   [imax, xfin, s2fin, ufin, Cxx, uout] = OLOO(A, y, Q)
+%
+% INPUT:
 %   A: design matrix
 %   y: observations vector
 %   Q: cofactor matrix
-%output
-%   imax: index of the rejected blocks
+%
+% OUTPUT:
+%   imax:  index of the rejected blocks
 %   x_fin: estimated parameters without outlier
 %   s2fin: a posteriori sigma without outlier
-%   ufin: estimated residuals without outlier
-%   Cxx: parameters covariance of the final solution
-%   uout: residual of outlier observation
+%   ufin:  estimated residuals without outlier
+%   Cxx:   parameters covariance of the final solution
+%   uout:  residual of outlier observation
+%
+% DESCRIPTION:
+%   perform LS on blocks of correlated observations
+%   identify one (block) outlier
+%   reject it
+%   re-estimate unknowns
+%   according to the theory in "L. Biagi and S. Caldera. An efficient leave one block out approach to identify outliers.Journal of Applied Geodesy, Volume 7, Issue 1, pages 11..19, 2013"
+%
+%   this version is optimized to manage l.o.o. of 1 observation at time, no blocks!
+%
+% CREDITS:
+%   1.0: Stefano Caldera, 22.05.2014
+%   1.1: Stefano Caldera, Andrea Gatti 08.12.2016 ( speedup improvements )     
 
-% this version is optimized to manage l.o.o. of 1 observation at time, no
-% blocks!
-
-
-%%
 % when FTABLE is undefined, redefine it
 global FTABLE; if isempty(FTABLE); FTABLE = finv(0.9995,1,1:size(A,1))'; end
 if (size(FTABLE,1) < size(A,1)); FTABLE = finv(0.9995,1,1:size(A,1))'; end

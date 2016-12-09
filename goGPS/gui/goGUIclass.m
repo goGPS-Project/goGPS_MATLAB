@@ -463,6 +463,7 @@ classdef goGUIclass < handle
             if wdir == 0
                 wdir = './';
             end
+            wdir = check_path(wdir);
         end
         
         % Get settings directory
@@ -474,6 +475,7 @@ classdef goGUIclass < handle
             if sdir == 0
                 sdir = './';
             end
+            sdir = check_path(sdir);
         end
     end
     
@@ -2032,8 +2034,9 @@ classdef goGUIclass < handle
             end            
             
             % Check INI file
-            if obj.isEnabled(obj.idUI.sINI);
-                filename = obj.getElVal(obj.idUI.sINI);
+            if obj.isEnabled(obj.idUI.sINI)
+                filename = check_path(obj.getElVal(obj.idUI.sINI));
+                
                 if isempty(filename)
                     obj.setGUILedStatus(obj.idUI.fINI, obj.ledKo, 0);
                     % If I do not have an INI file, every LED should be RED
@@ -2041,7 +2044,7 @@ classdef goGUIclass < handle
                         obj.setGUILedStatus(obj.idGroup.gInINILED(i), obj.ledKo, 0);
                     end
                 else
-                    if exist(filename,'file');
+                    if exist(filename,'file')
                         obj.setGUILedStatus(obj.idUI.fINI, obj.ledOk, 0);
                         
                         if obj.isPostProc()
@@ -2056,7 +2059,7 @@ classdef goGUIclass < handle
                             goIni.update(filename, force);
                             % Receivers file --------------------------------------
                             nR = goIni.getData('Receivers','nRec');
-                            data_path = goIni.getData('Receivers','data_path');
+                            data_path = check_path(goIni.getData('Receivers','data_path'));
                             file_name = goIni.getData('Receivers','file_name');
                             
                             if (isempty(nR))
@@ -2110,7 +2113,7 @@ classdef goGUIclass < handle
                             end
                             
                             % Master file -----------------------------------------
-                            data_path = goIni.getData('Master','data_path');
+                            data_path = check_path(goIni.getData('Master','data_path'));
                             file_name = goIni.getData('Master','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2127,7 +2130,7 @@ classdef goGUIclass < handle
                             end
                             
                             % Navigation file -------------------------------------
-                            data_path = goIni.getData('Navigational','data_path');
+                            data_path = check_path(goIni.getData('Navigational','data_path'));
                             file_name = goIni.getData('Navigational','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2144,7 +2147,7 @@ classdef goGUIclass < handle
                             end
                                                         
                             % DTM file -----------------------------------------------
-                            data_path = goIni.getData('DTM','data_path');
+                            data_path = check_path(goIni.getData('DTM','data_path'));
                             if (isempty(data_path))
                                 obj.setGUILedStatus(obj.idUI.fDTM, obj.ledKo, 0);
                             else
@@ -2157,7 +2160,7 @@ classdef goGUIclass < handle
                             end
                             
                             % Reference path file ------------------------------------
-                            data_path = goIni.getData('RefPath','data_path');
+                            data_path = check_path(goIni.getData('RefPath','data_path'));
                             file_name = goIni.getData('RefPath','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2174,7 +2177,7 @@ classdef goGUIclass < handle
                             end
                             
                             % PCO/PCV file ------------------------------------
-                            data_path = goIni.getData('PCO_PCV_file','data_path');
+                            data_path = check_path(goIni.getData('PCO_PCV_file','data_path'));
                             file_name = goIni.getData('PCO_PCV_file','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2191,7 +2194,7 @@ classdef goGUIclass < handle
                             end
                             
                             % OCEAN LOADING file ------------------------------------
-                            data_path = goIni.getData('OCEAN_LOADING_file','data_path');
+                            data_path = check_path(goIni.getData('OCEAN_LOADING_file','data_path'));
                             file_name = goIni.getData('OCEAN_LOADING_file','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2220,6 +2223,7 @@ classdef goGUIclass < handle
           % Output dir --------------------------------------------------------
             
           outDir = obj.getElVal(obj.idUI.sDirGoOut);
+          outDir = check_path(outDir);
           if isempty(outDir)
               obj.setGUILedStatus(obj.idUI.fDirGoOut, obj.ledKo, 0);
           else
@@ -3280,24 +3284,25 @@ classdef goGUIclass < handle
             % Get the name of the ini file
             
             if isobject(goIni)
-                fileName = goIni.getFileName();
+                file_name = goIni.getFileName();
             else
-                fileName = '';
+                file_name = '';
             end
-            if isempty(fileName)
-                fileName = [obj.getSettingsDir() obj.defaultINIFile];
-                if ~exist(fileName, 'file');
-                    fileName = '';
+            if isempty(file_name)
+                file_name = [obj.getSettingsDir() obj.defaultINIFile];
+                file_name = check_path(file_name);
+                if ~exist(file_name, 'file')
+                    file_name = '';
                 end
             end
             
             % Get the content of the ini file
-            obj.setGuiElStr(h.sINI, fileName);
-            obj.setGuiElStr(h.sINIout, fileName);
+            obj.setGuiElStr(h.sINI, file_name);
+            obj.setGuiElStr(h.sINIout, file_name);
 
-            if ~isempty(fileName)
-                if exist(fileName, 'file');
-                    fid = fopen(fileName,'r');
+            if ~isempty(file_name)
+                if exist(file_name, 'file');
+                    fid = fopen(file_name,'r');
                     text = fread(fid, '*char');
                     text = text';
                     fclose(fid);
@@ -3373,21 +3378,22 @@ classdef goGUIclass < handle
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose an INI configuration file',[obj.getSettingsDir()]);
             if (filename ~= 0)
-                fileName = [pathname filename];
-                obj.setGuiElStr(obj.edtINI.h.sINI, fileName);
-                obj.setGuiElStr(obj.edtINI.h.sINIout, fileName);
+                file_name = check_path([pathname filename]);
+
+                obj.setGuiElStr(obj.edtINI.h.sINI, file_name);
+                obj.setGuiElStr(obj.edtINI.h.sINIout, file_name);
                 
                 % Get the name of the ini file
-                if isempty(fileName)
-                    fileName = [obj.getSettingsDir() obj.defaultINIFile];
-                    if ~exist(fileName, 'file');
-                        fileName = '';
+                if isempty(file_name)
+                    file_name = [obj.getSettingsDir() obj.defaultINIFile];
+                    if ~exist(file_name, 'file');
+                        file_name = '';
                     end
                 end
                 
                 % Get the content of the ini file
-                if ~isempty(fileName)
-                    fid = fopen(fileName,'r');
+                if ~isempty(file_name)
+                    fid = fopen(file_name,'r');
                     text = fread(fid, '*char');
                     text = text';
                     fclose(fid);
@@ -3401,17 +3407,18 @@ classdef goGUIclass < handle
      
         % Save INI
         function saveINI(obj)
-            filename = get(obj.edtINI.h.sINIout, 'String');
+            file_name = check_path(get(obj.edtINI.h.sINIout, 'String'));
+            
             try
-                fid = fopen(filename,'w');
+                fid = fopen(file_name,'w');
                 fwrite(fid, char(obj.edtINI.jEdit.jINI.getText()));
                 fclose(fid);
                 
                 msgbox('The file has been saved correctly');
                 % If the main goGPS interface exist
                 if (ishandle(obj.goh.main_panel))
-                    if (filename ~= 0)
-                        obj.setElVal(obj.idUI.sINI, fullfile(filename));
+                    if (file_name ~= 0)
+                        obj.setElVal(obj.idUI.sINI, fullfile(file_name));
                     end
                     obj.forceINIupdate();
                 end
