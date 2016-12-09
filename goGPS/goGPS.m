@@ -230,7 +230,7 @@ end
 
 cs_threshold_preprocessing = 1
 cs_threshold = 1e30 %i.e. disable cycle-slip detection during KF processing
-amb_restart_method = 1
+amb_restart_method = 1 % Kalman-predicted code - phase difference
 processing_interval = 30 %30 %[sec]
 
 max_code_residual = 30;
@@ -1548,9 +1548,13 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
             
             if (~kalman_initialized)
                 time_GPS(1) = []; week_R(1) = [];
-                pr1_R(:,1) = []; pr1_M(:,1) = []; ph1_R(:,1) = []; ph1_M(:,1) = []; dop1_R(:,1) = []; dop1_M(:,1) = [];
-                pr2_R(:,1) = []; pr2_M(:,1) = []; ph2_R(:,1) = []; ph2_M(:,1) = []; dop2_R(:,1) = []; dop2_M(:,1) = [];
-                snr_R(:,1) = []; snr_M(:,1) = [];
+                if not(isempty(intersect(frequencies,1)))
+                    pr1_R(:,1) = []; ph1_R(:,1) = []; dop1_R(:,1) = [];
+                end
+                if not(isempty(intersect(frequencies,2)))
+                    pr2_R(:,1) = []; ph2_R(:,1) = []; dop2_R(:,1) = [];
+                end
+                snr_R(:,1) = [];
             end
         end
         

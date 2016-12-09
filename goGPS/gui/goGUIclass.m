@@ -270,7 +270,7 @@ classdef goGUIclass < handle
 
             obj.strTypeKF{obj.idC_SA} = 'Code undifferenced';
             obj.strTypeKF{obj.idC_DD} = 'Code double difference';
-            obj.strTypeKF{obj.idCP_SA} = 'Code and phase undifferenced';
+            obj.strTypeKF{obj.idCP_SA} = 'Code and phase undifferenced (PPP)';
             obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
             %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
             
