@@ -2035,16 +2035,16 @@ classdef goGUIclass < handle
             
             % Check INI file
             if obj.isEnabled(obj.idUI.sINI)
-                filename = check_path(obj.getElVal(obj.idUI.sINI));
+                file_name = check_path(obj.getElVal(obj.idUI.sINI));
                 
-                if isempty(filename)
+                if isempty(file_name)
                     obj.setGUILedStatus(obj.idUI.fINI, obj.ledKo, 0);
                     % If I do not have an INI file, every LED should be RED
                     for  i = 1:length(obj.idGroup.gInINILED)
                         obj.setGUILedStatus(obj.idGroup.gInINILED(i), obj.ledKo, 0);
                     end
                 else
-                    if exist(filename,'file')
+                    if exist(file_name,'file')
                         obj.setGUILedStatus(obj.idUI.fINI, obj.ledOk, 0);
                         
                         if obj.isPostProc()
@@ -2056,7 +2056,7 @@ classdef goGUIclass < handle
                                 goIni.readFile();
                             end
                             % If I have to update the ini file
-                            goIni.update(filename, force);
+                            goIni.update(file_name, force);
                             % Receivers file --------------------------------------
                             nR = goIni.getData('Receivers','nRec');
                             data_path = check_path(goIni.getData('Receivers','data_path'));
@@ -2267,12 +2267,12 @@ classdef goGUIclass < handle
         % Browse INI file
         function browseINIFile(obj)
             % In multi receiver mode, I read from ini file
-            [filename, pathname] = uigetfile( ...
+            [file_name, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose an INI configuration file',[obj.getSettingsDir()]);
-            if (filename ~= 0)
-                obj.setElVal(obj.idUI.sINI, fullfile(pathname, filename));
+            if (file_name ~= 0)
+                obj.setElVal(obj.idUI.sINI, fullfile(pathname, file_name));
             end
             obj.updateGUI();
         end
@@ -2281,50 +2281,50 @@ classdef goGUIclass < handle
         function browseRoverObsFile(obj)
             if obj.isPostProc() && (obj.getElVal(obj.idUI.lProcType) == obj.idCP_DD_MR)
                 % In multi receiver mode, I read from ini file
-                [filename, pathname] = uigetfile( ...
+                [file_name, pathname] = uigetfile( ...
                     {'*.ini;','INI configuration file (*.ini)'; ...
                     '*.*',  'All Files (*.*)'}, ...
                     'Choose an INI configuration file',[obj.getSettingsDir()]);                
             else
-                [filename, pathname] = uigetfile( ...
+                [file_name, pathname] = uigetfile( ...
                     {'*.obs;*.??o;*.??O','RINEX observation files (*.obs,*.??o,*.??O)';
                     '*.obs','Observation files (*.obs)'; ...
                     '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
                     '*.*',  'All Files (*.*)'}, ...
                     'Choose a RINEX observation file for the rover',[obj.getWorkingDir() 'data_RINEX']);
             end
-            if (filename ~= 0)
-                obj.setElVal(obj.idUI.sRinRover, fullfile(pathname, filename));
+            if (file_name ~= 0)
+                obj.setElVal(obj.idUI.sRinRover, fullfile(pathname, file_name));
             end
             obj.updateGUI();
         end
         
         % Browse for a master file
         function browseMasterObsFile(obj)
-            [filename, pathname] = uigetfile( ...
+            [file_name, pathname] = uigetfile( ...
                 {'*.obs;*.??o','RINEX observation files (*.obs,*.??o)';
                 '*.obs','Observation files (*.obs)'; ...
                 '*.??o','Observation files (*.??o)'; ...
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose a RINEX observation file for the master',[obj.getWorkingDir() 'data_RINEX']);
             
-            if (filename ~= 0)
-                obj.setElVal(obj.idUI.sRinMaster, fullfile(pathname, filename));
+            if (file_name ~= 0)
+                obj.setElVal(obj.idUI.sRinMaster, fullfile(pathname, file_name));
             end
             obj.updateGUI();
         end
         
         % Browse for a navigation file
         function browseNavigationFile(obj)
-            [filename, pathname] = uigetfile( ...
+            [file_name, pathname] = uigetfile( ...
                 {'*.nav;*.??n;*.??N','RINEX navigation files (*.nav,*.??n,*.??N)';
                 '*.nav','Navigation files (*.nav)'; ...
                 '*.??n;*.??N','Navigation files (*.??n,*.??N)'; ...
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose a RINEX navigation file',[obj.getWorkingDir() 'data_RINEX']);
             
-            if (filename ~= 0)
-                obj.setElVal(obj.idUI.sRinNav, fullfile(pathname, filename));
+            if (file_name ~= 0)
+                obj.setElVal(obj.idUI.sRinNav, fullfile(pathname, file_name));
             end
             obj.updateGUI();
         end               
@@ -2349,10 +2349,10 @@ classdef goGUIclass < handle
         
         % Browse for the path containing reference points for constrained solutions
         function browseRefFile(obj)
-            [filename, pathname] = uigetfile('*.mat', 'Choose file containing reference path','../data');
+            [file_name, pathname] = uigetfile('*.mat', 'Choose file containing reference path','../data');
             
-            if (filename ~= 0)
-                obj.setElVal(obj.idUI.sRefPath, fullfile(pathname, filename));
+            if (file_name ~= 0)
+                obj.setElVal(obj.idUI.sRefPath, fullfile(pathname, file_name));
             end
             obj.updateGUI();
         end
@@ -2393,34 +2393,34 @@ classdef goGUIclass < handle
     % Functions to load save settings from file        
     methods
         function loadState(obj)
-            [filename, pathname] = uigetfile('*.mat', 'Choose file with saved settings',obj.settingsDir);
+            [file_name, pathname] = uigetfile('*.mat', 'Choose file with saved settings',obj.settingsDir);
             
             if pathname == 0 %if the user pressed cancelled, then we exit this callback
                 return
             end
             %construct the path name of the file to be loaded
-            loadDataName = fullfile(pathname,filename);
+            loadDataName = fullfile(pathname,file_name);
             
             %load the settings, which creates a new gui
             obj.importStateMatlab(loadDataName);
         end
         
         function saveState(obj)
-            [filename,pathname] = uiputfile('*.mat','Save your GUI settings',obj.settingsDir);
+            [file_name,pathname] = uiputfile('*.mat','Save your GUI settings',obj.settingsDir);
             
             if pathname == 0 %if the user pressed cancelled, then we exit this callback
                 return
             end
             %construct the path name of the save location
-            saveDataName = fullfile(pathname,filename);
+            saveDataName = fullfile(pathname,file_name);
             
             %saves the gui data
             obj.exportStateMatlab(saveDataName);
         end
         
         % Load the state of the gui from a matlab file.
-        function importStateMatlab(obj,filename)
-            load(filename); % the file contains the variable state
+        function importStateMatlab(obj,file_name)
+            load(file_name); % the file contains the variable state
             obj.status = state;
             
             %   MODE
@@ -2582,7 +2582,7 @@ classdef goGUIclass < handle
         end
         
         % Save the stati of the gui to a matlab file
-        function exportStateMatlab(obj,filename)
+        function exportStateMatlab(obj,file_name)
              
             %   MODE
             % ===============================================================
@@ -2714,7 +2714,7 @@ classdef goGUIclass < handle
             state.approx_lon        = obj.getElVal(obj.idUI.nVLon);
             state.approx_h          = obj.getElVal(obj.idUI.nVH);
             
-            save(filename, 'state');
+            save(file_name, 'state');
         end
     end
       
@@ -2767,25 +2767,25 @@ classdef goGUIclass < handle
                 filerootIN = [data_path file_prefix];
                 data_path = goIni.getData('Receivers','data_path');
                 file_name = goIni.getData('Receivers','file_name');
-                filename_R_obs = [data_path file_name];
+                file_name_R_obs = [data_path file_name];
                 data_path = goIni.getData('Master','data_path');
                 file_name = goIni.getData('Master','file_name');
-                filename_M_obs = [data_path file_name];
+                file_name_M_obs = [data_path file_name];
                 data_path = goIni.getData('Navigational','data_path');
                 file_name = goIni.getData('Navigational','file_name');
-                filename_nav = [data_path file_name];
+                file_name_nav = [data_path file_name];
                 ref_path = get(obj.goh.ref_path, 'Value');
                 data_path = goIni.getData('RefPath','data_path');
                 file_name = goIni.getData('RefPath','file_name');
-                filename_ref = [data_path file_name];
+                file_name_ref = [data_path file_name];
                 data_path = goIni.getData('DTM','data_path');
                 dtm_dir = data_path;
                 data_path = goIni.getData('PCO_PCV_file','data_path');
                 file_name = goIni.getData('PCO_PCV_file','file_name');
-                filename_pco = [data_path file_name];
+                file_name_pco = [data_path file_name];
                 data_path = goIni.getData('OCEAN_LOADING_file','data_path');
                 file_name = goIni.getData('OCEAN_LOADING_file','file_name');
-                filename_blq = [data_path file_name];
+                file_name_blq = [data_path file_name];
             end
             
             %serial communication
@@ -2912,11 +2912,11 @@ classdef goGUIclass < handle
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             flag_SBAS = get(obj.goh.use_SBAS,'Value');
             flag_IAR = get(obj.goh.cLAMBDA,'Value');
-            filerootOUT = [get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')];
+            filerootOUT = check_path([get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')]);
             if (obj.isPostProc) % I need these informations only in Post Processing
                 data_path = goIni.getData('Bin','data_path');
                 file_prefix = goIni.getData('Bin','file_prefix');
-                filerootIN = [data_path file_prefix];
+                filerootIN = check_path([data_path file_prefix]);
                 i = 1;
                 j = length(filerootOUT);
                 while (~isempty(dir([filerootOUT '_????_rover.bin'])) || ...
@@ -2940,22 +2940,22 @@ classdef goGUIclass < handle
                 end
                 data_path = goIni.getData('Receivers','data_path');
                 file_name = goIni.getData('Receivers','file_name');
-                filename_R_obs = [data_path file_name];
+                file_name_R_obs = check_path([data_path file_name]);
                 data_path = goIni.getData('Master','data_path');
                 file_name = goIni.getData('Master','file_name');
-                filename_M_obs = [data_path file_name];
+                file_name_M_obs = check_path([data_path file_name]);
                 data_path = goIni.getData('Navigational','data_path');
                 file_name = goIni.getData('Navigational','file_name');
-                filename_nav = [data_path file_name];
+                file_name_nav = check_path([data_path file_name]);
                 data_path = goIni.getData('RefPath','data_path');
                 file_name = goIni.getData('RefPath','file_name');
-                filename_ref = [data_path file_name];
+                file_name_ref = check_path([data_path file_name]);
                 data_path = goIni.getData('PCO_PCV_file','data_path');
                 file_name = goIni.getData('PCO_PCV_file','file_name');
-                filename_pco = [data_path file_name];
+                file_name_pco = check_path([data_path file_name]);
                 data_path = goIni.getData('OCEAN_LOADING_file','data_path');
                 file_name = goIni.getData('OCEAN_LOADING_file','file_name');
-                filename_blq = [data_path file_name];
+                file_name_blq = check_path([data_path file_name]);
                 if(obj.isMultiReceiver)
                     [multi_antenna_rf, ~] = goIni.getGeometry();
                 else
@@ -2963,12 +2963,12 @@ classdef goGUIclass < handle
                 end
             else
                 filerootIN = '';
-                filename_R_obs = '';
-                filename_M_obs = '';
-                filename_nav = '';
-                filename_ref = '';
-                filename_pco = '';
-                filename_blq = '';
+                file_name_R_obs = '';
+                file_name_M_obs = '';
+                file_name_nav = '';
+                file_name_ref = '';
+                file_name_pco = '';
+                file_name_blq = '';
                 rates = get(obj.goh.pumCaptureRate,'String');                
                 goIni.setCaptureRate(rates{get(obj.goh.pumCaptureRate,'Value')});
                 multi_antenna_rf = [];
@@ -3064,12 +3064,12 @@ classdef goGUIclass < handle
             funout{16} = flag_IAR;
             funout{17} = filerootIN;
             funout{18} = filerootOUT;
-            funout{19} = filename_R_obs;
-            funout{20} = filename_M_obs;
-            funout{21} = filename_nav;
-            funout{22} = filename_ref;
-            funout{23} = filename_pco;
-            funout{24} = filename_blq;
+            funout{19} = file_name_R_obs;
+            funout{20} = file_name_M_obs;
+            funout{21} = file_name_nav;
+            funout{22} = file_name_ref;
+            funout{23} = file_name_pco;
+            funout{24} = file_name_blq;
             funout{25} = pos_M_man;
             funout{26} = protocol_idx;
             funout{27} = multi_antenna_rf;
@@ -3373,12 +3373,12 @@ classdef goGUIclass < handle
         % Browse INI file => select a file to be edited
         function browseINIEditInFile(obj)
             % In multi receiver mode, I read from ini file
-            [filename, pathname] = uigetfile( ...
+            [file_name, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose an INI configuration file',[obj.getSettingsDir()]);
-            if (filename ~= 0)
-                file_name = check_path([pathname filename]);
+            if (file_name ~= 0)
+                file_name = check_path([pathname file_name]);
 
                 obj.setGuiElStr(obj.edtINI.h.sINI, file_name);
                 obj.setGuiElStr(obj.edtINI.h.sINIout, file_name);
@@ -3423,7 +3423,7 @@ classdef goGUIclass < handle
                     obj.forceINIupdate();
                 end
             catch e
-                msgbox(['Error: ' e.message ' Please provide a valid filename(path)']);
+                msgbox(['Error: ' e.message ' Please provide a valid file_name(path)']);
             end
         end
         
@@ -3475,7 +3475,7 @@ classdef goGUIclass < handle
         % Browse for RINEX file
         function browse4Rin(obj)
             % In multi receiver mode, I read from ini file
-            [filename, pathname] = uigetfile( ...
+            [file_name, pathname] = uigetfile( ...
                     {'*.obs;*.??o;*.??O','RINEX observation files (*.obs,*.??o,*.??O)';
                     '*.obs','Observation files (*.obs)'; ...
                     '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
@@ -3483,17 +3483,17 @@ classdef goGUIclass < handle
                     'MultiSelect', 'on', ...
                     'Choose a RINEX observation file',[obj.getWorkingDir() 'data_RINEX']);
                 
-            if ~isempty(filename)
+            if ~isempty(file_name)
                 obj.workingDir = [pathname];
                 str = sprintf('data_path = "%s"\n', pathname);
-                if iscell(filename)
-                    str = sprintf('nRec = %d\n%sfile_name = [', length(filename), str);
-                    for r=1:length(filename)
-                        str = sprintf('%s "%s"',str, filename{r});                      
+                if iscell(file_name)
+                    str = sprintf('nRec = %d\n%sfile_name = [', length(file_name), str);
+                    for r=1:length(file_name)
+                        str = sprintf('%s "%s"',str, file_name{r});                      
                     end
                     str = sprintf('%s ]',str);
                 else
-                    str = sprintf('%sfile_name = "%s"', str, filename);
+                    str = sprintf('%sfile_name = "%s"', str, file_name);
                 end
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
@@ -3502,16 +3502,16 @@ classdef goGUIclass < handle
         
         % Browse for a navigation file
         function browse4Nav(obj)
-            [filename, pathname] = uigetfile( ...
+            [file_name, pathname] = uigetfile( ...
                 {'*.nav;*.??n;*.??N','RINEX navigation files (*.nav,*.??n,*.??N)';
                 '*.nav','Navigation files (*.nav)'; ...
                 '*.??n;*.??N','Navigation files (*.??n,*.??N)'; ...
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose a RINEX navigation file',[obj.getWorkingDir() 'data_RINEX']);
             
-            if (filename ~= 0)
+            if (file_name ~= 0)
                 obj.workingDir = [pathname];
-                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, file_name);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
@@ -3530,11 +3530,11 @@ classdef goGUIclass < handle
         
         % Browse for the path containing reference points for constrained solutions
         function browse4Ref(obj)
-            [filename, pathname] = uigetfile('*.mat', 'Choose file containing reference path',obj.getWorkingDir());
+            [file_name, pathname] = uigetfile('*.mat', 'Choose file containing reference path',obj.getWorkingDir());
             
-            if (filename ~= 0)
+            if (file_name ~= 0)
                 obj.workingDir = [pathname];
-                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, file_name);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
@@ -3543,12 +3543,12 @@ classdef goGUIclass < handle
         
         % Browse for a Generic File
         function browse4Gen(obj)
-            [filename, pathname] = uigetfile( ...
+            [file_name, pathname] = uigetfile( ...
                 {'*.*',  'All Files (*.*)'}, ...
                 'Choose a file',obj.getWorkingDir());
             
-            if (filename ~= 0)
-                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, filename);
+            if (file_name ~= 0)
+                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, file_name);
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end

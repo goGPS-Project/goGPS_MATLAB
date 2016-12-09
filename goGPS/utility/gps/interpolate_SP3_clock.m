@@ -36,10 +36,10 @@ function [dt_S_SP3] = interpolate_SP3_clock(time, SP3, sat)
 
 if (isempty(SP3.clock_hr))
     SP3_time = SP3.time;
-    SP3_clock = SP3.clock(sat,:);
+    SP3_clock = SP3.clock;
 else
     SP3_time = SP3.time_hr;
-    SP3_clock = SP3.clock_hr(sat,:);
+    SP3_clock = SP3.clock_hr;
 end
 
 interval = SP3.clock_rate;
@@ -51,10 +51,10 @@ b = SP3_time(p) - time;
 
 %extract the SP3 clocks
 if (b>0)
-    SP3_c = [SP3_clock(p-1) SP3_clock(p)];
+    SP3_c = [SP3_clock(sat,p-1) SP3_clock(sat,p)];
     u = 1 - b/interval;
 else
-    SP3_c = [SP3_clock(p) SP3_clock(p+1)];
+    SP3_c = [SP3_clock(sat,p) SP3_clock(sat,p+1)];
     u = -b/interval;
 end
 

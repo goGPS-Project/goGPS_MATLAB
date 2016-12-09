@@ -1,13 +1,13 @@
-function [universal_file_name, is_valid] = check_path(path)
+function [universal_path, is_valid] = check_path(path)
 
 % SYNTAX:
-%   universal_file_name = check_path(path)
+%   universal_path = check_path(path)
 %
 % INPUT:
 %   path
 %
 % OUTPUT:
-%   universal_file_name
+%   universal_path
 %   < is_valid >            optional, contains the status of existence
 %
 % DESCRIPTION:
@@ -38,11 +38,25 @@ function [universal_file_name, is_valid] = check_path(path)
 %----------------------------------------------------------------------------------------------
 
 if not(isempty(path))
-    universal_file_name = regexprep(path, '(\\(?=[a-zA-Z0-9]))|(\/)', filesep);
-    if (nargout == 2)
-        is_valid = exist(path, 'file'); % if it is a file is_valid contains 2, if it is a dir it contains 7
-    end
+    if (iscell(path))
+        % for each line of the cell+
+        universal_path = cell(size(path));
+        for c = 1 : length(path)
+            universal_path{c} = regexprep(path{c}, '(\\(?=[a-zA-Z0-9]))|(\/)', filesep);
+        end
+        if (nargout == 2)
+            is_valid = zeros(size(path));
+            for c = 1 : length(path)
+                is_valid(c) = exist(universal_path{c}, 'file'); % if it is a file is_valid contains 2, if it is a dir it contains 7
+            end
+        end
+    else
+        universal_path = regexprep(path, '(\\(?=[a-zA-Z0-9]))|(\/)', filesep);
+        if (nargout == 2)
+            is_valid = exist(path, 'file'); % if it is a file is_valid contains 2, if it is a dir it contains 7
+        end
+    end    
 else
-    universal_file_name = [];
+    universal_path = [];
     is_valid = 0;
 end

@@ -126,28 +126,18 @@ om = mod (450160.398036d0 + t * (-6962890.5431d0 ...
     + t * (7.4722d0 + t * (0.007702d0 ...
     + t * (-0.00005939d0)))), turnas) * das2r;
 
-% initialize the nutation values
-
-dp = 0.0d0;
-
-de = 0.0d0;
-
 % summation of luni-solar nutation series (in reverse order)
+    
+arg = mod ((nals(1, :)) * el  + (nals(2, :)) * elp + (nals(3, :)) * f ...
+    + (nals(4, :)) * d  + (nals(5, :)) * om, d2pi);
 
-for i = 678: -1: 1
-    
-    arg = mod ((nals(1, i)) * el  + (nals(2, i)) * elp + (nals(3, i)) * f ...
-        + (nals(4, i)) * d  + (nals(5, i)) * om, d2pi);
-    
-    sarg = sin(arg);
-    
-    carg = cos(arg);
-    
-    dp = dp + (cls(1,i) + cls(2,i) * t) * sarg + cls(3,i) * carg;
-    
-    de = de + (cls(4,i) + cls(5,i) * t) * carg + cls(6,i) * sarg;
-    
-end
+sarg = sin(arg);
+
+carg = cos(arg);
+
+dp = sum((cls(1,:) + cls(2,:) * t) .* sarg + cls(3,:) .* carg);
+
+de = sum((cls(4,:) + cls(5,:) * t) .* carg + cls(6,:) .* sarg);
 
 % convert from 0.1 microarcsec units to radians
 
@@ -201,31 +191,20 @@ alur = mod (5.481293871d0 +    7.4781598567d0 * t, d2pi);
 
 alne = mod (5.321159000d0 +    3.8127774000d0 * t, d2pi);
 
-% initialize the nutation values
-
-dp = 0.0d0;
-
-de = 0.0d0;
-
 % summation of planetary nutation series (in reverse order)
 
-for i = 687: -1: 1
-    
-    arg = mod ((napl(1, i)) * al + (napl(2, i)) * alsu + (napl(3, i)) * af ...
-        + (napl(4, i)) * ad + (napl(5, i)) * aom  + (napl(6, i)) * alme ...
-        + (napl(7, i)) * alve + (napl(8, i)) * alea + (napl(9, i)) * alma ...
-        + (napl(10, i)) * alju + (napl(11, i)) * alsa + (napl(12, i)) * alur ...
-        + (napl(13, i)) * alne + (napl(14, i)) * apa, d2pi);
-    
-    sarg = sin(arg);
-    
-    carg = cos(arg);
-    
-    dp = dp + (icpl(1,i)) * sarg + (icpl(2,i)) * carg;
-    
-    de = de + (icpl(3,i)) * sarg + (icpl(4,i)) * carg;
-    
-end
+arg = mod ((napl(1, :)) * al + (napl(2, :)) * alsu + (napl(3, :)) * af ...
+    + (napl(4, :)) * ad + (napl(5, :)) * aom  + (napl(6, :)) * alme ...
+    + (napl(7, :)) * alve + (napl(8, :)) * alea + (napl(9, :)) * alma ...
+    + (napl(10, :)) * alju + (napl(11, :)) * alsa + (napl(12, :)) * alur ...
+    + (napl(13, :)) * alne + (napl(14, :)) * apa, d2pi);
+sarg = sin(arg);
+
+carg = cos(arg);
+
+dp = sum((icpl(1,:)) .* sarg + (icpl(2,:)) .* carg);
+
+de = sum((icpl(3,:)) .* sarg + (icpl(4,:)) .* carg);
 
 % convert from 0.1 microarcsec units to radians
 

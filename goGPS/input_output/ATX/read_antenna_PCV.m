@@ -231,11 +231,15 @@ for file_pcv=1:size(filename,1)
                                         antenna_found(m) = 1;
                                     end
                                 end
+                                
+                                % This cicle is slow -> and it seems to do nothing... antmod{n} is never == antmod{m} with n > m
+                                % ToDo: add a comment on what this is doing
                                 for n = m+1 : length(antmod)
                                     if (strcmp(antmod{n}, antmod{m}))
                                         antenna_PCV(n) = antenna_PCV(m);
                                     end
                                 end
+                                                             
                                 if (invalid_date)
                                     while (isempty(strfind(line,'END OF ANTENNA')))
                                         line = fgetl(fid);

@@ -139,15 +139,19 @@ for p = 1 : size(week_dow,1)
     f_sp3 = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.sp3'],'r');
 
     if (f_sp3 ~= -1)
-%         %skip the SP3 header (first 22 lines)
-%         for i = 1 : 22
-%             fgetl(f_sp3);
-%         end
         
-        while (~feof(f_sp3))
+        % Read the entire clk file in memory
+        sp3_file = textscan(f_sp3,'%s','Delimiter', '\n');
+        if (length(sp3_file) == 1)
+            sp3_file = sp3_file{1};
+        end
+        sp3_cur_line = 1;
+        fclose(f_sp3);
+        
+        while (sp3_cur_line <= length(sp3_file))
             
             %get the next line
-            lin = fgetl(f_sp3);
+            lin = sp3_file{sp3_cur_line};  sp3_cur_line = sp3_cur_line + 1;
             
             if (strcmp(lin(1:2),'##'))
                 rate = str2num(lin(25:38));
@@ -240,6 +244,7 @@ for p = 1 : size(week_dow,1)
                 end
             end
         end
+        clear sp3_file;
         
     else
         fprintf('Missing SP3 file: %s\n', [filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.sp3']);
@@ -341,6 +346,8 @@ if (~flag_unavail)
                     end
                 end
             end
+            
+            clear clk_file;
             
             SP3.clock_rate = median(median(diff(time(sum(time,2)~=0,:),1,2)));
             rmndr = 86400/SP3.clock_rate - mod((SP3.time(k,1)-SP3.time(1,1))/SP3.clock_rate,86400/SP3.clock_rate) - 1;
