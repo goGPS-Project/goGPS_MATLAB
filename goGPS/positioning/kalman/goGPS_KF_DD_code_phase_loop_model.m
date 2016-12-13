@@ -83,7 +83,7 @@ global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
 global ratiotest mutest succ_rate fixed_solution
 
-global t residuals_fixed residuals_float outliers s02_ls
+global t residuals_fixed residuals_float outliers s02_ls s02_ls_threshold
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -163,6 +163,9 @@ if (order > 1)
     Cvv(order,order) = sigmaq_vE;
     Cvv(order+o1,order+o1) = sigmaq_vN;
     Cvv(order+o2,order+o2) = sigmaq_vU;
+    
+    %propagate error standard deviation from position to velocity/acceleration
+    %Cvv = Cvv/interval^(order-1);
 
     %propagate diagonal local cov matrix to global cov matrix
     Cvv(order+[0 o1 o2],order+[0 o1 o2]) = local2globalCov(Cvv(order+[0 o1 o2],order+[0 o1 o2]), X_t1_t([1 o1+1 o2+1]));
@@ -763,6 +766,10 @@ if (nsat >= min_nsat)
         while (search_for_outlier == 1)
             
             [index_outlier, ~, s02_ls(t)] = OLOO(H1, y0_noamb, Cnn);
+             if (s02_ls(t) > s02_ls_threshold)
+                index_outlier = 1:length(y0_noamb);
+                nsat = 0; %force Kalman filter dynamics
+            end
             if (index_outlier ~= 0)
                 %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
                 H(index_outlier_i(index_outlier),:)   = [];
