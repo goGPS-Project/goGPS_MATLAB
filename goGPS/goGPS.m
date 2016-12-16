@@ -211,14 +211,14 @@ end
 %!!! TEMPORARY SETTINGS !!! --> will be moved to GUI/global settings before merging back to the master branch
 %------------------------------------------------------------------------------------------------------------
  
-flag_tropo = 1; %1
-flag_ocean = 1; %1
+flag_tropo = 1;
+flag_ocean = 1;
 
 % frequencies = [1]
 % frequencies = [2]
 frequencies = [1 2]
 
-%obs_comb = 'NONE'
+% obs_comb = 'NONE'
 obs_comb = 'IONO_FREE'
 
 flag_SEID = 0
@@ -3737,6 +3737,9 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) %&& ~exist('is_batch','va
     end
     
     pos = find(filerootOUT == '/');
+    if (isempty(pos))
+        pos = find(filerootOUT == '\');
+    end
     kml_name = filerootOUT(pos(end)+1:end);
 
     %file saving (Google Earth KML)
