@@ -174,10 +174,10 @@ for p = 1 : size(week_dow,1)
                 second = data(6);
 
                 %computation of the GPS time in weeks and seconds of week
-                [week, time] = date2gps([year, month, day, hour, minute, second]);
+                [w, t] = date2gps([year, month, day, hour, minute, second]);
                 
                 %convert GPS time-of-week to continuous time
-                SP3.time(k,1) = weektow2time(week, time, 'G');
+                SP3.time(k,1) = weektow2time(w, t, 'G');
                 
             elseif (strcmp(lin(1),'P'))
                 %read position and clock
@@ -254,8 +254,8 @@ end
 
 if (~flag_unavail)
     
-    week = zeros(constellations.nEnabledSat,1);
-    time = zeros(constellations.nEnabledSat,1);
+    w = zeros(constellations.nEnabledSat,1);
+    t = zeros(constellations.nEnabledSat,1);
     clk = zeros(constellations.nEnabledSat,1);
     q = zeros(constellations.nEnabledSat,1);
     for p = 1 : size(week_dow,1)
@@ -341,7 +341,7 @@ if (~flag_unavail)
                         q(index) = q(index) + 1;
                         
                         %computation of the GPS time in weeks and seconds of week
-                        [week(index,q(index)), time(index,q(index))] = date2gps([year, month, day, hour, minute, second]);
+                        [w(index,q(index)), t(index,q(index))] = date2gps([year, month, day, hour, minute, second]);
                         clk(index,q(index)) = sscanf(lin(41:59),'%f');
                     end
                 end
@@ -349,39 +349,39 @@ if (~flag_unavail)
             
             clear clk_file;
             
-            SP3.clock_rate = median(median(diff(time(sum(time,2)~=0,:),1,2)));
+            SP3.clock_rate = median(median(diff(t(sum(t,2)~=0,:),1,2)));
             rmndr = 86400/SP3.clock_rate - mod((SP3.time(k,1)-SP3.time(1,1))/SP3.clock_rate,86400/SP3.clock_rate) - 1;
             SP3.time_hr = (SP3.time(1,1) : SP3.clock_rate : (SP3.time(k,1)+rmndr*SP3.clock_rate))';
             SP3.clock_hr = zeros(constellations.nEnabledSat,length(SP3.time_hr));
             
             % original code with no optimizations
-%             for e = 1 : max(q)
-%                 for s = 1 : constellations.nEnabledSat
-%                     if (week(s,e) ~= 0)
-%                         [~, idx] = min(abs(weektow2time(week(s,e), time(s,e), 'G') - SP3.time_hr(:,1)));
-%                         SP3.clock_hr(s,idx) = clk(s,e);
-%                     end
-%                 end
-%             end
-            
-            % What is exactly SP3.clock_hr ???
-            % Supposing idx always increasing slowly, I can search for it in a smaller window from the last idx to 100 positions in advance: idxS(s):min(idxS(s)+10
-            idxS = zeros(constellations.nEnabledSat,1);
             for e = 1 : max(q)
                 for s = 1 : constellations.nEnabledSat
-                    if (week(s,e) ~= 0)                        
-                        if (idxS(s) == 0)
-                            [~, idx] = min(abs(weektow2time(week(s,e), time(s,e), 'G') - SP3.time_hr(:,1)));
-                            SP3.clock_hr(s,idx) = clk(s,e);
-                            idxS(s) = idx;
-                        else
-                            [~, idx] = min(abs(weektow2time(week(s,e), time(s,e), 'G') - SP3.time_hr(idxS(s):min(idxS(s)+100,length(SP3.time_hr)),1)));
-                            idxS(s) = idxS(s) - 1 + idx;
-                            SP3.clock_hr(s,idxS(s)) = clk(s,e);
-                        end
+                    if (w(s,e) ~= 0)
+                        [~, idx] = min(abs(weektow2time(w(s,e), t(s,e), 'G') - SP3.time_hr(:,1)));
+                        SP3.clock_hr(s,idx) = clk(s,e);
                     end
                 end
-            end            
+            end
+            
+%             % What is exactly SP3.clock_hr ???
+%             % Supposing idx always increasing slowly, I can search for it in a smaller window from the last idx to 100 positions in advance: idxS(s):min(idxS(s)+10
+%             idxS = zeros(constellations.nEnabledSat,1);
+%             for e = 1 : max(q)
+%                 for s = 1 : constellations.nEnabledSat
+%                     if (w(s,e) ~= 0)                        
+%                         if (idxS(s) == 0)
+%                             [~, idx] = min(abs(weektow2time(w(s,e), t(s,e), 'G') - SP3.time_hr(:,1)));
+%                             SP3.clock_hr(s,idx) = clk(s,e);
+%                             idxS(s) = idx;
+%                         else
+%                             [~, idx] = min(abs(weektow2time(w(s,e), t(s,e), 'G') - SP3.time_hr(idxS(s):min(idxS(s)+100,length(SP3.time_hr)),1)));
+%                             idxS(s) = idxS(s) - 1 + idx;
+%                             SP3.clock_hr(s,idxS(s)) = clk(s,e);
+%                         end
+%                     end
+%                 end
+%             end            
         end
     end
     
