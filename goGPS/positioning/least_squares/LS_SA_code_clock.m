@@ -130,33 +130,39 @@ else
         sys0=sys;
         uni_sys0 = uni_sys;
     end
-    while search_for_outlier==1
-        [index_outlier,x,sigma02_hat(1,1),v_hat]=OLOO(A, y0-b, Q);
-        if index_outlier~=0
-            bad_obs=[bad_obs;index_obs(index_outlier)]; %#ok<AGROW>
-            if (num_sys > 1)
-                sys(index_outlier)=[];
-                uni_sys = unique(sys(sys ~= 0));
-                num_sys = length(uni_sys);
-                if length(uni_sys)<length(uni_sys0) % an i-s bias is not estimable anymore
-                    A(:,1+find(uni_sys0==sys0(index_outlier))-1)=[];
-                    A0(:,4+find(uni_sys0==sys0(index_outlier))-1)=[];
-                    sys0=sys;
-                    uni_sys0 = uni_sys;
+    if (search_for_outlier == 1)
+        while search_for_outlier==1
+            [index_outlier,x,sigma02_hat(1,1),v_hat]=OLOO(A, y0-b, Q);
+            if index_outlier~=0
+                bad_obs=[bad_obs;index_obs(index_outlier)]; %#ok<AGROW>
+                if (num_sys > 1)
+                    sys(index_outlier)=[];
+                    uni_sys = unique(sys(sys ~= 0));
+                    num_sys = length(uni_sys);
+                    if length(uni_sys)<length(uni_sys0) % an i-s bias is not estimable anymore
+                        A(:,1+find(uni_sys0==sys0(index_outlier))-1)=[];
+                        A0(:,4+find(uni_sys0==sys0(index_outlier))-1)=[];
+                        sys0=sys;
+                        uni_sys0 = uni_sys;
+                    end
                 end
+                %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
+                A(index_outlier,:)=[];
+                y0(index_outlier,:)=[];
+                b(index_outlier,:)=[];
+                Q(index_outlier,:)=[];
+                Q(:,index_outlier)=[];
+                invQ=diag((diag(Q).^-1));
+                index_obs(index_outlier)=[];
+                [n,m]=size(A);
+            else
+                search_for_outlier=0;
             end
-            %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
-            A(index_outlier,:)=[];
-            y0(index_outlier,:)=[];
-            b(index_outlier,:)=[];
-            Q(index_outlier,:)=[];
-            Q(:,index_outlier)=[];
-            invQ=diag((diag(Q).^-1));
-            index_obs(index_outlier)=[];
-            [n,m]=size(A);
-        else
-            search_for_outlier=0;
         end
+    else
+        x = (N^-1)*A'*(invQ)*(y0-b);
+        y_hat = A*x + b;
+        v_hat = y0 - y_hat;
     end
     N = (A'*(invQ)*A);
     residuals_obs = y00 - A0*x;
