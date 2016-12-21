@@ -820,34 +820,36 @@ if (nsat >= min_nsat)
         
         index_outlier_i=1:length(y0_noamb);
         
-        %temporary Kalman filter update, to check residuals
-        K = T*Cee*T' + Cvv;
-        G = K*H' * (H*K*H' + Cnn)^(-1);
-        Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
-        compute_residuals(Xhat_t_t,'float');
-
-        % remove observations with residuals exceeding thresholds
-        out_pr = find(abs(residuals_float(1:nSatTot*2)) > max_code_residual);
-        out_ph = find(abs(residuals_float(nSatTot*2+1:end)) > max_phase_residual);
-        idx_pr = ismember(sat_pr, out_pr);
-        idx_ph = ismember(sat, out_ph);
-        conf_sat(sat_pr(idx_pr)) = 0;
-        conf_sat(sat(idx_ph)) = 0;
-        sat_pr(idx_pr) = [];
-        sat(idx_ph) = [];
-        index_ph(idx_ph) = [];
-        idx_pr = find(idx_pr);
-        idx_ph = length(sat_pr_residuals) + find(idx_ph);
-        idx_out = union(idx_pr, idx_ph);
-        if (~isempty(idx_out))
-            H(idx_out,:) = [];
-            y0(idx_out,:) = [];
-            Cnn(idx_out,:) = [];
-            Cnn(:,idx_out) = [];
-            y0_noamb(idx_out,:) = [];
-            H1(idx_out,:) = []; %#ok<NASGU>
-            outliers(index_residuals_outlier(index_outlier_i(idx_out)))=1;
-            index_outlier_i(idx_out) = [];
+        if (search_for_outlier == 1)
+            %temporary Kalman filter update, to check residuals
+            K = T*Cee*T' + Cvv;
+            G = K*H' * (H*K*H' + Cnn)^(-1);
+            Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
+            compute_residuals(Xhat_t_t,'float');
+            
+            % remove observations with residuals exceeding thresholds
+            out_pr = find(abs(residuals_float(1:nSatTot*2)) > max_code_residual);
+            out_ph = find(abs(residuals_float(nSatTot*2+1:end)) > max_phase_residual);
+            idx_pr = ismember(sat_pr, out_pr);
+            idx_ph = ismember(sat, out_ph);
+            conf_sat(sat_pr(idx_pr)) = 0;
+            conf_sat(sat(idx_ph)) = 0;
+            sat_pr(idx_pr) = [];
+            sat(idx_ph) = [];
+            index_ph(idx_ph) = [];
+            idx_pr = find(idx_pr);
+            idx_ph = length(sat_pr_residuals) + find(idx_ph);
+            idx_out = union(idx_pr, idx_ph);
+            if (~isempty(idx_out))
+                H(idx_out,:) = [];
+                y0(idx_out,:) = [];
+                Cnn(idx_out,:) = [];
+                Cnn(:,idx_out) = [];
+                y0_noamb(idx_out,:) = [];
+                H1(idx_out,:) = []; %#ok<NASGU>
+                outliers(index_residuals_outlier(index_outlier_i(idx_out)))=1;
+                index_outlier_i(idx_out) = [];
+            end
         end
         
         % decomment to use only phase
