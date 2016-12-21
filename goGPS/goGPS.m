@@ -1200,8 +1200,8 @@ if goGNSS.isPP(mode) % post-processing
     %exclude flagged epochs (rover)
     if (exist('bad_epochs_R','var'))
         for f = 1 : size(pr1_R,3)
-            if (any(bad_epochs_R(:,1,f)))
-                pos = find(bad_epochs_R(:,1,f));
+            if (any(bad_epochs_R(:,1,f) == 1))
+                pos = find(bad_epochs_R(:,1,f) == 1);
                 pr1_R(:,pos,f) = 0;
                 pr2_R(:,pos,f) = 0;
                 ph1_R(:,pos,f) = 0;
@@ -1215,8 +1215,8 @@ if goGNSS.isPP(mode) % post-processing
 
     %exclude flagged epochs (master)
     if (goGNSS.isDD(mode) && exist('bad_epochs_M','var'))
-        if (any(bad_epochs_M(:,1)))
-            pos = find(bad_epochs_M(:,1));
+        if (any(bad_epochs_M(:,1) == 1))
+            pos = find(bad_epochs_M(:,1) == 1);
             pr1_M(:,pos) = 0;
             pr2_M(:,pos) = 0;
             ph1_M(:,pos) = 0;
