@@ -71,6 +71,7 @@ global geoid
 global t residuals_fixed residuals_float outliers s02_ls
 global max_code_residual max_phase_residual
 global ZHD STDs
+global flag_outlier
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -748,7 +749,7 @@ if (nsat >= min_nsat)
         % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
         %------------------------------------------------------------------------------------
         
-        search_for_outlier = 1;
+        search_for_outlier = flag_outlier;
 
         if (length(frequencies) == 2)
             if (strcmp(obs_comb,'NONE'))

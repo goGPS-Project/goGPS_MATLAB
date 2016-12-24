@@ -53,6 +53,8 @@ function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residua
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global flag_outlier
+
 v_light = goGNSS.V_LIGHT;
 sigma02_hat = NaN(1,3);
 residuals_obs = NaN(length(pr_R),1); %#ok<NASGU>
@@ -121,7 +123,7 @@ else
     %------------------------------------------------------------------------------------
     % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
     %------------------------------------------------------------------------------------
-    search_for_outlier=1;
+    search_for_outlier = flag_outlier;
     bad_obs=[];
     index_obs = 1:length(y0);
     A0=A;

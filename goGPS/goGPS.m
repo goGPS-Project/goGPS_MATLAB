@@ -79,9 +79,9 @@ end
 %----------------------------------------------------------------------------------------------
 
 global order o1 o2 o3 h_antenna cutoff weights t nC
-global cs_threshold_preprocessing cs_threshold amb_restart_method
+global cs_threshold_preprocessing cs_threshold 
 global iono_model tropo_model
-global max_code_residual max_phase_residual SPP_threshold
+global flag_outlier SPP_threshold
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -92,36 +92,16 @@ global goObj;
 goObj = 0;  % this variable is set in the interface.
 
 if (mode_user == 1)
-
-    % In goGPS we have 3 possible interfaces with smaller differences between platforms
-    %   1 generic
-    %   2 mac legacy
-    %   3 linux legacy
-    % In newer version of MATLAB it seems that the generic (Windows) interface works better for all the platforms
-    cur_interface_platform = 1; % generic interface selected
-    if (ismac && (not(verLessThan('matlab', '7.14')) && (verLessThan('matlab', '8'))))  % if it is mac with matlab version between 7.14 and 8
-        cur_interface_platform = 2; % legacy mac interface
-    elseif (~ismac && isunix && verLessThan('matlab', '8')) % if it is linux with matlab version older than 8
-        cur_interface_platform = 3; % legacy linux interface
-    end
-
-    switch cur_interface_platform
-        case 2
-            [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-                flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-                filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-                filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS_unix_mac;
-        case 3
-            [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-                flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-                filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-                filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS_unix_linux;            
-        otherwise
-            [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
-                flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-                filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-                filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char] = gui_goGPS;
-    end
+    
+    % Now there's a unique interface for goGPS
+    % to be compatible among various OSs the property "unit" of all the
+    % elements must be set to "pixels" 
+    % (default unit is "character", but the size of a character is OS dependent)    
+    [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+        flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
+        filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+        filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
+        flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb] = gui_goGPS;
 
     global goIni; %#ok<TLEV>
     if (isempty(mode))
@@ -169,7 +149,17 @@ else
         flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
         
         flag_tropo = 0;         % estimate zenith tropospheric delay
+
+        flag_ocean = 0;      % use ocean tides
         
+        flag_outlier = 1;    % remove outliers
+        
+        flag_SEID = 0;       % Satellite-specific Epoch-differenced Ionospheric Delay (SEID) model
+        
+        frequencies = [1];   % array containing the frequencies band to use
+
+        obs_comb = 'NONE';   % combination of observations, valid input 'NONE' or 'IONO_FREE'
+                
         %----------------------------------------------------------------------------------------------
         % USER-DEFINED SETTINGS
         %----------------------------------------------------------------------------------------------
@@ -211,33 +201,6 @@ end
 %!!! TEMPORARY SETTINGS !!! --> will be moved to GUI/global settings before merging back to the master branch
 %------------------------------------------------------------------------------------------------------------
  
-flag_tropo = 1;
-flag_ocean = 1;
-
-% frequencies = [1]
-% frequencies = [2]
-frequencies = [1 2]
-
-% obs_comb = 'NONE'
-obs_comb = 'IONO_FREE'
-
-flag_SEID = 0
-if (flag_SEID == 1)
-    mode = goGNSS.MODE_PP_KF_CP_DD_MR;
-    frequencies = [1 2];
-    obs_comb = 'NONE';
-end
-
-cs_threshold_preprocessing = 1
-cs_threshold = 1e30 %i.e. disable cycle-slip detection during KF processing
-amb_restart_method = 1 % Kalman-predicted code - phase difference
-processing_interval = 30 %30 %[sec]
-
-max_code_residual = 30;
-                          
-max_phase_residual = 0.05;
-% max_phase_residual = 0.15;
-
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
@@ -3740,7 +3703,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) %&& ~exist('is_batch','va
     if (isempty(pos))
         pos = find(filerootOUT == '\');
     end
-    kml_name = filerootOUT(pos(end)+1:end);
+    kml_name = check_path(filerootOUT(pos(end)+1:end));
 
     %file saving (Google Earth KML)
     fid_kml = fopen([filerootOUT '.kml'], 'wt');

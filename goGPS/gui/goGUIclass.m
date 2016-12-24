@@ -105,6 +105,7 @@ classdef goGUIclass < handle
         % Algorithm type
         idLS = 1;          % Least Squares
         idKF = 2;          % Kalman Filter
+        idSEID = 3;        % Satellite-specific Epoch-differenced Ionospheric Delay (SEID) model
         strAlgorithm = {}; % string containing the pop-up menu fields
         
         % Processing type
@@ -116,8 +117,12 @@ classdef goGUIclass < handle
         idCP_DD = 4;     % Code and phase double difference
         idC_SA_MR = 5;   % Code and phase stand-alone (i.e. undifferenced) for multiple receivers
         idCP_DD_MR = 6;  % Code and phase double difference for multiple receivers
-        strTypeLS = {};  % string containing the pop-up menu fields
-        strTypeKF = {};  % string containing the pop-up menu fields        
+        idSEID_RO = 1;   % Seid to generate a rinex files containing a fake L2
+        idSEID_PPP = 2;  % Generation of the rinex using SEID followed by PPP
+        
+        strTypeLS    = {};  % string containing the pop-up menu fields
+        strTypeKF    = {};  % string containing the pop-up menu fields        
+        strTypeSEID  = {};  % string containing the pop-up menu fields                        
         
         % Integer ambiguity resolution method
         idILS_enum_old = 1;   % ILS method based enumeration in search             (LAMBDA 2.0)
@@ -144,6 +149,10 @@ classdef goGUIclass < handle
         % Master station
         idXYZ = 1;           % Pop up Master station (id in the pop-up for idXYZ)
         idGeodetic = 2;      % Pop up Master station (id in the pop-up for idGeodetic)
+        
+        % Data usage
+        strProcRate = {};    % Pop up Rate of processing
+        valProcRate = [];    % float values of the processing rate
 
     %  OTHER IDs
     % ======================================================================
@@ -154,6 +163,16 @@ classdef goGUIclass < handle
         ledKo  = 4;          % Led status ko
         ledCk  = 5;          % Led status check
         ledOp  = 6;          % Led status optional parameter
+        
+    %  Interface Strings
+    % ======================================================================
+        
+        % These are the displayed text for 
+        % Rover/Master (LS, KF) or
+        % Source/Target (SEID)
+        str_source_rover = {'Source (multi-freq) RINEX obs. file', 'RINEX rover observation file'};
+        str_target_master = {'Target (single-freq) RINEX obs. file', 'RINEX master observation file'};
+    
     end
     
     properties (GetAccess = 'public', SetAccess = 'private')
@@ -186,8 +205,7 @@ classdef goGUIclass < handle
             if (length(intersect(typeOS, [obj.isWin obj.isUnix])) ~= 1)
                 typeOS = obj.isWin;
             end
-            obj.interfaceOS = typeOS;
-            
+            obj.interfaceOS = typeOS;            
             obj.init(handles);
         end        
         
@@ -211,6 +229,15 @@ classdef goGUIclass < handle
             obj.goWB = goWaitBar(5, 'Initializing goGPS GUI...');
             obj.goWB.titleUpdate('Init GUI');
             obj.goh = handles;  % Save the handle of the figure
+            
+            % Init logo
+            [logo, map, transparency] = imread('goGPS_logo_64.png');
+            image(logo, 'AlphaData', transparency);
+            set(obj.goh.axLogo,'XColor','none');            
+            set(obj.goh.axLogo,'YColor','none');            
+            set(obj.goh.axLogo,'ZColor','none');            
+            set(obj.goh.axLogo,'Color','none');
+            
             % Init pup-up strings
             obj.initPopUps();
             
@@ -260,6 +287,7 @@ classdef goGUIclass < handle
 
             obj.strAlgorithm{obj.idLS} = 'Least squares';
             obj.strAlgorithm{obj.idKF} = 'Kalman filter';
+            obj.strAlgorithm{obj.idSEID} = 'SEID';
             
             obj.strTypeLS{obj.idC_SA} = 'Code undifferenced';
             obj.strTypeLS{obj.idC_DD} = 'Code double difference';
@@ -274,6 +302,9 @@ classdef goGUIclass < handle
             obj.strTypeKF{obj.idCP_DD} = 'Code and phase double difference';
             %obj.strTypeKF{obj.idCP_DD_MR} = 'Code and phase double difference for multiple receivers';
             
+            obj.strTypeSEID{obj.idSEID_RO} = 'SEID Rinex only';
+            obj.strTypeSEID{obj.idSEID_PPP} = 'SEID followed by KF PPP';
+
             obj.strLAMBDAMethod{obj.idILS_enum_old} = 'LAMBDA 2.0 - ILS, enumeration';
             obj.strLAMBDAMethod{obj.idILS_shrink}   = 'LAMBDA 3.0 - ILS, search-and-shrink';
             obj.strLAMBDAMethod{obj.idILS_enum}     = 'LAMBDA 3.0 - ILS, enumeration';
@@ -293,8 +324,18 @@ classdef goGUIclass < handle
             obj.strPorts{2} = '2';
             obj.strPorts{3} = '3';
             obj.strPorts{4} = '4';
-            
+                        
             obj.initPorts(obj.strPorts);
+            
+            obj.strProcRate{1} = '10 Hz';
+            obj.strProcRate{2} = ' 5 Hz';
+            obj.strProcRate{3} = ' 2 Hz';
+            obj.strProcRate{4} = ' 1 Hz';
+            obj.strProcRate{5} = ' 5 s';
+            obj.strProcRate{6} = '15 s';
+            obj.strProcRate{7} = '30 s';
+            obj.valProcRate = [1/10 1/5 1/2 1 5 15 30];
+            obj.initProcRate(obj.strProcRate, 4);
         end
         
         % Fill the CaptureMode pop-up (Navigation, Monitor...)
@@ -328,8 +369,10 @@ classdef goGUIclass < handle
             if nargin < 2
                 if get(obj.goh.kalman_ls,'Value') == obj.idLS
                     str = obj.strTypeLS;
-                else
+                elseif get(obj.goh.kalman_ls,'Value') == obj.idKF
                     str = obj.strTypeKF;
+                else
+                    str = obj.strTypeSEID;                    
                 end
             end
             value = get(obj.goh.code_dd_sa,'Value');
@@ -386,6 +429,15 @@ classdef goGUIclass < handle
         end
         
         % Fill the num ports pop-up list
+        function initProcRate(obj, str, defaultVal)
+            if nargin == 2
+                defaultVal = 1;
+            end
+            set(obj.goh.lProcRate, 'String', str);
+            set(obj.goh.lProcRate, 'Value', defaultVal);
+        end
+        
+        % Fill the num ports pop-up list
         function initPorts(obj, str)
             if nargin < 2
                 str = obj.strPorts;
@@ -415,7 +467,7 @@ classdef goGUIclass < handle
             
             if num_ports == 0
                 set(obj.goh.num_receivers,'String','1');
-            elseif num_ports <= size(str,1);
+            elseif num_ports <= size(str,1)
                 set(obj.goh.num_receivers,'String',str(1:num_ports));
             else
                 set(obj.goh.num_receivers,'String',str);
@@ -436,6 +488,33 @@ classdef goGUIclass < handle
             set(obj.goh.com_select_3,'String', availablePorts);
         end
 
+        % get the active frequencies
+        function active_freq = getFreq(obj)
+            active_freq = [1 2 5 6] .* [obj.isActive(obj.idUI.cL1) ...
+                                        obj.isActive(obj.idUI.cL2) ...
+                                        obj.isActive(obj.idUI.cL5) ...
+                                        obj.isActive(obj.idUI.cL6)];
+            active_freq( active_freq == 0) = [];
+            if isempty(active_freq)
+                obj.setElVal(obj.idUI.cL1, true, 0);
+                active_freq = 1;
+            end
+        end
+        
+        % get observation combination
+        function obs_comb = getObsComb(obj)            
+            if (obj.isEnabled(obj.idUI.lObsComb))  % To be active an elment must be Enabled and its value = 'on'
+                obs_comb_val = obj.getElVal(obj.idUI.lObsComb);
+            else
+                obs_comb_val = 1;
+            end
+            if obs_comb_val == 2
+                obs_comb = 'IONO_FREE';                
+            else
+                obs_comb = 'NONE';
+            end                
+        end
+        
         % Fill the available ports pop-ups
         function [select_0 select_1 select_2 select_3] = getPortValues(obj, s0, s1, s2, s3)
             contents = get(obj.goh.com_select_0,'String');
@@ -527,11 +606,12 @@ classdef goGUIclass < handle
           % --------------------------------------------------------------- 
             
             i=i+1; id.pMode         = i;    id2h(i) = obj.goh.uipMode;
+            i=i+1; id.pUsage        = i;    id2h(i) = obj.goh.uipUsage;
             i=i+1; id.pOptions      = i;    id2h(i) = obj.goh.uipOptions;
-            i=i+1; id.pConstellations = i;  id2h(i) = obj.goh.pConstellations;
+            i=i+1; id.pOutliers     = i;    id2h(i) = obj.goh.pOutliers;
+            i=i+1; id.pConstellations = i;  id2h(i) = obj.goh.uipConstellations;
             i=i+1; id.pIntAmb       = i;    id2h(i) = obj.goh.pIntAmb;
             i=i+1; id.pIOFiles      = i;    id2h(i) = obj.goh.uipInOutFiles;
-            i=i+1; id.pSettings     = i;    id2h(i) = obj.goh.uipSettings;
             i=i+1; id.pKF           = i;    id2h(i) = obj.goh.uipKF;
             i=i+1; id.pEStD         = i;    id2h(i) = obj.goh.uipEStD;
             i=i+1; id.pW            = i;    id2h(i) = obj.goh.weight_select;
@@ -548,9 +628,107 @@ classdef goGUIclass < handle
             i=i+1; id.lCaptMode     = i;    id2h(i) = obj.goh.nav_mon;
             i=i+1; id.lAlgType      = i;    id2h(i) = obj.goh.kalman_ls;
             i=i+1; id.lProcType     = i;    id2h(i) = obj.goh.code_dd_sa;
+            i=i+1; id.cTropo        = i;    id2h(i) = obj.goh.flag_tropo;
             
-            idG.pMode = [id.pMode id.lProcMode:id.lProcType];
+            idG.pMode = [id.pMode id.lProcMode:id.cTropo];
             
+          %   DATA SELECTION
+          % --------------------------------------------------------------- 
+            
+            i=i+1; id.cL1     = i;    id2h(i) = obj.goh.cL1;  
+            i=i+1; id.cL2     = i;    id2h(i) = obj.goh.cL2;  
+            i=i+1; id.cL5     = i;    id2h(i) = obj.goh.cL5;  
+            i=i+1; id.cL6     = i;    id2h(i) = obj.goh.cL6;
+            
+            i=i+1; id.lProcRate    = i;    id2h(i) = obj.goh.lProcRate;  
+            i=i+1; id.tProcRate    = i;    id2h(i) = obj.goh.text_rate;
+            
+            i=i+1; id.lObsComb     = i;    id2h(i) = obj.goh.lObsComb;  
+            i=i+1; id.tObsComb     = i;    id2h(i) = obj.goh.text_comb;
+            
+            idG.pObsComb = [id.lObsComb id.tObsComb];
+            idG.pProcRate = [id.lProcRate id.tProcRate];
+            idG.pFreq = id.cL1:id.cL6;
+            
+            i=i+1; id.cOcean        = i;    id2h(i) = obj.goh.flag_ocean;
+
+            idG.pUsage = [id.pUsage idG.pProcRate idG.pObsComb idG.pFreq];
+
+          %   CONSTELLATIONS
+          % --------------------------------------------------------------- 
+            i=i+1; id.cGPS          = i;    id2h(i) = obj.goh.cGPS;
+            i=i+1; id.cGLONASS      = i;    id2h(i) = obj.goh.cGLONASS;
+            i=i+1; id.cGalileo      = i;    id2h(i) = obj.goh.cGalileo;
+            i=i+1; id.cBeiDou       = i;    id2h(i) = obj.goh.cBeiDou;
+            i=i+1; id.cQZSS         = i;    id2h(i) = obj.goh.cQZSS;
+            i=i+1; id.cSBAS         = i;    id2h(i) = obj.goh.cSBAS;
+            
+            % Group of ids in the panel pConstellations
+            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cSBAS];
+            
+            % Constellation of satellites currently supported
+            idG.pAvailableGNSSCode = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
+            idG.pAvailableGNSSPhase = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
+
+            % Cut-off thr -------------------------------------------------
+            i=i+1; id.tCutOff       = i;    id2h(i) = obj.goh.text_cut_off;
+            i=i+1; id.nCutOff       = i;    id2h(i) = obj.goh.cut_off;
+            i=i+1; id.uCutOff       = i;    id2h(i) = obj.goh.text_cut_off_unit;
+            
+            idG.CutOff = [id.tCutOff id.nCutOff id.uCutOff];
+            
+            % SNR thr -----------------------------------------------------
+            i=i+1; id.tSNR          = i;    id2h(i) = obj.goh.text_snr_thres;
+            i=i+1; id.nSNR          = i;    id2h(i) = obj.goh.snr_thres;
+            i=i+1; id.uSNR          = i;    id2h(i) = obj.goh.text_snr_thres_unit;
+            
+            idG.SNR = [id.tSNR id.nSNR id.uSNR];
+            
+            % Min sat number ----------------------------------------------
+            i=i+1; id.tMinNSat      = i;    id2h(i) = obj.goh.text_min_sat;
+            i=i+1; id.nMinNSat      = i;    id2h(i) = obj.goh.min_sat;
+            
+            idG.MaxNumSat = [id.tMinNSat id.nMinNSat];
+            
+            % Min arcLength number ----------------------------------------------
+            
+            i=i+1; id.tMinArc      = i;    id2h(i) = obj.goh.text_min_arc;
+            i=i+1; id.nMinArc      = i;    id2h(i) = obj.goh.nMinArc;
+            
+            idG.MinArc = [id.tMinArc id.nMinArc];
+            
+          %   OUTLIERS DETECTION
+          % --------------------------------------------------------------- 
+
+            i=i+1; id.cOutlier      = i;    id2h(i) = obj.goh.flag_rem_outliers;
+
+            % SPP threshold -----------------------------------------------
+            
+            i=i+1; id.tSPPthr      = i;    id2h(i) = obj.goh.text_SPP_thr;
+            i=i+1; id.nSPPthr      = i;    id2h(i) = obj.goh.nSPPthr;
+            i=i+1; id.uSPPthr      = i;    id2h(i) = obj.goh.text_SPP_thr_unit;
+
+            idG.SPPthr = id.tSPPthr : id.uSPPthr;
+            
+            % Code threshold -----------------------------------------------
+            
+            i=i+1; id.tCodeThr      = i;    id2h(i) = obj.goh.text_code_thr;
+            i=i+1; id.nCodeThr      = i;    id2h(i) = obj.goh.nCodeThr;
+            i=i+1; id.uCodeThr      = i;    id2h(i) = obj.goh.text_code_thr_unit;
+            
+            idG.CodeThr = id.tCodeThr : id.uCodeThr;
+
+            % Phase threshold -----------------------------------------------
+            
+            i=i+1; id.tPhaseThr      = i;    id2h(i) = obj.goh.text_phase_thr;
+            i=i+1; id.nPhaseThr      = i;    id2h(i) = obj.goh.nPhaseThr;
+            i=i+1; id.uPhaseThr      = i;    id2h(i) = obj.goh.text_phase_thr_unit;
+            
+            idG.PhaseThr = id.tPhaseThr : id.uPhaseThr;
+            
+            
+            idG.pOutliers = id.cOutlier : id.uPhaseThr;
+
           %   OPTIONS
           % --------------------------------------------------------------- 
 
@@ -569,23 +747,7 @@ classdef goGUIclass < handle
             % Group of ids in the panel pOptions
             idG.gPlotProc = [id.cSkyPlot id.cGEarth id.cErrEllipse id.cPlotMaster id.cPlotAmb];
             idG.pOptions = [id.pOptions id.cConstraint:id.cUse_SBAS];
-            
-          %   CONSTELLATIONS
-          % --------------------------------------------------------------- 
-            i=i+1; id.cGPS          = i;    id2h(i) = obj.goh.cGPS;
-            i=i+1; id.cGLONASS      = i;    id2h(i) = obj.goh.cGLONASS;
-            i=i+1; id.cGalileo      = i;    id2h(i) = obj.goh.cGalileo;
-            i=i+1; id.cBeiDou       = i;    id2h(i) = obj.goh.cBeiDou;
-            i=i+1; id.cQZSS         = i;    id2h(i) = obj.goh.cQZSS;
-            i=i+1; id.cSBAS         = i;    id2h(i) = obj.goh.cSBAS;
-            
-            % Group of ids in the panel pConstellations
-            idG.pGNSS = [id.pConstellations id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS id.cSBAS];
-            
-            % Constellation of satellites currently supported
-            idG.pAvailableGNSSCode = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
-            idG.pAvailableGNSSPhase = [id.cGPS id.cGLONASS id.cGalileo id.cBeiDou id.cQZSS];
-            
+                        
           %   INTEGER AMBIGUITY RESOLUTION
           % ---------------------------------------------------------------
           
@@ -683,26 +845,22 @@ classdef goGUIclass < handle
           %   SETTINGS - KALMAN FILTER - STD
           % --------------------------------------------------------------- 
 
+            
             % East --------------------------------------------------------            
-            i=i+1; id.tStdE         = i;    id2h(i) = obj.goh.text_std_X;
             i=i+1; id.nStdE         = i;    id2h(i) = obj.goh.std_X;
-            i=i+1; id.uStdE         = i;    id2h(i) = obj.goh.text_std_X_unit;
-            
-            idG.StdE = [id.tStdE id.nStdE id.uStdE];
-            
+                        
             % North -------------------------------------------------------            
-            i=i+1; id.tStdN         = i;    id2h(i) = obj.goh.text_std_Y;
             i=i+1; id.nStdN         = i;    id2h(i) = obj.goh.std_Y;
-            i=i+1; id.uStdN         = i;    id2h(i) = obj.goh.text_std_Y_unit;
-            
-            idG.StdN = [id.tStdN id.nStdN id.uStdN];
-            
+                        
             % Up ----------------------------------------------------------
-            i=i+1; id.tStdU         = i;    id2h(i) = obj.goh.text_std_Z;
             i=i+1; id.nStdU         = i;    id2h(i) = obj.goh.std_Z;
-            i=i+1; id.uStdU         = i;    id2h(i) = obj.goh.text_std_Z_unit;
             
-            idG.StdU = [id.tStdU id.nStdU id.uStdU];
+            % ENU----------------------------------------------------------
+
+            i=i+1; id.tStdENU         = i;    id2h(i) = obj.goh.text_std_XYZ;
+            i=i+1; id.uStdENU         = i;    id2h(i) = obj.goh.text_std_XYZ_unit;
+            idG.StdENU = id.nStdE : id.uStdENU;
+
             
             % Code --------------------------------------------------------
             i=i+1; id.tStdCode      = i;    id2h(i) = obj.goh.text_std_code;
@@ -731,6 +889,14 @@ classdef goGUIclass < handle
             i=i+1; id.uStdDTM       = i;    id2h(i) = obj.goh.text_std_dtm_unit;
             
             idG.StdDTM = [id.bStdDTM id.nStdDTM id.uStdDTM];
+
+            % Antenna height ----------------------------------------------
+            
+            i=i+1; id.tHAntenna     = i;    id2h(i) = obj.goh.text_antenna_h;
+            i=i+1; id.nHAntenna     = i;    id2h(i) = obj.goh.antenna_h;
+            i=i+1; id.uHAntenna     = i;    id2h(i) = obj.goh.text_antenna_h_unit;
+            
+            idG.HAntenna = [id.tHAntenna id.nHAntenna id.uHAntenna];
             
             % Velocity ----------------------------------------------------
             i=i+1; id.tStdVel       = i;    id2h(i) = obj.goh.text_std_vel;
@@ -740,8 +906,8 @@ classdef goGUIclass < handle
             idG.StdVel = [id.tStdVel id.nStdVel id.uStdVel];
             
             % Group of ids in the panel pKF
-            idG.pKF_ENU = [idG.StdE idG.StdN idG.StdU];
-            idG.pKF = [id.pKF idG.StdE idG.StdN idG.StdU idG.StdCode idG.StdPhase idG.StdT0 idG.StdDTM idG.StdVel];
+            idG.pKF_ENU = [idG.StdENU];
+            idG.pKF = [id.pKF idG.StdENU idG.StdCode idG.StdPhase idG.StdT0 idG.StdDTM idG.StdVel idG.HAntenna];
                                
           %   SETTINGS - KALMAN FILTER - WEIGHT MODEL
           % --------------------------------------------------------------- 
@@ -757,40 +923,13 @@ classdef goGUIclass < handle
           %   SETTINGS - KALMAN FILTER
           % --------------------------------------------------------------- 
 
-            % Cut-off thr -------------------------------------------------
-            i=i+1; id.tCutOff       = i;    id2h(i) = obj.goh.text_cut_off;
-            i=i+1; id.nCutOff       = i;    id2h(i) = obj.goh.cut_off;
-            i=i+1; id.uCutOff       = i;    id2h(i) = obj.goh.text_cut_off_unit;
-            
-            idG.CutOff = [id.tCutOff id.nCutOff id.uCutOff];
-            
-            % SNR thr -----------------------------------------------------
-            i=i+1; id.tSNR          = i;    id2h(i) = obj.goh.text_snr_thres;
-            i=i+1; id.nSNR          = i;    id2h(i) = obj.goh.snr_thres;
-            i=i+1; id.uSNR          = i;    id2h(i) = obj.goh.text_snr_thres_unit;
-            
-            idG.SNR = [id.tSNR id.nSNR id.uSNR];
-            
             % CS thr ------------------------------------------------------
             i=i+1; id.tCS           = i;    id2h(i) = obj.goh.text_cs_thresh;
             i=i+1; id.nCS           = i;    id2h(i) = obj.goh.cs_thresh;
             i=i+1; id.uCS           = i;    id2h(i) = obj.goh.text_cs_thresh_unit;
 
             idG.CS = [id.tCS id.nCS id.uCS];
-            
-            % Min sat number ----------------------------------------------
-            i=i+1; id.tMinNSat      = i;    id2h(i) = obj.goh.text_min_sat;
-            i=i+1; id.nMinNSat      = i;    id2h(i) = obj.goh.min_sat;
-            
-            idG.MaxNumSat = [id.tMinNSat id.nMinNSat];
-            
-            % Antenna height ----------------------------------------------
-            i=i+1; id.tHAntenna     = i;    id2h(i) = obj.goh.text_antenna_h;
-            i=i+1; id.nHAntenna     = i;    id2h(i) = obj.goh.antenna_h;
-            i=i+1; id.uHAntenna     = i;    id2h(i) = obj.goh.text_antenna_h_unit;
-            
-            idG.HAntenna = [id.tHAntenna id.nHAntenna id.uHAntenna];
-            
+                                    
             % Stop Go Stop ------------------------------------------------
             i=i+1; id.cStopGoStop   = i;    id2h(i) = obj.goh.stopGOstop;
             i=i+1; id.tStopGoStop   = i;    id2h(i) = obj.goh.text_stopGOstop;
@@ -933,8 +1072,7 @@ classdef goGUIclass < handle
             % On Real Time
             idG.onRealTime = [idG.ResetStatus id.pConstellations ...
                               id.pMode id.lCaptMode ...
-                              id.pIOFiles idG.GoOut ...
-                              id.pSettings];
+                              id.pIOFiles idG.GoOut];
                           
             % On Real Time => Navigation Mode            
             idG.onRT_Nav = [idG.onRealTime idG.pAvailableGNSSPhase ...
@@ -942,7 +1080,8 @@ classdef goGUIclass < handle
                             id.pKF idG.pKF_ENU idG.StdCode id.bStdPhase idG.StdT0 id.bStdDTM ...
                             idG.pW idG.CutOff idG.SNR idG.CS idG.MaxNumSat idG.StopGoStop ...
                             idG.pDynModel idG.pARAA ...
-                            idG.pMSt idG.pMS id.pPorts idG.lPort0];
+                            idG.pMSt idG.pMS id.pPorts idG.lPort0 ...
+                            idG.SPPthr idG.CodeThr idG.PhaseThr];
           
             % On Real Time => Rover Monitor
             idG.onRT_RMon = [idG.onRealTime idG.pAvailableGNSSCode ...
@@ -971,14 +1110,16 @@ classdef goGUIclass < handle
                               idG.gINI...
                               id.pIOFiles id.pConstellations idG.GoOut ...
                               id.pOptions ...
-                              id.pSettings idG.CutOff idG.pW];
+                              idG.CutOff idG.pW ...
+                              id.pUsage idG.pProcRate id.cL1 id.cOutlier id.cOcean ...
+                              idG.SPPthr idG.CodeThr idG.MinArc];
             
             % On Post Proc => Least Squares
             idG.onPP_LS = [idG.onPostProc];
                           
             % On Post Proc => Least Squares => Code Stand Alone
             idG.onPP_LS_C_SA = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSCode ...
-                                id.cUse_SBAS];
+                                id.cUse_SBAS id.cL2 ];
             
             % On Post Proc => Least Squares => Code Double Differences
             idG.onPP_LS_C_DD = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSCode ...
@@ -987,10 +1128,10 @@ classdef goGUIclass < handle
             % On Post Proc => Least Squares => Code and Phase Double Differences
             idG.onPP_LS_CP_DD_L = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSPhase ...
                                    idG.StdCode idG.StdPhase ...
-                                   id.pMSt id.cMPos idG.pIntAmb];
+                                   id.pMSt id.cMPos idG.pIntAmb idG.PhaseThr];
 
             % On Post Proc => Least Squares => Code and Phase Velocity estimation
-            idG.onPP_LS_CP_Vel = [idG.onPP_LS idG.pAvailableGNSSPhase];
+            idG.onPP_LS_CP_Vel = [idG.onPP_LS idG.pAvailableGNSSPhase idG.PhaseThr];
             
             % On Post Proc => Least Squares => Code Stand Alone 
             % => Multi Receivers Mode
@@ -1001,7 +1142,7 @@ classdef goGUIclass < handle
             % => Multi Receivers Mode
             idG.onPP_LS_CP_DD_MR = [idG.onPP_LS id.cPlotProc idG.pAvailableGNSSPhase ...
                                    idG.StdCode idG.StdPhase ...
-                                   id.pMSt id.cMPos idG.pIntAmb];
+                                   id.pMSt id.cMPos idG.pIntAmb idG.PhaseThr];
 
             % On Post Proc => On Kalman Filter
             idG.onPP_KF = [idG.onPostProc id.cPlotProc ...
@@ -1017,25 +1158,29 @@ classdef goGUIclass < handle
             idG.onPP_KF_C_DD = [idG.onPP_KF idG.pAvailableGNSSCode ...
                                 id.pMSt id.cMPos];
 
-            % On Post Proc => On Kalman Filter => Code and Phase Stand Alone
+            % On Post Proc => On Kalman Filter => Code and Phase Stand Alone (PPP)
             idG.onPP_KF_CP_SA = [idG.onPP_KF idG.pAvailableGNSSPhase ...
                                  idG.StdPhase idG.CS ...
-                                 id.cDoppler id.cUse_SBAS];
+                                 id.cDoppler id.cUse_SBAS  id.cTropo id.cL2 idG.PhaseThr];
             
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             idG.onPP_KF_CP_DD = [idG.onPP_KF id.cConstraint idG.pAvailableGNSSPhase ...
                                  idG.StdPhase id.bStdDTM id.cRefPath ...
                                  idG.CS idG.StopGoStop idG.pARAA... 
-                                 id.pMSt id.cMPos id.cDoppler idG.pIntAmb];
+                                 id.pMSt id.cMPos id.cDoppler idG.pIntAmb idG.PhaseThr];
 
             % On Post Proc => On Kalman Filter => Code and Phase Double Differences
             % => Multi Receivers Mode
             idG.onPP_KF_CP_DD_MR = [idG.onPP_KF ...
                                     idG.StdPhase ...
                                     idG.CS idG.StopGoStop idG.pARAA... 
-                                    id.pMSt id.cMPos id.cDoppler idG.pIntAmb];
+                                    id.pMSt id.cMPos id.cDoppler idG.pIntAmb idG.PhaseThr];
 
-            % ---------------------------------------------------------------
+            % On Post Proc => SEID < + PPP >
+            idG.onPP_SEID_PPP = [idG.onPP_KF idG.pAvailableGNSSPhase ...
+                                 idG.StdPhase idG.CS id.pMSt ...
+                                 id.cDoppler id.cUse_SBAS id.cTropo id.cL2 idG.PhaseThr];
+           % ---------------------------------------------------------------
           
             
             % On RINEX / BIN
@@ -1262,7 +1407,10 @@ classdef goGUIclass < handle
             obj.goWB.goMsg('Loading GUI manager object...');
 
             % Set value for elements ids
-            obj.initUIids();            
+            obj.initUIids();
+            
+            % Set font style for elements ids
+            obj.setOSappearence();            
 
             % Read interface status (initialize structures
             obj.getAllElStatus();            
@@ -1321,12 +1469,9 @@ classdef goGUIclass < handle
             jPwdINI = javax.swing.JPasswordField;
             jPwdINI.setText(pwd);
             % Substitute the eINI edit box with the Java Scroll Pane
-            set(obj.goh.uipSettings, 'Units', 'pixels');
             set(obj.goh.uipMS_NTRIP, 'Units', 'pixels');
             set(obj.goh.password, 'Units', 'pixels');
             pos = get(obj.goh.password,'Position');
-            posOff = get(obj.goh.uipSettings,'Position');
-            pos(1:2) = pos(1:2) + posOff(1:2);
             posOff = get(obj.goh.uipMS_NTRIP,'Position');
             pos(1:2) = pos(1:2) + posOff(1:2);
             pos(1) = pos(1) + 4;
@@ -1383,6 +1528,10 @@ classdef goGUIclass < handle
         % Get the value of an element (from the internal copy of the object)
         function value = getElVal(obj, idEl)
             value = obj.newVal{idEl};
+            if isempty(value)
+                value = obj.getGuiElVal(obj.id2handle(idEl));
+                obj.setElVal(idEl, value, 0);
+            end
         end
                 
         % Set the value of an element
@@ -1495,6 +1644,28 @@ classdef goGUIclass < handle
             %pause(0.5);
             %obj.disableAll();
         end
+        
+        % Contains OS specific modifiers for the interface, e.g. fontSize, fontName
+        function setOSappearence(obj)
+            % Increase font for Mac (retina)
+            if ismac
+                scale_factor = 1.4;
+                font_size = get(obj.id2handle(2:end),'FontSize');
+                %set(obj.id2handle(2:end),'FontName','Helvetica')
+                
+                for i = 2 : length(obj.id2handle)
+                    set(obj.id2handle(i),'FontSize', font_size{i-1} * scale_factor);
+                end
+            end
+        end
+        
+        % TMP: Testing function on the enabler function (onoffEl)
+        function testFontSize(obj, scale_factor)
+            font_size = get(obj.id2handle(2:end),'FontSize');            
+            for i = 3 : length(obj.id2handle)
+                set(obj.id2handle(i),'FontSize', font_size{i-1} * scale_factor);
+            end
+        end
     end      
     
     %   GUI GETTERS
@@ -1553,6 +1724,15 @@ classdef goGUIclass < handle
                             mode = goGNSS.MODE_PP_KF_CP_DD_MR;
                     end
                 end
+                
+                if obj.isSEID()
+                    switch obj.getElVal(obj.idUI.lProcType)
+                        case obj.idSEID_RO
+                            mode = goGNSS.MODE_PP_KF_CP_DD_MR;
+                        case obj.idSEID_PPP
+                            mode = goGNSS.MODE_PP_KF_CP_DD_MR_PPP;
+                    end
+                end
             end
         end
 
@@ -1585,6 +1765,10 @@ classdef goGUIclass < handle
             isOn = obj.isEnabled(obj.idUI.lAlgType);
             isKalman = isOn && obj.isPostProc() && (obj.getElVal(obj.idUI.lAlgType) == obj.idKF);
         end
+        function isSEID_L2 = isSEID(obj)
+            isOn = obj.isEnabled(obj.idUI.lAlgType);
+            isSEID_L2 = isOn && obj.isPostProc() && (obj.getElVal(obj.idUI.lAlgType) == obj.idSEID);
+        end
 
         % Get processing type
         function isPT = isProcessingType(obj, idProcessingType)
@@ -1593,11 +1777,25 @@ classdef goGUIclass < handle
         end
         
         function isSA = isStandAlone(obj)
-            isSA = obj.isProcessingType(obj.idC_SA) || (obj.isLS() && obj.isProcessingType(obj.idCP_Vel)) || (obj.isKF() && obj.isProcessingType(obj.idCP_SA));
+            isSA = obj.isProcessingType(obj.idC_SA) || (obj.isLS() && obj.isProcessingType(obj.idCP_Vel)) || obj.isPPP();
         end
         
         function isMR = isMultiReceiver(obj)
             isMR = obj.isProcessingType(obj.idC_SA_MR) || obj.isProcessingType(obj.idCP_DD_MR);
+        end
+        
+        function isS_RO = isSEID_RO(obj)
+            isOn = obj.isEnabled(obj.idUI.lProcType);
+            isS_RO = isOn && obj.isSEID() && obj.isProcessingType(obj.idSEID_RO);
+        end
+
+        function isS_PPP = isSEID_PPP(obj)
+            isOn = obj.isEnabled(obj.idUI.lProcType);
+            isS_PPP = isOn && obj.isSEID() && obj.isProcessingType(obj.idSEID_PPP);
+        end
+        
+        function is_KF_CP_SA = isPPP(obj)
+            is_KF_CP_SA = (obj.isKF() && obj.isProcessingType(obj.idCP_SA)) || obj.isSEID_PPP();
         end
 
         %   INTERFACE GETTERS - INPUT FILE TYPE
@@ -1698,8 +1896,25 @@ classdef goGUIclass < handle
 
             % Check File input dependencies
             obj.setElStatus([obj.idGroup.onRin], 1, 0);
-            if obj.isStandAlone()
+            if (obj.isStandAlone() && not(obj.isSEID))
                 obj.setElStatus([obj.idGroup.RinMaster], 0, 0);
+            end
+            
+            % Set Labels for I/O files
+            if obj.isSEID()
+                obj.setGuiElStr(obj.id2handle(obj.idUI.tRinRover),obj.str_source_rover{1});
+                obj.setGuiElStr(obj.id2handle(obj.idUI.tRinMaster),obj.str_target_master{1});
+            else
+                obj.setGuiElStr(obj.id2handle(obj.idUI.tRinRover),obj.str_source_rover{2});
+                obj.setGuiElStr(obj.id2handle(obj.idUI.tRinMaster),obj.str_target_master{2});                
+            end
+            
+            
+          %   DATA USAGE
+          % --------------------------------------------------------------- 
+
+            if (length(obj.getFreq()) > 1) && not(obj.isSEID())
+                obj.setElStatus(obj.idGroup.pObsComb, 1, 0);
             end
                         
           %   OPTIONS
@@ -1791,6 +2006,10 @@ classdef goGUIclass < handle
                 isOn = obj.isActive(obj.idUI.cStopGoStop);
                 obj.setElStatus(obj.idGroup.pDynModel, ~isOn, 0);
             end
+            
+            if obj.isPPP()
+                obj.setElVal(obj.idUI.lARAA, 1+1, 0);
+            end
                         
           %   SETTINGS - PORTS
           % ---------------------------------------------------------------
@@ -1813,7 +2032,7 @@ classdef goGUIclass < handle
             if (obj.isDynModelStatic())
                 obj.setElStatus([obj.idGroup.pKF_ENU], 0, 0);
             else
-                if (obj.isKF())
+                if (obj.isKF() || obj.isSEID_PPP())
                     obj.setElStatus([obj.idGroup.pKF_ENU], 1, 0);
                 end
             end
@@ -1947,13 +2166,20 @@ classdef goGUIclass < handle
                             case obj.idC_DD
                                 obj.setElStatus(obj.idGroup.onPP_KF_C_DD, 1, 0);
                             case obj.idCP_SA
-                                obj.setElStatus(obj.idGroup.onPP_KF_CP_SA, 1, 0);
+                                obj.setElStatus(obj.idGroup.onPP_KF_CP_SA, 1, 0); % PPP
                             case obj.idCP_DD
                                 obj.setElStatus(obj.idGroup.onPP_KF_CP_DD, 1, 0);
                             case obj.idCP_DD_MR                                
                                 obj.setElStatus(obj.idGroup.onPP_KF_CP_DD_MR, 1, 0);
                         end
                     end
+                    
+                    % PPP for SEID
+                    if obj.isSEID()
+                        obj.setElStatus(obj.idGroup.Fig, 0, 0);
+                        obj.setElStatus(obj.idGroup.onPP_SEID_PPP, 1, 0);
+                    end
+
                     obj.getFlag(idEl) = true;
                     obj.updateGUI();
                 end
@@ -2262,6 +2488,9 @@ classdef goGUIclass < handle
                 obj.setElVal(obj.idUI.cGPS, true, 0);
                 % goOk = 0;
             end
+            
+            % get the available freq but also check for validity
+            obj.getFreq();
         end
         
         % Browse INI file
@@ -2434,7 +2663,50 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.lAlgType, state.kalman_ls, 0);
             obj.initProcessingType();
             obj.setElVal(obj.idUI.lProcType, state.code_dd_sa, 0);
-                        
+            if (isfield(state,'tropo'))
+                obj.setElVal(obj.idUI.cTropo, state.tropo, 0);
+            end
+            
+            %   DATA SELECTION
+            % ===============================================================
+            
+            if (isfield(state,'activeFreq'))
+                obj.setElVal(obj.idUI.cL1, state.activeFreq(1), 0);
+                obj.setElVal(obj.idUI.cL2, state.activeFreq(2), 0);
+                obj.setElVal(obj.idUI.cL5, state.activeFreq(3), 0);
+                obj.setElVal(obj.idUI.cL6, state.activeFreq(4), 0);
+            end
+            
+            if (isfield(state,'srate'))
+                obj.setElVal(obj.idUI.lProcRate, state.srate, 0);
+            end
+            if (isfield(state,'obs_comb'))
+                obj.setElVal(obj.idUI.lObsComb, state.obs_comb, 0);
+            end
+            
+            obj.setElVal(obj.idUI.nCutOff, state.cut_off, 0);
+            obj.setElVal(obj.idUI.nSNR, state.snr_thres, 0);
+            obj.setElVal(obj.idUI.nMinNSat, state.min_sat, 0);
+            if (isfield(state,'min_arc'))
+                obj.setElVal(obj.idUI.nMinArc, state.min_arc, 0);
+            end
+
+            %   OUTLIER DETECTION
+            % ===============================================================
+            
+            if (isfield(state,'outlier'))
+                obj.setElVal(obj.idUI.cOutlier, state.outlier, 0);                
+            end
+            if (isfield(state,'spp_thr'))
+                obj.setElVal(obj.idUI.eSPPthr, state.spp_thr, 0);                
+            end
+            if (isfield(state,'code_thr'))
+                obj.setElVal(obj.idUI.eCodeThr, state.code_thr, 0);                
+            end
+            if (isfield(state,'phase_thr'))
+                obj.setElVal(obj.idUI.ePhaseThr, state.phase_thr, 0);                
+            end            
+            
             %   OPTIONS
             % ===============================================================
             
@@ -2449,6 +2721,9 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.cPlotAmb, state.plot_amb, 0);
             obj.setElVal(obj.idUI.cUseNTRIP, state.use_ntrip, 0);
             obj.setElVal(obj.idUI.cDoppler, state.flag_doppler, 0);
+            if (isfield(state,'ocean'))
+                obj.setElVal(obj.idUI.cOcean, state.ocean, 0);
+            end
             % Temporary check in the migration to SBAS use period
             if (isfield(state,'use_sbas')) %since v0.3.2beta -> backward compatibility
                 obj.setElVal(obj.idUI.cUse_SBAS, state.use_sbas, 0);
@@ -2504,6 +2779,7 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.nStdCode, state.std_code, 0);
             obj.setElVal(obj.idUI.nStdPhase, state.std_phase, 0);
             obj.setElVal(obj.idUI.nStdDTM, state.std_dtm, 0);
+            obj.setElVal(obj.idUI.nHAntenna, state.antenna_h, 0);
             obj.setElVal(obj.idUI.bStdPhase, state.toggle_std_phase, 0);
             obj.setElVal(obj.idUI.bStdDTM, state.toggle_std_dtm, 0);
             obj.setElVal(obj.idUI.nStdT0, state.std_init, 0);
@@ -2527,10 +2803,6 @@ classdef goGUIclass < handle
             % ===============================================================
             
             obj.setElVal(obj.idUI.nCS, state.cs_thresh, 0);
-            obj.setElVal(obj.idUI.nCutOff, state.cut_off, 0);
-            obj.setElVal(obj.idUI.nSNR, state.snr_thres, 0);
-            obj.setElVal(obj.idUI.nHAntenna, state.antenna_h, 0);
-            obj.setElVal(obj.idUI.nMinNSat, state.min_sat, 0);
             obj.setElVal(obj.idUI.cStopGoStop, state.stopGOstop, 0);
             
             %   SETTINGS - KALMAN FILTER - DYNAMIC MODEL
@@ -2590,6 +2862,23 @@ classdef goGUIclass < handle
             state.nav_mon           = obj.getElVal(obj.idUI.lCaptMode);
             state.kalman_ls         = obj.getElVal(obj.idUI.lAlgType);
             state.code_dd_sa        = obj.getElVal(obj.idUI.lProcType);
+            state.tropo             = obj.getElVal(obj.idUI.cTropo);
+
+            %   DATA SELECTION
+            % ===============================================================
+            
+            state.activeFreq        = [obj.getElVal(obj.idUI.cL1) ...
+                                       obj.getElVal(obj.idUI.cL2) ...
+                                       obj.getElVal(obj.idUI.cL5) ...
+                                       obj.getElVal(obj.idUI.cL6)];
+            state.srate             = obj.getElVal(obj.idUI.lProcRate);
+            state.obs_comb          = obj.getElVal(obj.idUI.lObsComb);
+            state.ocean             = obj.getElVal(obj.idUI.cOcean);
+
+            state.cut_off           = obj.getElVal(obj.idUI.nCutOff);
+            state.snr_thres         = obj.getElVal(obj.idUI.nSNR);
+            state.min_sat           = obj.getElVal(obj.idUI.nMinNSat);
+            state.min_arc           = obj.getElVal(obj.idUI.nMinArc);
 
             %   OPTIONS
             % ===============================================================
@@ -2605,6 +2894,8 @@ classdef goGUIclass < handle
             state.plot_amb          = obj.getElVal(obj.idUI.cPlotAmb);
             state.use_ntrip         = obj.getElVal(obj.idUI.cUseNTRIP);
             state.flag_doppler      = obj.getElVal(obj.idUI.cDoppler);
+            state.use_sbas          = obj.getElVal(obj.idUI.cUse_SBAS);
+            state.outlier           = obj.getElVal(obj.idUI.cOutlier);
             state.use_sbas          = obj.getElVal(obj.idUI.cUse_SBAS);
             
             %   INTEGER AMBIGUITY RESOLUTION
@@ -2654,6 +2945,7 @@ classdef goGUIclass < handle
             state.toggle_std_dtm    = obj.getElVal(obj.idUI.bStdDTM);
             state.std_init          = obj.getElVal(obj.idUI.nStdT0);
             state.std_vel           = obj.getElVal(obj.idUI.nStdVel);
+            state.antenna_h         = obj.getElVal(obj.idUI.nHAntenna);
             
             %   SETTINGS - KALMAN FILTER - WEIGHT MODEL
             % ===============================================================
@@ -2668,10 +2960,6 @@ classdef goGUIclass < handle
             % ===============================================================
 
             state.cs_thresh         = obj.getElVal(obj.idUI.nCS);
-            state.cut_off           = obj.getElVal(obj.idUI.nCutOff);
-            state.snr_thres         = obj.getElVal(obj.idUI.nSNR);
-            state.antenna_h         = obj.getElVal(obj.idUI.nHAntenna);
-            state.min_sat           = obj.getElVal(obj.idUI.nMinNSat);
             state.stopGOstop        = obj.getElVal(obj.idUI.cStopGoStop);
             
             %   SETTINGS - KALMAN FILTER - DYNAMIC MODEL
@@ -2912,6 +3200,15 @@ classdef goGUIclass < handle
             flag_stopGOstop = get(obj.goh.stopGOstop,'Value');
             flag_SBAS = get(obj.goh.use_SBAS,'Value');
             flag_IAR = get(obj.goh.cLAMBDA,'Value');
+            flag_tropo = obj.isActive(obj.idUI.cTropo);
+            flag_ocean = obj.isActive(obj.idUI.cOcean);
+            flag_SEID = obj.isSEID();
+            active_freq = obj.getFreq();
+            obs_comb = obj.getObsComb();
+            flag_outlier =  obj.isActive(obj.idUI.cOutlier);
+            
+            processing_rate = obj.valProcRate(obj.getElVal(obj.idUI.lProcRate));
+            
             filerootOUT = check_path([get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')]);
             if (obj.isPostProc) % I need these informations only in Post Processing
                 data_path = goIni.getData('Bin','data_path');
@@ -3076,10 +3373,17 @@ classdef goGUIclass < handle
             funout{28} = iono_model;
             funout{29} = tropo_model;            
             funout{30} = fsep_char;
+            funout{31} = flag_ocean;
+            funout{32} = flag_outlier;
+            funout{33} = flag_tropo;
+            funout{34} = active_freq;
+            funout{35} = flag_SEID;
+            funout{36} = processing_rate;
+            funout{37} = obs_comb;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
-            global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
+            global min_nsat min_arc cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
             global h_antenna
             global tile_header tile_georef dtm_dir
             global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
@@ -3095,10 +3399,10 @@ classdef goGUIclass < handle
             flag_auto_mu = get(obj.goh.cMu,'Value') && ~obj.isLambda2;
             flag_default_P0 = get(obj.goh.cP0,'Value') && ~obj.isLambda2;
             
-            SPP_threshold = 4;
-            max_code_residual = 30;
-            max_phase_residual = 0.2;
-            
+            SPP_threshold = str2double(get(obj.goh.nSPPthr,'String'));
+            max_code_residual = str2double(get(obj.goh.nCodeThr,'String'));
+            max_phase_residual = str2double(get(obj.goh.nPhaseThr,'String'));
+
             contents = cellstr(get(obj.goh.com_select_0,'String'));
             COMportR0 = contents{get(obj.goh.com_select_0,'Value')};
             contents = cellstr(get(obj.goh.com_select_1,'String'));
@@ -3147,7 +3451,8 @@ classdef goGUIclass < handle
             sigmaq_tropo = 2.0834e-07; %(0.005/sqrt(120))^2
             sigmaq0_rclock = 2e-17;
             sigmaq_rclock = 1e3;
-            min_nsat = str2double(get(obj.goh.min_sat,'String'));
+            min_nsat =  str2double(get(obj.goh.min_sat,'String'));
+            min_arc = str2double(get(obj.goh.nMinArc,'String'));
             if (mode == 2)
                 disp('Minimum number of satellites is forced to 4 (for undifferenced positioning)');
                 min_nsat = 4;
@@ -3158,8 +3463,14 @@ classdef goGUIclass < handle
             goIni.addKey('Generic','snrThr', str2double(get(obj.goh.snr_thres,'String')));
             snr_threshold = str2double(get(obj.goh.snr_thres,'String'));
             goIni.addKey('Generic','csThr', str2double(get(obj.goh.cs_thresh,'String')));
-            cs_threshold = str2double(get(obj.goh.cs_thresh,'String'));
-            cs_threshold_preprocessing = 1;
+            if obj.isPPP()
+                cs_threshold = 1e30; %i.e. disable cycle-slip detection during KF processing
+                cs_threshold_preprocessing = str2double(get(obj.goh.cs_thresh,'String'));
+            else
+                cs_threshold = str2double(get(obj.goh.cs_thresh,'String'));
+                cs_threshold_preprocessing = 1;
+            end
+            
             if (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_0)
                 weights = 0;
             elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_1)
@@ -3246,12 +3557,7 @@ classdef goGUIclass < handle
             goIni.addKey('Constellations','QZSS',obj.isActive(obj.idUI.cQZSS));
             goIni.addKey('Constellations','SBAS',obj.isActive(obj.idUI.cSBAS));
         end
-    end        
-    
-
-    
-    
-    
+    end    
     
     
     %   GO FUNCTIONS (OUTPUT)

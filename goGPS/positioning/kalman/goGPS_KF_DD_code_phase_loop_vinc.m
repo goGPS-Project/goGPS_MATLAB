@@ -80,6 +80,7 @@ global doppler_pred_range1_R doppler_pred_range2_R
 global doppler_pred_range1_M doppler_pred_range2_M
 
 global t residuals_fixed residuals_float outliers s02_ls s02_ls_threshold
+global flag_outlier
 
 %----------------------------------------------------------------------------------------
 % INITIALIZATION
@@ -603,7 +604,7 @@ if (nsat >= min_nsat)
         % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
         %------------------------------------------------------------------------------------
 
-        search_for_outlier = 1;
+        search_for_outlier = flag_outlier;
         
         sat_np = sat(sat~=pivot);
         sat_pr_np = sat_pr(sat_pr~=pivot);
