@@ -72,7 +72,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global cutoff snr_threshold n_sys flag_doppler_cs
+global cutoff snr_threshold n_sys flag_doppler_cs min_arc
 
 v_light = goGNSS.V_LIGHT;
 
@@ -145,6 +145,7 @@ status_obs = NaN(nSatTot,nEpochs);
 status_cs=[];
 
 %remove short arcs
+min_arc = max([min_arc lagr_order]);
 [pr1] = remove_short_arcs(pr1, lagr_order);
 [pr2] = remove_short_arcs(pr2, lagr_order);
 [ph1] = remove_short_arcs(ph1, lagr_order);
