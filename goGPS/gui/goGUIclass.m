@@ -1916,6 +1916,11 @@ classdef goGUIclass < handle
             if (length(obj.getFreq()) > 1) && obj.isPPP()
                 obj.setElStatus(obj.idGroup.pObsComb, 1, 0);
             end
+            
+            % Ocean loading toggle
+            isOn = obj.isActive(obj.idUI.cOcean);
+            obj.setElStatus([obj.idGroup.BLQ], isOn, 0);
+
                         
           %   OPTIONS
           % --------------------------------------------------------------- 
