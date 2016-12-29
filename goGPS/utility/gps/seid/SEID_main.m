@@ -137,15 +137,9 @@ for PRN = 1 : nSatTot
 end
 
 %write new RINEX file
-pos = find(filerootOUT == '/'); if(isempty(pos)), pos = find(filerootOUT == '\'); end;
-out_path = filerootOUT(1:pos(end));
-
-pos = find(filename_M_obs == '/'); if(isempty(pos)), pos = find(filename_M_obs == '\'); end;
-pos2 = find(filename_M_obs == '.');
-SEID_filename = filename_M_obs(pos(end)+1:pos2-1);
-SEID_ext = filename_M_obs(pos2:end);
-outputfile_path = strcat(out_path, [SEID_filename '_SEID' SEID_ext]);
-temporaryfile_path = strcat(out_path, [SEID_filename '_SEID_TEMP' SEID_ext]);
+[in_path, SEID_filename, SEID_ext] = fileparts(check_path(filename_M_obs));
+outputfile_path = [in_path filesep SEID_filename '_SEID' SEID_ext];
+temporaryfile_path = [in_path filesep SEID_filename '_SEID_TEMP' SEID_ext];
 
 new_interval = 30;
 
@@ -170,3 +164,5 @@ undersamplingRINEX(temporaryfile_path, outputfile_path, 0, new_interval, interva
 fprintf(['Output file: ' outputfile_path '\n']);
 
 delete(temporaryfile_path);
+
+filename_R_obs = outputfile_path;

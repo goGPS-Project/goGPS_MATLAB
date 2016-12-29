@@ -1730,7 +1730,7 @@ classdef goGUIclass < handle
                         case obj.idSEID_RO
                             mode = goGNSS.MODE_PP_KF_CP_DD_MR;
                         case obj.idSEID_PPP
-                            mode = goGNSS.MODE_PP_KF_CP_DD_MR_PPP;
+                            mode = goGNSS.MODE_PP_SEID_PPP;
                     end
                 end
             end
@@ -1913,7 +1913,7 @@ classdef goGUIclass < handle
           %   DATA USAGE
           % --------------------------------------------------------------- 
 
-            if (length(obj.getFreq()) > 1) && not(obj.isSEID())
+            if (length(obj.getFreq()) > 1) && obj.isPPP()
                 obj.setElStatus(obj.idGroup.pObsComb, 1, 0);
             end
                         
