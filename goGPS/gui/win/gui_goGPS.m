@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 24-Dec-2016 12:25:36
+% Last Modified by GUIDE v2.5 29-Dec-2016 14:40:06
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -898,6 +898,83 @@ function weight_select_SelectionChangeFcn(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.syncFromGUI(goGUI.idGroup.pW);
+
+%   SETTINGS - OBSERVATION MODELLING
+% ===============================================================
+
+    % --- Executes on selection change in lWeight.
+function lWeight_Callback(hObject, eventdata, handles)
+% hObject    handle to lWeight (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lWeight contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lWeight
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.lWeight);
+
+
+% --- Executes during object creation, after setting all properties.
+function lWeight_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lWeight (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in lIono.
+function lIono_Callback(hObject, eventdata, handles)
+% hObject    handle to lIono (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lIono contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lIono
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.lIono);
+
+
+% --- Executes during object creation, after setting all properties.
+function lIono_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lIono (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in lTropo.
+function lTropo_Callback(hObject, eventdata, handles)
+% hObject    handle to lTropo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lTropo contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lTropo
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.lTropo);
+
+
+% --- Executes during object creation, after setting all properties.
+function lTropo_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lTropo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 %   SETTINGS - KALMAN FILTER
 % ===============================================================

@@ -153,6 +153,10 @@ classdef goGUIclass < handle
         % Data usage
         strProcRate = {};    % Pop up Rate of processing
         valProcRate = [];    % float values of the processing rate
+                
+        % Observation modelling
+        strIonoModel = {};   % Pop up list of ionospheric models
+        strTropoModel = {};  % Pop up list of tropospheric models
 
     %  OTHER IDs
     % ======================================================================
@@ -323,8 +327,7 @@ classdef goGUIclass < handle
             obj.strPorts{1} = '1';
             obj.strPorts{2} = '2';
             obj.strPorts{3} = '3';
-            obj.strPorts{4} = '4';
-                        
+            obj.strPorts{4} = '4';                        
             obj.initPorts(obj.strPorts);
             
             obj.strProcRate{1} = '10 Hz';
@@ -336,6 +339,18 @@ classdef goGUIclass < handle
             obj.strProcRate{7} = '30 s';
             obj.valProcRate = [1/10 1/5 1/2 1 5 15 30];
             obj.initProcRate(obj.strProcRate, 4);
+
+            obj.strIonoModel{1} = 'no model';
+            obj.strIonoModel{2} = 'Geckle and Feen model';
+            obj.strIonoModel{3} = 'Klobuchar model';
+            obj.strIonoModel{4} = 'SBAS grid';
+            obj.initIonoModel(obj.strIonoModel, 3);
+            
+            obj.strTropoModel{1} = 'no model';
+            obj.strTropoModel{2} = 'Saastamoinen model (with standard atmosphere parameters)';
+            obj.strTropoModel{3} = 'Saastamoinen model (with Global Pressure Temperature model)';
+            obj.initTropoModel(obj.strTropoModel, 2);
+
         end
         
         % Fill the CaptureMode pop-up (Navigation, Monitor...)
@@ -428,13 +443,33 @@ classdef goGUIclass < handle
             end
         end
         
-        % Fill the num ports pop-up list
+        % Fill the processing rate pop-up list
         function initProcRate(obj, str, defaultVal)
             if nargin == 2
                 defaultVal = 1;
             end
             set(obj.goh.lProcRate, 'String', str);
             set(obj.goh.lProcRate, 'Value', defaultVal);
+        end
+        
+        % Fill the ionospheric model pop-up list
+        function initIonoModel(obj, str, defaultVal)
+            if nargin == 2
+                defaultVal = 3;
+            end
+            defaultVal = max(1,min(defaultVal, length(str)));            
+            set(obj.goh.lIono, 'String', str);
+            set(obj.goh.lIono, 'Value', defaultVal);
+        end
+        
+        % Fill the tropospheric model pop-up list
+        function initTropoModel(obj, str, defaultVal)
+            if nargin == 2
+                defaultVal = 2;
+            end
+            defaultVal = max(1,min(defaultVal, length(str)));
+            set(obj.goh.lTropo, 'String', str);
+            set(obj.goh.lTropo, 'Value', defaultVal);
         end
         
         % Fill the num ports pop-up list
@@ -614,7 +649,7 @@ classdef goGUIclass < handle
             i=i+1; id.pIOFiles      = i;    id2h(i) = obj.goh.uipInOutFiles;
             i=i+1; id.pKF           = i;    id2h(i) = obj.goh.uipKF;
             i=i+1; id.pEStD         = i;    id2h(i) = obj.goh.uipEStD;
-            i=i+1; id.pW            = i;    id2h(i) = obj.goh.weight_select;
+            i=i+1; id.pOM           = i;    id2h(i) = obj.goh.pObsModelling;
             i=i+1; id.pDynModel     = i;    id2h(i) = obj.goh.dynamic_model_panel;
             i=i+1; id.pARAA         = i;    id2h(i) = obj.goh.ARAA_panel;
             i=i+1; id.pMSt          = i;    id2h(i) = obj.goh.uipMaster;
@@ -908,18 +943,23 @@ classdef goGUIclass < handle
             % Group of ids in the panel pKF
             idG.pKF_ENU = [idG.StdENU];
             idG.pKF = [id.pKF idG.StdENU idG.StdCode idG.StdPhase idG.StdT0 idG.StdDTM idG.StdVel idG.HAntenna];
-                               
-          %   SETTINGS - KALMAN FILTER - WEIGHT MODEL
+                                           
+          %   SETTINGS - OBSERVATION MODELLING
           % --------------------------------------------------------------- 
              
-            i=i+1; id.rW0           = i;    id2h(i) = obj.goh.weight_0;
-            i=i+1; id.rW1           = i;    id2h(i) = obj.goh.weight_1;
-            i=i+1; id.rW2           = i;    id2h(i) = obj.goh.weight_2;
-            i=i+1; id.rW3           = i;    id2h(i) = obj.goh.weight_3;
-            i=i+1; id.rW4           = i;    id2h(i) = obj.goh.weight_4;
+            i=i+1; id.tWeight        = i;    id2h(i) = obj.goh.text_weight;
+            i=i+1; id.lWeight        = i;    id2h(i) = obj.goh.lWeight;
+            i=i+1; id.tIono          = i;    id2h(i) = obj.goh.text_iono;
+            i=i+1; id.lIono          = i;    id2h(i) = obj.goh.lIono;
+            i=i+1; id.tTropo         = i;    id2h(i) = obj.goh.text_tropo;
+            i=i+1; id.lTropo         = i;    id2h(i) = obj.goh.lTropo;
             
-            idG.pW = [id.pW id.rW0 id.rW1 id.rW2 id.rW3 id.rW4];
+            idG.pWeight = id.tWeight : id.lWeight;
+            idG.pIono = id.tIono : id.lIono;
+            idG.pTropo = id.tTropo : id.lTropo;
             
+            idG.OM = [id.pOM id.tWeight : id.lTropo];
+
           %   SETTINGS - KALMAN FILTER
           % --------------------------------------------------------------- 
 
@@ -1078,7 +1118,7 @@ classdef goGUIclass < handle
             idG.onRT_Nav = [idG.onRealTime idG.pAvailableGNSSPhase ...
                             id.pOptions id.cConstraint id.cRefPath id.cPlotProc id.cUseNTRIP ...
                             id.pKF idG.pKF_ENU idG.StdCode id.bStdPhase idG.StdT0 id.bStdDTM ...
-                            idG.pW idG.CutOff idG.SNR idG.CS idG.MaxNumSat idG.StopGoStop ...
+                            idG.OM idG.CutOff idG.SNR idG.CS idG.MaxNumSat idG.StopGoStop ...
                             idG.pDynModel idG.pARAA ...
                             idG.pMSt idG.pMS id.pPorts idG.lPort0 ...
                             idG.SPPthr idG.CodeThr idG.PhaseThr];
@@ -1110,7 +1150,7 @@ classdef goGUIclass < handle
                               idG.gINI...
                               id.pIOFiles id.pConstellations idG.GoOut ...
                               id.pOptions ...
-                              idG.CutOff idG.pW ...
+                              idG.CutOff idG.OM ...
                               id.pUsage idG.pProcRate id.cL1 id.cOutlier id.cOcean ...
                               idG.SPPthr idG.CodeThr idG.MinArc];
             
@@ -2789,21 +2829,19 @@ classdef goGUIclass < handle
             obj.setElVal(obj.idUI.bStdDTM, state.toggle_std_dtm, 0);
             obj.setElVal(obj.idUI.nStdT0, state.std_init, 0);
             obj.setElVal(obj.idUI.nStdVel, state.std_vel, 0);
-            
-            %   SETTINGS - KALMAN FILTER - WEIGHT MODEL
+                                    
+            %   SETTINGS - OBSERVATION MODELLING
             % ===============================================================
-            
-            obj.setElVal(obj.idUI.rW0, state.weight_0, 0);
-            obj.setElVal(obj.idUI.rW1, state.weight_1, 0);
-            obj.setElVal(obj.idUI.rW2, state.weight_2, 0);
-            obj.setElVal(obj.idUI.rW3, state.weight_3, 0);
-            % Temporary check during development
-            if (isfield(state,'weight_4')) %since v0.3.2beta -> backward compatibility
-                obj.setElVal(obj.idUI.rW4, state.weight_4, 0);
-            else
-                obj.setElVal(obj.idUI.rW4, 0, 0);
+            if (isfield(state,'wModel'))
+                obj.setElVal(obj.idUI.lWeight, state.wModel, 0);
             end
-                        
+            if (isfield(state,'ionoModel'))
+                obj.setElVal(obj.idUI.lIono, state.ionoModel, 0);
+            end
+            if (isfield(state,'tropoModel'))
+                obj.setElVal(obj.idUI.lTropo, state.tropoModel, 0);
+            end
+
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
             
@@ -2952,14 +2990,11 @@ classdef goGUIclass < handle
             state.std_vel           = obj.getElVal(obj.idUI.nStdVel);
             state.antenna_h         = obj.getElVal(obj.idUI.nHAntenna);
             
-            %   SETTINGS - KALMAN FILTER - WEIGHT MODEL
+            %   SETTINGS - OBSERVATION MODELLING
             % ===============================================================
-                        
-            state.weight_0          = obj.getElVal(obj.idUI.rW0);
-            state.weight_1          = obj.getElVal(obj.idUI.rW1);
-            state.weight_2          = obj.getElVal(obj.idUI.rW2);
-            state.weight_3          = obj.getElVal(obj.idUI.rW3);
-            state.weight_4          = obj.getElVal(obj.idUI.rW4);
+            state.wModel            = obj.getElVal(obj.idUI.lWeight);
+            state.ionoModel         = obj.getElVal(obj.idUI.lIono);
+            state.tropoModel        = obj.getElVal(obj.idUI.lTropo);            
 
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
@@ -3172,18 +3207,8 @@ classdef goGUIclass < handle
             end
 
             % atm model
-            iono = goIni.getData('ATM_model','iono');
-            tropo = goIni.getData('ATM_model','tropo');
-            if (isempty(iono))
-                iono_model = 2;
-            else
-                iono_model = iono;
-            end
-            if (isempty(tropo))
-                tropo_model = 1;
-            else
-                tropo_model = tropo;
-            end
+            iono_model = obj.getElVal(obj.idUI.lIono) - 1;
+            tropo_model = obj.getElVal(obj.idUI.lTropo) - 1;            
             
             % mixed
             fsep = goIni.getData('Various','field_separator');
@@ -3476,17 +3501,7 @@ classdef goGUIclass < handle
                 cs_threshold_preprocessing = 1;
             end
             
-            if (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_0)
-                weights = 0;
-            elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_1)
-                weights = 1;
-            elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_2)
-                weights = 2;
-            elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_3)
-                weights = 3;
-            elseif (get(obj.goh.weight_select, 'SelectedObject') == obj.goh.weight_4)
-                weights = 4;
-            end
+            weights = obj.getElVal(obj.idUI.lWeight) - 1;
             snr_a = 30;
             snr_0 = 10;
             snr_1 = 50;
