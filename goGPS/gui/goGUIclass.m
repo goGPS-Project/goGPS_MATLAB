@@ -533,6 +533,7 @@ classdef goGUIclass < handle
             if isempty(active_freq)
                 obj.setElVal(obj.idUI.cL1, true, 0);
                 active_freq = 1;
+                
             end
         end
         
@@ -1955,6 +1956,8 @@ classdef goGUIclass < handle
 
             if (length(obj.getFreq()) > 1) && obj.isPPP()
                 obj.setElStatus(obj.idGroup.pObsComb, 1, 0);
+            else
+                obj.setElStatus(obj.idGroup.pObsComb, 0, 0);
             end
             
             % Ocean loading toggle
