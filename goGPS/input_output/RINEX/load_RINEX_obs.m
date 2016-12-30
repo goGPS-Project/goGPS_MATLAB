@@ -208,7 +208,7 @@ for f = 1 : nFiles
     %close RINEX files
     fclose(fid);
     
-    if (processing_interval > 0)
+    if (processing_interval > interval(:,1,f))
         interval(:,1,f) = processing_interval;
     end
 

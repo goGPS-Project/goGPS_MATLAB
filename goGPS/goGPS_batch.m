@@ -124,7 +124,7 @@ SBS_flag = 0;
 [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 
 flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
-flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
+flag_IAR = 0;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
 
 min_epoch = 1440;       % minimum number of observed epoch to process
 

@@ -79,9 +79,9 @@ end
 %----------------------------------------------------------------------------------------------
 
 global order o1 o2 o3 h_antenna cutoff weights t nC
-global cs_threshold_preprocessing cs_threshold 
+global cs_threshold_preprocessing cs_threshold
 global iono_model tropo_model
-global flag_outlier SPP_threshold
+global flag_outlier SPP_threshold min_arc max_code_residual max_phase_residual
 
 % Set global variable for goGPS obj mode
 clearvars -global goObj;
@@ -147,7 +147,15 @@ else
         flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
         
         flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
+                
+        %----------------------------------------------------------------------------------------------
+        % USER-DEFINED SETTINGS
+        %----------------------------------------------------------------------------------------------
         
+        %User-defined global settings
+        global_settings;
+        
+    else
         flag_tropo = 0;         % estimate zenith tropospheric delay
 
         flag_ocean = 0;      % use ocean tides
@@ -159,15 +167,11 @@ else
         frequencies = [1];   % array containing the frequencies band to use
 
         obs_comb = 'NONE';   % combination of observations, valid input 'NONE' or 'IONO_FREE'
-                
-        %----------------------------------------------------------------------------------------------
-        % USER-DEFINED SETTINGS
-        %----------------------------------------------------------------------------------------------
-        
-        %User-defined global settings
-        global_settings;
-        
-    else
+           
+        SPP_threshold = 4;    % PP threshold
+        max_code_residual = 30;
+        max_phase_residual = 0.05;
+        min_arc = 20;
         
         %-------------------------------------------------------------------------------------------
         % DISABLE FUNCTIONS NOT USED FOR BATCH PROCESSING
