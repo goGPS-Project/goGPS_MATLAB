@@ -36,19 +36,15 @@ classdef GO_settings < handle
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
         
-        MAX_SAT = 32;                       % Maximum number of active satellites in a constellation
-        N_SYS = 6;                          % Maximum number of constellations
-        
         % Values as defined by standards
         
         PI_ORBIT = 3.1415926535898;         % pi as from standards
         CIRCLE_RAD = 6.2831853071796;       % Circle as from standards
         
-        % Standard atmosphere parameters (struct) - Berg, 1948
-        ATM = struct('PRES', 1013.25, ...   % pressure [mbar]
-            'STD_TEMP', 291.15, ...         % temperature [K]
-            'STD_HUMI', 50.0);              % humidity [%]
-        
+        % Standard atmosphere parameters (struct PRES, STD_TEMP. STD_HUMI) - Berg, 1948
+        ATM = struct('PRES', 1013.25, ...      % pressure [mbar]
+                     'STD_TEMP', 291.15, ...   % temperature [K]
+                     'STD_HUMI', 50.0);        % humidity [%]               
     end
     
     properties % Public Access

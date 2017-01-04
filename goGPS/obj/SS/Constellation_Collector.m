@@ -29,7 +29,12 @@ classdef Constellation_Collector < handle
     properties (Constant)
         N_SYS_TOT = 6; % max number of available satellite systems
         SYS_NAMES = {'GPS', 'GLO', 'GAL', 'BDS', 'QZS', 'SBS'};
-
+        ID_GPS     = 1 % Id of GPS constellation for goGPS internal use
+        ID_GLONASS = 2 % Id of GLONASS constellation for goGPS internal use
+        ID_GALILEO = 3 % Id of Galileo constellation for goGPS internal use
+        ID_BEIDOU  = 4 % Id of BeiDou constellation for goGPS internal use
+        ID_QZSS    = 5 % Id of QZSS constellation for goGPS internal use
+        ID_SBAS    = 6 % Id of SBAS constellation for goGPS internal use
     end
     
     properties (SetAccess = private, GetAccess = public)
@@ -92,7 +97,7 @@ classdef Constellation_Collector < handle
             
             if enabled_ss(1) % GPS is active
                 obj.list.GPS = GPS_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id 1];
+                obj.num_id = [obj.num_id obj.ID_GPS];
                 obj.char_id = [obj.char_id obj.list.GPS.char_id];
                 obj.system = [obj.system char(ones(1, obj.list.GPS.n_sat) * obj.list.GPS.char_id)];
                 obj.prn = [obj.prn; obj.list.GPS.prn];
@@ -101,7 +106,7 @@ classdef Constellation_Collector < handle
             end
             if enabled_ss(2) % GLONASS is active
                 obj.list.GLO = GLONASS_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id 2];
+                obj.num_id = [obj.num_id obj.ID_GLONASS];
                 obj.char_id = [obj.char_id obj.list.GLO.char_id];
                 obj.system = [obj.system char(ones(1, obj.list.GLO.n_sat) * obj.list.GLO.char_id)];
                 obj.prn = [obj.prn; obj.list.GLO.prn];
@@ -110,7 +115,7 @@ classdef Constellation_Collector < handle
             end
             if enabled_ss(3) % Galileo is active
                 obj.list.GAL = Galileo_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id 3];
+                obj.num_id = [obj.num_id obj.ID_GALILEO];
                 obj.char_id = [obj.char_id obj.list.GAL.char_id];
                 obj.system = [obj.system char(ones(1, obj.list.GAL.n_sat) * obj.list.GAL.char_id)];
                 obj.prn = [obj.prn; obj.list.GAL.prn];
@@ -119,7 +124,7 @@ classdef Constellation_Collector < handle
             end
             if enabled_ss(4) % BeiDou is active
                 obj.list.BDS = BeiDou_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id 4];
+                obj.num_id = [obj.num_id obj.id_BEIDOU];
                 obj.char_id = [obj.char_id obj.list.BDS.char_id];
                 obj.system = [obj.system char(ones(1, obj.list.BDS.n_sat) * obj.list.BDS.char_id)];
                 obj.prn = [obj.prn; obj.list.BDS.prn];
@@ -128,7 +133,7 @@ classdef Constellation_Collector < handle
             end
             if enabled_ss(5) % QZSS is active
                 obj.list.QZS = QZSS_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id 5];
+                obj.num_id = [obj.num_id obj.ID_QZSS];
                 obj.char_id = [obj.char_id obj.list.QZS.char_id];
                 obj.system = [obj.system char(ones(1, obj.list.QZS.n_sat) * obj.list.QZS.char_id)];
                 obj.prn = [obj.prn; obj.list.QZS.prn];

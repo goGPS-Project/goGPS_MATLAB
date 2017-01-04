@@ -21,245 +21,55 @@
 
 % First step: reorganization of the parameters:
 % Let's create a singleton class with the usefull parameters
-%   note: object are slower than structs, when possible use them instead.
 
-%-------------------------------------------------------------------------------
-% KALMAN FILTER
-%-------------------------------------------------------------------------------
+% ambiguity status, it's in obs_rover
+[] = LS_SA_CP(obs_rover, sat_info, proc_settings)
 
-global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel %#ok<*TLEV>
-global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
-global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
-global amb_restart_method
+% Lagrange estimation
+% suppose input x regularly sampled
+% suppose odd polynomial
+function y_pred = fastLI (first_x, step_x, y_obs, x_pred, p_deg)
 
-%variance of initial state
-sigmaq0 = 1;
+    halfWinMin = ((p_deg - 1) / 2);
+    halfWinMax = n_obs - ((p_deg + 1) / 2);
+    
+    n_pred = numel(x_pred);
+    n_obs  = numel(y_obs);
+    
+    y_pred = zeros(size(x_pred));
+    
+    % find ids of the closer node to the estimation
+    closer_node = round((x_pred - first_x) / step_x) + 1;
 
-%variance of velocity coordinates [m^2/s^2]
-sigmaq_vE = 0.5^2;
-sigmaq_vN = 0.5^2;
-sigmaq_vU = 0.1^2;
-sigmaq_vel = 0.1^2;
-
-%variance of code observations [m^2]
-sigmaq_cod1 = 0.3^2;
-sigmaq_cod2 = 0.4^2;
-sigmaq_codIF = 1.2^2;
-
-%variance of phase observations [m^2]
-%(maximize to obtain a code-based solution)
-sigmaq_ph = 0.003^2;
-% sigmaq_ph = 0.001e30;
-sigmaq_phIF = 0.009^2;
-
-%variance of a priori ambiguity combinations [cycles]
-sigmaq0_N = 1000;
-
-%variance of DEM height [m^2]
-%(maximize to disable DEM usage)
-% sigmaq_dtm = 0.09;
-sigmaq_dtm = 1e30;
-
-%variance of apriori tropospheric delay
-sigmaq0_tropo = 1e-2;
-
-%variance of tropospheric delay
-sigmaq_tropo = 2.0834e-07;
-
-%variance of apriori receiver clock
-sigmaq0_rclock = 2e-17;
-
-%variance of receiver clock
-sigmaq_rclock = 1e3;
-
-%minimum number of satellites to be used in the Kalman filter
-min_nsat = 2;
-
-%cut-off [degrees]
-cutoff = 10;
-
-%initialization cut-off [degrees]
-% cutoff_init = 15;
-
-%signal-to-noise ratio threshold [dB]
-snr_threshold = 0;
-
-%cycle slip threshold (pre-processing) [cycles]
-cs_threshold_preprocessing = 1;
-
-%cycle slip threshold (processing) [cycles]
-cs_threshold = 1;
-
-%parameter used to select the weight mode for GPS observations
-%          - weights=0: same weight for all the observations
-%          - weights=1: weight based on satellite elevation (sin)
-%          - weights=2: weight based on signal-to-noise ratio
-%          - weights=3: weight based on combined elevation and signal-to-noise ratio
-%          - weights=4: weight based on satellite elevation (exp)
-weights = 1;
-
-%weight function parameters
-snr_a = 30;
-snr_0 = 10;
-snr_1 = 50;
-snr_A = 30;
-
-%order of the dynamic model polynomial
-order = 1;
-
-%useful values to index matrices
-o1 = order;
-o2 = order*2;
-o3 = order*3;
-
-%ambiguity restart method
-amb_restart_method = 2;
-
-%-------------------------------------------------------------------------------
-% ATMOSPHERIC MODELS
-%-------------------------------------------------------------------------------
-global iono_model tropo_model
-
-% iono_model = 0; %no model
-% iono_model = 1; %Geckle and Feen model
-iono_model = 2; %Klobuchar model
-% iono_model = 3; %SBAS grid
-
-% tropo_model = 0; %no model
-tropo_model = 1; %Saastamoinen model (with standard atmosphere parameters)
-% tropo_model = 2; %Saastamoinen model (with Global Pressure Temperature model)
-
-%-------------------------------------------------------------------------------
-% INTEGER AMBIGUITY RESOLUTION
-%-------------------------------------------------------------------------------
-global IAR_method P0 mu flag_auto_mu
-
-%choose Integer Least Squares estimator
-%IAR_method = 0; %ILS method with numeration in search (LAMBDA2)
-IAR_method = 1; %ILS method with shrinking ellipsoid during search (LAMBDA3)
-%IAR_method = 2; %ILS method with numeration in search (LAMBDA3)
-%IAR_method = 3; %integer rounding method (LAMBDA3)
-%IAR_method = 4; %integer bootstrapping method (LAMBDA3)
-%IAR_method = 5; %Partial Ambiguity Resolution (PAR) (LAMBDA3)
-
-%user defined fixed failure rate (for methods 1,2) or
-%minimum required success rate (for method 5)
-P0 = 0.001;
-
-%user defined threshold for ratio test
-mu = 0.5;
-
-%flag for enabling the automatic determination of mu
-flag_auto_mu = 1;
-
-%flag for enabling the default value for P0
-flag_default_P0 = 1;
-
-%-------------------------------------------------------------------------------
-% THRESHOLDS
-%-------------------------------------------------------------------------------
-global SPP_threshold max_code_residual max_phase_residual
-
-SPP_threshold = 4;         %threshold on the code point-positioning least squares
-                           %   estimation error [m]
-                          
-max_code_residual = 30;    %threshold on the maximum residual of code
-                           %   observations [m]
-                          
-max_phase_residual = 0.2; %threshold on the maximum residual of phase
-                           %   observations [m]
-
-%-------------------------------------------------------------------------------
-% RECEIVER
-%-------------------------------------------------------------------------------
-
-global h_antenna
-
-%antenna height from the ground [m]
-h_antenna = 0;
-
-%-------------------------------------------------------------------------------
-% DTM (SET PATH AND LOAD PARAMETER FILES)
-%-------------------------------------------------------------------------------
-
-%parameters common to all DTM tiles
-global tile_header
-
-%parameters used to georeference every DTM tile
-global tile_georef
-
-%path to DTM folder containing DTM files
-global dtm_dir
-
-%folder containing DTM files
-dtm_dir = '../data/dtm';
-
-try
-    load([dtm_dir '/tiles/tile_header'], 'tile_header');
-    load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
-catch
-    tile_header.nrows = 0;
-    tile_header.ncols = 0;
-    tile_header.cellsize = 0;
-    tile_header.nodata = 0;
-    tile_georef = zeros(1,1,4);
+    % border checking - I should never predict close to the border
+    i = 1;
+    while (i < n_obs) && (closer_node(i) < halfWinMin)
+        closer_node(i) = halfWinMin;
+        i = i+1;
+    end        
+    i = n_obs;
+    while (i > 0) && (closer_node(i) > halfWinMax)
+        closer_node(i) = halfWinMin;
+        i = i-1;
+    end
+    
+    p_win    = (-halfWinMin : halfWinMin); % processing window relative ids
+    p_around = [-halfWinMin : -1, 1 : halfWinMin]; % processing window relative ids without the center
+    
+    
+    % for each element to be predicted
+    for k = 1 : n_pred
+        m = mean(y_obs(closer_node + p_win));
+        
+        L = 0;
+        for j = p_win + 1 
+            Lj = 1;
+            for i = p_around + 1 
+                Lj = Lj * (x_pred(k) - (first_x + (closer_node - 1) * step_x) ) / ((j-i) * step_x);
+            end
+            L = L + (y_obs(closer_node + j) - m) * Lj;
+        end
+        
+        y_pred(k) = L + m;
+    end
 end
-
-%-------------------------------------------------------------------------------
-% COMMUNICATION INTERFACES
-%-------------------------------------------------------------------------------
-
-global COMportR
-global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint %#ok<NUSED>
-global nmea_init
-
-manCOMport = 'COM8';
-
-COMportR = manCOMport;
-
-% %MASTER/NTRIP connection parameters
-% master_ip = 'xxx.xxx.xxx.xxx';
-% master_port = 2101;
-%
-% %NTRIP parameters
-% ntrip_user = 'uuuuuu';
-% ntrip_pw = 'ppppp';
-% ntrip_mountpoint = 'mmmmmmm';
-
-%set approximate coordinates manually to initialize NMEA string
-% phiApp = 34.5922;
-% lamApp = 135.5059;
-% hApp = 20;
-% 
-% [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, a_GPS, f_GPS);
-
-XApp = -3749409.0399;
-YApp = 3683775.1374;
-ZApp = 3600727.7577;
-
-%Initial NMEA sentence required by some NTRIP casters
-nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
-
-%-------------------------------------------------------------------------------
-% INI file
-%-------------------------------------------------------------------------------
-iniFile = './settings/Milano_daily_test_VRS_InputFiles.ini';
-
-%initialize INI file reading
-global goIni;
-goIni = goIniReader;
-goIni.setFileName(iniFile);
-
-%extract user-defined settings from INI file
-data_path = goIni.getData('Receivers','data_path');
-file_name = goIni.getData('Receivers','file_name');
-filename_R_obs = [data_path file_name];
-data_path = goIni.getData('Master','data_path');
-file_name = goIni.getData('Master','file_name');
-filename_M_obs = [data_path file_name];
-data_path = goIni.getData('Navigational','data_path');
-file_name = goIni.getData('Navigational','file_name');
-filename_nav = [data_path file_name];
-data_path = goIni.getData('RefPath','data_path');
-file_name = goIni.getData('RefPath','file_name');
-filename_ref = [data_path file_name];
