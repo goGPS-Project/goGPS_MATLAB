@@ -57,7 +57,7 @@ classdef BeiDou_SS < Satellite_System
 
             obj.initIono(763, 590);
 
-            obj.orbital_parameters.GM = 3.986005e14;                % BeiDou (BeiDou-ICD 1.0) Gravitational constant * (mass of Earth) [m^3/s^2]
+            obj.orbital_parameters.GM = 3.986004418e14;             % BeiDou (BeiDou-ICD 1.0) Gravitational constant * (mass of Earth) [m^3/s^2]
             obj.orbital_parameters.OMEGAE_DOT = 7.2921150e-5;       % BeiDou (BeiDou-ICD 1.0) Angular velocity of the Earth rotation [rad/s]
 
             % Other useful links (the reference is the standard):
