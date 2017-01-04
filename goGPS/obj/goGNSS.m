@@ -52,7 +52,7 @@ classdef goGNSS < handle
         % *_GLO --> PZ-90    (GLONASS-ICD 5.1)
         % *_GAL --> GTRF     (Galileo-ICD 1.1)
         % *_BDS --> CGCS2000 (BeiDou-ICD 1.0)
-        % *_QZS --> WGS-84   (IS-QZSS 1.5D)
+        % *_QZS --> GRS80    (IS-QZSS 1.5D)
         
         ELL_A_GPS = 6378137;                          % GPS (WGS-84)      Ellipsoid semi-major axis [m]
         ELL_A_GLO = 6378136;                          % GLONASS (PZ-90)   Ellipsoid semi-major axis [m]
@@ -60,8 +60,8 @@ classdef goGNSS < handle
         ELL_A_BDS = 6378136;                          % BeiDou (CGCS2000) Ellipsoid semi-major axis [m]
         ELL_A_QZS = 6378137;                          % QZSS (WGS-84)     Ellipsoid semi-major axis [m]
         
-        ELL_F_GPS = 1/298.257222101;                  % GPS (WGS-84)      Ellipsoid flattening
-        ELL_F_GLO = 1/298.257222101;                  % GLONASS (PZ-90)   Ellipsoid flattening
+        ELL_F_GPS = 1/298.257223563;                  % GPS (WGS-84)      Ellipsoid flattening
+        ELL_F_GLO = 1/298.25784;                      % GLONASS (PZ-90)   Ellipsoid flattening
         ELL_F_GAL = 1/298.257222101;                  % Galileo (GTRF)    Ellipsoid flattening
         ELL_F_BDS = 1/298.257222101;                  % BeiDou (CGCS2000) Ellipsoid flattening
         ELL_F_QZS = 1/298.257222101;                  % QZSS (WGS-84)     Ellipsoid flattening
@@ -73,7 +73,7 @@ classdef goGNSS < handle
         ELL_E_QZS = sqrt(1-(1-goGNSS.ELL_F_QZS)^2);   % QZSS (WGS-84)     Eccentricity
         
         GM_GPS = 3.986005e14;                     % GPS     Gravitational constant * (mass of Earth) [m^3/s^2]
-        GM_GLO = 3.9860044e14;                    % GLONASS Gravitational constant * (mass of Earth) [m^3/s^2]
+        GM_GLO = 3.986004418e14;                  % GLONASS Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_GAL = 3.986004418e14;                  % Galileo Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_BDS = 3.986004418e14;                  % BeiDou  Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_QZS = 3.986005e14;                     % QZSS    Gravitational constant * (mass of Earth) [m^3/s^2]
