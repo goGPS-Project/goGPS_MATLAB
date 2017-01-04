@@ -53,11 +53,11 @@ classdef Satellite_System < handle
     end
     
     properties (Abstract)
-        indexes       % satellites unique id numbers in goGPS
+        go_ids       % Satellites unique id numbers in goGPS
     end
     
     methods (Access = protected)
-        function init_iono(obj, T, N)
+        function initIono(obj, T, N)
             % Init iono parameters: iono-free combination is computed with
             % the first two carriers in f_vec
             obj.iono_free.alpha1 = obj.f_vec(1) .^ 2 ./ (obj.f_vec(1) .^ 2 - obj.f_vec(2) .^ 2);
@@ -69,12 +69,12 @@ classdef Satellite_System < handle
     end
     
     methods
-        function update_indexes(obj, offset)
+        function updateGoIds(obj, offset)
             %  Update the satellites unique id numbers in goGPS
             if nargin == 1
                 offset = 0;
             end
-            obj.indexes = offset + (1 : obj.n_sat);
+            obj.go_ids = offset + (1 : obj.n_sat);
         end        
     end
 end

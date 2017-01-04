@@ -26,7 +26,7 @@
 %----------------------------------------------------------------------------------------------
 classdef GLONASS_SS < Satellite_System
     properties
-        indexes       % Satellites unique id numbers in goGPS
+        go_ids        % Satellites unique id numbers in goGPS
         J2            % GLONASS second zonal harmonic of the geopotential
     end
             
@@ -66,7 +66,7 @@ classdef GLONASS_SS < Satellite_System
             obj.f_vec = [obj.f.R1 obj.f.R2] * 1e6;                  % all the frequencies
             obj.l_vec = 299792458 ./ obj.f_vec;                     % lambda => wavelengths
 
-            obj.init_iono(9, 7);
+            obj.initIono(9, 7);
 
             obj.orbital_parameters.GM = 3.986004418e14;            % GLONASS (PZ-90.02) Gravitational constant * (mass of Earth) [m^3/s^2]
             obj.orbital_parameters.OMEGAE_DOT = 7.292115e-5;       % GLONASS (PZ-90.02) Angular velocity of the Earth rotation [rad/s]
@@ -79,7 +79,7 @@ classdef GLONASS_SS < Satellite_System
             obj.orbital_parameters.ell.e = sqrt(1 - (1 - obj.orbital_parameters.ell.f) ^ 2); % GLONASS (PZ-90.02) Eccentricity
             obj.J2 = 1.0826257e-3;                                  % GLONASS second zonal harmonic of the geopotential            
 
-            obj.update_indexes(offset);
+            obj.updateGoIds(offset);
         end
     end
 end

@@ -26,7 +26,7 @@
 %----------------------------------------------------------------------------------------------
 classdef Galileo_SS < Satellite_System
     properties
-        indexes       % Satellites unique id numbers in goGPS
+        go_ids       % Satellites unique id numbers in goGPS
     end
             
     methods
@@ -56,7 +56,7 @@ classdef Galileo_SS < Satellite_System
             obj.f_vec = struct2array(obj.f) * 1e6;                  % all the frequencies
             obj.l_vec = 299792458 ./ obj.f_vec;                     % lambda => wavelengths
 
-            obj.init_iono(154, 115);
+            obj.initIono(154, 115);
             
             obj.orbital_parameters.GM = 3.986004418e14;             % Galileo (Galileo-ICD) Gravitational constant * (mass of Earth) [m^3/s^2]
             obj.orbital_parameters.OMEGAE_DOT = 7.2921151467e-5;    % Galileo (Galileo-ICD) Angular velocity of the Earth rotation [rad/s]
@@ -76,7 +76,7 @@ classdef Galileo_SS < Satellite_System
             % Useful data for the future (PPP):
             % https://www.gsc-europa.eu/support-to-developers/galileo-iov-satellite-metadata#3.2
 
-            obj.update_indexes(offset);
+            obj.updateGoIds(offset);
         end
     end
 end

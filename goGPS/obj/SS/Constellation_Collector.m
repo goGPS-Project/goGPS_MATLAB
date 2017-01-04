@@ -26,15 +26,17 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 classdef Constellation_Collector < handle
-    properties (Constant)
-        N_SYS_TOT = 6; % max number of available satellite systems
-        SYS_NAMES = {'GPS', 'GLO', 'GAL', 'BDS', 'QZS', 'SBS'};
+    properties (Constant, GetAccess = private)
+        N_SYS_TOT = 6; % Max number of available satellite systems
+        SYS_EXT_NAMES = {'GPS', 'GLONASS', 'Galileo', 'BeiDou', 'QZSS', 'SBAS'}; % full name of the constellation
+        SYS_NAMES = {'GPS', 'GLO', 'GAL', 'BDS', 'QZS', 'SBS'}; % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
         ID_GPS     = 1 % Id of GPS constellation for goGPS internal use
         ID_GLONASS = 2 % Id of GLONASS constellation for goGPS internal use
         ID_GALILEO = 3 % Id of Galileo constellation for goGPS internal use
         ID_BEIDOU  = 4 % Id of BeiDou constellation for goGPS internal use
         ID_QZSS    = 5 % Id of QZSS constellation for goGPS internal use
         ID_SBAS    = 6 % Id of SBAS constellation for goGPS internal use
+        SYS_C      = 'GRECJS'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...        
     end
     
     properties (SetAccess = private, GetAccess = public)
@@ -51,44 +53,11 @@ classdef Constellation_Collector < handle
         prn        % relative id number in the satellite system        
         system     % char id of the constellation per satellite
     end
-            
-    methods
-        function obj = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
-            % SYNTAX:
-            %   cc = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
-            %   cc = Constellation_Collector([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
-            %
-            % INPUT:
-            %   single logical array whose elements are:
-            %   GPS_flag = boolean flag for enabling/disabling GPS usage
-            %   GLO_flag = boolean flag for enabling/disabling GLONASS usage
-            %   GAL_flag = boolean flag for enabling/disabling Galileo usage
-            %   BDS_flag = boolean flag for enabling/disabling BeiDou usage
-            %   QZS_flag = boolean flag for enabling/disabling QZSS usage
-            %   SBS_flag = boolean flag for enabling/disabling SBAS usage (for ranging)
-            %
-            % OUTPUT:
-            %   object handler
-            %
-            % DESCRIPTION:
-            %   Multi-constellation set-up.
-            switch nargin
-                case 1,  enabled_ss = GPS_flag;
-                case 5,  enabled_ss = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, 0]);
-                case 6,  enabled_ss = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
-                otherwise, error(['Initialization of Constellation_Collector failed: ' 10 '   invalid number of parameters in the constructor call']);
-            end
-            
-            % check the size of the array enabled
-            if (numel(enabled_ss) < obj.N_SYS_TOT)
-                tmp = false(obj.N_SYS_TOT, 1);
-                tmp(1:numel(enabled_ss)) = enabled_ss;
-                enabled_ss = tmp;
-                clear tmp;
-            else
-                enabled_ss = enabled_ss(1:obj.N_SYS_TOT);
-            end
-            
+    
+    methods (Access = 'private')
+        
+        function init(obj, enabled_ss)
+            % In it function for the Constellation_Collector Class
             obj.enabled = enabled_ss;
             obj.prn = [];     % relative id number in the satellite system
             obj.system = '';  % char id of the constellation per satellite
@@ -124,7 +93,7 @@ classdef Constellation_Collector < handle
             end
             if enabled_ss(4) % BeiDou is active
                 obj.list.BDS = BeiDou_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id obj.id_BEIDOU];
+                obj.num_id = [obj.num_id obj.ID_BEIDOU];
                 obj.char_id = [obj.char_id obj.list.BDS.char_id];
                 obj.system = [obj.system char(ones(1, obj.list.BDS.n_sat) * obj.list.BDS.char_id)];
                 obj.prn = [obj.prn; obj.list.BDS.prn];
@@ -147,6 +116,73 @@ classdef Constellation_Collector < handle
             obj.index = (1 : obj.n_sat_tot)';   % incremental index of the active satellite system
             obj.n_sys = numel(obj.list);
             obj.sys_name = obj.SYS_NAMES(obj.num_id);
-        end                
+        end
+        
+    end
+    
+    methods
+        
+        function obj = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
+            % Constructor - parameters: [GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]
+            % SYNTAX:
+            %   cc = Constellation_Collector('GRECJS'); % use the array of constellation char ids
+            %   cc = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
+            %   cc = Constellation_Collector([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
+            %
+            % INPUT:
+            %   single logical array whose elements are:
+            %   GPS_flag = boolean flag for enabling/disabling GPS usage
+            %   GLO_flag = boolean flag for enabling/disabling GLONASS usage
+            %   GAL_flag = boolean flag for enabling/disabling Galileo usage
+            %   BDS_flag = boolean flag for enabling/disabling BeiDou usage
+            %   QZS_flag = boolean flag for enabling/disabling QZSS usage
+            %   SBS_flag = boolean flag for enabling/disabling SBAS usage (for ranging)
+            %
+            % OUTPUT:
+            %   object handler
+            %
+            % DESCRIPTION:
+            %   Multi-constellation set-up.
+            
+            % Manually manage overloading
+            switch nargin
+                case 1
+                    if (ischar(GPS_flag))
+                        enabled_ss = false(1,obj.N_SYS_TOT);
+                        [~, ids] = intersect('GRECJS',GPS_flag);
+                        enabled_ss(ids) = true;
+                    else
+                        enabled_ss = logical(GPS_flag);
+                    end
+                case 5,  enabled_ss = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, 0]);
+                case 6,  enabled_ss = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
+                otherwise, error(['Initialization of Constellation_Collector failed: ' 10 '   invalid number of parameters in the constructor call']);
+            end
+            
+            % check the size of the array enabled
+            if (numel(enabled_ss) < obj.N_SYS_TOT)
+                tmp = false(obj.N_SYS_TOT, 1);
+                tmp(1:numel(enabled_ss)) = enabled_ss;
+                enabled_ss = tmp;
+                clear tmp;
+            else
+                enabled_ss = enabled_ss(1:obj.N_SYS_TOT);
+            end
+            
+            obj.init(enabled_ss);
+        end  
+        
+        function str = toString(obj)
+            % Display the satellite system in use
+            [~, ids] = intersect('GRECJS', obj.char_id);
+            str = ['Constellation in use: ' regexprep(evalc('disp(obj.SYS_EXT_NAMES(ids))'), '''', '')];
+        end
+        
+        function str = toIniString(obj)
+            % Conversion to string of the minimal information needed to reconstruct the obj
+            str = ['constellations_in_use = ' obj.char_id];
+        end
+        
+        
     end
 end

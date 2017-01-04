@@ -26,7 +26,7 @@
 %----------------------------------------------------------------------------------------------
 classdef GPS_SS < Satellite_System
     properties
-        indexes       % Satellites unique id numbers in goGPS
+        go_ids       % Satellites unique id numbers in goGPS
     end
             
     methods
@@ -54,7 +54,7 @@ classdef GPS_SS < Satellite_System
             obj.f_vec = struct2array(obj.f) * 1e6;                  % all the frequencies
             obj.l_vec = 299792458 ./ obj.f_vec;                     % lambda => wavelengths
 
-            obj.init_iono(77, 60);
+            obj.initIono(77, 60);
 
             obj.orbital_parameters.GM = 3.986005e14;                % GPS (IS-GPS200H) Gravitational constant * (mass of Earth) [m^3/s^2]
             obj.orbital_parameters.OMEGAE_DOT = 7.2921151467e-5;    % GPS (IS-GPS200H) Angular velocity of the Earth rotation [rad/s]
@@ -68,7 +68,7 @@ classdef GPS_SS < Satellite_System
             obj.orbital_parameters.ell.f = 1/298.257223563;         % GPS (WGS84) Ellipsoid flattening
             obj.orbital_parameters.ell.e = sqrt(1 - (1 - obj.orbital_parameters.ell.f) ^ 2); % GPS (WGS84)    Eccentricity
 
-            obj.update_indexes(offset);
+            obj.updateGoIds(offset);
         end
     end
 end

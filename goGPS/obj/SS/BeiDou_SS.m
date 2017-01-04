@@ -26,7 +26,7 @@
 %----------------------------------------------------------------------------------------------
 classdef BeiDou_SS < Satellite_System
     properties
-        indexes       % Satellites unique id numbers in goGPS
+        go_ids       % Satellites unique id numbers in goGPS
     end
             
     methods
@@ -55,7 +55,7 @@ classdef BeiDou_SS < Satellite_System
             obj.f_vec = struct2array(obj.f) * 1e6;                  % all the frequencies
             obj.l_vec = 299792458 ./ obj.f_vec;                     % lambda => wavelengths
 
-            obj.init_iono(763, 590);
+            obj.initIono(763, 590);
 
             obj.orbital_parameters.GM = 3.986005e14;                % BeiDou (BeiDou-ICD 1.0) Gravitational constant * (mass of Earth) [m^3/s^2]
             obj.orbital_parameters.OMEGAE_DOT = 7.2921150e-5;       % BeiDou (BeiDou-ICD 1.0) Angular velocity of the Earth rotation [rad/s]
@@ -67,7 +67,7 @@ classdef BeiDou_SS < Satellite_System
             obj.orbital_parameters.ell.f = 1/298.257222101;         % BeiDou (CGCS2000) Ellipsoid flattening
             obj.orbital_parameters.ell.e = sqrt(1 - (1 - obj.orbital_parameters.ell.f) ^ 2); % BeiDou (CGCS2000)    Eccentricity
 
-            obj.update_indexes(offset);
+            obj.updateGoIds(offset);
         end
     end
 end
