@@ -206,7 +206,58 @@ classdef Ini_Manager < Ini_Reader
     % =========================================================================
     
     methods (Static)
-        function cell2str
+        function cell_str = toIniString(variable_name, value, format, cell_str)
+            % Convert any variable to ini string format
+            % SYNTAX: 
+            %   cell_str = toIniString(variable_name, value)
+            %   cell_str = toIniString(variable_name, value, format)
+            %   cell_str = toIniString(variable_name, value, cell_str)
+            %   cell_str = toIniString(variable_name, value, format, cell_str)
+            switch nargin
+                case 1
+                    error('Error in Ini_Manager.toIniString, too few parameters');
+                case 2
+                    format = '';
+                    cell_str = {};
+                    
+                case 3 
+                    if iscellstr(format)
+                        cell_str = format;
+                        format = '%g';
+                    else
+                        cell_str = {};
+                    end
+                case 4
+                    % ok
+            end
+            
+            if ischar(value) % is string
+                cell_str{numel(cell_str) + 1} = [variable_name ' = "' value '"'];
+            elseif isnumeric(value) % is string
+                if isempty(format)
+                    format = '%g';
+                else
+                    format = strtrim(format);
+                end
+                if numel(value) > 1 % it's an array of values
+                    format = [format ' '];
+                    cell_str{numel(cell_str) + 1} = [variable_name ' = [' sprintf(format,value) ']'];
+                else
+                    cell_str{numel(cell_str) + 1} = [variable_name ' = ' sprintf(format,value)];
+                end
+            else % generic converter (may not work properly)
+                toString = @(var) evalc('disp(var)');
+                if iscell(value)
+                    cell_str{numel(cell_str) + 1} = [variable_name ' = [' toString(value) ']'];
+                else
+                    cell_str{numel(cell_str) + 1} = [variable_name ' = ' toString(value)];
+                end                
+            end
+            
+            % I want a column array
+            if size(cell_str,1) < size(cell_str,2)
+                cell_str = cell_str';
+            end
         end
     end
 end

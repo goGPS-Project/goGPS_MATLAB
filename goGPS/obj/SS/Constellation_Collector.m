@@ -121,7 +121,6 @@ classdef Constellation_Collector < handle
     end
     
     methods
-        
         function obj = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
             % Constructor - parameters: [GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]
             % SYNTAX:
@@ -170,17 +169,29 @@ classdef Constellation_Collector < handle
             end
             
             obj.init(enabled_ss);
-        end  
-        
-        function str = toString(obj)
+        end    
+    end
+
+    methods
+        function str_cell = toString(obj, str_cell)
             % Display the satellite system in use
+            if (nargin == 1)
+                str_cell = {};
+            end
             [~, ids] = intersect('GRECJS', obj.char_id);
-            str = ['Constellation in use: ' regexprep(evalc('disp(obj.SYS_EXT_NAMES(ids))'), '''', '')];
+            toString = @(var) regexprep(evalc(['disp(var)']), '''', '');
+            str_cell{numel(cell_str) + 1} = {['Constellation in use: ' toString(sort(ids))]};
         end
         
-        function str = toIniString(obj)
-            % Conversion to string of the minimal information needed to reconstruct the obj
-            str = ['constellations_in_use = ' obj.char_id];
+        function str_cell = toIniString(obj, str_cell)            
+            % Conversion to string of the minimal information needed to reconstruct the obj            
+            if (nargin == 1)
+                str_cell = {};
+            end
+            str_cell = Ini_Manager.toIniString('constellations_in_use', obj.char_id, str_cell);
+            str_cell = Ini_Manager.toIniString('index', obj.index, str_cell);
+            str_cell = Ini_Manager.toIniString('prn', obj.prn, str_cell);
+            str_cell = Ini_Manager.toIniString('system', obj.system, str_cell);
         end
         
         

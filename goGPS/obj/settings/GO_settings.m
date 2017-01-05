@@ -1,4 +1,4 @@
-%   CLASS GO_settings
+%   CLASS GO_Settings
 % =========================================================================
 %
 % DESCRIPTION
@@ -7,9 +7,9 @@
 %   parameters
 %
 % EXAMPLE
-%   settings = goGNSS();
+%   settings = GO_Settings.getInstance();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
+% FOR A LIST OF CONSTANTs and METHODS use doc GO_Settings
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.5.9
@@ -31,7 +31,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef GO_settings < handle
+classdef GO_Settings < handle
     
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
@@ -48,7 +48,6 @@ classdef GO_settings < handle
     end
     
     properties % Public Access
-        cc % Constellation Collector (Enabled Satellite Systems);
     end
     
     methods (Access = private)
@@ -56,17 +55,15 @@ classdef GO_settings < handle
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
         function obj = GO_settings()
-            % Initialisation of the variables
-            obj.cc = Constellation_Collector(logical([1 0 0 0 0 0]));  % Enabled Satellite Systems (only GPS);
         end
     end
     
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
-        function obj = get_instance()
+        function obj = getInstance()
             persistent uniqueInstance
             if isempty(uniqueInstance)
-                obj = GO_settings();
+                obj = GO_Settings();
                 uniqueInstance = obj;
             else
                 obj = uniqueInstance;
@@ -76,40 +73,7 @@ classdef GO_settings < handle
     
     %*** Define your own methods for SingletonImpl.
     methods % Public Access
-        function [ cc ] = init_constellation(obj, GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
-            % Multi-constellation set-up.
-            %
-            % SYNTAX:
-            %   cc = init_constellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
-            %   cc = init_constellation([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
-            %
-            % INPUT:
-            %   single logical array whose elements are:
-            %   GPS_flag = boolean flag for enabling/disabling GPS usage
-            %   GLO_flag = boolean flag for enabling/disabling GLONASS usage
-            %   GAL_flag = boolean flag for enabling/disabling Galileo usage
-            %   BDS_flag = boolean flag for enabling/disabling BeiDou usage
-            %   QZS_flag = boolean flag for enabling/disabling QZSS usage
-            %   SBS_flag = boolean flag for enabling/disabling SBAS usage (for ranging)
-            %
-            % OUTPUT:
-            %   the results is stored within the object referenced by "cc"
-            switch nargin
-                case 2,  enabled_ss = GPS_flag;
-                case 6,  enabled_ss = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, 0]);
-                case 7,  enabled_ss = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
-                otherwise, error(['Initialization of Constellation_Collector failed: ' 10 '   invalid number of parameters in the constructor call']);
-            end
-            
-            obj.cc = Costellation_Collector(enabled_ss);
-            
-            cc = obj.cc;
-        end
-        
-        function [cc] = get_constellations(obj)
-            % Get the object containing the actual status of the enabled constallation
-            cc = obj.cc;
-        end
+
             
     end
     

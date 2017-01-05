@@ -48,11 +48,14 @@
 
 classdef Ini_Reader < handle
       
+    properties (GetAccess = 'private', SetAccess = 'protected')
+        raw_data = {};                 % Cell array containing the file, each cell is a line
+    end
+    
     properties (GetAccess = 'public', SetAccess = 'protected')
         c_comment  = [';', '#'];       % Character Identifying the start of a comments
         file_name = 'config.ini';      % Name (and full path) of the ini
         fid = 0;                       % Handle of the ini file
-        raw_data = {};                 % Cell array containing the file, each cell is a line
         rw = 'r';                      % File access mode (r/w)
         read_status = false;           % Flag of reading status
         verbosity = 1;                 % Verbosity level 
