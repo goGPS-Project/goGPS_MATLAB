@@ -60,7 +60,7 @@ classdef PrePro_Settings < Settings_Interface
             end
             
             str = [str '---- PRE PROCESSING ------------------------------------------------------' 10 10];
-            str = [str sprintf(' Cycle slip threshold [cycles]            %g\n\n', obj.cs_thr_pre_pro)];
+            str = [str sprintf(' Cycle slip threshold [cycles]                     %g\n\n', obj.cs_thr_pre_pro)];
         end
         
         function str_cell = toIniString(obj, str_cell)            

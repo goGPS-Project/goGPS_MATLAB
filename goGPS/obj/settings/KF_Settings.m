@@ -92,13 +92,13 @@ classdef KF_Settings < Settings_Interface
                 str = '';
             end            
             str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
-            str = [str sprintf(' STD of initial state [m]:                %g\n', obj.sigma0_pos)];
-            str = [str sprintf(' STD of ENU velocity [m]:                 %g %g %g\n', struct2array(obj.sigma_vel_ENU))];
-            str = [str sprintf(' STD of 3D velocity modulus [m]:          %g\n\n', obj.sigma_vel_mod)];
-            str = [str sprintf(' STD of apriori tropospheric delay:       %g\n', obj.sigma0_tropo)];
-            str = [str sprintf(' STD Std of tropospheric delay:           %g\n\n', obj.sigma_tropo)];
-            str = [str sprintf(' Minimum number of satellite per epoch:   %d\n', obj.kf_min_n_sat)];
-            str = [str sprintf(' Oreder of the KF:                        %d\n\n', obj.kf_order)];
+            str = [str sprintf(' STD of initial state [m]:                         %g\n', obj.sigma0_pos)];
+            str = [str sprintf(' STD of ENU velocity [m]:                          %g %g %g\n', struct2array(obj.sigma_vel_ENU))];
+            str = [str sprintf(' STD of 3D velocity modulus [m]:                   %g\n\n', obj.sigma_vel_mod)];
+            str = [str sprintf(' STD of apriori tropospheric delay:                %g\n', obj.sigma0_tropo)];
+            str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', obj.sigma_tropo)];
+            str = [str sprintf(' Minimum number of satellite per epoch:            %d\n', obj.kf_min_n_sat)];
+            str = [str sprintf(' Oreder of the KF:                                 %d\n\n', obj.kf_order)];
         end
         
         function str_cell = toIniString(obj, str_cell)            

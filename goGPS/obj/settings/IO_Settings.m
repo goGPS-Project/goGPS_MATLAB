@@ -108,7 +108,7 @@ classdef IO_Settings < Settings_Interface
                 str = '';
             end            
             str = [str '---- IO SETTINGS ---------------------------------------------------------' 10 10];
-            str = [str sprintf(' directory of DTM:                        %s\n\n', obj.dtm_dir)];
+            str = [str sprintf(' directory of DTM:                                 %s\n\n', obj.dtm_dir)];
         end
         
         function str_cell = toIniString(obj, str_cell)            
