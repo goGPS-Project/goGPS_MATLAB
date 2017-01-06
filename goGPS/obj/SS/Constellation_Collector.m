@@ -180,7 +180,7 @@ classdef Constellation_Collector < handle
             end
             [~, ids] = intersect('GRECJS', obj.char_id);
             toString = @(var) regexprep(evalc(['disp(var)']), '''', '');
-            str_cell{numel(cell_str) + 1} = {['Constellation in use: ' toString(sort(ids))]};
+            str_cell{numel(cell_str) + 1} = ['Constellation in use: ' toString(sort(ids))];
         end
         
         function str_cell = toIniString(obj, str_cell)            

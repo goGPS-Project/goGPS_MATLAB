@@ -29,7 +29,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef Processing_Settings < KF_Settings & PP_Settings
+classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Settings & KF_Settings
     
     properties (Constant)
     end
@@ -155,11 +155,36 @@ classdef Processing_Settings < KF_Settings & PP_Settings
     end
     
     methods 
-        function set(obj, settings)
+        function copyFrom(obj, settings)
             % This function import Processing settings from another setting object
-            obj.set@KF_Settings(settings);
-            obj.set@PP_Settings(settings);
-            obj.sigma0_pos = kf_settings.sigma0_pos;                        
+            obj.copyFrom@IO_Settings(settings);
+            obj.copyFrom@PrePro_Settings(settings);
+            obj.copyFrom@KF_Settings(settings);
+            obj.sigma0_pos = kf_settings.sigma0_pos;
         end
+                
+        function str = toString(obj, str)
+            % Display the satellite system in use
+            if (nargin == 1)
+                str = '';
+            end
+            
+            str = obj.toString@IO_Settings(str);
+            str = obj.toString@PrePro_Settings(str);
+            str = obj.toString@KF_Settings(str);
+        end
+        
+        function str_cell = toIniString(obj, str_cell)            
+            % Conversion to string of the minimal information needed to reconstruct the obj            
+            if (nargin == 1)
+                str_cell = {};
+            end
+            str_cell = obj.toIniString@IO_Settings(str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = obj.toIniString@PrePro_Settings(str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = obj.toIniString@KF_Settings(str_cell);
+        end
+
     end        
 end

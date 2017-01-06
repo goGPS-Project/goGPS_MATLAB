@@ -29,7 +29,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef KF_Settings < handle
+classdef KF_Settings < Settings_Interface
     
     properties (Constant)
     end
@@ -44,10 +44,19 @@ classdef KF_Settings < handle
         sigma0_pos = 1; 
         
         % Std of velocity ENU coordinates [m/s]
-        sigma_vel_ENU = struct{'E', 0.5, 'N', 0.5, 'U', 0.1} 
+        sigma_vel_ENU = struct('E', 0.5, 'N', 0.5, 'U', 0.1);
         % Std of 3D velocity modulus [m/s]
         sigma_vel_mod = 0.1;
-                
+                        
+        %------------------------------------------------------------------
+        % ATHMOSPHERE 
+        %------------------------------------------------------------------
+
+        % Std of apriori tropospheric delay
+        sigma0_tropo = 0.1;
+        % Std of tropospheric delay
+        sigma_tropo = 4.6e-4;
+        
         %------------------------------------------------------------------
         % KF
         %------------------------------------------------------------------
@@ -57,15 +66,6 @@ classdef KF_Settings < handle
         
         % Order of the dynamic model polynomial
         kf_order = 1;
-        
-        %------------------------------------------------------------------
-        % ATHMOSPHERE 
-        %------------------------------------------------------------------
-
-        % Std of apriori tropospheric delay
-        sigma0_tropo = 0.1;
-        % Std of tropospheric delay
-        sigma_tropo = 4.6e-4;
 
     end
     
@@ -80,20 +80,25 @@ classdef KF_Settings < handle
             obj.sigma0_pos    = kf_settings.sigma0_pos;
             obj.sigma_vel_ENU = kf_settings.sigma_vel_ENU;
             obj.sigma_vel_mod = kf_settings.sigma_vel_mod;
-            obj.kf_min_n_sat  = kf_settings.kf_min_n_sat;
-            obj.kf_order      = kf_settings.kf_order;
             obj.sigma0_tropo  = kf_settings.sigma0_tropo;
             obj.sigma_tropo   = kf_settings.sigma_tropo;
+            obj.kf_min_n_sat  = kf_settings.kf_min_n_sat;
+            obj.kf_order      = kf_settings.kf_order;
         end
         
-        function str_cell = toString(obj, str_cell)
+        function str = toString(obj, str)
             % Display the satellite system in use
             if (nargin == 1)
-                str_cell = {};
-            end
-            toString = @(var) regexprep(evalc(['disp(var)']), '''', '');
-            
-            %str_cell{numel(cell_str) + 1} = {['Constellation in use: ' toString(sort(ids))]};
+                str = '';
+            end            
+            str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
+            str = [str sprintf(' STD of initial state [m]:                %g\n', obj.sigma0_pos)];
+            str = [str sprintf(' STD of ENU velocity [m]:                 %g %g %g\n', struct2array(obj.sigma_vel_ENU))];
+            str = [str sprintf(' STD of 3D velocity modulus [m]:          %g\n\n', obj.sigma_vel_mod)];
+            str = [str sprintf(' STD of apriori tropospheric delay:       %g\n', obj.sigma0_tropo)];
+            str = [str sprintf(' STD Std of tropospheric delay:           %g\n\n', obj.sigma_tropo)];
+            str = [str sprintf(' Minimum number of satellite per epoch:   %d\n', obj.kf_min_n_sat)];
+            str = [str sprintf(' Oreder of the KF:                        %d\n\n', obj.kf_order)];
         end
         
         function str_cell = toIniString(obj, str_cell)            
@@ -101,12 +106,15 @@ classdef KF_Settings < handle
             if (nargin == 1)
                 str_cell = {};
             end
-            %str_cell = Ini_Manager.toIniString('constellations_in_use', obj.char_id, str_cell);
-            %str_cell = Ini_Manager.toIniString('index', obj.index, str_cell);
-            %str_cell = Ini_Manager.toIniString('prn', obj.prn, str_cell);
-            %str_cell = Ini_Manager.toIniString('system', obj.system, str_cell);
+            str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_pos', obj.sigma0_pos, str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_vel_ENU', struct2array(obj.sigma_vel_ENU), str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_vel_mod', obj.sigma_vel_mod, str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_tropo', obj.sigma0_tropo, str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_tropo', obj.sigma_tropo, str_cell);
+            str_cell = Ini_Manager.toIniString('kf_min_n_sat', obj.kf_min_n_sat, str_cell);
+            str_cell = Ini_Manager.toIniString('kf_order', obj.kf_order, str_cell);
         end
-
         
     end        
 end

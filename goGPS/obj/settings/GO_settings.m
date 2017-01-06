@@ -31,7 +31,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef GO_Settings < handle
+classdef GO_Settings < Settings_Interface
     
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
@@ -48,6 +48,8 @@ classdef GO_Settings < handle
     end
     
     properties % Public Access
+        
+        processing = Processing_Settings();        
     end
     
     methods (Access = private)

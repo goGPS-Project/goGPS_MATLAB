@@ -47,19 +47,23 @@
 %---------------------------------------------------------------------------------------------
 
 classdef Ini_Reader < handle
+
+    properties (Constant, GetAccess = 'protected')
+        STD_COMMENT  = ['#'];       % Character Identifying the start of a comments
+    end
       
     properties (GetAccess = 'private', SetAccess = 'protected')
         raw_data = {};                 % Cell array containing the file, each cell is a line
     end
     
     properties (GetAccess = 'public', SetAccess = 'protected')
-        c_comment  = [';', '#'];       % Character Identifying the start of a comments
-        file_name = 'config.ini';      % Name (and full path) of the ini
-        fid = 0;                       % Handle of the ini file
-        rw = 'r';                      % File access mode (r/w)
-        read_status = false;           % Flag of reading status
-        verbosity = 1;                 % Verbosity level 
-        color_mode = true;             % Flag for coloured output messages (if true requires cprintf)
+        c_comment  = [';', STD_COMMENT];  % Character Identifying the start of a comments
+        file_name = 'config.ini';         % Name (and full path) of the ini
+        fid = 0;                          % Handle of the ini file
+        rw = 'r';                         % File access mode (r/w)
+        read_status = false;              % Flag of reading status
+        verbosity = 1;                    % Verbosity level 
+        color_mode = true;                % Flag for coloured output messages (if true requires cprintf)
     
         % Structure containing the data: section -> name / ( key -> (name / data )
         section = {};
@@ -131,7 +135,7 @@ classdef Ini_Reader < handle
         % Set Comment Character -------------------------------------------
         function setCommentChar(obj, character)
             % define the characters that define comment lines
-            obj.c_comment = character;
+            obj.c_comment = unique([character obj.STD_COMMENT]);
         end
         
         function characters = getCommentChar(obj)

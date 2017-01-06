@@ -1,14 +1,10 @@
-%   CLASS PP_Settings
+%   CLASS Settings_Interface
 % =========================================================================
 %
 % DESCRIPTION
-%   Class to store all the Pre Processing parameters
+%   Abstract class with basic properties and methods that a setting class
+%   must have
 %
-% EXAMPLE
-%   settings = PP_Settings();
-%
-% FOR A LIST OF CONSTANTs and METHODS use doc PP_Settings
-
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.5.9
 % Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -29,39 +25,22 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef PP_Settings < Settings_Interface
-    
-    properties (Constant)
+classdef Settings_Interface < handle
+    properties (SetAccess = protected, GetAccess = public)
+
     end
     
-    properties
+    properties (Abstract)
     end
-    
-    methods
-        function obj = PP_Settings()            
-        end
-    end
-    
-    methods 
-        function copyFrom(obj, settings)
-            % This function import PP (only) settings from another setting object
-        end
         
-        function str = toString(obj, str)
-            % Display the satellite system in use
-            if (nargin == 1)
-                str = '';
-            end
-            
-            str = [str '---- POST PROCESSING -------------------------------------------' 10 10];
-            str = [str ' nothing to report ' 10 10];
-        end
+    methods  (Abstract)
+        copyFrom(obj, settings)
+        % This function import the settings of the current class from another setting object having the same properties
         
-        function str_cell = toIniString(obj, str_cell)            
-            % Conversion to string of the minimal information needed to reconstruct the obj            
-            if (nargin == 1)
-                str_cell = {};
-            end
-        end
-    end        
+        str = toString(obj, str)
+        % Display the content of the class in a human readable format
+
+        str_cell = toIniString(obj, str_cell)
+        % Conversion to string of the minimal information needed to reconstruct the obj
+    end
 end

@@ -1,13 +1,13 @@
-%   CLASS PP_Settings
+%   CLASS PrePro_Settings
 % =========================================================================
 %
 % DESCRIPTION
 %   Class to store all the Pre Processing parameters
 %
 % EXAMPLE
-%   settings = PP_Settings();
+%   settings = PrePro_Settings();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc PP_Settings
+% FOR A LIST OF CONSTANTs and METHODS use doc PrePro_Settings
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.5.9
@@ -29,22 +29,28 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef PP_Settings < Settings_Interface
+classdef PrePro_Settings < Settings_Interface
     
     properties (Constant)
     end
     
     properties
+
+        % PRE PROCESSING --------------------------------------------------
+        
+        % Cycle slip threshold (pre-processing) [cycles]
+        cs_thr_pre_pro = 1;
     end
     
     methods
-        function obj = PP_Settings()            
+        function obj = PrePro_Settings()            
         end
     end
     
     methods 
         function copyFrom(obj, settings)
-            % This function import PP (only) settings from another setting object
+            % This function import Post Processing (only) settings from another setting object
+            obj.cs_thr_pre_pro = settings.cs_thr_pre_pro;
         end
         
         function str = toString(obj, str)
@@ -53,8 +59,8 @@ classdef PP_Settings < Settings_Interface
                 str = '';
             end
             
-            str = [str '---- POST PROCESSING -------------------------------------------' 10 10];
-            str = [str ' nothing to report ' 10 10];
+            str = [str '---- PRE PROCESSING ------------------------------------------------------' 10 10];
+            str = [str sprintf(' Cycle slip threshold [cycles]            %g\n\n', obj.cs_thr_pre_pro)];
         end
         
         function str_cell = toIniString(obj, str_cell)            
@@ -62,6 +68,8 @@ classdef PP_Settings < Settings_Interface
             if (nargin == 1)
                 str_cell = {};
             end
+            str_cell = Ini_Manager.toIniStringSection('PRE_PROCESSING', str_cell);
+            str_cell = Ini_Manager.toIniString('cs_thr_pre_pro', obj.cs_thr_pre_pro, str_cell);
         end
     end        
 end

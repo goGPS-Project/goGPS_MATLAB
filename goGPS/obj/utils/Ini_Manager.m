@@ -217,9 +217,9 @@ classdef Ini_Manager < Ini_Reader
                 case 1
                     error('Error in Ini_Manager.toIniString, too few parameters');
                 case 2
-                    format = '';
-                    cell_str = {};
                     
+                    format = '';
+                    cell_str = {};                    
                 case 3 
                     if iscellstr(format)
                         cell_str = format;
@@ -253,6 +253,52 @@ classdef Ini_Manager < Ini_Reader
                     cell_str{numel(cell_str) + 1} = [variable_name ' = ' toString(value)];
                 end                
             end
+            
+            % I want a column array
+            if size(cell_str,1) < size(cell_str,2)
+                cell_str = cell_str';
+            end
+        end
+        
+        function cell_str = toIniStringSection(section_name, cell_str)
+            % Add a section in ini string format
+            % SYNTAX: 
+            %   cell_str = toIniStringSection(section_name, cell_str)
+            if (nargin == 1)
+                cell_str = {};
+            end
+
+            cell_str{numel(cell_str) + 1} = ['[' section_name ']'];
+            
+            % I want a column array
+            if size(cell_str,1) < size(cell_str,2)
+                cell_str = cell_str';
+            end
+        end
+        
+        function cell_str = toIniStringComment(comment, cell_str)
+            % Add a comment in ini string format
+            % SYNTAX: 
+            %   cell_str = toIniStringSection(section_name, cell_str)
+            if (nargin == 1)
+                cell_str = {};
+            end            
+            cell_str{numel(cell_str) + 1} = [ Ini_Manager.STD_COMMENT ' ' comment];
+            
+            % I want a column array
+            if size(cell_str,1) < size(cell_str,2)
+                cell_str = cell_str';
+            end
+        end
+        
+        function cell_str = toIniStringNewLine(cell_str)
+            % Add a comment in ini string format
+            % SYNTAX: 
+            %   cell_str = toIniStringSection(section_name, cell_str)
+            if (nargin == 0)
+                cell_str = {};
+            end            
+            cell_str{numel(cell_str) + 1} = '';
             
             % I want a column array
             if size(cell_str,1) < size(cell_str,2)
