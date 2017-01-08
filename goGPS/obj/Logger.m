@@ -39,7 +39,7 @@ classdef Logger < handle
     end
 
     properties (GetAccess = 'private', SetAccess = 'protected')
-        color_mode = false;             % Flag for coloured output messages (if true requires cprintf)        
+        color_mode = false;            % Flag for coloured output messages (if true requires cprintf)        
         verbosity = 50;                % Verbosity level 
     end
         
@@ -55,12 +55,12 @@ classdef Logger < handle
     methods (Static)        
         function obj = getInstance()
             % Concrete implementation.  See Singleton superclass.
-            persistent uniqueInstance
-            if isempty(uniqueInstance)
+            persistent unique_instance_logger
+            if isempty(unique_instance_logger)
                 obj = Logger();
-                uniqueInstance = obj;
+                unique_instance_logger = obj;
             else
-                obj = uniqueInstance;
+                obj = unique_instance_logger;
             end
         end
     end
@@ -144,7 +144,6 @@ classdef Logger < handle
             end
             obj.opStatus(0, color_mode);
             if (color_mode)
-                cprintf('SystemCommands', 'Warning: ');
                 cprintf('text', [text '\n']);
             else
                 fprintf('%s\n', text);

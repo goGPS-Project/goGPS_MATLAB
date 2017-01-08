@@ -5,6 +5,17 @@
 %   Abstract class with basic properties and methods that a setting class
 %   must have
 %
+% COMMENTS
+% Settings have been build with multiple inheritance
+% A standard abstract interface have been created: Setting_Interface
+% it add to each subclass the object logger
+% force the subclasses to implement three basic methods:
+%  - import:       when a setting object of identical class, or that inherits from the same class is passed to this function, the relative parameters are copied in the calling object
+%                  when an ini file is the input of the function, the object is updated with the settings contained into the file
+%  - toString:     display the content of the object, in a human readable way, a goGPS user can "ask" for the value of the settings on screen
+%  - export:       create a cell array of strings containing the settings in plain text ini format. The variable it's the raw data format of Ini_Manager
+% 
+
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.5.9
 % Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

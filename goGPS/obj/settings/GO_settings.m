@@ -62,12 +62,12 @@ classdef GO_Settings < Settings_Interface
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
         function obj = getInstance()
-            persistent uniqueInstance
-            if isempty(uniqueInstance)
+            persistent unique_instance_settings
+            if isempty(unique_instance_settings)
                 obj = GO_Settings();
-                uniqueInstance = obj;
+                unique_instance_settings = obj;
             else
-                obj = uniqueInstance;
+                obj = unique_instance_settings;
             end
         end
     end
