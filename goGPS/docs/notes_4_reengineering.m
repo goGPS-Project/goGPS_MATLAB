@@ -19,8 +19,42 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-% First step: reorganization of the parameters:
-% Let's create a singleton class with the usefull parameters
+% Settings
+%----------------------------------------------------------------------------------------------
+
+% Settings are designed to be importable and expartable to a standard goGPS ini file
+% useful comments must be added to the exported file
+% 
+% 
+% Settings have been build with multiple inheritance
+% A standard abstract interface have been created: Setting_Interface
+% it add to each subclass the object logger
+% force the subclasses to implement three basic methods:
+%  - import:       when a setting object of identical class, or that inherits from the same class is passed to this function, the relative parameters are copied in the calling object
+%                  when an ini file is the input of the function, the object is updated with the settings contained into the file
+%  - toString:     display the content of the object, in a human readable way, a goGPS user can "ask" for the value of the settings on screen
+%  - export:       create a cell array of strings containing the settings in plain text ini format. The variable it's the raw data format of Ini_Manager
+% 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 % ambiguity status, it's in obs_rover
 [] = LS_SA_CP(obs_rover, sat_info, proc_settings)

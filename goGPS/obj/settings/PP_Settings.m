@@ -43,7 +43,7 @@ classdef PP_Settings < Settings_Interface
     end
     
     methods 
-        function copyFrom(obj, settings)
+        function import(obj, settings)
             % This function import PP (only) settings from another setting object
         end
         
@@ -57,8 +57,8 @@ classdef PP_Settings < Settings_Interface
             str = [str ' nothing to report ' 10 10];
         end
         
-        function str_cell = toIniString(obj, str_cell)            
-            % Conversion to string of the minimal information needed to reconstruct the obj            
+        function str_cell = export(obj, str_cell)            
+            % Conversion to string ini format of the minimal information needed to reconstruct the obj            
             if (nargin == 1)
                 str_cell = {};
             end

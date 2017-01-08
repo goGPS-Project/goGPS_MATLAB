@@ -48,9 +48,14 @@ classdef PrePro_Settings < Settings_Interface
     end
     
     methods 
-        function copyFrom(obj, settings)
-            % This function import Post Processing (only) settings from another setting object
-            obj.cs_thr_pre_pro = settings.cs_thr_pre_pro;
+        function import(obj, settings)
+            % This function import Post Processing (only) settings from another setting object or ini file
+            if isa(settings, 'Ini_Manager')
+                obj.cs_thr_pre_pro = settings.getData('cs_thr_pre_pro');
+                obj.dtm_dir    = settings.getData('dtm_dir');
+            else
+                obj.cs_thr_pre_pro = settings.cs_thr_pre_pro;
+            end
         end
         
         function str = toString(obj, str)
@@ -63,12 +68,13 @@ classdef PrePro_Settings < Settings_Interface
             str = [str sprintf(' Cycle slip threshold [cycles]                     %g\n\n', obj.cs_thr_pre_pro)];
         end
         
-        function str_cell = toIniString(obj, str_cell)            
+        function str_cell = export(obj, str_cell)            
             % Conversion to string of the minimal information needed to reconstruct the obj            
             if (nargin == 1)
                 str_cell = {};
             end
             str_cell = Ini_Manager.toIniStringSection('PRE_PROCESSING', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Cycle slip threshold [cycles]', str_cell);
             str_cell = Ini_Manager.toIniString('cs_thr_pre_pro', obj.cs_thr_pre_pro, str_cell);
         end
     end        

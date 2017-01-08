@@ -36,9 +36,7 @@ classdef IO_Settings < Settings_Interface
         DEFAULT_DIR_OUT = ['..' filesep 'data' filesep 'data_goGPS'];
     end
     
-    properties (SetAccess = private, GetAccess = private)        
-        logger; % Handler to the logger object
-
+    properties (SetAccess = private, GetAccess = private)
         %------------------------------------------------------------------
         % RECEIVERS
         %------------------------------------------------------------------
@@ -55,51 +53,22 @@ classdef IO_Settings < Settings_Interface
     end
     
     properties (SetAccess = private, GetAccess = public)
-        %------------------------------------------------------------------
-        % DTM (SET PATH AND LOAD PARAMETER FILES)
-        %------------------------------------------------------------------
-        
-        % Parameters common to all DTM tiles
-        dtm_tile_header = struct('nrows', 0, 'ncols', 0, 'cellsize', 0, 'nodata', 0);
-        
-        % Parameters used to georeference every DTM tile
-        dtm_tile_georef = zeros(1,1,4);
     end
         
     methods
         function obj = IO_Settings()
-            % Creator of IO_settings - verbosity level (true/false) can be set
-            obj.logger = Logger.getInstance();
-            obj.init_dtm();
+            % Creator of IO_settings - verbosity level (true/false) can be set or ini file
         end
     end
-    
-    methods 
         
-        function init_dtm(obj, dtm_dir)
-            % Try to load default DTM values
-            if nargin == 1
-                dtm_dir = obj.dtm_dir;
-            end
-            try
-                load([dtm_dir filesep 'tiles' filesep 'tile_header'], 'tile_header');
-                obj.tile_header = tile_header;                
-                obj.logger.addMessage(sprintf(' - DTM tile header in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_header']));
-                load([dtm_dir filesep 'tiles' filesep 'tile_georef'], 'tile_georef');
-                obj.tile_georef = tile_georef;
-                obj.logger.addMessage(sprintf(' - DTM tile georef in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_georef']));
-            catch
-                obj.logger.addWarning(sprintf('Failed to read DTM stored in %s', [dtm_dir '/tiles/']));
-                % use default zeroes values
-            end            
-        end
-    end        
-    
     methods
-        function copyFrom(obj, io_settings)
+        function import(obj, settings)
             % This function import IO (only) settings from another setting object
-            obj.dtm_dir    = io_settings.dtm_dir;
-            obj.init_dtm();
+            if isa(settings, 'Ini_Manager')
+                obj.dtm_dir    = settings.getData('dtm_dir');
+            else
+                obj.dtm_dir    = settings.dtm_dir;
+            end
         end
         
         function str = toString(obj, str)
@@ -108,15 +77,16 @@ classdef IO_Settings < Settings_Interface
                 str = '';
             end            
             str = [str '---- IO SETTINGS ---------------------------------------------------------' 10 10];
-            str = [str sprintf(' directory of DTM:                                 %s\n\n', obj.dtm_dir)];
+            str = [str sprintf(' Directory of DTM folders:                         %s\n\n', obj.dtm_dir)];
         end
         
-        function str_cell = toIniString(obj, str_cell)            
-            % Conversion to string of the minimal information needed to reconstruct the obj            
+        function str_cell = export(obj, str_cell)            
+            % Conversion to string ini format of the minimal information needed to reconstruct the obj            
             if (nargin == 1)
                 str_cell = {};
             end
             str_cell = Ini_Manager.toIniStringSection('IO', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of DTM folders', str_cell);
             str_cell = Ini_Manager.toIniString('dtm_dir', obj.dtm_dir, str_cell);
         end
         

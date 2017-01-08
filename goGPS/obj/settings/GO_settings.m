@@ -43,13 +43,12 @@ classdef GO_Settings < Settings_Interface
         
         % Standard atmosphere parameters (struct PRES, STD_TEMP. STD_HUMI) - Berg, 1948
         ATM = struct('PRES', 1013.25, ...      % pressure [mbar]
-                     'STD_TEMP', 291.15, ...   % temperature [K]
+                     'STD_TEMP', 291.15, ...   % temperature [K] (18? C)
                      'STD_HUMI', 50.0);        % humidity [%]               
     end
     
-    properties % Public Access
-        
-        processing = Processing_Settings();        
+    properties % Public Access        
+        ps = Processing_Settings();        % Processing settings
     end
     
     methods (Access = private)
@@ -73,13 +72,40 @@ classdef GO_Settings < Settings_Interface
         end
     end
     
-    %*** Define your own methods for SingletonImpl.
     methods % Public Access
-
-            
-    end
-    
-    methods % Public Access (Legacy support)
-    end
-    
+        function import(obj, settings)
+            % This function try to import settings from another setting object
+            if isprop(settings, 'ps')
+                obj.ps.import(settings.ps);
+            else
+                try
+                    obj.ps.import(settings);
+                catch
+                    obj.logger.addWarning('GO_Settings.import failed to import settings (invalid input settings)');
+                end
+            end            
+        end
+        
+        function str = toString(obj, str)
+            % Display the satellite system in use
+            if (nargin == 1)
+                str = '';
+            end            
+            str = [str '---- CONSTANTS -----------------------------------------------------------' 10 10];
+            str = [str sprintf(' VLIGHT:                                           %g\n', obj.V_LIGHT)];
+            str = [str sprintf(' PI_ORBIT:                                         %g\n', obj.PI_ORBIT)];
+            str = [str sprintf(' CIRCLE_RAD:                                       %g\n', obj.CIRCLE_RAD)];
+            str = [str sprintf(' STANDARD ATMOSPHERE (Berg, 1948):\n  - PRESSURE [mBar]                                %g\n  - TEMPERATURE [K]                                %g\n  - HUMIDITY [%%]                                   %g\n\n', obj.ATM.PRES, obj.ATM.STD_TEMP, obj.ATM.STD_HUMI)];
+            str = obj.ps.toString(str);
+        end
+        
+        function str_cell = export(obj, str_cell)            
+            % Conversion to string ini format of the minimal information needed to reconstruct the obj            
+            if (nargin == 1)
+                str_cell = {};
+            end
+            str_cell = obj.ps.export(str_cell);
+        end
+        
+    end    
 end

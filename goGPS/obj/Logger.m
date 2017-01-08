@@ -40,7 +40,7 @@ classdef Logger < handle
 
     properties (GetAccess = 'private', SetAccess = 'protected')
         color_mode = false;             % Flag for coloured output messages (if true requires cprintf)        
-        verbosity = 10;                % Verbosity level 
+        verbosity = 50;                % Verbosity level 
     end
         
     methods (Access = private)
@@ -52,8 +52,7 @@ classdef Logger < handle
         end
     end
     
-    methods (Static)
-        
+    methods (Static)        
         function obj = getInstance()
             % Concrete implementation.  See Singleton superclass.
             persistent uniqueInstance
@@ -70,7 +69,6 @@ classdef Logger < handle
     %  MANAGING LOGGING
     % =========================================================================
     methods    
-    
         % Set read status mode --------------------------------------------
         function setColorMode(obj, bool)
             % Set useage of colors in text output
@@ -94,8 +92,10 @@ classdef Logger < handle
         end
     end
 
-    methods
-       
+    % =========================================================================
+    %  OUTPUT UTILITIES (respect verbosity)
+    % =========================================================================
+    methods       
         function addMessage(obj, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -103,6 +103,16 @@ classdef Logger < handle
             end
             if (verbosity_level <= obj.verbosity)
                 fprintf('%s\n', text);
+            end
+        end
+        
+        function addStatusOk(obj, text, verbosity_level)
+            % Send a message through the standard interface
+            if (nargin < 3)
+                verbosity_level = obj.DEFAULT_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= obj.verbosity)
+                obj.printStatusOk(text);
             end
         end
         
@@ -122,51 +132,60 @@ classdef Logger < handle
     end
     
     % =========================================================================
-    %    DISPLAY UTILITIES
+    %    PRIVATE DISPLAY UTILITIES
     % =========================================================================
 
     methods (Access = 'protected')
 
+        function printStatusOk(obj, text, color_mode)
+            % Display Warnings
+            if (nargin == 2)
+                color_mode = obj.color_mode;
+            end
+            obj.opStatus(0, color_mode);
+            if (color_mode)
+                cprintf('SystemCommands', 'Warning: ');
+                cprintf('text', [text '\n']);
+            else
+                fprintf('%s\n', text);
+            end
+        end
+        
         function printWarning(obj, text, color_mode)
             % Display Warnings
             if (nargin == 2)
                 color_mode = obj.color_mode;
             end
-            if (obj.getVerbosityLev > 0)
-                obj.opStatus(1, color_mode);
-                if (color_mode)
-                    cprintf('SystemCommands', 'Warning: ');
-                    cprintf('text', [text '\n']);
-                else
-                    fprintf('Warning: %s\n', text);
-                end
+            obj.opStatus(1, color_mode);
+            if (color_mode)
+                cprintf('SystemCommands', 'Warning: ');
+                cprintf('text', [text '\n']);
+            else
+                fprintf('Warning: %s\n', text);
             end
         end
-                
+        
         function printError(obj, text, color_mode)
             % Display Errors
             if (nargin == 2)
                 color_mode = obj.color_mode;
             end
-            if (obj.getVerbosityLev > 0)
-                obj.opStatus(-1, color_mode);
-                if (color_mode)
-                    cprintf('err', 'Error: ');
-                    cprintf('text', [text '\n']);
-                else
-                    fprintf('Error: %s\n', text);
-                end
+            obj.opStatus(-1, color_mode);
+            if (color_mode)
+                cprintf('err', 'Error: ');
+                cprintf('text', [text '\n']);
+            else
+                fprintf('Error: %s\n', text);
             end
         end
 
-end
+    end
     
-% =========================================================================
-%    DISPLAY UTILITIES
-% =========================================================================
+    % =========================================================================
+    %    DISPLAY UTILITIES
+    % =========================================================================
 
     methods(Static, Access = 'public')
-                
         function opStatus(status, color_mode)
             % Display a flag of operation status ( -1 Err, 0 Ok, 1 Warning)
             if (nargin == 1)
@@ -189,7 +208,7 @@ end
                 end
                 fprintf(' ] ');
             end
-        end        
+        end
     end
     
 end

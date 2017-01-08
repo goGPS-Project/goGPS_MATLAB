@@ -75,15 +75,25 @@ classdef KF_Settings < Settings_Interface
     end
     
     methods 
-        function copyFrom(obj, kf_settings)
-            % This function import KF (only) settings from another setting object
-            obj.sigma0_pos    = kf_settings.sigma0_pos;
-            obj.sigma_vel_ENU = kf_settings.sigma_vel_ENU;
-            obj.sigma_vel_mod = kf_settings.sigma_vel_mod;
-            obj.sigma0_tropo  = kf_settings.sigma0_tropo;
-            obj.sigma_tropo   = kf_settings.sigma_tropo;
-            obj.kf_min_n_sat  = kf_settings.kf_min_n_sat;
-            obj.kf_order      = kf_settings.kf_order;
+        function import(obj, settings)
+            % This function import KF (only) settings from another setting object or ini file
+            if isa(settings, 'Ini_Manager')
+                obj.sigma0_pos    = settings.getData('sigma0_pos');
+                obj.sigma_vel_ENU = settings.getData('sigma_vel_ENU');
+                obj.sigma_vel_mod = settings.getData('sigma_vel_mod');
+                obj.sigma0_tropo  = settings.getData('sigma0_tropo');
+                obj.sigma_tropo   = settings.getData('sigma_tropo');
+                obj.kf_min_n_sat  = settings.getData('kf_min_n_sat');
+                obj.kf_order      = settings.getData('kf_order');          
+            else
+                obj.sigma0_pos    = settings.sigma0_pos;
+                obj.sigma_vel_ENU = settings.sigma_vel_ENU;
+                obj.sigma_vel_mod = settings.sigma_vel_mod;
+                obj.sigma0_tropo  = settings.sigma0_tropo;
+                obj.sigma_tropo   = settings.sigma_tropo;
+                obj.kf_min_n_sat  = settings.kf_min_n_sat;
+                obj.kf_order      = settings.kf_order;
+            end
         end
         
         function str = toString(obj, str)
@@ -101,18 +111,25 @@ classdef KF_Settings < Settings_Interface
             str = [str sprintf(' Oreder of the KF:                                 %d\n\n', obj.kf_order)];
         end
         
-        function str_cell = toIniString(obj, str_cell)            
-            % Conversion to string of the minimal information needed to reconstruct the obj            
+        function str_cell = export(obj, str_cell)            
+            % Conversion to string ini format of the minimal information needed to reconstruct the obj            
             if (nargin == 1)
                 str_cell = {};
             end
             str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of initial state [m]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_pos', obj.sigma0_pos, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of ENU velocity [m]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma_vel_ENU', struct2array(obj.sigma_vel_ENU), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of 3D velocity modulus [m]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma_vel_mod', obj.sigma_vel_mod, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of apriori tropospheric delay', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_tropo', obj.sigma0_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of tropospheric delay', str_cell);
             str_cell = Ini_Manager.toIniString('sigma_tropo', obj.sigma_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Minimum number of satellite per epoch', str_cell);
             str_cell = Ini_Manager.toIniString('kf_min_n_sat', obj.kf_min_n_sat, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Oreder of the KF', str_cell);
             str_cell = Ini_Manager.toIniString('kf_order', obj.kf_order, str_cell);
         end
         

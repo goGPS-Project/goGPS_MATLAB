@@ -20,4 +20,7 @@
 %----------------------------------------------------------------------------------------------
 
 % This file contain the dependency tree for the reengineering of the software
-%
+
+
+Ini_Manager -> Logger 
+            -> cprintf

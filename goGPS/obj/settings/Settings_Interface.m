@@ -26,21 +26,21 @@
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 classdef Settings_Interface < handle
-    properties (SetAccess = protected, GetAccess = public)
-
+    properties (SetAccess = protected, GetAccess = protected)
+        logger = Logger.getInstance(); % Handler to the logger object
     end
     
     properties (Abstract)
     end
         
-    methods  (Abstract)
-        copyFrom(obj, settings)
-        % This function import the settings of the current class from another setting object having the same properties
+    methods  (Abstract)        
+        import(obj, settings)
+        % This function import the settings of the current class from another setting object having the same properties, or an ini file
         
         str = toString(obj, str)
         % Display the content of the class in a human readable format
 
-        str_cell = toIniString(obj, str_cell)
-        % Conversion to string of the minimal information needed to reconstruct the obj
+        str_cell = export(obj, str_cell)
+        % Conversion to string ini format of the minimal information needed to reconstruct the obj
     end
 end

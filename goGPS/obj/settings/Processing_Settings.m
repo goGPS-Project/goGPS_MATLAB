@@ -32,12 +32,12 @@
 classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Settings & KF_Settings
     
     properties (Constant, Access = 'protected')
-        IAR_MODE = {'0 - ILS method with numeration in search (LAMBDA2)', ...
-                    '1 - ILS method with shrinking ellipsoid during search (LAMBDA3)' ...
-                    '2 - ILS method with numeration in search (LAMBDA3)', ...
-                    '3 - integer rounding method (LAMBDA3)', ...
-                    '4 - iar_mode = 4; % integer bootstrapping method (LAMBDA3)', ...
-                    '5 - Partial Ambiguity Resolution (PAR) (LAMBDA3)'}
+        IAR_MODE = {'0: ILS method with numeration in search (LAMBDA2)', ...
+                    '1: ILS method with shrinking ellipsoid during search (LAMBDA3)' ...
+                    '2: ILS method with numeration in search (LAMBDA3)', ...
+                    '3: integer rounding method (LAMBDA3)', ...
+                    '4: iar_mode = 4; % integer bootstrapping method (LAMBDA3)', ...
+                    '5: Partial Ambiguity Resolution (PAR) (LAMBDA3)'}
        
         W_MODE = {'same weight for all the observations', ...
                   'weight based on satellite elevation (sin)' ...
@@ -45,14 +45,14 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
                   'weight based on combined elevation and signal-to-noise ratio', ...
                   'weight based on satellite elevation (exp)'}
               
-        IONO_MODE = {'0 - no model', ...
-                     '1 - Geckle and Feen model' ...
-                     '2 - Klobuchar model', ...
-                     '3 - SBAS grid'}
+        IONO_MODE = {'0: no model', ...
+                     '1: Geckle and Feen model' ...
+                     '2: Klobuchar model', ...
+                     '3: SBAS grid'}
                  
-        TROPO_MODE = {'0 - no model', ...
-                      '1 - Saastamoinen model (with standard atmosphere parameters)' ...
-                      '2 - Saastamoinen model (with Global Pressure Temperature model)'}
+        TROPO_MODE = {'0: no model', ...
+                      '1: Saastamoinen model (with standard atmosphere parameters)' ...
+                      '2: Saastamoinen model (with Global Pressure Temperature model)'}
          
 
     end
@@ -73,7 +73,7 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
         % Std of phase observations [m]
         sigma_ph = 0.003; % (maximize to obtain a code-based solution)
         % Std of iono-free phase observations [m]
-        sigmaq_ph_if = 0.009;
+        sigma_ph_if = 0.009;
         
         % Std of apriori receiver clock
         sigma0_clock = 4.5e-09        
@@ -141,10 +141,10 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
         iar_mu = 0.5;
         
         % Flag for enabling the automatic determination of mu
-        iar_flag_auto_mu = true;
+        flag_iar_auto_mu = true;
         
         % Flag for enabling the default value for P0
-        iar_flag_default_P0 = true;
+        flag_iar_default_P0 = true;
         
         %------------------------------------------------------------------
         % ATHMOSPHERE
@@ -167,25 +167,95 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
         % DEM 
         %------------------------------------------------------------------
         
+        % DTM flag (use / not use) DTM
+        flag_dtm = false;
+
         % Std of DEM height [m]
         sigma_dtm = 0.03  % (maximize to disable DEM usage: e.g. 1e30)
         
+        % Parameters common to all DTM tiles
+        dtm_tile_header = struct('nrows', 0, 'ncols', 0, 'cellsize', 0, 'nodata', 0);
+        
+        % Parameters used to georeference every DTM tile
+        dtm_tile_georef = zeros(1,1,4);        
     end
     
     methods
         function obj = Processing_Settings()
+            % Creator
+            obj.postImportInit();
+        end
+    end
+    
+    methods (Access = 'protected')
+        function postImportInit(obj)
+            % Operations to run after the import of new parameters
+            obj.init_dtm();
         end
     end
     
     methods 
-        function copyFrom(obj, settings)
-            % This function import Processing settings from another setting object
-            obj.copyFrom@IO_Settings(settings);
-            obj.copyFrom@PrePro_Settings(settings);
-            obj.copyFrom@KF_Settings(settings);
+        function import(obj, settings)
+            % This function import processing settings from another setting object or ini file
+            if isa(settings, 'Ini_Manager')
+                obj.sigma_ph = settings.getData('sigma_ph');
+                obj.sigma_ph_if = settings.getData('sigma_ph_if');
+                obj.sigma0_clock = settings.getData('sigma0_clock');
+                obj.sigma0_r_clock = settings.getData('sigma0_r_clock');
+                obj.snr_thr = settings.getData('snr_thr');
+                obj.cutoff = settings.getData('cutoff');
+                obj.w_mode = settings.getData('w_mode');
+                obj.cs_thr = settings.getData('cs_thr');
+                tmp = settings.getData('w_snr');
+                obj.w_snr = struct('a', tmp(1), 'zero', tmp(2), 'one', tmp(2), 'A', tmp(4));
+                obj.pp_spp_thr = settings.getData('pp_spp_thr');
+                obj.pp_max_code_err_thr = settings.getData('pp_max_code_err_thr');
+                obj.pp_max_phase_err_thr = settings.getData('pp_max_phase_err_thr');
+                obj.iar_restart_mode = settings.getData('iar_restart_mode');
+                obj.iar_mode = settings.getData('iar_mode');
+                obj.iar_P0 = settings.getData('iar_P0');
+                obj.sigma0_N = settings.getData('sigma0_N');
+                obj.iar_mu = settings.getData('iar_mu');
+                obj.flag_iar_auto_mu = settings.getData('flag_iar_auto_mu');
+                obj.flag_iar_default_P0 = settings.getData('flag_iar_default_P0');
+                obj.iono_model = settings.getData('iono_model');
+                obj.tropo_model = settings.getData('tropo_model');
+                obj.flag_dtm = settings.getData('flag_dtm');
+                obj.sigma_dtm = settings.getData('sigma_dtm');
+            else
+                obj.sigma_ph = settings.sigma_ph;
+                obj.sigma_ph_if = settings.sigma_ph_if;
+                obj.sigma0_clock = settings.sigma0_clock;
+                obj.sigma0_r_clock = settings.sigma0_r_clock;
+                obj.snr_thr = settings.snr_thr;
+                obj.cutoff = settings.cutoff;
+                obj.w_mode = settings.w_mode;
+                obj.cs_thr = settings.cs_thr;
+                obj.w_snr = settings.w_snr;
+                obj.pp_spp_thr = settings.pp_spp_thr;
+                obj.pp_max_code_err_thr = settings.pp_max_code_err_thr;
+                obj.pp_max_phase_err_thr = settings.pp_max_phase_err_thr;
+                obj.iar_restart_mode = settings.iar_restart_mode;
+                obj.iar_mode = settings.iar_mode;
+                obj.iar_P0 = settings.iar_P0;
+                obj.sigma0_N = settings.sigma0_N;
+                obj.iar_mu = settings.iar_mu;
+                obj.flag_iar_auto_mu = settings.flag_iar_auto_mu;
+                obj.flag_iar_default_P0 = settings.flag_iar_default_P0;
+                obj.iono_model = settings.iono_model;
+                obj.tropo_model = settings.tropo_model;
+                obj.flag_dtm = settings.flag_dtm;
+                obj.sigma_dtm = settings.sigma_dtm;
+            end
+            % Call to Super Methods
+            obj.import@IO_Settings(settings);
+            obj.import@PrePro_Settings(settings);
+            obj.import@KF_Settings(settings);
             obj.sigma0_pos = kf_settings.sigma0_pos;
+            
+            obj.postImportInit();
         end
-                
+        
         function str = toString(obj, str)
             % Display the satellite system in use
             if (nargin == 1)
@@ -195,7 +265,7 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str = obj.toString@IO_Settings(str);
             str = [str '---- RECEIVERS -----------------------------------------------------------' 10 10];
             str = [str sprintf(' STD of phase observations [m]:                    %g\n', obj.sigma_ph)];
-            str = [str sprintf(' STD of iono-free phase observations [m]:          %g\n\n', obj.sigmaq_ph_if)];
+            str = [str sprintf(' STD of iono-free phase observations [m]:          %g\n\n', obj.sigma_ph_if)];
             str = [str sprintf(' STD of apriori receiver clock:                    %g\n', obj.sigma0_clock)];
             str = [str sprintf(' STD of receiver clock:                            %g\n\n', obj.sigma0_r_clock)];
             str = [str sprintf(' Signal-to-noise ratio threshold [dB]:             %d\n\n', obj.snr_thr)];
@@ -214,33 +284,137 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str = [str sprintf(' Threshold on maximum residual of code obs [m]:    %g\n', obj.pp_max_code_err_thr)];
             str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', obj.pp_max_phase_err_thr)];
             str = obj.toString@KF_Settings(str);
-            str = [str '---- ABIGUITY ------------------------------------------------------------' 10 10];
+            str = [str '---- ABIGUITY (IAR) -------------------------------------------------------' 10 10];
             str = [str sprintf(' Ambiguity restart mode:                           %d\n\n', obj.iar_restart_mode)];
             str = [str sprintf(' Using method: %s\n\n', obj.IAR_MODE{obj.iar_mode+1})];
             str = [str sprintf(' User defined fixed failure rate (methods 1,2):    %g\n', obj.iar_P0)];
             str = [str sprintf(' User defined minimum success rate (for method 5): %g\n', obj.iar_P0)];
             str = [str sprintf(' STD of apriori ambiguity combinations [cycles]:   %d\n\n', obj.sigma0_N)];
             str = [str sprintf(' User defined threshold for ratio test:            %g\n', obj.iar_mu)];
-            str = [str sprintf(' Automatic determination of mu:                    %d\n', obj.iar_flag_auto_mu)];
-            str = [str sprintf(' Use default value for P0:                         %d\n\n', obj.iar_flag_default_P0)];
+            str = [str sprintf(' Automatic determination of mu:                    %d\n', obj.flag_iar_auto_mu)];
+            str = [str sprintf(' Use default value for P0:                         %d\n\n', obj.flag_iar_default_P0)];
             str = [str '---- ATHMOSPHERE ---------------------------------------------------------' 10 10];
             str = [str sprintf(' Ionospheric model:  %s\n', obj.IONO_MODE{obj.iono_model+1})];
             str = [str sprintf(' Tropospheric model: %s\n\n', obj.TROPO_MODE{obj.tropo_model+1})];
             str = [str '---- DEM -----------------------------------------------------------------' 10 10];
-            str = [str sprintf(' STD of DEM model [m]:                             %g\n', obj.iar_mu)];
+            str = [str sprintf(' Use DTM:                                          %d\n', obj.flag_dtm)];
+            str = [str sprintf(' STD of DEM model [m]:                             %g\n', obj.sigma_dtm)];
         end
         
-        function str_cell = toIniString(obj, str_cell)
-            % Conversion to string of the minimal information needed to reconstruct the obj
+        function str_cell = export(obj, str_cell)
+            % Conversion to string ini format of the minimal information needed to reconstruct the obj
             if (nargin == 1)
                 str_cell = {};
             end
-            str_cell = obj.toIniString@IO_Settings(str_cell);
+                        
+            str_cell = obj.export@IO_Settings(str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = obj.toIniString@PrePro_Settings(str_cell);
+            
+            str_cell = Ini_Manager.toIniStringSection('RECEIVERS', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of phase observations [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_ph', obj.sigma_ph, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of iono-free phase observations [m', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_ph_if', obj.sigma_ph_if, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of apriori receiver clock', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_clock', obj.sigma0_clock, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of receiver clock', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_clock', obj.sigma0_r_clock, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Signal-to-noise ratio threshold [dB]', str_cell);
+            str_cell = Ini_Manager.toIniString('snr_thr', obj.snr_thr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Cut-off [degrees]', str_cell);
+            str_cell = Ini_Manager.toIniString('cutoff', obj.cutoff, str_cell);            
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = obj.toIniString@KF_Settings(str_cell);
-        end
+            
+            str_cell = obj.export@PrePro_Settings(str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
+            str_cell = Ini_Manager.toIniStringSection('PROCESSING', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
+            str_cell = Ini_Manager.toIniString('w_mode', obj.w_mode, str_cell);
+            for (i = 1 : numel(obj.W_MODE))
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %d: %s', i - 1, obj.W_MODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Cycle slip threshold (processing) [cycles]', str_cell);
+            str_cell = Ini_Manager.toIniString('cs_thr', obj.cs_thr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Weight function parameters (when based on SNR): a / 0 / 1 / A', str_cell);
+            str_cell = Ini_Manager.toIniString('w_snr', struct2array(obj.w_snr), str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
+            str_cell = Ini_Manager.toIniStringSection('THRESHOLDS', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Threshold on code LS estimation error [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('pp_spp_thr', obj.pp_spp_thr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of code obs [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('pp_max_code_err_thr', obj.pp_max_code_err_thr, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Threshold on maximum residual of phase obs [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('pp_max_phase_err_thr', obj.pp_max_phase_err_thr, str_cell);
+            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = obj.export@KF_Settings(str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
-    end        
+            str_cell = Ini_Manager.toIniStringSection('ABIGUITY', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Ambiguity restart mode', str_cell);
+            str_cell = Ini_Manager.toIniString('iar_restart_mode', obj.iar_restart_mode, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Ambiguity detection mode', str_cell);
+            str_cell = Ini_Manager.toIniString('iar_mode', obj.iar_mode, str_cell);
+            for (i = 1 : numel(obj.IAR_MODE))
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', obj.IAR_MODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('User defined fixed failure rate (methods 1,2) / user defined minimum success rate (for method 5)', str_cell);
+            str_cell = Ini_Manager.toIniString('iar_P0', obj.iar_P0, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of apriori ambiguity combinations [cycles]', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_N', obj.sigma0_N, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('User defined threshold for ratio test', str_cell);
+            str_cell = Ini_Manager.toIniString('iar_mu', obj.iar_mu, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Automatic determination of mu', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_iar_auto_mu', obj.flag_iar_auto_mu, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Use default value for P0', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_iar_default_P0', obj.flag_iar_default_P0, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
+            str_cell = Ini_Manager.toIniStringSection('ATHMOSPHERE', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Ionospheric model', str_cell);
+            str_cell = Ini_Manager.toIniString('iono_model', obj.iono_model, str_cell);
+            for (i = 1 : numel(obj.IONO_MODE))
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', obj.IONO_MODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Tropospheric model', str_cell);
+            str_cell = Ini_Manager.toIniString('tropo_model', obj.tropo_model, str_cell);
+            for (i = 1 : numel(obj.IONO_MODE))
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', obj.IONO_MODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            
+            str_cell = Ini_Manager.toIniStringSection('DEM', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Use DTM (true/false)', str_cell);
+            str_cell = Ini_Manager.toIniString('flag_dtm', obj.flag_dtm, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of DEM model [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_dtm', obj.sigma_dtm, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+        end
+        
+        function init_dtm(obj, dtm_dir)
+            % Try to load default DTM values (if flag_dtm is on)
+            if obj.flag_dtm
+                if nargin == 1
+                    dtm_dir = obj.dtm_dir; % from superclass IO_Settings
+                end
+                try
+                    load([dtm_dir filesep 'tiles' filesep 'tile_header'], 'tile_header');
+                    obj.tile_header = tile_header;
+                    obj.logger.addMessage(sprintf(' - DTM tile header in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_header']));
+                    load([dtm_dir filesep 'tiles' filesep 'tile_georef'], 'tile_georef');
+                    obj.tile_georef = tile_georef;
+                    obj.logger.addMessage(sprintf(' - DTM tile georef in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_georef']));
+                catch
+                    obj.logger.addWarning(sprintf('Failed to read DTM stored in %s', [dtm_dir '/tiles/']));
+                    % use default zeroes values
+                end
+            end
+        end
+        
+    end
 end
