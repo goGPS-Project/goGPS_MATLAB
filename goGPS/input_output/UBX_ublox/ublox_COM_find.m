@@ -45,7 +45,11 @@ for i = 1 : length(serialInfo.AvailableSerialPorts)
 
     s = serial(serialInfo.AvailableSerialPorts(i),'BaudRate',57600);
     set(s,'InputBufferSize',16384);
-    set(s,'FlowControl','hardware');
+    if ~ismac
+        set(s,'FlowControl','hardware');
+    else
+        set(s,'FlowControl','software');
+    end
     try
         fopen(s);
     catch

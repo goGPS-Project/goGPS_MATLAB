@@ -228,6 +228,10 @@ classdef goGNSS < handle
             goGNSS.MODE_RT_M_MON ...
             goGNSS.MODE_RT_RM_MON];
         
+        GMODE_MON = [ goGNSS.MODE_RT_R_MON ...      % Group of monitor modes
+            goGNSS.MODE_RT_M_MON ...
+            goGNSS.MODE_RT_RM_MON];
+
         GMODE_SA = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of stand alone modes
             goGNSS.MODE_PP_LS_CP_SA ...
             goGNSS.MODE_PP_LS_CP_VEL ...
@@ -310,6 +314,11 @@ classdef goGNSS < handle
             isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
         end
         
+        function isMonitor = isMON(mode)
+            % return whether or not the mode given in use is a Monitor mode
+            isMonitor = sum(intersect(mode, goGNSS.GMODE_MON));
+        end
+                
         function isRealTime = isRT(mode)
             % return whether or not the mode given in use is a Real Time mode
             isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));

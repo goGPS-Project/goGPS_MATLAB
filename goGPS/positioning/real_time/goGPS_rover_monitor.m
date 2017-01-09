@@ -173,7 +173,11 @@ for r = 1 : nrec
     rover{r} = serial(COMportR{r},'BaudRate',prot_par{r}{2,1}); %#ok<TNMLP>
     set(rover{r},'InputBufferSize',prot_par{r}{3,1});
     if (protocol(r) == 0)
-        set(rover{r},'FlowControl','hardware');
+        if ~ismac
+            set(rover{r},'FlowControl','hardware');
+        else
+            set(rover{r},'FlowControl','software');
+        end
         set(rover{r},'RequestToSend','on');
     end
 end

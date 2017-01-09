@@ -268,14 +268,18 @@ end
 % DETECT IF NAVIGATION FILE IS IN SP3 FORMAT
 %-------------------------------------------------------------------------------------------
 
-fid = fopen(filename_nav);
-line1 = fgetl(fid); line2 = fgetl(fid);
-if (strcmp(line1(1),'#') && strcmp(line2(1:2),'##'))
-    flag_SP3 = 1;
+if goGNSS.isPP(mode)
+    fid = fopen(filename_nav);
+    line1 = fgetl(fid); line2 = fgetl(fid);
+    if (strcmp(line1(1),'#') && strcmp(line2(1:2),'##'))
+        flag_SP3 = 1;
+    else
+        flag_SP3 = 0;
+    end
+    fclose(fid);
 else
     flag_SP3 = 0;
 end
-fclose(fid);
 
 %-------------------------------------------------------------------------------------------
 % REPORT INITIALIZATION
