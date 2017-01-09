@@ -190,6 +190,7 @@ for file_pcv=1:size(filename,1)
                                             end
                                         else  %receiver antenna
                                             antenna_PCV(m).offset(1,1:3,frequencies_found)=[sscanf(line(11:20),'%f'),sscanf(line(1:10),'%f'),sscanf(line(21:30),'%f')].*1e-3; %E,N,U
+                                            antenna_PCV(m).available = 1;
                                         end
                                         
                                         number_of_zenith=(antenna_PCV(m).zen2-antenna_PCV(m).zen1)/antenna_PCV(m).dzen+1;
@@ -232,11 +233,13 @@ for file_pcv=1:size(filename,1)
                                     end
                                 end
                                 
-                                % This cicle is slow -> and it seems to do nothing... antmod{n} is never == antmod{m} with n > m
-                                % ToDo: add a comment on what this is doing
+                                % if the same antenna model is required also by one or more of the next antmod
+                                % entries, just duplicate the one that was read just now
                                 for n = m+1 : length(antmod)
-                                    if (strcmp(antmod{n}, antmod{m}))
+                                    if (strcmp(antmod{n}, antmod{m}) && antenna_PCV(m).available && ~antenna_PCV(n).available)
                                         antenna_PCV(n) = antenna_PCV(m);
+                                        found = found + 1;
+                                        antenna_found(n) = 1;
                                     end
                                 end
                                                              
