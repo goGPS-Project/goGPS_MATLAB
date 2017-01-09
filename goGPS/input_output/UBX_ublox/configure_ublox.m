@@ -60,7 +60,11 @@ while (~reply_SAVE)
     % create new serial object
     serialObj = serial(COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
-    set(serialObj,'FlowControl','hardware');
+    if ~ismac
+        set(serialObj,'FlowControl','hardware');
+    else
+        set(serialObj,'FlowControl','software');
+    end
     set(serialObj,'RequestToSend','on');
     fopen(serialObj);
     reply_SAVE = ublox_CFG_CFG(serialObj, 'save');
@@ -98,7 +102,11 @@ while (~reply_RATE)
     % create new serial object
     serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
-    set(serialObj,'FlowControl','hardware');
+    if ~ismac
+        set(serialObj,'FlowControl','hardware');
+    else
+        set(serialObj,'FlowControl','software');
+    end
     set(serialObj,'RequestToSend','on');
     fopen(serialObj);
     reply_RATE = ublox_CFG_RATE(serialObj, 1000/rate, 1, 1);
@@ -133,7 +141,11 @@ while (~reply_RAW)
     % create new serial object
     serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
-    set(serialObj,'FlowControl','hardware');
+    if ~ismac
+        set(serialObj,'FlowControl','hardware');
+    else
+        set(serialObj,'FlowControl','software');
+    end
     set(serialObj,'RequestToSend','on');
     fopen(serialObj);
     reply_RAW = ublox_CFG_MSG(serialObj, 'RXM', 'RAW', 1);
@@ -168,7 +180,11 @@ while (~reply_SFRB)
     % create new serial object
     serialObj = serial (COMportR,'BaudRate',prot_par{2,1});
     set(serialObj,'InputBufferSize',prot_par{3,1});
-    set(serialObj,'FlowControl','hardware');
+    if ~ismac
+        set(serialObj,'FlowControl','hardware');
+    else
+        set(serialObj,'FlowControl','software');
+    end
     set(serialObj,'RequestToSend','on');
     fopen(serialObj);
     reply_SFRB = ublox_CFG_MSG(serialObj, 'RXM', 'SFRB', 0);

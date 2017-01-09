@@ -205,7 +205,11 @@ end
 rover = serial (COMportR,'BaudRate',prot_par{2,1});
 set(rover,'InputBufferSize',prot_par{3,1});
 if (protocol == 0)
-    set(rover,'FlowControl','hardware');
+    if ~ismac
+        set(rover,'FlowControl','hardware');
+    else
+        set(rover,'FlowControl','software');
+    end
     set(rover,'RequestToSend','on');
 end
 fopen(rover);
@@ -524,19 +528,20 @@ end
 safety_lag = 0.1;                       %safety lag for reading ROVER data
 start_time = current_time-safety_lag;   %starting time
 
-%------------------------------------------------------
-% creation of the connection to the MASTER
-%------------------------------------------------------
-
-ntripstring = NTRIP_string_generator(nmea_init);
-
-master = tcpip(master_ip,master_port);
-set(master,'InputBufferSize', 16384);
-fopen(master);
-fwrite(master,ntripstring);
-
-%wait until the buffer is written before continuing
-while get(master,'BytesAvailable') == 0, end
+if flag_NTRIP
+    %------------------------------------------------------
+    % creation of the connection to the MASTER
+    %------------------------------------------------------
+    ntripstring = NTRIP_string_generator(nmea_init);
+    
+    master = tcpip(master_ip,master_port);
+    set(master,'InputBufferSize', 16384);
+    fopen(master);
+    fwrite(master,ntripstring);
+    
+    %wait until the buffer is written before continuing
+    while get(master,'BytesAvailable') == 0, end
+end
 
 %--------------------------------------------------------
 % acquisition of the 1st master message (dropped)

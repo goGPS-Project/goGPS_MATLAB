@@ -139,7 +139,11 @@ end
 rover = serial (COMportR,'BaudRate',prot_par{2,1});
 set(rover,'InputBufferSize',prot_par{3,1});
 if (protocol == 0)
-    set(rover,'FlowControl','hardware');
+    if ~ismac
+        set(rover,'FlowControl','hardware');
+    else
+        set(rover,'FlowControl','software');
+    end
     set(rover,'RequestToSend','on');
 end
 fopen(rover);
