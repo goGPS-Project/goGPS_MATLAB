@@ -72,7 +72,7 @@ while (isempty(header_end))
         %         ioparam = 1;
         %save the 8 ionosphere parameters
         data = textscan(lin(5:end),'%f%f%f%f%*[^\n]');
-        if ~isempty(data(4))
+        if ~isempty(data{4})
             iono(1) = data{1};
             iono(2) = data{2};
             iono(3) = data{3};
@@ -82,7 +82,7 @@ while (isempty(header_end))
                 lin = fgetl(fid);
             end
             data = textscan(lin(5:end),'%f%f%f%f%*[^\n]');
-            if ~isempty(data(4))
+            if ~isempty(data{4})
                 iono(5) = data{1};
                 iono(6) = data{2};
                 iono(7) = data{3};
