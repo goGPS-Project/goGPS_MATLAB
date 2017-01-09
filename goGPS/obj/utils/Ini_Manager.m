@@ -26,9 +26,8 @@
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
 %
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.5.9
-%
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%                           goGPS v0.9.1
+% Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 % Written by:       Gatti Andrea
 % Contributors:     Gatti Andrea, ...
 %----------------------------------------------------------------------------------------------
@@ -426,12 +425,7 @@ classdef Ini_Manager < handle
         end
         
         % Get data --------------------------------------------------------        
-        function data = getData(obj, section, key, print_errors)
-            % extract the value of a key
-            if nargin == 3
-                print_errors = 0;
-            end
-            
+        function data = getData(obj, section, key)            
             % Get the value of a specified key
             if (~obj.getReadStatus() && isempty(obj.section))
                %obj.printWarning('File not yet read!\n');
@@ -480,8 +474,8 @@ classdef Ini_Manager < handle
                 end
             end
             
-            if (isempty(data) && print_errors)
-                obj.printError(['Key "' key '" not found!\n']);
+            if (isempty(data))
+                obj.logger.addWarning(['Key "' key '" not found while reading: "' obj.file_name '"']);
                 data = [];
             end
         end

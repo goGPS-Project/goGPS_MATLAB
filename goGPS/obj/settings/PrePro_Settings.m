@@ -10,7 +10,7 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc PrePro_Settings
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.5.9
+%                           goGPS v0.9.1
 % Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 % Written by:       Gatti Andrea
 % Contributors:     Gatti Andrea, ...
@@ -52,7 +52,6 @@ classdef PrePro_Settings < Settings_Interface
             % This function import Post Processing (only) settings from another setting object or ini file
             if isa(settings, 'Ini_Manager')
                 obj.cs_thr_pre_pro = settings.getData('cs_thr_pre_pro');
-                obj.dtm_dir    = settings.getData('dtm_dir');
             else
                 obj.cs_thr_pre_pro = settings.cs_thr_pre_pro;
             end

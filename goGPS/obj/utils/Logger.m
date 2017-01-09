@@ -11,7 +11,7 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc Logger
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.5.9
+%                           goGPS v0.9.1
 % Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 % Written by:       Gatti Andrea
 % Contributors:     Gatti Andrea, ...
@@ -55,12 +55,12 @@ classdef Logger < handle
     methods (Static)        
         function obj = getInstance()
             % Concrete implementation.  See Singleton superclass.
-            persistent unique_instance_logger
-            if isempty(unique_instance_logger)
+            persistent unique_instance_logger__
+            if isempty(unique_instance_logger__)
                 obj = Logger();
-                unique_instance_logger = obj;
+                unique_instance_logger__ = obj;
             else
-                obj = unique_instance_logger;
+                obj = unique_instance_logger__;
             end
         end
     end

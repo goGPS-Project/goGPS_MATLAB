@@ -12,7 +12,7 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc GO_Settings
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.5.9
+%                           goGPS v0.9.1
 % Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 % Written by:       Gatti Andrea
 % Contributors:     Gatti Andrea, ...
@@ -62,12 +62,12 @@ classdef GO_Settings < Settings_Interface
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
         function obj = getInstance()
-            persistent unique_instance_settings
-            if isempty(unique_instance_settings)
+            persistent unique_instance_settings__
+            if isempty(unique_instance_settings__)
                 obj = GO_Settings();
-                unique_instance_settings = obj;
+                unique_instance_settings__ = obj;
             else
-                obj = unique_instance_settings;
+                obj = unique_instance_settings__;
             end
         end
     end
@@ -80,8 +80,8 @@ classdef GO_Settings < Settings_Interface
             else
                 try
                     obj.ps.import(settings);
-                catch
-                    obj.logger.addWarning('GO_Settings.import failed to import settings (invalid input settings)');
+                catch ex
+                    obj.logger.addWarning(['GO_Settings.import failed to import settings (invalid input settings) ', ex.message()]);
                 end
             end            
         end

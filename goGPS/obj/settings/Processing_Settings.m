@@ -10,7 +10,7 @@
 % FOR A LIST OF CONSTANTs and METHODS use doc Processing_Settings
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.5.9
+%                           goGPS v0.9.1
 % Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 % Written by:       Gatti Andrea
 % Contributors:     Gatti Andrea, ...
@@ -167,8 +167,12 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
         % DEM 
         %------------------------------------------------------------------
         
+        
         % DTM flag (use / not use) DTM
         flag_dtm = false;
+
+        % Folder containing DTM files
+        dtm_dir = '../data/dtm';
 
         % Std of DEM height [m]
         sigma_dtm = 0.03  % (maximize to disable DEM usage: e.g. 1e30)
@@ -220,6 +224,7 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
                 obj.flag_iar_default_P0 = settings.getData('flag_iar_default_P0');
                 obj.iono_model = settings.getData('iono_model');
                 obj.tropo_model = settings.getData('tropo_model');
+                obj.dtm_dir    = settings.getData('dtm_dir');
                 obj.flag_dtm = settings.getData('flag_dtm');
                 obj.sigma_dtm = settings.getData('sigma_dtm');
             else
@@ -244,6 +249,7 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
                 obj.flag_iar_default_P0 = settings.flag_iar_default_P0;
                 obj.iono_model = settings.iono_model;
                 obj.tropo_model = settings.tropo_model;
+                obj.dtm_dir    = settings.dtm_dir;
                 obj.flag_dtm = settings.flag_dtm;
                 obj.sigma_dtm = settings.sigma_dtm;
             end
@@ -251,7 +257,6 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             obj.import@IO_Settings(settings);
             obj.import@PrePro_Settings(settings);
             obj.import@KF_Settings(settings);
-            obj.sigma0_pos = kf_settings.sigma0_pos;
             
             obj.postImportInit();
         end
@@ -298,6 +303,7 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str = [str sprintf(' Tropospheric model: %s\n\n', obj.TROPO_MODE{obj.tropo_model+1})];
             str = [str '---- DEM -----------------------------------------------------------------' 10 10];
             str = [str sprintf(' Use DTM:                                          %d\n', obj.flag_dtm)];
+            str = [str sprintf(' Folder containing DTM data:                       %s\n', obj.dtm_dir)];
             str = [str sprintf(' STD of DEM model [m]:                             %g\n', obj.sigma_dtm)];
         end
         
@@ -318,7 +324,7 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str_cell = Ini_Manager.toIniStringComment('STD of apriori receiver clock', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_clock', obj.sigma0_clock, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of receiver clock', str_cell);
-            str_cell = Ini_Manager.toIniString('sigma0_clock', obj.sigma0_r_clock, str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_r_clock', obj.sigma0_r_clock, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Signal-to-noise ratio threshold [dB]', str_cell);
             str_cell = Ini_Manager.toIniString('snr_thr', obj.snr_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Cut-off [degrees]', str_cell);
@@ -391,6 +397,8 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str_cell = Ini_Manager.toIniStringSection('DEM', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Use DTM (true/false)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_dtm', obj.flag_dtm, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Folder containing DTM data', str_cell);
+            str_cell = Ini_Manager.toIniString('dtm_dir', obj.dtm_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of DEM model [m]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma_dtm', obj.sigma_dtm, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);

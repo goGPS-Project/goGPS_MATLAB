@@ -6,7 +6,7 @@
 %   computations
 %
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.5.9
+%                           goGPS v0.9.1
 % Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 % Written by:       Gatti Andrea
 % Contributors:     Gatti Andrea, ...

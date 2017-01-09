@@ -10,7 +10,7 @@
 % FOR A LIST OF CONSTANTS and METHODS use doc File_Rinex
 
 %----------------------------------------------------------------------------------------------
-%                           goGPS v0.5.9
+%                           goGPS v0.9.1
 % Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 % Written by:       Gatti Andrea
 % Contributors:     Gatti Andrea, ...
@@ -54,7 +54,7 @@ classdef File_Rinex < handle
             %            File_Rinex (base_dir, file_name)
             %            File_Rinex (file_name)
             
-            % im
+            % fill the path with the imported file names
             switch (nargin)
                 case 0 % only instantiate the object
                     return
@@ -89,13 +89,13 @@ classdef File_Rinex < handle
                         obj.file_name_list = {file_name};
                     end
             end
-            obj.check_validity();
+            obj.checkValidity();
         end
         
     end
     
     methods
-        function check_validity(obj)
+        function checkValidity(obj)
             % Update the status of validity of the files here pointed
             
             % for each file present in the list

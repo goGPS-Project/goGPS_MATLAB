@@ -1,11 +1,11 @@
-%   CLASS Receiver
+%   CLASS GPS_Time
 % =========================================================================
 %
 % DESCRIPTION
-%   Class to store receiver data (observations, and characteristics
+%   Class to manage times and dates in various format (GPS / UTC/ ...)
 %
 % EXAMPLE
-%   settings = goGNSS();
+%   settings = GPS_Time();
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
 
@@ -29,14 +29,13 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef Receiver < handle
+classdef GPS_Time < handle
     
     properties (Constant)
+        DEFAULT_DATE_FORMAT = 'YYYY/MM/DD hh:mm:ss.ssss'; % String representing the format of visualization of the time
     end
     
     properties (SetAccess = private, GetAccess = public)
-        % Antenna height from the ground [m]
-        h_antenna = 0;
     end
     
     methods
@@ -45,5 +44,20 @@ classdef Receiver < handle
     end
     
     methods 
-    end        
+    end    
+    
+    methods (Static, Access = 'protected')
+        function setTimeFormat(time_format)
+            persistent time_format__;
+            time_format__ = time_format;
+        end
+        
+        function time_format = getTimeFormat()
+            persistent time_format__;
+            if isempty(time_format__)
+                time_format__ = DEFAULT_DATE_FORMAT;
+            end
+            time_format = time_format__;
+        end
+    end
 end
