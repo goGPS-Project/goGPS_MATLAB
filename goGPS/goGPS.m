@@ -79,7 +79,7 @@ end
 %----------------------------------------------------------------------------------------------
 
 global order o1 o2 o3 h_antenna cutoff weights t nC
-global cs_threshold_preprocessing cs_threshold
+global cs_threshold
 global iono_model tropo_model
 global flag_outlier SPP_threshold min_arc max_code_residual max_phase_residual
 
@@ -109,7 +109,7 @@ if (mode_user == 1)
     end
 else
 
-    if (mode_user == 1)
+    if (~exist('is_batch','var'))
         %-------------------------------------------------------------------------------------------
         % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
         %-------------------------------------------------------------------------------------------
@@ -147,6 +147,18 @@ else
         flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
         
         flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
+        
+        flag_tropo = 0;         % estimate zenith tropospheric delay
+
+        flag_ocean = 0;      % use ocean tides
+        
+        flag_SEID = 0;       % Satellite-specific Epoch-differenced Ionospheric Delay (SEID) model
+        
+        frequencies = [1];   % array containing the frequencies band to use
+
+        obs_comb = 'NONE';   % combination of observations, valid input 'NONE' or 'IONO_FREE'
+        
+        fsep_char = 'default';
                 
         %----------------------------------------------------------------------------------------------
         % USER-DEFINED SETTINGS
@@ -154,24 +166,7 @@ else
         
         %User-defined global settings
         global_settings;
-        
     else
-        flag_tropo = 0;         % estimate zenith tropospheric delay
-
-        flag_ocean = 0;      % use ocean tides
-        
-        flag_outlier = 1;    % remove outliers
-        
-        flag_SEID = 0;       % Satellite-specific Epoch-differenced Ionospheric Delay (SEID) model
-        
-        frequencies = [1];   % array containing the frequencies band to use
-
-        obs_comb = 'NONE';   % combination of observations, valid input 'NONE' or 'IONO_FREE'
-           
-        SPP_threshold = 4;    % PP threshold
-        max_code_residual = 30;
-        max_phase_residual = 0.05;
-        min_arc = 20;
         
         %-------------------------------------------------------------------------------------------
         % DISABLE FUNCTIONS NOT USED FOR BATCH PROCESSING
@@ -189,22 +184,9 @@ else
         flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
         flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
         fsep_char = 'default';
-
-        %----------------------------------------------------------------------------------------------
-        % USER-DEFINED SETTINGS
-        %----------------------------------------------------------------------------------------------
-        
-        %User-defined global settings (only if batch processing from shell script)
-        if (~exist('is_batch','var'))
-            global_settings;
-        end
     end
 end
 
-%------------------------------------------------------------------------------------------------------------
-%!!! TEMPORARY SETTINGS !!! --> will be moved to GUI/global settings before merging back to the master branch
-%------------------------------------------------------------------------------------------------------------
- 
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
@@ -1898,6 +1880,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == goGNSS.MODE_PP_KF_CP_SA )
+    
+    cs_threshold = 1e30;
     
     fid_kal = fopen([filerootOUT '_kal_000.bin'],'w+');
     fid_sat = fopen([filerootOUT '_sat_000.bin'],'w+');

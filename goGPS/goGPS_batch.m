@@ -115,6 +115,9 @@ end
 %-------------------------------------------------------------------------------
 % PROCESSING OPTIONS
 %-------------------------------------------------------------------------------
+
+global amb_restart_method
+
 GPS_flag = 1;
 GLO_flag = 0;
 GAL_flag = 0;
@@ -131,6 +134,22 @@ min_epoch = 1440;       % minimum number of observed epoch to process
 if (nargin < 17)
     seamless_proc = 0;      % seamless RINEX processing (i.e. do not re-initialize the Kalman filter at each DOY)
 end
+
+%ambiguity restart method
+amb_restart_method = 1;
+
+%processing interval
+processing_interval = 30; %[sec]
+
+flag_tropo = 1;         % estimate zenith tropospheric delay
+
+flag_ocean = 1;      % use ocean tides
+
+flag_SEID = 0;       % Satellite-specific Epoch-differenced Ionospheric Delay (SEID) model
+
+frequencies = [1 2];   % array containing the frequencies band to use
+
+obs_comb = 'IONO_FREE';   % combination of observations, valid input 'NONE' or 'IONO_FREE'
 
 %-------------------------------------------------------------------------------
 % MASTER STATION POSITION
@@ -184,7 +203,6 @@ end
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
 global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm  sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
 global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
-global amb_restart_method
 
 %variance of initial state
 sigmaq0 = 1;
@@ -239,10 +257,10 @@ cutoff = 10;
 snr_threshold = 0;
 
 %cycle slip threshold (pre-processing) [cycles]
-cs_threshold_preprocessing = 0.5;
+cs_threshold_preprocessing = 1;
 
 %cycle slip threshold (processing) [cycles]
-cs_threshold = 0.5;
+cs_threshold = 1;
 
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
@@ -265,12 +283,6 @@ order = 1;
 o1 = order;
 o2 = order*2;
 o3 = order*3;
-
-%ambiguity restart method
-amb_restart_method = 2;
-
-%processing interval
-processing_interval = 0; %[sec]
 
 %-------------------------------------------------------------------------------
 % INTEGER AMBIGUITY RESOLUTION
@@ -301,7 +313,7 @@ flag_default_P0 = 1;
 %-------------------------------------------------------------------------------
 % THRESHOLDS
 %-------------------------------------------------------------------------------
-global SPP_threshold max_code_residual max_phase_residual
+global SPP_threshold max_code_residual max_phase_residual min_arc flag_outlier
 
 SPP_threshold = 4;         %threshold on the code point-positioning least squares
                            %   estimation error [m]
@@ -311,6 +323,10 @@ max_code_residual = 30;    %threshold on the maximum residual of code
                           
 max_phase_residual = 0.05; %threshold on the maximum residual of phase
                            %   observations [m]
+                           
+min_arc = 10;
+
+flag_outlier = 1;
 
 %-------------------------------------------------------------------------------
 % RECEIVER
