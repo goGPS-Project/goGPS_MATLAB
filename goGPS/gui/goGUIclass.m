@@ -417,7 +417,7 @@ classdef goGUIclass < handle
             value = get(obj.goh.dyn_mod,'Value');
             value = max(1,min(length(str), value));
             set(obj.goh.dyn_mod, 'String', str);
-            set(obj.goh.dyn_mod,'Value', value);
+            set(obj.goh.dyn_mod,'Value', value);            
         end
         
         % Dyn model changes wrt the mode
@@ -1786,6 +1786,12 @@ classdef goGUIclass < handle
             isRT = isOn && (obj.getElVal(obj.idUI.lProcMode) == obj.idRealTime);
         end
         
+        % Get monitor status
+        function isMon = isMonitor(obj)
+            isOn = obj.isEnabled(obj.idUI.lCaptMode);
+            isMon = isOn && ~obj.isCaptureMode(obj.idNav);
+        end
+        
         function isPP = isPostProc(obj)
             isOn = obj.isEnabled(obj.idUI.lProcMode);
             isPP = isOn && (obj.getElVal(obj.idUI.lProcMode) == obj.idPostProc);
@@ -2078,12 +2084,22 @@ classdef goGUIclass < handle
             
             % Check if static dynamic model
             if (obj.isDynModelStatic())
-                obj.setElStatus([obj.idGroup.pKF_ENU], 0, 0);
+                obj.setElStatus([obj.idGroup.pKF_ENU], 0, 0);                
             else
                 if (obj.isKF() || obj.isSEID_PPP())
                     obj.setElStatus([obj.idGroup.pKF_ENU], 1, 0);
                 end
+            end 
+            
+            if ~obj.isMonitor()
+                switch obj.getElVal(obj.idUI.lDynModel)
+                    case obj.idCVel, obj.setGuiElStr(obj.id2handle(obj.idUI.uStdENU),'m/s');
+                    case obj.idCAcc, obj.setGuiElStr(obj.id2handle(obj.idUI.uStdENU),'m/s^2');
+                    case obj.idStatic, obj.setGuiElStr(obj.id2handle(obj.idUI.uStdENU),'m');
+                    case obj.idVariable, obj.setGuiElStr(obj.id2handle(obj.idUI.uStdENU),'m');
+                end
             end
+
                 
           %   SETTINGS - MASTER STATION
           % ---------------------------------------------------------------

@@ -309,9 +309,11 @@ else
     return
 end
 
-%compute phase wind-up correction
-[~, index_ph]=intersect(sat_pr,sat);
-phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS(index_ph,:), SP3, phwindup(sat,1));
+if (~isempty(SP3))
+    %compute phase wind-up correction
+    [~, index_ph]=intersect(sat_pr,sat);
+    phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS(index_ph,:), SP3, phwindup(sat,1));
+end
 
 %ambiguity initialization: initialized value
 %if the satellite is visible, 0 if the satellite is not visible
