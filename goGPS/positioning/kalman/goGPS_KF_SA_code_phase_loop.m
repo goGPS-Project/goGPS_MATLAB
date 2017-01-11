@@ -341,9 +341,11 @@ if (nsat >= min_nsat)
 
     [~, index_ph]=intersect(sat_pr,sat);
     
-    %compute phase wind-up correction
-    phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS(index_ph,:), SP3, phwindup(sat,1));
-    phwindup(setdiff(1:nSatTot,sat),1) = 0;
+    if (~isempty(SP3))
+        %compute phase wind-up correction
+        phwindup(sat,1) = phase_windup_correction(time_rx, XR0, XS(index_ph,:), SP3, phwindup(sat,1));
+        phwindup(setdiff(1:nSatTot,sat),1) = 0;
+    end
     
     %apply receiver antenna PCO/PCV corrections
     if (~isempty(antenna_PCV) && antenna_PCV(1).n_frequency ~= 0)
