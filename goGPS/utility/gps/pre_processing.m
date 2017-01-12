@@ -177,10 +177,12 @@ epoch_track = 0;
 %total number of observations (for matrix initialization)
 n_obs_tot = floor(sum(sum(pr1(:,:,1) ~= 0))/mt);
 
-y0_all = NaN(n_obs_tot,1);
-b_all  = NaN(n_obs_tot,1);
-A_all  = NaN(n_obs_tot,npos*3+nEpochs_reduced+(nisbs-1));
-Q_all  = NaN(n_obs_tot,1);
+if (nisbs > 1)
+    y0_all = NaN(n_obs_tot,1);
+    b_all  = NaN(n_obs_tot,1);
+    A_all  = NaN(n_obs_tot,npos*3+nEpochs_reduced+(nisbs-1));
+    Q_all  = NaN(n_obs_tot,1);
+end
 
 r = 1;
 for i = 1 : nEpochs
@@ -221,7 +223,7 @@ for i = 1 : nEpochs
             [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
         end
         
-        if (~isempty(A) && (size(A,2) >= 3+nisbs-1) && (mod(i,mt) == 0))
+        if (~isempty(A) && (nisbs > 1) && (mod(i,mt) == 0))
             n_obs_epoch(r) = length(y0);
             y0_all(epoch_track+1:epoch_track+n_obs_epoch(r)) = y0;
             b_all( epoch_track+1:epoch_track+n_obs_epoch(r)) =  b;
