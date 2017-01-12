@@ -768,6 +768,7 @@ classdef goGUIclass < handle
           %   OPTIONS
           % --------------------------------------------------------------- 
 
+            i=i+1; id.cPrePro       = i;    id2h(i) = obj.goh.cPrePro;
             i=i+1; id.cConstraint   = i;    id2h(i) = obj.goh.constraint;
             i=i+1; id.cRefPath      = i;    id2h(i) = obj.goh.ref_path;
             i=i+1; id.cPlotProc     = i;    id2h(i) = obj.goh.plotproc;
@@ -782,7 +783,7 @@ classdef goGUIclass < handle
             
             % Group of ids in the panel pOptions
             idG.gPlotProc = [id.cSkyPlot id.cGEarth id.cErrEllipse id.cPlotMaster id.cPlotAmb];
-            idG.pOptions = [id.pOptions id.cConstraint:id.cUse_SBAS];
+            idG.pOptions = [id.pOptions id.cPrePro:id.cUse_SBAS];
                         
           %   INTEGER AMBIGUITY RESOLUTION
           % ---------------------------------------------------------------
@@ -1153,7 +1154,7 @@ classdef goGUIclass < handle
                               id.pOptions ...
                               idG.CutOff idG.OM ...
                               id.pUsage idG.pProcRate id.cL1 id.cOutlier id.cOcean ...
-                              idG.SPPthr idG.CodeThr idG.MinArc];
+                              idG.SPPthr idG.CodeThr idG.MinArc id.cPrePro];
             
             % On Post Proc => Least Squares
             idG.onPP_LS = [idG.onPostProc];
@@ -2774,6 +2775,9 @@ classdef goGUIclass < handle
             %   OPTIONS
             % ===============================================================
             
+            if (isfield(state,'pre_pro'))
+                obj.setElVal(obj.idUI.cPrePro, state.pre_pro, 0);
+            end
             obj.setElVal(obj.idUI.cMPos, state.master_pos, 0);
             obj.setElVal(obj.idUI.cConstraint, state.constraint, 0);
             obj.setElVal(obj.idUI.cPlotProc, state.plotproc, 0);
@@ -2945,6 +2949,7 @@ classdef goGUIclass < handle
             %   OPTIONS
             % ===============================================================
 
+            state.pre_pro           = obj.getElVal(obj.idUI.cPrePro);
             state.master_pos        = obj.getElVal(obj.idUI.cMPos);
             state.constraint        = obj.getElVal(obj.idUI.cConstraint);
             state.plotproc          = obj.getElVal(obj.idUI.cPlotProc);
@@ -3237,6 +3242,8 @@ classdef goGUIclass < handle
                 fsep_char = fsep;
             end           
             
+            flag_full_prepro = obj.getElVal(obj.idUI.cPrePro);
+            
             mode_ref = get(obj.goh.ref_path,'Value');
             flag_ms_pos = get(obj.goh.master_pos,'Value');
             flag_ms = get(obj.goh.plot_master,'Value');
@@ -3429,6 +3436,7 @@ classdef goGUIclass < handle
             funout{35} = flag_SEID;
             funout{36} = processing_rate;
             funout{37} = obs_comb;
+            funout{38} = flag_full_prepro;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
