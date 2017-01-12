@@ -1,7 +1,7 @@
-function [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR_approx, distM, sat, pivot, lambda)
+function [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR_approx, distM, sat, pivot, lambda)
 
 % SYNTAX:
-%   [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2] = input_kalman(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR_approx, distM, sat, pivot, lambda);
+%   [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, prapp_pr2, prapp_ph2, probs_prIF, probs_phIF, prapp_prIF, prapp_phIF] = input_kalman(XR_approx, XS, pr1_R, ph1_R, pr1_M, ph1_M, pr2_R, ph2_R, pr2_M, ph2_M, err_tropo_R, err_iono1_R, err_iono2_R, err_tropo_M, err_iono1_M, err_iono2_M, distR_approx, distM, sat, pivot, lambda);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -37,6 +37,10 @@ function [A, probs_pr1, probs_ph1, prapp_pr1, prapp_ph1, probs_pr2, probs_ph2, p
 %   probs_ph2 = observed phase double differences (carrier L2)
 %   prapp_pr2 = approximate code double differences (carrier L2)
 %   prapp_ph2 = approximate phase double differences (carrier L2)
+%   probs_prIF = observed code double differences (iono-free combination)
+%   probs_phIF = observed phase double differences (iono-free combination)
+%   prapp_prIF = approximate code double differences (iono-free combination)
+%   prapp_phIF = approximate phase double differences (iono-free combination)
 %
 % DESCRIPTION:
 %   This function computes the parameters needed to apply the Kalman filter.
@@ -80,6 +84,12 @@ probs_pr2  = (pr2_R - pr2_M) - (pr2_R(pivot_index) - pr2_M(pivot_index));  %obse
 probs_ph1  = (lambda1 .* ph1_R - lambda1 .* ph1_M) - (lambda1(pivot_index) * ph1_R(pivot_index) - lambda1(pivot_index) * ph1_M(pivot_index)); %observed pseudorange DD (L1 phase)
 probs_ph2  = (lambda2 .* ph2_R - lambda2 .* ph2_M) - (lambda2(pivot_index) * ph2_R(pivot_index) - lambda2(pivot_index) * ph2_M(pivot_index)); %observed pseudorange DD (L2 phase)
 
+%observed iono-free combinations
+alpha1 = lambda(:,4);
+alpha2 = lambda(:,5);
+probs_prIF  = alpha1 .* probs_pr1 - alpha2 .* probs_pr2; %observed pseudorange DD (iono-free code)
+probs_phIF  = alpha1 .* probs_ph1 - alpha2 .* probs_ph2; %observed pseudorange DD (iono-free phase)
+
 %approximate pseudoranges
 prapp_pr  =            (distR_approx - distM)      - (distR_approx(pivot_index) - distM(pivot_index));       %approximate pseudorange DD
 prapp_pr  = prapp_pr + (err_tropo_R - err_tropo_M) - (err_tropo_R(pivot_index)  - err_tropo_M(pivot_index)); %tropospheric error DD
@@ -88,13 +98,21 @@ prapp_ph1 = prapp_pr - (err_iono1_R - err_iono1_M) + (err_iono1_R(pivot_index)  
 prapp_pr2 = prapp_pr + (err_iono2_R - err_iono2_M) - (err_iono2_R(pivot_index)  - err_iono2_M(pivot_index)); %ionoshperic error DD (L2 code)
 prapp_ph2 = prapp_pr - (err_iono2_R - err_iono2_M) + (err_iono2_R(pivot_index)  - err_iono2_M(pivot_index)); %ionoshperic error DD (L2 phase)
 
+%approximate iono-free combinations
+prapp_prIF = (alpha1 - alpha2) .* prapp_pr;
+prapp_phIF = (alpha1 - alpha2) .* prapp_pr;
+
 %remove pivot-pivot lines
 A(pivot_index, :)      = [];
 probs_pr1(pivot_index) = [];
 probs_ph1(pivot_index) = [];
 probs_pr2(pivot_index) = [];
 probs_ph2(pivot_index) = [];
+probs_prIF(pivot_index) = [];
+probs_phIF(pivot_index) = [];
 prapp_pr1(pivot_index) = [];
 prapp_ph1(pivot_index) = [];
 prapp_pr2(pivot_index) = [];
 prapp_ph2(pivot_index) = [];
+prapp_prIF(pivot_index) = [];
+prapp_phIF(pivot_index) = [];

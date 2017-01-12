@@ -136,55 +136,82 @@ else %RINEX v3.xx
         
         switch sysId{c}
             case 'G' %GPS
-                idL1 = {'L1C'};
-                idL2 = {'L2W'};
-                idC1 = {'C1C'};
-                idP1 = {'C1P'};
-                idP2 = {'C2W'};
-                idS1 = {'S1C'};
-                idS2 = {'S2W'};
-                idD1 = {'D1C'};
-                idD2 = {'D2W'};
+                idC1 = {'C1C'};               %L1
+                idP1 = {'C1W';'C1P'};         %L1
+                idL1 = {'L1W';'L1X';'L1C'};   %L1
+                idS1 = {'S1W';'S1P';'S1C'};   %L1
+                idD1 = {'D1W';'D1P';'D1C'};   %L1
+                %--------------------------------
+                %idC2 = {'C2W';'C2P';'C2C};    %L2
+                idP2 = {'C2W';'C2P';'C2C'};    %L2
+                idL2 = {'L2W';'L2P';'L2C'};    %L2
+                idS2 = {'S2W';'S2P';'S2C'};    %L2
+                idD2 = {'D2W';'D2P';'D2C'};    %L2
+                %--------------------------------
+                %idP2 = {'C2S';'C2L';'C2X'};  %L2C
+                %idL2 = {'L2S';'L2L';'L2X'};  %L2C
+                %idS2 = {'S2S';'S2L';'S2X'};  %L2C
+                %idD2 = {'D2S';'D2L';'D2X'};  %L2C
+                %--------------------------------
+                %idP2 = {'C5X'};               %L5
+                %idL2 = {'L5X'};               %L5
+                %idS2 = {'S5X'};               %L5
+                %idD2 = {'D5X'};               %L5
+                %--------------------------------
             case 'R' %GLONASS
-                idL1 = {'L1C'};
-                idL2 = {'L2P'};
-                idC1 = {'C1C'};
-                idP1 = {'C1P'};
-                idP2 = {'C2P'};
-                idS1 = {'S1C'};
-                idS2 = {'S2P'};
-                idD1 = {'D1C'};
-                idD2 = {'D2P'};
+                idC1 = {'C1C'};               %R1
+                idP1 = {'C1P'};               %R1
+                idL1 = {'L1C'};               %R1
+                idS1 = {'S1C'};               %R1
+                idD1 = {'D1C'};               %R1
+                %--------------
+                idP2 = {'C2P'};               %R2
+                idL2 = {'L2P'};               %R2
+                idS2 = {'S2P'};               %R2
+                idD2 = {'D2P'};               %R2
             case 'E' %Galileo
-                idL1 = {'L1A';'L1B';'L1C';'L1X';'L1Z'};
-                idL2 = {'L5I';'L5Q';'L5X'};
-                idC1 = {'C1A';'C1B';'C1C';'C1X';'C1Z'};
-                idP1 = {'...'}; % <-- ?
-                idP2 = {'C5I';'C5Q';'C5X'};
-                idS1 = {'S1A';'S1B';'S1C';'S1X';'S1Z'};
-                idS2 = {'S5I';'S5Q';'S5X'};
-                idD1 = {'D1A';'D1B';'D1C';'D1X';'D1Z'};
-                idD2 = {'D5I';'D5Q';'D5X'};
+                idC1 = {'C1X';'C1C'};         %E1
+                idP1 = {'...'};               %E1
+                idL1 = {'L1X';'L1C'};         %E1
+                idS1 = {'S1X';'S1C'};         %E1
+                idD1 = {'D1X';'D1C'};         %E1
+                %--------------------------------
+                idP2 = {'C5X';'C5Q'};        %E5a
+                idL2 = {'L5X';'L5Q'};        %E5a
+                idS2 = {'S5X';'S5Q'};        %E5a
+                idD2 = {'D5X';'D5Q'};        %E5a
+                %--------------------------------
+                %idP2 = {'C7X';'C7Q'};        %E5b
+                %idL2 = {'L7X';'L7Q'};        %E5b
+                %idS2 = {'S7X';'S7Q'};        %E5b
+                %idD2 = {'D7X';'D7Q'};        %E5b
+                %--------------------------------
+                %idP2 = {'C8X';'C8Q'};         %E5
+                %idL2 = {'L8X';'L8Q'};         %E5
+                %idS2 = {'S8X';'S8Q'};         %E5
+                %idD2 = {'D8X';'D8Q'};         %E5
             case 'C' %Compass/Beidou
-                idL1 = {'L1I';'L2I'};
-                idL2 = {'L7I';'L7Q';'L7X'};
-                idC1 = {'C1I';'C2I'};
-                idP1 = {'...'}; % <-- ?
-                idP2 = {'C7I';'C7Q';'C7X'};
-                idS1 = {'S1I';'S2I'};
-                idS2 = {'S7I';'S7Q';'S7X'};
-                idD1 = {'D1I';'D2I'};
-                idD2 = {'D7I';'D7Q';'D7X'};
+                idC1 = {'C1I';'C1Q';'C2I'};   %B1
+                idP1 = {'...'};               %B1
+                idL1 = {'L1I';'L1Q';'C2I'};   %B1
+                idS1 = {'S1I';'S1Q';'S2I'};   %B1
+                idD1 = {'D1I';'D1Q';'D2I'};   %B1
+                %--------------------------------
+                idL2 = {'L7I';'L7Q'};         %B2
+                idP2 = {'C7I';'C7Q'};         %B2
+                idS2 = {'S7I';'S7Q'};         %B2
+                idD2 = {'D7I';'D7Q'};         %B2
             case 'J' %QZSS
-                idL1 = {'L1C'};
-                idL2 = {'L2C'};
-                idC1 = {'C1C'};
-                idP1 = {'...'}; %QZSS does not use P1
-                idP2 = {'C2C'};
-                idS1 = {'S1C'};
-                idS2 = {'S2C'};
-                idD1 = {'D1C'};
-                idD2 = {'D2C'};
+                idC1 = {'C1X';'C1C'};         %J1
+                idP1 = {'...'};               %J1
+                idL1 = {'L1X';'L1C'};         %J1
+                idS1 = {'S1X';'S1C'};         %J1
+                idD1 = {'D1X';'D1C'};         %J1
+                %--------------------------------
+                idP2 = {'C2X';'C2C'};         %J2
+                idL2 = {'L2X';'L2C'};         %J2
+                idS2 = {'S2X';'S2C'};         %J2
+                idD2 = {'D2X';'D2C'};         %J2
         end
 
         %search L1 column

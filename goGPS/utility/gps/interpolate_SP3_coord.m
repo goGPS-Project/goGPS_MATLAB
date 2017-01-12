@@ -39,14 +39,12 @@ function [pos_S, vel_S] = interpolate_SP3_coord(time, SP3, sat)
 SP3_time  = SP3.time;
 SP3_coord = SP3.coord(:, sat, :);
 antPCO    = SP3.antPCO(:, :, sat)';
-t_sun     = SP3.t_sun;
-X_sun     = SP3.X_sun;
 
 %degree of interpolation polynomial (Lagrange)
 n = 10;
 
 %number of seconds in a quarter of an hour
-quarter_sec = 900;
+interval = SP3.coord_rate;
 
 %find the SP3 epoch closest to the interpolation time
 [~, p] = min(abs(SP3_time - time));
@@ -56,31 +54,16 @@ b = SP3_time(p) - time;
 pos_S = zeros(3,1);
 
 %extract the SP3 coordinates
-SP3_X = []; SP3_Y = []; SP3_Z = [];
-for i = -n/2 : n/2
-    SP3_X = [SP3_X SP3_coord(1,p+i)];
-    SP3_Y = [SP3_Y SP3_coord(2,p+i)];
-    SP3_Z = [SP3_Z SP3_coord(3,p+i)];
-end
+SP3_X = SP3_coord(1,p+(-n/2:n/2));
+SP3_Y = SP3_coord(2,p+(-n/2:n/2));
+SP3_Z = SP3_coord(3,p+(-n/2:n/2));
 
 x = 1 : n+1;
 
-% %Lagrange interpolation (coordinates)
-% u = 4 - b/quarter_sec;
-% pos_S(1,1) = LagrangeInter(x, SP3_X, u);
-% pos_S(2,1) = LagrangeInter(x, SP3_Y, u);
-% pos_S(3,1) = LagrangeInter(x, SP3_Z, u);
-% 
-% %interpolate on the previous and following seconds for computing velocity
-% u = [4 - b/quarter_sec - 1/quarter_sec, 4 - b/quarter_sec + 1/quarter_sec];
-% pos_S_v(1,1:2) = LagrangeInter(x, SP3_X, u);
-% pos_S_v(2,1:2) = LagrangeInter(x, SP3_Y, u);
-% pos_S_v(3,1:2) = LagrangeInter(x, SP3_Z, u);
-
 %Lagrange interpolation (coordinates)
-s = 1/quarter_sec;
-t = n/2+1 - b/quarter_sec;
-u = t - s : s : t + s;
+s = 1/interval;
+d = n/2+1 - b/interval;
+u = d - s : s : d + s;
 
 LI_SP3_X = LagrangeInter(x, SP3_X, u);
 LI_SP3_Y = LagrangeInter(x, SP3_Y, u);
@@ -89,14 +72,7 @@ LI_SP3_Z = LagrangeInter(x, SP3_Z, u);
 X_sat = [LI_SP3_X(2); LI_SP3_Y(2); LI_SP3_Z(2)];
 
 %apply satellite antenna phase center correction
-[~, q] = min(abs(t_sun - time));
-X_sun = X_sun(:,q);
-e = (X_sun-X_sat)/norm(X_sun-X_sat);
-k = -X_sat/norm(X_sat);
-j = cross(k,e);
-i = cross(j,k);
-j = j/norm(j);
-i = i/norm(i);
+[i, j, k] = satellite_fixed_frame(time, X_sat, SP3);
 X_sat = X_sat + [i j k]*antPCO;
 
 pos_S(1,1) = X_sat(1);
@@ -109,14 +85,3 @@ pos_S_v(3,1:2) = [LI_SP3_Z(1) LI_SP3_Z(3)];
 
 %compute velocity
 vel_S = (pos_S_v(:,2) - pos_S_v(:,1)) / 2;
-
-% if (nargout > 2)
-%     %compute the relativistic correction term for the satellite clock
-%     dtrel = -2*dot(pos_S,vel_S)/(v_light^2);
-% end
-
-% %Lagrange interpolation (coordinates)
-% u = 5 - b/quarter_sec - dtr/quarter_sec;
-% pos_S(1,1) = LagrangeInter(x, SP3_X, u);
-% pos_S(2,1) = LagrangeInter(x, SP3_Y, u);
-% pos_S(3,1) = LagrangeInter(x, SP3_Z, u);

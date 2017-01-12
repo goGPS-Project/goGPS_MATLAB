@@ -1,16 +1,17 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
-          time_ref, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
-          load_RINEX_obs(filename, constellations, wait_dlg)
+          time_ref, time, week, date, pos, interval, antoff, antmod, codeC1, marker] = ...
+          load_RINEX_obs(filename, constellations, processing_interval, wait_dlg)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %    time_ref, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
-%    load_RINEX_obs(filename, constellations, wait_dlg);
+%    load_RINEX_obs(filename, constellations, processing_interval, wait_dlg);
 %
 % INPUT:
 %   filename = RINEX observation file(s)
 %   constellations = struct with multi-constellation settings
-%                   (see goGNSS.initConstellation - empty if not available)
+%                   (see 'multi_constellation_settings.m' - empty if not available)
+%   processing_interval = user-requested processing interval
 %   wait_dlg = optional handler to waitbar figure (optional)
 %
 % OUTPUT:
@@ -30,6 +31,7 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %   antoff = antenna offset [m]
 %   antmod = antenna model [string]
 %   codeC1 = boolean variable to notify if the C1 code is used instead of P1
+%   marker = marker name [string]
 %
 % DESCRIPTION:
 %   Parses RINEX observation files.
@@ -58,10 +60,14 @@ function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 global report
 
 % Check the input arguments
-if (nargin < 3)
+if (nargin < 4)
     wait_dlg_PresenceFlag = false;
 else
     wait_dlg_PresenceFlag = true;
+end
+
+if (nargin < 3 || processing_interval < 0)
+    processing_interval = 0;
 end
 
 if (nargin < 2 || isempty(constellations)) %then use only GPS as default
@@ -96,7 +102,8 @@ pos = zeros(3,1,nFiles);
 interval = zeros(1,1,nFiles);
 antoff = zeros(3,1,nFiles);
 antmod = cell(1,1,nFiles);
-codeC1 = zeros(1,1,nFiles);
+codeC1 = zeros(nSatTot,nEpochs,nFiles);
+marker = cell(1,1,nFiles);
 
 for f = 1 : nFiles
 
@@ -116,7 +123,7 @@ for f = 1 : nFiles
     end
     
     %parse RINEX header
-    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}] = RINEX_parse_hdr(fid);
+    [obs_type, pos(:,1,f), basic_info, interval(1,1,f), sysId, antoff(:,1,f), antmod{1,1,f}, marker{1,1,f}] = RINEX_parse_hdr(fid);
     
     %check the availability of basic data to parse the RINEX file
     if (basic_info == 0)
@@ -159,13 +166,21 @@ for f = 1 : nFiles
         %read ROVER observations
         obs = RINEX_get_obs(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, constellations);
         
-        %read ROVER observations
-        if (~any(obs.C1) || sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
-            pr1(:,k,f) = obs.P1;
-        else
-            pr1(:,k,f) = obs.C1;
-            codeC1(:,:,f) = 1;
-        end
+        idx_P1 = obs.P1 ~= 0;
+        idx_C1 = obs.C1 ~= 0;
+        idx_codeC1 = idx_P1 - idx_C1;
+        codeC1(idx_codeC1 < 0,k,f) = 1;
+        pr1(:,k,f) = zeros(size(pr1(:,k,f)));
+        pr1(idx_P1,k,f) = obs.P1(idx_P1);
+        pr1(find(codeC1(:,k,f)),k,f) = obs.C1(find(codeC1(:,k,f))); %#ok<FNDSB>
+
+%         %read ROVER observations
+%         if (~any(obs.C1) || sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
+%             pr1(:,k,f) = obs.P1;
+%         else
+%             pr1(:,k,f) = obs.C1;
+%             codeC1(:,:,f) = 1;
+%         end
         pr2(:,k,f) = obs.P2;
         ph1(:,k,f) = obs.L1;
         ph2(:,k,f) = obs.L2;
@@ -192,6 +207,10 @@ for f = 1 : nFiles
     
     %close RINEX files
     fclose(fid);
+    
+    if (processing_interval > interval(:,1,f))
+        interval(:,1,f) = processing_interval;
+    end
 
     if (~isempty(report) && report.opt.write == 1)
         % extract quality parameters for report
@@ -239,15 +258,20 @@ for f = 1 : nFiles
 end
 
 %sync observations
-[time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval] = ...
-sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, interval);
+[time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval] = ...
+sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval);
 
 for f = 1 : nFiles
     holes = find(week(:,1,f) == 0);
     for h = holes'
         if (h > 1)
+            time(h,:,f) = time(h-1,1,f) + interval;
             week(h,1,f) = week(h-1,1,f);
             date(h,:,f) = datevec(datenum(date(h-1,:,f)) + datenum([0 0 0 0 0 interval]));
+        elseif (holes(end)+1 <= length(week(:,1,f)))
+            time(h,1,f) = time(holes(end)+1,1,f) - interval*holes(end);
+            week(h,1,f) = week(holes(end)+1,1,f);
+            date(h,:,f) = datevec(datenum(date(holes(end)+1,:,f)) - datenum([0 0 0 0 0 interval*holes(end)]));
         end
     end
 end

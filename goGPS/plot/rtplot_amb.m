@@ -144,7 +144,7 @@ else
         set(subfig(i),'UserData',sat(i));
         
         yt = get(subfig(i),'YTick');
-        set(subfig(i),'YTickLabel', sprintf('%.1f|',yt))
+        set(subfig(i),'YTickLabel', sprintf('%.1f\n',yt))
         
         %axes and title
         ax = axis;

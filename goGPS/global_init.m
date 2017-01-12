@@ -112,6 +112,15 @@ distM = [];
 elea  = 10; % default value for the exponential elevation weight function
 
 %-------------------------------------------------------------------------------
+% PHASE WIND-UP
+%-------------------------------------------------------------------------------
+global phwindup
+
+if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+    phwindup = [];
+end
+
+%-------------------------------------------------------------------------------
 % DILUTION OF PRECISION
 %-------------------------------------------------------------------------------
 
@@ -169,6 +178,12 @@ global pivot_old
 %number of unknown phase ambiguities
 global nN
 
+%number of unknown tropospheric parameters
+global nT
+
+%number of unknown clock parameters
+global nC
+
 %method used to estimate phase ambiguities
 %          - amb_estim_method=0: observed code - phase difference
 %          - amb_estim_method=1: Kalman-predicted code - phase difference
@@ -178,20 +193,24 @@ global amb_estim_method
 %interval between epochs
 global interval
 
-%initialization
-T = [];
-I = [];
-Xhat_t_t = [];
-X_t1_t = [];
-Cee = [];
-nsat = [];
-conf_sat = [];
-conf_cs = [];
-pivot = [];
-pivot_old = [];
-nN = [];
-amb_estim_method = 0;
-interval = 1; %default 1 Hz (to avoid problems with real-time modes)
+if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+    %initialization
+    T = [];
+    I = [];
+    Xhat_t_t = [];
+    X_t1_t = [];
+    Cee = [];
+    nsat = [];
+    conf_sat = [];
+    conf_cs = [];
+    pivot = [];
+    pivot_old = [];
+    nN = [];
+    nT = 0;
+    nC = 0;
+    amb_estim_method = 0;
+    interval = 1; %default 1 Hz (to avoid problems with real-time modes)
+end
 
 %-------------------------------------------------------------------------------
 % KALMAN FILTER (CONSTRAINED VERSION)
@@ -224,13 +243,15 @@ rec_clock_error = 0;
 %flag to enable Doppler-based cycle slip detection
 flag_doppler_cs = 0;
 
-%Doppler-predicted range (ROVER)
-doppler_pred_range1_R = zeros(nSatTot,1);
-doppler_pred_range2_R = zeros(nSatTot,1);
-
-%Doppler-predicted range (MASTER)
-doppler_pred_range1_M = zeros(nSatTot,1);
-doppler_pred_range2_M = zeros(nSatTot,1);
+if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
+    %Doppler-predicted range (ROVER)
+    doppler_pred_range1_R = zeros(nSatTot,1);
+    doppler_pred_range2_R = zeros(nSatTot,1);
+    
+    %Doppler-predicted range (MASTER)
+    doppler_pred_range1_M = zeros(nSatTot,1);
+    doppler_pred_range2_M = zeros(nSatTot,1);
+end
 
 %-------------------------------------------------------------------------------
 % MASTER STATION
@@ -320,12 +341,12 @@ kml_filename = '../data/google_earth/goGPS.kml';
 %-------------------------------------------------------------------------------
 % THRESHOLDS
 %-------------------------------------------------------------------------------
-global clock_delay_thresh
-global cond_num_threshold
+global clock_delay_thresh cond_num_threshold
 
 clock_delay_thresh = 100;
-cond_num_threshold = 1e6; %threshold on the condition number on the
-                          % eigenvalues of the N matrix (least squares)
+
+cond_num_threshold = 1e6;  %threshold on the condition number on the
+                           %   eigenvalues of the N matrix (least squares)
 
 %-------------------------------------------------------------------------------
 % PHASE-SMOOTHED CODE
@@ -347,8 +368,8 @@ try
     %geoid grid and parameters
     geoid.grid = N_05x05;
     geoid.cellsize = 0.5;
-    geoid.Xll = -180;
-    geoid.Yll = -90;
+    geoid.Xll = -179.75;
+    geoid.Yll = -89.75;
     geoid.ncols = 720;
     geoid.nrows = 360;
 
@@ -383,7 +404,44 @@ global n_sys
 n_sys = 1;
 
 %-------------------------------------------------------------------------------
-% Fisher test table
+% OLOO
 %-------------------------------------------------------------------------------
-global FTABLE;
+global FTABLE s02_ls_threshold
+
+%Fisher test table
 FTABLE=finv(0.9995,1,1:200)';
+
+%threshold on the OLOO estimation error
+s02_ls_threshold = 0.1;
+
+%-------------------------------------------------------------------------------
+% Time adjustment
+%-------------------------------------------------------------------------------
+global zero_time
+zero_time = 0;
+
+%-------------------------------------------------------------------------------
+% Ocean loading
+%-------------------------------------------------------------------------------
+global ol_disp
+ol_disp = [];
+
+%-------------------------------------------------------------------------------
+% Code and phase residuals
+%-------------------------------------------------------------------------------
+global residuals_fixed residuals_float outliers
+residuals_fixed = NaN(4*nSatTot,1);
+residuals_float = NaN(4*nSatTot,1);
+outliers = zeros(4*nSatTot,1);
+
+%-------------------------------------------------------------------------------
+% Zenith hydrostatic delay
+%-------------------------------------------------------------------------------
+global ZHD
+ZHD = 0;
+
+%-------------------------------------------------------------------------------
+% Slant total delays
+%-------------------------------------------------------------------------------
+global STDs
+STDs = zeros(nSatTot,1);

@@ -1,5 +1,4 @@
-function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
-         pr, ph, err_iono, doppler_pred_range, sat, sat_born, alpha, lambda)
+function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ph, distR, dtS, dtR, err_tropo, err_iono, phwindup, doppler_pred_range, sat_pr, sat_ph, sat_born, alpha, lambda)
 
 % SYNTAX:
 %   [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
@@ -7,9 +6,8 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
 %
 % INPUT:
 %   N_kalman = phase ambiguities (double difference) estimated by the Kalman filter
-%   pr = ROVER-SATELLITE code observation
 %   ph = ROVER-SATELLITE phase observation
-%   err_iono = ionospheric error
+%   distR = ROVER-SATELLITE geometric range
 %   doppler_pred_range = predicted range based on phase and Doppler observations from previous epoch
 %   sat = visible satellites configuration
 %   sat_born = new satellites (added in this epoch)
@@ -49,11 +47,17 @@ function [slip, N_slip, sat_slip] = cycle_slip_detection_SA(N_kalman, ...
 %variable initialization
 global flag_doppler_cs
 
+v_light = goGNSS.V_LIGHT;
+
 %number of visible satellites
-nsat = size(sat,1);
+nsat = size(sat_ph,1);
+
+%sat_ph is a subset of sat_pr
+[~, index] = intersect(sat_pr,sat_ph);
 
 %phase ambiguities estimation
-N_stim = (pr - lambda .* ph - 2 * err_iono) ./ lambda;
+rho = distR + sum(dtR) - v_light*dtS + err_tropo - err_iono + lambda.*phwindup;
+N_stim = (rho(index) - lambda(index,1).*ph(index))./lambda(index,1);
 
 %initialization
 N_slip = [];
@@ -72,10 +76,10 @@ for i = 1 : nsat
     cs = 0;
 
     %test on the estimated value of the phase ambiguities
-    if (~ismember(sat(i),sat_born))
+    if (~ismember(sat_ph(i),sat_born))
 
         %Kalman-estimated phase ambiguities compared with ambiguities estimated by using the observed pseudorange
-        if (~flag_doppler_cs & (abs(N_kalman(sat(i)) - N_stim(i)) > alpha))
+        if (~flag_doppler_cs & (abs(N_kalman(sat_ph(i)) - N_stim(i)) > alpha))
             cs = 1;
         end
 
@@ -85,11 +89,11 @@ for i = 1 : nsat
         end
 
         if (cs)
-            %save of the new phase ambiguity estimation
+            %save the new phase ambiguity estimation
             N_slip = [N_slip; N_stim(i)];
 
-            %save of the slipped satellite
-            sat_slip = [sat_slip; sat(i)];
+            %save the slipped satellite
+            sat_slip = [sat_slip; sat_ph(i)];
 
             %flag identifying a cycle-slip
             slip = 1;

@@ -141,6 +141,7 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
     
     fprintf(fout_report,'NAVIGATIONAL filename         : %s\n', report.inp.filename_nav);
     fprintf(fout_report,'PHASE CENTER OFFSET filename  : %s\n', report.inp.filename_pco);
+    fprintf(fout_report,'OCEAN LOADING filename        : %s\n', report.inp.filename_blq);
     if is_subfield(report,'inp.sta_coord_file')
         fprintf(fout_report,'STATION COORDINATES filename  : %s\n', report.inp.sta_coord_file);
     end
@@ -395,13 +396,15 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
         for i = 1 : size(CS_R,1)
             if CS_R(i,6) == 1
                 result_i='YES';
+                fixed_cycles = num2str(CS_R(i,4),'%15.3f');
             else
                 result_i='NO';
+                fixed_cycles = 'OBS. EXCLUDED';
             end
             if i>1
                 fprintf(fout_report,'                                              ');
             end
-            fprintf(fout_report,'%4s      %1d  %9d   %15.3f       %3s     %15.3f\n', char(report.opt.sat_id(CS_R(i,1))), CS_R(i,2), CS_R(i,3), CS_R(i,5), result_i, CS_R(i,4));
+            fprintf(fout_report,'%4s      %1d  %9d   %15.3f       %3s       %13s\n', char(report.opt.sat_id(CS_R(i,1))), CS_R(i,2), CS_R(i,3), CS_R(i,5), result_i, fixed_cycles);
         end
     end
     if goGNSS.isDD(report.opt.mode)
@@ -413,13 +416,15 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
             for i = 1 : size(CS_M,1)
                 if CS_M(i,6) == 1
                     result_i='YES';
+                    fixed_cycles = num2str(CS_M(i,4),'%.3f');
                 else
                     result_i='NO';
+                    fixed_cycles = 'OBS. EXCLUDED';
                 end
                 if i>1
                     fprintf(fout_report,'                                              ');
                 end
-                fprintf(fout_report,'%4s      %1d  %9d   %15.3f       %3s     %15.3f\n', char(report.opt.sat_id(CS_M(i,1))), CS_M(i,2), CS_M(i,3), CS_M(i,5), result_i, CS_M(i,4));
+                fprintf(fout_report,'%4s      %1d  %9d   %15.3f       %3s       %13s\n', char(report.opt.sat_id(CS_M(i,1))), CS_M(i,2), CS_M(i,3), CS_M(i,5), result_i, fixed_cycles);
             end
         end
         

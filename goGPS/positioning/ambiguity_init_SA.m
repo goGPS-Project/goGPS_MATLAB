@@ -1,9 +1,11 @@
-function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
-    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, sys, lambda, N_kalman, Cee_N_kalman)
+function [N_stim_slip, N_stim_born] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
+    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, phwindup, sys, lambda, ...
+    N_kalman, Cee_N_kalman, ZWD_kalman, Cee_ZWD_kalman, dtR_kalman, Cee_dtR_kalman)
 
 % SYNTAX:
-%   [N_stim_slip, N_stim_born, dt_R] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
-%    elR, sat, sat_slip, sat_born, distR_approx, err_tropo, err_iono, sys, lambda, N_kalman, Cee_N_kalman);
+%   [N_stim_slip, N_stim_born] = ambiguity_init_SA(XR_approx, XS, dtS, pr, ph, snr, ...
+%    elR, sat_pr, sat_ph, sat_slip, sat_born, distR_approx, err_tropo, err_iono, sys, lambda, ...
+%   N_kalman, Cee_N_kalman, ZWD_kalman, Cee_ZWD_kalman, dtR_kalman, Cee_dtR_kalman);
 %
 % INPUT:
 %   XR_approx = receiver approximate position (X,Y,Z)
@@ -20,19 +22,22 @@ function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS,
 %   distR_approx = approximate range
 %   err_tropo = tropospheric error
 %   err_iono = ionospheric error
+%   phwindup = phase wind-up
 %   sys = array with different values for different systems
 %   lambda = vector containing GNSS wavelengths for available satellites
 %   N_kalman = phase ambiguities estimated by Kalman filter  *** same size as ph ***
 %   Cee_N_kalman = phase ambiguities estimated error  *** same size as ph ***
+%   ZWD_kalman = zenith wet delay estimated by Kalman filter
+%   Cee_ZWD_kalman = zenith wet delay estimated error
+%   dtR_kalman = receiver clock estimated by Kalman filter
+%   Cee_dtR_kalman = receiver clock estimated error
 %
 % OUTPUT:
 %   N_stim_slip = phase ambiguity estimation for slipped satellites
 %   N_stim_born = phase ambiguity estimation for new satellites
-%   dtR = receiver clock error estimation
 %
 % DESCRIPTION:
-%   This function estimates the phase ambiguities and the 
-%   receiver clock error using a least-squares adjustment.
+%   This function estimates phase ambiguities using a least-squares adjustment.
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -55,27 +60,26 @@ function [N_stim_slip, N_stim_born, dtR] = ambiguity_init_SA(XR_approx, XS, dtS,
 %----------------------------------------------------------------------------------------------
 
 global sigmaq_cod1 sigmaq_ph
-% global clock_delay_thresh
 
 v_light = goGNSS.V_LIGHT;
 
 %remove zeros
-index_zero_pr = (pr == 0);
+% index_zero_pr = (pr == 0);
 index_zero_ph = (ph == 0);
-pr(index_zero_pr) = [];
-ph(index_zero_ph) = [];
-lambda(index_zero_ph) = [];
+% pr(index_zero_pr) = [];
+% ph(index_zero_ph) = [];
+lambda_ph = lambda(~index_zero_ph);
 
 %number of observations (assuming that sat_ph is a subset of sat_pr)
-nsat_pr = length(pr);
-nsat_ph = length(ph);
+nsat_pr = length(sat_pr);
+nsat_ph = length(sat_ph);
 n = nsat_pr + nsat_ph;
 
 %number of slipped satellites
-nsat_slip = size(sat_slip,1);
+nsat_slip = length(sat_slip);
 
 %number of new satellites
-nsat_born = size(sat_born,1);
+nsat_born = length(sat_born);
 
 %merge new and slipped satellites
 sat_amb = [sat_slip; sat_born];
@@ -92,41 +96,42 @@ index_amb = [index_slip; index_born];         %satellites for which the ambiguit
 %ambiguity columns in design matrix (lambda positions)
 A_amb = zeros(nsat_ph,nsat_amb);
 for i = 1:nsat_amb
-    A_amb(index_amb(i),i) = -lambda(index_amb(i));
+    A_amb(index_amb(i),i) = -lambda_ph(index_amb(i));
 end
 
 %design matrix (code)
-A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ...        %column for X coordinate
-     (XR_approx(2) - XS(:,2)) ./ distR_approx, ...        %column for Y coordinate
-     (XR_approx(3) - XS(:,3)) ./ distR_approx, ...        %column for Z coordinate
-      zeros(nsat_pr,nsat_amb), ...     %column for phase ambiguities   (here zero)
-      ones(nsat_pr,1)];         %column for receiver clock delay (multiplied by c)
+A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
+     (XR_approx(2) - XS(:,2)) ./ distR_approx, ... %column for Y coordinate
+     (XR_approx(3) - XS(:,3)) ./ distR_approx, ... %column for Z coordinate
+      zeros(nsat_pr,nsat_amb)];   %column for phase ambiguities (here zero)
 
 %design matrix (phase)
 A = [A; (XR_approx(1) - XS(index,1)) ./ distR_approx(index), ...  %column for X coordinate
         (XR_approx(2) - XS(index,2)) ./ distR_approx(index), ...  %column for Y coordinate
         (XR_approx(3) - XS(index,3)) ./ distR_approx(index), ...  %column for Z coordinate
-         A_amb, ...                                          %column for phase ambiguities
-         ones(nsat_ph,1)];              %column for receiver clock delay (multiplied by c)
+         A_amb];                                             %column for phase ambiguities
 
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
 uni_sys = unique(sys(sys ~= 0));
 num_sys = length(uni_sys);
 ISB = zeros(n,1);
+sys = [sys; sys];
 if (num_sys > 1)
     for s = 2 : num_sys
         ISB(sys == uni_sys(s)) = 1;
-        A = [A, ISB];
+        A = [A, ISB]; %#ok<AGROW>
         ISB = zeros(n,1);
     end
 end
 
 %known term vector
-b_pr = distR_approx - v_light*dtS + err_tropo + err_iono; %code
-b_ph = distR_approx - v_light*dtS + err_tropo - err_iono; %phase
+b_pr = distR_approx + sum(dtR_kalman) - v_light*dtS + err_tropo + err_iono; %code
+b_ph = distR_approx + sum(dtR_kalman) - v_light*dtS + err_tropo - err_iono + lambda.*phwindup; %phase
 b = [b_pr; b_ph(index)];
 
 %observation vector
+ph = ph(index);
+lambda = lambda(index);
 ph(index_noamb) = ph(index_noamb) + N_kalman(index_noamb);
 y0 = [pr; lambda.*ph];
 
@@ -141,7 +146,7 @@ Q(1:nsat_pr,1:nsat_pr) = sigmaq_cod1 * Q1;
 %     %with respect to input code and phase variances)
 %     Q(nsat_pr+1:end,nsat_pr+1:end) = (sigmaq_ph * eye(nsat_ph) + lambda.^2.*Cee_N_kalman) .* Q2;
 % else
-    Q(nsat_pr+1:end,nsat_pr+1:end) = sigmaq_ph * Q2;
+Q(nsat_pr+1:end,nsat_pr+1:end) = sigmaq_ph * Q2;
 % end
 
 % A_cod = A(1:nsat,:);
@@ -187,5 +192,3 @@ if (nsat_born ~= 0)
 else
     N_stim_born = [];
 end
-
-dtR = x(end) / v_light;

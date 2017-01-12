@@ -1,7 +1,7 @@
-function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase, XR0)
+function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies, obs_comb, XR0)
 
 % SYNTAX:
-%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase);
+%   goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, frequencies, obs_comb, phase);
 %
 % INPUT:
 %   time_rx = GPS reception time
@@ -13,7 +13,9 @@ function goGPS_LS_SA_code(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, 
 %   iono    = ionosphere parameters
 %   sbas    = SBAS corrections
 %   lambda  = wavelength matrix (depending on the enabled constellations)
-%   phase   = L1 carrier (phase=1), L2 carrier (phase=2)
+%   frequencies = L1 carrier (phase=1), L2 carrier (phase=2)
+%   obs_comb = observations combination (e.g. iono-free: obs_comb = 'IONO_FREE')
+%   XR0     = approximated receiver position
 %
 % DESCRIPTION:
 %   Computation of the receiver position (X,Y,Z).
@@ -50,9 +52,6 @@ global residuals_float outliers
 residuals_float(:)=NaN; 
 outliers(:)=NaN;
 
-global is_bias
-is_bias=NaN(6,1);
-
 %covariance matrix initialization
 cov_XR = [];
 
@@ -64,11 +63,19 @@ azR   = zeros(nSatTot,1);
 elR   = zeros(nSatTot,1);
 distR = zeros(nSatTot,1);
 
-%available satellites (ROVER)
-if (phase == 1)
-    sat = find(pr1 ~= 0);
+%iono-free coefficients
+alpha1 = lambda(:,4);
+alpha2 = lambda(:,5);
+
+%available satellites
+if (length(frequencies) == 2)
+    sat = find( (pr1(:,1) ~= 0) & (pr2(:,1) ~= 0) );
 else
-    sat = find(pr2 ~= 0);
+    if (frequencies == 1)
+        sat = find(pr1(:,1) ~= 0);
+    else
+        sat = find(pr2(:,1) ~= 0);
+    end
 end
 if (isempty(SP3))
     eph_avail = Eph(30,:);
@@ -100,17 +107,22 @@ else
 end
 
 if (size(sat,1) >= min_nsat)
-    
-    if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals, is_bias] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, phase, flag_XR, 0, 1); %#ok<ASGLU>       
+
+    if (frequencies(1) == 1)
+        if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+        else
+            [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, alpha1(sat).*pr1(sat) - alpha2(sat).*pr2(sat), snr(sat), Eph, SP3, zeros(8,1), sbas, XR0, [], [], sat, [], zeros(length(sat),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
+        end
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals, is_bias] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, phase, flag_XR, 0, 1); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     end
     
     if ~isempty(dtR)
         residuals_float(residuals(:,2))=residuals(:,1);
-        outliers(find(obs_outlier==1))=1; 
+        outliers(find(obs_outlier==1))=1;  %#ok<FNDSB>
     end
+    
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING
     %--------------------------------------------------------------------------------------------
@@ -125,7 +137,7 @@ if (size(sat,1) >= min_nsat)
     %previous pivot
     pivot_old = 0;
     
-    %actual pivot
+    %current pivot
     [null_max_elR, i] = max(elR(sat)); %#ok<ASGLU>
     pivot = sat(i);
 

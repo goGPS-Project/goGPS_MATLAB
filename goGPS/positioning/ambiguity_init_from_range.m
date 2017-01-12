@@ -41,9 +41,6 @@ function [N_stim] = ambiguity_init_from_range(distR, distM, pivot_index, ph_R, p
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-
-N_stim = [];
-
 % range
 comb_pr = (distR - distM) - (distR(pivot_index) - distM(pivot_index));
 

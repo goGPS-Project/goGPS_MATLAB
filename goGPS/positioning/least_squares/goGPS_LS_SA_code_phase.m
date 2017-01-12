@@ -45,7 +45,7 @@ global sigmaq0 sigmaq0_N
 global cutoff snr_threshold cond_num_threshold o1 o2 o3
 
 global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
-global azR elR distR
+global azR elR distR phwindup
 global PDOP HDOP VDOP
 
 %covariance matrix initialization
@@ -178,6 +178,9 @@ if isempty(cov_XR) %if it was not possible to compute the covariance matrix
 end
 sigma2_XR = diag(cov_XR);
 
+%compute phase wind-up correction
+phwindup(sat,1) = phase_windup_correction(time_rx, XR, XS, SP3, phwindup(sat,1));
+
 %do not use least squares ambiguity estimation
 % NOTE: LS amb. estimation is automatically switched off if the number of
 % satellites with phase available is not sufficient
@@ -219,8 +222,8 @@ else
 
     %ROVER positioning improvement with code and phase double differences
     if ~isempty(sat)
-        [XR, dtR, N1(sat), cov_XR, var_dtR, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, sys, lambda(sat_pr,1)); %#ok<ASGLU>
-        [ ~,   ~, N2(sat),      ~,       ~, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, sys, lambda(sat_pr,2));
+        [XR, dtR, ISBs, N1(sat), cov_XR, var_dtR, var_ISBs, cov_N1, PDOP, HDOP, VDOP] = LS_SA_code_phase(XR, XS, pr1(sat_pr), ph1(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, phwindup(sat_pr), sys, lambda(sat_pr,1)); %#ok<ASGLU>
+        [ ~,   ~, ISBs, N2(sat),      ~,       ~, var_ISBs, cov_N2]                   = LS_SA_code_phase(XR, XS, pr2(sat_pr), ph2(sat_pr), snr(sat_pr), elR(sat_pr), distR(sat_pr), sat_pr, sat, dtS, err_tropo, err_iono, phwindup(sat_pr), sys, lambda(sat_pr,2));
     end
     
     if isempty(cov_XR) %if it was not possible to compute the covariance matrix

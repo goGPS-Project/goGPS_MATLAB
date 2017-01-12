@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 19-Apr-2013 20:03:23
+% Last Modified by GUIDE v2.5 29-Dec-2016 14:40:06
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -90,7 +90,7 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 global goGUI
     % If I press the exit button
     if(~isstruct(handles))
-        varargout = cell(30,1);
+        varargout = cell(37,1);
         return
     end
     
@@ -99,6 +99,14 @@ global goGUI
 delete(gcf)
 
 % --------------------------------------------------------------------
+
+% --- Executes during object creation, after setting all properties.
+function axLogo_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to axLogo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate axLogo
 
 %   MODE
 % ===============================================================
@@ -196,20 +204,111 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-%   INPUT FILE TYPE
-% ===============================================================
-    
-% --- Executes when selected object is changed in file_type.
-function file_type_SelectionChangeFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in file_type
-% eventdata  structure with the following fields (see UIBUTTONGROUP)
-%	EventName: string 'SelectionChanged' (read only)
-%	OldValue: handle of the previously selected object or empty if none was selected
-%	NewValue: handle of the currently selected object
+% --- Executes on button press in flag_tropo.
+function flag_tropo_Callback(hObject, eventdata, handles)
+% hObject    handle to flag_tropo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-global goGUI;
-    goGUI.syncFromGUI(goGUI.idGroup.gIFiles);
-    
+
+% Hint: get(hObject,'Value') returns toggle state of flag_tropo
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cTropo);
+
+%   USAGE
+% ===============================================================
+
+
+% --- Executes on button press in cL1.
+function cL1_Callback(hObject, eventdata, handles)
+% hObject    handle to cL1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cL1
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cL1);
+
+
+% --- Executes on button press in cL2.
+function cL2_Callback(hObject, eventdata, handles)
+% hObject    handle to cL2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cL2
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cL2);
+
+
+% --- Executes on button press in cL5.
+function cL5_Callback(hObject, eventdata, handles)
+% hObject    handle to cL5 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cL5
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cL5);
+
+
+% --- Executes on button press in cL6.
+function cL6_Callback(hObject, eventdata, handles)
+% hObject    handle to cL6 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cL6
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cL6);
+
+% --- Executes on selection change in lProcRate.
+function lProcRate_Callback(hObject, eventdata, handles)
+% hObject    handle to lProcRate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lProcRate contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lProcRate
+% Hint: get(hObject,'Value') returns toggle state of cL6
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.lProcRate);
+
+
+% --- Executes during object creation, after setting all properties.
+function lProcRate_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lProcRate (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+% --- Executes on selection change in lObsComb.
+function lObsComb_Callback(hObject, eventdata, handles)
+% hObject    handle to lObsComb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lObsComb contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lObsComb
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.lObsComb);
+
+% --- Executes during object creation, after setting all properties.
+function lObsComb_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lObsComb (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
 %   OPTIONS
 % ===============================================================
     
@@ -322,6 +421,99 @@ function use_SBAS_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of use_SBAS
 global goGUI;
     goGUI.syncFromGUI(goGUI.idUI.cUse_SBAS);
+    
+% --- Executes on button press in flag_rem_outliers.
+function flag_rem_outliers_Callback(hObject, eventdata, handles)
+% hObject    handle to flag_rem_outliers (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of flag_rem_outliers
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cOutlier);
+
+%   INPUT/OUTPUT FILE AND FOLDERS
+% ===============================================================
+
+
+% --- Executes on button press in flag_ocean.
+function flag_ocean_Callback(hObject, eventdata, handles)
+% hObject    handle to flag_ocean (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of flag_ocean
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cOcean);
+
+function nSPPthr_Callback(hObject, eventdata, handles)
+% hObject    handle to nSPPthr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of nSPPthr as text
+%        str2double(get(hObject,'String')) returns contents of nSPPthr as a double
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.nSPPthr);
+
+
+% --- Executes during object creation, after setting all properties.
+function nSPPthr_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to nSPPthr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function nCodeThr_Callback(hObject, eventdata, handles)
+% hObject    handle to nCodeThr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of nCodeThr as text
+%        str2double(get(hObject,'String')) returns contents of nCodeThr as a double
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.nCodeThr);
+
+
+% --- Executes during object creation, after setting all properties.
+function nCodeThr_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to nCodeThr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function nPhaseThr_Callback(hObject, eventdata, handles)
+% hObject    handle to nPhaseThr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of nPhaseThr as text
+%        str2double(get(hObject,'String')) returns contents of nPhaseThr as a double
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.nPhaseThr);
+
+% --- Executes during object creation, after setting all properties.
+function nPhaseThr_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to nPhaseThr (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
     
 %   INPUT/OUTPUT FILE AND FOLDERS
 % ===============================================================
@@ -707,6 +899,83 @@ function weight_select_SelectionChangeFcn(hObject, eventdata, handles)
 global goGUI
     goGUI.syncFromGUI(goGUI.idGroup.pW);
 
+%   SETTINGS - OBSERVATION MODELLING
+% ===============================================================
+
+    % --- Executes on selection change in lWeight.
+function lWeight_Callback(hObject, eventdata, handles)
+% hObject    handle to lWeight (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lWeight contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lWeight
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.lWeight);
+
+
+% --- Executes during object creation, after setting all properties.
+function lWeight_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lWeight (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in lIono.
+function lIono_Callback(hObject, eventdata, handles)
+% hObject    handle to lIono (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lIono contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lIono
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.lIono);
+
+
+% --- Executes during object creation, after setting all properties.
+function lIono_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lIono (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in lTropo.
+function lTropo_Callback(hObject, eventdata, handles)
+% hObject    handle to lTropo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns lTropo contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from lTropo
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.lTropo);
+
+
+% --- Executes during object creation, after setting all properties.
+function lTropo_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to lTropo (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
 %   SETTINGS - KALMAN FILTER
 % ===============================================================
 
@@ -798,6 +1067,28 @@ global goGUI
 % --- Executes during object creation, after setting all properties.
 function min_sat_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to min_sat (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function nMinArc_Callback(hObject, eventdata, handles)
+% hObject    handle to nMinArc (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of nMinArc as text
+%        str2double(get(hObject,'String')) returns contents of nMinArc as a double
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.nMinArc);
+
+% --- Executes during object creation, after setting all properties.
+function nMinArc_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to nMinArc (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -1679,6 +1970,14 @@ function about_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 gui_about;
 
+% --------------------------------------------------------------------
+function seid_Callback(hObject, eventdata, handles)
+% hObject    handle to seid (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+gui_seid;
+
+
 % --- Executes on key press with focus on main_panel and none of its controls.
 function main_panel_KeyPressFcn(hObject, eventdata, handles)
 % hObject    handle to main_panel (see GCBO)
@@ -1692,5 +1991,9 @@ global goGUI
 if length(eventdata.Modifier) == 1
     if strcmp(eventdata.Modifier{1},'alt') && strcmp(eventdata.Key,'0')
         goGUI.testOnOff();
+    elseif strcmp(eventdata.Modifier{1},'alt') && strcmp(eventdata.Key,'1')
+        goGUI.testFontSize(1/1.1);
+    elseif strcmp(eventdata.Modifier{1},'alt') && strcmp(eventdata.Key,'2')
+        goGUI.testFontSize(1.1);
     end
 end

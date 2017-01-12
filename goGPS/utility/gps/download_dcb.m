@@ -53,7 +53,7 @@ date_f = gps2date(gps_week(1), gps_tow(1));
 % ending time
 date_l = gps2date(gps_week(end), gps_tow(end));
 
-fprintf(['FTP connection to the AIUB server (http://' aiub_ip '). Please wait...'])
+fprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])
 
 year_orig  = date_f(1) : 1 : date_l(1);
 if (length(year_orig) < 1)
@@ -102,21 +102,34 @@ for y = 1 : length(year_orig)
         for p = 1 : length(ff)
             %target file
             s2 = [ff{p} num2str(two_digit_year(year(m)),'%02d') num2str(month(m),'%02d') '.DCB.Z'];
-            mget(ftp_server,s2,down_dir);
-            if (isunix())
-                system(['uncompress -f ' down_dir '/' s2]);
+            try
+                mget(ftp_server,s2,down_dir);
+                if (isunix())
+                    system(['uncompress -f ' down_dir '/' s2]);
+                else
+                    try
+                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir '/' s2 '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                        delete([down_dir '/' s2]);
+                        s2 = s2(1:end-2);
+                    catch
+                        fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
+                        compressed = 1;
+                    end
+                end
+                fprintf(['Downloaded DCB file: ' s2 '\n']);
+            catch
+                cd(ftp_server, '..');
+                s1 = [ff{p} '.DCB'];
+                mget(ftp_server,s1,down_dir);
+                cd(ftp_server, num2str(year_orig(y)));
+                s2 = [s2(1:end-2) '_TMP'];
+                movefile([down_dir '/' s1], [down_dir '/' s2]);
+                fprintf(['Downloaded DCB file: ' s1 ' --> renamed to: ' s2 '\n']);
             end
             
             %cell array with the paths to the downloaded files
             entry = {[down_dir, '/', s2]};
-            file_dcb = [file_dcb; entry];
-            
-            fprintf(['Downloaded DCB file: ' s2 '\n']);
-            
-            if (~isunix())
-                fprintf(['Please decompress the ' s2 ' file before trying to use it in goGPS.\n']);
-                compressed = compressed + 1;
-            end
+            file_dcb = [file_dcb; entry]; %#ok<AGROW>
         end
         
         if (month(m) == 12)

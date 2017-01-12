@@ -52,7 +52,7 @@ classdef goGNSS < handle
         % *_GLO --> PZ-90    (GLONASS-ICD 5.1)
         % *_GAL --> GTRF     (Galileo-ICD 1.1)
         % *_BDS --> CGCS2000 (BeiDou-ICD 1.0)
-        % *_QZS --> WGS-84   (IS-QZSS 1.5D)
+        % *_QZS --> GRS80    (IS-QZSS 1.5D)
         
         ELL_A_GPS = 6378137;                          % GPS (WGS-84)      Ellipsoid semi-major axis [m]
         ELL_A_GLO = 6378136;                          % GLONASS (PZ-90)   Ellipsoid semi-major axis [m]
@@ -60,8 +60,8 @@ classdef goGNSS < handle
         ELL_A_BDS = 6378136;                          % BeiDou (CGCS2000) Ellipsoid semi-major axis [m]
         ELL_A_QZS = 6378137;                          % QZSS (WGS-84)     Ellipsoid semi-major axis [m]
         
-        ELL_F_GPS = 1/298.257222101;                  % GPS (WGS-84)      Ellipsoid flattening
-        ELL_F_GLO = 1/298.257222101;                  % GLONASS (PZ-90)   Ellipsoid flattening
+        ELL_F_GPS = 1/298.257223563;                  % GPS (WGS-84)      Ellipsoid flattening
+        ELL_F_GLO = 1/298.25784;                      % GLONASS (PZ-90)   Ellipsoid flattening
         ELL_F_GAL = 1/298.257222101;                  % Galileo (GTRF)    Ellipsoid flattening
         ELL_F_BDS = 1/298.257222101;                  % BeiDou (CGCS2000) Ellipsoid flattening
         ELL_F_QZS = 1/298.257222101;                  % QZSS (WGS-84)     Ellipsoid flattening
@@ -73,7 +73,7 @@ classdef goGNSS < handle
         ELL_E_QZS = sqrt(1-(1-goGNSS.ELL_F_QZS)^2);   % QZSS (WGS-84)     Eccentricity
         
         GM_GPS = 3.986005e14;                     % GPS     Gravitational constant * (mass of Earth) [m^3/s^2]
-        GM_GLO = 3.9860044e14;                    % GLONASS Gravitational constant * (mass of Earth) [m^3/s^2]
+        GM_GLO = 3.986004418e14;                  % GLONASS Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_GAL = 3.986004418e14;                  % Galileo Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_BDS = 3.986004418e14;                  % BeiDou  Gravitational constant * (mass of Earth) [m^3/s^2]
         GM_QZS = 3.986005e14;                     % QZSS    Gravitational constant * (mass of Earth) [m^3/s^2]
@@ -95,6 +95,11 @@ classdef goGNSS < handle
                                                       %             for computation time reasons; if it's needed to
                                                       %             change it, please update also ecc_anomaly.m and
                                                       %             satellite_orbits.m)
+                                                      
+                                                      % Standard atmosphere - Berg, 1948
+        STD_PRES = 1013.25;                           % pressure [mbar]
+        STD_TEMP = 291.15;                            % temperature [K]
+        STD_HUMI = 50.0;                              % humidity [%]
         
         % CONSTELLATION SPECIFIC ------------------------------------------
         
@@ -127,28 +132,52 @@ classdef goGNSS < handle
         FS1 = goGNSS.FL1;      % SBAS [MHz]
         FS5 = goGNSS.FL5;      %
         
-        FG = [goGNSS.FL1 goGNSS.FL2 goGNSS.FL5]*1e6;        % GPS carriers frequencies [Hz]
-        LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;              % GPS carriers wavelengths [m]
+        FG = [goGNSS.FL1 goGNSS.FL2 goGNSS.FL5]*1e6;                % GPS carriers frequencies [Hz]
+        LAMBDAG = goGNSS.V_LIGHT ./ goGNSS.FG;                      % GPS carriers wavelengths [m]
+        ALPHA1G = goGNSS.FG(1)^2/(goGNSS.FG(1)^2 - goGNSS.FG(2)^2); % GPS iono-free combination parameter
+        ALPHA2G = goGNSS.FG(2)^2/(goGNSS.FG(1)^2 - goGNSS.FG(2)^2); % GPS iono-free combination parameter
+        ALPHATG = 77;% round(goGNSS.FL1/10.23/2);                   % GPS iono-free combination parameter
+        ALPHANG = 60;% round(goGNSS.FL2/10.23/2);                   % GPS iono-free combination parameter
         
-        FR_base  = [goGNSS.FR1_base goGNSS.FR2_base];       % GLONASS carriers base frequencies [Hz]
-        FR_delta = [goGNSS.FR1_delta goGNSS.FR2_delta];     % GLONASS carriers delta frequencies [Hz/n]
+        FR_base  = [goGNSS.FR1_base goGNSS.FR2_base];                         % GLONASS carriers base frequencies [Hz]
+        FR_delta = [goGNSS.FR1_delta goGNSS.FR2_delta];                       % GLONASS carriers delta frequencies [Hz/n]
         FR1 = goGNSS.FR_channels' .* goGNSS.FR_delta(1) + goGNSS.FR_base(1);
         FR2 = goGNSS.FR_channels' .* goGNSS.FR_delta(2) + goGNSS.FR_base(2);
-        FR = [goGNSS.FR1 goGNSS.FR2]*1e6;                   % GLONASS carriers frequencies [Hz]
-        LAMBDAR = goGNSS.V_LIGHT ./ goGNSS.FR;              % GLONASS carriers wavelengths [m]
+        FR = [goGNSS.FR1 goGNSS.FR2]*1e6;                                     % GLONASS carriers frequencies [Hz]
+        LAMBDAR = goGNSS.V_LIGHT ./ goGNSS.FR;                                % GLONASS carriers wavelengths [m]
+        ALPHA1R = goGNSS.FR(:,1).^2./(goGNSS.FR(:,1).^2 - goGNSS.FR(:,2).^2); % GLONASS iono-free combination parameter
+        ALPHA2R = goGNSS.FR(:,2).^2./(goGNSS.FR(:,1).^2 - goGNSS.FR(:,2).^2); % GLONASS iono-free combination parameter
+        ALPHATR = 9;                                                          % GLONASS iono-free combination parameter
+        ALPHANR = 7;                                                          % GLONASS iono-free combination parameter
         
         FE = [goGNSS.FE1 goGNSS.FE5a goGNSS.FE5b goGNSS.FE5 goGNSS.FE6]*1e6; % Galileo carriers frequencies [Hz]
         LAMBDAE = goGNSS.V_LIGHT ./ goGNSS.FE;                               % Galileo carriers wavelengths [m]
+        ALPHA1E = goGNSS.FE(1)^2/(goGNSS.FE(1)^2 - goGNSS.FE(2)^2);          % Galileo iono-free combination parameter
+        ALPHA2E = goGNSS.FE(2)^2/(goGNSS.FE(1)^2 - goGNSS.FE(2)^2);          % Galileo iono-free combination parameter
+        ALPHATE = 154;% round(goGNSS.FE1/10.23);                             % Galileo iono-free combination parameter
+        ALPHANE = 115;% round(goGNSS.FE5a/10.23);                            % Galileo iono-free combination parameter
         
-        FC = [goGNSS.FC1 goGNSS.FC2 goGNSS.FC5b goGNSS.FC6]*1e6; % BeiDou carriers frequencies [Hz]
-        LAMBDAC = goGNSS.V_LIGHT ./ goGNSS.FC;                   % BeiDou carriers wavelengths [m]
+        FC = [goGNSS.FC2 goGNSS.FC5b goGNSS.FC6 goGNSS.FC1]*1e6;             % BeiDou carriers frequencies [Hz]
+        LAMBDAC = goGNSS.V_LIGHT ./ goGNSS.FC;                               % BeiDou carriers wavelengths [m]
+        ALPHA1C = goGNSS.FC(1)^2/(goGNSS.FC(1)^2 - goGNSS.FC(2)^2);          % BeiDou iono-free combination parameter
+        ALPHA2C = goGNSS.FC(2)^2/(goGNSS.FC(1)^2 - goGNSS.FC(2)^2);          % BeiDou iono-free combination parameter
+        ALPHATC = 763;% round(goGNSS.FC2/2.046);                             % BeiDou iono-free combination parameter
+        ALPHANC = 590;% round(goGNSS.FC5b/2.046);                            % BeiDou iono-free combination parameter
         
-        FJ = [goGNSS.FJ1 goGNSS.FJ2 goGNSS.FJ5 goGNSS.FJ6]*1e6;  % QZSS carriers frequencies [Hz]
-        LAMBDAJ = goGNSS.V_LIGHT ./ goGNSS.FJ;                   % QZSS carriers wavelengths [m]
+        FJ = [goGNSS.FJ1 goGNSS.FJ2 goGNSS.FJ5 goGNSS.FJ6]*1e6;     % QZSS carriers frequencies [Hz]
+        LAMBDAJ = goGNSS.V_LIGHT ./ goGNSS.FJ;                      % QZSS carriers wavelengths [m]
+        ALPHA1J = goGNSS.FJ(1)^2/(goGNSS.FJ(1)^2 - goGNSS.FJ(2)^2); % QZSS iono-free combination parameter
+        ALPHA2J = goGNSS.FJ(2)^2/(goGNSS.FJ(1)^2 - goGNSS.FJ(2)^2); % QZSS iono-free combination parameter
+        ALPHATJ = 77;% round(goGNSS.FJ1/10.23/2);                   % QZSS iono-free combination parameter
+        ALPHANJ = 60;% round(goGNSS.FJ2/10.23/2);                   % QZSS iono-free combination parameter
         
-        FS = [goGNSS.FS1 goGNSS.FS5]*1e6;                        % SBAS carriers frequencies [Hz]
-        LAMBDAS = goGNSS.V_LIGHT ./ goGNSS.FS;                   % SBAS carriers wavelengths [m]
-        
+        FS = [goGNSS.FS1 goGNSS.FS5]*1e6;                           % SBAS carriers frequencies [Hz]
+        LAMBDAS = goGNSS.V_LIGHT ./ goGNSS.FS;                      % SBAS carriers wavelengths [m]
+        ALPHA1S = goGNSS.FS(1)^2/(goGNSS.FS(1)^2 - goGNSS.FS(2)^2); % SBAS iono-free combination parameter
+        ALPHA2S = goGNSS.FS(2)^2/(goGNSS.FS(1)^2 - goGNSS.FS(2)^2); % SBAS iono-free combination parameter
+        ALPHATS = 154;% round(goGNSS.FE1/10.23);                    % SBAS iono-free combination parameter
+        ALPHANS = 115;% round(goGNSS.FE5a/10.23);                   % SBAS iono-free combination parameter
+
         % CONSTELLATIONS IDs ----------------------------------------------
         
         ID_GPS     = 1 % Id of GPS constellation for goGPS internal use
@@ -166,18 +195,19 @@ classdef goGNSS < handle
         MODE_RT_RM_MON       = 23;  % Real Time Master + Rover Monitor
         
         MODE_PP_LS_C_SA      = 1;   % Post Proc Least Squares on Code Stand Alone
-        MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code and Phase Stand Alone (BASE FOR FUTURE PPP IMPLEMENTATION)
+        MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code and Phase Stand Alone
         MODE_PP_LS_CP_VEL    = 3.1; % Post Proc Least Squares on Code and Phase for Velocity estimation
         MODE_PP_LS_C_DD      = 11;  % Post Proc Least Squares on Code Double Differences
         MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code and Phase Double Differences with LAMBDA
         MODE_PP_LS_CP_DD_MR  = 16;  % Post Proc Least Squares on Code and Phase Double Differences, Multiple Receivers
         MODE_PP_LS_C_SA_MR   = 17;  % Post Proc Least Squares on Code Stand Alone, Multiple Receivers
         
-        MODE_PP_KF_C_SA      = 2;   % Post Proc Kalman Filter on Code Stand Alone
-        MODE_PP_KF_C_DD      = 12;  % Post Proc Kalman Filter on Code Double Differencies
-        MODE_PP_KF_CP_SA     = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone
-        MODE_PP_KF_CP_DD     = 14;  % Post Proc Kalman Filter on Code and Phase Double Differences
-        MODE_PP_KF_CP_DD_MR  = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers
+        MODE_PP_KF_C_SA          = 2;   % Post Proc Kalman Filter on Code Stand Alone
+        MODE_PP_KF_C_DD          = 12;  % Post Proc Kalman Filter on Code Double Differencies
+        MODE_PP_KF_CP_SA         = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone (PPP)
+        MODE_PP_KF_CP_DD         = 14;  % Post Proc Kalman Filter on Code and Phase Double Differences
+        MODE_PP_KF_CP_DD_MR      = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers
+        MODE_PP_SEID_PPP         = 16;  % SEID followed by PPP (Kalman Filter on Code and Phase Stand Alone (PPP)) it is both stand alone and DD
                  
         GMODE_PP = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of post processing modes
             goGNSS.MODE_PP_LS_CP_SA ...
@@ -190,13 +220,18 @@ classdef goGNSS < handle
             goGNSS.MODE_PP_KF_CP_DD ...
             goGNSS.MODE_PP_LS_C_SA_MR ...
             goGNSS.MODE_PP_LS_CP_DD_MR ...
-            goGNSS.MODE_PP_KF_CP_DD_MR];
+            goGNSS.MODE_PP_KF_CP_DD_MR ...
+            goGNSS.MODE_PP_SEID_PPP];
         
         GMODE_RT = [ goGNSS.MODE_RT_NAV ...         % Group of real time modes
             goGNSS.MODE_RT_R_MON ...
             goGNSS.MODE_RT_M_MON ...
             goGNSS.MODE_RT_RM_MON];
         
+        GMODE_MON = [ goGNSS.MODE_RT_R_MON ...      % Group of monitor modes
+            goGNSS.MODE_RT_M_MON ...
+            goGNSS.MODE_RT_RM_MON];
+
         GMODE_SA = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of stand alone modes
             goGNSS.MODE_PP_LS_CP_SA ...
             goGNSS.MODE_PP_LS_CP_VEL ...
@@ -209,11 +244,13 @@ classdef goGNSS < handle
             goGNSS.MODE_PP_KF_C_DD ...
             goGNSS.MODE_PP_KF_CP_DD ...
             goGNSS.MODE_PP_LS_CP_DD_MR ...
-            goGNSS.MODE_PP_KF_CP_DD_MR];
+            goGNSS.MODE_PP_KF_CP_DD_MR ...
+            goGNSS.MODE_PP_SEID_PPP];
         
         GMODE_MR = [ goGNSS.MODE_PP_LS_C_SA_MR ...  % Group of multi-receiver modes
             goGNSS.MODE_PP_LS_CP_DD_MR ...
-            goGNSS.MODE_PP_KF_CP_DD_MR];
+            goGNSS.MODE_PP_KF_CP_DD_MR ...
+            goGNSS.MODE_PP_SEID_PPP];
        
         GMODE_PH = [ goGNSS.MODE_RT_NAV ...         % Group of modes using Phase
             goGNSS.MODE_RT_R_MON ...
@@ -225,13 +262,15 @@ classdef goGNSS < handle
             goGNSS.MODE_PP_LS_CP_DD_L ...
             goGNSS.MODE_PP_KF_CP_SA ...
             goGNSS.MODE_PP_KF_CP_DD ...
-            goGNSS.MODE_PP_KF_CP_DD_MR];
+            goGNSS.MODE_PP_KF_CP_DD_MR ...
+            goGNSS.MODE_PP_SEID_PPP];
         
         GMODE_KM = [ goGNSS.MODE_PP_KF_C_SA ...      % Group of modes using Kalman Filter
             goGNSS.MODE_PP_KF_C_DD ... 
             goGNSS.MODE_PP_KF_CP_SA ...
             goGNSS.MODE_PP_KF_CP_DD ...
-            goGNSS.MODE_PP_KF_CP_DD_MR];
+            goGNSS.MODE_PP_KF_CP_DD_MR ...
+            goGNSS.MODE_PP_SEID_PPP];
         
     end
     
@@ -275,6 +314,11 @@ classdef goGNSS < handle
             isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
         end
         
+        function isMonitor = isMON(mode)
+            % return whether or not the mode given in use is a Monitor mode
+            isMonitor = sum(intersect(mode, goGNSS.GMODE_MON));
+        end
+                
         function isRealTime = isRT(mode)
             % return whether or not the mode given in use is a Real Time mode
             isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));
@@ -372,7 +416,7 @@ classdef goGNSS < handle
         end
         
         function [lambda] = getGNSSWavelengths(Eph, SP3, nSatTot)
-            lambda = zeros(nSatTot,2);
+            lambda = zeros(nSatTot,7);
             for s = 1 : nSatTot
                 if (isempty(SP3))
                     pos = find(Eph(30,:) == s,1);
@@ -389,18 +433,45 @@ classdef goGNSS < handle
                         case 'G'
                             lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GPS, 1);
                             lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GPS, 2);
+                            lambda(s,3) = goGNSS.ALPHATG/(goGNSS.ALPHATG^2-goGNSS.ALPHANG^2)*lambda(s,1);
+                            lambda(s,4) = goGNSS.ALPHA1G;
+                            lambda(s,5) = goGNSS.ALPHA2G;
+                            lambda(s,6) = goGNSS.ALPHATG;
+                            lambda(s,7) = goGNSS.ALPHANG;
                         case 'R'
-                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 1, Eph(15,pos)); % GLONASS frequency number must be managed for SP3
-                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 2, Eph(15,pos));
+                            pos = find(Eph(30,:) == s,1);
+                            GLO_id = Eph(15,pos);
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 1, GLO_id); % GLONASS frequency number must be managed for SP3
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GLONASS, 2, GLO_id);
+                            lambda(s,3) = goGNSS.ALPHATR/(goGNSS.ALPHATR^2-goGNSS.ALPHANR^2)*lambda(s,1);
+                            lambda(s,4) = goGNSS.ALPHA1R(goGNSS.FR_channels == GLO_id);
+                            lambda(s,5) = goGNSS.ALPHA2R(goGNSS.FR_channels == GLO_id);
+                            lambda(s,6) = goGNSS.ALPHATR;
+                            lambda(s,7) = goGNSS.ALPHANR;
                         case 'E'
                             lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_GALILEO, 1);
                             lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_GALILEO, 2);
+                            lambda(s,3) = goGNSS.ALPHATE/(goGNSS.ALPHATE^2-goGNSS.ALPHANE^2)*lambda(s,1);
+                            lambda(s,4) = goGNSS.ALPHA1E;
+                            lambda(s,5) = goGNSS.ALPHA2E;
+                            lambda(s,6) = goGNSS.ALPHATE;
+                            lambda(s,7) = goGNSS.ALPHANE;
                         case 'C'
-                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 2);
-                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 3);
+                            lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 1);
+                            lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_BEIDOU, 2);
+                            lambda(s,3) = goGNSS.ALPHATC/(goGNSS.ALPHATC^2-goGNSS.ALPHANC^2)*lambda(s,1);
+                            lambda(s,4) = goGNSS.ALPHA1C;
+                            lambda(s,5) = goGNSS.ALPHA2C;
+                            lambda(s,6) = goGNSS.ALPHATC;
+                            lambda(s,7) = goGNSS.ALPHANC;
                         case 'J'
                             lambda(s,1) = goGNSS.getWavelength(goGNSS.ID_QZSS, 1);
                             lambda(s,2) = goGNSS.getWavelength(goGNSS.ID_QZSS, 2);
+                            lambda(s,3) = goGNSS.ALPHATJ/(goGNSS.ALPHATJ^2-goGNSS.ALPHANJ^2)*lambda(s,1);
+                            lambda(s,4) = goGNSS.ALPHA1J;
+                            lambda(s,5) = goGNSS.ALPHA2J;
+                            lambda(s,6) = goGNSS.ALPHATJ;
+                            lambda(s,7) = goGNSS.ALPHANJ;
                         otherwise
                             fprintf('Something went wrong in goGNSS.getGNSSWavelengths()\nUnrecognized Satellite system.\n');
                     end
@@ -434,7 +505,7 @@ classdef goGNSS < handle
         end
         
         function [IonoFactor] = getInterFreqIonoFactor(lambda)
-            IonoFactor = (lambda(:,:)./goGNSS.LAMBDAG(1)).^2;
+            IonoFactor = (lambda(:,1:2)./goGNSS.LAMBDAG(1)).^2;
         end
     end
     

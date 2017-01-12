@@ -22,12 +22,12 @@
 
 2. Requirements
    ============
-   goGPS has been developed and tested in MATLAB 7.6+ environments,
+   goGPS has been developed and tested in MATLAB 7.10+ environments,
    on both Windows and UNIX. The following elements are needed
    in order to use goGPS:
 
    - a computer with Windows or a UNIX-based operating system
-   - a MATLAB 7.6+ installation
+   - a MATLAB 7.10+ installation
 
    For post-processing tasks:
    - RINEX observation file for the roving receiver

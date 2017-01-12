@@ -160,7 +160,7 @@ if (date_l(5) > 60-buf_min)
     end
 end
 
-fprintf(['FTP connection to the EGNOS Message Server (http://' ems_ip '). Please wait...'])
+fprintf(['FTP connection to the EGNOS Message Server (ftp://' ems_ip '). Please wait...'])
 
 if (day_of_year_f <= day_of_year_l) %within the same year
     

@@ -85,8 +85,8 @@ pos_M_man = [XM; YM; ZM];
 %-------------------------------------------------------------------------------
 
 global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel %#ok<*TLEV>
-global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N sigmaq_dtm
-global min_nsat cutoff snr_threshold cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
+global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
+global min_nsat cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
 global amb_restart_method
 
 %variance of initial state
@@ -101,13 +101,15 @@ sigmaq_vel = 0.1^2;
 %variance of code observations [m^2]
 sigmaq_cod1 = 0.3^2;
 sigmaq_cod2 = 0.4^2;
+sigmaq_codIF = 1.2^2;
 
 %variance of phase observations [m^2]
 %(maximize to obtain a code-based solution)
 sigmaq_ph = 0.003^2;
 % sigmaq_ph = 0.001e30;
+sigmaq_phIF = 0.009^2;
 
-%variance of ambiguity combinations [cycles]
+%variance of a priori ambiguity combinations [cycles]
 sigmaq0_N = 1000;
 
 %variance of DEM height [m^2]
@@ -115,11 +117,23 @@ sigmaq0_N = 1000;
 % sigmaq_dtm = 0.09;
 sigmaq_dtm = 1e30;
 
+%variance of apriori tropospheric delay
+sigmaq0_tropo = 1e-2;
+
+%variance of tropospheric delay
+sigmaq_tropo = 2.0834e-07;
+
+%variance of apriori receiver clock
+sigmaq0_rclock = 2e-17;
+
+%variance of receiver clock
+sigmaq_rclock = 1e3;
+
 %minimum number of satellites to be used in the Kalman filter
 min_nsat = 2;
 
 %cut-off [degrees]
-cutoff = 15;
+cutoff = 10;
 
 %initialization cut-off [degrees]
 % cutoff_init = 15;
@@ -127,7 +141,10 @@ cutoff = 15;
 %signal-to-noise ratio threshold [dB]
 snr_threshold = 0;
 
-%cycle slip threshold [cycles]
+%cycle slip threshold (pre-processing) [cycles]
+cs_threshold_preprocessing = 1;
+
+%cycle slip threshold (processing) [cycles]
 cs_threshold = 1;
 
 %parameter used to select the weight mode for GPS observations
@@ -156,6 +173,20 @@ o3 = order*3;
 amb_restart_method = 2;
 
 %-------------------------------------------------------------------------------
+% ATMOSPHERIC MODELS
+%-------------------------------------------------------------------------------
+global iono_model tropo_model
+
+% iono_model = 0; %no model
+% iono_model = 1; %Geckle and Feen model
+iono_model = 2; %Klobuchar model
+% iono_model = 3; %SBAS grid
+
+% tropo_model = 0; %no model
+tropo_model = 1; %Saastamoinen model (with standard atmosphere parameters)
+% tropo_model = 2; %Saastamoinen model (with Global Pressure Temperature model)
+
+%-------------------------------------------------------------------------------
 % INTEGER AMBIGUITY RESOLUTION
 %-------------------------------------------------------------------------------
 global IAR_method P0 mu flag_auto_mu
@@ -180,6 +211,24 @@ flag_auto_mu = 1;
 
 %flag for enabling the default value for P0
 flag_default_P0 = 1;
+
+%-------------------------------------------------------------------------------
+% THRESHOLDS
+%-------------------------------------------------------------------------------
+global SPP_threshold max_code_residual max_phase_residual min_arc flag_outlier
+
+SPP_threshold = 4;         %threshold on the code point-positioning least squares
+                           %   estimation error [m]
+                          
+max_code_residual = 30;    %threshold on the maximum residual of code
+                           %   observations [m]
+                          
+max_phase_residual = 0.05; %threshold on the maximum residual of phase
+                           %   observations [m]
+                           
+min_arc = 10;
+
+flag_outlier = 1;
 
 %-------------------------------------------------------------------------------
 % RECEIVER
@@ -272,14 +321,6 @@ filename_M_obs = [data_path file_name];
 data_path = goIni.getData('Navigational','data_path');
 file_name = goIni.getData('Navigational','file_name');
 filename_nav = [data_path file_name];
-flag_SP3 = goIni.getData('Navigational','isSP3');
-if isempty(flag_SP3)
-    if (strcmpi(filename_nav(end-3:end),'.sp3'))
-        flag_SP3 = 1;
-    else
-        flag_SP3 = 0;
-    end
-end
 data_path = goIni.getData('RefPath','data_path');
 file_name = goIni.getData('RefPath','file_name');
 filename_ref = [data_path file_name];

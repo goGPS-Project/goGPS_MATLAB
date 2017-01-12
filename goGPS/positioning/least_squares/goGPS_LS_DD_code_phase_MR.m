@@ -219,7 +219,7 @@ if (size(sat_pr,1) >= min_nsat_LS)
                 [phiR, lamR, hR] = cart2geod(XR(1,r), XR(2,r), XR(3,r));
                 [azR(azR(:,r) ~= 0,r), elR(elR(:,r) ~= 0,r), distR(distR(:,r) ~= 0,r)] = topocent(XR(:,r), XS);
                 
-                err_tropo_R(:,r) = tropo_error_correction(elR(elR(:,r) ~= 0,r), hR);
+                err_tropo_R(:,r) = tropo_error_correction(time_rx, phiR*180/pi, lamR*180/pi, hR, elR(elR ~= 0));
                 err_iono_R(:,r) = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR(:,r) ~= 0,r), elR(elR(:,r) ~= 0,r), time_rx, iono, []);
                 
                 %correct the ionospheric errors for different frequencies

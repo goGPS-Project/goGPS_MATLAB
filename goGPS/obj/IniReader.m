@@ -12,7 +12,7 @@
 %       array = [1 2 3]
 %       string = "I'm a string"
 %       stringCellArray = ["I" "am" "a string cell" "array"]
-%   ; I'm a commen
+%   ; I'm a comment
 %   # I'm also a comment
 %   [Section 2]
 %       number = 10

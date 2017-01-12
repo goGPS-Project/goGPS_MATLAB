@@ -52,6 +52,15 @@ idQZSS = constellations.QZSS.indexes(1);
 DCB = [];
 DCB.P1C1 = [];
 DCB.P1P2 = [];
+DCB.P1C1.time  = 0;
+DCB.P1C1.value = zeros(constellations.nEnabledSat, 1);
+DCB.P1C1.rms   = zeros(constellations.nEnabledSat, 1);
+DCB.P1C1.prn   = zeros(constellations.nEnabledSat, 1);
+DCB.P1C1.sys   = zeros(constellations.nEnabledSat, 1);
+DCB.P1P2.value = zeros(constellations.nEnabledSat, 1);
+DCB.P1P2.rms   = zeros(constellations.nEnabledSat, 1);
+DCB.P1P2.prn   = zeros(constellations.nEnabledSat, 1);
+DCB.P1P2.sys   = zeros(constellations.nEnabledSat, 1);
 
 %convert GPS time to time-of-week
 gps_tow = weektime2tow(gps_week, time_R);
@@ -92,11 +101,12 @@ for j = 1 : nmax
     
     %check if the filename corresponds to that expected from a standard DCB file required by goGPS (e.g. "P1C1xxyy.DCB",
     % with 'xx' = two-digit year and 'yy' = two-digit month)
-    if (dcb_fn_length == 12  && (strcmpi(dcb_file_name(1:4), 'P1P2') || strcmpi(dcb_file_name(1:4), 'P1C1')) && ...
+    if ((strcmpi(dcb_file_name(1:4), 'P1P2') || strcmpi(dcb_file_name(1:4), 'P1C1')) && ...
        ((year >  year_start && year  <  year_end)    || ...
-        (year == year_start && month >= month_start) || ...
+        (year == year_start && month >= month_start) && ...
         (year == year_end   && month <= month_end))  && ...
-         strcmpi(dcb_file_name(dcb_fn_length - 3 : dcb_fn_length), '.DCB')) %#ok<*ST2NM>
+        ((dcb_fn_length == 12 && strcmpi(dcb_file_name(dcb_fn_length - 3 : dcb_fn_length), '.DCB')) || ...
+         (dcb_fn_length == 16 && strcmpi(dcb_file_name(dcb_fn_length - 7 : dcb_fn_length), '.DCB_TMP')))) %#ok<*ST2NM>
         
         n = n + 1;
         
@@ -117,7 +127,7 @@ for j = 1 : nmax
         if (fid_fd ~= -1)
             %fprintf(['Reading DCB file ', dcb_file_name, '\n']);
             if (n == 1)
-                fprintf(['Reading DCB files...\n']);
+                fprintf('Reading DCB files...\n');
             end
         else
             fprintf(['WARNING: impossible to open DCB file ', dcb_file_name, '\n']);
@@ -150,14 +160,23 @@ for j = 1 : nmax
                 switch (sys_id)
                     case 'G'
                         index = idGPS;
+                        system = 'GPS';
                     case 'R'
                         index = idGLONASS;
+                        system = 'GLONASS';
                     case 'E'
                         index = idGalileo;
+                        system = 'Galileo';
                     case 'C'
                         index = idBeiDou;
+                        system = 'BeiDou';
                     case 'J'
                         index = idQZSS;
+                        system = 'QZSS';
+                end
+                
+                if(~ismember(PRN,constellations.(system).PRN))
+                    continue
                 end
                 
                 index = index + PRN - 1;
@@ -186,13 +205,15 @@ for j = 1 : nmax
 end
 
 %if P1C1 data are needed but not available, return empty
-if (codeC1_R && isempty(DCB.P1C1))
+if (any(codeC1_R(:)) && isempty(DCB.P1C1))
     DCB = [];
     fprintf(['The required P1C1 DCB file(s) were not found in ' data_dir_dcb ' directory.\n'])
+    return
 end
 
-%if no .DCB files are available, return
-if (isempty(DCB))
-    fprintf(['No DCB files found in ' data_dir_dcb ' directory.\n'])
+%if P1P2 data are needed but not available, return empty
+if (isempty(DCB.P1P2))
+    DCB = [];
+    fprintf(['The required P1P2 DCB file(s) were not found in ' data_dir_dcb ' directory.\n'])
     return
 end

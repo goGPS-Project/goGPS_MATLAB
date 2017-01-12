@@ -73,10 +73,10 @@ if (~isempty(dir(filename_R_obs)))
     %ROVER RINEX files reading
     if (nargin >= 6)
         
-        [Eph_R, iono_R] = load_RINEX_nav(filename_nav, constellations, 0, wait_dlg);
+        [Eph_R, iono_R] = load_RINEX_nav(filename_nav, constellations, 0, 0, 0, wait_dlg);
         [pr1_R, ph1_R, ~, ~, dop1_R, ~, snr1_R, ~, ~, time_R, week_R, ~, ~, interval_R] = load_RINEX_obs(filename_R_obs, constellations, wait_dlg);
     else
-        [Eph_R, iono_R] = load_RINEX_nav(filename_nav, constellations, 0);
+        [Eph_R, iono_R] = load_RINEX_nav(filename_nav, constellations, 0, 0, 0);
         [pr1_R, ph1_R, ~, ~, dop1_R, ~, snr1_R, ~, ~, time_R, week_R, ~, ~, interval_R] = load_RINEX_obs(filename_R_obs, constellations);
     end
     
@@ -111,10 +111,10 @@ if (~isempty(dir(filename_M_obs)))
     %MASTER RINEX files reading
     if (nargin >= 6)
         
-        [Eph_M, iono_M] = load_RINEX_nav(filename_nav, constellations, 0, wait_dlg);
+        [Eph_M, iono_M] = load_RINEX_nav(filename_nav, constellations, 0, 0, 0, wait_dlg);
         [pr1_M, ph1_M, ~, ~, dop1_M, ~, snr1_M, ~, ~, time_M, ~, ~, ~, interval_M] = load_RINEX_obs(filename_M_obs, constellations, wait_dlg);
     else
-        [Eph_M, iono_M] = load_RINEX_nav(filename_nav, constellations, 0);
+        [Eph_M, iono_M] = load_RINEX_nav(filename_nav, constellations, 0, 0, 0);
         [pr1_M, ph1_M, ~, ~, dop1_M, ~, snr1_M, ~, ~, time_M, ~, ~, ~, interval_M] = load_RINEX_obs(filename_M_obs, constellations);
     end
     

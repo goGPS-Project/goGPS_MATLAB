@@ -1,7 +1,7 @@
-function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold)
+function [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, y0, b, A, Q] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold)
 
 % SYNTAX:
-%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, is_bias] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold);
+%   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, sigma02_hat, residuals_obs, y0, b, A, Q] = LS_SA_code(XR_approx, XS, pr_R, snr_R, elR, distR_approx, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold);
 %
 % INPUT:
 %   XR_approx     = receiver approximate position (X,Y,Z)
@@ -19,8 +19,10 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epo
 % OUTPUT:
 %   XR   = estimated position (X,Y,Z)
 %   dtR  = receiver clock error (scalar)
+%   ISBs = estimated inter-system biases
 %   cov_XR  = estimated position error covariance matrix
 %   var_dtR = estimated clock error variance
+%   var_ISBs = variance of estimation errors (inter-system biases)
 %   PDOP = position dilution of precision
 %   HDOP = horizontal dilution of precision
 %   VDOP = vertical dilution of precision
@@ -29,7 +31,10 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epo
 %   bad_epoch = 0 if epoch is ok, -1 if there is no redoundancy, +1 if a posteriori sigma is greater than SPP_threshold
 %   sigma02_hat = [a posteriori sigma (SPP sigma), v_hat'*(invQ)*v_hat), n-m] 
 %   residuals_obs = vector with residuals of all input observation, computed from the final estimates
-%   is_bias = inter-systems bias (vector with all possibile systems)
+%   y0 = least-squares observation vector
+%   A = least-squares design matrix
+%   b = least-squares known term vector
+%   Q = observation covariance matrix
 
 % DESCRIPTION:
 %   Absolute positioning by means of least squares adjustment on code
@@ -57,10 +62,13 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epo
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
+global flag_outlier
+
 v_light = goGNSS.V_LIGHT;
 sigma02_hat = NaN(1,3);
-residuals_obs = NaN(length(pr_R),1);
-is_bias=NaN(6,1);
+residuals_obs = NaN(length(pr_R),1); %#ok<NASGU>
+ISBs = [];
+var_ISBs = [];
 
 %number of observations
 n = length(pr_R);
@@ -69,9 +77,14 @@ n = length(pr_R);
 m = 4;
 
 if (~any(distR_approx))
-    %approximate receiver-satellite distance
-    XR_mat = XR_approx(:,ones(n,1))';
-    distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
+    if (any(XR_approx))
+        %receiver-satellite distance, corrected by the Shapiro delay
+        [~, distR_approx] = relativistic_range_error_correction(XR_approx, XS);
+    else
+        %approximate receiver-satellite distance
+        XR_mat = XR_approx(:,ones(n,1))';
+        distR_approx = sqrt(sum((XS-XR_mat).^2 ,2));
+    end
 end
 
 %design matrix
@@ -81,15 +94,21 @@ A = [(XR_approx(1) - XS(:,1)) ./ distR_approx, ... %column for X coordinate
       ones(n,1)];        %column for receiver clock delay (multiplied by c)
   
 %if multi-system observations, then estimate an inter-system bias parameter for each additional system
-uni_sys = unique(sys(sys ~= 0));
+uni_sys = unique(sys(sys ~= 0),'stable');
 num_sys = length(uni_sys);
 ISB = zeros(n,1);
-
 if (num_sys > 1)
-    m = m + num_sys - 1;
-    for s = 2 : num_sys
+    if (any(floor(uni_sys) ~= 2)) %not only GLONASS
+        ref_clock = 1;
+    else %only GLONASS
+        ref_clock = 0;
+        A = [];
+        m = m - 1;
+    end
+    m = m + num_sys - ref_clock;
+    for s = (1 + ref_clock) : num_sys
         ISB(sys == uni_sys(s)) = 1;
-        A = [A, ISB];
+        A = [A, ISB]; %#ok<AGROW>
         ISB = zeros(n,1);
     end
 end
@@ -106,6 +125,7 @@ invQ=diag((diag(Q).^-1));
 
 %normal matrix
 N = (A'*(invQ)*A);
+
 if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
     %least squares solution
     x   = (N^-1)*A'*(invQ)*(y0-b);
@@ -116,9 +136,6 @@ if nargin<10 || (n == m) || exist('SPP_threshold','var')==0
     sigma02_hat(1,2) = (v_hat'*(invQ)*v_hat);
     sigma02_hat(1,3) = n-m;
     residuals_obs=v_hat;
-    if (num_sys > 1)
-        is_bias(uni_sys(2:end))=x(end-(num_sys-2):end);
-    end        
     if n==m
         bad_epoch=-1;
     else
@@ -129,7 +146,7 @@ else
     %------------------------------------------------------------------------------------
     % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
     %------------------------------------------------------------------------------------
-    search_for_outlier=1;
+    search_for_outlier = flag_outlier;
     bad_obs=[];
     index_obs = 1:length(y0);
     A0=A;
@@ -137,35 +154,40 @@ else
     if (num_sys > 1)
         sys0=sys;
         uni_sys0 = uni_sys;
-        pos_isbias=m-(num_sys-2):m;
     end
-    while search_for_outlier==1
-        [index_outlier,x,sigma02_hat(1,1),v_hat]=OLOO(A, y0-b, Q);        
-        if index_outlier~=0
-            bad_obs=[bad_obs;index_obs(index_outlier)];
-            %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
-            if (num_sys > 1)
-                sys(index_outlier)=[];
-                uni_sys = unique(sys(sys ~= 0));
-                num_sys = length(uni_sys);
-                if length(uni_sys)<length(uni_sys0) % an i-s bias is not estimable anymore
-                    A(:,4+find(uni_sys0==sys0(index_outlier))-1)=[];
+    if (search_for_outlier == 1)
+        while search_for_outlier==1
+            [index_outlier,x,sigma02_hat(1,1),v_hat]=OLOO(A, y0-b, Q);
+            if index_outlier~=0
+                bad_obs=[bad_obs;index_obs(index_outlier)]; %#ok<AGROW>
+                if (num_sys > 1)
+                    sys(index_outlier)=[];
+                    uni_sys = unique(sys(sys ~= 0));
+                    num_sys = length(uni_sys);
+                    if length(uni_sys)<length(uni_sys0) % an i-s bias is not estimable anymore
+                        A(:,4+find(uni_sys0==sys0(index_outlier))-1)=[];
+                        A0(:,4+find(uni_sys0==sys0(index_outlier))-1)=[];
+                        sys0=sys;
+                        uni_sys0 = uni_sys;
+                    end
                 end
+                %fprintf('\nOUTLIER FOUND! obs %d/%d\n',index_outlier,length(y0));
+                A(index_outlier,:)=[];
+                y0(index_outlier,:)=[];
+                b(index_outlier,:)=[];
+                Q(index_outlier,:)=[];
+                Q(:,index_outlier)=[];
+                invQ=diag((diag(Q).^-1));
+                index_obs(index_outlier)=[];
+                [n,m]=size(A);
+            else
+                search_for_outlier=0;
             end
-            A(index_outlier,:)=[];
-            y0(index_outlier,:)=[];
-            b(index_outlier,:)=[];
-            Q(index_outlier,:)=[];
-            Q(:,index_outlier)=[];
-            invQ=diag((diag(Q).^-1));
-            index_obs(index_outlier)=[];
-            [n,m]=size(A);
-        else
-            search_for_outlier=0;
         end
-    end
-    if (num_sys > 1)
-        is_bias(uni_sys(2:end))=x(end-(num_sys-2):end);
+    else
+        x = (N^-1)*A'*(invQ)*(y0-b);
+        y_hat = A*x + b;
+        v_hat = y0 - y_hat;
     end
     N = (A'*(invQ)*A);
     residuals_obs = y00 - A0*x;
@@ -182,6 +204,11 @@ end
 XR  = XR_approx + x(1:3);
 dtR = x(4) / v_light;
 
+%estimated inter-system biases
+if (num_sys > 1)
+    ISBs = x(3+ref_clock+[1:num_sys-ref_clock]) / v_light;
+end
+
 %computation of the condition number on the eigenvalues of N
 N_min_eig = min(eig(N));
 N_max_eig = max(eig(N));
@@ -192,9 +219,13 @@ if (n > m)
     Cxx = sigma02_hat(1) * (N^-1);
     cov_XR  = Cxx(1:3,1:3);
     var_dtR = Cxx(4,4) / v_light^2;
+    if (num_sys > 1)
+        var_ISBs = Cxx(5:end,5:end) / v_light^2;
+    end
 else
     cov_XR  = [];
     var_dtR = []; 
+    var_ISBs = [];
 end
 
 %DOP computation
@@ -206,4 +237,22 @@ if (nargout > 4)
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
     HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
     VDOP = sqrt(cov_ENU(3,3));
+end
+
+%prepare A and ISBs variables for output (only when GLONASS is enabled)
+if (any(floor(uni_sys) == 2))
+    pos = find(floor(uni_sys) == 2);
+    GLO_slots = single((uni_sys(pos) - 2)*100 + 1);
+    GLO_IFBs = zeros(14,1);
+    GLO_IFBs(GLO_slots) = ISBs(pos-ref_clock);
+    ISBs = [GLO_IFBs; ISBs(pos(end)+1:end)];
+    GLO_rows = find(floor(sys) == 2);
+    if (ref_clock ~= 0)
+        A = [A(:,1:3) zeros(n,14) A(:,4+pos(end)+1:end)];
+    else
+        A = zeros(n,14);
+    end
+    for r = 1 : length(GLO_rows)
+        A(GLO_rows(r),4+GLO_slots(r)) = 1;
+    end
 end

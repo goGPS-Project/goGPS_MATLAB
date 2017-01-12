@@ -1,4 +1,4 @@
-function icol = find_eph(Eph, sat, time)
+function icol = find_eph(Eph, sat, time, override_dtmax)
 
 % SYNTAX:
 %   icol = find_eph(Eph, sat, time);
@@ -60,7 +60,7 @@ if (fit_interval ~= 0)
 else
     switch (char(Eph(31,icol)))
         case 'R' %GLONASS
-            dtmax = 900;
+            dtmax = 950; %900 + 50 to account for leap seconds difference
         case 'J' %QZSS
             dtmax = 3600;
         otherwise
@@ -68,7 +68,12 @@ else
     end
 end
 
-if (fix(abs(dtmin)) - delta > dtmax)
+if (exist('override_dtmax','var'))
+    dtmax = override_dtmax;
+end
+
+%if (fix(abs(dtmin)) - delta > dtmax)
+if (fix(abs(dtmin)) > dtmax)
     icol = [];
     return
 end

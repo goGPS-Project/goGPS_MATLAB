@@ -1,7 +1,7 @@
-function PCV_correction = PCV_interp(antenna_PCV, zen, azi, sys, frequency)
+function PCV_corr = PCV_correction(antenna_PCV, zen, azi, sys, frequency)
 
 % SYNTAX:
-%   PCV_correction = PCV_interp(antenna_PCV,zen,azi);
+%   PCV_corr = PCV_correction(antenna_PCV, zen, azi, sys, frequency);
 %
 % INPUT:
 %   antenna_PCV = antenna PCV struct
@@ -11,7 +11,7 @@ function PCV_correction = PCV_interp(antenna_PCV, zen, azi, sys, frequency)
 %   frequency = frequency of the observations (i.e.: 1 for L1, 2 for L2, ...)
 %
 % OUTPUT:
-%   PCV_correction = interpolated value of the PCV correction
+%   PCV_corr = interpolated value of the PCV correction
 %
 % DESCRIPTION:
 %   Function that computes the PCV corrections for the array of input
@@ -21,6 +21,8 @@ function PCV_correction = PCV_interp(antenna_PCV, zen, azi, sys, frequency)
 %                           goGPS v0.4.3
 %
 % Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%
+% Portions of code contributed by Stefano Caldera
 %----------------------------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -39,7 +41,9 @@ function PCV_correction = PCV_interp(antenna_PCV, zen, azi, sys, frequency)
 % Code contributed by Stefano Caldera
 %
 %----------------------------------------------------------------------------------------------
-PCV_correction=zeros(size(zen));
+PCV_corr=zeros(size(zen));
+
+sys = floor(sys);
 
 % extract constellations that have to be analyzed
 constellation=unique(sys);
@@ -61,21 +65,6 @@ for j=1:length(constellation)
         zen_i=zen(index_sat);
         azi_i=azi(index_sat);
 
-%         % compute global correction (from antenna_PCV.offset)
-%         [phi, lam, h] = cart2geod(XR(1,1), XR(2,1), XR(3,1)); %#ok<NASGU>               
-%         R = [-sin(lam) cos(lam) 0;
-%             -sin(phi)*cos(lam) -sin(phi)*sin(lam) cos(phi);
-%             +cos(phi)*cos(lam) +cos(phi)*sin(lam) sin(phi)];
-%         PCVxyz = R'*(antenna_PCV.offset(:,:,index_freq)');
-%         
-%         PCV_correction(index_sat)=-dot(repmat(PCVxyz',length(zen_i),1)',((XS-repmat(XR',size(XS,1),1))./sqrt(repmat(sum((XS-repmat(XR',size(XS,1),1)).^2,2),1,3)))')';
-% 
-%         %         % compute global correction (from antenna_PCV.offset)
-%         %         offset=antenna_PCV.offset(:,:,index_freq);
-%         %         ES=[sind(azi).*cosd(90-zen_i), cosd(azi_i).*cosd(90-zen_i), sind(90-zen_i)];
-%         %         PCV_correction(index_sat)=-dot(repmat(offset,length(zen_i),1)',ES')';
-%         
-
         % compute azi-zen depending corrections
         % verify if only 'noazi' is available
         
@@ -85,8 +74,8 @@ for j=1:length(constellation)
             tableNOAZI=antenna_PCV.tableNOAZI(:,:,index_freq);
             table_zen=antenna_PCV.tablePCV_zen;
             
-            %detection of the grid node nearest to the interpolation point
-            [mX, posX] = min(abs(repmat(table_zen,length(zen_i),1) - repmat(zen_i,1,length(table_zen))),[],2);
+            % detection of the grid node nearest to the interpolation point
+            [~, posX] = min(abs(repmat(table_zen,length(zen_i),1) - repmat(zen_i,1,length(table_zen))),[],2);
             posX(zen_i-table_zen(posX)'<0)= posX(zen_i-table_zen(posX)'<0)-1;   % get the lower node
             mX=zen_i-table_zen(posX)';
              
@@ -96,8 +85,10 @@ for j=1:length(constellation)
             mX(index_end)=mX(index_end)+antenna_PCV.dzen;
             
             % interpolation
-            PCV_correction_i=(tableNOAZI(posX+1)'-tableNOAZI(posX)')/antenna_PCV.dzen.*mX+tableNOAZI(posX)';
+            PCV_corr_i=(tableNOAZI(posX+1)'-tableNOAZI(posX)')/antenna_PCV.dzen.*mX+tableNOAZI(posX)';
             
+            % keep only the corrections included in the range from zen1 to zen2
+            PCV_corr_i(zen_i > antenna_PCV.zen2) = 0;
         else
             % compute azi-zen depending corrections
             tablePCV=antenna_PCV.tablePCV(:,:,index_freq);
@@ -107,11 +98,10 @@ for j=1:length(constellation)
             % reverse the direction in azimut (so that azimuth goes high-low
             tablePCV=flipud(tablePCV);
             table_azi=fliplr(table_azi);
-            
-            
+
             %detection of the grid node nearest to the interpolation point
-            [mX, posX] = min(abs(repmat(table_zen,length(zen_i),1) - repmat(zen_i,1,length(table_zen))),[],2);
-            [mY, posY] = min(abs(repmat(table_azi,length(azi_i),1) - repmat(azi_i,1,length(table_azi))),[],2);
+            [~, posX] = min(abs(repmat(table_zen,length(zen_i),1) - repmat(zen_i,1,length(table_zen))),[],2);
+            [~, posY] = min(abs(repmat(table_azi,length(azi_i),1) - repmat(azi_i,1,length(table_azi))),[],2);
             posX(zen_i-table_zen(posX)'<0)= posX(zen_i-table_zen(posX)'<0)-1;   % get the lower node
             posY(azi_i-table_azi(posY)'<0)= posY(azi_i-table_azi(posY)'<0)+1;   % get the lower node
             mX=zen_i-table_zen(posX)';
@@ -125,26 +115,16 @@ for j=1:length(constellation)
             index_end=find(posY==1);
             posY(index_end)=posY(index_end)+1;
             mY(index_end)=mY(index_end)+antenna_PCV.dazi; 
-            
-            
+
             % bilinear interpolation
-            
-            PCV_correction_i= tablePCV(sub2ind(size(tablePCV),posY,posX)) ./ (antenna_PCV.dzen*antenna_PCV.dazi) .* (antenna_PCV.dzen-mX) .* (antenna_PCV.dazi-mY) + ... 
+            PCV_corr_i= tablePCV(sub2ind(size(tablePCV),posY,posX)) ./ (antenna_PCV.dzen*antenna_PCV.dazi) .* (antenna_PCV.dzen-mX) .* (antenna_PCV.dazi-mY) + ... 
                 tablePCV(sub2ind(size(tablePCV),posY,posX+1)) ./ (antenna_PCV.dzen*antenna_PCV.dazi) .* mX .* (antenna_PCV.dazi-mY) + ... 
                 tablePCV(sub2ind(size(tablePCV),posY-1,posX)) ./ (antenna_PCV.dzen*antenna_PCV.dazi) .* (antenna_PCV.dzen-mX) .* mY + ... 
                 tablePCV(sub2ind(size(tablePCV),posY-1,posX+1)) ./ (antenna_PCV.dzen*antenna_PCV.dazi) .* mX .* mY; 
-            
         end
         
-        PCV_correction(index_sat)=PCV_correction(index_sat)+PCV_correction_i;
- 
+        PCV_corr(index_sat)=PCV_corr(index_sat)+PCV_corr_i;
     else
         % corrections not available        
     end
-    
-    
-  
 end
-
-
-

@@ -58,6 +58,7 @@ antenna_PCV=[];
 for m = 1 : length(antmod)
     antenna_PCV(m).name=antmod{m}; %#ok<*AGROW>
     antenna_PCV(m).n_frequency=0;
+    antenna_PCV(m).available=0;
 end
 antenna_found=zeros(length(antmod),1);
 
@@ -95,7 +96,7 @@ for file_pcv=1:size(filename,1)
                                 %antenna_PCV(m).name=antmod{m};
                                 %antenna_PCV(m).n_frequency=0;
                                 %antenna_PCV(m).offset=[0 0 0];
-                                
+
                                 validity_start = [];
                                 validity_end   = [];
                                 answer1 = strfind(line(1:40),antmod{m});
@@ -107,8 +108,11 @@ for file_pcv=1:size(filename,1)
                                     break
                                 end
                                 
-                                if (~isempty(answer1) && ~isempty(answer2) && ~isempty(find(antmod{m} ~= ' ', 1)))
+                                if (~isempty(answer1) && ~isempty(answer2) && ~isempty(find(antmod{m} ~= ' ', 1)) && ~antenna_PCV(m).available)
 
+                                    %get TYPE
+                                    antenna_PCV(m).type = line(1:20);
+                                    
                                     %get DAZI
                                     while (isempty(strfind(line,'DAZI')))
                                         line = fgetl(fid);
@@ -176,6 +180,9 @@ for file_pcv=1:size(filename,1)
                                         if (~isempty(validity_start)) %satellite antenna
                                             if (datenum(date(1,:)) > datenum(validity_start) && datenum(date(end,:)) < datenum(validity_end))
                                                 antenna_PCV(m).offset(1,1:3,frequencies_found)=[sscanf(line(1:10),'%f'),sscanf(line(11:20),'%f'),sscanf(line(21:30),'%f')].*1e-3; %N,E,U
+                                                if (frequencies_found == antenna_PCV(m).n_frequency)
+                                                    antenna_PCV(m).available = 1;
+                                                end
                                             else
                                                 invalid_date = 1;
                                                 antenna_PCV(m).n_frequency = 0;
@@ -183,6 +190,7 @@ for file_pcv=1:size(filename,1)
                                             end
                                         else  %receiver antenna
                                             antenna_PCV(m).offset(1,1:3,frequencies_found)=[sscanf(line(11:20),'%f'),sscanf(line(1:10),'%f'),sscanf(line(21:30),'%f')].*1e-3; %E,N,U
+                                            antenna_PCV(m).available = 1;
                                         end
                                         
                                         number_of_zenith=(antenna_PCV(m).zen2-antenna_PCV(m).zen1)/antenna_PCV(m).dzen+1;
@@ -201,8 +209,8 @@ for file_pcv=1:size(filename,1)
                                             antenna_PCV(m).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(number_of_azimuth,1);
                                             antenna_PCV(m).tablePCV(:,:,frequencies_found)=NaN(number_of_azimuth,number_of_zenith);
                                         else
-                                            antenna_PCV(m).tablePCV_azi=NaN;
-                                            antenna_PCV(m).tablePCV=NaN;                                          
+                                            antenna_PCV(m).tablePCV_azi(1,1:number_of_azimuth,1)=NaN(1,1);
+                                            antenna_PCV(m).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
                                         end
                                         
                                         line = fgetl(fid);
@@ -216,18 +224,25 @@ for file_pcv=1:size(filename,1)
                                             antenna_PCV(m).tablePCV_azi(:,1:number_of_azimuth,1)=0:antenna_PCV(m).dazi:360;
                                         end
                                         if number_of_azimuth == 0
-                                            antenna_PCV(m).tablePCV=NaN;
+                                            antenna_PCV(m).tablePCV(:,:,frequencies_found)=NaN(1,number_of_zenith);
                                         end
                                     end
                                     if (~invalid_date)
                                         found = found + 1;
+                                        antenna_found(m) = 1;
                                     end
                                 end
+                                
+                                % if the same antenna model is required also by one or more of the next antmod
+                                % entries, just duplicate the one that was read just now
                                 for n = m+1 : length(antmod)
-                                    if (strcmp(antmod{n}, antmod{m}))
+                                    if (strcmp(antmod{n}, antmod{m}) && antenna_PCV(m).available && ~antenna_PCV(n).available)
                                         antenna_PCV(n) = antenna_PCV(m);
+                                        found = found + 1;
+                                        antenna_found(n) = 1;
                                     end
                                 end
+                                                             
                                 if (invalid_date)
                                     while (isempty(strfind(line,'END OF ANTENNA')))
                                         line = fgetl(fid);
@@ -257,5 +272,7 @@ for file_pcv=1:size(filename,1)
     end
 end
 
-
-
+idx_not_found = find(~antenna_found);
+for a = 1 : length(idx_not_found)
+    fprintf('%s', ['... WARNING: PCO/PCV model for antenna "' cell2mat(antmod(idx_not_found(a))) '" was not found.']); fprintf('\n');
+end

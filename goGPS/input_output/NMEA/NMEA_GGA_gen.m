@@ -40,9 +40,16 @@ global geoid
 
 %date
 if (nargin > 2)
-    [week, sow] = time2weektow(time);
-    date = datevec(gps2utc(datenum(gps2date(week, sow))));
-    %date = datevec((time / (3600*24)) - fix(time / (3600*24)));
+    if (size(time) == [1,6]) %#ok<BDSCA>
+        if (time(1) < 100)
+            time(1) = four_digit_year(time(1));
+        end
+        date = datevec(gps2utc(datenum(time)));
+    else
+        [week, sow] = time2weektow(time);
+        date = datevec(gps2utc(datenum(gps2date(week, sow))));
+        %date = datevec((time / (3600*24)) - fix(time / (3600*24)));
+    end
 else
     %get current date
     date = clock;
