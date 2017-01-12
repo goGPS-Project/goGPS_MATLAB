@@ -38,7 +38,7 @@ function [DCB] = load_dcb(data_dir_dcb, gps_week, time_R, codeC1_R, constellatio
 %----------------------------------------------------------------------------------------------
 
 if (isempty(constellations)) %then use only GPS as default
-    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
 
 %starting index in the total array for the various constellations

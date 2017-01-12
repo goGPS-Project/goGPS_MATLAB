@@ -32,7 +32,7 @@ function dtm_bulk_load(dtm_dir_path, tile_size)
 %----------------------------------------------------------------------------------------------
 
 %computation time evaluation
-tic
+tic;
 
 %----------------------------------------------------------------------------------------------
 % LOAD ASCII-GRID FILES AND SAVE THEM IN .MAT BINARY FORMAT
@@ -187,4 +187,4 @@ save(strcat(dtm_dir_path, '/tiles/tile_georef'), 'tile_georef', '-V6');
 %----------------------------------------------------------------------------------------------
 
 %computation time evaluation
-toc
+toc;

@@ -6,7 +6,7 @@ function [Eph, iono, flag_return] = load_RINEX_nav(filename, constellations, fla
 % INPUT:
 %   filename = RINEX navigation file
 %   constellations = struct with multi-constellation settings
-%                   (see 'multi_constellation_settings.m' - empty if not available)
+%                   (see goGNSS.initConstellation - empty if not available)
 %   flag_SP3 = boolean flag to indicate SP3 availability
 %   wait_dlg = optional handler to waitbar figure (optional)
 %
@@ -50,9 +50,8 @@ end
 flag_return = 0;
 
 if (isempty(constellations)) %then use only GPS as default
-    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
+    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
-tic;
 
 %number of satellite slots for enabled constellations
 nSatTot = constellations.nEnabledSat;

@@ -1,7 +1,7 @@
-function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, order)
+function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order)
 
 % SYNTAX:
-%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, order);
+%   [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SPP, status_obs, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_ref, time, XR0, pr1, ph1, pr2, ph2, dop1, dop2, snr1, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, waitbar_handle, flag_XR, sbas, constellations, flag_full_prepro, order);
 %
 % INPUT:
 %   time_ref = GPS reference time
@@ -27,6 +27,7 @@ function [pr1, ph1, pr2, ph2, dtR, dtRdot, bad_sats, bad_epochs, var_dtR, var_SP
 %           = 0: no apriori coordinates available
 %   sbas = SBAS corrections
 %   constellations = struct with multi-constellation settings
+%   flag_full_prepro = do  afull preprocessing
 %   order = dynamic model order (1: static; >1 kinematic or epoch-by-epoch)
 
 % OUTPUT:
@@ -150,118 +151,129 @@ min_arc = max([min_arc lagr_order]);
 [pr2] = remove_short_arcs(pr2, lagr_order);
 [ph1] = remove_short_arcs(ph1, lagr_order);
 [ph2] = remove_short_arcs(ph2, lagr_order);
-
-%------------------------------------------------------------------------------------------------------------------
-% RECEIVER CLOCK  AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: INITIALIZATION
-%------------------------------------------------------------------------------------------------------------------
-
-%modulo time
-interval = median(diff(time)); %seconds
-mt = ceil(interval/3);
-nEpochs_reduced = floor(length(time)/mt);
-
-%number of position solutions to be estimated
-if (order == 1)
-    npos = 1;
+if not(flag_full_prepro)
+    dtRdot(end+1) = dtRdot(end);
 else
-    npos = nEpochs_reduced;
-end
 
-%vector to keep track of the number of observations available at each epoch
-n_obs_epoch = NaN(nEpochs_reduced, 1);
-
-%cumulative number of observations, to keep track of where each epoch begins
-epoch_index = NaN(nEpochs_reduced, 1);
-epoch_track = 0;
-
-%total number of observations (for matrix initialization)
-n_obs_tot = floor(sum(sum(pr1(:,:,1) ~= 0))/mt);
-
-y0_all = NaN(n_obs_tot,1);
-b_all  = NaN(n_obs_tot,1);
-A_all  = NaN(n_obs_tot,npos*3+nEpochs_reduced+(nisbs-1));
-Q_all  = NaN(n_obs_tot,1);
-
-r = 1;
-for i = 1 : nEpochs
+    %------------------------------------------------------------------------------------------------------------------
+    % RECEIVER CLOCK  AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: INITIALIZATION
+    %------------------------------------------------------------------------------------------------------------------
     
-    %--------------------------------------------------------------------------------------------
-    % SATELLITE AND EPHEMERIS SELECTION
-    %--------------------------------------------------------------------------------------------
+    %modulo time
+    interval = median(diff(time)); %seconds
+    mt = ceil(interval/3);
+    nEpochs_reduced = floor(length(time)/mt);
     
-    if (frequencies(1) == 1)
-        if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-            sat0 = find(pr1(:,i) ~= 0);
-        else
-            sat0 = find(pr1(:,i) ~= 0 & pr2(:,i) ~= 0);
-        end
+    %number of position solutions to be estimated
+    if (order == 1)
+        npos = 1;
     else
-        sat0 = find(pr2(:,i) ~= 0);
+        npos = nEpochs_reduced;
     end
     
-    status_obs(sat0,i) = 0; % satellite observed
-
-    Eph_t = rt_find_eph (Eph, time(i), nSatTot);
-    sbas_t = find_sbas(sbas, i);
+    %vector to keep track of the number of observations available at each epoch
+    n_obs_epoch = NaN(nEpochs_reduced, 1);
     
-    %----------------------------------------------------------------------------------------------
-    % EPOCH-BY-EPOCH RECEIVER POSITION AND CLOCK ERROR
-    %----------------------------------------------------------------------------------------------
+    %cumulative number of observations, to keep track of where each epoch begins
+    epoch_index = NaN(nEpochs_reduced, 1);
+    epoch_track = 0;
     
-    min_nsat_LS = 3 + n_sys;
+    %total number of observations (for matrix initialization)
+    n_obs_tot = floor(sum(sum(pr1(:,:,1) ~= 0))/mt);
     
-    if (length(sat0) >= min_nsat_LS)
+    if (nisbs > 1)
+        y0_all = NaN(n_obs_tot,1);
+        b_all  = NaN(n_obs_tot,1);
+        A_all  = NaN(n_obs_tot,npos*3+nEpochs_reduced+(nisbs-1));
+        Q_all  = NaN(n_obs_tot,1);
+    end
+    
+    r = 1;
+    for i = 1 : nEpochs
+        
+        %--------------------------------------------------------------------------------------------
+        % SATELLITE AND EPHEMERIS SELECTION
+        %--------------------------------------------------------------------------------------------
+        
         if (frequencies(1) == 1)
             if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
-                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                sat0 = find(pr1(:,i) ~= 0);
             else
-                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                sat0 = find(pr1(:,i) ~= 0 & pr2(:,i) ~= 0);
             end
         else
-            [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+            sat0 = find(pr2(:,i) ~= 0);
         end
         
-        if (~isempty(A) && (size(A,2) >= 3+nisbs-1) && (mod(i,mt) == 0))
-            n_obs_epoch(r) = length(y0);
-            y0_all(epoch_track+1:epoch_track+n_obs_epoch(r)) = y0;
-            b_all( epoch_track+1:epoch_track+n_obs_epoch(r)) =  b;
-            A_all( epoch_track+1:epoch_track+n_obs_epoch(r),(1:3)+any(npos-1)*(r-1)*3) = A(:,1:3);
-            if (nisbs > 1)
-                A_all( epoch_track+1:epoch_track+n_obs_epoch(r),end-(nisbs-2):end) = A(:,end-(nisbs-2):end);
+        status_obs(sat0,i) = 0; % satellite observed
+        
+        Eph_t = rt_find_eph (Eph, time(i), nSatTot);
+        sbas_t = find_sbas(sbas, i);
+        
+        %----------------------------------------------------------------------------------------------
+        % EPOCH-BY-EPOCH RECEIVER POSITION AND CLOCK ERROR
+        %----------------------------------------------------------------------------------------------
+        
+        min_nsat_LS = 3 + n_sys;
+        
+        if (length(sat0) >= min_nsat_LS)
+            if (frequencies(1) == 1)
+                if (length(frequencies) < 2 || ~strcmp(obs_comb,'IONO_FREE'))
+                    [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr1(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                else
+                    [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), alpha1(sat0).*pr1(sat0,i) - alpha2(sat0).*pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, zeros(8,1), sbas_t, XR0, [], [], sat0, [], zeros(length(sat0),2), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
+                end
+            else
+                [XR_tmp, dtR_tmp, ~, ~, ~, ~, ~, ~, err_iono_tmp, sat, el_tmp, ~, ~, ~, cov_XR_tmp, var_dtR_tmp, ~, ~, ~, cond_num_tmp, bad_sat_i, bad_epochs(i), var_SPP(i,:), ~, eclipsed_tmp, ISBs_tmp, var_ISBs_tmp, y0, b, A, Q] = init_positioning(time(i), pr2(sat0,i), snr1(sat0,i), Eph_t, SP3, iono, sbas_t, XR0, [], [], sat0, [], lambda(sat0,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 0, nisbs > 1, 1); %#ok<ASGLU>
             end
-            Q_all( epoch_track+1:epoch_track+n_obs_epoch(r),1) = diag(Q);
-            epoch_index(r) = epoch_track + n_obs_epoch(r);
-            epoch_track = epoch_index(r);
-            r = r + 1;
-        end
-
-        if isempty(var_dtR_tmp)
-            var_dtR_tmp=NaN;
-        end
-        
-        status_obs(sat,i) = 1; % satellite used
-        status_obs(find(bad_sat_i==1),i)=-1; %#ok<FNDSB> % satellite outlier
-        
-        if (~isempty(dtR_tmp) && ~isempty(sat))
-            dtR(i) = dtR_tmp;
-%             if (~isempty(ISBs_tmp))
-%                 ISBs(:,i) = ISBs_tmp;
-%             end
-            err_iono(sat,i) = err_iono_tmp;
-            el(sat,i) = el_tmp;
-            eclipsed(sat,i) = eclipsed_tmp;
-%             cond_num(i,1) = cond_num_tmp;
-%             if (~isempty(var_dtR_tmp))
-%                 cov_XR(:,:,i) = cov_XR_tmp;
-%                 var_dtR(i,1) = var_dtR_tmp;
-%             end
-        end
-        
-        if (size(sat,1) >= min_nsat_LS)
             
-            if (i > 1)
-                %compute receiver clock drift
-                if (dtR(i) ~= 0 && dtR(i-1) ~= 0)
+            if (~isempty(A) && (nisbs > 1) && (mod(i,mt) == 0))
+                n_obs_epoch(r) = length(y0);
+                y0_all(epoch_track+1:epoch_track+n_obs_epoch(r)) = y0;
+                b_all( epoch_track+1:epoch_track+n_obs_epoch(r)) =  b;
+                A_all( epoch_track+1:epoch_track+n_obs_epoch(r),(1:3)+any(npos-1)*(r-1)*3) = A(:,1:3);
+                if (nisbs > 1)
+                    A_all( epoch_track+1:epoch_track+n_obs_epoch(r),end-(nisbs-2):end) = A(:,end-(nisbs-2):end);
+                end
+                Q_all( epoch_track+1:epoch_track+n_obs_epoch(r),1) = diag(Q);
+                epoch_index(r) = epoch_track + n_obs_epoch(r);
+                epoch_track = epoch_index(r);
+                r = r + 1;
+            end
+            
+            if isempty(var_dtR_tmp)
+                var_dtR_tmp=NaN;
+            end
+            
+            status_obs(sat,i) = 1; % satellite used
+            status_obs(find(bad_sat_i==1),i)=-1; %#ok<FNDSB> % satellite outlier
+            
+            if (~isempty(dtR_tmp) && ~isempty(sat))
+                dtR(i) = dtR_tmp;
+                %             if (~isempty(ISBs_tmp))
+                %                 ISBs(:,i) = ISBs_tmp;
+                %             end
+                err_iono(sat,i) = err_iono_tmp;
+                el(sat,i) = el_tmp;
+                eclipsed(sat,i) = eclipsed_tmp;
+                %             cond_num(i,1) = cond_num_tmp;
+                %             if (~isempty(var_dtR_tmp))
+                %                 cov_XR(:,:,i) = cov_XR_tmp;
+                %                 var_dtR(i,1) = var_dtR_tmp;
+                %             end
+            end
+            
+            if (size(sat,1) >= min_nsat_LS)
+                
+                if (i > 1)
+                    %compute receiver clock drift
+                    if (dtR(i) ~= 0 && dtR(i-1) ~= 0)
+                        dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
+                    end
+                end
+            else
+                if (i > 2)
+                    dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
                     dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
                 end
             end
@@ -271,349 +283,343 @@ for i = 1 : nEpochs
                 dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
             end
         end
-    else
-        if (i > 2)
-            dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
-            dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
+        
+        if (nargin > 15 && ~isempty(waitbar_handle))
+            waitbar_handle.goTime(i);
         end
     end
     
-    if (nargin > 15 && ~isempty(waitbar_handle))
-        waitbar_handle.goTime(i);
-    end
-end
-
-%-------------------------------------------------------------------------------------------------------------
-% RECEIVER CLOCK AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
-%-------------------------------------------------------------------------------------------------------------
-
-if (nisbs > 1)
-    %unknown_index = find(~isnan(n_obs_epoch));
-    n_obs_epoch(isnan(n_obs_epoch)) = [];
-    epoch_index(isnan(epoch_index)) = [];
+    %-------------------------------------------------------------------------------------------------------------
+    % RECEIVER CLOCK AND INTER-SYSTEM BIAS (IF ANY) ESTIMATION BY MULTI-EPOCH LEAST-SQUARES ADJUSTMENT: PROCESSING
+    %-------------------------------------------------------------------------------------------------------------
     
-    index_nan = find(isnan(y0_all),1);
-    y0_all(index_nan:end) = [];
-    b_all(index_nan:end)  = [];
-    
-    n = length(y0_all);
-    m = 3*npos + length(n_obs_epoch) + (nisbs-1);
-    if (~isempty(index_nan))
-        A_all = A_all(1:index_nan-1,1:size(A_all,2));
-        Q_all = Q_all(1:index_nan-1,1);
-    end
-    A_all(isnan(A_all)) = 0;
-    Q_all(isnan(Q_all)) = 0;
-    
-    %set the design matrix to estimate the receiver clock
-    A_all(1:epoch_index(1),3*npos+1) = 1;
-    for e = 2 : length(epoch_index)
-        A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
-    end
-    
-    %remove unavailable epochs from the unknowns (receiver clock)
-    avail_index = any(A_all,1);
-    avail_IFBs = [];
-    if (constellations.GLONASS.enabled)
-        %check if one of the GLONASS IFBs was removed from the unknowns
-        avail_IFBs = avail_index(3*npos+nEpochs_reduced+1:3*npos+nEpochs_reduced+14);
-    end
-    avail_ISBs = [avail_IFBs avail_index(3*npos+nEpochs_reduced+length(avail_IFBs)+1:end)];
-    A_all(:,~avail_index) = [];
-    m = m - length(find(~avail_index));
-    
-    A  = A_all;
-    y0 = y0_all;
-    b  = b_all;
-    Q  = diag(Q_all);
-    
-    %least-squares solution (broken down to improve computation speed)
-    K = A';
-    P = Q\A;
-    N = K*P;
-    Y = (y0-b);
-    R = Q\Y;
-    L = K*R;
-    x = N\L;
-    
-    %variance of the estimation error
-    y_hat = A*x + b;
-    v_hat = y0 - y_hat;
-    V = v_hat';
-    T = Q\v_hat;
-    sigma02_hat = (V*T)/(n-m);
-    
-    %estimated values
-    % dtR = zeros(size(dtR));
-    % dtR(avail_index(4:end-(nisbs-1))) = x(4:end-(nisbs-1))/v_light;
-
-    ISBs(avail_ISBs) = x(end-(nisbs-2-sum(~avail_IFBs)):end)/v_light;
-end
-
-%----------------------------------------------------------------------------------------------
-% RECEIVER CLOCK DRIFT DISCONTINUITIES
-%----------------------------------------------------------------------------------------------
-
-%check if there is any discontinuity in the clock drift
-clock_thresh = 1e-5;
-disc = find(abs(dtRdot-mean(dtRdot)) > clock_thresh);
-
-%remove discontinuities from the clock drift
-for i = 1 : length(disc)
-    if (disc(i) < 5)
-        dtRdot(disc(i)) = median(dtRdot(1:10));
-    elseif (disc(i) <= nEpochs-6)
-        dtRdot(disc(i)) = median(dtRdot(disc(i)-4:disc(i)+5));
-    elseif (disc(i) > nEpochs-6)
-        dtRdot(disc(i)) = median(dtRdot(nEpochs-10:nEpochs-1));
-    end
-end
-
-dtRdot(end+1) = dtRdot(end);
-
-% %check if it is needed to correct observations for receiver clocks offsets
-% % (some RINEX files contain clock-corrected observations, although they are
-% %  not respecting the specifications); clock offsets lower than 1
-% %  microsecond don't need to be corrected
-% if (max(abs(dtR)) < 1e-6)
-%     return
-% end
-
-%check which observations must be corrected for receiver clock offsets
-% (some receivers have inconsistent observations, e.g. code with clock
-%  jumps, phase without)
-
-%jump detection threshold
-j_thres = (clock_thresh*10)*v_light;
-
-%flags
-flag_jumps_pr1 = 0;
-flag_jumps_pr2 = 0;
-flag_jumps_ph1 = 0;
-flag_jumps_ph2 = 0;
-
-for i = 1 : length(disc)
-    
-    for s = 1 : nSatTot
+    if (nisbs > 1)
+        %unknown_index = find(~isnan(n_obs_epoch));
+        n_obs_epoch(isnan(n_obs_epoch)) = [];
+        epoch_index(isnan(epoch_index)) = [];
         
-        %check code on L1
-        if (pr1(s,disc(i):disc(i)+1) ~= 0)
-            if (abs(diff(pr1(s,disc(i):disc(i)+1))) > j_thres)
-                flag_jumps_pr1 = 1;
+        index_nan = find(isnan(y0_all),1);
+        y0_all(index_nan:end) = [];
+        b_all(index_nan:end)  = [];
+        
+        n = length(y0_all);
+        m = 3*npos + length(n_obs_epoch) + (nisbs-1);
+        if (~isempty(index_nan))
+            A_all = A_all(1:index_nan-1,1:size(A_all,2));
+            Q_all = Q_all(1:index_nan-1,1);
+        end
+        A_all(isnan(A_all)) = 0;
+        Q_all(isnan(Q_all)) = 0;
+        
+        %set the design matrix to estimate the receiver clock
+        A_all(1:epoch_index(1),3*npos+1) = 1;
+        for e = 2 : length(epoch_index)
+            A_all(epoch_index(e-1)+1:epoch_index(e),3*npos+e) = 1;
+        end
+        
+        %remove unavailable epochs from the unknowns (receiver clock)
+        avail_index = any(A_all,1);
+        avail_IFBs = [];
+        if (constellations.GLONASS.enabled)
+            %check if one of the GLONASS IFBs was removed from the unknowns
+            avail_IFBs = avail_index(3*npos+nEpochs_reduced+1:3*npos+nEpochs_reduced+14);
+        end
+        avail_ISBs = [avail_IFBs avail_index(3*npos+nEpochs_reduced+length(avail_IFBs)+1:end)];
+        A_all(:,~avail_index) = [];
+        m = m - length(find(~avail_index));
+        
+        A  = A_all;
+        y0 = y0_all;
+        b  = b_all;
+        Q  = diag(Q_all);
+        
+        %least-squares solution (broken down to improve computation speed)
+        K = A';
+        P = Q\A;
+        N = K*P;
+        Y = (y0-b);
+        R = Q\Y;
+        L = K*R;
+        x = N\L;
+        
+        %variance of the estimation error
+        y_hat = A*x + b;
+        v_hat = y0 - y_hat;
+        V = v_hat';
+        T = Q\v_hat;
+        sigma02_hat = (V*T)/(n-m);
+        
+        %estimated values
+        % dtR = zeros(size(dtR));
+        % dtR(avail_index(4:end-(nisbs-1))) = x(4:end-(nisbs-1))/v_light;
+        
+        ISBs(avail_ISBs) = x(end-(nisbs-2-sum(~avail_IFBs)):end)/v_light;
+    end
+    
+    %----------------------------------------------------------------------------------------------
+    % RECEIVER CLOCK DRIFT DISCONTINUITIES
+    %----------------------------------------------------------------------------------------------
+    
+    %check if there is any discontinuity in the clock drift
+    clock_thresh = 1e-5;
+    disc = find(abs(dtRdot-mean(dtRdot)) > clock_thresh);
+    
+    %remove discontinuities from the clock drift
+    for i = 1 : length(disc)
+        if (disc(i) < 5)
+            dtRdot(disc(i)) = median(dtRdot(1:10));
+        elseif (disc(i) <= nEpochs-6)
+            dtRdot(disc(i)) = median(dtRdot(disc(i)-4:disc(i)+5));
+        elseif (disc(i) > nEpochs-6)
+            dtRdot(disc(i)) = median(dtRdot(nEpochs-10:nEpochs-1));
+        end
+    end
+    
+    dtRdot(end+1) = dtRdot(end);
+    
+    % %check if it is needed to correct observations for receiver clocks offsets
+    % % (some RINEX files contain clock-corrected observations, although they are
+    % %  not respecting the specifications); clock offsets lower than 1
+    % %  microsecond don't need to be corrected
+    % if (max(abs(dtR)) < 1e-6)
+    %     return
+    % end
+    
+    %check which observations must be corrected for receiver clock offsets
+    % (some receivers have inconsistent observations, e.g. code with clock
+    %  jumps, phase without)
+    
+    %jump detection threshold
+    j_thres = (clock_thresh*10)*v_light;
+    
+    %flags
+    flag_jumps_pr1 = 0;
+    flag_jumps_pr2 = 0;
+    flag_jumps_ph1 = 0;
+    flag_jumps_ph2 = 0;
+    
+    for i = 1 : length(disc)
+        
+        for s = 1 : nSatTot
+            
+            %check code on L1
+            if (pr1(s,disc(i):disc(i)+1) ~= 0)
+                if (abs(diff(pr1(s,disc(i):disc(i)+1))) > j_thres)
+                    flag_jumps_pr1 = 1;
+                end
+            end
+            
+            %check code on L2
+            if (pr2(s,disc(i):disc(i)+1) ~= 0)
+                if (abs(diff(pr2(s,disc(i):disc(i)+1))) > j_thres)
+                    flag_jumps_pr2 = 1;
+                end
+            end
+            
+            %check phase on L1
+            if (ph1(s,disc(i):disc(i)+1) ~= 0)
+                if (abs(diff(ph1(s,disc(i):disc(i)+1)))*lambda(s,1) > j_thres)
+                    flag_jumps_ph1 = 1;
+                end
+            end
+            
+            %check phase on L2
+            if (ph2(s,disc(i):disc(i)+1) ~= 0)
+                if (abs(diff(ph2(s,disc(i):disc(i)+1)))*lambda(s,2) > j_thres)
+                    flag_jumps_ph2 = 1;
+                end
+            end
+            
+            %no need to go through all satellites
+            if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
+                break
             end
         end
         
-        %check code on L2
-        if (pr2(s,disc(i):disc(i)+1) ~= 0)
-            if (abs(diff(pr2(s,disc(i):disc(i)+1))) > j_thres)
-                flag_jumps_pr2 = 1;
-            end
-        end
-        
-        %check phase on L1
-        if (ph1(s,disc(i):disc(i)+1) ~= 0)
-            if (abs(diff(ph1(s,disc(i):disc(i)+1)))*lambda(s,1) > j_thres)
-                flag_jumps_ph1 = 1;
-            end
-        end
-        
-        %check phase on L2
-        if (ph2(s,disc(i):disc(i)+1) ~= 0)
-            if (abs(diff(ph2(s,disc(i):disc(i)+1)))*lambda(s,2) > j_thres)
-                flag_jumps_ph2 = 1;
-            end
-        end
-        
-        %no need to go through all satellites
+        %no need to go through all discontinuities
         if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
             break
         end
     end
     
-    %no need to go through all discontinuities
-    if (any([flag_jumps_pr1 flag_jumps_pr2 flag_jumps_ph1 flag_jumps_ph2]))
-        break
-    end
-end
-
-%----------------------------------------------------------------------------------------------
-% GEOMETRY FREE OBSERVABLES
-%----------------------------------------------------------------------------------------------
-
-ph_GF = compute_geometry_free(ph1, ph2, lambda, err_iono);
-
-%----------------------------------------------------------------------------------------------
-% WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
-%----------------------------------------------------------------------------------------------
-
-ph_MW = compute_melbourne_wubbena(ph1, ph2, pr1, pr2, lambda);
-
-%----------------------------------------------------------------------------------------------
-% OBSERVATION CORRECTION FOR CLOCK ERROR
-%----------------------------------------------------------------------------------------------
-
-%two types of corrections (as in http://www.navcen.uscg.gov/?pageName=RINEX):
-% 1. "frequency correction" c*dtR
-% 2. "receiver-satellite dynamics correction" by using Doppler if available,
-%     otherwise by interpolating observations on the time tag corrected by dtR
-
-%available epochs
-index_e = find(time ~= 0);
-
-%nominal time desynchronization (e.g. with some low-cost receivers)
-time_desync = time_ref - time;
-
-%reference time "correction"
-time_ref(index_e) = time(index_e) + dtR(index_e) + time_desync(index_e);
-
-%variables to store interpolated observations
-pr1_interp = zeros(size(pr1));
-ph1_interp = zeros(size(ph1));
-pr2_interp = zeros(size(pr2));
-ph2_interp = zeros(size(ph2));
-
-freq1_required = (frequencies(1) == 1 || length(frequencies) > 1);
-freq2_required = (frequencies(1) == 2 || length(frequencies) > 1);
-
-for s = 1 : nSatTot
-
-    if (any(pr1(s,:)) && freq1_required)
-
-        index_s = find(pr1(s,:) ~= 0);
-        index = intersect(index_e,index_s);
-        
-        if (length(index) > lagr_order)
-            
-            if (flag_jumps_ph1)
-                pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
-            end
-
-            pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), lagr_order);
-        else
-            bad_sats(s,1) = 1;
-        end
-    end
+    %----------------------------------------------------------------------------------------------
+    % GEOMETRY FREE OBSERVABLES
+    %----------------------------------------------------------------------------------------------
     
-    if (any(pr2(s,:)) && freq2_required)
-        
-        index_s = find(pr2(s,:) ~= 0);
-        index = intersect(index_e,index_s);
-        
-        if (length(index) > lagr_order)
-            
-            if (flag_jumps_ph2)
-                pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
-            end
-            
-            pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), lagr_order);
-        else
-            bad_sats(s,1) = 1;
-        end
-    end
+    ph_GF = compute_geometry_free(ph1, ph2, lambda, err_iono);
     
-    if (any(ph1(s,:)) && freq1_required)
-        index_s = find(ph1(s,:) ~= 0);
-        index = intersect(index_e,index_s);
+    %----------------------------------------------------------------------------------------------
+    % WIDE LANE, NARROW LANE and MELBOURNE-WUBBENA OBSERVABLES
+    %----------------------------------------------------------------------------------------------
+    
+    ph_MW = compute_melbourne_wubbena(ph1, ph2, pr1, pr2, lambda);
+    
+    %----------------------------------------------------------------------------------------------
+    % OBSERVATION CORRECTION FOR CLOCK ERROR
+    %----------------------------------------------------------------------------------------------
+    
+    %two types of corrections (as in http://www.navcen.uscg.gov/?pageName=RINEX):
+    % 1. "frequency correction" c*dtR
+    % 2. "receiver-satellite dynamics correction" by using Doppler if available,
+    %     otherwise by interpolating observations on the time tag corrected by dtR
+    
+    %available epochs
+    index_e = find(time ~= 0);
+    
+    %nominal time desynchronization (e.g. with some low-cost receivers)
+    time_desync = time_ref - time;
+    
+    %reference time "correction"
+    time_ref(index_e) = time(index_e) + dtR(index_e) + time_desync(index_e);
+    
+    %variables to store interpolated observations
+    pr1_interp = zeros(size(pr1));
+    ph1_interp = zeros(size(ph1));
+    pr2_interp = zeros(size(pr2));
+    ph2_interp = zeros(size(ph2));
+    
+    freq1_required = (frequencies(1) == 1 || length(frequencies) > 1);
+    freq2_required = (frequencies(1) == 2 || length(frequencies) > 1);
+    
+    for s = 1 : nSatTot
         
-        if (length(index) > lagr_order)
+        if (any(pr1(s,:)) && freq1_required)
             
-            if (flag_jumps_ph1)
-                ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
-                if (flag_doppler_cs && any(dop1(s,index)))
-                    dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
+            index_s = find(pr1(s,:) ~= 0);
+            index = intersect(index_e,index_s);
+            
+            if (length(index) > lagr_order)
+                
+                if (flag_jumps_ph1)
+                    pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
+                end
+                
+                pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), lagr_order);
+            else
+                bad_sats(s,1) = 1;
+            end
+        end
+        
+        if (any(pr2(s,:)) && freq2_required)
+            
+            index_s = find(pr2(s,:) ~= 0);
+            index = intersect(index_e,index_s);
+            
+            if (length(index) > lagr_order)
+                
+                if (flag_jumps_ph2)
+                    pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
+                end
+                
+                pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), lagr_order);
+            else
+                bad_sats(s,1) = 1;
+            end
+        end
+        
+        if (any(ph1(s,:)) && freq1_required)
+            index_s = find(ph1(s,:) ~= 0);
+            index = intersect(index_e,index_s);
+            
+            if (length(index) > lagr_order)
+                
+                if (flag_jumps_ph1)
+                    ph1(s,index) = ph1(s,index) - v_light*dtR(index)'/lambda(s,1);
+                    if (flag_doppler_cs && any(dop1(s,index)))
+                        dop1(s,index) = dop1(s,index) + v_light*dtRdot(index)'/lambda(s,1);
+                    end
                 end
             end
         end
-    end
-    
-    if (any(ph2(s,:)) && freq2_required)
-        index_s = find(ph2(s,:) ~= 0);
-        index = intersect(index_e,index_s);
         
-        if (length(index) > lagr_order)
+        if (any(ph2(s,:)) && freq2_required)
+            index_s = find(ph2(s,:) ~= 0);
+            index = intersect(index_e,index_s);
             
-            if (flag_jumps_ph2)
-                ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
-                if (flag_doppler_cs && any(dop2(s,index)))
-                    dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
+            if (length(index) > lagr_order)
+                
+                if (flag_jumps_ph2)
+                    ph2(s,index) = ph2(s,index) - v_light*dtR(index)'/lambda(s,2);
+                    if (flag_doppler_cs && any(dop2(s,index)))
+                        dop2(s,index) = dop2(s,index) + v_light*dtRdot(index)'/lambda(s,2);
+                    end
                 end
             end
         end
-    end
-    
-    if (any(ph1(s,:)) && freq1_required)
         
-        index_s = find(ph1(s,:) ~= 0);
-        index = intersect(index_e,index_s);
-        
-        if (length(index) > lagr_order)
-
-            [ph1(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), pr2(s,:), ph2(s,:), ph_GF(s,:), ph_MW(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1), lambda(s,2));
-            
-            if ~isempty(cs_correction_i)
-                cs_correction_i(:,1) = s;
-                cs_correction_i(:,2) = 1;
-                status_cs=[status_cs;cs_correction_i];
-            end
+        if (any(ph1(s,:)) && freq1_required)
             
             index_s = find(ph1(s,:) ~= 0);
             index = intersect(index_e,index_s);
-
-            ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
-
-            if (exist('cs_found', 'var') && cs_found)
-                fprintf('Pre-processing: %d cycle-slip(s) detected on L1 for satellite %02d\n', cs_found, s);
+            
+            if (length(index) > lagr_order)
+                
+                [ph1(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr1(s,:), ph1(s,:), pr2(s,:), ph2(s,:), ph_GF(s,:), ph_MW(s,:), dop1(s,:), el(s,:), err_iono(s,:), lambda(s,1), lambda(s,2));
+                
+                if ~isempty(cs_correction_i)
+                    cs_correction_i(:,1) = s;
+                    cs_correction_i(:,2) = 1;
+                    status_cs=[status_cs;cs_correction_i];
+                end
+                
+                index_s = find(ph1(s,:) ~= 0);
+                index = intersect(index_e,index_s);
+                
+                ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
+                
+                if (exist('cs_found', 'var') && cs_found)
+                    fprintf('Pre-processing: %d cycle-slip(s) detected on L1 for satellite %02d\n', cs_found, s);
+                end
+            else
+                bad_sats(s,1) = 1;
             end
-        else
+            
+        elseif (any(pr1(s,:)) && freq1_required)
+            
             bad_sats(s,1) = 1;
         end
         
-    elseif (any(pr1(s,:)) && freq1_required)
-        
-        bad_sats(s,1) = 1;
-    end
-    
-    if (any(ph2(s,:)) && freq2_required)
-        
-        index_s = find(ph2(s,:) ~= 0);
-        index = intersect(index_e,index_s);
-        
-        if (length(index) > lagr_order)
-            
-            [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), pr1(s,:), ph1(s,:), ph_GF(s,:), ph_MW(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2), lambda(s,1));
-            
-            if ~isempty(cs_correction_i)
-                cs_correction_i(:,1) = s;
-                cs_correction_i(:,2) = 2;
-                status_cs=[status_cs;cs_correction_i];
-            end
+        if (any(ph2(s,:)) && freq2_required)
             
             index_s = find(ph2(s,:) ~= 0);
             index = intersect(index_e,index_s);
             
-            ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
-         
-            if (exist('cs_found', 'var') && cs_found)
-                fprintf('Pre-processing: %d cycle-slip(s) detected on L2 for satellite %02d\n', cs_found, s);
+            if (length(index) > lagr_order)
+                
+                [ph2(s,:), cs_found, cs_correction_i] = detect_and_fix_cycle_slips(time, pr2(s,:), ph2(s,:), pr1(s,:), ph1(s,:), ph_GF(s,:), ph_MW(s,:), dop2(s,:), el(s,:), err_iono(s,:), lambda(s,2), lambda(s,1));
+                
+                if ~isempty(cs_correction_i)
+                    cs_correction_i(:,1) = s;
+                    cs_correction_i(:,2) = 2;
+                    status_cs=[status_cs;cs_correction_i];
+                end
+                
+                index_s = find(ph2(s,:) ~= 0);
+                index = intersect(index_e,index_s);
+                
+                ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
+                
+                if (exist('cs_found', 'var') && cs_found)
+                    fprintf('Pre-processing: %d cycle-slip(s) detected on L2 for satellite %02d\n', cs_found, s);
+                end
+            else
+                bad_sats(s,1) = 1;
             end
-        else
+            
+        elseif (any(pr2(s,:)) && freq2_required)
+            
             bad_sats(s,1) = 1;
         end
-        
-    elseif (any(pr2(s,:)) && freq2_required)
-        
-        bad_sats(s,1) = 1;
     end
+    pr1 = pr1_interp;
+    pr2 = pr2_interp;
+    ph1 = ph1_interp;
+    ph2 = ph2_interp;
 end
-pr1 = pr1_interp;
-pr2 = pr2_interp;
-ph1 = ph1_interp;
-ph2 = ph2_interp;
-
-% %flag epochs with 4 or more slipped satellites as "bad"
-% [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
-% idx_cs_occur = num_cs_occur >= 4;
-% bad_epochs(epoch(idx_cs_occur)) = 1;
+    % %flag epochs with 4 or more slipped satellites as "bad"
+    % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
+    % idx_cs_occur = num_cs_occur >= 4;
+    % bad_epochs(epoch(idx_cs_occur)) = 1;
 
 end
 

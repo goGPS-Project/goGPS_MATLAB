@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 29-Dec-2016 14:40:06
+% Last Modified by GUIDE v2.5 12-Jan-2017 15:09:59
 
 %----------------------------------------------------------------------------------------------
 %                           goGPS v0.4.3
@@ -90,7 +90,7 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 global goGUI
     % If I press the exit button
     if(~isstruct(handles))
-        varargout = cell(37,1);
+        varargout = cell(38,1);
         return
     end
     
@@ -311,7 +311,17 @@ end
 
 %   OPTIONS
 % ===============================================================
-    
+
+% --- Executes on button press in cPrePro.
+function cPrePro_Callback(hObject, eventdata, handles)
+% hObject    handle to cPrePro (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of cPrePro
+global goGUI
+    goGUI.syncFromGUI(goGUI.idUI.cPrePro);
+
 % --- Executes on button press in constraint.
 function constraint_Callback(hObject, eventdata, handles)
 % hObject    handle to constraint (see GCBO)
