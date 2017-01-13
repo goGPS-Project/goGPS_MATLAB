@@ -2762,13 +2762,13 @@ classdef goGUIclass < handle
                 obj.setElVal(obj.idUI.cOutlier, state.outlier, 0);                
             end
             if (isfield(state,'spp_thr'))
-                obj.setElVal(obj.idUI.eSPPthr, state.spp_thr, 0);                
+                obj.setElVal(obj.idUI.nSPPthr, state.spp_thr, 0);                
             end
             if (isfield(state,'code_thr'))
-                obj.setElVal(obj.idUI.eCodeThr, state.code_thr, 0);                
+                obj.setElVal(obj.idUI.nCodeThr, state.code_thr, 0);                
             end
             if (isfield(state,'phase_thr'))
-                obj.setElVal(obj.idUI.ePhaseThr, state.phase_thr, 0);                
+                obj.setElVal(obj.idUI.nPhaseThr, state.phase_thr, 0);                
             end            
             
             %   OPTIONS
@@ -2958,6 +2958,9 @@ classdef goGUIclass < handle
             state.flag_doppler      = obj.getElVal(obj.idUI.cDoppler);
             state.use_sbas          = obj.getElVal(obj.idUI.cUse_SBAS);
             state.outlier           = obj.getElVal(obj.idUI.cOutlier);
+            state.spp_thr           = obj.getElVal(obj.idUI.nSPPthr);
+            state.code_thr          = obj.getElVal(obj.idUI.nCodeThr);
+            state.phase_thr         = obj.getElVal(obj.idUI.nPhaseThr);
             state.use_sbas          = obj.getElVal(obj.idUI.cUse_SBAS);
             
             %   INTEGER AMBIGUITY RESOLUTION
