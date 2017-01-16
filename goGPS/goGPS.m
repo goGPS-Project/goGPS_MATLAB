@@ -101,7 +101,7 @@ if (mode_user == 1)
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
         filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
         filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
-        flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro] = gui_goGPS;
+        flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta] = gui_goGPS;
 
     global goIni; %#ok<TLEV>
     if (isempty(mode))
@@ -349,8 +349,8 @@ if goGNSS.isPP(mode) % report only if postprocessing
     report.inp.filename_nav = filename_nav;
     report.inp.filename_pco = filename_pco;
     report.inp.filename_blq = filename_blq;
-    if exist('sta_coord_file','var')
-        report.inp.sta_coord_file = sta_coord_file;
+    if exist('filename_sta','var')
+        report.inp.filename_sta = filename_sta;
     end
     
     global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat IAR_method flag_default_P0 flag_auto_mu mu P0 %#ok<TLEV>
@@ -397,6 +397,11 @@ while read_files
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
                 fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
                 return
+            end
+            
+            %read stations coordinates file
+            if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
+                [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, []);
             end
             
             %read receiver antenna phase center offset (PCO) and variation (PCV)
@@ -713,6 +718,11 @@ while read_files
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
             codeC1_R = codeC1_RM(:,:,1:end-1); codeC1_M = codeC1_RM(:,:,end);
             marker_R = marker_RM(:,1,1:end-1); marker_M = marker_RM(:,1,end);
+            
+            %read stations coordinates file
+            if (~exist('pos_R_crd','var') || ~any(pos_R_crd) || ~exist('pos_M_crd','var') || ~any(pos_M_crd))
+                [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, marker_M);
+            end
             
             %read receiver antenna phase center offset
             antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
@@ -3160,6 +3170,8 @@ end
 % OUTPUT FILE SAVING (TEXT FILE)
 %----------------------------------------------------------------------------------------------
 
+nsat = sum(abs(conf_sat_OUT),1);
+
 %if any positioning was done (either post-processing or real-time)
 if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     %display information
@@ -3212,11 +3224,11 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
 
     %file saving
     if (strcmp(fsep_char,'default'))
-        head_str = '    Date        GPS time         GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD\n';
-        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f %16.3f\n';
+        head_str = '    Date        GPS time         GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD\n';
+        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16d %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f %16.3f\n';
     else
-        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'Latitude',fsep_char,'Longitude',fsep_char,'h (ellips.)',fsep_char,'ECEF X',fsep_char,'ECEF Y',fsep_char,'ECEF Z',fsep_char,'UTM North',fsep_char,'UTM East',fsep_char,'h (orthom.)',fsep_char,'UTM zone',fsep_char,'HDOP',fsep_char,'KHDOP',fsep_char,'Local North',fsep_char,'Local East',fsep_char,'Local H',fsep_char,'Ambiguity fix',fsep_char,'Success rate',fsep_char,'ZTD\n');
-        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%s',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f\n');
+        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'Latitude',fsep_char,'Longitude',fsep_char,'h (ellips.)',fsep_char,'ECEF X',fsep_char,'ECEF Y',fsep_char,'ECEF Z',fsep_char,'UTM North',fsep_char,'UTM East',fsep_char,'h (orthom.)',fsep_char,'UTM zone',fsep_char,'Num. Sat.',fsep_char,'HDOP',fsep_char,'KHDOP',fsep_char,'Local North',fsep_char,'Local East',fsep_char,'Local H',fsep_char,'Ambiguity fix',fsep_char,'Success rate',fsep_char,'ZTD\n');
+        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%s',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f\n');
     end
     fid_out = fopen([filerootOUT '_position.txt'], 'wt');
     fprintf(fid_out, head_str);
@@ -3229,13 +3241,18 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
         end
 
         %file writing
-        fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i));
+        if (pivot_OUT(i) ~= 0)
+            fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), phi_KAL(i), lam_KAL(i), h_KAL(i), X_KAL(i), Y_KAL(i), Z_KAL(i), NORTH_UTM(i), EAST_UTM(i), h_ortho(i), utm_zone(i,:), nsat(i), HDOP(i), KHDOP(i), NORTH_KAL(i), EAST_KAL(i), UP_KAL(i), fixed_amb(i), succ_rate(i), estim_tropo(i));
+        else
+            fprintf(fid_out, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i));
+            fprintf(fid_out, '\n');
+        end
     end
     fclose(fid_out);
     
     if (~exist('is_batch','var'))
         % Save in matlab format all the outputs
-        save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate');
+        save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'nsat', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate', 'estim_tropo');
     end
 end
 
@@ -3502,7 +3519,6 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
 
     %satellite number
     f4 = subplot(7,3,[13 14 15]);
-    nsat = sum(abs(conf_sat_OUT),1);
     plot(nsat); grid on;
     title('Number of satellites');
     

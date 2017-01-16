@@ -203,7 +203,7 @@ if ((flag_XR < 2 || ~any(XR0)) && ~flag_static_batch)
     n_iter = 0;
     var_SPP(1) = Inf;
     while(var_SPP(1) > SPP_threshold^2 && n_iter < n_iter_max)
-        [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index), SPP_threshold);       
+        [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, ~, ~, var_SPP] = LS_SA_code(XR0, XS(index,:), pseudorange(index), zeros(nsat_avail,1), zeros(nsat_avail,1), zeros(nsat_avail,1), dtS(index), zeros(nsat_avail,1), zeros(nsat_avail,1), sys(index), SPP_threshold, 0);
         %bad_sat(sat(bad_obs))=1;
         XR0 = XR;
         n_iter = n_iter + 1;
@@ -318,7 +318,7 @@ if (nsat >= nsat_required)
 
         if (flag_XR < 2) %if unknown or approximate receiver position
 
-            [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), y0, b, A, Q] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
+            [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), y0, b, A, Q] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold, 1);
             residuals_obs(index_obs,2)=sat;
             if (exist('flag_OOLO','var') && flag_OOLO==1)
                 if ~isempty(bad_obs)

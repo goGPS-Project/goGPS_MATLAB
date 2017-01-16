@@ -1,7 +1,7 @@
-function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residuals_obs, y0, b, A, Q] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold)
+function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residuals_obs, y0, b, A, Q] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold, flag_residual_thres)
 
 % SYNTAX:
-%   [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residuals_obs, y0, b, A, Q] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold);
+%   [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residuals_obs, y0, b, A, Q] = LS_SA_code_clock(pr_R, snr_R, elR, distR, dtS, err_tropo_RS, err_iono_RS, sys, SPP_threshold, flag_residual_thres);
 %
 % INPUT:
 %   pr_R  = code observations (vector)
@@ -53,7 +53,7 @@ function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residua
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
 
-global flag_outlier
+global flag_outlier max_code_residual
 
 v_light = goGNSS.V_LIGHT;
 sigma02_hat = NaN(1,3);
@@ -103,6 +103,34 @@ invQ=diag((diag(Q).^-1));
 %normal matrix
 N = (A'*(invQ)*A);
 
+bad_epoch=0;
+bad_obs=[];
+A0=A;
+y00=y0-b;
+
+if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres == 1)
+    %remove observations with residuals exceeding thresholds
+    x = (N^-1)*A'*(invQ)*(y0-b);
+    y_hat = A*x + b;
+    v_hat = y0 - y_hat;
+    index_outlier = find(abs(v_hat) > max_code_residual);
+    if (~isempty(index_outlier))
+        if (n-length(index_outlier) < m)
+            bad_epoch = 1;
+        else
+            bad_obs=unique([bad_obs;index_outlier]);
+            A(index_outlier,:)=[];
+            y0(index_outlier,:)=[];
+            b(index_outlier,:)=[];
+            Q(index_outlier,:)=[];
+            Q(:,index_outlier)=[];
+            invQ=diag((diag(Q).^-1));
+            N = (A'*(invQ)*A);
+            [n,m]=size(A);
+        end
+    end
+end
+
 if nargin<9 || (n == m) || exist('SPP_threshold','var')==0
     %least squares solution
     x   = (N^-1)*A'*(invQ)*(y0-b);
@@ -112,22 +140,16 @@ if nargin<9 || (n == m) || exist('SPP_threshold','var')==0
     sigma02_hat(1,1) = (v_hat'*(invQ)*v_hat) / (n-m);
     sigma02_hat(1,2) = (v_hat'*(invQ)*v_hat);
     sigma02_hat(1,3) = n-m;
-    residuals_obs=v_hat;
+    residuals_obs = y00 - A0*x;
     if n==m
         bad_epoch=-1;
-    else
-        bad_epoch=0;
     end
-    bad_obs=[];
 else    
     %------------------------------------------------------------------------------------
     % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
     %------------------------------------------------------------------------------------
     search_for_outlier = flag_outlier;
-    bad_obs=[];
     index_obs = 1:length(y0);
-    A0=A;
-    y00=y0-b;
     if (num_sys > 1)
         sys0=sys;
         uni_sys0 = uni_sys;
@@ -172,11 +194,12 @@ else
     sigma02_hat(1,3) = n-m;
     sigma02_hat(1,1) = sigma02_hat(1,2)/sigma02_hat(1,3);
     if n>m
-        bad_epoch=(sigma02_hat(1)>SPP_threshold^2);
+        if (sigma02_hat(1)>SPP_threshold^2)
+            bad_epoch=1;
+        end
     else
         bad_epoch=-1;
     end
-    
 end
 
 dtR = x(1) / v_light;

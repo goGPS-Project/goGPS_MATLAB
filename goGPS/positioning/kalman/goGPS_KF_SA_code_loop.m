@@ -1,7 +1,7 @@
-function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase)
+function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies)
 
 % SYNTAX:
-%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, phase);
+%   [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(time_rx, pr1, pr2, snr, Eph, SP3, iono, sbas, lambda, frequencies);
 %
 % INPUT:
 %   time_rx = GPS reception time
@@ -13,7 +13,7 @@ function [check_on, check_off, check_pivot, check_cs] = goGPS_KF_SA_code_loop(ti
 %   iono = ionospheric parameters
 %   sbas = SBAS corrections
 %   lambda = wavelength matrix (depending on the enabled constellations)
-%   phase = L1 carrier (phase=1), L2 carrier (phase=2)
+%   frequencies = L1 carrier (frequencies=1), L2 carrier (frequencies=2)
 %
 % OUTPUT:
 %   check_on = boolean variable for satellite addition
@@ -99,10 +99,10 @@ end
 %------------------------------------------------------------------------------------
 
 %visible satellites
-if (length(phase) == 2)
+if (length(frequencies) == 2)
     sat = find( (pr1 ~= 0) & (pr2 ~= 0) );
 else
-    if (phase == 1)
+    if (frequencies == 1)
         sat = find( pr1 ~= 0 );
     else
         sat = find( pr2 ~= 0 );
@@ -139,15 +139,15 @@ if (size(sat,1) >= min_nsat_LS)
     XR0 = X_t1_t([1,o1+1,o2+1]);
     flag_XR = 1;
     
-    if (phase == 1)
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<ASGLU>
+    if (frequencies == 1)
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr1(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     else
-        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), is_GLO, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, phase, flag_XR, 0); %#ok<ASGLU>
+        [XR, dtR, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo, err_iono, sat, elR(sat), azR(sat), distR(sat), sys, cov_XR, var_dtR, PDOP, HDOP, VDOP, cond_num, obs_outlier, ~, ~, residuals] = init_positioning(time_rx, pr2(sat), snr(sat), Eph, SP3, iono, sbas, XR0, [], [], sat, [], lambda(sat,:), cutoff, snr_threshold, frequencies, flag_XR, 0, 1); %#ok<ASGLU>
     end
     
     if ~isempty(dtR)
         residuals_float(residuals(:,2))=residuals(:,1);
-        outliers(find(obs_outlier==1))=1; 
+        outliers(find(obs_outlier==1))=1;  %#ok<FNDSB>
     end
     
     %----------------------------------------------------------------------------------------

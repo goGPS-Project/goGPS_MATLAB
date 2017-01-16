@@ -97,6 +97,10 @@ data_path = goIni.getData('OCEAN_LOADING_file','data_path');
 file_name = goIni.getData('OCEAN_LOADING_file','file_name');
 filename_blq = [data_path file_name];
 
+data_path = goIni.getData('STATIONS_file','data_path');
+file_name = goIni.getData('STATIONS_file','file_name');
+filename_sta = [data_path file_name];
+
 iono = goIni.getData('ATM_model','iono');
 tropo = goIni.getData('ATM_model','tropo');
 
@@ -160,40 +164,7 @@ pos_M_crd=[];
 pos_R_crd=[];
 
 if (~flag_ms_pos)
-    sta_coord_file = '../data/stations/stations.crd';
-    
-    %parse file containing station coordinates
-    [markers, coords_X, coords_Y, coords_Z, flags] = textread(sta_coord_file,'%s%f%f%f%d'); %#ok<DTXTRD>
-    
-    % master
-    %find the correct marker
-    marker_idx = find(strcmp(markers, markerM),1,'last');
-    
-    %extract the corresponding coordinates
-    XM = coords_X(marker_idx);
-    YM = coords_Y(marker_idx);
-    ZM = coords_Z(marker_idx);
-    
-    %set master station position
-    pos_M_crd = [XM; YM; ZM];
-    
-    flag_XM = flags(marker_idx);
-
-    % rover
-    %find the correct marker
-    marker_idx = find(strcmpi(markers, markerR),1,'last');
-    
-    if ~isempty(marker_idx)
-        %extract the corresponding coordinates
-        XR = coords_X(marker_idx);
-        YR = coords_Y(marker_idx);
-        ZR = coords_Z(marker_idx);
-        
-        %set rover station position
-        pos_R_crd = [XR; YR; ZR];
-        
-        flag_XR = flags(marker_idx);
-    end
+    [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, markerR, markerM); %#ok<ASGLU>
 end
 
 %-------------------------------------------------------------------------------
