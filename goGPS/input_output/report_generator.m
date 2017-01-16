@@ -142,8 +142,8 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
     fprintf(fout_report,'NAVIGATIONAL filename         : %s\n', report.inp.filename_nav);
     fprintf(fout_report,'PHASE CENTER OFFSET filename  : %s\n', report.inp.filename_pco);
     fprintf(fout_report,'OCEAN LOADING filename        : %s\n', report.inp.filename_blq);
-    if is_subfield(report,'inp.sta_coord_file')
-        fprintf(fout_report,'STATION COORDINATES filename  : %s\n', report.inp.sta_coord_file);
+    if is_subfield(report,'inp.filename_sta')
+        fprintf(fout_report,'STATION COORDINATES filename  : %s\n', report.inp.filename_sta);
     end
     fprintf(fout_report,'\n\n');
     

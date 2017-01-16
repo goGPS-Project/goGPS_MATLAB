@@ -101,7 +101,7 @@ if (mode_user == 1)
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
         filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
         filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
-        flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro] = gui_goGPS;
+        flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta] = gui_goGPS;
 
     global goIni; %#ok<TLEV>
     if (isempty(mode))
@@ -349,8 +349,8 @@ if goGNSS.isPP(mode) % report only if postprocessing
     report.inp.filename_nav = filename_nav;
     report.inp.filename_pco = filename_pco;
     report.inp.filename_blq = filename_blq;
-    if exist('sta_coord_file','var')
-        report.inp.sta_coord_file = sta_coord_file;
+    if exist('filename_sta','var')
+        report.inp.filename_sta = filename_sta;
     end
     
     global sigmaq_cod1 sigmaq_cod2 sigmaq_ph sigmaq0_N min_nsat IAR_method flag_default_P0 flag_auto_mu mu P0 %#ok<TLEV>
@@ -397,6 +397,11 @@ while read_files
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
                 fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
                 return
+            end
+            
+            %read stations coordinates file
+            if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
+                [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, []);
             end
             
             %read receiver antenna phase center offset (PCO) and variation (PCV)
@@ -713,6 +718,11 @@ while read_files
             antoff_R = antoff_RM(:,1,1:end-1); antoff_M = antoff_RM(:,1,end);
             codeC1_R = codeC1_RM(:,:,1:end-1); codeC1_M = codeC1_RM(:,:,end);
             marker_R = marker_RM(:,1,1:end-1); marker_M = marker_RM(:,1,end);
+            
+            %read stations coordinates file
+            if (~exist('pos_R_crd','var') || ~any(pos_R_crd) || ~exist('pos_M_crd','var') || ~any(pos_M_crd))
+                [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, marker_M);
+            end
             
             %read receiver antenna phase center offset
             antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
