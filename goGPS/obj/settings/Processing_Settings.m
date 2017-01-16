@@ -29,7 +29,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Settings & KF_Settings
+classdef Processing_Settings < Settings_Interface & IO_Settings
     
     properties (Constant, Access = 'protected')
         IAR_MODE = {'0: ILS method with numeration in search (LAMBDA2)', ...
@@ -52,8 +52,7 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
                  
         TROPO_MODE = {'0: no model', ...
                       '1: Saastamoinen model (with standard atmosphere parameters)' ...
-                      '2: Saastamoinen model (with Global Pressure Temperature model)'}
-         
+                      '2: Saastamoinen model (with Global Pressure Temperature model)'}         
 
     end
     
@@ -65,7 +64,7 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
     % values and redefine them. So the values are also
     % stored here as parameters used for a specific processing
     properties
-
+        
         %------------------------------------------------------------------
         % RECEIVER 
         %------------------------------------------------------------------
@@ -85,6 +84,13 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
 
         % Cut-off [degrees]
         cutoff = 10;
+        
+        %------------------------------------------------------------------
+        % PRE PROCESSING 
+        %------------------------------------------------------------------
+        
+        % Cycle slip threshold (pre-processing) [cycles]
+        cs_thr_pre_pro = 1;
                 
         %------------------------------------------------------------------
         % PROCESSING PARAMETERS 
@@ -114,6 +120,37 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
         pp_max_code_err_thr = 30;            
         % Threshold on the maximum residual of phase observations [m]
         pp_max_phase_err_thr = 0.2;  
+        
+        %------------------------------------------------------------------
+        % RECEIVER POSITION / MOTION 
+        %------------------------------------------------------------------
+        
+        % Std of initial state [m]
+        sigma0_pos = 1; 
+        
+        % Std of velocity ENU coordinates [m/s]
+        sigma_vel_ENU = struct('E', 0.5, 'N', 0.5, 'U', 0.1);
+        % Std of 3D velocity modulus [m/s]
+        sigma_vel_mod = 0.1;
+                        
+        %------------------------------------------------------------------
+        % ATHMOSPHERE 
+        %------------------------------------------------------------------
+
+        % Std of apriori tropospheric delay
+        sigma0_tropo = 0.1;
+        % Std of tropospheric delay
+        sigma_tropo = 4.6e-4;
+        
+        %------------------------------------------------------------------
+        % KF
+        %------------------------------------------------------------------
+        
+        % Minimum number of satellites to be used in the Kalman filter
+        kf_min_n_sat = 2;
+        
+        % Order of the dynamic model polynomial
+        kf_order = 1;
         
         %------------------------------------------------------------------
         % INTEGER AMBIGUITY RESOLUTION
@@ -201,12 +238,15 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
     methods 
         function import(obj, settings)
             % This function import processing settings from another setting object or ini file
-            if isa(settings, 'Ini_Manager')
+            if isa(settings, 'Ini_Manager')                
                 obj.sigma_ph = settings.getData('sigma_ph');
                 obj.sigma_ph_if = settings.getData('sigma_ph_if');
                 obj.sigma0_clock = settings.getData('sigma0_clock');
                 obj.sigma0_r_clock = settings.getData('sigma0_r_clock');
                 obj.snr_thr = settings.getData('snr_thr');
+
+                obj.cs_thr_pre_pro = settings.getData('cs_thr_pre_pro');
+
                 obj.cutoff = settings.getData('cutoff');
                 obj.w_mode = settings.getData('w_mode');
                 obj.cs_thr = settings.getData('cs_thr');
@@ -215,6 +255,15 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
                 obj.pp_spp_thr = settings.getData('pp_spp_thr');
                 obj.pp_max_code_err_thr = settings.getData('pp_max_code_err_thr');
                 obj.pp_max_phase_err_thr = settings.getData('pp_max_phase_err_thr');
+                
+                obj.sigma0_pos    = settings.getData('sigma0_pos');
+                obj.sigma_vel_ENU = settings.getData('sigma_vel_ENU');
+                obj.sigma_vel_mod = settings.getData('sigma_vel_mod');
+                obj.sigma0_tropo  = settings.getData('sigma0_tropo');
+                obj.sigma_tropo   = settings.getData('sigma_tropo');
+                obj.kf_min_n_sat  = settings.getData('kf_min_n_sat');
+                obj.kf_order      = settings.getData('kf_order');          
+
                 obj.iar_restart_mode = settings.getData('iar_restart_mode');
                 obj.iar_mode = settings.getData('iar_mode');
                 obj.iar_P0 = settings.getData('iar_P0');
@@ -227,19 +276,31 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
                 obj.dtm_dir    = settings.getData('dtm_dir');
                 obj.flag_dtm = settings.getData('flag_dtm');
                 obj.sigma_dtm = settings.getData('sigma_dtm');
-            else
+            else                
                 obj.sigma_ph = settings.sigma_ph;
                 obj.sigma_ph_if = settings.sigma_ph_if;
                 obj.sigma0_clock = settings.sigma0_clock;
                 obj.sigma0_r_clock = settings.sigma0_r_clock;
                 obj.snr_thr = settings.snr_thr;
                 obj.cutoff = settings.cutoff;
+
+                obj.cs_thr_pre_pro = settings.cs_thr_pre_pro;
+
                 obj.w_mode = settings.w_mode;
                 obj.cs_thr = settings.cs_thr;
                 obj.w_snr = settings.w_snr;
                 obj.pp_spp_thr = settings.pp_spp_thr;
                 obj.pp_max_code_err_thr = settings.pp_max_code_err_thr;
                 obj.pp_max_phase_err_thr = settings.pp_max_phase_err_thr;
+                
+                obj.sigma0_pos    = settings.sigma0_pos;
+                obj.sigma_vel_ENU = settings.sigma_vel_ENU;
+                obj.sigma_vel_mod = settings.sigma_vel_mod;
+                obj.sigma0_tropo  = settings.sigma0_tropo;
+                obj.sigma_tropo   = settings.sigma_tropo;
+                obj.kf_min_n_sat  = settings.kf_min_n_sat;
+                obj.kf_order      = settings.kf_order;
+                
                 obj.iar_restart_mode = settings.iar_restart_mode;
                 obj.iar_mode = settings.iar_mode;
                 obj.iar_P0 = settings.iar_P0;
@@ -275,7 +336,10 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str = [str sprintf(' STD of receiver clock:                            %g\n\n', obj.sigma0_r_clock)];
             str = [str sprintf(' Signal-to-noise ratio threshold [dB]:             %d\n\n', obj.snr_thr)];
             str = [str sprintf(' Cut-off [degrees]:                                %d\n\n', obj.cutoff)];
-            str = obj.toString@PrePro_Settings(str);
+            
+            str = [str '---- PRE PROCESSING ------------------------------------------------------' 10 10];
+            str = [str sprintf(' Cycle slip threshold [cycles]                     %g\n\n', obj.cs_thr_pre_pro)];
+
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = [str sprintf(' Processing using %s\n\n', obj.W_MODE{obj.w_mode+1})];
             str = [str sprintf(' Cycle slip threshold (processing) [cycles]:       %d\n\n', obj.cs_thr)];
@@ -288,7 +352,16 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str = [str sprintf(' Threshold on code LS estimation error [m]:        %g\n', obj.pp_spp_thr)];
             str = [str sprintf(' Threshold on maximum residual of code obs [m]:    %g\n', obj.pp_max_code_err_thr)];
             str = [str sprintf(' Threshold on maximum residual of phase obs [m]:   %g\n\n', obj.pp_max_phase_err_thr)];
-            str = obj.toString@KF_Settings(str);
+
+            str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
+            str = [str sprintf(' STD of initial state [m]:                         %g\n', obj.sigma0_pos)];
+            str = [str sprintf(' STD of ENU velocity [m]:                          %g %g %g\n', struct2array(obj.sigma_vel_ENU))];
+            str = [str sprintf(' STD of 3D velocity modulus [m]:                   %g\n\n', obj.sigma_vel_mod)];
+            str = [str sprintf(' STD of apriori tropospheric delay:                %g\n', obj.sigma0_tropo)];
+            str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', obj.sigma_tropo)];
+            str = [str sprintf(' Minimum number of satellite per epoch:            %d\n', obj.kf_min_n_sat)];
+            str = [str sprintf(' Oreder of the KF:                                 %d\n\n', obj.kf_order)];
+            
             str = [str '---- ABIGUITY (IAR) -------------------------------------------------------' 10 10];
             str = [str sprintf(' Ambiguity restart mode:                           %d\n\n', obj.iar_restart_mode)];
             str = [str sprintf(' Using method: %s\n\n', obj.IAR_MODE{obj.iar_mode+1})];
@@ -331,7 +404,10 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str_cell = Ini_Manager.toIniString('cutoff', obj.cutoff, str_cell);            
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
-            str_cell = obj.export@PrePro_Settings(str_cell);
+            str_cell = Ini_Manager.toIniStringSection('PRE_PROCESSING', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Cycle slip threshold [cycles]', str_cell);
+            str_cell = Ini_Manager.toIniString('cs_thr_pre_pro', obj.cs_thr_pre_pro, str_cell);
+
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             str_cell = Ini_Manager.toIniStringSection('PROCESSING', str_cell);
@@ -356,7 +432,21 @@ classdef Processing_Settings < Settings_Interface & IO_Settings & PrePro_Setting
             str_cell = Ini_Manager.toIniString('pp_max_phase_err_thr', obj.pp_max_phase_err_thr, str_cell);
             
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = obj.export@KF_Settings(str_cell);
+            str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of initial state [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_pos', obj.sigma0_pos, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of ENU velocity [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_vel_ENU', struct2array(obj.sigma_vel_ENU), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of 3D velocity modulus [m]', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_vel_mod', obj.sigma_vel_mod, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of apriori tropospheric delay', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma0_tropo', obj.sigma0_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of tropospheric delay', str_cell);
+            str_cell = Ini_Manager.toIniString('sigma_tropo', obj.sigma_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Minimum number of satellite per epoch', str_cell);
+            str_cell = Ini_Manager.toIniString('kf_min_n_sat', obj.kf_min_n_sat, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Oreder of the KF', str_cell);
+            str_cell = Ini_Manager.toIniString('kf_order', obj.kf_order, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
             str_cell = Ini_Manager.toIniStringSection('ABIGUITY', str_cell);

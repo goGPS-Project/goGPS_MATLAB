@@ -31,7 +31,7 @@
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %----------------------------------------------------------------------------------------------
-classdef GO_Settings < Settings_Interface
+classdef GO_Settings1 < Settings_Interface
     
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
@@ -55,7 +55,7 @@ classdef GO_Settings < Settings_Interface
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
-        function obj = GO_settings()
+        function obj = GO_settings1()
         end
     end
     
