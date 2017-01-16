@@ -164,9 +164,7 @@ pos_M_crd=[];
 pos_R_crd=[];
 
 if (~flag_ms_pos)
-    %filename_sta = '../data/stations/stations.crd';
-    
-    [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta); %#ok<ASGLU>
+    [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, markerR, markerM); %#ok<ASGLU>
 end
 
 %-------------------------------------------------------------------------------
