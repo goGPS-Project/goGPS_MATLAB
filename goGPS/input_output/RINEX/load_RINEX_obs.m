@@ -208,9 +208,9 @@ for f = 1 : nFiles
     %close RINEX files
     fclose(fid);
     
-    if (processing_interval > interval(:,1,f))
-        interval(:,1,f) = processing_interval;
-    end
+%     if (processing_interval > interval(:,1,f))
+%         interval(:,1,f) = processing_interval;
+%     end
 
     if (~isempty(report) && report.opt.write == 1)
         % extract quality parameters for report
@@ -259,7 +259,7 @@ end
 
 %sync observations
 [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval] = ...
-sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval);
+sync_obs(time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, interval, processing_interval);
 
 for f = 1 : nFiles
     holes = find(week(:,1,f) == 0);
