@@ -1,9 +1,9 @@
 function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, max_int] = ...
-          sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval)
+          sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval, processing_interval)
 
 % SYNTAX:
 %   [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, codeC1, max_int] = ...
-%   sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval);
+%   sync_obs(time_i, week_i, date_i, pr1_i, ph1_i, pr2_i, ph2_i, dop1_i, dop2_i, snr1_i, snr2_i, codeC1_i, interval, processing_interval);
 %
 % INPUT:
 %   time_i = receiver seconds-of-week
@@ -18,6 +18,7 @@ function [time_ref, time, week, date, pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2
 %   snr1_i = signal-to-noise ratio (L1 carrier)
 %   snr2_i = signal-to-noise ratio (L2 carrier)
 %   interval = observation time interval [s]
+%   processing_interval = processing time interval [s]
 %
 % OUTPUT:
 %   time_ref = reference seconds-of-week
@@ -71,7 +72,9 @@ max_time = min(max(time_i_nan,[],1));
 
 %find the largest interval
 max_int = max(interval(:));
-%max_int = 30;
+if (processing_interval > max_int)
+    max_int = processing_interval;
+end
 
 %define the reference time
 time_ref = (roundmod(min_time,max_int) : max_int : roundmod(max_time,max_int))';
@@ -99,7 +102,6 @@ time_prog = time_i - min_time_prog; % substract the first element to reduce the 
 time_ref_prog = time_ref - min_time_prog;
 
 for s = 1 : nObsSet
-%    [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), max_int));
     [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), interval(s)));    
     time(idx_t, s) = time_i(idx_z, 1, s);
     week(idx_t, s) = week_i(idx_z, 1, s);

@@ -38,7 +38,7 @@ function [rx] = roundmod(x,y)
 
 rx = round(x./y).*y;
 
-% Does this peacce of code make sense?
+% Does this piece of code make sense?
 % This should do the same 10 times faster: rx = round(x./y).*y;
 %
 % remainder = mod(x,y);
