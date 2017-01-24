@@ -848,45 +848,46 @@ if (nsat >= min_nsat)
         
         index_outlier_i=1:length(y0_noamb);
         
-        %temporary Kalman filter update, to check residuals
-        K = T*Cee*T' + Cvv;
-        G = K*H' * (H*K*H' + Cnn)^(-1);
-        Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
-        compute_residuals(Xhat_t_t,'float');
-        
-        % remove observations with residuals exceeding thresholds
-        out_pr = find(abs(residuals_float(1:nSatTot*2)) > max_code_residual);
-        out_ph = find(abs(residuals_float(nSatTot*2+1:end)) > max_phase_residual);
-        idx_pr = ismember(sat_pr_np, out_pr);
-        idx_ph = ismember(sat_np, out_ph);
-        conf_sat(sat_pr_np(idx_pr)) = 0;
-        conf_sat(sat_np(idx_ph)) = 0;
-        sat_pr_np(idx_pr) = [];
-        sat_np(idx_ph) = [];
-        nsat = size(sat_pr_np,1) + 1;
-        idx_pr = find(idx_pr);
-        idx_ph = length(sat_pr_np_residuals) + find(idx_ph);
-        idx_out = union(idx_pr, idx_ph);
-        if (~isempty(idx_out))
-            H(idx_out,:) = [];
-            y0(idx_out,:) = [];
-            Cnn(idx_out,:) = [];
-            Cnn(:,idx_out) = [];
-            y0_noamb(idx_out,:) = [];
-            H1(idx_out,:) = [];
-            outliers(index_residuals_outlier(index_outlier_i(idx_out)))=1;
-            index_outlier_i(idx_out) = [];
+        if (search_for_outlier == 1)
+            %temporary Kalman filter update, to check residuals
+            K = T*Cee*T' + Cvv;
+            G = K*H' * (H*K*H' + Cnn)^(-1);
+            Xhat_t_t = (I-G*H)*X_t1_t + G*y0;
+            compute_residuals(Xhat_t_t,'float');
+            
+            % remove observations with residuals exceeding thresholds
+            out_pr = find(abs(residuals_float(1:nSatTot*2)) > max_code_residual);
+            out_ph = find(abs(residuals_float(nSatTot*2+1:end)) > max_phase_residual);
+            idx_pr = ismember(sat_pr_np, out_pr);
+            idx_ph = ismember(sat_np, out_ph);
+            conf_sat(sat_pr_np(idx_pr)) = 0;
+            conf_sat(sat_np(idx_ph)) = 0;
+            sat_pr_np(idx_pr) = [];
+            sat_np(idx_ph) = [];
+            idx_pr = find(idx_pr);
+            idx_ph = length(sat_pr_np_residuals) + find(idx_ph);
+            idx_out = union(idx_pr, idx_ph);
+            if (~isempty(idx_out))
+                H(idx_out,:) = [];
+                y0(idx_out,:) = [];
+                Cnn(idx_out,:) = [];
+                Cnn(:,idx_out) = [];
+                y0_noamb(idx_out,:) = [];
+                H1(idx_out,:) = []; %#ok<NASGU>
+                outliers(index_residuals_outlier(index_outlier_i(idx_out)))=1;
+                index_outlier_i(idx_out) = [];
+            end
         end
 
-        % decomment to use only phase
-        y0_noamb=y0_noamb(length(sat_pr_np)+1:end);
-        H1=H(length(sat_pr_np)+1:end,[1 o1+1 o2+1]);
-        Cnn = Cnn(length(sat_pr_np)+1:end,length(sat_pr_np)+1:end);
-        H=H(length(sat_pr_np)+1:end,:);
-        y0=y0(length(sat_pr_np)+1:end);
-        index_residuals_outlier=index_residuals_outlier(length(sat_pr_np)+1:end);
-        index_outlier_i=index_outlier_i(length(sat_pr_np)+1:end)-length(sat_pr_np);
-        sat_pr_np = [];
+%         % decomment to use only phase
+%         y0_noamb=y0_noamb(length(sat_pr_np)+1:end);
+%         H1=H(length(sat_pr_np)+1:end,[1 o1+1 o2+1]);
+%         Cnn = Cnn(length(sat_pr_np)+1:end,length(sat_pr_np)+1:end);
+%         H=H(length(sat_pr_np)+1:end,:);
+%         y0=y0(length(sat_pr_np)+1:end);
+%         index_residuals_outlier=index_residuals_outlier(length(sat_pr_np)+1:end);
+%         index_outlier_i=index_outlier_i(length(sat_pr_np)+1:end)-length(sat_pr_np);
+%         sat_pr_np = [];
 
 %         % decomment to use only code
 %         y0_noamb=y0_noamb(1:length(sat_pr_np));
@@ -901,10 +902,10 @@ if (nsat >= min_nsat)
         while (search_for_outlier == 1)
             
             [index_outlier, ~, s02_ls(t)] = OLOO(H1, y0_noamb, Cnn);
-            if (s02_ls(t) > s02_ls_threshold)
-                index_outlier = 1:length(y0_noamb);
-                search_for_outlier = 0;
-            end
+%             if (s02_ls(t) > s02_ls_threshold)
+%                 index_outlier = 1:length(y0_noamb);
+%                 search_for_outlier = 0;
+%             end
             if (all(index_outlier ~= 0))
                 H(index_outlier,:)   = [];
                 y0(index_outlier,:)  = [];
@@ -920,14 +921,15 @@ if (nsat >= min_nsat)
                 conf_sat(sat_np(idx_ph)) = 0;
                 sat_pr_np(idx_pr) = []; %#ok<AGROW>
                 sat_np(idx_ph) = [];
-                if (~isempty(sat_pr_np))
-                    nsat = size(sat_pr_np,1) + 1;
-                else
-                    nsat = size(sat_np,1) + 1;
-                end
             else
                 search_for_outlier = 0;
             end
+        end
+        
+        if (~isempty(sat_pr_np))
+            nsat = size(sat_pr_np,1) + 1;
+        else
+            nsat = size(sat_np,1) + 1;
         end
 
         %------------------------------------------------------------------------------------
