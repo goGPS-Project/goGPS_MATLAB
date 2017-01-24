@@ -114,10 +114,7 @@ sigma2_N = zeros(nN,1);
 
 min_nsat_LS = 3 + n_sys;
 
-if (size(sat_pr,1) >= min_nsat_LS)
-    
-    sat_pr_old = sat_pr;
-    
+if (size(sat_pr,1) >= min_nsat_LS)    
     if (phase == 1)
         [XM, dtM, XS, dtS, XS_tx, VS_tx, time_tx, err_tropo_M, err_iono_M, sat_pr_M, elM(sat_pr_M), azM(sat_pr_M), distM(sat_pr_M), sys, cov_XM, var_dtM]                             = init_positioning(time_rx, pr1_M(sat_pr),   snr_M(sat_pr),   Eph, SP3, iono, [], XM, [],  [], sat_pr,   [], lambda(sat_pr,:),   cutoff, snr_threshold, phase, 2, 0); %#ok<NASGU,ASGLU>
         if (length(sat_pr_M) < min_nsat_LS); return; end
@@ -138,9 +135,17 @@ if (size(sat_pr,1) >= min_nsat_LS)
         err_iono_M  = err_iono_M (iM);
     end
     
+    % keep only satellites that rover and master have in common both in phase and code
+    [sat_pr, iR, iM] = intersect(sat_pr, sat);
+    XS = XS(iR,:);
+    if (~isempty(err_tropo_R))
+        err_tropo_R = err_tropo_R(iR);
+        err_iono_R  = err_iono_R (iR);
+        err_tropo_M = err_tropo_M(iM);
+        err_iono_M  = err_iono_M (iM);
+    end
     %apply cutoffs also to phase satellites
-    sat_removed = setdiff(sat_pr_old, sat_pr);
-    sat(ismember(sat,sat_removed)) = [];
+    sat = sat_pr;
     
     %--------------------------------------------------------------------------------------------
     % SATELLITE CONFIGURATION SAVING AND PIVOT SELECTION
@@ -163,8 +168,8 @@ if (size(sat_pr,1) >= min_nsat_LS)
     
     %--------------------------------------------------------------------------------------------
     % LEAST SQUARES SOLUTION
-    %--------------------------------------------------------------------------------------------
-    
+    %--------------------------------------------------------------------------------------------    
+        
     %if at least min_nsat_LS satellites are available after the cutoffs, and if the
     % condition number in the least squares does not exceed the threshold
     if (size(sat,1) >= min_nsat_LS && cond_num < cond_num_threshold)
@@ -172,7 +177,7 @@ if (size(sat_pr,1) >= min_nsat_LS)
         %loop is needed to improve the atmospheric error correction
         for i = 1 : 3
 
-            if (phase == 1)
+            if (phase == 1)                
                 [XR, N1(sat), cov_XR, cov_N1, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr1_R(sat), ph1_R(sat), snr_R(sat), pr1_M(sat), ph1_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,1), flag_IAR);
             else
                 [XR, N2(sat), cov_XR, cov_N2, PDOP, HDOP, VDOP] = LS_DD_code_phase(XR, XM, XS, pr2_R(sat), ph2_R(sat), snr_R(sat), pr2_M(sat), ph2_M(sat), snr_M(sat), elR(sat), elM(sat), err_tropo_R, err_iono_R, err_tropo_M, err_iono_M, pivot_index, lambda(sat,2), flag_IAR);
@@ -190,13 +195,13 @@ if (size(sat_pr,1) >= min_nsat_LS)
             end
             
             [phiR, lamR, hR] = cart2geod(XR(1), XR(2), XR(3));
-            [azR(azR ~= 0), elR(elR ~= 0), distR(distR ~= 0)] = topocent(XR, XS);
+            [azR(sat), elR(sat), distR(sat)] = topocent(XR, XS);
             
-            err_tropo_R = tropo_error_correction(time_rx, phiR*180/pi, lamR*180/pi, hR, elR(elR ~= 0));
-            err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(azR ~= 0), elR(elR ~= 0), time_rx, iono, []);
+            err_tropo_R = tropo_error_correction(time_rx, phiR*180/pi, lamR*180/pi, hR, elR(sat));
+            err_iono_R = iono_error_correction(phiR*180/pi, lamR*180/pi, azR(sat), elR(sat), time_rx, iono, []);
             
             %correct the ionospheric errors for different frequencies
-            err_iono_R = ionoFactor(sat,phase).*err_iono_R;
+            err_iono_R = ionoFactor(sat, phase).*err_iono_R;
         end
         
         if isempty(cov_N1) %if it was not possible to compute the covariance matrix
