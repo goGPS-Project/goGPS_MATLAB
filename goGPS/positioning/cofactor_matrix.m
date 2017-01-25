@@ -54,8 +54,15 @@ else
         %weight vectors (elevation)
         q_R = 1 ./ (sin(elR * pi/180).^2);
         q_M = 1 ./ (sin(elM * pi/180).^2);
-
+        
     elseif (weights == 2)
+        %weight vectors (elevation, exponential function)
+        eleref = min(elR)* pi/180; % this is the value for the elevation cut-off angle
+        q_R = (1 + elea*exp(-(elR * pi/180)/eleref)).^2;
+        eleref = min(elM)* pi/180; % this is the value for the elevation cut-off angle
+        q_M = (1 + elea*exp(-(elM * pi/180)/eleref)).^2;
+
+    elseif (weights == 3)
 
         %weight vectors (signal-to-noise ratio)
         q_R = 10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1);
@@ -63,19 +70,12 @@ else
         q_M = 10.^(-(snr_M-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_M-snr_1)+1);
         q_M(snr_M >= snr_1) = 1;
 
-    elseif (weights == 3)
+    elseif (weights == 4)
         %weight vectors (elevation and signal-to-noise ratio)
         q_R = 1 ./ (sin(elR * pi/180).^2) .* (10.^(-(snr_R-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_R-snr_1)+1));
         q_R(snr_R >= snr_1) = 1;
         q_M = 1 ./ (sin(elM * pi/180).^2) .* (10.^(-(snr_M-snr_1)/snr_a) .* ((snr_A/10.^(-(snr_0-snr_1)/snr_a)-1)./(snr_0-snr_1).*(snr_M-snr_1)+1));
         q_M(snr_M >= snr_1) = 1;
-
-    elseif (weights == 4)
-        %weight vectors (elevation, exponential function)
-        eleref = min(elR)* pi/180; % this is the value for the elevation cut-off angle
-        q_R = (1 + elea*exp(-(elR * pi/180)/eleref)).^2;
-        eleref = min(elM)* pi/180; % this is the value for the elevation cut-off angle
-        q_M = (1 + elea*exp(-(elM * pi/180)/eleref)).^2;
     end
 
     q_RP = q_R(pivot_index,1); % ROVER-PIVOT

@@ -236,9 +236,9 @@ cs_threshold = 1;
 %parameter used to select the weight mode for GPS observations
 %          - weights=0: same weight for all the observations
 %          - weights=1: weight based on satellite elevation (sin)
-%          - weights=2: weight based on signal-to-noise ratio
-%          - weights=3: weight based on combined elevation and signal-to-noise ratio
-%          - weights=4: weight based on satellite elevation (exp)
+%          - weights=2: weight based on satellite elevation (exp)
+%          - weights=3: weight based on signal-to-noise ratio
+%          - weights=4: weight based on combined elevation and signal-to-noise ratio
 weights = 1;
 
 %weight function parameters
