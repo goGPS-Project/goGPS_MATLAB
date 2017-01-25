@@ -305,6 +305,23 @@ if (nsat >= nsat_required)
 
         %computation of tropospheric errors
         err_tropo = tropo_error_correction(time_rx, phiR, lamR, hR, el);
+        
+        if (~isreal(err_tropo))
+            XR   = [];
+            dtR  = [];
+            az   = [];
+            el   = [];
+            dist = [];
+            sat  = [];
+            err_tropo = [];
+            err_iono  = [];
+            
+            if (flag_XR == 2)
+                cov_XR = zeros(3,3);
+            end
+            
+            return
+        end
 
         %computation of ionospheric errors
         err_iono = iono_error_correction(phiR, lamR, az, el, time_rx, iono, sbas);      
