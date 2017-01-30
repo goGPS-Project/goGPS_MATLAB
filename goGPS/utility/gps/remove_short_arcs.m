@@ -38,36 +38,20 @@ if (nargin < 2)
     threshold_gap = 10;
 end
 
-sat_conf_map = diff(obs_in ~= 0, 1, 2);
-
 obs_out = obs_in;
-n_epochs = size(obs_out,2);
 
-%remove short arcs from beginning of observation timespan
-[row_set, col_set] = find(sat_conf_map == -1);
-idx = find(col_set <= threshold_gap);
-epoch = col_set(idx);
-sat = row_set(idx);
-for s = 1 : length(sat)
-    obs_out(sat(s), 1:epoch(s)) = 0;
-end
-
-%remove short arcs from end of observation timespan
-[row_rise, col_rise] = find(sat_conf_map == 1);
-idx = find(col_rise >= (n_epochs - threshold_gap));
-epoch = col_rise(idx);
-sat = row_rise(idx);
-for s = 1 : length(sat)
-    obs_out(sat(s), epoch(s):n_epochs) = 0;
-end
-
-%remove the remaining short arcs
-sat = union(row_set, row_rise);
-for s = 1 : length(sat)
-    col = sort([col_set(row_set == sat(s));col_rise(row_rise == sat(s))]);
-    dd = diff(col);
-    idx = find(diff(col) <= threshold_gap);
-    for i = 1 : length(idx)
-        obs_out(sat(s),col(idx(i))+1:col(idx(i))+dd(idx(i))) = 0;
+for s = 1 : size(obs_in,1)
+    
+    % find intervals of zeros
+    fI = getOutliers(obs_in(s,:) == 0);
+    
+    % find the intervals of good obs_in
+    vI = [[1; fI(:,2)+1] [fI(:,1)-1; size(obs_in,2)]];
+    vI = [vI (vI(:,2) - vI(:,1) +1)];
+    
+    vI = vI(vI(:,3) <= threshold_gap, :);
+    
+    for i = 1 : size(vI,1)
+        obs_out(s,vI(i,1) : vI(i,2)) = 0;
     end
 end

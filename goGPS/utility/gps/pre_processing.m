@@ -147,10 +147,10 @@ status_cs=[];
 
 %remove short arcs
 min_arc = max([min_arc lagr_order]);
-[pr1] = remove_short_arcs(pr1, lagr_order);
-[pr2] = remove_short_arcs(pr2, lagr_order);
-[ph1] = remove_short_arcs(ph1, lagr_order);
-[ph2] = remove_short_arcs(ph2, lagr_order);
+[pr1] = remove_short_arcs(pr1, min_arc);
+[pr2] = remove_short_arcs(pr2, min_arc);
+[ph1] = remove_short_arcs(ph1, min_arc);
+[ph2] = remove_short_arcs(ph2, min_arc);
 if not(flag_full_prepro)
     dtRdot(end+1) = dtRdot(end);
 else
