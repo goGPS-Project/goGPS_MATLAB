@@ -147,10 +147,10 @@ status_cs=[];
 
 %remove short arcs
 min_arc = max([min_arc lagr_order]);
-[pr1] = remove_short_arcs(pr1, lagr_order);
-[pr2] = remove_short_arcs(pr2, lagr_order);
-[ph1] = remove_short_arcs(ph1, lagr_order);
-[ph2] = remove_short_arcs(ph2, lagr_order);
+[pr1] = remove_short_arcs(pr1, min_arc);
+[pr2] = remove_short_arcs(pr2, min_arc);
+[ph1] = remove_short_arcs(ph1, min_arc);
+[ph2] = remove_short_arcs(ph2, min_arc);
 if not(flag_full_prepro)
     dtRdot(end+1) = dtRdot(end);
 else
@@ -610,6 +610,28 @@ else
             
             bad_sats(s,1) = 1;
         end
+        
+        %repeat remove short arcs after cycle slip detection
+        min_arc = max([min_arc lagr_order]);
+        [pr1_interp(s,:)] = remove_short_arcs(pr1_interp(s,:), min_arc);
+        [pr2_interp(s,:)] = remove_short_arcs(pr2_interp(s,:), min_arc);
+        [ph1_interp(s,:)] = remove_short_arcs(ph1_interp(s,:), min_arc);
+        [ph2_interp(s,:)] = remove_short_arcs(ph2_interp(s,:), min_arc);
+        
+%         if (freq1_required)
+%             if (any(ph1(s,:)))
+%                 [pr1(s,:)] = code_smoother(pr1(s,:), ph1(s,:), lambda(s,1), lagr_order);
+%             else
+%                 pr1(s,:) = 0;
+%             end
+%         end
+%         if (freq2_required)
+%             if (any(ph2(s,:)))
+%                 [pr2(s,:)] = code_smoother(pr2(s,:), ph2(s,:), lambda(s,2), lagr_order);
+%             else
+%                 pr2(s,:) = 0;
+%             end
+%         end
     end
     pr1 = pr1_interp;
     pr2 = pr2_interp;
@@ -620,7 +642,6 @@ end
     % [num_cs_occur, epoch] = hist(status_cs(:,3),unique(status_cs(:,3)));
     % idx_cs_occur = num_cs_occur >= 4;
     % bad_epochs(epoch(idx_cs_occur)) = 1;
-
 end
 
 
@@ -1061,4 +1082,17 @@ for b = 1 : num_batches
     [~,~,outliers_batch] = deleteoutliers(time_series(start_idx:end_idx), outlier_thres);
     outliers = [outliers; outliers_batch];
 end
+end
+
+function [pr] = code_smoother(pr, ph, lambda, order)
+pr(pr == 0) = NaN;
+ph(ph == 0) = NaN;
+N = (pr - lambda*ph) /  lambda;
+% N = smoothing(N, order, 1);
+N_smar = smartFilter(N, order);
+% figure; plot(N,'.-'); hold on; plot(N_smar,'g');
+%N_smar = N;
+pr = lambda*(ph + N_smar);
+pr(isnan(pr)) = 0;
+ph(isnan(ph)) = 0;
 end

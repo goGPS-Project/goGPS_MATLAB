@@ -1050,7 +1050,7 @@ if (flag_IAR && exist('sat_np', 'var') && ~isempty(sat_np) && nsat >= min_nsat)
     %re-run LAMBDA without observations that have residuals exceeding the given threshold
     out_ph = find(abs(residuals_fixed(nSatTot*2+1:end)) > max_phase_residual);
     idx_ph = ismember(sat_np, out_ph);
-    if (any(idx_ph))
+    if (any(idx_ph) && ~isempty(ratiotest))
         sat_np(idx_ph) = [];
         Xhat_t_t = Xhat_t_t_orig;
         ratiotest(end) = [];

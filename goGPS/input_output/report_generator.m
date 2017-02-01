@@ -168,11 +168,11 @@ if is_subfield(report,'opt.write') && report.opt.write == 1
         case 1
             option_i='weight based on satellite elevation (sin)';
         case 2
-            option_i='weight based on signal-to-noise ratio';
-        case 3
-            option_i='weight based on combined elevation and signal-to-noise ratio';
-        case 4
             option_i='weight based on satellite elevation (exp)';
+        case 3
+            option_i='weight based on signal-to-noise ratio';
+        case 4
+            option_i='weight based on combined elevation and signal-to-noise ratio';
     end
     fprintf(fout_report,'Weight of observations               : %s\n', option_i);
     

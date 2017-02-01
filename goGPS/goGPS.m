@@ -3137,6 +3137,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     end
     estim_amb = zeros(nSatTot,nObs);
     sigma_amb = zeros(nSatTot,nObs);
+    estim_tropo = zeros(nSatTot,nObs);
     for i = 1 : nObs
         if (mode == goGNSS.MODE_PP_KF_CP_DD && mode_vinc == 1)
             pos_KAL(:,i) = [Yhat_t_t_OUT(1,i); Yhat_t_t_OUT(2,i); Yhat_t_t_OUT(3,i)];
@@ -3443,11 +3444,11 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         case 1
             text(0,0,sprintf('Weights: elevation\n           (1/sin(el)^2)'));
         case 2
-            text(0,0,sprintf('Weights: SNR'));
-        case 3
-            text(0,0,sprintf('Weights: elevation\n           and SNR'));
-        case 4
             text(0,0,sprintf('Weights: elevation\n           (exp)'));
+        case 3
+            text(0,0,sprintf('Weights: SNR'));
+        case 4
+            text(0,0,sprintf('Weights: elevation\n           and SNR'));
     end
     
     %trajectory plotting
