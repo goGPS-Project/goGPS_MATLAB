@@ -9,12 +9,19 @@
 %
 % FOR A LIST OF CONSTANTS and METHODS use doc File_Rinex
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.9.1
-% Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-% Written by:       Gatti Andrea
-% Contributors:     Gatti Andrea, ...
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+%               ___ ___ ___ 
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.9.1
+% 
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Gatti Andrea
+%  Contributors:     Gatti Andrea, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -38,11 +45,14 @@ classdef File_Rinex < handle
     properties (SetAccess = protected, GetAccess = public)
        is_valid = false;                            % flag, if true it means that the object contains at least one valid rinex file
        base_dir = '../data/data_RINEX';             % directory containing all the files
-       file_name_list = {'yamatogawa_rover'};       % file names (they can be multiple files for different days)
+       file_name_list = {'yamatogawa_rover', 'yamatogawa_master'};       % file names (they can be multiple files for different days)
        ext = '.obs';
        is_valid_list = false;                       % for each element of file_name_list check the validity of the file
        
        is_composed = false;                         % when this flag is set, it means that the file_name depends on variables such as DOY DOW YYYY SSSS MM ecc...              
+       
+       first_epoch = GPS_Time();                    % first epoch stored in the RINEX (updated after checkValidity)
+       last_epoch = GPS_Time();                     % last epoch stored in the RINEX (updated after checkValidity)
     end
     
     properties (SetAccess = private, GetAccess = public)
@@ -90,8 +100,7 @@ classdef File_Rinex < handle
                     end
             end
             obj.checkValidity();
-        end
-        
+        end        
     end
     
     methods
@@ -115,15 +124,11 @@ classdef File_Rinex < handle
                         epoch_line = fgetl(fid);
                         
                         % this data conversion lines must be moved into a class GPS_Time
-                        data   = textscan(epoch_line(2:28),'%f%f%f%f%f%f');
-                        year   = data{1}; if (year < 80), year = year + 2000; end
-                        month  = data{2};
-                        day    = data{3};
-                        hour   = data{4};
-                        minute = data{5};
-                        second = data{6};
+                        date   = cell2mat(textscan(epoch_line(2:28),'%f%f%f%f%f%f'));
+                        if (date(1) < 80), date(1) = date(1) + 2000; end
+                        obj.first_epoch.addEpoch(datenum(date), [], true);
                         obj.logger.addStatusOk(['"' obj.file_name_list{f} obj.ext '" appears to be a valid RINEX']);
-                        obj.logger.addMessage(sprintf('        first epoch found at: %04d/%02d/%02d %02d:%02d:%07.4f', year, month, day, hour, minute, second), 9);
+                        obj.logger.addMessage(sprintf('        first epoch found at: %s', obj.first_epoch.last.toString()));
                         
                         % go to the end of the file to search for the last epoch
                         % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
@@ -140,14 +145,10 @@ classdef File_Rinex < handle
                         fclose(fid);
                         
                         % this data conversion lines must be moved into a class GPS_Time
-                        data   = textscan(epoch_line(2:28),'%f%f%f%f%f%f');
-                        year   = data{1}; if (year < 80), year = year + 2000; end
-                        month  = data{2};
-                        day    = data{3};
-                        hour   = data{4};
-                        minute = data{5};
-                        second = data{6};
-                        obj.logger.addMessage(sprintf('        last  epoch found at: %04d/%02d/%02d %02d:%02d:%07.4f', year, month, day, hour, minute, second), 9);
+                        date   = cell2mat(textscan(epoch_line(2:28),'%f%f%f%f%f%f'));
+                        if (date(1) < 80), date(1) = date(1) + 2000; end
+                        obj.first_epoch.addEpoch(datenum(date), [], true);
+                        obj.logger.addMessage(sprintf('        last  epoch found at: %s', obj.first_epoch.last.toString()));
 
                     catch
                         obj.logger.addWarning(['"' full_path '" appears to be a corrupted RINEX file']);
@@ -155,6 +156,9 @@ classdef File_Rinex < handle
                 end
             end
             obj.is_valid = any(obj.is_valid_list);
+            if (~obj.is_valid)
+                obj.logger.addWarning('No valid RINEX found!!!');
+            end
         end        
     end    
 end

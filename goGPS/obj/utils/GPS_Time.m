@@ -7,28 +7,47 @@
 % EXAMPLE
 %   settings = GPS_Time();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc goGNSS
+% FOR A LIST OF CONSTANTs and METHODS use doc GPS_Time
+%
+% COMMENTS
+% The class stores arrays of time, not just a single element,
+% it has been designed this way because MATLAB works best on arrays
+%
+% This is probably an overcomplicated class, but storing times in multiple
+% ways allows speed improvements.
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.9.1
-% Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-% Written by:       Gatti Andrea
-% Contributors:     Gatti Andrea, ...
-%----------------------------------------------------------------------------------------------
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___ 
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.9.1
+% 
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Gatti Andrea
+%  Contributors:     Gatti Andrea, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
 %
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
 %
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011 
+%--------------------------------------------------------------------------
+
+
 classdef GPS_Time < handle
     
     properties (Constant, GetAccess = private)
@@ -98,48 +117,80 @@ classdef GPS_Time < handle
     
     % Function to simulate polymorphism
     methods (Access = 'private')
-        function obj = GPS_Time_mat(obj, matlab_time, is_gps)
+        function this = GPS_Time_mat(this, matlab_time, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)            
-            obj.time_type = 0;
-            obj.mat_time = matlab_time;
+            this.time_type = 0;
+            this.mat_time = matlab_time;
             if (nargin == 3)
                 if isempty(is_gps)
                     is_gps = true;
                 end
-                obj.is_gps = is_gps;
+                this.is_gps = is_gps;
             end                
         end
         
-        function obj = GPS_Time_unix(obj, unix_time, fraction_of_second, is_gps)
+        function this = GPS_Time_unix(this, unix_time, fraction_of_second, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(uint32(unix_time), fraction_of_second, is_gps)
-            obj.time_type = 1;
-            obj.unix_time = unix_time;
-            obj.unix_time_f = fraction_of_second;
+            this.time_type = 1;
+            this.unix_time = unix_time;
+            this.unix_time_f = fraction_of_second;
             if (nargin == 4)
                 if isempty(is_gps)
                     is_gps = true;
                 end
-                obj.is_gps = is_gps;
+                this.is_gps = is_gps;
             end                
         end
         
-        function obj = GPS_Time_ref(obj, time_matlab_reference, time_difference, is_gps)
+        function this = GPS_Time_ref(this, time_matlab_reference, time_difference, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(time_matlab_reference, time_difference, is_gps)
-            obj.time_type = 2;
-            obj.time_ref = time_matlab_reference;
-            obj.time_diff = time_difference;
+            this.time_type = 2;
+            this.time_ref = time_matlab_reference;
+            this.time_diff = time_difference;
             if (nargin == 4)
                 if isempty(is_gps)
                     is_gps = true;
                 end
-                obj.is_gps = is_gps;
+                this.is_gps = is_gps;
             end                
-        end    
+        end
+                
+        function this = appendMatTime(this, matlab_time, is_gps)
+            % Append elements - appendMatTime(matlab_time, is_gps)            
+            if (nargin == 3)
+                if isempty(is_gps)
+                    is_gps = this.is_gps;
+                end
+            end            
+            this.append(GPS_Time(matlab_time, [], is_gps, 0));
+        end
+        
+        function this = appendUnixTime(this, unix_time, fraction_of_second, is_gps)
+            % Append elements -  appendUnixTime(uint32(unix_time), fraction_of_second, is_gps)
+            if (nargin == 4)
+                if isempty(is_gps)
+                    is_gps = this.is_gps;
+                end
+            end
+            this.append(GPS_Time(unix_time, fraction_of_second, is_gps, 1));
+        end
+        
+        function this = appendRefTime(this, time_matlab_reference, time_difference, is_gps)
+            % Append elements - appendRefTime(time_matlab_reference, time_difference, is_gps)
+            if (nargin == 4)
+                if isempty(is_gps)
+                    is_gps = this.is_gps;
+                end
+            end
+
+            this.append(GPS_Time(time_matlab_reference, time_difference, is_gps, 2));            
+        end        
+        
     end
     
     
     methods        
-        function obj = GPS_Time( arg1, arg2, arg3, arg4)
+        function this = GPS_Time( arg1, arg2, arg3, arg4)
             % Constructor
             % SYNTAX:
             %   t = GPS_Time(matlab_time, <[]>, <is_gps = 1>, <0>);
@@ -149,42 +200,139 @@ classdef GPS_Time < handle
             switch nargin                
                 % With one parameter I assume to read GPS time in matlab format
                 % one value (in seconds) with milliseconds precision since 1 Jan 0000
-                case 1, obj.GPS_Time_mat(arg1);                    
+                case 1, this.GPS_Time_mat(arg1);                    
                 % With two parameters it can be a unix o ref time format
                 case 2
                     if isa(uint32(arg1),'uint32')
                         % UNIX time
-                        obj.GPS_Time_unix(arg1, arg2);
+                        this.GPS_Time_unix(arg1, arg2);
                     else
                         % Ref Time
-                        obj.GPS_Time_ref(arg1, arg2);
+                        this.GPS_Time_ref(arg1, arg2);
                     end
                 % With three parameters the thirsd is a flag (is_gps)
                 case 3
                     if isempty(arg2)
-                        obj.GPS_Time_mat(arg1, arg3);
+                        this.GPS_Time_mat(arg1, arg3);
                     else
                         if isa(uint32(arg1),'uint32')
                             % UNIX time
-                            obj.GPS_Time_unix(arg1, arg2, arg3);
+                            this.GPS_Time_unix(arg1, arg2, arg3);
                         else
                             % Ref Time
-                            obj.GPS_Time_ref(arg1, arg2, arg3);
+                            this.GPS_Time_ref(arg1, arg2, arg3);
                         end
                     end
                 case 4
                     switch arg4
                         case 0 % GPS_Time.MAT_TIME
-                            obj.GPS_Time_mat(arg1, arg3);
+                            this.GPS_Time_mat(arg1, arg3);
                         case 1 % GPS_Time.UNIX_TIME
-                            obj.GPS_Time_unix(arg1, arg2, arg3);
+                            this.GPS_Time_unix(arg1, arg2, arg3);
                         case 2 % GPS_Time.REF_TIME
-                            obj.GPS_Time_ref(arg1, arg2, arg3);
+                            this.GPS_Time_ref(arg1, arg2, arg3);
                         otherwise
-                            obj.logger.addError('Unrecognized time format!!!');                                                
+                            this.logger.addError('Unrecognized time format!!!');                                                
                     end                  
             end   
-            %obj.computeLeapSeconds();
+            %this.computeLeapSeconds();
+        end
+        
+        function this = addEpoch(this, arg1, arg2, arg3, arg4)
+            % Add epochs to the object as matlab/unix/ref time
+            % SYNTAX:
+            %   t = t.appendEpoch(matlab_time, <[]>, <is_gps = 1>, <0>);
+            %   t = t.appendEpoch(uint32(unix_time), fraction_of_second, <is_gps = 1>, <1>);
+            %   t = t.appendEpoch(time_matlab_reference, time_difference, <is_gps = 1>, <2>);
+            
+            switch nargin                
+                % With one parameter I assume to read GPS time in matlab format
+                % one value (in seconds) with milliseconds precision since 1 Jan 0000
+                case 2, this.appendMatTime(arg1);                    
+                % With two parameters it can be a unix o ref time format
+                case 3
+                    if isa(uint32(arg1),'uint32')
+                        % UNIX time
+                        this.appendUnixTime(arg1, arg2);
+                    else
+                        % Ref Time
+                        this.appendRefTime(arg1, arg2);
+                    end
+                % With three parameters the thirsd is a flag (is_gps)
+                case 4
+                    if isempty(arg2)
+                        this.GPS_Time_mat(arg1, arg3);
+                    else
+                        if isa(uint32(arg1),'uint32')
+                            % UNIX time
+                            this.appendUnixTime(arg1, arg2, arg3);
+                        else
+                            % Ref Time
+                            this.appendRefTime(arg1, arg2, arg3);
+                        end
+                    end
+                case 5
+                    switch arg4
+                        case 0 % GPS_Time.MAT_TIME
+                            this.appendMatTime(arg1, arg3);
+                        case 1 % GPS_Time.UNIX_TIME
+                            this.appendUnixTime(arg1, arg2, arg3);
+                        case 2 % GPS_Time.REF_TIME
+                            this.appendRefTime(arg1, arg2, arg3);
+                        otherwise
+                            this.logger.addError('Unrecognized time format!!!');                                                
+                    end                  
+            end   
+            %this.computeLeapSeconds();
+        end        
+        
+        function this = append(this, time, time_type, is_gps)
+            % Append a GPS_Time object into the this
+            % When not specified the new format is the format of the append
+            if (nargin < 3)
+                time_type = time.time_type;
+            end
+            if (nargin < 4)
+                is_gps = time.is_gps;
+            end
+            
+            % Merge is done in GPS time -> it has no ambiguity
+            this.toGPS;
+            time.toGPS;
+            
+            switch time_type
+                case 0 % I'm in MAT TIME
+                    this.toMatlabTime();
+                    time.toMatlabTime();
+
+                    this.mat_time = [this.mat_time; time.mat_time];
+
+                case 1 % I'm in UNIX TIME
+                    this.toUnixTime();
+                    time.toUnixTime();
+                    
+                    this.unix_time = [this.unix_time; time.unix_time];
+                    this.unix_time_f = [this.unix_time_f; time.unix_time_f];
+                    
+                case 2 % I'm in REF TIME
+                    this.toRefTime();
+                    time.toRefTime();
+                    
+                    % keep the reference of the this
+                    this.time_diff = [this.time_diff; (time.time_diff + (this.time_ref - time.time_ref) * 86400)];
+            end    
+            
+            % Convert into correct format time
+            if is_gps
+                this.toGps();
+            else
+                this.toUtc();
+            end
+
+            % Compute leap seconds, if the original data stored them
+            if (time.leap_seconds < 999) ||  (this.leap_seconds < 999)
+                this.computeLeapSeconds();
+            end
         end
     end
     
@@ -193,195 +341,195 @@ classdef GPS_Time < handle
     % =========================================================================
     
     methods (Access = 'private')
-        function leap_seconds = computeLeapSeconds(obj)
+        function leap_seconds = computeLeapSeconds(this)
             % compute the number of leap seconds to subtract to GPS Time to obtain the UTC time
-            if obj.is_gps
-                LEAP_DATES = obj.LEAP_DATES_GPS;
+            if this.is_gps
+                LEAP_DATES = this.LEAP_DATES_GPS;
             else
-                LEAP_DATES = obj.LEAP_DATES_UTC;
+                LEAP_DATES = this.LEAP_DATES_UTC;
             end
                 
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm in MAT TIME
-                    if (numel(obj.mat_time) == 1)
-                        leap_seconds = find(obj.mat_time > LEAP_DATES, 1, 'last');
+                    if (numel(this.mat_time) == 1)
+                        leap_seconds = find(this.mat_time > LEAP_DATES, 1, 'last');
                     else
-                        leap_seconds = [find(obj.mat_time(1) > LEAP_DATES, 1, 'last'); ...
-                                        find(obj.mat_time(end) > LEAP_DATES, 1, 'last') ];
+                        leap_seconds = [find(this.mat_time(1) > LEAP_DATES, 1, 'last'); ...
+                                        find(this.mat_time(end) > LEAP_DATES, 1, 'last') ];
                         if (diff(leap_seconds) == 0) % the same leap_second for the whole period
                             leap_seconds = leap_seconds(1);
                         elseif (diff(leap_seconds) == 1) % there's one leap in the dataset
                             % search for the latest value before the second leap second
                             % max precision of leap dates is 1e-9
-                            id_leap = find(round(obj.mat_time*1e9) >= round(LEAP_DATES(leap_seconds(2))*1e9),1, 'first') - 1;
-                            leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(obj.mat_time) - id_leap,1) * leap_seconds(2)];                             
+                            id_leap = find(round(this.mat_time*1e9) >= round(LEAP_DATES(leap_seconds(2))*1e9),1, 'first') - 1;
+                            leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.mat_time) - id_leap,1) * leap_seconds(2)];                             
                         else % there are multiple leaps in the dataset
-                            lp = length(length(obj.mat_time));
+                            lp = length(length(this.mat_time));
                             lp(1) = leap_seconds(1);
                             lp(end) = leap_seconds(2);
-                            for i = 2:length(obj.mat_time)-1
-                                lp(i) = find(obj.mat_time > LEAP_DATES, 1, 'last');
+                            for i = 2:length(this.mat_time)-1
+                                lp(i) = find(this.mat_time > LEAP_DATES, 1, 'last');
                             end
                             leap_seconds = lp;                            
                         end
                     end
                 case 1 % I'm in UNIX TIME
-                    if (numel(obj.mat_time) == 1)
-                        leap_seconds = find((double(obj.unix_time)) / 86400 > (LEAP_DATES - 719529), 1, 'last');
+                    if (numel(this.mat_time) == 1)
+                        leap_seconds = find((double(this.unix_time)) / 86400 > (LEAP_DATES - 719529), 1, 'last');
                     else
-                        leap_seconds = [ find((double(obj.unix_time(1))) / 86400 > (LEAP_DATES - 719529), 1, 'last'); ...
-                                         find((double(obj.unix_time(end))) / 86400 > (LEAP_DATES - 719529), 1, 'last')];
+                        leap_seconds = [ find((double(this.unix_time(1))) / 86400 > (LEAP_DATES - 719529), 1, 'last'); ...
+                                         find((double(this.unix_time(end))) / 86400 > (LEAP_DATES - 719529), 1, 'last')];
                         if (diff(leap_seconds) == 0) % the same leap_second for the whole period
                             leap_seconds = leap_seconds(1);
                         elseif (diff(leap_seconds) == 1)  % there's one leap in the dataset
                             % search for the latest value before the second leap second
-                            id_leap = find((obj.unix_time) >= uint32((LEAP_DATES(leap_seconds(2)) - 719529) * 86400),1, 'first') - 1;
-                            leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(obj.unix_time) - id_leap,1) * leap_seconds(2)];
+                            id_leap = find((this.unix_time) >= uint32((LEAP_DATES(leap_seconds(2)) - 719529) * 86400),1, 'first') - 1;
+                            leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.unix_time) - id_leap,1) * leap_seconds(2)];
                         else % there are multiple leaps in the dataset
-                            lp = length(length(obj.unix_time));
+                            lp = length(length(this.unix_time));
                             lp(1) = leap_seconds(1);
                             lp(end) = leap_seconds(2);
-                            for i = 2:length(obj.unix_time)-1
-                                lp(i) = find((double(obj.unix_time(i))) / 86400 > (LEAP_DATES - 719529), 1, 'last');
+                            for i = 2:length(this.unix_time)-1
+                                lp(i) = find((double(this.unix_time(i))) / 86400 > (LEAP_DATES - 719529), 1, 'last');
                             end
                             leap_seconds = lp;
                         end
                     end
                     
                 case 2 % I'm in REF TIME
-                    if (numel(obj.mat_time) == 1)
-                        leap_seconds = find(obj.time_ref + obj.time_diff  > LEAP_DATES, 1, 'last');
+                    if (numel(this.mat_time) == 1)
+                        leap_seconds = find(this.time_ref + this.time_diff  > LEAP_DATES, 1, 'last');
                     else
-                        leap_seconds = [find((obj.time_ref + obj.time_diff(1)) > LEAP_DATES, 1, 'last'); ...
-                                        find((obj.time_ref + obj.time_diff(end)) > LEAP_DATES, 1, 'last') ];
+                        leap_seconds = [find((this.time_ref + this.time_diff(1)) > LEAP_DATES, 1, 'last'); ...
+                                        find((this.time_ref + this.time_diff(end)) > LEAP_DATES, 1, 'last') ];
                         if (diff(leap_seconds) == 0) % the same leap_second for the whole period
                             leap_seconds = leap_seconds(1);
                         elseif (diff(leap_seconds) == 1) % there's one leap in the dataset
                             % search for the latest value before the second leap second
                             % max precision of leap dates is 1e-9
-                            id_leap = find(round(obj.time_diff*1e9) >= round((LEAP_DATES(leap_seconds(2)) - obj.time_ref)*1e9),1, 'first') - 1;
-                            leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(obj.time_diff) - id_leap,1) * leap_seconds(2)];
+                            id_leap = find(round(this.time_diff*1e9) >= round((LEAP_DATES(leap_seconds(2)) - this.time_ref)*1e9),1, 'first') - 1;
+                            leap_seconds = [ones(id_leap,1) * leap_seconds(1); ones(numel(this.time_diff) - id_leap,1) * leap_seconds(2)];
                         else % there are multiple leaps in the dataset                            
-                            lp = length(length(obj.time_ref));
+                            lp = length(length(this.time_ref));
                             lp(1) = leap_seconds(1);
                             lp(end) = leap_seconds(2);
-                            for i = 2:length(obj.time_ref)-1
-                                lp(i) = find(obj.time_ref + obj.time_diff  > LEAP_DATES, 1, 'last');
+                            for i = 2:length(this.time_ref)-1
+                                lp(i) = find(this.time_ref + this.time_diff  > LEAP_DATES, 1, 'last');
                             end
                             leap_seconds = lp;                            
                         end
                     end
                     
             end 
-            if ~(obj.is_gps)
+            if ~(this.is_gps)
                 leap_seconds = -leap_seconds;
             end
-            obj.leap_seconds = leap_seconds;
+            this.leap_seconds = leap_seconds;
         end
     end
     
     methods
-        function toMatlabTime(obj)
+        function toMatlabTime(this)
             % Convert the internal structure to Matlab Time, precision up to the 0.1 milliseconds precision
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm already in MAT TIME
                     % do nothing
                 case 1 % I'm in UNIX TIME
-                    obj.time_type = 0;
+                    this.time_type = 0;
                     % constants in matlab are slower than copied values :-( switching to values
-                    % obj.mat_time = double(obj.unix_time) / obj.SEC_IN_DAY + obj.UNIX_REF + obj.unix_time_f;
-                    obj.mat_time = ((double(obj.unix_time) + obj.unix_time_f) / 86400 + 719529);
-                    obj.unix_time = [];
-                    obj.unix_time_f = [];
+                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF + this.unix_time_f;
+                    this.mat_time = ((double(this.unix_time) + this.unix_time_f) / 86400 + 719529);
+                    this.unix_time = [];
+                    this.unix_time_f = [];
                 case 2 % I'm in REF TIME
-                    obj.time_type = 0;                    
-                    obj.mat_time = obj.time_ref + obj.time_diff / 86400;
-                    obj.time_ref = [];
-                    obj.time_diff = [];
+                    this.time_type = 0;                    
+                    this.mat_time = this.time_ref + this.time_diff / 86400;
+                    this.time_ref = [];
+                    this.time_diff = [];
             end
         end
         
-        function toUnixTime(obj)
+        function toUnixTime(this)
             % Convert the internal structure to Unix Time, precision up to the ps precision
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm in MAT TIME
-                    obj.time_type = 1;
+                    this.time_type = 1;
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_s = (obj.mat_time - obj.UNIX_REF) * obj.SEC_IN_DAY; % convert mat_time in seconds
+                    % time_s = (this.mat_time - this.UNIX_REF) * this.SEC_IN_DAY; % convert mat_time in seconds
                     % due to numerical error propagation I can keep only 4 decimal
-                    time_s =  (obj.mat_time - 719529) * 86400; % convert mat_time in seconds
-                    obj.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
-                    obj.unix_time_f = round((time_s - double(obj.unix_time)) * 1e4) / 1e4;
+                    time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
+                    this.unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
+                    this.unix_time_f = round((time_s - double(this.unix_time)) * 1e4) / 1e4;
                     clear time_s
-                    obj.mat_time = [];
+                    this.mat_time = [];
                 case 1 % I'm already in UNIX TIME
                     % do nothing
                 case 2 % I'm in REF TIME
-                    obj.time_type = 1;
+                    this.time_type = 1;
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_s = (obj.mat_time - obj.UNIX_REF) * obj.SEC_IN_DAY; % convert mat_time in seconds
-                    time_s = (obj.time_ref - 719529) * 86400;
-                    obj.unix_time = uint32(fix(round((time_s + obj.time_diff) * 1e4) / 1e4));
-                    obj.unix_time_f = time_s - double(obj.unix_time) + obj.time_diff;
+                    % time_s = (this.mat_time - this.UNIX_REF) * this.SEC_IN_DAY; % convert mat_time in seconds
+                    time_s = (this.time_ref - 719529) * 86400;
+                    this.unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
+                    this.unix_time_f = time_s - double(this.unix_time) + this.time_diff;
                     clear time_s
-                    obj.time_ref = [];
-                    obj.time_diff = [];
+                    this.time_ref = [];
+                    this.time_diff = [];
             end
         end          
         
-        function toRefTime(obj)
+        function toRefTime(this)
             % Convert the internal structure to Reference Time, precision up to the ps precision            
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm in MAT TIME
-                    obj.time_type = 2;
-                    obj.time_ref = fix(obj.mat_time(1));
+                    this.time_type = 2;
+                    this.time_ref = fix(this.mat_time(1));
                     % due to numerical error propagation I can keep only 4 decimal digits
-                    obj.time_diff = (obj.mat_time - obj.time_ref) * 86400;
-                    obj.mat_time = [];
+                    this.time_diff = (this.mat_time - this.time_ref) * 86400;
+                    this.mat_time = [];
                 case 1 % I'm already in UNIX TIME
-                    obj.time_type = 2;
+                    this.time_type = 2;
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_d = double(obj.unix_time) / obj.SEC_IN_DAY + obj.UNIX_REF;
-                    time_d = double(obj.unix_time) / 86400 + 719529;
-                    obj.time_ref = fix(time_d(1));
-                    obj.time_diff = ((time_d - obj.time_ref) * 86400) + obj.unix_time_f;
-                    obj.unix_time = [];
-                    obj.unix_time_f = [];
+                    % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF;
+                    time_d = double(this.unix_time) / 86400 + 719529;
+                    this.time_ref = fix(time_d(1));
+                    this.time_diff = ((time_d - this.time_ref) * 86400) + this.unix_time_f;
+                    this.unix_time = [];
+                    this.unix_time_f = [];
                 case 2 % I'm in REF TIME
                     % do nothing
             end
         end
         
-        function toUTC(obj)
+        function toUtc(this)
             % Transform the internal allocation in UTF format (corrects for cycle-sleeps
-            if (obj.is_gps == true)
-                if (obj.leap_seconds == 999)
-                    obj.leap_seconds = obj.computeLeapSeconds();
+            if (this.is_gps == true)
+                if (this.leap_seconds >= 999)
+                    this.leap_seconds = this.computeLeapSeconds();
                 end
-                obj.addSeconds(-obj.leap_seconds);
-                obj.is_gps = false;
-                obj.leap_seconds = -obj.leap_seconds;
+                this.addSeconds(-this.leap_seconds);
+                this.is_gps = false;
+                this.leap_seconds = -this.leap_seconds;
             end
         end
         
-        function toGPS(obj)
+        function toGps(this)
             % Transform the internal allocation in GPS format (corrects for cycle-sleeps)
-            if (obj.is_gps == false)
-                if (obj.leap_seconds == 999)
-                    obj.leap_seconds = obj.computeLeapSeconds();
+            if (this.is_gps == false)
+                if (this.leap_seconds >= 999)
+                    this.leap_seconds = this.computeLeapSeconds();
                 end
-                obj.addSeconds(-obj.leap_seconds);
-                obj.is_gps = true;
-                obj.leap_seconds = -obj.leap_seconds;
+                this.addSeconds(-this.leap_seconds);
+                this.is_gps = true;
+                this.leap_seconds = -this.leap_seconds;
             end            
         end
         
-        function leap_seconds = getLeapSeconds(obj)
+        function leap_seconds = getLeapSeconds(this)
             % get the number of leap seconds to subtract to GPS Time to obtain the UTC time
-            if (obj.leap_seconds == 999)
-                obj.leap_seconds = obj.computeLeapSeconds();
+            if (this.leap_seconds >= 999)
+                this.leap_seconds = this.computeLeapSeconds();
             end
-            leap_seconds = obj.leap_seconds();
+            leap_seconds = this.leap_seconds();
         end        
     end
     
@@ -390,75 +538,133 @@ classdef GPS_Time < handle
     % =========================================================================
 
     methods
-        function [mat_time]  = getMatlabTime(obj)
+        function [mat_time]  = getMatlabTime(this)
             % get Matlab Time, precision up to the 0.1 milliseconds precision
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm already in MAT TIME
-                    mat_time = obj.mat_time;
+                    mat_time = this.mat_time;
                 case 1 % I'm in UNIX TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % obj.mat_time = double(obj.unix_time) / obj.SEC_IN_DAY + obj.UNIX_REF + obj.unix_time_f;
-                    mat_time = ((double(obj.unix_time) + obj.unix_time_f) / 86400 + 719529);
+                    % this.mat_time = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF + this.unix_time_f;
+                    mat_time = ((double(this.unix_time) + this.unix_time_f) / 86400 + 719529);
                 case 2 % I'm in REF TIME
-                    mat_time = obj.time_ref + obj.time_diff / 86400;
+                    mat_time = this.time_ref + this.time_diff / 86400;
             end
         end
         
-        function [unix_time, unix_time_f] = getUnixTime(obj)
+        function [unix_time, unix_time_f] = getUnixTime(this)
             % Convert the internal structure toget Unix Time, precision up to the ps precision
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm in MAT TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_s = (obj.mat_time - obj.UNIX_REF) * obj.SEC_IN_DAY; % convert mat_time in seconds
+                    % time_s = (this.mat_time - this.UNIX_REF) * this.SEC_IN_DAY; % convert mat_time in seconds
                     % due to numerical error propagation I can keep only 4 decimal
-                    time_s =  (obj.mat_time - 719529) * 86400; % convert mat_time in seconds
+                    time_s =  (this.mat_time - 719529) * 86400; % convert mat_time in seconds
                     unix_time = uint32(fix(round(time_s * 1e4) / 1e4));
                     unix_time_f = round((time_s - double(unix_time)) * 1e4) / 1e4;
                 case 1 % I'm already in UNIX TIME
-                    unix_time = obj.unix_time;
-                    unix_time_f = obj.unix_time_f;
+                    unix_time = this.unix_time;
+                    unix_time_f = this.unix_time_f;
                 case 2 % I'm in REF TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_s = (obj.mat_time - obj.UNIX_REF) * obj.SEC_IN_DAY; % convert mat_time in seconds
-                    time_s = (obj.time_ref - 719529) * 86400;
-                    unix_time = uint32(fix(round((time_s + obj.time_diff) * 1e4) / 1e4));
-                    unix_time_f = time_s - double(unix_time) + obj.time_diff;
+                    % time_s = (this.mat_time - this.UNIX_REF) * this.SEC_IN_DAY; % convert mat_time in seconds
+                    time_s = (this.time_ref - 719529) * 86400;
+                    unix_time = uint32(fix(round((time_s + this.time_diff) * 1e4) / 1e4));
+                    unix_time_f = time_s - double(unix_time) + this.time_diff;
             end
-        end          
+        end
         
-        function [time_diff, time_ref] = getRefTime(obj)
+        function [time_diff, time_ref] = getRefTime(this)
             % get Reference Time, precision up to the ps precision            
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm in MAT TIME
-                    obj.time_ref = fix(obj.mat_time(1));
+                    this.time_ref = fix(this.mat_time(1));
                     % due to numerical error propagation I can keep only 4 decimal digits
-                    obj.time_diff = (obj.mat_time - obj.time_ref) * 86400;
-                    obj.mat_time = [];
+                    this.time_diff = (this.mat_time - this.time_ref) * 86400;
+                    this.mat_time = [];
                 case 1 % I'm already in UNIX TIME
                     % constants in matlab are slower than copied values :-( switching to values
-                    % time_d = double(obj.unix_time) / obj.SEC_IN_DAY + obj.UNIX_REF;
-                    time_d = double(obj.unix_time) / 86400 + 719529;
+                    % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF;
+                    time_d = double(this.unix_time) / 86400 + 719529;
                     time_ref = fix(time_d(1));
-                    time_diff = ((time_d - time_ref) * 86400) + obj.unix_time_f;
+                    time_diff = ((time_d - time_ref) * 86400) + this.unix_time_f;
                 case 2 % I'm in REF TIME
-                    time_ref = obj.time_ref;
-                    time_diff = obj.time_diff;
+                    time_ref = this.time_ref;
+                    time_diff = this.time_diff;
             end
         end
-                
-        function date_string = toString(obj, date_format)
+
+        function [gps_week, gps_time] = getGpsTime(this)
+            % Get the GPS_week and the number of seconbds from the start of the week
+            [unix_time, unix_time_f] = this.getUnixTime();
+            [gps_week, gps_time] = GPS_Time.unixTimeToGps(unix_time, unix_time_f);
+        end
+
+        function date_string = toString(this, date_format)
             % Convert a date to string format
             if (nargin == 2)
-                date_string = datestr(obj.getMatlabTime(), date_format);
+                date_string = datestr(this.getMatlabTime(), date_format);
             else    
-                date_string = datestr(obj.getMatlabTime(), obj.date_format);
+                date_string = datestr(this.getMatlabTime(), this.date_format);
+            end
+        end       
+        
+        function new_obj = getId(this,id)
+            % Overloading of the operator index ()
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    if (length(this.mat_time) <= id)
+                        new_obj = GPS_Time(this.mat_time(id), [], this.is_gps);
+                    else
+                        new_obj = GPS_Time();
+                    end
+                case 1 % I'm in UNIX TIME
+                    if (length(this.unix_time) <= id)
+                        new_obj = GPS_Time(uint32(this.unix_time(id), this.unix_time_f(id), this.is_gps));
+                    else
+                        new_obj = GPS_Time();
+                    end
+                case 2 % I'm in REF TIME
+                    if (length(this.time_diff) <= id)
+                        new_obj = GPS_Time(uint32(this.time_ref, this.time_diff(id), this.is_gps));
+                    else
+                        new_obj = GPS_Time();
+                    end
             end
         end
+
+        function new_obj = first(this)
+            % Get first element stored in GPS_Time
+            new_obj = this.getId(1);
+        end
         
-        function setDateFormat(obj, date_format)
+        function new_obj = last(this)
+            % Get first element stored in GPS_Time
+            new_obj = this.getId(this.lenght());
+        end
+        
+        function n_element = lenght(this)
+            % Get the total number of element stored in the object
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    n_element = length(this.mat_time);
+                case 1 % I'm in UNIX TIME
+                    n_element = length(this.unix_time);
+                case 2 % I'm in REF TIME
+                    n_element = length(this.time_diff);
+            end
+        end
+    end
+    
+    % =========================================================================
+    %    SETTERS
+    % =========================================================================
+    
+    methods        
+        function setDateFormat(this, date_format)
             % Change the default value for "date format"
-            obj.date_format = date_format;
-        end        
+            this.date_format = date_format;
+        end
     end
 
     % =========================================================================
@@ -466,40 +672,28 @@ classdef GPS_Time < handle
     % =========================================================================
 
     methods (Access = 'public')
-        function addIntSeconds(obj, n_seconds)
+        function addIntSeconds(this, n_seconds)
             % Add an integer number of seconds to all the times
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm in MAT TIME
-                    obj.mat_time = obj.mat_time + n_seconds / 86400;
+                    this.mat_time = this.mat_time + n_seconds / 86400;
                 case 1 % I'm in UNIX TIME
-                    obj.unix_time = obj.unix_time + uint32(n_seconds);
+                    this.unix_time = this.unix_time + uint32(n_seconds);
                 case 2 % I'm in REF TIME
-                    obj.time_diff = obj.time_diff + n_seconds;
+                    this.time_diff = this.time_diff + n_seconds;
             end                          
         end
         
-        function addSeconds(obj, n_seconds)
+        function addSeconds(this, n_seconds)
             % Add a floating point number of seconds to all the times
-            switch obj.time_type
+            switch this.time_type
                 case 0 % I'm in MAT TIME
-                    obj.mat_time = obj.mat_time + n_seconds / 86400;
+                    this.mat_time = this.mat_time + n_seconds / 86400;
                 case 1 % I'm in UNIX TIME
-                    obj.unix_time = obj.unix_time + uint32(fix(n_seconds));                    
-                    obj.unix_f = obj.unix_time + rem(n_seconds,1);                    
+                    this.unix_time = this.unix_time + uint32(fix(n_seconds));                    
+                    this.unix_f = this.unix_time + rem(n_seconds,1);                    
                 case 2 % I'm in REF TIME
-                    obj.time_diff = obj.time_diff + n_seconds;
-            end                          
-        end
-
-        function new_obj = extractId(obj,id)
-            % Overloading of the operator index ()
-            switch obj.time_type
-                case 0 % I'm in MAT TIME
-                    new_obj = GPS_Time(obj.mat_time(id), [], obj.is_gps);
-                case 1 % I'm in UNIX TIME
-                    new_obj = GPS_Time(uint32(obj.unix_time(id), obj.unix_time_f(id), obj.is_gps));                    
-                case 2 % I'm in REF TIME
-                    new_obj = GPS_Time(uint32(obj.time_ref, obj.time_diff(id), obj.is_gps));
+                    this.time_diff = this.time_diff + n_seconds;
             end                          
         end
     end
@@ -526,8 +720,8 @@ classdef GPS_Time < handle
             % Conversion From STRING type to UNIX TIME (expressed in uint32 seconds) max precision ~0.1 ms
             [unix_time, unix_time_f] = GPS_Time.matToUnixTime(datenum(time_string));
         end
-        
-        function  [unix_time, unix_time_f] = gpsToUnixTime(gps_week, gps_time)
+             
+        function [unix_time, unix_time_f] = gpsToUnixTime(gps_week, gps_time)
             % Conversion (shift) from GPS time (January 6, 1980) to UNIX time (January 1, 1970)
             if (nargout == 2)
                 unix_time_f = rem(gps_time,1); 
@@ -535,9 +729,7 @@ classdef GPS_Time < handle
             % constants in matlab are slower than copied values :-( switching to values
             % unix_time = uint32(gps_time - 0.5) + GPS_Time.UNIX_GPS_SEC_DIFF + uint32(gps_week) * GPS_Time.SEC_IN_WEEK;
             unix_time = uint32(gps_time - 0.5) + 315964800 + uint32(gps_week) * 604800;
-        end
-        
-        
+        end        
     end
     
     % =========================================================================
@@ -545,11 +737,6 @@ classdef GPS_Time < handle
     % =========================================================================
     
     methods (Access = 'public')
-       function [gps_week, gps_time] = getGpsTime(obj)
-           % Get the GPS_week and the number of seconbds from the start of the week
-           [unix_time, unix_time_f] = obj.getUnixTime();
-           [gps_week, gps_time] = GPS_Time.unixTimeToGps(unix_time, unix_time_f);
-       end
     end
 
     methods (Static, Access = 'public')
@@ -578,8 +765,8 @@ classdef GPS_Time < handle
             logger.addMessage('Testing Class Time - single value UTC');
             tic;
             t = GPS_Time(datenum('01-Jul-1994 00:00:00'), [], false);
-            t.toGPS();
-            t.toUTC();
+            t.toGps();
+            t.toUtc();
             t.toUnixTime();
             t.toMatlabTime()
             t.toRefTime();
@@ -601,8 +788,8 @@ classdef GPS_Time < handle
             mat_time = datenum('01-Jul-1994 00:00:00');
             mat_time = (mat_time(1)-1:1/86400:mat_time(1)+1)';
             t = GPS_Time(mat_time, [], true);
-            t.toGPS();
-            t.toUTC();
+            t.toGps();
+            t.toUtc();
             t.toUnixTime();
             t.toMatlabTime()
             t.toRefTime();
@@ -611,7 +798,7 @@ classdef GPS_Time < handle
             t.toRefTime();
             t.toUnixTime();
             t.toMatlabTime();
-            t.toGPS();
+            t.toGps();
             t_diff = max(abs(t.mat_time - mat_time)) * 86400;
             if t_diff < 2e-5
                 logger.addStatusOk('Passed');
@@ -621,155 +808,5 @@ classdef GPS_Time < handle
             toc
         end
     end
-    
-    
-% 	public int getGpsWeek(){
-% 		// Shift from UNIX time (January 1, 1970 - msec)
-% 		// to GPS time (January 6, 1980 - sec)
-% 		long time = msec / Constants.MILLISEC_IN_SEC - Constants.UNIX_GPS_SEC_DIFF * Constants.SEC_IN_DAY;
-% 		return (int)(time/(Constants.DAYS_IN_WEEK * Constants.SEC_IN_DAY));
-% 	}
-% 	public int getGpsWeekSec(){
-% 		// Shift from UNIX time (January 1, 1970 - msec)
-% 		// to GPS time (January 6, 1980 - sec)
-% 		long time = msec / Constants.MILLISEC_IN_SEC - Constants.UNIX_GPS_SEC_DIFF * Constants.SEC_IN_DAY;
-% 		return (int)(time%(Constants.DAYS_IN_WEEK * Constants.SEC_IN_DAY));
-% 	}
-% 	public int getGpsWeekDay(){
-% 		return (int)(getGpsWeekSec()/Constants.SEC_IN_DAY);
-% 	}
-% 	public int getGpsHourInDay(){
-% 		long time = msec / Constants.MILLISEC_IN_SEC - Constants.UNIX_GPS_SEC_DIFF * Constants.SEC_IN_DAY;
-% 		return (int)((time%(Constants.SEC_IN_DAY))/Constants.SEC_IN_HOUR);
-% 	}
-% 	public int getYear(){
-% 		return gc.get(Calendar.YEAR);
-% 	}
-% 	public int getYear2c(){
-% 		return gc.get(Calendar.YEAR)-2000;
-% 	}
-% 	public int getDayOfYear(){
-% 		return gc.get(Calendar.DAY_OF_YEAR);
-% 	}
-% 	public String getHourOfDayLetter(){
-% 		char c = (char)('a'+getGpsHourInDay());
-% 		return ""+c;
-% 	}
-% 
-% 	/*
-% 	 * Locating IGS data, products, and format definitions	Key to directory and file name variables
-% 	 * d	day of week (0-6)
-% 	 * ssss	4-character IGS site ID or 4-character LEO ID
-% 	 * yyyy	4-digit year
-% 	 * yy	2-digit year
-% 	 * wwww	4-digit GPS week
-% 	 * ww	2-digit week of year(01-53)
-% 	 * ddd	day of year (1-366)
-% 	 * hh	2-digit hour of day (00-23)
-% 	 * h	single letter for hour of day (a-x = 0-23)
-% 	 * mm	minutes within hour
-% 	 *
-% 	 */
-% 	public String formatTemplate(String template){
-% 		String tmpl = template.replaceAll("\\$\\{wwww\\}", (new DecimalFormat("0000")).format(this.getGpsWeek()));
-% 		tmpl = tmpl.replaceAll("\\$\\{d\\}", (new DecimalFormat("0")).format(this.getGpsWeekDay()));
-% 		tmpl = tmpl.replaceAll("\\$\\{ddd\\}", (new DecimalFormat("000")).format(this.getDayOfYear()));
-% 		tmpl = tmpl.replaceAll("\\$\\{yy\\}", (new DecimalFormat("00")).format(this.getYear2c()));
-% 		tmpl = tmpl.replaceAll("\\$\\{yyyy\\}", (new DecimalFormat("0000")).format(this.getYear()));
-% 		int hh4 = this.getGpsHourInDay();
-% 		tmpl = tmpl.replaceAll("\\$\\{hh\\}", (new DecimalFormat("00")).format(hh4));
-% 		if(0<=hh4&&hh4<6) hh4=0;
-% 		if(6<=hh4&&hh4<12) hh4=6;
-% 		if(12<=hh4&&hh4<18) hh4=12;
-% 		if(18<=hh4&&hh4<24) hh4=18;
-% 		tmpl = tmpl.replaceAll("\\$\\{hh4\\}", (new DecimalFormat("00")).format(hh4));
-% 		tmpl = tmpl.replaceAll("\\$\\{h\\}", this.getHourOfDayLetter());
-% 		return tmpl;
-% 	}
-% 
-% 	public double getGpsTime(){
-% 		return unixToGpsTime(msec);
-% 	}
-% 
-% 	public double getRoundedGpsTime(){
-% 		double tow = unixToGpsTime((msec+499)/1000*1000);
-% 		return tow;
-% 	}
-% 
-% 	public int computeLeapSeconds(){
-% 		if( leapDates == null )
-% 			try {
-% 				initleapDates();
-% 			} catch (Exception e) {
-% 				// TODO Auto-generated catch block
-% 				e.printStackTrace();
-% 			}
-% 
-% 		int leapSeconds = leapDates.length - 1;
-% 		double delta;
-% 		for (int d = 0; d < leapDates.length; d++) {
-% 			delta = leapDates[d].getTime() - msec;
-% 			if (delta > 0) {
-% 				leapSeconds = d - 1;
-% 				break;
-% 			}
-% 		}
-% 		return leapSeconds;
-% 	}
-% 
-% 	//
-% 	//	private static double unixToGpsTime(double time) {
-% 	//		// Shift from UNIX time (January 1, 1970 - msec)
-% 	//		// to GPS time (January 6, 1980 - sec)
-% 	//		time = (long)(time / Constants.MILLISEC_IN_SEC) - Constants.UNIX_GPS_SEC_DIFF * Constants.SEC_IN_DAY;
-% 	//
-% 	//		// Remove integer weeks, to get Time Of Week
-% 	//		double dividend  = time;
-% 	//		double divisor = Constants.DAYS_IN_WEEK * Constants.SEC_IN_DAY;
-% 	//		time = dividend  - (divisor * round(dividend / divisor));
-% 	//
-% 	//		//time = Math.IEEEremainder(time, Constants.DAYS_IN_WEEK * Constants.SEC_IN_DAY);
-% 	//
-% 	//		return time;
-% 	//	}
-% 
-% 
-% 
-% 	/**
-% 	 * @return the msec
-% 	 */
-% 	public long getMsec() {
-% 		return msec;
-% 	}
-% 
-% 	/**
-% 	 * @param msec the msec to set
-% 	 */
-% 	public void setMsec(long msec) {
-% 		this.msec = msec;
-% 	}
-% 
-% 	/**
-% 	 * @return the fraction
-% 	 */
-% 	public double getFraction() {
-% 		return fraction;
-% 	}
-% 
-% 	/**
-% 	 * @param fraction the fraction to set
-% 	 */
-% 	public void setFraction(double fraction) {
-% 		this.fraction = fraction;
-% 	}
-% 
-% 	public Object clone(){
-% 		return new Time(this.msec,this.fraction);
-% 	}
-% 
-% 	public String toString(){
-% 		return df.format(gc.getTime())+" "+gc.getTime();
-% 	}
-    
     
 end
