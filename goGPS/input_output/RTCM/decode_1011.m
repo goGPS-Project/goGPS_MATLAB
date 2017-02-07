@@ -31,27 +31,36 @@ function [data] = decode_1011(msg, constellations)
 % DESCRIPTION:
 %   RTCM format 1011 message decoding.
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.3
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___ 
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.0
+% 
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       
+%  Contributors:     Sara Lucca, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
 %
-% Portions of code contributed by Sara Lucca
-%----------------------------------------------------------------------------------------------
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
-%
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011 
+%--------------------------------------------------------------------------
 
 %message pointer initialization
 pos = 1;
@@ -117,7 +126,7 @@ for i = 1 : NSV
         %GLONASS L1 pseudorange
         DF041 = fbin2dec(msg(pos:pos+24)) * 0.02; pos = pos + 25;
 
-        %GLONASS L1 PhaseRange ?½ L1 Pseudorange
+        %GLONASS L1 PhaseRange ?? L1 Pseudorange
         DF042 = twos_complement(msg(pos:pos+19)) * 0.0005;  pos = pos + 20;
 
         %GLONASS L1 Lock Time Indicator
@@ -131,7 +140,7 @@ for i = 1 : NSV
         %GLONASS L2-L1 Pseudorange Difference
         DF047 = twos_complement(msg(pos:pos+13)) * 0.02; pos = pos + 14;
 
-        %GLONASS L2 PhaseRange ?½ L1 Pseudorange (m)
+        %GLONASS L2 PhaseRange ?? L1 Pseudorange (m)
         DF048 = twos_complement(msg(pos:pos+19)) * 0.0005; pos = pos + 20;
 
         %GLONASS L2 Lock Time Indicator

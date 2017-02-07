@@ -15,13 +15,23 @@ function [Xsat_rot] = earth_rotation_correction(traveltime, Xsat, Omegae_dot)
 %   Correct satellite position according to Earth rotation
 %   during signal travel time.
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.3
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.0
 %
-% Copyright (C) Kai Borre
+%--------------------------------------------------------------------------
+%  Copyright (C) Kai Borre
+%  Written by:       (C) Kai Borre
+%  Contributors:     Mirko Reguzzoni, Eugenio Realini, 2009
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-% Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011
+%--------------------------------------------------------------------------
 
 %Xsat to column
 Xsat = Xsat(:);

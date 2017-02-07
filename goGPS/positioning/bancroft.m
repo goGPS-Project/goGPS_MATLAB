@@ -13,14 +13,25 @@ function [pos] = bancroft(B_pass)
 %   Bancroft algorithm for the computation of ground coordinates
 %   having at least 4 visible satellites.
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.3
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.0
 %
-% Copyright (C) Kai Borre
-% Kai Borre 04-30-95, improved by C.C. Goad 11-24-96
+%--------------------------------------------------------------------------
+%  Copyright (C) Kai Borre
+%  Written by:       Kai Borre
+%  Contributors:     Kai Borre 04-30-95, 
+%                    C.C. Goad 11-24-96
+%                    Mirko Reguzzoni, Eugenio Realini, 2009
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-% Adapted by Mirko Reguzzoni, Eugenio Realini, 2009
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011
+%--------------------------------------------------------------------------
 
 v_light = goGNSS.V_LIGHT;
 Omegae_dot = goGNSS.OMEGAE_DOT_GPS;

@@ -1,13 +1,13 @@
-% =========================================================================
-%   OBJECT goWaitBar
+%   CLASS goWaitBar
 % =========================================================================
 %
-% DESCRIPTION:
-%   Object to show and manage a waitbar
+% DESCRIPTION
+%   Class to show and manage a waitbar
 %
-% EXAMPLE:
+% EXAMPLE
 %   goWB = goWaitBar(10);
 %   goWB.go();
+%
 %
 % LIST of METHODS
 %
@@ -17,7 +17,7 @@
 %   close(obj)              Close the window
 %
 %  DISPLAY ------------------------------------------------------------
-%   
+%
 %   go(obj, step)           Just update the waitbar
 %
 %   goMsg(obj, step)        Update the waitbar and accept a message to
@@ -28,40 +28,53 @@
 %
 %   titleUpdate(obj, msg)   Change the title of the waitbar
 %
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.3
+% FOR A FULL LIST OF CONSTANTs and METHODS use doc goGUIclass
+
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.0
 %
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Andrea Gatti
+%  Contributors:     Andrea Gatti, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-%    Code contributed by Andrea Gatti
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
 %
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%---------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011
+%--------------------------------------------------------------------------
+
 classdef goWaitBar < handle
-            
+    
     properties (GetAccess = 'public', SetAccess = 'public')
-        h  = [];        % handle of the waitbar        
+        h  = [];        % handle of the waitbar
         t0 = 0;         % start time of process
         nSteps = 0;     % number of step of the bar
         lastStep = 0;   % Last step done
     end
     
     methods
-
+        
         % Creator
         function obj = goWaitBar(nSteps, msg)
+            % Creator
             if nargin == 1
                 msg = 'Please wait...';
             end
@@ -78,6 +91,7 @@ classdef goWaitBar < handle
         
         % Just update the waitbar
         function go(obj,step)
+            % Just update the waitbar
             if nargin == 2
                 obj.lastStep = min(obj.nSteps, step);
             else
@@ -88,6 +102,7 @@ classdef goWaitBar < handle
         
         % Update the waitbar and accept a message to display within the window
         function goMsg(obj, step, msg)
+            % Update the waitbar and accept a message to display within the window
             if nargin == 3
                 obj.lastStep = min(obj.nSteps, step);
             else
@@ -96,10 +111,11 @@ classdef goWaitBar < handle
             end
             obj.lastStep = min(obj.nSteps, obj.lastStep);
             waitbar(min(obj.lastStep/obj.nSteps),obj.h, msg);
-        end        
-
+        end
+        
         % Update the waitbar and estimate the remaining computational time supposing a linear trend
         function goTime(obj,step)
+            % Update the waitbar and estimate the remaining computational time supposing a linear trend
             if nargin == 2
                 obj.lastStep = min(obj.nSteps, step);
             else
@@ -118,15 +134,17 @@ classdef goWaitBar < handle
             ss = floor(t1-hh*3600-mm*60);
             remainingTime = [num2str(hh,'%02d') ':' num2str(mm,'%02d') ':' num2str(ss,'%02d')];
             waitbar(min(1,obj.lastStep/obj.nSteps),obj.h,[' Elapsed time                ' elapsedTime 10 ' Remaining time            ' remainingTime] );
-        end        
-       
+        end
+        
         % Change the title of the waitbar
         function titleUpdate(obj, msg)
+            % Change the title of the waitbar
             set(obj.h,'Name', msg);
         end
         
         % Shift the waitbar downward (e.g. to make room for processing plots)
         function shiftDown(obj, shf)
+            % Shift the waitbar downward (e.g. to make room for processing plots)
             if (nargin < 2)
                 shf = 120;
             end
@@ -139,6 +157,7 @@ classdef goWaitBar < handle
         
         % Close the window
         function close(obj)
+            % Close the window
             close(obj.h);
         end
     end

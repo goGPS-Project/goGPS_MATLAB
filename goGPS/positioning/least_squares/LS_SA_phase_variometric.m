@@ -1,5 +1,5 @@
 function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, lambda)
-                                                                                       
+
 % SYNTAX:
 %   [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(XR_approx_t0, XR_approx_t1, XS_t0, XS_t1, ph_t0, ph_t1, snr, elR, distR_approx_t0, distR_approx_t1, sat_ph, dtS_t0, dtS_t1, err_tropo_t0, err_tropo_t1, err_iono_t0, err_iono_t1, lambda);
 %
@@ -31,25 +31,36 @@ function [XR, dtR, cov_XR, var_dtR, PDOP, HDOP, VDOP] = LS_SA_phase_variometric(
 %   Absolute positioning by means of least squares adjustment on code
 %   observations. Epoch-by-epoch solution.
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.3
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.0
 %
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:
+%  Contributors:     ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
 %
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
 %
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011
+%--------------------------------------------------------------------------
 
 %variable initialization
 global sigmaq_ph
@@ -75,7 +86,7 @@ for i = 1 : n
     eij_approx_t0=((XR_approx_t0 - XS_t0(i,:)'))./distR_approx_t0(i);
     eij_approx_t1=((XR_approx_t1 - XS_t1(i,:)'))./distR_approx_t1(i);
     eij_approx=(eij_approx_t0 + eij_approx_t1)./2;
-    
+
     A = [A; eij_approx(1) eij_approx(2) eij_approx(3) 1];
 end
 
@@ -89,7 +100,7 @@ end
 %     size(dtS_t0)
 %     size(dtS_t1)
 % end
-   
+
 %observation vector
 y0 = lambda.*(ph_t0 - ph_t1);
 
@@ -119,7 +130,7 @@ if (n > m)
     var_dtR = Cxx(end,end) / v_light^2;
 else
     cov_XR  = [];
-    var_dtR = []; 
+    var_dtR = [];
 end
 
 %DOP computation
@@ -127,7 +138,7 @@ if (nargout > 6)
     cov_XYZ = (A'*A)^-1;
     cov_XYZ = cov_XYZ(1:3,1:3);
     cov_ENU = global2localCov(cov_XYZ, XR);
-    
+
     PDOP = sqrt(cov_XYZ(1,1) + cov_XYZ(2,2) + cov_XYZ(3,3));
     HDOP = sqrt(cov_ENU(1,1) + cov_ENU(2,2));
     VDOP = sqrt(cov_ENU(3,3));

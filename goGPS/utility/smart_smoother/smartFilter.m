@@ -1,3 +1,4 @@
+function data_out = smartFilter(data_in, min_arc)
 % SYNTAX:
 %   data_out = smartFilter(data_in, min_arc)
 %
@@ -20,8 +21,8 @@
 % 
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-%  Written by:       Gatti Andrea
-%  Contributors:     Gatti Andrea, ...
+%  Written by:       Andrea Gatti
+%  Contributors:     Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -41,8 +42,6 @@
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
-
-function data_out = smartFilter(data_in, min_arc)
 
 in_size = size(data_in);
 
