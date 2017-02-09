@@ -61,7 +61,8 @@ function [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, sigma02_hat, residua
 %
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
-%--------------------------------------------------------------------------global flag_outlier max_code_residual
+%--------------------------------------------------------------------------
+global flag_outlier max_code_residual
 
 v_light = goGNSS.V_LIGHT;
 sigma02_hat = NaN(1,3);
