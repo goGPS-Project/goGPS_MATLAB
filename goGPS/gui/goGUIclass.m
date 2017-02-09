@@ -603,7 +603,7 @@ classdef goGUIclass < handle
             if wdir == 0
                 wdir = './';
             end
-            wdir = check_path(wdir);
+            wdir = checkPath(wdir);
         end
         
         % Get settings directory
@@ -616,7 +616,7 @@ classdef goGUIclass < handle
             if sdir == 0
                 sdir = './';
             end
-            sdir = check_path(sdir);
+            sdir = checkPath(sdir);
         end
     end
     
@@ -2402,7 +2402,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             
             % Check INI file
             if obj.isEnabled(obj.idUI.sINI)
-                file_name = check_path(obj.getElVal(obj.idUI.sINI));
+                file_name = checkPath(obj.getElVal(obj.idUI.sINI));
                 
                 if isempty(file_name)
                     obj.setGUILedStatus(obj.idUI.fINI, obj.ledKo, 0);
@@ -2417,7 +2417,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                         if obj.isPostProc()
                             % If needed init INI reader
                             if isempty(goIni)
-                                goIni = goIniReader('', 0);                                
+                                goIni = Go_Ini_Manager(file_name);                                
                             end
                             if (~goIni.getReadStatus())
                                 goIni.readFile();
@@ -2426,7 +2426,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                             goIni.update(file_name, force);
                             % Receivers file --------------------------------------
                             nR = goIni.getData('Receivers','nRec');
-                            data_path = check_path(goIni.getData('Receivers','data_path'));
+                            data_path = checkPath(goIni.getData('Receivers','data_path'));
                             file_name = goIni.getData('Receivers','file_name');
                             
                             if (isempty(nR))
@@ -2480,7 +2480,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                             end
                             
                             % Master file -----------------------------------------
-                            data_path = check_path(goIni.getData('Master','data_path'));
+                            data_path = checkPath(goIni.getData('Master','data_path'));
                             file_name = goIni.getData('Master','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2497,7 +2497,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                             end
                             
                             % Navigation file -------------------------------------
-                            data_path = check_path(goIni.getData('Navigational','data_path'));
+                            data_path = checkPath(goIni.getData('Navigational','data_path'));
                             file_name = goIni.getData('Navigational','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2514,7 +2514,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                             end
                                                         
                             % DTM file -----------------------------------------------
-                            data_path = check_path(goIni.getData('DTM','data_path'));
+                            data_path = checkPath(goIni.getData('DTM','data_path'));
                             if (isempty(data_path))
                                 obj.setGUILedStatus(obj.idUI.fDTM, obj.ledKo, 0);
                             else
@@ -2527,7 +2527,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                             end
                             
                             % Reference path file ------------------------------------
-                            data_path = check_path(goIni.getData('RefPath','data_path'));
+                            data_path = checkPath(goIni.getData('RefPath','data_path'));
                             file_name = goIni.getData('RefPath','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2544,7 +2544,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                             end
                             
                             % PCO/PCV file ------------------------------------
-                            data_path = check_path(goIni.getData('PCO_PCV_file','data_path'));
+                            data_path = checkPath(goIni.getData('PCO_PCV_file','data_path'));
                             file_name = goIni.getData('PCO_PCV_file','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2561,7 +2561,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                             end
                             
                             % OCEAN LOADING file ------------------------------------
-                            data_path = check_path(goIni.getData('OCEAN_LOADING_file','data_path'));
+                            data_path = checkPath(goIni.getData('OCEAN_LOADING_file','data_path'));
                             file_name = goIni.getData('OCEAN_LOADING_file','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2578,7 +2578,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                             end
                             
                             % STATIONS file ------------------------------------
-                            data_path = check_path(goIni.getData('STATIONS_file','data_path'));
+                            data_path = checkPath(goIni.getData('STATIONS_file','data_path'));
                             file_name = goIni.getData('STATIONS_file','file_name');
                             if (isempty(data_path))
                                 data_path = '';
@@ -2607,7 +2607,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
           % Output dir --------------------------------------------------------
             
           outDir = obj.getElVal(obj.idUI.sDirGoOut);
-          outDir = check_path(outDir);
+          outDir = checkPath(outDir);
           if isempty(outDir)
               obj.setGUILedStatus(obj.idUI.fDirGoOut, obj.ledKo, 0);
           else
@@ -3330,7 +3330,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             % Function to return values to goGPS.m
             global goIni;
             if isempty(goIni)
-                goIni = goIniReader;
+                goIni = Go_Ini_Manager;
             end
             
             obj.saveConstellations();
@@ -3378,11 +3378,11 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             
             processing_rate = obj.valProcRate(obj.getElVal(obj.idUI.lProcRate));
             
-            filerootOUT = check_path([get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')]);
+            filerootOUT = checkPath([get(obj.goh.sDirGoOut,'String') '/' get(obj.goh.sPrefixGoOut,'String')]);
             if (obj.isPostProc) % I need these informations only in Post Processing
                 data_path = goIni.getData('Bin','data_path');
                 file_prefix = goIni.getData('Bin','file_prefix');
-                filerootIN = check_path([data_path file_prefix]);
+                filerootIN = checkPath([data_path file_prefix]);
                 i = 1;
                 j = length(filerootOUT);
                 while (~isempty(dir([filerootOUT '_????_rover.bin'])) || ...
@@ -3406,25 +3406,25 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                 end
                 data_path = goIni.getData('Receivers','data_path');
                 file_name = goIni.getData('Receivers','file_name');
-                file_name_R_obs = check_path([data_path file_name]);
+                file_name_R_obs = checkPath([data_path file_name]);
                 data_path = goIni.getData('Master','data_path');
                 file_name = goIni.getData('Master','file_name');
-                file_name_M_obs = check_path([data_path file_name]);
+                file_name_M_obs = checkPath([data_path file_name]);
                 data_path = goIni.getData('Navigational','data_path');
                 file_name = goIni.getData('Navigational','file_name');
-                file_name_nav = check_path([data_path file_name]);
+                file_name_nav = checkPath([data_path file_name]);
                 data_path = goIni.getData('RefPath','data_path');
                 file_name = goIni.getData('RefPath','file_name');
-                file_name_ref = check_path([data_path file_name]);
+                file_name_ref = checkPath([data_path file_name]);
                 data_path = goIni.getData('PCO_PCV_file','data_path');
                 file_name = goIni.getData('PCO_PCV_file','file_name');
-                file_name_pco = check_path([data_path file_name]);
+                file_name_pco = checkPath([data_path file_name]);
                 data_path = goIni.getData('OCEAN_LOADING_file','data_path');
                 file_name = goIni.getData('OCEAN_LOADING_file','file_name');
-                file_name_blq = check_path([data_path file_name]);
+                file_name_blq = checkPath([data_path file_name]);
                 data_path = goIni.getData('STATIONS_file','data_path');
                 file_name = goIni.getData('STATIONS_file','file_name');
-                file_name_sta = check_path([data_path file_name]);
+                file_name_sta = checkPath([data_path file_name]);
                 if(obj.isMultiReceiver)
                     [multi_antenna_rf, ~] = goIni.getGeometry();
                 else
@@ -3712,7 +3712,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             % Function to save in the goIni object the status of activation of the various GNSS
             global goIni
             if isempty(goIni)
-                goIni = goIniReader;
+                goIni = Go_Ini_Manager;
             end            
             goIni.addSection('Constellations');
             goIni.addKey('Constellations','GPS',obj.isActive(obj.idUI.cGPS));
@@ -3759,7 +3759,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             end
             if isempty(file_name)
                 file_name = [obj.getSettingsDir() obj.defaultINIFile];
-                file_name = check_path(file_name);
+                file_name = checkPath(file_name);
                 if ~exist(file_name, 'file')
                     file_name = '';
                 end
@@ -3798,7 +3798,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             obj.edtINI.jEdit.hINI = hContainerINI;
             
             % Load INI keywords
-            obj.edtINI.keywordsINI = goIniReader([obj.getSettingsDir() obj.defaultINIKeywordsFile], 0);
+            obj.edtINI.keywordsINI = Go_Ini_Manager([obj.getSettingsDir() obj.defaultINIKeywordsFile]);
             obj.edtINI.keywordsINI.readFile();
             % Sections
             sections = obj.edtINI.keywordsINI.getData('INI','sections');
@@ -3848,7 +3848,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose an INI configuration file',[obj.getSettingsDir()]);
             if (file_name ~= 0)
-                file_name = check_path([pathname file_name]);
+                file_name = checkPath([pathname file_name]);
 
                 obj.setGuiElStr(obj.edtINI.h.sINI, file_name);
                 obj.setGuiElStr(obj.edtINI.h.sINIout, file_name);
@@ -3878,7 +3878,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
         % Save INI
         function saveINI(obj)
             % Save INI
-            file_name = check_path(get(obj.edtINI.h.sINIout, 'String'));
+            file_name = checkPath(get(obj.edtINI.h.sINIout, 'String'));
             
             try
                 fid = fopen(file_name,'w');

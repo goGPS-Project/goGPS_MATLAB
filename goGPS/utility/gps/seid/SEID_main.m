@@ -169,7 +169,7 @@ for PRN = 1 : nSatTot
 end
 
 %write new RINEX file
-[in_path, SEID_filename, SEID_ext] = fileparts(check_path(filename_M_obs));
+[in_path, SEID_filename, SEID_ext] = fileparts(checkPath(filename_M_obs));
 outputfile_path = [in_path filesep SEID_filename '_SEID' SEID_ext];
 temporaryfile_path = [in_path filesep SEID_filename '_SEID_TEMP' SEID_ext];
 

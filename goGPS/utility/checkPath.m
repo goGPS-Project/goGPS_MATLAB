@@ -1,7 +1,7 @@
-function [universal_path, is_valid] = check_path(path)
+function [universal_path, is_valid] = checkPath(path)
 
 % SYNTAX:
-%   universal_path = check_path(path)
+%   universal_path = checkPath(path)
 %
 % INPUT:
 %   path

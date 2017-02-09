@@ -3730,7 +3730,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) %&& ~exist('is_batch','va
     if (isempty(pos))
         pos = find(filerootOUT == '\');
     end
-    kml_name = check_path(filerootOUT(pos(end)+1:end));
+    kml_name = checkPath(filerootOUT(pos(end)+1:end));
 
     %file saving (Google Earth KML)
     fid_kml = fopen([filerootOUT '.kml'], 'wt');
