@@ -16,27 +16,37 @@ function goGPS_rover_monitor_offline(fileIN, filerootOUT, protocol, flag_var_dyn
 %   and output data saving. Simultaneous monitor of different receivers,
 %   also including different protocols.
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.3
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___ 
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.0
+% 
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       
+%  Contributors:     Ivan Reguzzoni
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
 %
-% Portions of code contributed by Ivan Reguzzoni
-%----------------------------------------------------------------------------------------------
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
-%
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011 
+%--------------------------------------------------------------------------
+
 
 % global COMportR
 global rover
@@ -752,7 +762,7 @@ for r = 1 : nrec
     fclose(fid_obs{r});
     fclose(fid_eph{r});
     fclose(fid_nmea{r});
-    if (flag_var_dyn_model) | (flag_stopGOstop)
+    if (flag_var_dyn_model) || (flag_stopGOstop)
         fclose(fid_dyn{r});
     end
 end
@@ -783,9 +793,5 @@ switch selection,
         
         r = nrec;
         recname = [prot_par{r}{1,1} num2str(r)];
-        if (~isunix)
-            gui_decode_stream([filerootOUT '_' recname], constellations);
-        else
-            gui_decode_stream_unix([filerootOUT '_' recname], constellations);
-        end
+        gui_decode_stream([filerootOUT '_' recname], constellations);
 end

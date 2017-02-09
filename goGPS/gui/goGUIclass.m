@@ -1,24 +1,44 @@
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.3 beta
+%   CLASS goGUIclass
+% =========================================================================
 %
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
-%----------------------------------------------------------------------------------------------
+% DESCRIPTION
+%   Class for the management of the main goGPS GUI
 %
-%    Code contributed by Andrea Gatti
+% EXAMPLE
+%   gc = goGUIclass();
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
+% FOR A LIST OF CONSTANTs and METHODS use doc goGUIclass
+
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.0
 %
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Andrea Gatti
+%  Contributors:     Andrea Gatti, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-%    You should have received a copy of the GNU General Public License
-%    along with this program. If not, see <http://www.gnu.org/licenses/>.
-%---------------------------------------------------------------------------------------------
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
+%
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
+%
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011
+%--------------------------------------------------------------------------
 
 classdef goGUIclass < handle
 
@@ -28,8 +48,8 @@ classdef goGUIclass < handle
     
     properties (Constant)
         % Constellations id => naming inside the goObservation object
-        isWin = 0;
-        isUnix = 1;
+        isWin = 0;                          % Constant equivalent to "is Windows" status
+        isUnix = 1;                         % Constant equivalent to "is Unix" status
         %isLinux = 2;
         %isMac = 3;
         
@@ -72,8 +92,8 @@ classdef goGUIclass < handle
         curVal = {};        % contains the value of each element of the interface, if one of the element has no value the cell is empty
         newVal = {};        % contains the value of the element of the interface that require to be channged
         
-        initialized = 0;
-        echoChar = '*';
+        initialized = 0;    % Logical containing the status of initialization if the GUI
+        echoChar = '*';     % Character for masking the password
         
     %  INTERFACE STATUS - PATH
     % =========================================================================
@@ -174,9 +194,8 @@ classdef goGUIclass < handle
         % These are the displayed text for 
         % Rover/Master (LS, KF) or
         % Source/Target (SEID)
-        str_source_rover = {'Source (multi-freq) RINEX obs. file', 'RINEX rover observation file'};
-        str_target_master = {'Target (single-freq) RINEX obs. file', 'RINEX master observation file'};
-    
+        str_source_rover = {'Source (multi-freq) RINEX obs. file', 'RINEX rover observation file'}; % Strings for different status of the interface (Source / Target)
+        str_target_master = {'Target (single-freq) RINEX obs. file', 'RINEX master observation file'}; % Strings for different status of the interface (Rover / Master)    
     end
     
     properties (GetAccess = 'public', SetAccess = 'private')
@@ -237,15 +256,12 @@ classdef goGUIclass < handle
             % Init logo
             [logo, map, transparency] = imread('goGPS_logo_64.png');
             image(logo, 'AlphaData', transparency);
-            set(obj.goh.axLogo,'XColor','none');            
-            set(obj.goh.axLogo,'YColor','none');            
-            set(obj.goh.axLogo,'ZColor','none');            
-            set(obj.goh.axLogo,'Color','none');
+            axis off;
             
             % Init pup-up strings
             obj.initPopUps();
             
-            % Choose default command line output for gui_goGPS_unix
+            % Choose default command line output for gui_goGPS
             obj.goh.output = obj.goh.main_panel;
             
             set(obj.goh.main_panel,'CloseRequestFcn',@obj.closeGUI);            
@@ -422,6 +438,7 @@ classdef goGUIclass < handle
         
         % Dyn model changes wrt the mode
         function resetDynModel(obj)
+            % Dyn model changes wrt the mode
             if obj.isRealTime()
                 switch obj.getElVal(obj.idUI.lCaptMode)
                     case obj.idNav
@@ -445,6 +462,7 @@ classdef goGUIclass < handle
         
         % Fill the processing rate pop-up list
         function initProcRate(obj, str, defaultVal)
+            % Fill the processing rate pop-up list
             if nargin == 2
                 defaultVal = 1;
             end
@@ -454,6 +472,7 @@ classdef goGUIclass < handle
         
         % Fill the ionospheric model pop-up list
         function initIonoModel(obj, str, defaultVal)
+            % Fill the ionospheric model pop-up list
             if nargin == 2
                 defaultVal = 3;
             end
@@ -464,6 +483,7 @@ classdef goGUIclass < handle
         
         % Fill the tropospheric model pop-up list
         function initTropoModel(obj, str, defaultVal)
+            % Fill the tropospheric model pop-up list
             if nargin == 2
                 defaultVal = 2;
             end
@@ -474,6 +494,7 @@ classdef goGUIclass < handle
         
         % Fill the num ports pop-up list
         function initPorts(obj, str)
+            % Fill the num ports pop-up list
             if nargin < 2
                 str = obj.strPorts;
             end
@@ -523,8 +544,9 @@ classdef goGUIclass < handle
             set(obj.goh.com_select_3,'String', availablePorts);
         end
 
-        % get the active frequencies
+        % Get the active frequencies
         function active_freq = getFreq(obj)
+            % Get the active frequencies
             active_freq = [1 2 5 6] .* [obj.isActive(obj.idUI.cL1) ...
                                         obj.isActive(obj.idUI.cL2) ...
                                         obj.isActive(obj.idUI.cL5) ...
@@ -537,8 +559,9 @@ classdef goGUIclass < handle
             end
         end
         
-        % get observation combination
-        function obs_comb = getObsComb(obj)            
+        % Get observation combination
+        function obs_comb = getObsComb(obj)
+            % Get observation combination
             if (obj.isEnabled(obj.idUI.lObsComb))  % To be active an elment must be Enabled and its value = 'on'
                 obs_comb_val = obj.getElVal(obj.idUI.lObsComb);
             else
@@ -553,6 +576,7 @@ classdef goGUIclass < handle
         
         % Fill the available ports pop-ups
         function [select_0 select_1 select_2 select_3] = getPortValues(obj, s0, s1, s2, s3)
+            % Fill the available ports pop-ups
             contents = get(obj.goh.com_select_0,'String');
             select_0 = 1; select_1 = 1; select_2 = 1; select_3 = 1;
             for i = 1 : numel(contents)
@@ -571,6 +595,7 @@ classdef goGUIclass < handle
         
         % Get working directory
         function wdir = getWorkingDir(obj)
+            % Get working directory
             wdir = obj.workingDir;
             if isempty(wdir)
                 wdir = './';
@@ -583,6 +608,7 @@ classdef goGUIclass < handle
         
         % Get settings directory
         function sdir = getSettingsDir(obj)
+            % Get settings directory
             sdir = obj.intSettingsDir;
             if isempty(sdir)
                 sdir = './';
@@ -614,7 +640,7 @@ classdef goGUIclass < handle
         %      id2h(i) = obj.goh.<handle>;
         %
         function initUIids(obj)
-            
+            % Set an id value for the each User Interface element
             % Rough pre-allocation
             id2h = zeros(177,1);	% rough estimation of the handle array size
                                     % at the end of the function it will contain the exact size
@@ -1253,6 +1279,7 @@ classdef goGUIclass < handle
         %  - 'Value' field
         %  - 'String' field
         function [panel strEl valEl] = autoElClassification(obj,id2h)
+            % Create different groups for each type of element
             panel = [];
             strEl = [];
             valEl = [];
@@ -1302,6 +1329,7 @@ classdef goGUIclass < handle
         % the variable newStatus will decide the future status of the
         % interface (function also known as setGuiElStatus)
         function onoffUIEl(obj)
+            % Get enable / disable status of the element of the interface
             % Detect modified state (logical array)
             idModified = xor(obj.curState, obj.newState);
             idModified(obj.idUI.Fig) = false; % the figure doesn't change its status;
@@ -1338,6 +1366,7 @@ classdef goGUIclass < handle
 
         % Get content of the element of the interface 
         function getAllElContent(obj)
+            % Get content of the element of the interface 
             obj.getFlag(obj.idUI.Fig) = false; % the figure doesn't change its status;
             if sum(obj.getFlag > 0)                
                 idEl = 1:length(obj.id2handle);              % All the elements
@@ -1391,6 +1420,7 @@ classdef goGUIclass < handle
 
         % Set content of the element of the interface
         function setAllElContent(obj)
+            % Set content of the element of the interface
             obj.setFlag(1) = false; % the figure doesn't change its status;
             
             if (sum(obj.setFlag) > 0)
@@ -1449,9 +1479,10 @@ classdef goGUIclass < handle
     % -------------------------------------------------------------------------
     % functions to be used to modify the GUI properties
     methods (Access = 'public');
-        % Get the status of the interface and prepare the Obj for the
-        % management of the GUI
+        
+        % Get the status of the interface and prepare the Obj for the management of the GUI
         function initInterface(obj)
+            % Get the status of the interface and prepare the Obj for the management of the GUI
             obj.goWB.goMsg('Loading GUI manager object...');
 
             % Set value for elements ids
@@ -1512,6 +1543,7 @@ classdef goGUIclass < handle
 
         % Add an undocumented password box
         function initPasswordField(obj, pwd)
+            % Add an undocumented password box
             % Undocumented password box for a better management of a password field
             % Create the widget containing the text
             jPwdINI = javax.swing.JPasswordField;
@@ -1541,13 +1573,16 @@ classdef goGUIclass < handle
         % Show all the new values stored in the internal state on the GUI
         % Get new values from the GUI
         function updateGUI(obj)
+            % Set new enable / disable status
             obj.onoffUIEl();
             obj.getAllElContent();
             obj.checkUIdependencies();
             obj.setAllElContent();
         end
         
+        % Init pop ups
         function initPopUp(obj)
+            % Init pop ups
             obj.initCaptureMode();
             obj.initAlgorithmType();
             obj.initProcessingType();
@@ -1563,6 +1598,7 @@ classdef goGUIclass < handle
         %                   called after to show immediatly the modification 
         %                   in the GUI
         function setElVal(obj, idEl, value, autoapply)
+            % Set the value of an element
             if nargin == 3
                 autoapply = true;
             end
@@ -1575,6 +1611,7 @@ classdef goGUIclass < handle
         
         % Get the value of an element (from the internal copy of the object)
         function value = getElVal(obj, idEl)
+            % Get the value of an element (from the internal copy of the object)
             value = obj.newVal{idEl};
             if isempty(value)
                 value = obj.getGuiElVal(obj.id2handle(idEl));
@@ -1590,6 +1627,7 @@ classdef goGUIclass < handle
         %                   called after to show immediatly the modification 
         %                   in the GUI
         function setElStatus(obj, idEl, status, autoapply)
+            % Set the value of an element
             if nargin == 3
                 autoapply = true;
             end
@@ -1608,12 +1646,13 @@ classdef goGUIclass < handle
         
         % Return the status of abilitation of the element with id = idEl
         function isOn = isEnabled(obj, idEl)
+            % Return the status of abilitation of the element with id = idEl
             isOn = obj.newState(idEl);
         end
         
-        % Return 1 if the color of the element with id = idEl is the same
-        % of color (This works only for LEDs)
+        % Return 1 if the color of the element with id = idEl is the same of color (This works only for LEDs)
         function isCol = isColor(obj, idEl, color)
+            % Return 1 if the color of the element with id = idEl is the same of color (This works only for LEDs)
             tmp = obj.getElVal(idEl);
             if length(tmp) == 3
                 isCol = sum(obj.getElVal(idEl) == color) == 3;
@@ -1624,6 +1663,7 @@ classdef goGUIclass < handle
         
         % Return the status of activation of the element with id = idEl
         function isOn = isActive(obj, idEl)
+            % Return the status of activation of the element with id = idEl
             if ischar(obj.getElVal(idEl))
                 if strcmp(obj.getElVal(idEl),'on')
                     isOn = true;
@@ -1637,6 +1677,7 @@ classdef goGUIclass < handle
         end
         
         function isOk  = okGo(obj, idEl)
+            % Test element readyness
             isOk = ~obj.isEnabled(idEl);
             if ~isOk
                 isOk = obj.isColor(idEl, obj.green) || obj.isColor(idEl, obj.blue);
@@ -1645,17 +1686,19 @@ classdef goGUIclass < handle
                        
         % Disable all the UI elementss but the mode and exit buttons
         function disableAll(obj)
+            % Disable all the UI elementss but the mode and exit buttons
             obj.setElStatus(obj.idGroup.Fig, 0, 0);
             obj.setElStatus(obj.idGroup.ResetStatus, 1, 1);
         end
         
         % TMP: Testing function on the enabler function (onoffEl)
         function testOnOff(obj)
-            obj.initialState = obj.curState;            
-
+            % TMP: Testing function on the enabler function (onoffEl)
+            obj.initialState = obj.curState;
+            
             obj.getFlag = true(size(obj.curState));
             obj.getAllElContent();
-
+            
             obj.newState = true(size(obj.curState));
             obj.onoffUIEl(); drawnow;
             for i=1:8
@@ -1695,6 +1738,7 @@ classdef goGUIclass < handle
         
         % Contains OS specific modifiers for the interface, e.g. fontSize, fontName
         function setOSappearence(obj)
+            % Contains OS specific modifiers for the interface, e.g. fontSize, fontName
             % Increase font for Mac (retina)
             if ismac
                 scale_factor = 1.4;
@@ -1709,7 +1753,8 @@ classdef goGUIclass < handle
         
         % TMP: Testing function on the enabler function (onoffEl)
         function testFontSize(obj, scale_factor)
-            font_size = get(obj.id2handle(2:end),'FontSize');            
+            % TMP: Testing function on the enabler function (onoffEl)
+            font_size = get(obj.id2handle(2:end),'FontSize');
             for i = 3 : length(obj.id2handle)
                 set(obj.id2handle(i),'FontSize', font_size{i-1} * scale_factor);
             end
@@ -1722,14 +1767,15 @@ classdef goGUIclass < handle
     methods
         %   GETTERS
         % =================================================================
-
+        
         function isI = isInitialized(obj)
+            % Return the status of initialization
             isI = obj.initialized;
         end
             
-        % Get the mode as integer value (note that this mode is the global
-        % identifier of the goGPS algorithm to be used
-        function mode = getgoGPSMode(obj)            
+        % Get the mode as integer value (note that this mode is the global identifier of the goGPS algorithm to be used
+        function mode = getgoGPSMode(obj)
+            % Get the mode as integer value (note that this mode is the global identifier of the goGPS algorithm to be used
             if obj.isRealTime()
                 switch obj.getElVal(obj.idUI.lCaptMode)
                     case obj.idNav
@@ -1789,74 +1835,89 @@ classdef goGUIclass < handle
         
         % Get processing mode
         function isRT = isRealTime(obj)
-            isOn = obj.isEnabled(obj.idUI.lProcMode);
+                    % Get processing mode
+isOn = obj.isEnabled(obj.idUI.lProcMode);
             isRT = isOn && (obj.getElVal(obj.idUI.lProcMode) == obj.idRealTime);
         end
         
         % Get monitor status
         function isMon = isMonitor(obj)
-            isOn = obj.isEnabled(obj.idUI.lCaptMode);
+                    % Get monitor status
+isOn = obj.isEnabled(obj.idUI.lCaptMode);
             isMon = isOn && ~obj.isCaptureMode(obj.idNav);
         end
         
-        function isPP = isPostProc(obj)
-            isOn = obj.isEnabled(obj.idUI.lProcMode);
+                % Get Post Processing status
+function isPP = isPostProc(obj)
+                            % Get Post Processing status
+isOn = obj.isEnabled(obj.idUI.lProcMode);
             isPP = isOn && (obj.getElVal(obj.idUI.lProcMode) == obj.idPostProc);
         end
                 
         % Get capture mode
         function isCM = isCaptureMode(obj, idCaptureMode)
+            % Get capture mode
             isOn = obj.isEnabled(obj.idUI.lCaptMode);
             isCM = isOn && obj.isRealTime() && (obj.getElVal(obj.idUI.lCaptMode) == idCaptureMode);
         end
         
-        % Get algorithm type
+        % Get algorithm type:
         function isLeastSquares = isLS(obj)
+            % return true if Least Squares
             isOn = obj.isEnabled(obj.idUI.lAlgType);
             isLeastSquares = isOn  && obj.isPostProc() && (obj.getElVal(obj.idUI.lAlgType) == obj.idLS);
-        end        
+        end
         function isKalman = isKF(obj)
+            % return true if Kalman
             isOn = obj.isEnabled(obj.idUI.lAlgType);
             isKalman = isOn && obj.isPostProc() && (obj.getElVal(obj.idUI.lAlgType) == obj.idKF);
         end
         function isSEID_L2 = isSEID(obj)
+            % return true if SEID
             isOn = obj.isEnabled(obj.idUI.lAlgType);
             isSEID_L2 = isOn && obj.isPostProc() && (obj.getElVal(obj.idUI.lAlgType) == obj.idSEID);
         end
-
+        
         % Get processing type
         function isPT = isProcessingType(obj, idProcessingType)
+        % Get processing type
             isOn = obj.isEnabled(obj.idUI.lProcType);
             isPT = isOn && obj.isPostProc() && (obj.getElVal(obj.idUI.lProcType) == idProcessingType);
         end
         
         function isSA = isStandAlone(obj)
+            % return true if Stand Alone
             isSA = obj.isProcessingType(obj.idC_SA) || (obj.isLS() && obj.isProcessingType(obj.idCP_Vel)) || obj.isPPP();
         end
         
         function isMR = isMultiReceiver(obj)
+            % return true if Multi Receiver
             isMR = obj.isProcessingType(obj.idC_SA_MR) || obj.isProcessingType(obj.idCP_DD_MR);
         end
         
         function isS_RO = isSEID_RO(obj)
+            % return true if SEID
             isOn = obj.isEnabled(obj.idUI.lProcType);
             isS_RO = isOn && obj.isSEID() && obj.isProcessingType(obj.idSEID_RO);
         end
 
         function isS_PPP = isSEID_PPP(obj)
+            % return true if SEID + PPP
             isOn = obj.isEnabled(obj.idUI.lProcType);
             isS_PPP = isOn && obj.isSEID() && obj.isProcessingType(obj.idSEID_PPP);
         end
         
         function is_KF_CP_SA = isPPP(obj)
+            % return true if PPP
             is_KF_CP_SA = (obj.isKF() && obj.isProcessingType(obj.idCP_SA)) || obj.isSEID_PPP();
         end
 
         %   INTERFACE GETTERS - INPUT FILE TYPE
         % =================================================================
-       
+        
         % Set a new password
         function pwd = getPassword(obj)
+            % Set a new password
             if isfield(obj.goh,'jPassword')
                 pwd = obj.goh.jPassword.jpwd.getPassword();
             else
@@ -1866,22 +1927,26 @@ classdef goGUIclass < handle
         
         % Get LAMBDA version
         function isLambda2 = isLambda2(obj)
+            % return true if LAMBDA version = 2
             isOn = obj.isEnabled(obj.idUI.lLAMBDAMethod);
             isLambda2 = isOn && (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_enum_old);
         end
         function isLambda3Par = isLambda3Par(obj)
+            % return true if LAMBDA version = 3
             isOn = obj.isEnabled(obj.idUI.lLAMBDAMethod);
             isLambda3Par = isOn && (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idPAR);
         end
         function isLambdaIls = isLambdaIls(obj)
+            % return true if LAMBDA Ils
             isOn = obj.isEnabled(obj.idUI.lLAMBDAMethod);
             isLambdaIls = isOn && ((obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_enum_old) || ...
-                                   (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_shrink)   || ...
-                                   (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_enum));
+                (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_shrink)   || ...
+                (obj.getElVal(obj.idUI.lLAMBDAMethod) == obj.idILS_enum));
         end
         
         % Get dynamic model
         function isStatic = isDynModelStatic(obj)
+            % Get dynamic model
             isOn = obj.isEnabled(obj.idUI.lDynModel);
             isStatic = isOn && (obj.getElVal(obj.idUI.lDynModel) == obj.idStatic);
         end
@@ -1890,13 +1955,14 @@ classdef goGUIclass < handle
     %   GUI SETTERS
     % -------------------------------------------------------------------------
     % Functions that set specific statuses
-    methods             
+    methods
         % Set a new password
         function setPassword(obj, password)
+            % Set a new password
             
             if isfield(obj.goh,'jPassword')
                 try
-                eval(sprintf('obj.goh.jPassword.jpwd.setText(''%s'')',password));
+                    eval(sprintf('obj.goh.jPassword.jpwd.setText(''%s'')',password));
                 catch
                 end
             elseif (obj.isInitialized())
@@ -1906,6 +1972,7 @@ classdef goGUIclass < handle
                 
         % Modify the password
         function modifyPassword(obj, newkey, newchar)
+        % Modify the password (disabled)
 %             password = obj.getPassword();
 %             switch newkey
 %                 case 'backspace'
@@ -1925,6 +1992,7 @@ classdef goGUIclass < handle
         
         % Show the password in the password field
         function showPassword(obj)
+            % Show the password in the password field
             if isfield(obj.goh,'jPassword')
                 if obj.isActive(obj.idUI.bUPass)
                     obj.goh.jPassword.jpwd.setEchoChar(char(0));
@@ -1944,6 +2012,7 @@ classdef goGUIclass < handle
         % Test every logical dependence in the GUI
         % E.g. a flag that activate other fields
         function checkUIdependencies(obj)
+            % Test every logical dependence in the GUI
                         
           %   INPUT FILE TYPE
           % --------------------------------------------------------------- 
@@ -2149,6 +2218,7 @@ classdef goGUIclass < handle
         
         % Force INI update
         function forceINIupdate(obj)
+            % Force INI update
             obj.updateLEDstate(true);
             goOk = obj.test4Go();
             obj.setElStatus([obj.idUI.bSave obj.idUI.bGo] , goOk, 1);
@@ -2157,8 +2227,8 @@ classdef goGUIclass < handle
         % EVENT MANAGER
         % When an element is modified (and launch a callback function in
         % the GUI) this function must be called!
-        % Sync the internal copy of the interface with the GUI
         function syncFromGUI(obj, idEl)
+            % Sync the internal copy of the interface with the GUI
             if (nargin == 1)
                 idEl = obj.idUI.lProcMode;
             end
@@ -2322,13 +2392,13 @@ classdef goGUIclass < handle
     % -------------------------------------------------------------------------
     % Functions that manage events - auxiliar functions
     methods
-        % Test if the active file/dir paths
-        % contain valid file/dir
+        % Test if the active file/dir paths contain valid file/dir
         function updateLEDstate(obj, force)
+            % Test if the active file/dir paths contain valid file/dir
             global goIni
             if nargin == 1
                 force = 0;      % force file update
-            end            
+            end
             
             % Check INI file
             if obj.isEnabled(obj.idUI.sINI)
@@ -2550,9 +2620,9 @@ classdef goGUIclass < handle
             
         end        
         
-        % Test if all the folder / files are ok
-        % and it is possible to activate go and save buttons
+        % Test if all the folder / files are ok and it is possible to activate go and save buttons
         function goOk = test4Go(obj)
+            % Test if all the folder / files are ok and it is possible to activate go and save buttons
             goOk = 0;
             % Performs all the led check before allowing the launch... ehm
             % activation of the Go! button
@@ -2583,6 +2653,7 @@ classdef goGUIclass < handle
         
         % Browse INI file
         function browseINIFile(obj)
+            % Browse INI file
             % In multi receiver mode, I read from ini file
             [file_name, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
@@ -2596,6 +2667,7 @@ classdef goGUIclass < handle
         
         % Browse for rover file
         function browseRoverObsFile(obj)
+            % Browse for rover file
             if obj.isPostProc() && (obj.getElVal(obj.idUI.lProcType) == obj.idCP_DD_MR)
                 % In multi receiver mode, I read from ini file
                 [file_name, pathname] = uigetfile( ...
@@ -2618,6 +2690,7 @@ classdef goGUIclass < handle
         
         % Browse for a master file
         function browseMasterObsFile(obj)
+            % Browse for a master file
             [file_name, pathname] = uigetfile( ...
                 {'*.obs;*.??o','RINEX observation files (*.obs,*.??o)';
                 '*.obs','Observation files (*.obs)'; ...
@@ -2633,6 +2706,7 @@ classdef goGUIclass < handle
         
         % Browse for a navigation file
         function browseNavigationFile(obj)
+            % Browse for a navigation file
             [file_name, pathname] = uigetfile( ...
                 {'*.nav;*.??n;*.??N','RINEX navigation files (*.nav,*.??n,*.??N)';
                 '*.nav','Navigation files (*.nav)'; ...
@@ -2648,6 +2722,7 @@ classdef goGUIclass < handle
         
         % Browse output foder fo binary data
         function browseOutDir(obj)
+            % Browse output foder fo binary data
             dname = uigetdir(obj.getWorkingDir(),'Choose a directory to store goGPS data');
             if (dname ~= 0)
                 obj.setElVal(obj.idUI.sDirGoOut, dname);
@@ -2657,6 +2732,7 @@ classdef goGUIclass < handle
         
         % Browse for a DTM folder
         function browseDtmDir(obj)
+            % Browse for a DTM folder
             dname = uigetdir([obj.getWorkingDir() 'dtm'],'Choose a directory containing DTM data');
             if (dname ~= 0)
                 obj.setElVal(obj.idUI.sDTM, dname);
@@ -2666,6 +2742,7 @@ classdef goGUIclass < handle
         
         % Browse for the path containing reference points for constrained solutions
         function browseRefFile(obj)
+            % Browse for the path containing reference points for constrained solutions
             [file_name, pathname] = uigetfile('*.mat', 'Choose file containing reference path','../data');
             
             if (file_name ~= 0)
@@ -2678,6 +2755,7 @@ classdef goGUIclass < handle
         % Set green / red status of the UI and optionally lock the UI
         % -------------------------------------------------------------------------
         function setGUILedStatus(obj, idEl, status, autoapply)
+            % Set green / red status of the UI and optionally lock the UI
             if nargin == 3
                 autoapply = true;
             end
@@ -2710,6 +2788,7 @@ classdef goGUIclass < handle
     % Functions to load save settings from file        
     methods
         function loadState(obj)
+            % Load state settings
             [file_name, pathname] = uigetfile('*.mat', 'Choose file with saved settings',obj.settingsDir);
             
             if pathname == 0 %if the user pressed cancelled, then we exit this callback
@@ -2723,6 +2802,7 @@ classdef goGUIclass < handle
         end
         
         function saveState(obj)
+            % Save state settings
             [file_name,pathname] = uiputfile('*.mat','Save your GUI settings',obj.settingsDir);
             
             if pathname == 0 %if the user pressed cancelled, then we exit this callback
@@ -2737,6 +2817,7 @@ classdef goGUIclass < handle
         
         % Load the state of the gui from a matlab file.
         function importStateMatlab(obj,file_name)
+            % Load the state of the gui from a matlab file.
             load(file_name); % the file contains the variable state
             obj.status = state;
             
@@ -2942,9 +3023,10 @@ classdef goGUIclass < handle
             obj.syncFromGUI(obj.idUI.lProcMode);
         end
         
-        % Save the stati of the gui to a matlab file
+        % Save the status of the gui to a matlab file
         function exportStateMatlab(obj,file_name)
-             
+            % Save the status of the gui to a matlab file
+            
             %   MODE
             % ===============================================================
             state.mode              = obj.getElVal(obj.idUI.lProcMode);
@@ -3102,6 +3184,7 @@ classdef goGUIclass < handle
     methods
         % Function to return values to goGPS.m
         function go(obj)
+            % Function to return values to goGPS.m
             global goObj goIni
             obj.saveConstellations();
 
@@ -3244,6 +3327,7 @@ classdef goGUIclass < handle
         
         % Function to return values to goGPS.m
         function funout = outputFun(obj)
+            % Function to return values to goGPS.m
             global goIni;
             if isempty(goIni)
                 goIni = goIniReader;
@@ -3623,9 +3707,9 @@ classdef goGUIclass < handle
             end
         end
         
-        % Function to save in the goIni object the status of activation of
-        % the various GNSS
+        % Function to save in the goIni object the status of activation of the various GNSS
         function saveConstellations(obj)
+            % Function to save in the goIni object the status of activation of the various GNSS
             global goIni
             if isempty(goIni)
                 goIni = goIniReader;
@@ -3647,22 +3731,20 @@ classdef goGUIclass < handle
     methods
         % Function to load the Edit INI window
         function openEditINI(obj)
+            % Function to load the Edit INI window
             if (isfield(obj.edtINI,'h'))
                 if ishandle(obj.edtINI.h.wEditINI)
                     close(obj.edtINI.h.wEditINI);
                 end
                 delete obj.edtINI.h
             end
-            if (obj.interfaceOS == obj.isUnix)
-                guiEditINI_unix();
-            else
-                guiEditINI();
-            end
+            guiEditINI();
         end
         
         % Function to init the INI editor
         % creates, objects, load default values, etc...
         function initEditINI(obj, h)
+            % Function to init the INI editor
             global goIni
             
             % Save handler to the INI editor
@@ -3688,7 +3770,7 @@ classdef goGUIclass < handle
             obj.setGuiElStr(h.sINIout, file_name);
 
             if ~isempty(file_name)
-                if exist(file_name, 'file');
+                if exist(file_name, 'file')
                     fid = fopen(file_name,'r');
                     text = fread(fid, '*char');
                     text = text';
@@ -3759,6 +3841,7 @@ classdef goGUIclass < handle
         
         % Browse INI file => select a file to be edited
         function browseINIEditInFile(obj)
+            % Browse INI file => select a file to be edited
             % In multi receiver mode, I read from ini file
             [file_name, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
@@ -3794,6 +3877,7 @@ classdef goGUIclass < handle
      
         % Save INI
         function saveINI(obj)
+            % Save INI
             file_name = check_path(get(obj.edtINI.h.sINIout, 'String'));
             
             try
@@ -3816,6 +3900,7 @@ classdef goGUIclass < handle
         
         % Update the fields according to the selected section
         function updateFieldsINI(obj)
+            % Update the fields according to the selected section
             curSection = get(obj.edtINI.h.lSections, 'String');
             valSection = get(obj.edtINI.h.lSections, 'Value');
             if length(curSection) > 1
@@ -3861,6 +3946,7 @@ classdef goGUIclass < handle
         
         % Browse for RINEX file
         function browse4Rin(obj)
+            % Browse for RINEX file
             % In multi receiver mode, I read from ini file
             [file_name, pathname] = uigetfile( ...
                     {'*.obs;*.??o;*.??O','RINEX observation files (*.obs,*.??o,*.??O)';
@@ -3889,6 +3975,7 @@ classdef goGUIclass < handle
         
         % Browse for a navigation file
         function browse4Nav(obj)
+            % Browse for a navigation file
             [file_name, pathname] = uigetfile( ...
                 {'*.nav;*.??n;*.??N','RINEX navigation files (*.nav,*.??n,*.??N)';
                 '*.nav','Navigation files (*.nav)'; ...
@@ -3906,6 +3993,7 @@ classdef goGUIclass < handle
                 
         % Browse output foder
         function browse4Dir(obj)
+            % Browse output foder
             dname = uigetdir(obj.getWorkingDir(),'Choose a directory');
             if (dname ~= 0)
                 obj.workingDir = [dname '../'];
@@ -3917,6 +4005,7 @@ classdef goGUIclass < handle
         
         % Browse for the path containing reference points for constrained solutions
         function browse4Ref(obj)
+            % Browse for the path containing reference points for constrained solutions
             [file_name, pathname] = uigetfile('*.mat', 'Choose file containing reference path',obj.getWorkingDir());
             
             if (file_name ~= 0)
@@ -3930,6 +4019,7 @@ classdef goGUIclass < handle
         
         % Browse for a Generic File
         function browse4Gen(obj)
+            % Browse for a Generic File
             [file_name, pathname] = uigetfile( ...
                 {'*.*',  'All Files (*.*)'}, ...
                 'Choose a file',obj.getWorkingDir());
@@ -3939,8 +4029,7 @@ classdef goGUIclass < handle
                 obj.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
-        end
-        
+        end        
     end  
     
     %   GUI STATIC MODIFIERS
@@ -3950,6 +4039,7 @@ classdef goGUIclass < handle
         
         % Enable/Disable a generic element of the interface
         function onoffGuiEl(hObject, state)
+            % Enable/Disable a generic element of the interface
             if nargin < 2
                 state = 'on';
             end
@@ -3958,6 +4048,7 @@ classdef goGUIclass < handle
 
         % Enable/Disable a panel element of the interface
         function onoffGuiPanel(hObject, state)
+            % Enable/Disable a panel element of the interface
             if nargin < 2
                 state = 'on';
             end
@@ -3970,56 +4061,67 @@ classdef goGUIclass < handle
      
         % Get enabled status of a generic element
         function state = isGuiElOn(hObject)
+            % Get enabled status of a generic element
             state = strcmp(get(hObject, 'Enable'),'on');
         end
         
         % Get enabled status of a panel element
         function state = isGuiPanelOn(hObject)
+            % Get enabled status of a panel element
             state = isequal(get(hObject, 'ForegroundColor'), goGUIclass.enableCol);
         end
         
         % Get a value from an element of the interface
         function val = getGuiElVal(hObject)
+            % Get a value from an element of the interface
             val = get(hObject, 'Value');
         end
         
         % Get a value from an element of the interface
         function val = getGuiElColor(hObject)
+            % Get a value from an element of the interface
             val = get(hObject, 'ForegroundColor');
         end
         
         % Get a string from an element of the interface
         function str = getGuiElStr(hObject)
+            % Get a string from an element of the interface
             str = get(hObject, 'String');
         end
 
         % Get a title from an element of the interface
         function str = getGuiElTitle(hObject)
+            % Get a title from an element of the interface
             str = get(hObject, 'Title');
         end
 
         % Set a value of an element of the interface
         function setGuiElVal(hObject, value)
+            % Set a value of an element of the interface
             set(hObject, 'Value', value);
         end
 
         % Set a value of an element of the interface
         function setGuiElColor(hObject, color)
+            % Set a value of an element of the interface
             set(hObject, 'ForegroundColor', color);
         end
         
         % Set a string of an element of the interface
         function setGuiElStr(hObject, str)
+            % Set a string of an element of the interface
             set(hObject, 'String', str);
         end
         
         % Get a title from an element of the interface
         function setGuiElTitle(hObject, str)
+            % Get a title from an element of the interface
             set(hObject, 'Title', str);
         end
         
         % Close box
         function closeGUI(src,evnt)
+            % Close box
             global goGUI % I cannot pass the object directly
             selection = questdlg('Do you want to quit goGPS?',...
                 '',...

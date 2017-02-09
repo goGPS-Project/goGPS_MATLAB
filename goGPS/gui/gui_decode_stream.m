@@ -1,5 +1,5 @@
-function varargout = gui_decode_stream_unix(varargin)
-% GUI_DECODE_STREAM M-file for gui_decode_stream_unix.fig
+function varargout = gui_decode_stream(varargin)
+% GUI_DECODE_STREAM M-file for gui_decode_stream.fig
 %      GUI_DECODE_STREAM, by itself, creates a new GUI_DECODE_STREAM or raises the existing
 %      singleton*.
 %
@@ -11,47 +11,56 @@ function varargout = gui_decode_stream_unix(varargin)
 %
 %      GUI_DECODE_STREAM('Property','Value',...) creates a new GUI_DECODE_STREAM or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before gui_decode_stream_unix_OpeningFcn gets called.  An
+%      applied to the GUI before gui_decode_stream_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to gui_decode_stream_unix_OpeningFcn via varargin.
+%      stop.  All inputs are passed to gui_decode_stream_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help gui_decode_stream_unix
+% Edit the above text to modify the response to help gui_decode_stream
 
 % Last Modified by GUIDE v2.5 22-Aug-2013 17:15:47
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.4.3
+%--- * --. --- --. .--. ... * ---------------------------------------------
+%               ___ ___ ___ 
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.5.0
+% 
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       
+%  Contributors:     ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
-% Copyright (C) 2009-2014 Mirko Reguzzoni, Eugenio Realini
+%   This program is free software: you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation, either version 3 of the License, or
+%   (at your option) any later version.
 %
-% Portions of code contributed by Ivan Reguzzoni
-%----------------------------------------------------------------------------------------------
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
 %
-%    This program is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
+%   You should have received a copy of the GNU General Public License
+%   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
-%    This program is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
-%
-%    You should have received a copy of the GNU General Public License
-%    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011 
+%--------------------------------------------------------------------------
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name', mfilename, ...
     'gui_Singleton',  gui_Singleton, ...
-    'gui_OpeningFcn', @gui_decode_stream_unix_OpeningFcn, ...
-    'gui_OutputFcn',  @gui_decode_stream_unix_OutputFcn, ...
+    'gui_OpeningFcn', @gui_decode_stream_OpeningFcn, ...
+    'gui_OutputFcn',  @gui_decode_stream_OutputFcn, ...
     'gui_LayoutFcn',  [] , ...
     'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -66,15 +75,15 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before gui_decode_stream_unix is made visible.
-function gui_decode_stream_unix_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
+% --- Executes just before gui_decode_stream is made visible.
+function gui_decode_stream_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL>
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to gui_decode_stream_unix (see VARARGIN)
+% varargin   command line arguments to gui_decode_stream (see VARARGIN)
 
-% Choose default command line output for gui_decode_stream_unix
+% Choose default command line output for gui_decode_stream
 handles.output = hObject;
 
 % Update handles structure
@@ -123,7 +132,7 @@ if (~isempty(varargin))
 end
 
 % --- Outputs from this function are returned to the command line.
-function varargout = gui_decode_stream_unix_OutputFcn(hObject, eventdata, handles)  %#ok<*STOUT,*INUSD>
+function varargout = gui_decode_stream_OutputFcn(hObject, eventdata, handles)  %#ok<*STOUT,*INUSD>
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
