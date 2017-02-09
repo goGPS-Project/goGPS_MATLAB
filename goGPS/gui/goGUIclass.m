@@ -256,10 +256,7 @@ classdef goGUIclass < handle
             % Init logo
             [logo, map, transparency] = imread('goGPS_logo_64.png');
             image(logo, 'AlphaData', transparency);
-            set(obj.goh.axLogo,'XColor','none');            
-            set(obj.goh.axLogo,'YColor','none');            
-            set(obj.goh.axLogo,'ZColor','none');            
-            set(obj.goh.axLogo,'Color','none');
+            axis off;
             
             % Init pup-up strings
             obj.initPopUps();
