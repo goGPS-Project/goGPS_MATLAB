@@ -81,7 +81,7 @@ end
 %-------------------------------------------------------------------------------
 
 global goIni;
-goIni = goIniReader;
+goIni = Go_Ini_Manager;
 goIni.setFileName(iniFile);
 
 %extract user-defined settings from INI file

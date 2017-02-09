@@ -2417,7 +2417,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
                         if obj.isPostProc()
                             % If needed init INI reader
                             if isempty(goIni)
-                                goIni = goIniReader('', 0);                                
+                                goIni = Go_Ini_Manager(file_name);                                
                             end
                             if (~goIni.getReadStatus())
                                 goIni.readFile();
@@ -3330,7 +3330,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             % Function to return values to goGPS.m
             global goIni;
             if isempty(goIni)
-                goIni = goIniReader;
+                goIni = Go_Ini_Manager;
             end
             
             obj.saveConstellations();
@@ -3712,7 +3712,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             % Function to save in the goIni object the status of activation of the various GNSS
             global goIni
             if isempty(goIni)
-                goIni = goIniReader;
+                goIni = Go_Ini_Manager;
             end            
             goIni.addSection('Constellations');
             goIni.addKey('Constellations','GPS',obj.isActive(obj.idUI.cGPS));
@@ -3798,7 +3798,7 @@ isOn = obj.isEnabled(obj.idUI.lProcMode);
             obj.edtINI.jEdit.hINI = hContainerINI;
             
             % Load INI keywords
-            obj.edtINI.keywordsINI = goIniReader([obj.getSettingsDir() obj.defaultINIKeywordsFile], 0);
+            obj.edtINI.keywordsINI = Go_Ini_Manager([obj.getSettingsDir() obj.defaultINIKeywordsFile]);
             obj.edtINI.keywordsINI.readFile();
             % Sections
             sections = obj.edtINI.keywordsINI.getData('INI','sections');

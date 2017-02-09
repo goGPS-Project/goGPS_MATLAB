@@ -1,17 +1,19 @@
 % =========================================================================
-%   OBJECT goIniReader => for goGPS 
-%   father: IniReader
+%   thisECT Go_Ini_Manager => for goGPS 
+%   father: Ini_Manager
 % =========================================================================
 %
 % DESCRIPTION:
-%   Object to read an ini file
+%   thisect to create / read / modify an ini file
+%
+% EXTENDS: Ini_Reader
 %
 % INI EXAMPLE:
 %   [Section 1]
 %       array = [1 2 3]
 %       string = "I'm a string"
 %       stringCellArray = ["I" "am" "a string cell" "array"]
-%   ; I'm a commen
+%   ; I'm a comment
 %   # I'm also a comment
 %   [Section 2]
 %       number = 10
@@ -19,6 +21,7 @@
 %       double = 10.4
 %
 % REQUIRES:
+%   logger:     Logger Class
 %   cprintf:    http://www.mathworks.com/matlabcentral/fileexchange/24093-cprintf-display-formatted-colored-text-in-the-command-window
 %
 
@@ -53,7 +56,7 @@
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-classdef goIniReader < IniReader
+classdef Go_Ini_Manager < Ini_Manager
     
     properties (GetAccess = 'private', SetAccess = 'private')
         cutoff = 10;
@@ -62,53 +65,50 @@ classdef goIniReader < IniReader
     end
     
     methods
-        function obj = goIniReader(fileName, verbosity)
-            % INI creator hinerited by iniReader
-            if (nargin < 1)
-                fileName = '';
+        function this = Go_Ini_Manager(file_name, raw_data)
+            args = {};
+            if nargin >= 1
+                args{1} = file_name;
             end
-            if isempty(fileName)
-                fileName = '';
+            if nargin >= 2
+                args{2} = raw_data;
             end
-            obj.setFileName(fileName);
-            if (nargin == 2)
-                obj.setVerbosityLev(verbosity);
-            end
+            this = this@Ini_Manager(args{:});
         end
     end
     
     methods (Access = 'public')
 
         
-        function nR = getNumRec(obj)
+        function nR = getNumRec(this)
             % Get the number of receiver in the INI
-            nR = obj.getData('Receivers','nRec');
+            nR = this.getData('Receivers','nRec');
         end
         
-        function rate = getCaptureRate(obj)
+        function rate = getCaptureRate(this)
             % Get the sampling rate (Hz) to be used in monitor mode
-            rate = obj.getData('Monitor', 'rate');
+            rate = this.getData('Monitor', 'rate');
             if isempty(rate)
                 rate = 1;
             end
         end
         
-        function setCaptureRate(obj, rate)
+        function setCaptureRate(this, rate)
             % Set the sampling rate (Hz) to be used in monitor mode
             rate = str2double(rate(1:2));
-            obj.addData('Monitor', 'rate', rate);
+            this.addData('Monitor', 'rate', rate);
         end
                 
-        function [dataPath fileName nR] = getRecFiles(obj)
+        function [dataPath fileName nR] = getRecFiles(this)
             % Get the dataPath containing the files, file names and number of available receivers
-            nR = getNumRec(obj);
+            nR = getNumRec(this);
             
-            dataPath = obj.getData('Receivers','data_path');
+            dataPath = this.getData('Receivers','data_path');
             if (isempty(dataPath))
                 dataPath = '';
             end
             
-            fileName = obj.getData('Receivers','file_name');
+            fileName = this.getData('Receivers','file_name');
             if (isempty(fileName))
                 fileName = '';
             else
@@ -126,42 +126,42 @@ classdef goIniReader < IniReader
             end
         end
         
-        function [geometry ev_point] = getGeometry(obj)
+        function [geometry ev_point] = getGeometry(this)
             % Get the receiver coordinates in instrumental RF
-            geometry = zeros(3,obj.getNumRec());
-            for r = 1:obj.getNumRec()
-               geometry(:,r) = obj.getData('Antennas RF',['XYZ_ant' num2str(r)]);
+            geometry = zeros(3,this.getNumRec());
+            for r = 1:this.getNumRec()
+               geometry(:,r) = this.getData('Antennas RF',['XYZ_ant' num2str(r)]);
             end
-            ev_point = obj.getData('Antennas RF','XYZ_ev_point');
+            ev_point = this.getData('Antennas RF','XYZ_ev_point');
         end
         
-        function cutoff = getCutoff(obj)
+        function cutoff = getCutoff(this)
             % Get the minimum angle of acceptance for a satellite
-            cutoff = obj.getData('Generic','cutoff');
+            cutoff = this.getData('Generic','cutoff');
             if (isempty(cutoff))
-                cutoff = obj.cutoff;
+                cutoff = this.cutoff;
             end            
         end
         
-        function csThr = getCsThr(obj)
+        function csThr = getCsThr(this)
             % Get the threshold to identify a cycle slip
-            csThr = obj.getData('Generic','csThr');
+            csThr = this.getData('Generic','csThr');
             if (isempty(csThr))
-                csThr = obj.csThr;
+                csThr = this.csThr;
             end            
         end
                 
-        function snrThr = getSnrThr(obj)
+        function snrThr = getSnrThr(this)
             % Get the minimum SNR threshold acceptable
-            snrThr = obj.getData('Generic','snrThr');
+            snrThr = this.getData('Generic','snrThr');
             if (isempty(snrThr))
-                snrThr = obj.snrThr;
+                snrThr = this.snrThr;
             end            
         end
         
-        function timeStep = getTimeStep(obj)
+        function timeStep = getTimeStep(this)
             % Get time increment (e.g. v = obs(t+timeStep)-obs(t)
-            timeStep = obj.getData('Variometric','timeStep');
+            timeStep = this.getData('Variometric','timeStep');
             if (isempty(timeStep))
                 timeStep = 1;
             end    

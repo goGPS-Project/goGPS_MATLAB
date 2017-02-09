@@ -10,12 +10,20 @@
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Logger
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.9.1
-% Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-% Written by:       Gatti Andrea
-% Contributors:     Gatti Andrea, ...
-%----------------------------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+%               ___ ___ ___ 
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.9.1
+% 
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Gatti Andrea
+%  Contributors:     Gatti Andrea, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -29,7 +37,11 @@
 %
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011 
+%--------------------------------------------------------------------------
+
 classdef Logger < handle
     
     properties (Constant, GetAccess = private)
@@ -40,7 +52,7 @@ classdef Logger < handle
 
     properties (GetAccess = 'private', SetAccess = 'protected')
         color_mode = false;            % Flag for coloured output messages (if true requires cprintf)        
-        verbosity = 50;                % Verbosity level 
+        verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level 
     end
         
     methods (Access = private)
@@ -116,9 +128,12 @@ classdef Logger < handle
             end
         end
         
-        function addWarning(obj, text)
+        function addWarning(obj, text, verbosity_level)
             % Send a warning through the standard interface
-            if (obj.WARNING_VERBOSITY_LEV <= obj.verbosity)
+            if (nargin < 3)
+                verbosity_level = obj.WARNING_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= obj.verbosity)
                 obj.printWarning(text);
             end
         end

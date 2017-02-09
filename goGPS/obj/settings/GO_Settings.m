@@ -11,12 +11,19 @@
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc GO_Settings
 
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.9.1
-% Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-% Written by:       Gatti Andrea
-% Contributors:     Gatti Andrea, ...
-%----------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------
+%               ___ ___ ___ 
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.9.1
+% 
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Gatti Andrea
+%  Contributors:     Gatti Andrea, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -30,8 +37,12 @@
 %
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
-classdef GO_Settings1 < Settings_Interface
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011 
+%--------------------------------------------------------------------------
+
+classdef GO_Settings < Settings_Interface
     
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
@@ -55,7 +66,7 @@ classdef GO_Settings1 < Settings_Interface
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
-        function obj = GO_settings1()
+        function obj = GO_settings()
         end
     end
     

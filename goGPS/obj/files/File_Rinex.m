@@ -35,7 +35,11 @@
 %
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011 
+%--------------------------------------------------------------------------
+
 classdef File_Rinex < handle
     
     properties (SetAccess = protected, GetAccess = protected)

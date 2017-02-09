@@ -5,12 +5,20 @@
 %   Class to collect and store active Satellite System to be used in the
 %   computations
 %
-%----------------------------------------------------------------------------------------------
-%                           goGPS v0.9.1
-% Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
-% Written by:       Gatti Andrea
-% Contributors:     Gatti Andrea, ...
-%----------------------------------------------------------------------------------------------
+
+%--------------------------------------------------------------------------
+%               ___ ___ ___ 
+%     __ _ ___ / __| _ | __|
+%    / _` / _ \ (_ |  _|__ \
+%    \__, \___/\___|_| |___/
+%    |___/                    v 0.9.1
+% 
+%--------------------------------------------------------------------------
+%  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Gatti Andrea
+%  Contributors:     Gatti Andrea, ...
+%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%--------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
 %    it under the terms of the GNU General Public License as published by
@@ -24,7 +32,11 @@
 %
 %    You should have received a copy of the GNU General Public License
 %    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-%----------------------------------------------------------------------------------------------
+%
+%--------------------------------------------------------------------------
+% 01100111 01101111 01000111 01010000 01010011 
+%--------------------------------------------------------------------------
+
 classdef Constellation_Collector < handle
     properties (Constant, GetAccess = private)
         N_SYS_TOT = 6; % Max number of available satellite systems
