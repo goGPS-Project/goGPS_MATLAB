@@ -71,19 +71,19 @@ classdef File_Rinex < handle
                 case 1 % populate from (file_name)
                     if iscellstr(base_dir)
                         for f = 1 : numel(base_dir)
-                            [obj.base_dir, obj.file_name_list{f}, obj.ext] = fileparts(check_path(base_dir{f}));
+                            [obj.base_dir, obj.file_name_list{f}, obj.ext] = fileparts(checkPath(base_dir{f}));
                         end
                     else
-                        [obj.base_dir, file_name, obj.ext] = fileparts(check_path(fullfile(base_dir)));
+                        [obj.base_dir, file_name, obj.ext] = fileparts(checkPath(fullfile(base_dir)));
                         obj.file_name_list = {file_name};
                     end
                 case 2 % populate from (base_dir, file_name)
                     if iscellstr(file_name)
                         for f = 1 : numel(file_name)
-                            [obj.base_dir, obj.file_name_list{f}, obj.ext] = fileparts(check_path(fullfile(base_dir, file_name{f})));
+                            [obj.base_dir, obj.file_name_list{f}, obj.ext] = fileparts(checkPath(fullfile(base_dir, file_name{f})));
                         end
                     else
-                        [obj.base_dir, file_name, obj.ext] = fileparts(check_path(fullfile(base_dir, file_name)));
+                        [obj.base_dir, file_name, obj.ext] = fileparts(checkPath(fullfile(base_dir, file_name)));
                         obj.file_name_list = {file_name};
                     end
                 case 3 % populate from (base_dir, file_name, ext)
@@ -92,10 +92,10 @@ classdef File_Rinex < handle
                     end                        
                     if iscellstr(file_name)
                         for f = 1 : numel(file_name)
-                            [obj.base_dir, obj.file_name_list{f}, obj.ext] = fileparts(check_path(fullfile(base_dir, [file_name{f} ext])));
+                            [obj.base_dir, obj.file_name_list{f}, obj.ext] = fileparts(checkPath(fullfile(base_dir, [file_name{f} ext])));
                         end
                     else
-                        [obj.base_dir, file_name, obj.ext] = fileparts(check_path(fullfile(base_dir, [file_name ext])));
+                        [obj.base_dir, file_name, obj.ext] = fileparts(checkPath(fullfile(base_dir, [file_name ext])));
                         obj.file_name_list = {file_name};
                     end
             end
