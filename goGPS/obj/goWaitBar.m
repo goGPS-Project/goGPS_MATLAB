@@ -28,7 +28,7 @@
 %
 %   titleUpdate(obj, msg)   Change the title of the waitbar
 %
-% FOR A FULL LIST OF CONSTANTs and METHODS use doc goGUIclass
+% FOR A FULL LIST OF CONSTANTs and METHODS use doc goWaitBar
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___

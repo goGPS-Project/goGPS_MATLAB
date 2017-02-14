@@ -69,7 +69,7 @@ classdef goGUIclass < handle
     %  HANDLERS
     % =========================================================================
     
-        goWB = [];                % waitbar handle
+        w_bar = [];               % waitbar handle
         goh = [];                 % goGPS gui handler
         
         interfaceOS = 0;          % 0 = Windows
@@ -249,8 +249,8 @@ classdef goGUIclass < handle
             clear global goIni
 
             tic;
-            obj.goWB = goWaitBar(5, 'Initializing goGPS GUI...');
-            obj.goWB.titleUpdate('Init GUI');
+            obj.w_bar = Go_Wait_Bar.getInstance(5,'Initializing goGPS GUI...');
+            obj.w_bar.createNewBar('Init GUI');
             obj.goh = handles;  % Save the handle of the figure
             
             % Init logo
@@ -269,7 +269,7 @@ classdef goGUIclass < handle
             % Update handles structure
             guidata(obj.goh.main_panel, obj.goh);
                 
-            obj.goWB.goMsg('Centering interface...');
+            obj.w_bar.goMsg('Centering interface...');
             
             %pixels
             set(obj.goh.main_panel, 'Units', 'pixels' );
@@ -287,7 +287,7 @@ classdef goGUIclass < handle
 
             % Init elements ids
             obj.initInterface();
-            obj.goWB.close();
+            obj.w_bar.close();
             t0 = toc;
             fprintf('goGPS GUI initialization completed in %.2f seconds\n', t0);
         end
@@ -1483,7 +1483,7 @@ classdef goGUIclass < handle
         % Get the status of the interface and prepare the Obj for the management of the GUI
         function initInterface(obj)
             % Get the status of the interface and prepare the Obj for the management of the GUI
-            obj.goWB.goMsg('Loading GUI manager object...');
+            obj.w_bar.goMsg('Loading GUI manager object...');
 
             % Set value for elements ids
             obj.initUIids();
@@ -1510,13 +1510,13 @@ classdef goGUIclass < handle
                 end
             end
             
-            obj.goWB.goMsg('Loading GUI manager object...');
-            obj.goWB.titleUpdate('Import Settings');
+            obj.w_bar.goMsg('Loading GUI manager object...');
+            obj.w_bar.titleUpdate('Import Settings');
             
             % Fill pop up menus
             obj.initPopUp(); % Popup are also modified / reloaded in importStateMatlab
             
-            obj.goWB.goMsg('Importing the last used settings...');
+            obj.w_bar.goMsg('Importing the last used settings...');
             if exist([obj.getSettingsDir() obj.lastSettingsFile],'file')
                 obj.importStateMatlab([obj.getSettingsDir() obj.lastSettingsFile]);
             elseif exist([obj.getSettingsDir() obj.defaultSettingsFile],'file')
@@ -1524,8 +1524,8 @@ classdef goGUIclass < handle
             else
                 waitfor(msgbox('No settings file has been found, goGPS may not work properly!'));
             end
-            obj.goWB.goMsg('Completing syncing phase...');
-            obj.goWB.titleUpdate('Finishing');
+            obj.w_bar.goMsg('Completing syncing phase...');
+            obj.w_bar.titleUpdate('Finishing');
             
             % Read interface status as get from file
             obj.initialState = obj.curState;            

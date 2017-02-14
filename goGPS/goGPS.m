@@ -27,7 +27,6 @@
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-
 % clear all variables
 % NOTE: using only 'clearvars' does not clear global variables, while using
 % 'clear all' removes breakpoints
@@ -67,13 +66,21 @@ addpath(genpath(pwd));
 % INTERFACE TYPE DEFINITION
 %----------------------------------------------------------------------------------------------
 
-mode_user=1; % user interface type
-%        =0 --> use text interface
-%        =1 --> use GUI
-
+mode_user =  1; % user interface type
+%         = 0 --> use text interface
+%         = 1 --> use GUI
 if (exist('is_batch','var'))
-    mode_user=0;
+    mode_user = 0;
 end
+
+% Init output interfaces (singletons)
+w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS');
+if mode_user == 1    
+    w_bar.setOutputType(1); % 0 means text, 1 means GUI, 5 both
+else
+    w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both
+end
+logger = Logger.getInstance();
 
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP
@@ -637,24 +644,18 @@ while read_files
             Eph(33,:) = Eph(33,:) - zero_time;
             
             for f = 1 : size(time_R,3)
-                
-                if (mode_user == 1)
-                    %goWaitBar
-                    goWB = goWaitBar(length(time_GPS));
-                    goWB.titleUpdate('Pre-processing rover...');
-                else
-                    goWB = [];
-                end
-                
+                                
                 %apply P1C1 DCBs if needed
                 if (flag_SP3 && ~isempty(SP3.DCB) && any(codeC1_R(:)))
                     pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_R(:,:,f);
                 end
                 
                 %pre-processing
-                fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
+                logger.addMessage(['Selecting rover observations (file ' filename_obs{f} ')...']);
+                w_bar.setBarLen(length(time_GPS));
+                w_bar.createNewBar('Pre-processing rover...');
                 %                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations, flag_full_prepro, order);
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas, constellations, flag_full_prepro, order);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_R(:,1,f), pos_R, pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
                 
                 if report.opt.write == 1
                     report.prep.spp_threshold = SPP_threshold;
@@ -676,9 +677,7 @@ while read_files
                     report.prep.CS_R{f}=status_cs;
                 end
                 
-                if (mode_user == 1)
-                    goWB.close();
-                end
+                w_bar.close();
             end
             
             %global residuals_fixed residuals_float outliers s02_ls %#ok<TLEV>
@@ -700,7 +699,7 @@ while read_files
             end
             
             if (~exist('time_GPS','var') || ~any(isfinite(time_GPS)) || isempty(time_GPS))
-                fprintf('... WARNING: either there are no observations available for processing, or some epoch is not valid.\n');
+                logger.addWarning(' Either there are no observations available for processing, or some epoch is not valid.');
                 return
             end
             
@@ -755,8 +754,8 @@ while read_files
             
             % set ROVER initial coordinates
             if (exist('pos_R_crd','var') && any(pos_R_crd))
-                fprintf('Rover apriori position set from coordinate file:\n');
-                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
+                logger.addMessage('Rover apriori position set from coordinate file:');
+                logger.addMessage(sprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m', pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1)));
                 if report.opt.write == 1
                     if (flag_XR ~= 2)
                         report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from coordinate file', char(report.obs.filename(1)), pos_R_crd(1,1), pos_R_crd(2,1), pos_R_crd(3,1));
@@ -766,8 +765,8 @@ while read_files
                 end
                 pos_R = pos_R_crd;
             else
-                fprintf('Rover apriori position set from RINEX:\n');
-                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_R(1,1), pos_R(2,1), pos_R(3,1));
+                logger.addMessage('Rover apriori position set from RINEX:');
+                logger.addMessage(sprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m', pos_R(1,1), pos_R(2,1), pos_R(3,1)));
                 if report.opt.write == 1
                     if any(pos_R)
                         report.obs.coord_R=sprintf('%-30s  %13.4f %13.4f %13.4f  approx from RINEX', char(report.obs.filename(1)), pos_R(1,1), pos_R(2,1), pos_R(3,1));
@@ -779,29 +778,29 @@ while read_files
             
             % set MASTER initial coordinates
             if (flag_ms_pos) % master position read from RINEX header
-                fprintf('Master position fixed from RINEX:\n');
-                fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                logger.addMessage('Master position fixed from RINEX:');
+                logger.addMessage(sprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
                 if report.opt.write == 1
                     report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
                 end
             else
                 if (exist('pos_M_crd','var') && ~isempty(pos_M_crd) && any(pos_M_crd)) % master position read from coordinate file
-                    fprintf('Master position fixed from coordinate file:\n');
-                    fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
+                    logger.addMessage('Master position fixed from coordinate file:');
+                    logger.addMessage(sprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m', pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1)));
                     if report.opt.write == 1
                         report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed from coordinate file', char(report.obs.filename(end)), pos_M_crd(1,1), pos_M_crd(2,1), pos_M_crd(3,1));
                     end
                     pos_M = pos_M_crd;
                 elseif (exist('pos_M_man','var') && any(pos_M_man)) % master position read from GUI
-                    fprintf('Master position fixed to user-defined values:\n');
-                    fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
+                    logger.addMessage('Master position fixed to user-defined values:');
+                    logger.addMessage(sprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m', pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1)));
                     if report.opt.write == 1
                         report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  fixed to user-defined values', char(report.obs.filename(end)), pos_M_man(1,1), pos_M_man(2,1), pos_M_man(3,1));
                     end
                     pos_M = pos_M_man;
                 else % no valid pos_M_man found, so force positiong read from RINEX header
-                    fprintf('WARNING! MASTER coordinates forced fixed from RINEX:\n');
-                    fprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m\n', pos_M(1,1), pos_M(2,1), pos_M(3,1));
+                    logger.addMessage('WARNING! MASTER coordinates forced fixed from RINEX:');
+                    logger.addMessage(sprintf('     X=%.4f m, Y=%.4f m, Z=%.4f m', pos_M(1,1), pos_M(2,1), pos_M(3,1)));
                     if report.opt.write == 1
                         report.obs.coord_M=sprintf('%-30s  %13.4f %13.4f %13.4f  forced fixed from RINEX', char(report.obs.filename(end)), pos_M(1,1), pos_M(2,1), pos_M(3,1));
                     end
@@ -820,7 +819,7 @@ while read_files
             
             if (flag_SP3)
                 %display message
-                fprintf('Reading SP3 file...\n');
+                logger.addMessage('Reading SP3 file...\n');
                 
                 SP3 = load_SP3(filename_nav, time_GPS, week_M, constellations);
                 
@@ -837,9 +836,9 @@ while read_files
                 end
                 
                 %compute sun and moon position
-                fprintf('Computing Sun and Moon position...');
+                logger.addMessage('Computing Sun and Moon position...');
                 [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_M))));
-                fprintf(' done\n');
+                logger.addStatusOk(' done\n');
                 
                 %store the position of Sun and Moon
                 SP3.t_sun  = time_GPS;
@@ -927,7 +926,7 @@ while read_files
             if exist('min_epoch','var')
                 report.opt.min_epoch = min_epoch;
                 if size(time_R,1) < min_epoch
-                    fprintf('\nERROR! The number of available epochs is lower than the minimum. The processing will not be performed.\n');
+                    logger.addError('The number of available epochs is lower than the minimum. The processing will not be performed.');
                     % write report
                     report.errors.few_epochs = 1;
                     report_generator(report);
@@ -981,7 +980,7 @@ while read_files
                 
                 %if SBAS corrections are requested but not available
                 if (flag_SBAS && isempty(sbas))
-                    fprintf('Switching back to standard (not SBAS-corrected) processing.\n')
+                    logger.addMessage('Switching back to standard (not SBAS-corrected) processing.')
                 end
             end
             
@@ -990,17 +989,11 @@ while read_files
                 ol_disp = load_BLQ(filename_blq, marker_RM);
             end
             
-            for f = 1 : size(time_R,3)
-                if (mode_user == 1)
-                    %goWaitBar
-                    goWB = goWaitBar(length(time_GPS));
-                    goWB.titleUpdate('Pre-processing rover...');
-                else
-                    goWB = [];
-                end
-                
+            for f = 1 : size(time_R,3)                
                 %pre-processing
-                fprintf('%s',['Pre-processing rover observations (file ' filename_obs{f} ')...']); fprintf('\n');
+                logger.addMessage(['Selecting rover observations (file ' filename_obs{f} ')...']);
+                w_bar.setBarLen(length(time_GPS));
+                w_bar.createNewBar('Pre-processing rover...');
                 
                 aprXR = pos_R;
                 if (~exist('pos_R_crd','var') || ~any(pos_R_crd))
@@ -1032,7 +1025,7 @@ while read_files
                 Eph(33,:) = Eph(33,:) - zero_time;
                 
                 %                 [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XR, sbas, constellations, order);
-                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, flag_XR, sbas, constellations, flag_full_prepro, order);
+                [pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dtR(:,1,f), dtRdot(:,1,f), bad_sats_R(:,1,f), bad_epochs_R(:,1,f), var_dtR(:,1,f), var_SPP_R(:,:,f), status_obs_R(:,:,f), status_cs] = pre_processing(time_GPS, time_R(:,1,f), aprXR(:,:,f), pr1_R(:,:,f), ph1_R(:,:,f), pr2_R(:,:,f), ph2_R(:,:,f), dop1_R(:,:,f), dop2_R(:,:,f), snr1_R(:,:,f), Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XR, sbas, constellations, flag_full_prepro, order);
                 
                 if report.opt.write == 1
                     report.prep.spp_threshold = SPP_threshold;
@@ -1055,20 +1048,13 @@ while read_files
                 end
                 
                 
-                if (mode_user == 1)
-                    goWB.close();
-                end
+                w_bar.close();
             end
             
-            if (mode_user == 1)
-                %goWaitBar
-                goWB = goWaitBar(length(time_GPS));
-                goWB.titleUpdate('Pre-processing master...');
-            else
-                goWB = [];
-            end
             
-            fprintf('%s',['Pre-processing master observations (file ' filename_obs{end} ')...']); fprintf('\n');
+            logger.addMessage(['Select master observations (file ' filename_obs{end} ')...']);
+            w_bar.setBarLen(length(time_GPS));
+            w_bar.createNewBar('Pre-processing master...');
             
             %apply P1C1 DCBs if needed
             if (flag_SP3 && ~isempty(DCB) && any(codeC1_M(:)))
@@ -1076,7 +1062,7 @@ while read_files
             end
             
             %             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas, constellations, order);
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, goWB, 2, sbas, constellations, flag_full_prepro, order);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, 2, sbas, constellations, flag_full_prepro, order);
             if report.opt.write == 1
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
@@ -1095,9 +1081,7 @@ while read_files
                 report.prep.CS_M=status_cs;
             end
             
-            if (mode_user == 1)
-                goWB.close();
-            end
+            w_bar.close();
         end
         
         %         %read surveying mode
@@ -1317,9 +1301,9 @@ while read_files
                     end
                 else
                     if (flag_var_dyn_model)
-                        fprintf('... WARNING: master data not available, forcing undifferenced mode. Variable dynamic model is not supported in undifferenced mode.\n');
+                        logger.addWarning('Master data not available, forcing undifferenced mode. Variable dynamic model is not supported in undifferenced mode.');
                     else
-                        fprintf('... WARNING: master data not available, forcing undifferenced mode.\n');
+                        logger.addWarning('Master data not available, forcing undifferenced mode.');
                     end
                 end
             end
@@ -1359,8 +1343,8 @@ while read_files
     %check if the dataset was surveyed with a variable dynamic model
     d = dir([filerootIN '_dyn_000.bin']);
     if (goGNSS.isPP(mode) && (flag_stopGOstop || flag_var_dyn_model) && isempty(d))
-        disp('... WARNING: dataset was not surveyed with a variable dynamic model:');
-        disp(' Switching off variable dynamic model mode...');
+        logger.addWarning(' Dataset was not surveyed with a variable dynamic model:');
+        logger.addMessage('      Switching off variable dynamic model mode...');
         flag_var_dyn_model = 0;
     end
     
@@ -1416,14 +1400,10 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
     
     plot_t = 1;
     
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
-
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing rover...');
+    
     for t = 1 : length(time_GPS)
 
         Eph_t = rt_find_eph(Eph, time_GPS(t), nSatTot);
@@ -1448,7 +1428,7 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_float(1:nSatTot); residuals_dummy'; residuals_dummy'; residuals_dummy';outliers(1:nSatTot); residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
 
             if (flag_plotproc)
-                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -1469,18 +1449,9 @@ if (mode == goGNSS.MODE_PP_LS_C_SA)
             unused_epochs(t) = 1;
         end
         
-        if (t == 1)
-            fprintf('Processing...\n');
-        end
-        
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
-    end
-    
-    if (mode_user == 1)
-        goWB.close();
-    end
+        w_bar.goTime(t);
+    end    
+    w_bar.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1568,15 +1539,8 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
         t1 = 1;
     end
     
-    fprintf('Processing...\n');
-    
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
 
     for t = t1 : length(time_GPS)
         residuals_fixed=NaN(4*nSatTot,1);
@@ -1596,7 +1560,7 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
         fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
 
         if (flag_plotproc)
-            if (mode_user == 1 && t == 2), goWB.shiftDown(); end
+            if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
             if (flag_cov == 0)
                 if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -1613,14 +1577,10 @@ elseif (mode == goGNSS.MODE_PP_KF_C_SA)
             pause(0.01);
         end
         
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);
     end
 
-    if (mode_user == 1)
-        goWB.close();
-    end
+    w_bar.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1649,13 +1609,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
     
     plot_t = 1;
     
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
+    
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
 
     for t = 1 : length(time_GPS)
 
@@ -1680,7 +1637,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
             fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
             
             if (flag_plotproc)
-                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -1697,21 +1654,14 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_SA)
                 plot_t = plot_t + 1;
                 pause(0.01);
             end
-            if (t == 1)
-                fprintf('Processing...\n');
-            end
         else
             unused_epochs(t) = 1;
         end
         
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);
     end
 
-    if (mode_user == 1)
-        goWB.close();
-    end
+    w_bar.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1743,12 +1693,8 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     fprintf('TimeStep used is %d epochs\n', time_step);
     % External loop to show bar update every 15 epochs
     stepUpdate = 15;
-    if (mode_user == 1)
-        goWB = goWaitBar((length(time_GPS)-(time_step))/stepUpdate);
-        goWB.titleUpdate('Variometric approach running...');
-    else
-        goWB = [];
-    end
+    w_bar.setBarLen((length(time_GPS)-(time_step))/stepUpdate);
+    w_bar.createNewBar('Variometric approach running...');
     ind=0;
     for tExt = 1:stepUpdate:(length(time_GPS)-(time_step))
         for t = tExt:min(tExt+stepUpdate-1,length(time_GPS)-(time_step))
@@ -1798,9 +1744,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
                 unused_epochs(t) = 1;
             end
         end
-        if (mode_user == 1)
-            goWB.goTime(tExt/stepUpdate);
-        end
+        w_bar.goTime(tExt/stepUpdate);
     end
     goDX=cumsum(vel_pos(:,1)).*(interval.*time_step);
     goDY=cumsum(vel_pos(:,3)).*(interval.*time_step);
@@ -1874,9 +1818,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
         title('Velocity (blue=E; red=N; green=U)')
     end
     
-    if (mode_user == 1)
-        goWB.close();
-    end
+    w_bar.close();
     
     fclose(fid_kal);
     fclose(fid_sat);
@@ -1968,17 +1910,11 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA )
         t1 = 1;
         [pr1_R, ph1_R, pr2_R, ph2_R] = multi_GNSS_biases_correction(time_GPS, pr1_R, ph1_R, pr2_R, ph2_R, ISBs_init, Eph, constellations, lambda);
     end
+        
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
     
-    fprintf('Processing...\n');
-    
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
-
     for t = t1 : length(time_GPS)
         residuals_fixed=NaN(4*nSatTot,1);
         residuals_float=NaN(4*nSatTot,1);
@@ -1998,7 +1934,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA )
         fwrite(fid_trp, [ZHD; STDs], 'double');
         
         if (flag_plotproc)
-            if (mode_user == 1 && t == 2), goWB.shiftDown(); end
+            if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
             if (flag_cov == 0)
                 if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
@@ -2020,14 +1956,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_SA )
             end
         end
         
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);
     end
     
-    if (mode_user == 1)
-        goWB.close();
-    end
+    w_bar.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -2057,13 +1989,9 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
     
     plot_t = 1;
     
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
 
     for t = 1 : length(time_GPS)
 
@@ -2088,7 +2016,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
             fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
             
             if (flag_plotproc)
-                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -2108,20 +2036,12 @@ elseif (mode == goGNSS.MODE_PP_LS_C_DD)
         else
             unused_epochs(t) = 1;
         end
-      
-        if (t == 1)
-            fprintf('Processing...\n');
-        end
         
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);
     end
     
-    if (mode_user == 1)
-        goWB.close();
-    end
-
+    w_bar.close();
+    
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_dop);
@@ -2202,15 +2122,9 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         t1 = 1;
     end
     
-    fprintf('Processing...\n');
-    
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
     
     for t = t1 : length(time_GPS)
 
@@ -2228,7 +2142,7 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
         fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
 
         if (flag_plotproc)
-            if (mode_user == 1 && t == 2), goWB.shiftDown(); end
+            if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
             if (flag_cov == 0)
                 if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                 rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -2245,15 +2159,11 @@ elseif (mode == goGNSS.MODE_PP_KF_C_DD)
             pause(0.01);
         end
         
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);
     end
     
-    if (mode_user == 1)
-        goWB.close();
-    end
-
+    w_bar.close();
+    
     fclose(fid_kal);
     fclose(fid_sat);
     fclose(fid_dop);
@@ -2281,13 +2191,9 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
     
     plot_t = 1;
 
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
     
     for t = 1 : length(time_GPS)
 
@@ -2309,7 +2215,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
             fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
             
             if (flag_plotproc)
-                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -2329,19 +2235,12 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_L)
         else
             unused_epochs(t) = 1;
         end
-      
-        if (t == 1)
-            fprintf('Processing...\n');
-        end
         
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);
     end
-
-    if (mode_user == 1)
-        goWB.close();
-    end
+    
+    w_bar.close();
+    
     
     fclose(fid_kal);
     fclose(fid_sat);
@@ -2369,14 +2268,10 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
     check_cs = 0;
     
     plot_t = 1;
-
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
+    
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
     
     for t = 1 : length(time_GPS)
 
@@ -2398,7 +2293,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
             fwrite(fid_res, [residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy; residuals_dummy], 'double');
             
             if (flag_plotproc)
-                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -2419,18 +2314,9 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_DD_MR)
             unused_epochs(t) = 1;
         end
       
-        if ((t == 1) && (~flag_plotproc))
-            fprintf('Processing...\n');
-        end
-        
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);
     end
-
-    if (mode_user == 1)
-        goWB.close();
-    end
+    w_bar.close();
     
     fclose(fid_kal);
     fclose(fid_sat);
@@ -2458,14 +2344,10 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
     check_cs = 0;
     
     plot_t = 1;
-
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
+    
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
     
     for t = 1 : length(time_GPS)
 
@@ -2492,7 +2374,7 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
             fwrite(fid_res, [residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'; residuals_dummy'], 'double');
             
             if (flag_plotproc)
-                if (mode_user == 1 && t == 1), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 1), w_bar.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), date_R(t,:)), end;
                     rtplot_matlab (plot_t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], zeros(3,1), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path);
@@ -2513,18 +2395,9 @@ elseif (mode == goGNSS.MODE_PP_LS_C_SA_MR)
             unused_epochs(t) = 1;
         end
         
-        if ((t == 1) && (~flag_plotproc))
-            fprintf('Processing...\n');
-        end
-        
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);        
     end
-    
-    if (mode_user == 1)
-        goWB.close();
-    end
+    w_bar.close();
 
     fclose(fid_kal);
     fclose(fid_sat);
@@ -2616,15 +2489,9 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             t1 = 1;
         end
         
-        fprintf('Processing...\n');
-        
-        if (mode_user == 1)
-            %goWaitBar
-            goWB = goWaitBar(length(time_GPS));
-            goWB.titleUpdate('Processing...');
-        else
-            goWB = [];
-        end
+        % goGPS waiting bar
+        w_bar.setBarLen(length(time_GPS));
+        w_bar.createNewBar('Processing...');
 
         for t = t1 : length(time_GPS)
             residuals_fixed=NaN(4*nSatTot,1);
@@ -2644,7 +2511,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
 
             if (flag_plotproc)
-                if (mode_user == 1 && t == 2), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     rtplot_matlab (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
@@ -2666,14 +2533,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
                 end
             end
             
-            if (mode_user == 1)
-                goWB.goTime(t);
-            end
+            w_bar.goTime(t);
         end
         
-        if (mode_user == 1)
-            goWB.close();
-        end
+        w_bar.close();
 
         fclose(fid_kal);
         fclose(fid_sat);
@@ -2779,15 +2642,9 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             t1 = 1;
         end
         
-        fprintf('Processing...\n');
-        
-        if (mode_user == 1)
-            %goWaitBar
-            goWB = goWaitBar(length(time_GPS));
-            goWB.titleUpdate('Processing...');
-        else
-            goWB = [];
-        end
+        % goGPS waiting bar
+        w_bar.setBarLen(length(time_GPS));
+        w_bar.createNewBar('Processing...');
         
         for t = t1 : length(time_GPS)
             residuals_fixed=NaN(4*nSatTot,1);
@@ -2852,7 +2709,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
             fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
             
             if (flag_plotproc)
-                if (mode_user == 1 && t == 2), goWB.shiftDown(); end
+                if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
                 if (flag_cov == 0)
                     if (flag_ge == 1), rtplot_googleearth (t, [Xhat_t_t(1); Xhat_t_t(o1+1); Xhat_t_t(o2+1)], pos_M(:,t), date_R(t,:)), end;
                     if (flag_stopGOstop == 1)
@@ -2881,14 +2738,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 0)
                     pause(0.01);
                 end
             end
-            if (mode_user == 1)
-                goWB.goTime(t);
-            end
+            w_bar.goTime(t);
         end
         
-        if (mode_user == 1)
-            goWB.close();
-        end
+        w_bar.close();
         
         if (flag_stopGOstop == 1)
             %azimuth computation
@@ -2989,15 +2842,9 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
         t1 = 1;
     end
     
-    fprintf('Processing...\n');
-    
-    if (mode_user == 1)
-        %goWaitBar
-        goWB = goWaitBar(length(time_GPS));
-        goWB.titleUpdate('Processing...');
-    else
-        goWB = [];
-    end
+    % goGPS waiting bar
+    w_bar.setBarLen(length(time_GPS));
+    w_bar.createNewBar('Processing...');
 
     for t = t1 : length(time_GPS)
         residuals_fixed=NaN(4*nSatTot,1);
@@ -3015,7 +2862,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
         fwrite(fid_res, [residuals_fixed(1:nSatTot*2); residuals_fixed(nSatTot*2+1:end);residuals_float(1:nSatTot*2); residuals_float(nSatTot*2+1:end);outliers(1:nSatTot*2);outliers(nSatTot*2+1:end)], 'double');
 
         if (flag_plotproc)
-            if (mode_user == 1 && t == 2), goWB.shiftDown(); end
+            if (mode_user == 1 && t == 2), w_bar.shiftDown(); end
             if (flag_ge == 1), rtplot_googleearth (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), date_R(t,:)), end;
             rtplot_matlab (t, [Yhat_t_t(1); Yhat_t_t(2); Yhat_t_t(3)], pos_M(:,t), check_on, check_off, check_pivot, check_cs, flag_ms, ref_path, mat_path, flag_amb);
             if (flag_amb == 1)
@@ -3032,14 +2879,10 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
             end
         end
         
-        if (mode_user == 1)
-            goWB.goTime(t);
-        end
+        w_bar.goTime(t);
     end
     
-    if (mode_user == 1)
-        goWB.close();
-    end
+    w_bar.close();
 
     fclose(fid_kal);
     fclose(fid_sat);

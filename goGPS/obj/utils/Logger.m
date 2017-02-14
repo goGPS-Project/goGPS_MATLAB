@@ -10,7 +10,6 @@
 %
 % FOR A LIST OF CONSTANTs and METHODS use doc Logger
 
-
 %--------------------------------------------------------------------------
 %               ___ ___ ___ 
 %     __ _ ___ / __| _ | __|
@@ -53,6 +52,7 @@ classdef Logger < handle
     properties (GetAccess = 'private', SetAccess = 'protected')
         color_mode = false;            % Flag for coloured output messages (if true requires cprintf)        
         verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level 
+        std_out = 0;                   % Define the standard output of the 
     end
         
     methods (Access = private)
