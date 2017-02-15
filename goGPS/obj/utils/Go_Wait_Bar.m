@@ -102,17 +102,21 @@ classdef Go_Wait_Bar < handle
         function getNewBar(this, title)
             % Build a new graphic bar
             if (this.type == 1) ||  (this.type == 5)
-                if nargin == 2
-                    this.title = title;
-                    this.setTitle(title);
-                end
                 if isempty(this.h) || (~isvalid(this.h))
                     delete(this.h);
                     this.h = waitbar(0, this.msg, 'Visible', 'off');
                 end
                 this.ext_h = getappdata(this.h,'TMWWaitbar_handles');
-                this.ext_h.axesTitle.FontSize = 13;
+                if (isunix())
+                    this.ext_h.axesTitle.FontSize = 13;
+                else
+                    this.ext_h.axesTitle.FontSize = 10;
+                end
                 this.ext_h.axesTitle.Position(2) = 1.5;
+                if nargin == 2
+                    this.title = title;
+                    this.setTitle(title);
+                end
                 this.h.Visible = 'on';
                 drawnow;
             end
