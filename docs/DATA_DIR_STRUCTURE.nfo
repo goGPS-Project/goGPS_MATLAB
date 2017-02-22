@@ -8,7 +8,10 @@
 
    DATA
     │
-    ├─ goGPS.ini                   // store just the project to use
+    ├─ last_prj.ini                // Store just the project to use
+    │
+    ├─ GUI_Settings                // Store GUI status
+    │   └─ default_settings.mat    // store just the project to use
     │
     ├─ Antenna
     │   └─ ATX                     // ANTEX file

@@ -49,9 +49,15 @@ function [X,Y,Z] = geod2cart (phi, lam, h, a, f)
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-e = sqrt(1-(1-f)^2);
-N = a ./ sqrt(1 - e^2 * sin(phi).^2);
-e2 = 1 - (1 - f)^2;
+if (nargin == 3)
+    a = goGNSS.ELL_A_GPS;
+    e = goGNSS.ELL_E_GPS;
+    e2 = e^2;
+else
+    e = sqrt(1-(1-f)^2);
+    e2 = 1 - (1 - f)^2;
+end
+N = a ./ sqrt(1 - e2 * sin(phi).^2);
 
 X = (N + h) .* cos(lam) .* cos(phi);
 Y = (N + h) .* sin(lam) .* cos(phi);

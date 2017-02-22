@@ -43,7 +43,7 @@
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-classdef goGNSS < handle
+classdef goGNSS < handle & Mode_Settings
     
     % Constant values
     % => to discriminate them from function (in autocompletion) they are
@@ -196,93 +196,7 @@ classdef goGNSS < handle
         ID_GALILEO = 3 % Id of Galileo constellation for goGPS internal use
         ID_BEIDOU  = 4 % Id of BeiDou constellation for goGPS internal use
         ID_QZSS    = 5 % Id of QZSS constellation for goGPS internal use
-        ID_SBAS    = 6 % Id of SBAS constellation for goGPS internal use
-        
-        % goGPS MODES -----------------------------------------------------
-        
-        MODE_RT_NAV          = 24;  % Real Time Navigation (Kalman Filter on Code and Phase Double Differences (with/without a constraint)
-        MODE_RT_R_MON        = 21;  % Real Time Rover Monitor
-        MODE_RT_M_MON        = 22;  % Real Time Master Monitor
-        MODE_RT_RM_MON       = 23;  % Real Time Master + Rover Monitor
-        
-        MODE_PP_LS_C_SA      = 1;   % Post Proc Least Squares on Code Stand Alone
-        MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code and Phase Stand Alone
-        MODE_PP_LS_CP_VEL    = 3.1; % Post Proc Least Squares on Code and Phase for Velocity estimation
-        MODE_PP_LS_C_DD      = 11;  % Post Proc Least Squares on Code Double Differences
-        MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code and Phase Double Differences with LAMBDA
-        MODE_PP_LS_CP_DD_MR  = 16;  % Post Proc Least Squares on Code and Phase Double Differences, Multiple Receivers
-        MODE_PP_LS_C_SA_MR   = 17;  % Post Proc Least Squares on Code Stand Alone, Multiple Receivers
-        
-        MODE_PP_KF_C_SA          = 2;   % Post Proc Kalman Filter on Code Stand Alone
-        MODE_PP_KF_C_DD          = 12;  % Post Proc Kalman Filter on Code Double Differencies
-        MODE_PP_KF_CP_SA         = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone (PPP)
-        MODE_PP_KF_CP_DD         = 14;  % Post Proc Kalman Filter on Code and Phase Double Differences
-        MODE_PP_KF_CP_DD_MR      = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers
-        MODE_PP_SEID_PPP         = 16;  % SEID followed by PPP (Kalman Filter on Code and Phase Stand Alone (PPP)) it is both stand alone and DD
-                 
-        GMODE_PP = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of post processing modes
-            goGNSS.MODE_PP_LS_CP_SA ...
-            goGNSS.MODE_PP_LS_C_DD ...
-            goGNSS.MODE_PP_LS_CP_DD_L ...
-            goGNSS.MODE_PP_LS_CP_VEL ...
-            goGNSS.MODE_PP_KF_C_SA ...
-            goGNSS.MODE_PP_KF_C_DD ...
-            goGNSS.MODE_PP_KF_CP_SA ...
-            goGNSS.MODE_PP_KF_CP_DD ...
-            goGNSS.MODE_PP_LS_C_SA_MR ...
-            goGNSS.MODE_PP_LS_CP_DD_MR ...
-            goGNSS.MODE_PP_KF_CP_DD_MR ...
-            goGNSS.MODE_PP_SEID_PPP];
-        
-        GMODE_RT = [ goGNSS.MODE_RT_NAV ...         % Group of real time modes
-            goGNSS.MODE_RT_R_MON ...
-            goGNSS.MODE_RT_M_MON ...
-            goGNSS.MODE_RT_RM_MON];
-        
-        GMODE_MON = [ goGNSS.MODE_RT_R_MON ...      % Group of monitor modes
-            goGNSS.MODE_RT_M_MON ...
-            goGNSS.MODE_RT_RM_MON];
-
-        GMODE_SA = [ goGNSS.MODE_PP_LS_C_SA ...     % Group of stand alone modes
-            goGNSS.MODE_PP_LS_CP_SA ...
-            goGNSS.MODE_PP_LS_CP_VEL ...
-            goGNSS.MODE_PP_KF_C_SA ...
-            goGNSS.MODE_PP_KF_CP_SA ...
-            goGNSS.MODE_PP_LS_C_SA_MR];
-        
-        GMODE_DD = [ goGNSS.MODE_PP_LS_C_DD ...     % Group of double differences modes
-            goGNSS.MODE_PP_LS_CP_DD_L ...
-            goGNSS.MODE_PP_KF_C_DD ...
-            goGNSS.MODE_PP_KF_CP_DD ...
-            goGNSS.MODE_PP_LS_CP_DD_MR ...
-            goGNSS.MODE_PP_KF_CP_DD_MR ...
-            goGNSS.MODE_PP_SEID_PPP];
-        
-        GMODE_MR = [ goGNSS.MODE_PP_LS_C_SA_MR ...  % Group of multi-receiver modes
-            goGNSS.MODE_PP_LS_CP_DD_MR ...
-            goGNSS.MODE_PP_KF_CP_DD_MR ...
-            goGNSS.MODE_PP_SEID_PPP];
-       
-        GMODE_PH = [ goGNSS.MODE_RT_NAV ...         % Group of modes using Phase
-            goGNSS.MODE_RT_R_MON ...
-            goGNSS.MODE_RT_M_MON ...
-            goGNSS.MODE_RT_RM_MON ...
-            goGNSS.MODE_PP_LS_CP_SA ...
-            goGNSS.MODE_PP_LS_CP_VEL ...
-            goGNSS.MODE_PP_LS_CP_DD_MR ...
-            goGNSS.MODE_PP_LS_CP_DD_L ...
-            goGNSS.MODE_PP_KF_CP_SA ...
-            goGNSS.MODE_PP_KF_CP_DD ...
-            goGNSS.MODE_PP_KF_CP_DD_MR ...
-            goGNSS.MODE_PP_SEID_PPP];
-        
-        GMODE_KM = [ goGNSS.MODE_PP_KF_C_SA ...      % Group of modes using Kalman Filter
-            goGNSS.MODE_PP_KF_C_DD ... 
-            goGNSS.MODE_PP_KF_CP_SA ...
-            goGNSS.MODE_PP_KF_CP_DD ...
-            goGNSS.MODE_PP_KF_CP_DD_MR ...
-            goGNSS.MODE_PP_SEID_PPP];
-        
+        ID_SBAS    = 6 % Id of SBAS constellation for goGPS internal use        
     end
     
     % Creator (empty)
@@ -314,54 +228,7 @@ classdef goGNSS < handle
             lambda2 = goGNSS.LAMBDAG(2);
             
         end
-    end
-    
-    %   MODE FUNCTION (STATIC)
-    % -------------------------------------------------------------------------
-    % function to detect a certain kind of processing
-    methods (Static, Access = 'public')
-        function isPostProcessing = isPP(mode)
-            % return whether or not the mode given in use is a Post Processing mode
-            isPostProcessing = sum(intersect(mode, goGNSS.GMODE_PP));
-        end
-        
-        function isMonitor = isMON(mode)
-            % return whether or not the mode given in use is a Monitor mode
-            isMonitor = sum(intersect(mode, goGNSS.GMODE_MON));
-        end
-                
-        function isRealTime = isRT(mode)
-            % return whether or not the mode given in use is a Real Time mode
-            isRealTime = sum(intersect(mode, goGNSS.GMODE_RT));
-        end
-        
-        function isDoubleDifferences = isDD(mode)
-            % return whether or not the mode given in use is a Double Difference mode
-            isDoubleDifferences = sum(intersect(mode, goGNSS.GMODE_DD));
-        end
-        
-        function isStandAlone = isSA(mode)
-            % return whether or not the mode given in use is a Stand Alone mode
-            isStandAlone = sum(intersect(mode, goGNSS.GMODE_SA));
-        end
-        
-        function isMultiReceiver = isMR(mode)
-            % return whether or not the mode given in use is a Stand Alone mode
-            isMultiReceiver = sum(intersect(mode, goGNSS.GMODE_MR));
-        end
-        
-        function isUsingPhase = isPH(mode)
-            % return whether or not the mode given in use uses Phase
-            isUsingPhase = sum(intersect(mode, goGNSS.GMODE_PH));
-        end
-        
-         function isKalman = isKM(mode)
-            % return whether or not the mode given in use uses Kalman Filter
-            isKalman = sum(intersect(mode, goGNSS.GMODE_KM));
-        end       
-        
-    end
-    
+    end        
     
     %   CONSTELLATION FUNCTION (STATIC)
     % -------------------------------------------------------------------------

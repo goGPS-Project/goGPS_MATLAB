@@ -65,4 +65,30 @@ classdef Settings_Interface < handle
         str_cell = export(obj, str_cell)
         % Conversion to string ini format of the minimal information needed to reconstruct the obj
     end
+    
+    methods (Access = 'protected')
+        function testInterfaceRoutines(this)
+            % test the class (Interface Routines)
+            
+            try
+                vl = this.logger.getVerbosityLev();
+                this.logger.setVerbosityLev(1e3);
+                test = this;
+                raw_data = test.export();
+                
+                ini = Ini_Manager('test.ini', raw_data);
+                ini.showData();
+                
+                test.import(ini);
+                test_copy = repmat(test,2,1); test_copy = test_copy(2);
+                test.import(test_copy);
+                clear test_copy;
+                fprintf('\n');
+                disp(test.toString());
+            catch ex
+                this.logger.addError(['Test failed: ' ex.message]);
+            end
+            this.logger.setVerbosityLev(vl);
+        end
+    end
 end

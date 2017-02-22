@@ -49,6 +49,13 @@ classdef IO_Settings < Settings_Interface
     
     properties (SetAccess = private, GetAccess = private)
         %------------------------------------------------------------------
+        % PROJECT
+        %------------------------------------------------------------------
+        
+        % Location of the latest project (the ini contains just a reference to the default project ini file - that is actually a settings file
+        last_prj = [IO_Settings.DEFAULT_DIR_IN 'Default_Tropo_Project' filesep 'Config' filesep 'config.ini'];        
+        
+        %------------------------------------------------------------------
         % RECEIVERS
         %------------------------------------------------------------------
 
@@ -92,17 +99,23 @@ classdef IO_Settings < Settings_Interface
         % Path to images used by the interface
         img_dir = [IO_Settings.DEFAULT_DIR_IN 'img' filesep];
         
+        % Location of the goGPS logo 64x64
+        img_logo64;        
     end
-    
-    properties (SetAccess = private, GetAccess = public)
-    end
-        
+            
+    % =========================================================================
+    %  INIT
+    % =========================================================================
     methods
         function this = IO_Settings()
             % Creator of IO_settings - verbosity level (true/false) can be set or ini file
+            this.img_logo64 = [this.img_dir 'goGPS_logo_64.png'];
         end
     end
         
+    % =========================================================================
+    %  INTERFACE REQUIREMENTS
+    % =========================================================================
     methods
         function import(this, settings)
             % This function import IO (only) settings from another setting object
@@ -114,6 +127,8 @@ classdef IO_Settings < Settings_Interface
                 this.geoid_dir  = settings.getData('geoid_dir');
                 this.dtm_dir    = settings.getData('dtm_dir');
                 this.img_dir    = settings.getData('img_dir');
+                this.img_logo64 = settings.getData('img_logo64');                
+                % this.last_prj   = settings.getData('last_prj'); this info is never in the project ini file
             else
                 this.nav_dir    = settings.nav_dir;
                 this.clk_dir    = settings.clk_dir;
@@ -122,6 +137,8 @@ classdef IO_Settings < Settings_Interface
                 this.geoid_dir  = settings.geoid_dir;
                 this.dtm_dir    = settings.dtm_dir;
                 this.img_dir    = settings.img_dir;
+                this.img_logo64 = settings.img_logo64;
+                this.last_prj   = settings.last_prj;
             end
         end
         
@@ -131,16 +148,18 @@ classdef IO_Settings < Settings_Interface
                 str = '';
             end            
             str = [str '---- IO SETTINGS ---------------------------------------------------------' 10 10];
+            str = [str sprintf(' Path to the current project ini file:             %s\n\n', this.last_prj)];
             str = [str sprintf(' Directory of Navigational Files:                  %s\n', this.nav_dir)];
             str = [str sprintf(' Directory of Satellite clock offsets:             %s\n', this.clk_dir)];
             str = [str sprintf(' Directory of CRX (satellite problems):            %s\n', this.crx_dir)];
             str = [str sprintf(' Directory of DCB (Differential Code Biases):      %s\n\n', this.dcb_dir)];
             str = [str sprintf(' Directory of Geoid models:                        %s\n\n', this.geoid_dir)];
             str = [str sprintf(' Directory of DTM data:                            %s\n\n', this.dtm_dir)];
-            str = [str sprintf(' Directory of images for UI:                       %s\n\n', this.img_dir)];
+            str = [str sprintf(' Directory of images for UI:                       %s\n', this.img_dir)];
+            str = [str sprintf('  - Image of the goGPS logo:                       %s\n\n', this.img_logo64)];
         end
         
-        function str_cell = export(this, str_cell)            
+        function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the this            
             if (nargin == 1)
                 str_cell = {};
@@ -149,7 +168,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('Directory of Navigational files', str_cell);
             str_cell = Ini_Manager.toIniString('nav_dir', this.nav_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of clock offset files', str_cell);
-            str_cell = Ini_Manager.toIniString('crx_dir', this.clk_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('clk_dir', this.clk_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of CRX files (containing satellite problems)', str_cell);
             str_cell = Ini_Manager.toIniString('crx_dir', this.crx_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of DCB files (Differential Code Biases)', str_cell);
@@ -160,7 +179,33 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('dtm_dir', this.dtm_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of images for UI', str_cell);
             str_cell = Ini_Manager.toIniString('img_dir', this.img_dir, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Path to the image of the logo 64x64 px', str_cell);
+            str_cell = Ini_Manager.toIniString('img_logo64', this.img_logo64, str_cell);
+        end        
+    end    
+    
+    % =========================================================================
+    %  GETTERS
+    % =========================================================================
+    methods
+        function dir = getImgDir(this)
+            dir = this.img_dir;
         end
         
-    end    
+        function dir = getLogo(this)
+            dir = this.img_logo64;
+        end
+        
+    end
+    
+    % =========================================================================
+    %  TEST
+    % =========================================================================
+    methods (Static, Access = 'public')
+        function test()
+            % test the class
+            s = IO_Settings();
+            s.testInterfaceRoutines();
+        end
+    end
 end

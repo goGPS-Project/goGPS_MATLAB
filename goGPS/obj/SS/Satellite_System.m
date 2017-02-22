@@ -38,8 +38,8 @@
 %--------------------------------------------------------------------------
 
 classdef Satellite_System < handle
-    properties (SetAccess = protected, GetAccess = public)
-        f             % System frequencies
+    properties (Constant, Abstract)
+        f             % System frequencies as struct
         f_vec         % Array of supported frequencies
         l_vec         % Array of the corresponding wavelength (pre-computed for performance reason)
         
@@ -49,44 +49,46 @@ classdef Satellite_System < handle
         
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
         orbital_parameters 
+        %   .GM
+        %   .OMEGAE_DOT
+        %   .J2 (only for GLONASS)        
         %   .ell.a      semi-major axis
         %   .ell.f      flattening
         %   .ell.e      eccentricity
-        %   .GM
-        %   .OMEGAE_DOT
-        %   .J2 (only for GLONASS)
-        
-        % Structure of the iono free combination parameters (alpha 1, alpha 2, T ed N
-        iono_free
-        %   .alpha1
-        %   .alpha2
-        %   .T
-        %   .N
+        %   .ell.e2     eccentricity^2
     end
     
-    properties (Abstract)
+    properties
         go_ids       % Satellites unique id numbers in goGPS
     end
-    
-    methods (Access = protected)
-        function initIono(obj, T, N)
-            % Init iono parameters: iono-free combination is computed with
-            % the first two carriers in f_vec
-            obj.iono_free.alpha1 = obj.f_vec(1) .^ 2 ./ (obj.f_vec(1) .^ 2 - obj.f_vec(2) .^ 2);
-            obj.iono_free.alpha2 = obj.f_vec(2) .^ 2 ./ (obj.f_vec(1) .^ 2 - obj.f_vec(2) .^ 2);
-            obj.iono_free.T = T;
-            obj.iono_free.N = N;
-        end
         
+    methods (Access = public)        
+        function iono_free = getIonoFree(this, f_id)
+            % Init iono parameters: iono-free combination is computed with the first two carriers in f_vec (use f_id to change the frequencies to use)
+            % Structure of the iono free combination parameters (alpha 1, alpha 2, T ed N
+            % iono_free
+            %   .alpha1
+            %   .alpha2
+            %   .T
+            %   .N            
+            if nargin < 2
+                f_id = [1 2];
+            end
+            iono_free.alpha1 = this.f_vec(f_id(1)) .^ 2 ./ (this.f_vec(f_id(1)) .^ 2 - this.f_vec(f_id(2)) .^ 2);
+            iono_free.alpha2 = this.f_vec(f_id(2)) .^ 2 ./ (this.f_vec(f_id(1)) .^ 2 - this.f_vec(f_id(2)) .^ 2);
+            gcd_f = gcd(this.f_vec(f_id(1)),this.f_vec(f_id(2)));
+            iono_free.T = this.f_vec(f_id(1))/gcd_f;
+            iono_free.N = this.f_vec(f_id(2))/gcd_f;
+        end        
     end
     
     methods
-        function updateGoIds(obj, offset)
+        function updateGoIds(this, offset)
             %  Update the satellites unique id numbers in goGPS
             if nargin == 1
                 offset = 0;
             end
-            obj.go_ids = offset + (1 : obj.n_sat);
+            this.go_ids = offset + (1 : this.n_sat);
         end        
     end
 end

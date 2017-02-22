@@ -5,6 +5,9 @@
 %   Class to collect and store active Satellite System to be used in the
 %   computations
 %
+% EXAMPLE
+%   cc = Constellation_Collector('GRECJS');
+%
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___ 
@@ -37,7 +40,7 @@
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-classdef Constellation_Collector < handle
+classdef Constellation_Collector < Settings_Interface
     properties (Constant, GetAccess = private)
         N_SYS_TOT = 6; % Max number of available satellite systems
         SYS_EXT_NAMES = {'GPS', 'GLONASS', 'Galileo', 'BeiDou', 'QZSS', 'SBAS'}; % full name of the constellation
@@ -53,7 +56,7 @@ classdef Constellation_Collector < handle
     
     properties (SetAccess = private, GetAccess = public)
         list       % struct of objects (to keep the name of the active constellations)
-        sys_name   % rray of active constellations names (as in the list structure)
+        sys_name   % array of active constellations names (as in the list structure)
         num_id     % array of active constellations numeric id
         char_id    % array of active constellations char id
         n_sys      % number of active constellations
@@ -66,74 +69,79 @@ classdef Constellation_Collector < handle
         system     % char id of the constellation per satellite
     end
     
-    methods (Access = 'private')
-        
-        function init(obj, enabled_ss)
+    methods (Access = 'private')        
+        function init(this, enabled_ss)
             % In it function for the Constellation_Collector Class
-            obj.enabled = enabled_ss;
-            obj.prn = [];     % relative id number in the satellite system
-            obj.system = '';  % char id of the constellation per satellite
-            
-            obj.n_sat_tot = 0; % counter for number of satellites
-            
-            if enabled_ss(1) % GPS is active
-                obj.list.GPS = GPS_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id obj.ID_GPS];
-                obj.char_id = [obj.char_id obj.list.GPS.char_id];
-                obj.system = [obj.system char(ones(1, obj.list.GPS.n_sat) * obj.list.GPS.char_id)];
-                obj.prn = [obj.prn; obj.list.GPS.prn];
-                obj.n_sat = [obj.n_sat obj.list.GPS.n_sat];
-                obj.n_sat_tot = obj.n_sat_tot + obj.list.GPS.n_sat;
+            if (sum(enabled_ss) > 0)
+                this.enabled = enabled_ss;
+                this.prn = [];     % relative id number in the satellite system
+                this.system = '';  % char id of the constellation per satellite
+                
+                this.n_sat_tot = 0; % counter for number of satellites
+                
+                if enabled_ss(1) % GPS is active
+                    this.list.GPS = GPS_SS(this.n_sat_tot);
+                    this.num_id = [this.num_id this.ID_GPS];
+                    this.char_id = [this.char_id this.list.GPS.char_id];
+                    this.system = [this.system char(ones(1, this.list.GPS.n_sat) * this.list.GPS.char_id)];
+                    this.prn = [this.prn; this.list.GPS.prn];
+                    this.n_sat = [this.n_sat this.list.GPS.n_sat];
+                    this.n_sat_tot = this.n_sat_tot + this.list.GPS.n_sat;
+                end
+                if enabled_ss(2) % GLONASS is active
+                    this.list.GLO = GLONASS_SS(this.n_sat_tot);
+                    this.num_id = [this.num_id this.ID_GLONASS];
+                    this.char_id = [this.char_id this.list.GLO.char_id];
+                    this.system = [this.system char(ones(1, this.list.GLO.n_sat) * this.list.GLO.char_id)];
+                    this.prn = [this.prn; this.list.GLO.prn];
+                    this.n_sat = [this.n_sat this.list.GLO.n_sat];
+                    this.n_sat_tot = this.n_sat_tot + this.list.GLO.n_sat;
+                end
+                if enabled_ss(3) % Galileo is active
+                    this.list.GAL = Galileo_SS(this.n_sat_tot);
+                    this.num_id = [this.num_id this.ID_GALILEO];
+                    this.char_id = [this.char_id this.list.GAL.char_id];
+                    this.system = [this.system char(ones(1, this.list.GAL.n_sat) * this.list.GAL.char_id)];
+                    this.prn = [this.prn; this.list.GAL.prn];
+                    this.n_sat = [this.n_sat this.list.GAL.n_sat];
+                    this.n_sat_tot = this.n_sat_tot + this.list.GAL.n_sat;
+                end
+                if enabled_ss(4) % BeiDou is active
+                    this.list.BDS = BeiDou_SS(this.n_sat_tot);
+                    this.num_id = [this.num_id this.ID_BEIDOU];
+                    this.char_id = [this.char_id this.list.BDS.char_id];
+                    this.system = [this.system char(ones(1, this.list.BDS.n_sat) * this.list.BDS.char_id)];
+                    this.prn = [this.prn; this.list.BDS.prn];
+                    this.n_sat = [this.n_sat this.list.BDS.n_sat];
+                    this.n_sat_tot = this.n_sat_tot + this.list.BDS.n_sat;
+                end
+                if enabled_ss(5) % QZSS is active
+                    this.list.QZS = QZSS_SS(this.n_sat_tot);
+                    this.num_id = [this.num_id this.ID_QZSS];
+                    this.char_id = [this.char_id this.list.QZS.char_id];
+                    this.system = [this.system char(ones(1, this.list.QZS.n_sat) * this.list.QZS.char_id)];
+                    this.prn = [this.prn; this.list.QZS.prn];
+                    this.n_sat = [this.n_sat this.list.QZS.n_sat];
+                    this.n_sat_tot = this.n_sat_tot + this.list.QZS.n_sat;
+                end
+                if enabled_ss(6) % SBAS is active (not yet implemented)
+                    this.list.SBAS.n_sat = 0;   % (not yet implemented)
+                    this.num_id = [this.num_id this.ID_SBAS];
+                end
+                
+                this.index = (1 : this.n_sat_tot)';   % incremental index of the active satellite system
+                this.n_sys = numel(this.num_id);
+                this.sys_name = this.SYS_NAMES(this.num_id);
+            else
+                this.logger.addError('No satellite system selected -> Enabling GPS');
+                ss = false(this.N_SYS_TOT,1); ss(1) = true;
+                this.init(ss);
             end
-            if enabled_ss(2) % GLONASS is active
-                obj.list.GLO = GLONASS_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id obj.ID_GLONASS];
-                obj.char_id = [obj.char_id obj.list.GLO.char_id];
-                obj.system = [obj.system char(ones(1, obj.list.GLO.n_sat) * obj.list.GLO.char_id)];
-                obj.prn = [obj.prn; obj.list.GLO.prn];
-                obj.n_sat = [obj.n_sat obj.list.GLO.n_sat];
-                obj.n_sat_tot = obj.n_sat_tot + obj.list.GLO.n_sat;
-            end
-            if enabled_ss(3) % Galileo is active
-                obj.list.GAL = Galileo_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id obj.ID_GALILEO];
-                obj.char_id = [obj.char_id obj.list.GAL.char_id];
-                obj.system = [obj.system char(ones(1, obj.list.GAL.n_sat) * obj.list.GAL.char_id)];
-                obj.prn = [obj.prn; obj.list.GAL.prn];
-                obj.n_sat = [obj.n_sat obj.list.GAL.n_sat];
-                obj.n_sat_tot = obj.n_sat_tot + obj.list.GAL.n_sat;
-            end
-            if enabled_ss(4) % BeiDou is active
-                obj.list.BDS = BeiDou_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id obj.ID_BEIDOU];
-                obj.char_id = [obj.char_id obj.list.BDS.char_id];
-                obj.system = [obj.system char(ones(1, obj.list.BDS.n_sat) * obj.list.BDS.char_id)];
-                obj.prn = [obj.prn; obj.list.BDS.prn];
-                obj.n_sat = [obj.n_sat obj.list.BDS.n_sat];
-                obj.n_sat_tot = obj.n_sat_tot + obj.list.BDS.n_sat;
-            end
-            if enabled_ss(5) % QZSS is active
-                obj.list.QZS = QZSS_SS(obj.n_sat_tot);
-                obj.num_id = [obj.num_id obj.ID_QZSS];
-                obj.char_id = [obj.char_id obj.list.QZS.char_id];
-                obj.system = [obj.system char(ones(1, obj.list.QZS.n_sat) * obj.list.QZS.char_id)];
-                obj.prn = [obj.prn; obj.list.QZS.prn];
-                obj.n_sat = [obj.n_sat obj.list.QZS.n_sat];
-                obj.n_sat_tot = obj.n_sat_tot + obj.list.QZS.n_sat;
-            end
-            if enabled_ss(6) % SBAS is active (not yet implemented) 
-                obj.list.SBAS.n_sat = 0;    % (not yet implemented)
-            end        
-            
-            obj.index = (1 : obj.n_sat_tot)';   % incremental index of the active satellite system
-            obj.n_sys = numel(obj.list);
-            obj.sys_name = obj.SYS_NAMES(obj.num_id);
         end
-        
     end
     
     methods
-        function obj = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
+        function this = Constellation_Collector(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
             % Constructor - parameters: [GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]
             % SYNTAX:
             %   cc = Constellation_Collector('GRECJS'); % use the array of constellation char ids
@@ -159,7 +167,7 @@ classdef Constellation_Collector < handle
             switch nargin
                 case 1
                     if (ischar(GPS_flag))
-                        enabled_ss = false(1,obj.N_SYS_TOT);
+                        enabled_ss = false(1,this.N_SYS_TOT);
                         [~, ids] = intersect('GRECJS',GPS_flag);
                         enabled_ss(ids) = true;
                     else
@@ -171,41 +179,90 @@ classdef Constellation_Collector < handle
             end
             
             % check the size of the array enabled
-            if (numel(enabled_ss) < obj.N_SYS_TOT)
-                tmp = false(obj.N_SYS_TOT, 1);
+            if (numel(enabled_ss) < this.N_SYS_TOT)
+                tmp = false(this.N_SYS_TOT, 1);
                 tmp(1:numel(enabled_ss)) = enabled_ss;
                 enabled_ss = tmp;
                 clear tmp;
             else
-                enabled_ss = enabled_ss(1:obj.N_SYS_TOT);
+                enabled_ss = enabled_ss(1:this.N_SYS_TOT);
             end
             
-            obj.init(enabled_ss);
+            this.init(enabled_ss);
         end    
     end
 
-    methods
-        function str_cell = toString(obj, str_cell)
+    % =========================================================================
+    %  INTERFACE REQUIREMENTS
+    % =========================================================================    
+    methods (Access = 'public')
+        function import(this, settings)
+            % This function import processing settings from another setting object or ini file
+            enabled_ss = false(1,this.N_SYS_TOT);
+            if isa(settings, 'Ini_Manager')
+                [~, ids] = intersect(this.SYS_C,settings.getData('active_constellation_ch'));
+            else
+                [~, ids] = intersect(this.SYS_C,settings.char_id);
+            end
+            enabled_ss(ids) = true;
+            this.init(enabled_ss);
+        end
+        
+        function str = toString(this, str)
             % Display the satellite system in use
             if (nargin == 1)
-                str_cell = {};
+                str = '';
             end
-            [~, ids] = intersect('GRECJS', obj.char_id);
-            toString = @(var) regexprep(evalc(['disp(var)']), '''', '');
-            str_cell{numel(cell_str) + 1} = ['Constellation in use: ' toString(sort(ids))];
+            [~, ids] = intersect(this.SYS_C, this.char_id);
+            toString = @(var) regexprep(regexprep(evalc(['disp(var)']), '''   ', ','), '''', '');
+            str = [str ' Constellation in use: ' toString(this.SYS_EXT_NAMES(sort(ids)))];
         end
         
-        function str_cell = toIniString(obj, str_cell)            
-            % Conversion to string of the minimal information needed to reconstruct the obj            
+        function str_cell = export(this, str_cell)
+            % Conversion to string of the minimal information needed to reconstruct the this            
             if (nargin == 1)
                 str_cell = {};
             end
-            str_cell = Ini_Manager.toIniString('constellations_in_use', obj.char_id, str_cell);
-            str_cell = Ini_Manager.toIniString('index', obj.index, str_cell);
-            str_cell = Ini_Manager.toIniString('prn', obj.prn, str_cell);
-            str_cell = Ini_Manager.toIniString('system', obj.system, str_cell);
-        end
-        
-        
+            str_cell = Ini_Manager.toIniStringComment('Active constallations for the processing', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('insert the constellations as array of char:', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(' - "G" GPS', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(' - "R" GLONASS', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(' - "E" Galileo', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(' - "C" BeiDou', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(' - "J" QZSS', str_cell);
+            str_cell = Ini_Manager.toIniStringComment(' - "S" SBAS (not yet available)', str_cell);
+            str_cell = Ini_Manager.toIniString('active_constellation_ch', this.char_id, str_cell);
+            
+            % Maybe in a future it will be useful to export and import specific satellites in use
+            % str_cell = Ini_Manager.toIniString('index', this.index, str_cell);
+            % str_cell = Ini_Manager.toIniString('prn', this.prn, str_cell);
+            % str_cell = Ini_Manager.toIniString('system', this.system, str_cell);
+        end                
     end
+    
+    % =========================================================================
+    %  LEGACY IMPORT
+    % =========================================================================
+    methods (Access = 'public')
+        function legacyImport(this, state)
+            % import from the state variable (saved into the old interface mat file of goGPS)
+            % This function import processing settings from another setting object or ini file
+            enabled_ss = false(1,this.N_SYS_TOT);
+            enabled_ss(state.activeGNSS) = true;
+            enabled_ss(6) = enabled_ss(6) || state.use_sbas;
+            this.init(enabled_ss);
+        end
+    end
+            
+    % =========================================================================
+    %  TEST
+    % =========================================================================    
+    methods (Static, Access = 'public')        
+        function test()      
+            % test the class
+            c = Constellation_Collector(Constellation_Collector.SYS_C);
+            c.testInterfaceRoutines();
+        end
+    end    
+
 end

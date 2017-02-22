@@ -844,6 +844,7 @@ classdef Ini_Manager < handle
         
         % Parse the file (cleaned) ----------------------------------------
         function parseData(obj)
+            p = 0;
             s = 0;
             obj.section = {};
             for r=1:length(obj.raw_data)
@@ -863,6 +864,11 @@ classdef Ini_Manager < handle
                     if (~isempty(parName))
                         % we have a PARAMETER!
                         p = p+1;
+                        if (s == 0)
+                            s = s + 1;
+                            obj.section{s}.name = 'Section';
+                            obj.section{s}.key = [];
+                        end
                         obj.section{s}.key{p}.name = parName{1};
                         
                         % Get the DATA!
@@ -983,8 +989,10 @@ classdef Ini_Manager < handle
                 cell_str = {};
             end
 
+            cell_str{numel(cell_str) + 1} = [Ini_Manager.STD_COMMENT '--------------------------------------------------------------------------------'];
             cell_str{numel(cell_str) + 1} = ['[' section_name ']'];
-            
+            cell_str{numel(cell_str) + 1} = [Ini_Manager.STD_COMMENT '--------------------------------------------------------------------------------'];
+
             % I want a column array
             if size(cell_str,1) < size(cell_str,2)
                 cell_str = cell_str';
@@ -1010,7 +1018,7 @@ classdef Ini_Manager < handle
         % toIniString New Line --------------------------------------------
         function cell_str = toIniStringNewLine(cell_str)
             % Add a comment in ini string format
-            % SYNTAX: 
+            % SYNTAX:
             %   cell_str = toIniStringSection(section_name, cell_str)
             if (nargin == 0)
                 cell_str = {};
@@ -1022,6 +1030,5 @@ classdef Ini_Manager < handle
                 cell_str = cell_str';
             end
         end
-        
     end
 end

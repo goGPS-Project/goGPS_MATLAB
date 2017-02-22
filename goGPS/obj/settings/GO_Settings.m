@@ -58,18 +58,24 @@ classdef GO_Settings < Settings_Interface
                      'STD_HUMI', 50.0);        % humidity [%]               
     end
     
-    properties % Public Access        
-        ps = Processing_Settings();        % Processing settings
+    properties % Public Access
+        cur_settings = Settings();        % Processing settings
     end
     
+    % =========================================================================
+    %  INIT
+    % =========================================================================
     methods (Access = private)
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
-        function obj = GO_settings()
+        function obj = GO_Settings()
         end
     end
     
+    % =========================================================================
+    %  SINGLETON GETTERS
+    % =========================================================================
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
         function obj = getInstance()
@@ -81,16 +87,26 @@ classdef GO_Settings < Settings_Interface
                 obj = unique_instance_settings__;
             end
         end
+        
+        function cur_settings = getCurrentSettings()
+            this = GO_Settings.getInstance();
+            % Return the handler to the object containing the current settings
+            cur_settings = handle(this.cur_settings);
+        end
+        
     end
     
+    % =========================================================================
+    %  INTERFACE REQUIREMENTS
+    % =========================================================================
     methods % Public Access
         function import(obj, settings)
             % This function try to import settings from another setting object
             if isprop(settings, 'ps')
-                obj.ps.import(settings.ps);
+                obj.cur_settings.import(settings.cur_settings);
             else
                 try
-                    obj.ps.import(settings);
+                    obj.cur_settings.import(settings);
                 catch ex
                     obj.logger.addWarning(['GO_Settings.import failed to import settings (invalid input settings) ', ex.message()]);
                 end
@@ -107,16 +123,26 @@ classdef GO_Settings < Settings_Interface
             str = [str sprintf(' PI_ORBIT:                                         %g\n', obj.PI_ORBIT)];
             str = [str sprintf(' CIRCLE_RAD:                                       %g\n', obj.CIRCLE_RAD)];
             str = [str sprintf(' STANDARD ATMOSPHERE (Berg, 1948):\n  - PRESSURE [mBar]                                %g\n  - TEMPERATURE [K]                                %g\n  - HUMIDITY [%%]                                   %g\n\n', obj.ATM.PRES, obj.ATM.STD_TEMP, obj.ATM.STD_HUMI)];
-            str = obj.ps.toString(str);
+            str = obj.cur_settings.toString(str);
         end
         
-        function str_cell = export(obj, str_cell)            
+        function str_cell = export(obj, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the obj            
             if (nargin == 1)
                 str_cell = {};
             end
-            str_cell = obj.ps.export(str_cell);
+            str_cell = obj.cur_settings.export(str_cell);
+        end        
+    end
+    
+    % =========================================================================
+    %  TEST
+    % =========================================================================
+    methods (Static, Access = 'public')
+        function test()      
+            % test the class
+            s = GO_Settings.getInstance();
+            s.testInterfaceRoutines();
         end
-        
     end    
 end
