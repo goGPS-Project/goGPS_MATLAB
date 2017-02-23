@@ -48,6 +48,7 @@
 classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     
     properties (Constant, Access = 'protected')
+        % id to string of IAR modes
         IAR_MODE = {'0: ILS method with numeration in search (LAMBDA2)', ...
                     '1: ILS method with shrinking ellipsoid during search (LAMBDA3)' ...
                     '2: ILS method with numeration in search (LAMBDA3)', ...
@@ -55,25 +56,30 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
                     '4: iar_mode = 4; % integer bootstrapping method (LAMBDA3)', ...
                     '5: Partial Ambiguity Resolution (PAR) (LAMBDA3)'}
                 
+        % id to string of IAR restart function
         IAR_RESTART = {'0: Observed code - phase difference', ...
                        '1: Kalman-predicted code - phase difference', ...
                        '2: Least squares adjustment'}
        
+        % id to string of weight functions
         W_MODE = {'same weight for all the observations', ...
                   'weight based on satellite elevation (sin)' ...
                   'weight based on signal-to-noise ratio', ...
                   'weight based on combined elevation and signal-to-noise ratio', ...
                   'weight based on satellite elevation (exp)'}
               
+        % id to string of ionospheric models
         IONO_MODE = {'0: no model', ...
                      '1: Geckle and Feen model' ...
                      '2: Klobuchar model', ...
                      '3: SBAS grid'}
                  
+        % id to string of tropospheric models 
         TROPO_MODE = {'0: no model', ...
                       '1: Saastamoinen model (with standard atmosphere parameters)' ...
                       '2: Saastamoinen model (with Global Pressure Temperature model)'} 
                           
+        % id to string of capturing protocols
         C_PROTOCOL = {'1: UBX (u-blox)', ...
                       '2: iTalk (Fastrax)', ...
                       '3: SkyTraq', ...
@@ -102,7 +108,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         % Std of iono-free phase observations [m]
         std_ph_if = 0.003;
         
-        % Std of apriori receiver clock
+        % Std of a priori receiver clock
         sigma0_clock = 4.5e-09        
         % Std of receiver clock
         sigma0_r_clock = 1e3;
@@ -128,7 +134,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         snr_thr = 0;                
         % Flag for enabling the usage of ocean tides modeling
         flag_ocean = true;        
-        % Minimum length an arc (a satellite to be used must be seen for a number of consecutives epochs greater than this value)
+        % Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
         min_arc = 10;
 
         %------------------------------------------------------------------
@@ -210,7 +216,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         % User defined fixed failure rate (for methods 1,2) or minimum required success rate (for method 5)
         iar_P0 = 0.001;
 
-        % Std of apriori ambiguity combinations [cycles]
+        % Std of a priori ambiguity combinations [cycles]
         sigma0_N = 1000;
 
         % User defined threshold for ratio test
@@ -247,7 +253,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         % ATMOSPHERE
         %------------------------------------------------------------------
 
-        % Std of apriori tropospheric delay
+        % Std of a priori tropospheric delay
         sigma0_tropo = 0.1;
         % Std of tropospheric delay
         std_tropo = 4.6e-4;
@@ -348,6 +354,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     methods
         function this = Settings()
             % Creator
+            % SYNTAX: s_obj = Settings();
             this.postImportInit();
         end
     end
@@ -358,6 +365,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     methods (Access = 'public')
         function import(this, settings)
             % This function import processing settings from another setting object or ini file
+            % SYNTAX: s_obj.import(settings)
+            
             if isa(settings, 'Ini_Manager')         
                 % RECEIVER DEFAULT PARAMETERS
                 this.std_code = settings.getData('std_code');
@@ -555,6 +564,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         
         function str = toString(this, str)
             % Display the satellite system in use
+            % SYNTAX: s_obj.toString(str)
+
             if (nargin == 1)
                 str = '';
             end
@@ -564,7 +575,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Default STD of code observations [m]:             %g\n', this.std_code)];
             str = [str sprintf(' Default STD of phase observations [m]:            %g\n', this.std_ph)];
             str = [str sprintf(' Default STD of iono-free phase observations [m]:  %g\n', this.std_ph_if)];
-            str = [str sprintf(' Default STD of apriori receiver clock:            %g\n', this.sigma0_clock)];
+            str = [str sprintf(' Default STD of a priori receiver clock:            %g\n', this.sigma0_clock)];
             str = [str sprintf(' Default STD of receiver clock:                    %g\n', this.sigma0_r_clock)];
             str = [str sprintf(' Read master position from RINEX:                  %d\n', this.flag_rinex_mpos)];
             str = [str sprintf(' Default Master position (when not ovewrrided):\n')];
@@ -611,7 +622,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Using method: %s\n\n', this.IAR_MODE{this.iar_mode+1})];
             str = [str sprintf(' User defined fixed failure rate (methods 1,2):    %g\n', this.iar_P0)];
             str = [str sprintf(' User defined minimum success rate (for method 5): %g\n', this.iar_P0)];
-            str = [str sprintf(' STD of apriori ambiguity combinations [cycles]:   %d\n\n', this.sigma0_N)];
+            str = [str sprintf(' STD of a priori ambiguity combinations [cycles]:   %d\n\n', this.sigma0_N)];
             str = [str sprintf(' User defined threshold for ratio test:            %g\n', this.iar_mu)];
             str = [str sprintf(' Automatic determination of mu:                    %d\n', this.flag_iar_auto_mu)];
             str = [str sprintf(' Use default value for P0:                         %d\n', this.flag_iar_default_P0)];
@@ -622,7 +633,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' STD of initial state:                             %g\n', this.sigma0_k_pos)];
             str = [str sprintf(' STD of ENU variation:                             %g %g %g\n', struct2array(this.std_k_ENU))];
             str = [str sprintf(' STD of 3D modulus variation:                      %g\n\n', this.std_k_vel_mod)];
-            str = [str sprintf(' STD of apriori tropospheric delay:                %g\n', this.sigma0_tropo)];
+            str = [str sprintf(' STD of a priori tropospheric delay:                %g\n', this.sigma0_tropo)];
             str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
             
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
@@ -667,6 +678,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         
         function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the this
+            % SYNTAX: s_obj.export(str_cell)
+            
             if (nargin == 1)
                 str_cell = {};
             end
@@ -682,7 +695,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('std_ph', this.std_ph, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of iono-free phase observations [m', str_cell);
             str_cell = Ini_Manager.toIniString('std_ph_if', this.std_ph_if, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Default STD of apriori receiver clock', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Default STD of a priori receiver clock', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_clock', this.sigma0_clock, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of receiver clock', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_r_clock', this.sigma0_r_clock, str_cell);
@@ -706,7 +719,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('snr_thr', this.snr_thr, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Enable ocean tides modeling (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_ocean', this.flag_ocean, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Minimum length an arc (a satellite to be used must be seen for a number of consecutives epochs equal or greater than this value)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs equal or greater than this value)', str_cell);
             str_cell = Ini_Manager.toIniString('min_arc', this.min_arc, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
 
@@ -772,7 +785,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('User defined fixed failure rate (methods 1,2) / user defined minimum success rate (for method 5)', str_cell);
             str_cell = Ini_Manager.toIniString('iar_P0', this.iar_P0, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of apriori ambiguity combinations [cycles]', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of a priori ambiguity combinations [cycles]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_N', this.sigma0_N, str_cell);
             str_cell = Ini_Manager.toIniStringComment('User defined threshold for ratio test', str_cell);
             str_cell = Ini_Manager.toIniString('iar_mu', this.iar_mu, str_cell);
@@ -787,7 +800,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             
             % KF
             str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Oreder of the KF', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Order of the KF', str_cell);
             str_cell = Ini_Manager.toIniString('kf_order', this.kf_order, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of initial state [m]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_k_pos', this.sigma0_k_pos, str_cell);
@@ -795,7 +808,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('std_k_ENU', struct2array(this.std_k_ENU), str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of 3D modulus variation [m] / [m/s] / [m/s^2]', str_cell);
             str_cell = Ini_Manager.toIniString('std_k_vel_mod', this.std_k_vel_mod, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('STD of apriori tropospheric delay', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('STD of a priori tropospheric delay', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_tropo', this.sigma0_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of tropospheric delay', str_cell);
             str_cell = Ini_Manager.toIniString('std_tropo', this.std_tropo, str_cell);
@@ -811,8 +824,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Tropospheric model', str_cell);
             str_cell = Ini_Manager.toIniString('tropo_model', this.tropo_model, str_cell);
-            for i = 1 : numel(this.IONO_MODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IONO_MODE{i}), str_cell);
+            for i = 1 : numel(this.TROPO_MODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.TROPO_MODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
                         
@@ -891,6 +904,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             % import from the state variable (saved into the old interface mat file of goGPS)
             % If a group of imports fails display a warning but continue the
             % import of other groups
+            % SYNTAX: s_obj.legacyImport(state)
+
             
             % RECEIVER DEFAULT PARAMETERS ---------------------------------            
             try 
@@ -1089,6 +1104,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     methods (Access = 'protected')
         function postImportInit(this)
             % Operations to run after the import of new parameters
+            % SYNTAX: s_obj.postImportInit
             this.init_dtm();
         end        
     end
@@ -1098,7 +1114,9 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     % =========================================================================    
     methods (Access = 'public')
         function init_dtm(this, dtm_dir)
-            % Try to load default DTM values (if flag_dtm is on)
+            % Try to load default DTM values (if flag_dtm is on)?
+            % SYNTAX: s_obj.init_dtm(<dtm_dir>)
+
             if this.flag_dtm
                 if nargin == 1
                     dtm_dir = this.dtm_dir; % from superclass IO_Settings
@@ -1123,7 +1141,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     % =========================================================================    
     methods (Static, Access = 'public')        
         function test()      
-            % test the class
+            % Test the class
+            % SYNTAX: Settings.test()            
             s = Settings();
             s.testInterfaceRoutines();
         end

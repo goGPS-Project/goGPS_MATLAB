@@ -1,23 +1,17 @@
-%   CLASS QZSS_SS
+%   CLASS SBAS_SS
 % =========================================================================
 %
 % DESCRIPTION
-%   container of QZSS Satellite System parameters
+%   container of SBAS Satellite System parameters (not yet fully
+%   implemented, actually based on GPS)
 %
 % REFERENCES
 %   CRS parameters, according to each GNSS system CRS definition
 %   (ICD document in brackets):
 %
-%   *_QZS --> GRS80    (IS-QZSS 1.8E)
-%   Standard: http://qz-vision.jaxa.jp/USE/is-qzss/DOCS/IS-QZSS_18_E.pdf
-% 
-%   Other useful links
-%     - http://www.navipedia.net/index.php/QZSS_Signal_Plan
-%     - Ellipsoid: http://www.unoosa.org/pdf/icg/2012/template/WGS_84.pdf
-%       note that GM and OMEGAE_DOT are redefined in the standard IS-GPS200H (GPS is not using WGS_84 values)
-%     - http://www.navipedia.net/index.php/Reference_Frames_in_GNSS
-%     - http://gage6.upc.es/eknot/Professional_Training/PDF/Reference_Systems.pdf
+%   *_SBAS --> WGS-84
 
+%
 %--------------------------------------------------------------------------
 %               ___ ___ ___ 
 %     __ _ ___ / __| _ | __|
@@ -29,7 +23,7 @@
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Gatti Andrea
 %  Contributors:     Gatti Andrea, ...
-%  A list of all the historical goGPS contributors is in CREDITS.nfo
+%  A list of all the historical goSBAS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -49,54 +43,52 @@
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-classdef QZSS_SS < Satellite_System
-    properties (Constant, Access = 'public')
-        SYS_EXT_NAME = 'QZSS';    % full name of the constellation
-        SYS_NAME     = 'QZS';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
-        SYS_C        = 'J';       % Satellite system (ss) character id
-        
+classdef SBAS_SS < Satellite_System  
+    properties (Constant, Access = 'public')        
+        SYS_EXT_NAME = 'SBAS';    % full name of the constellation
+        SYS_NAME     = 'SBS';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
+        SYS_C        = 'S';       % Satellite system (ss) character id
+
         % System frequencies as struct [MHz]
-        F = struct('J1', 1575.420, ... 
-                   'J2', 1227.600, ...
-                   'J5', 1176.450, ...
-                   'J6', 1278.750)
+        F = struct('L1', 1575.420, ...
+                   'L2', 1227.600) 
         
         % Array of supported frequencies [MHz]
-        F_VEC = struct2array(QZSS_SS.F) * 1e6;  
+        F_VEC = struct2array(SBAS_SS.F) * 1e6;  
         
         % Array of the corresponding wavelength - lambda => wavelengths
-        L_VEC = 299792458 ./ QZSS_SS.F_VEC;   
+        L_VEC = 299792458 ./ SBAS_SS.F_VEC;   
         
-        N_SAT = 4;           % Maximum number of satellite in the constellation
-        PRN = (193 : 196)';  % Satellites id numbers as defined in the constellation
+        N_SAT = 0;           % Maximum number of satellite in the constellation
+        PRN = (0 : 0)';      % Satellites id numbers as defined in the constellation
     end
     
     properties (Constant, Access = 'private')
-        % QZSS (GRS80) Ellipsoid semi-major axis [m]
+        % SBAS (WGS84) Ellipsoid semi-major axis [m]
         ELL_A = 6378137;
-        % QZSS (GRS80) Ellipsoid flattening
-        ELL_F = 1/298.257222101;
-        % QZSS (GRS80) Ellipsoid Eccentricity^2
-        ELL_E2 = (1 - (1 - QZSS_SS.ELL_F) ^ 2);
-        % QZSS (GRS80) Ellipsoid Eccentricity
-        ELL_E = sqrt(QZSS_SS.ELL_E2);
+        % SBAS (WGS84) Ellipsoid flattening
+        ELL_F = 1/298.257223563;
+        % SBAS (WGS84) Ellipsoid Eccentricity^2
+        ELL_E2 = (1 - (1 - SBAS_SS.ELL_F) ^ 2);
+        % SBAS (WGS84) Ellipsoid Eccentricity
+        ELL_E = sqrt(SBAS_SS.ELL_E2);
     end
     
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
         ORBITAL_P = struct('GM', 3.986005e14, ...                  % Gravitational constant * (mass of Earth) [m^3/s^2]
                                     'OMEGAE_DOT', 7.2921151467e-5, ...      % Angular velocity of the Earth rotation [rad/s]
-                                    'ELL',struct( ...                       % Ellipsoidal parameters QZSS (GRS80)
-                                    'A', QZSS_SS.ELL_A, ...             % Ellipsoid semi-major axis [m]
-                                    'F', QZSS_SS.ELL_F, ...             % Ellipsoid flattening
-                                    'E', QZSS_SS.ELL_E, ...             % Eccentricity
-                                    'E2', QZSS_SS.ELL_E2));             % Eccentricity^2
+                                    'ELL',struct( ...                       % Ellipsoidal parameters SBAS (WGS84)
+                                    'A', SBAS_SS.ELL_A, ...              % Ellipsoid semi-major axis [m]
+                                    'F', SBAS_SS.ELL_F, ...              % Ellipsoid flattening
+                                    'E', SBAS_SS.ELL_E, ...              % Eccentricity
+                                    'e2', SBAS_SS.ELL_E2));              % Eccentricity^2
     end
     
     methods
-        function this = QZSS_SS(offset)
-            % Creator                  
-            % SYNTAX: QZSS_SS(<offset>)
+        function this = SBAS_SS(offset)
+            % Creator
+            % SYNTAX: SBAS_SS(<offset>);
             if (nargin == 0)
                 offset = 0;
             end

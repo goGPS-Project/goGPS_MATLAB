@@ -1017,7 +1017,7 @@ classdef Ini_Manager < handle
         
         % toIniString New Line --------------------------------------------
         function cell_str = toIniStringNewLine(cell_str)
-            % Add a comment in ini string format
+            % Add a new line in ini string format
             % SYNTAX:
             %   cell_str = toIniStringSection(section_name, cell_str)
             if (nargin == 0)

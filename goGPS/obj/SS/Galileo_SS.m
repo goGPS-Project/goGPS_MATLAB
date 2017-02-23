@@ -58,53 +58,57 @@
 
 classdef Galileo_SS < Satellite_System            
     properties (Constant, Access = 'public')        
+        SYS_EXT_NAME = 'Galileo'; % full name of the constellation
+        SYS_NAME     = 'GAL';     % 3 characters name of the constellation, this "short name" is used as fields of the property list (struct) to identify a constellation
+        SYS_C        = 'E';       % Satellite system (ss) character id
+        
         % System frequencies as struct [MHz]
-        f = struct('E1', 1575.420, ...
+        F = struct('E1', 1575.420, ...
                    'E5a', 1176.450, ...
                    'E5b', 1207.140, ...
                    'E5', 1191.795, ...
                    'E6', 1278.750) 
         
         % Array of supported frequencies [MHz]
-        f_vec = struct2array(Galileo_SS.f) * 1e6;  
+        F_VEC = struct2array(Galileo_SS.F) * 1e6;  
         
         % Array of the corresponding wavelength - lambda => wavelengths
-        l_vec = 299792458 ./ Galileo_SS.f_vec;   
+        L_VEC = 299792458 ./ Galileo_SS.F_VEC;   
         
-        char_id = 'E'     % Satellite system (ss) character id
-        n_sat = 30;       % Maximum number of satellite in the constellation
-        prn = (1 : 30)';  % Satellites id numbers as defined in the constellation
+        N_SAT = 30;       % Maximum number of satellite in the constellation
+        PRN = (1 : 30)';  % Satellites id numbers as defined in the constellation
     end
     
     properties (Constant, Access = 'private')
         % GPS (WGS84) Ellipsoid semi-major axis [m]
-        ell_a = 6378137;
+        ELL_A = 6378137;
         % GPS (WGS84) Ellipsoid flattening
-        ell_f = 1/298.257222101;
+        ELL_F = 1/298.257222101;
         % GPS (WGS84) Ellipsoid Eccentricity^2
-        ell_e2 = (1 - (1 - Galileo_SS.ell_f) ^ 2);
+        ELL_E2 = (1 - (1 - Galileo_SS.ELL_F) ^ 2);
         % GPS (WGS84) Ellipsoid Eccentricity
-        ell_e = sqrt(Galileo_SS.ell_e2);
+        ELL_E = sqrt(Galileo_SS.ELL_E2);
     end
     
     properties (Constant, Access = 'public')
         % Structure of orbital parameters (ellipsoid, GM, OMEGA_EARTH_DOT)
-        orbital_parameters = struct('GM', 3.986004418e14, ...               % Galileo (Galileo-ICD) Gravitational constant * (mass of Earth) [m^3/s^2]
+        ORBITAL_P = struct('GM', 3.986004418e14, ...               % Galileo (Galileo-ICD) Gravitational constant * (mass of Earth) [m^3/s^2]
                                     'OMEGAE_DOT', 7.2921151467e-5, ...      % Galileo (Galileo-ICD) Angular velocity of the Earth rotation [rad/s]
-                                    'ell',struct( ...                       % Ellipsoidal parameters Galileo (GTRF)
-                                        'a', Galileo_SS.ell_a, ...          % Ellipsoid semi-major axis [m]
-                                        'f', Galileo_SS.ell_f, ...          % Ellipsoid flattening
-                                        'e', Galileo_SS.ell_e, ...          % Eccentricity
-                                        'e2', Galileo_SS.ell_e2));          % Eccentricity^2
+                                    'ELL',struct( ...                       % Ellipsoidal parameters Galileo (GTRF)
+                                    'A', Galileo_SS.ELL_A, ...          % Ellipsoid semi-major axis [m]
+                                    'F', Galileo_SS.ELL_F, ...          % Ellipsoid flattening
+                                    'E', Galileo_SS.ELL_E, ...          % Eccentricity
+                                    'E2', Galileo_SS.ELL_E2));          % Eccentricity^2
     end
     
     methods
         function this = Galileo_SS(offset)
             % Creator            
+            % SYNTAX: Galileo_SS(<offset>);
             if (nargin == 0)
                 offset = 0;
             end
-            this.updateGoIds(offset);
+            this@Satellite_System(offset);
         end
     end
 end
