@@ -1052,7 +1052,7 @@ while read_files
             end
             
             
-            logger.addMessage(['Select master observations (file ' filename_obs{end} ')...']);
+            logger.addMessage(['Selecting master observations (file ' filename_obs{end} ')...']);
             w_bar.setBarLen(length(time_GPS));
             w_bar.createNewBar('Pre-processing master...');
             
@@ -1061,8 +1061,14 @@ while read_files
                 pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M;
             end
             
-            %             [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, 2, sbas, constellations, order);
-            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, 2, sbas, constellations, flag_full_prepro, order);
+            if (~flag_SEID)
+                flag_XM_prep = 2;
+            else
+                flag_XM_prep = 1;
+            end
+            
+            % [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, 1, 'NONE', nSatTot, goWB, flag_XM_prep, sbas, constellations, order);
+            [pr1_M, ph1_M, pr2_M, ph2_M, dtM, dtMdot, bad_sats_M, bad_epochs_M, var_dtM, var_SPP_M, status_obs_M, status_cs, eclipsed, ISBs, var_ISBs] = pre_processing(time_GPS, time_M, pos_M, pr1_M, ph1_M, pr2_M, ph2_M, dop1_M, dop2_M, snr1_M, Eph, SP3, iono, lambda, frequencies, obs_comb, nSatTot, w_bar, flag_XM_prep, sbas, constellations, flag_full_prepro, order);
             if report.opt.write == 1
                 report.prep.tot_epoch_M=size(pr1_M,2);
                 report.prep.proc_epoch_M=length(bad_epochs_M(isfinite(bad_epochs_M)));
@@ -1357,7 +1363,6 @@ while read_files
     global sigmaq_tropo
     sigmaq_tropo = (0.005/sqrt(3600/interval))^2;
     % sigmaq_tropo = (0.05/sqrt(3600/interval))^2;
-
 
     %----------------------------------------------------------------------------------------------
     % SEID (Satellite-specific Epoch-differenced Ionospheric Delay) interpolation
@@ -3153,7 +3158,7 @@ if (goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)) && (~isempty(EAST))
         print(f, '-dpdf', [filerootOUT '_dtR_KAL']);
         close(f)
         
-        if (nC > 1)
+        if (~isempty(ISBs))
             sys = unique(constellations.systems);
             for ISB = (nC-1) : -1 : 0
                 ISB_KAL = Xhat_t_t_OUT(end-ISB,:)./goGNSS.V_LIGHT;

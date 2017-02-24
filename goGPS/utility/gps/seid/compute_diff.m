@@ -38,7 +38,7 @@ lambda2 = 0.244210213424568;
 %compute dL4
 n_sta = length(name_series);
 
-%choose station for interpolation 
+%choose reference time for interpolation 
 commontime = time_series{1}; 
 for i = 2 : n_sta
     commontime = intersect(commontime,time_series{i});
@@ -60,6 +60,13 @@ for sta = 1 : n_sta
     for PRN = 1 : 32
         L4_series(PRN,:,sta)=L1_series{sta}(PRN,stations_idx(sta,:))*lambda1 - L2_series{sta}(PRN,stations_idx(sta,:))*lambda2;
         P4_series(PRN,:,sta)=P2_series{sta}(PRN,stations_idx(sta,:))         - P1_series{sta}(PRN,stations_idx(sta,:));
+        
+        idx_zeros = L4_series(PRN,:,sta) == 0;
+        L4_series(PRN,idx_zeros,sta) = NaN;
+        
+        idx_zeros = P4_series(PRN,:,sta) == 0;
+        P4_series(PRN,idx_zeros,sta) = NaN;
+        
         diff_L4(PRN,:,sta)=diff(L4_series(PRN,:,sta));
         diff_P4(PRN,:,sta)=diff(P4_series(PRN,:,sta));
     end

@@ -283,14 +283,16 @@ else
                 end
             else
                 if (i > 2)
-                    dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
-                    dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
+                    dtR(i) = 0;
+                    dtRdot(i-1) = 0;
+                    time(i) = 0;
                 end
             end
         else
             if (i > 2)
-                dtR(i) = dtR(i-1) + (dtR(i-1) - dtR(i-2));
-                dtRdot(i-1) = (dtR(i) - dtR(i-1))/(time(i) - time(i-1));
+                dtR(i) = 0;
+                dtRdot(i-1) = 0;
+                time(i) = 0;
             end
         end
         
