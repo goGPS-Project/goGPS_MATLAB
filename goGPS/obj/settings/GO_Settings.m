@@ -59,7 +59,7 @@ classdef GO_Settings < Settings_Interface
     end
     
     properties % Public Access
-        cur_settings = Settings();        % Processing settings
+        cur_settings = Main_Settings();        % Processing settings
     end
     
     % =========================================================================

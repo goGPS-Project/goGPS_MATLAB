@@ -1,18 +1,18 @@
-%   CLASS Settings
+%   CLASS Main_Settings
 % =========================================================================
 %
 % DESCRIPTION
 %   Class to store all the Processing parameters
 %
 % EXAMPLE
-%   settings = Settings();
+%   settings = Main_Settings();
 %
 % SEE ALSO
 %   - GO_Settings     
 %         it is a singleton class that store the status of the
-%         settings to be used in one goGPS session
+%         Main_Settings to be used in one goGPS session
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc Settings
+% FOR A LIST OF CONSTANTs and METHODS use doc Main_Settings
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___ 
@@ -45,7 +45,7 @@
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
+classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     
     properties (Constant, Access = 'protected')
         % id to string of IAR modes
@@ -352,9 +352,9 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     %  INIT
     % =========================================================================    
     methods
-        function this = Settings()
+        function this = Main_Settings()
             % Creator
-            % SYNTAX: s_obj = Settings();
+            % SYNTAX: s_obj = Main_Settings();
             this.postImportInit();
         end
     end
@@ -1115,10 +1115,10 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     % =========================================================================    
     methods (Access = 'public')
         function ini = save(this, file_path)
-            % Save to a file (in INI fomat) the content of the Settings object
+            % Save to a file (in INI fomat) the content of the settings object
             % SYNTAX: <ini> = this.save(<file_path>);
             %
-            % when file_path is not specified Settings are saved on the
+            % when file_path is not specified settings are saved on the
             % current settings file stored whose location is stored into the
             % property "cur_ini" defined in the superclass IO_Settings
             % return optionally the ini manager object used by the save function
@@ -1134,9 +1134,9 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         end
         
         function importIniFile(this, file_path)
-            % Import from an INI file the content of the Settings object
+            % Import from an INI file the content of the settings object
             % SYNTAX: this.importIniFile(<file_path>);
-            % when file_path is not specified Settings are saved on the
+            % when file_path is not specified settings are saved on the
             % current settings file stored whose location is stored into the
             % property "cur_ini" defined in the superclass IO_Settings            if (nargin == 1)
             if (nargin == 1)
@@ -1174,8 +1174,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
     methods (Static, Access = 'public')        
         function test()      
             % Test the class
-            % SYNTAX: Settings.test()            
-            s = Settings();
+            % SYNTAX: settings.test()            
+            s = Main_Settings();
             s.testInterfaceRoutines();
         end
     end    
