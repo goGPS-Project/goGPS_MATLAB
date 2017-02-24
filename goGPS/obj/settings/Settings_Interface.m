@@ -56,7 +56,7 @@ classdef Settings_Interface < handle
     end
         
     methods  (Abstract)        
-        import(obj, settings)
+        import(obj, settings);
         % This function import the settings of the current class from another setting object having the same properties, or an ini file
         
         str = toString(obj, str)
@@ -66,9 +66,38 @@ classdef Settings_Interface < handle
         % Conversion to string ini format of the minimal information needed to reconstruct the obj
     end
     
+    methods (Access = 'public')
+        
+        function ini = save(this, file_path)
+            % Save to a file (in INI fomat) the content of the Settings object
+            % SYNTAX: <ini> = this.save(file_path);
+            % return optionally the ini manager object used by the save function
+            ini = Ini_Manager(file_path, this.export());
+        end
+        
+        function importIniFile(this, file_path)
+            % Import from an INI file the content of the Settings object
+            % SYNTAX: this.importIniFile(file_path);
+            ini = Ini_Manager(file_path);
+            this.import(ini);
+        end
+        
+        function importLegacyFile(this, file_path)
+            % Import from an INI file the content of the Settings object
+            % SYNTAX: this.importIniFile(file_path);
+            try
+                load(file_path);
+                this.import(ini);
+            catch ex
+                this.logger.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
+            end
+        end
+    end
+        
     methods (Access = 'protected')
         function testInterfaceRoutines(this)
             % test the class (Interface Routines)
+            % SINTAX: this.testInterfaceRoutines();
             
             try
                 vl = this.logger.getVerbosityLev();
@@ -89,6 +118,6 @@ classdef Settings_Interface < handle
                 this.logger.addError(['Test failed: ' ex.message]);
             end
             this.logger.setVerbosityLev(vl);
-        end
+        end        
     end
 end

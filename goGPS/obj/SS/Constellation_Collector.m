@@ -282,6 +282,7 @@ classdef Constellation_Collector < Settings_Interface
             str = this.list.BDS.toString(str);
             str = this.list.QZS.toString(str);
             str = this.list.SBS.toString(str);
+            str = [str 10];
         end
         
         function str_cell = export(this, str_cell)

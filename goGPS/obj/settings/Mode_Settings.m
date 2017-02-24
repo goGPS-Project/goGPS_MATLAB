@@ -247,6 +247,24 @@ classdef Mode_Settings < Settings_Interface
     end
     
     % =========================================================================
+    %  GETTERS
+    % =========================================================================
+    methods (Access = 'public')
+        function [mode, nav_mon, ls_kalman, code_dd_sa] = getGuiMode(this)
+            % Get the current mode in GUI format 
+            % SYNTAX: [mode, nav_mon, ls_kalman, code_dd_sa] = this.getGuiMode();
+            [mode, nav_mon, ls_kalman, code_dd_sa] = this.mode2gui(this.p_mode);
+        end
+        
+        function mode = getMode(this)
+            % Get the current mode
+            % SYNTAX: mode = this.getMode();
+            mode = this.p_mode;
+        end
+        
+    end
+
+    % =========================================================================
     %  LEGACY CONVERTERS
     % =========================================================================
     methods (Static, Access = 'protected')

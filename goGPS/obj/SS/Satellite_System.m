@@ -100,7 +100,7 @@ classdef Satellite_System < Settings_Interface
             if (nargin == 0)
                 offset = 0;
             end
-            this.flag_f = true(1, size(this.F_VEC, 2));
+            this.flag_f = false(1, size(this.F_VEC, 2));
             this.updateGoIds(offset);
         end
         
@@ -179,9 +179,9 @@ classdef Satellite_System < Settings_Interface
             end            
             if (this.isActive())
                 name = string(this.getFreqName());
-                str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n\n', this.SYS_EXT_NAME, sprintf('"%s" ',  name(this.flag_f)))];
+                str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n', this.SYS_EXT_NAME, sprintf('"%s" ',  name(this.flag_f)))];
             else
-                str = [str sprintf(' Satellite system "%s" is inactive\n\n', this.SYS_EXT_NAME)];
+                str = [str sprintf(' Satellite system "%s" is inactive\n', this.SYS_EXT_NAME)];
             end
         end
         

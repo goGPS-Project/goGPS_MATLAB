@@ -83,7 +83,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         C_PROTOCOL = {'1: UBX (u-blox)', ...
                       '2: iTalk (Fastrax)', ...
                       '3: SkyTraq', ...
-                      '4: BINR (NVS)'}
+                      '4: BINR (NVS)'}                          
     end
     
     %  Processing parameters
@@ -123,7 +123,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         %------------------------------------------------------------------
         
         % object containing info on the activated constellations
-        cc =  Constellation_Collector('GRECJ');
+        cc =  Constellation_Collector('G');
         % Minimum processing rate [s]
         p_rate = 1;
         % Minimum number of satellites to be used in the Kalman filter
@@ -279,7 +279,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
         flag_dtm = false;
 
         % Folder containing DTM files
-        dtm_dir = '../data/dtm';
+        % dtm_dir = '../data/dtm'; -> defined in superclass IO_Settings
 
         % Std of DEM height [m]
         std_dtm = 0.03  % (maximize to disable DEM usage: e.g. 1e30)
@@ -436,7 +436,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.tropo_model = settings.getData('tropo_model');
                 
                 % DTM
-                this.dtm_dir    = settings.getData('dtm_dir');
+                %this.dtm_dir    = settings.getData('dtm_dir');
                 this.flag_dtm = settings.getData('flag_dtm');
                 this.std_dtm = settings.getData('std_dtm');
                 this.antenna_h = settings.getData('antenna_h');
@@ -531,7 +531,7 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
                         
                 % DTM 
                 this.flag_dtm = settings.flag_dtm;
-                this.dtm_dir    = settings.dtm_dir;
+                %this.dtm_dir    = settings.dtm_dir;
                 this.std_dtm = settings.std_dtm;
                 this.antenna_h = settings.antenna_h;
                 
@@ -637,8 +637,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
             
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
-            str = [str sprintf(' Ionospheric model:  %s\n', this.IONO_MODE{this.iono_model+1})];
-            str = [str sprintf(' Tropospheric model: %s\n\n', this.TROPO_MODE{this.tropo_model+1})];
+            str = [str sprintf(' Ionospheric model  %s\n', this.IONO_MODE{this.iono_model+1})];
+            str = [str sprintf(' Tropospheric model %s\n\n', this.TROPO_MODE{this.tropo_model+1})];
             
             str = [str '---- DTM -----------------------------------------------------------------' 10 10];
             str = [str sprintf(' Use DTM:                                          %d\n', this.flag_dtm)];
@@ -833,8 +833,8 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringSection('DTM', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Use DTM (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_dtm', this.flag_dtm, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Folder containing DTM data', str_cell);
-            str_cell = Ini_Manager.toIniString('dtm_dir', this.dtm_dir, str_cell);
+            %str_cell = Ini_Manager.toIniStringComment('Folder containing DTM data', str_cell);
+            %str_cell = Ini_Manager.toIniString('dtm_dir', this.dtm_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of DEM model [m]', str_cell);
             str_cell = Ini_Manager.toIniString('std_dtm', this.std_dtm, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Elevation of the antenna above ground [m]', str_cell);
@@ -904,8 +904,9 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             % import from the state variable (saved into the old interface mat file of goGPS)
             % If a group of imports fails display a warning but continue the
             % import of other groups
-            % SYNTAX: s_obj.legacyImport(state)
-
+            % SYNTAX: this.legacyImport(state)
+            
+            this.legacyImport@IO_Settings(state);
             
             % RECEIVER DEFAULT PARAMETERS ---------------------------------            
             try 
@@ -1015,9 +1016,9 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             
             % INTEGER AMBIGUITY RESOLUTION --------------------------------            
             try
-                this.iar_restart_mode = state.amb_select;
+                this.iar_restart_mode = state.amb_select - 1;
                 this.flag_iar = state.use_lambda;
-                this.iar_mode = state.lambda_method;
+                this.iar_mode = state.lambda_method-1;
                 this.iar_P0 = str2double(state.lambda_P0);
                 this.iar_mu = str2double(state.lambda_mu);
                 this.flag_iar_auto_mu = state.lambda_auto_mu;                
@@ -1106,13 +1107,44 @@ classdef Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Operations to run after the import of new parameters
             % SYNTAX: s_obj.postImportInit
             this.init_dtm();
-        end        
+        end
     end
     
     % =========================================================================
     %  Additional Public methods
     % =========================================================================    
     methods (Access = 'public')
+        function ini = save(this, file_path)
+            % Save to a file (in INI fomat) the content of the Settings object
+            % SYNTAX: <ini> = this.save(<file_path>);
+            %
+            % when file_path is not specified Settings are saved on the
+            % current settings file stored whose location is stored into the
+            % property "cur_ini" defined in the superclass IO_Settings
+            % return optionally the ini manager object used by the save function
+            
+            if (nargin == 1)
+                file_path = this.cur_ini;
+            end
+            [dir_path, name, ext] = fileparts(file_path);
+            if not(exist(dir_path, 'dir'))
+                mkdir(dir_path);
+            end
+            ini = this.save@Settings_Interface(file_path);
+        end
+        
+        function importIniFile(this, file_path)
+            % Import from an INI file the content of the Settings object
+            % SYNTAX: this.importIniFile(<file_path>);
+            % when file_path is not specified Settings are saved on the
+            % current settings file stored whose location is stored into the
+            % property "cur_ini" defined in the superclass IO_Settings            if (nargin == 1)
+            if (nargin == 1)
+                file_path = this.cur_ini;
+            end
+            this.importIniFile@Settings_Interface(file_path);
+        end       
+        
         function init_dtm(this, dtm_dir)
             % Try to load default DTM values (if flag_dtm is on)?
             % SYNTAX: s_obj.init_dtm(<dtm_dir>)
