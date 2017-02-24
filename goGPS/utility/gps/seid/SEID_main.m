@@ -127,6 +127,11 @@ for k = 1 : n_sta
     end
 
     for PRN = 1 : nSatTot
+        
+        if (k == target_sta)
+            index = find(P1{k}(PRN,:) ~= 0);
+            P1{k}(PRN,index) = P1{k}(PRN,index) - goGNSS.V_LIGHT*dtM(index)';
+        end
         zero_idx = find(P1{k}(PRN,:) == 0);
         P1{k}(PRN,zero_idx) = NaN; %#ok<*FNDSB>
         
@@ -155,17 +160,22 @@ for PRN = 1 : nSatTot
     %interpolate P4 and compute ~P4
     [satel(PRN).til_P4] = planefit_satspec_diff_obs(P4, commontime, satel(PRN).ipp_lon, satel(PRN).ipp_lat, PRN, target_sta, 0);
 
+    %select only the epochs where all stations observations are available
+    idx_diff_L4 = all(~isnan(squeeze(diff_L4(PRN,:,:))) .* (squeeze(diff_L4(PRN,:,:)) ~= 0),2);
+    
     %compute ~L2
-    til_L2(PRN,stations_idx(target_sta,:)) = (L1{target_sta}(PRN,stations_idx(target_sta,:))*lambda(PRN,1) - satel(PRN).til_L4)/lambda(PRN,2);
+    fix_til_L2(PRN,idx_diff_L4) = (L1{target_sta}(PRN,idx_diff_L4)*lambda(PRN,1) - satel(PRN).til_L4(idx_diff_L4))/lambda(PRN,2);
     
     %compute ~P2
-    til_P2(PRN,stations_idx(target_sta,:)) = P1{target_sta}(PRN,stations_idx(target_sta,:)) + satel(PRN).til_P4;
+    fix_til_P2(PRN,idx_diff_L4) = P1{target_sta}(PRN,idx_diff_L4) + satel(PRN).til_P4(idx_diff_L4);
     
-    %compute fix ~L2 (remove large outliers)
-    fix_til_L2(PRN,:) = fix_jump(til_L2,PRN,0.6*10e7);
-    
-    %compute fix ~P2 (remove large outliers)
-    fix_til_P2(PRN,:) = fix_jump(til_P2,PRN,0.6*10e7);
+%     %compute fix ~L2 (remove large outliers)
+%     fix_til_L2(PRN,:) = fix_jump(til_L2,PRN,0.6*10e7);
+%     
+%     %compute fix ~P2 (remove large outliers)
+%     fix_til_P2(PRN,:) = fix_jump(til_P2,PRN,0.6*10e7);
+
+    fix_til_P2(PRN,:) = fix_til_P2(PRN,:) + goGNSS.V_LIGHT*dtM';
 end
 
 %write new RINEX file
@@ -193,7 +203,7 @@ write_RINEX_obs(temporaryfile_path, '', antenna_PCV(target_sta).name, cell2mat(m
 
 undersamplingRINEX(temporaryfile_path, outputfile_path, 0, new_interval, interval);
 
-fprintf(['Output file: ' outputfile_path '\n']);
+fprintf('%s\n',['Output file: ' outputfile_path]);
 
 delete(temporaryfile_path);
 

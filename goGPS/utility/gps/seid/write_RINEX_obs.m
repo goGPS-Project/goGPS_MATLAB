@@ -37,7 +37,7 @@ function write_RINEX_obs(filename, receiver, antenna, marker_name, pr1_R, pr2_R,
 %----------------------------------------------------------------------------------------------
 
 %displaying
-fprintf(['Writing: ' filename '... ']);
+fprintf('%s',['Writing: ' filename '... ']);
 
 %create RINEX observation file
 fid_obs = fopen(filename,'wt');
@@ -137,4 +137,4 @@ end
 %close RINEX observation file
 fclose(fid_obs);
 
-fprintf(['done.\n']);
+fprintf('%s\n',['done.']);

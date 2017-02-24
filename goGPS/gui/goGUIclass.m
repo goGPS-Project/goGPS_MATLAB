@@ -2039,7 +2039,7 @@ isOn = this.isEnabled(this.idUI.lProcMode);
           %   DATA USAGE
           % --------------------------------------------------------------- 
 
-            if (length(this.getFreq()) > 1) && this.isPPP()
+            if (length(this.getFreq()) > 1) && (this.isPPP() || (this.isLS && this.isStandAlone))
                 this.setElStatus(this.idGroup.pObsComb, 1, 0);
             else
                 this.setElStatus(this.idGroup.pObsComb, 0, 0);
