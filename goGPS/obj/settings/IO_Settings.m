@@ -137,7 +137,7 @@ classdef IO_Settings < Settings_Interface
         %  - out_style = 2... other values for future implementation, e.g. each output in a folder with a certain format (doy_hh-hh)
                 
         % Directory containing the output of the project
-        out_dir = [IO_Settings.DEFAULT_DIR_OUT  'default_DD' filesep 'out' filesep]; % location relative to the project home
+        out_dir = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % location relative to the project home
         
         % Every time a solution is computed a folder with prefix followed by the run number is created
         out_prefix = 'yamatogawa'
