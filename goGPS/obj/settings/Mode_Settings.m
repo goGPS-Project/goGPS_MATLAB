@@ -62,7 +62,7 @@ classdef Mode_Settings < Settings_Interface
         MODE_PP_KF_CP_SA         = 4;   % Post Proc Kalman Filter on Code and Phase Stand Alone (PPP)
         MODE_PP_KF_CP_DD         = 14;  % Post Proc Kalman Filter on Code and Phase Double Differences
         MODE_PP_KF_CP_DD_MR      = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers
-        MODE_PP_SEID_PPP         = 16;  % SEID followed by PPP (Kalman Filter on Code and Phase Stand Alone (PPP)) it is both stand alone and DD
+        MODE_PP_SEID_PPP         = 18;  % SEID followed by PPP (Kalman Filter on Code and Phase Stand Alone (PPP)) it is both stand alone and DD
         
         % goGPS MODES -----------------------------------------------------
                  
