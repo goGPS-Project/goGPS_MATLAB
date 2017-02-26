@@ -78,13 +78,19 @@ classdef GO_Settings < Settings_Interface
     % =========================================================================
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
-        function obj = getInstance()
+        function this = getInstance(force_clean)
             persistent unique_instance_settings__
+            if (nargin == 1) && force_clean
+                logger = Logger.getInstance();
+                logger.addWarning('cleaning settings of the session');
+                clear unique_instance_settings__;
+                unique_instance_settings__ = [];
+            end
             if isempty(unique_instance_settings__)
-                obj = GO_Settings();
-                unique_instance_settings__ = obj;
+                this = GO_Settings();
+                unique_instance_settings__ = this;
             else
-                obj = unique_instance_settings__;
+                this = unique_instance_settings__;
             end
         end
         
@@ -100,38 +106,38 @@ classdef GO_Settings < Settings_Interface
     %  INTERFACE REQUIREMENTS
     % =========================================================================
     methods % Public Access
-        function import(obj, settings)
+        function import(this, settings)
             % This function try to import settings from another setting object
             if isprop(settings, 'ps')
-                obj.cur_settings.import(settings.cur_settings);
+                this.cur_settings.import(settings.cur_settings);
             else
                 try
-                    obj.cur_settings.import(settings);
+                    this.cur_settings.import(settings);
                 catch ex
-                    obj.logger.addWarning(['GO_Settings.import failed to import settings (invalid input settings) ', ex.message()]);
+                    this.logger.addWarning(['GO_Settings.import failed to import settings (invalid input settings) ', ex.message()]);
                 end
             end            
         end
         
-        function str = toString(obj, str)
+        function str = toString(this, str)
             % Display the satellite system in use
             if (nargin == 1)
                 str = '';
             end            
             str = [str '---- CONSTANTS -----------------------------------------------------------' 10 10];
-            str = [str sprintf(' VLIGHT:                                           %g\n', obj.V_LIGHT)];
-            str = [str sprintf(' PI_ORBIT:                                         %g\n', obj.PI_ORBIT)];
-            str = [str sprintf(' CIRCLE_RAD:                                       %g\n', obj.CIRCLE_RAD)];
-            str = [str sprintf(' STANDARD ATMOSPHERE (Berg, 1948):\n  - PRESSURE [mBar]                                %g\n  - TEMPERATURE [K]                                %g\n  - HUMIDITY [%%]                                   %g\n\n', obj.ATM.PRES, obj.ATM.STD_TEMP, obj.ATM.STD_HUMI)];
-            str = obj.cur_settings.toString(str);
+            str = [str sprintf(' VLIGHT:                                           %g\n', this.V_LIGHT)];
+            str = [str sprintf(' PI_ORBIT:                                         %g\n', this.PI_ORBIT)];
+            str = [str sprintf(' CIRCLE_RAD:                                       %g\n', this.CIRCLE_RAD)];
+            str = [str sprintf(' STANDARD ATMOSPHERE (Berg, 1948):\n  - PRESSURE [mBar]                                %g\n  - TEMPERATURE [K]                                %g\n  - HUMIDITY [%%]                                   %g\n\n', this.ATM.PRES, this.ATM.STD_TEMP, this.ATM.STD_HUMI)];
+            str = this.cur_settings.toString(str);
         end
         
-        function str_cell = export(obj, str_cell)
+        function str_cell = export(this, str_cell)
             % Conversion to string ini format of the minimal information needed to reconstruct the obj            
             if (nargin == 1)
                 str_cell = {};
             end
-            str_cell = obj.cur_settings.export(str_cell);
+            str_cell = this.cur_settings.export(str_cell);
         end        
     end
     

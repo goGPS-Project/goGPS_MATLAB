@@ -82,16 +82,6 @@ classdef Settings_Interface < handle
             this.import(ini);
         end
         
-        function importLegacyFile(this, file_path)
-            % Import from an INI file the content of the Settings object
-            % SYNTAX: this.importIniFile(file_path);
-            try
-                load(file_path);
-                this.import(ini);
-            catch ex
-                this.logger.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
-            end
-        end
     end
         
     methods (Access = 'protected')

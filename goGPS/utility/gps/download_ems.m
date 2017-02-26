@@ -49,6 +49,9 @@ function [file_ems] = download_ems(prn, gps_week, gps_time)
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
+% Pointer to the global settings:
+state = GO_Settings.getCurrentSettings();
+
 file_ems = {};
 
 if (prn ~= 120 & prn ~= 124 & prn ~= 126)
@@ -60,7 +63,7 @@ end
 ems_ip = '131.176.49.48'; % ems.estec.esa.int
 
 %download directory
-down_dir = '../data/EMS';
+down_dir = state.ems_dir;
 
 %buffer in minutes
 buf_min = 13;
@@ -73,6 +76,11 @@ gps_tow = weektime2tow(gps_week, gps_time);
 
 % ending time
 [date_l, day_of_year_l] = gps2date(gps_week(end), gps_tow(end));
+
+% Check / create output folder
+if not(exist(down_dir, 'dir'))
+    mkdir(down_dir);
+end
 
 %store the initial values in case the year changes
 date_f_temp = date_f;

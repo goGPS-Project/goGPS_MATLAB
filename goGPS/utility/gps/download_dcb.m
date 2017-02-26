@@ -46,6 +46,10 @@ function [file_dcb, compressed] = download_dcb(gps_week, gps_time)
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
+
+% Pointer to the global settings:
+state = GO_Settings.getCurrentSettings();
+
 file_dcb = {};
 compressed = 0;
 
@@ -53,7 +57,7 @@ compressed = 0;
 aiub_ip = '130.92.9.78'; % ftp.unibe.ch
 
 %download directory
-down_dir = '../data/DCB';
+down_dir = state.dcb_dir;
 
 %convert GPS time to time-of-week
 gps_tow = weektime2tow(gps_week, gps_time);
@@ -63,6 +67,11 @@ date_f = gps2date(gps_week(1), gps_tow(1));
 
 % ending time
 date_l = gps2date(gps_week(end), gps_tow(end));
+
+% Check / create output folder
+if not(exist(down_dir, 'dir'))
+    mkdir(down_dir);
+end
 
 fprintf(['FTP connection to the AIUB server (ftp://' aiub_ip '). Please wait...'])
 

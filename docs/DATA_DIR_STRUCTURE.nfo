@@ -8,20 +8,18 @@
 
    DATA
     │
-    ├─ last_prj.ini                // Store just the project to use
-    │
-    ├─ GUI_Settings                // Store GUI status
-    │   └─ default_settings.mat    // store just the project to use
+    ├─ last_settings.ini           // Store the latest setting in use
     │
     ├─ Antenna
     │   └─ ATX                     // ANTEX file
     │
     ├─ Satellite
     │   ├─ CLK                     // clk files
-    │   ├─ ORB                     // SP3 or other kind of orbital/nav files
+    │   ├─ EPH                     // Ephemeris files (e.g. igs SP3 files)
     │   ├─ CRX                     // CRX files storing Satellite problems
     │   ├─ ATM                     // Atmospheric error grids / models
     │   ├─ SBAS                    // Downloaded SBAS data
+    │   │   └─ EMS                 // EMS files from the EGNOS Message Server, via Internet
     │   └─ DCB                     // Differential code biases
     │
     ├─ Reference

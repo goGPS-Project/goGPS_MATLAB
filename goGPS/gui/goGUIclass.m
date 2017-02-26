@@ -23,7 +23,7 @@
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
-%   This program is free software: you can redistribute it and/or modify
+%   This program is free software: you can REDistribute it and/or modify
 %   it under the terms of the GNU General Public License as published by
 %   the Free Software Foundation, either version 3 of the License, or
 %   (at your option) any later version.
@@ -46,41 +46,37 @@ classdef goGUIclass < handle
     %   PROPERTIES
     % =========================================================================
     
-    properties (Constant)
-        % Constellations id => naming inside the goObservation object
-        isWin = 0;                          % Constant equivalent to "is Windows" status
-        isUnix = 1;                         % Constant equivalent to "is Unix" status
-        %isLinux = 2;
-        %isMac = 3;
-        
+    properties (Constant)        
         % Colors
-        disableCol = [0.502 0.502 0.502];   % Grey (disabled color)
-        enableCol = [0 0 0];                % Black (enabled color)
-        green = [0 0.8 0];                  % Green - for flag
-        yellow = [1 0.8 0.1];               % Yellow - for flag
-        red = [1 0 0];                      % Red - for flag
-        blue = [0 0 1];                     % Blue - for flag
+        DISABLE_COL = [0.502 0.502 0.502];  % Grey (disabled color)
+        ENABLE_COL = [0 0 0];               % Black (enabled color)
+        GREEN = [0 0.8 0];                  % Green - for flag
+        YELLOW = [1 0.8 0.1];               % Yellow - for flag
+        RED = [1 0 0];                      % Red - for flag
+        BLUE = [0 0 1];                     % Blue - for flag
+                
+        % processing rates used in UI -> to convert UI to settings format
+        UI_P_RATE = [1/10 1/5 1/2 1 5 15 30];
         
-        % goGPS Modes
+        % capture rates used in UI -> to convert UI to settings format
+        UI_C_RATE = [1 1/2 1/5 1/10];
     end
 
     properties (GetAccess = 'private', SetAccess = 'private')
 
     %  HANDLERS
     % =========================================================================
-    
-        w_bar = [];               % waitbar handle
-        goh = [];                 % goGPS gui handler
         
-        interfaceOS = 0;          % 0 = Windows
-                                  % 1 = Linux
-                                  % 2 = Mac
+        w_bar = [];                    % waitbar handle
+        logger = Logger.getInstance(); % Handler to the logger object
+
+        goh = [];                      % goGPS gui handler
         
         edtINI = [];              % Handler to everything related to the editor pf the ini files
                                   
         status; % DEPRECATE: structure containing the state of the parameters of the figure
         
-        settings = GO_Settings.getCurrentSettings(); % Object that will contain all the settings for goGPS
+        state = GO_Settings.getCurrentSettings(); % Object that will contain all the settings for goGPS
         
     %  INTERFACE STATUS
     % =========================================================================
@@ -101,12 +97,9 @@ classdef goGUIclass < handle
     % =========================================================================        
     %  Deprecate, everything should be moved into config.ini
     
-        intSettingsDir = './settings/';                 % Settings folder of goGPS, it contains default settings files
-        settingsDir = './settings/';                    % Settings folder of goGPS, it contains all the other settings files
+        intSettingsDir = '../data/old/settings/'; % Settings folder of goGPS, it contains default settings files
+        settingsDir = '../data/old/settings/';    % Settings folder of goGPS, it contains all the other settings files
         workingDir = '../data/';                        % Working folder of goGPS, it contains data files/folders
-        defaultSettingsFile = 'default_settings.mat';   % Name of the file containing default_settings
-        lastSettingsFile = 'last_settings.mat';         % Name of the file containing last settings
-        defaultINIFile = 'default_InputFiles.ini';      % Name of the file containing the default example of an ini file (yamatogawa case)
         defaultINIKeywordsFile = 'goGPS_iniDefaultKeywords.ini'; % File containing hint parameters for building an ini files
         
     %  POP UP MENUS
@@ -226,19 +219,11 @@ classdef goGUIclass < handle
         % =================================================================
         
         % Creator (Brahma)
-        function this = goGUIclass(handles, typeOS)            
+        function this = goGUIclass(handles)            
             % Creator (Brahma)
-            if (length(intersect(typeOS, [this.isWin this.isUnix])) ~= 1)
-                typeOS = this.isWin;
-            end
-            this.interfaceOS = typeOS;            
             this.init(handles);
         end        
-        
-        function isOS = typeOS(this, typeOS)
-            isOS = this.interfaceOS == typeOS;
-        end
-        
+                
         % Destructor (Shiva)
         % function delete(this); end
     end
@@ -257,7 +242,7 @@ classdef goGUIclass < handle
             this.goh = handles;  % Save the handle of the figure
             
             % Init logo
-            [logo, map, transparency] = imread(this.settings.getLogo());
+            [logo, map, transparency] = imread(this.state.getLogo());
             image(logo, 'AlphaData', transparency);
             axis off;
             
@@ -1278,7 +1263,7 @@ classdef goGUIclass < handle
         
         % Create different groups for each type of element
         % Element that are panels
-        % Element with the main content stored in:
+        % Element with the main content stoRED in:
         %  - 'Value' field
         %  - 'String' field
         function [panel strEl valEl] = autoElClassification(this,id2h)
@@ -1313,7 +1298,7 @@ classdef goGUIclass < handle
             panels(this.idGroup.gPanels) = true;          % logical indexes of the panels
             idEl = 1:length(this.id2handle);
             idEl = idEl(~panels);						% id of elements that are not panels
-            idEl = idEl(this.idUI.pMode:end);			% The only elements to be considered starts 
+            idEl = idEl(this.idUI.pMode:end);			% The only elements to be consideRED starts 
             											% from the principal panel mode
             
             % For each panel
@@ -1517,16 +1502,13 @@ classdef goGUIclass < handle
             this.w_bar.titleUpdate('Import Settings');
             
             % Fill pop up menus
-            this.initPopUp(); % Popup are also modified / reloaded in importStateMatlab
+            this.initPopUp(); % Popup are also modified / reloaded in importLegacyStateMatlab
             
-            this.w_bar.goMsg('Importing the last used settings...');
-            if exist([this.getSettingsDir() this.lastSettingsFile],'file')
-                this.importStateMatlab([this.getSettingsDir() this.lastSettingsFile]);
-            elseif exist([this.getSettingsDir() this.defaultSettingsFile],'file')
-                this.importStateMatlab([this.getSettingsDir() this.defaultSettingsFile]);
-            else
-                waitfor(msgbox('No settings file has been found, goGPS may not work properly!'));
-            end
+            this.w_bar.goMsg('Importing the last used state...');
+            
+            % load Last Settings
+            this.importSettings();
+
             this.w_bar.goMsg('Completing syncing phase...');
             this.w_bar.titleUpdate('Finishing');
             
@@ -1573,7 +1555,7 @@ classdef goGUIclass < handle
         end
         
         % Set new enable / disable status
-        % Show all the new values stored in the internal state on the GUI
+        % Show all the new values stoRED in the internal state on the GUI
         % Get new values from the GUI
         function updateGUI(this)
             % Set new enable / disable status
@@ -1683,7 +1665,7 @@ classdef goGUIclass < handle
             % Test element readyness
             isOk = ~this.isEnabled(idEl);
             if ~isOk
-                isOk = this.isColor(idEl, this.green) || this.isColor(idEl, this.blue);
+                isOk = this.isColor(idEl, this.GREEN) || this.isColor(idEl, this.BLUE);
             end
         end
                        
@@ -1832,31 +1814,31 @@ classdef goGUIclass < handle
                 end
             end
         end
-
+        
         %   INTERFACE GETTERS - MODE
         % =================================================================
         
         % Get processing mode
         function isRT = isRealTime(this)
-                    % Get processing mode
-isOn = this.isEnabled(this.idUI.lProcMode);
+            % Get processing mode
+            isOn = this.isEnabled(this.idUI.lProcMode);
             isRT = isOn && (this.getElVal(this.idUI.lProcMode) == this.idRealTime);
         end
         
         % Get monitor status
         function isMon = isMonitor(this)
-                    % Get monitor status
-isOn = this.isEnabled(this.idUI.lCaptMode);
+            % Get monitor status
+            isOn = this.isEnabled(this.idUI.lCaptMode);
             isMon = isOn && ~this.isCaptureMode(this.idNav);
         end
         
-                % Get Post Processing status
-function isPP = isPostProc(this)
-                            % Get Post Processing status
-isOn = this.isEnabled(this.idUI.lProcMode);
+        % Get Post Processing status
+        function isPP = isPostProc(this)
+            % Get Post Processing status
+            isOn = this.isEnabled(this.idUI.lProcMode);
             isPP = isOn && (this.getElVal(this.idUI.lProcMode) == this.idPostProc);
         end
-                
+        
         % Get capture mode
         function isCM = isCaptureMode(this, idCaptureMode)
             % Get capture mode
@@ -2451,7 +2433,7 @@ isOn = this.isEnabled(this.idUI.lProcMode);
                                 % If I have more than one receiver
                                 if iscell(file_name)
                                     % The number of receiver is = to the number of files?
-                                    if nR ~= length((file_name))   % Declared number of file ~= number of files
+                                    if nR ~= length((file_name))   % DeclaRED number of file ~= number of files
                                         this.setGUILedStatus(this.idUI.fRinRover, this.ledCk, 0);
                                     else
                                         % Check the presence of all the files
@@ -2469,7 +2451,7 @@ isOn = this.isEnabled(this.idUI.lProcMode);
                                     end
                                 else
                                     % The number of receiver is = to the number of files?
-                                    if nR > 1   % Declared number of file ~= number of files
+                                    if nR > 1   % DeclaRED number of file ~= number of files
                                         this.setGUILedStatus(this.idUI.fRinRover, this.ledCk, 0);
                                     else
                                         % Check the presence of all the files
@@ -2755,29 +2737,29 @@ isOn = this.isEnabled(this.idUI.lProcMode);
         end
         
         % Led status
-        % Set green / red status of the UI and optionally lock the UI
+        % Set GREEN / RED status of the UI and optionally lock the UI
         % -------------------------------------------------------------------------
         function setGUILedStatus(this, idEl, status, autoapply)
-            % Set green / red status of the UI and optionally lock the UI
+            % Set GREEN / RED status of the UI and optionally lock the UI
             if nargin == 3
                 autoapply = true;
             end
             
             if (status == this.ledOk)    % Led Ok
-                if ~this.isColor(idEl, this.green)
-                    this.setElVal(idEl,this.green)
+                if ~this.isColor(idEl, this.GREEN)
+                    this.setElVal(idEl,this.GREEN)
                 end
             elseif (status == this.ledKo) % Led Ko
-                if ~this.isColor(idEl, this.red)
-                    this.setElVal(idEl,this.red)
+                if ~this.isColor(idEl, this.RED)
+                    this.setElVal(idEl,this.RED)
                 end
             elseif (status == this.ledCk) % Led Check
-                if ~this.isColor(idEl, this.yellow)
-                    this.setElVal(idEl,this.yellow)
+                if ~this.isColor(idEl, this.YELLOW)
+                    this.setElVal(idEl,this.YELLOW)
                 end
             elseif (status == this.ledOp) % Led Optional parameter
-                if ~this.isColor(idEl, this.blue)
-                    this.setElVal(idEl,this.blue)
+                if ~this.isColor(idEl, this.BLUE)
+                    this.setElVal(idEl,this.BLUE)
                 end
             end
             this.setAllElContent();
@@ -2792,21 +2774,43 @@ isOn = this.isEnabled(this.idUI.lProcMode);
     methods
         function loadState(this)
             % Load state settings
-            [file_name, pathname] = uigetfile('*.mat', 'Choose file with saved settings',this.settingsDir);
+            config_dir = this.state.prj_home;
+            if exist([config_dir filesep 'config'], 'dir')
+                config_dir = [config_dir filesep 'config'];
+            end
+            [file_name, pathname] = uigetfile('*.ini;*.mat', 'Choose file with saved settings', config_dir);
             
-            if pathname == 0 %if the user pressed cancelled, then we exit this callback
+            if pathname == 0 % if the user pressed cancelled, then we exit this callback
                 return
             end
-            %construct the path name of the file to be loaded
+            
+            % get the extension (mat/ini):
+            [path_str, name, ext] = fileparts(file_name);
+                        
+            % construct the path name of the file to be loaded
             loadDataName = fullfile(pathname,file_name);
             
-            %load the settings, which creates a new gui
-            this.importStateMatlab(loadDataName);
+            if strcmp(ext, '.mat')
+                this.state.importLegacyFile(loadDataName);
+                % load the settings, which creates a new gui
+                this.importSettings(this.state);
+                this.state.updatePrj(loadDataName);
+            elseif strcmp(ext, '.ini')
+                this.state.importIniFile(loadDataName);
+                this.importSettings(this.state);                
+            else
+                this.logger.addError('Unrecognized input file format!');
+            end
+            
         end
         
         function saveState(this)
             % Save state settings
-            [file_name,pathname] = uiputfile('*.mat','Save your GUI settings',this.settingsDir);
+            config_dir = this.state.prj_home;
+            if exist([config_dir filesep 'config'], 'dir')
+                config_dir = [config_dir filesep 'config'];
+            end
+            [file_name,pathname] = uiputfile('*.ini','Save your GUI settings', config_dir);
             
             if pathname == 0 %if the user pressed cancelled, then we exit this callback
                 return
@@ -2815,11 +2819,216 @@ isOn = this.isEnabled(this.idUI.lProcMode);
             saveDataName = fullfile(pathname,file_name);
             
             %saves the gui data
+            this.state.setFilePath(saveDataName);
             this.exportStateMatlab(saveDataName);
         end
         
         % Load the state of the gui from a matlab file.
-        function importStateMatlab(this,file_name)
+        function importSettings(this, state)
+            % Load the state of the gui from a settings object
+            % SYNTAX: this.importStateMatlab(<settings>)
+            if (nargin == 1)
+                state = this.state;
+            end            
+            
+            %   MODE
+            % ===============================================================
+            
+            [mode, nav_mon, ls_kalman, code_dd_sa] = state.getGuiMode();            
+
+            this.setElVal(this.idUI.lProcMode, max(1,mode), 0);            
+            this.initCaptureMode();
+            this.setElVal(this.idUI.lCaptMode, max(1,nav_mon), 0);
+            this.initAlgorithmType();
+            this.setElVal(this.idUI.lAlgType, max(1,ls_kalman), 0);
+            this.initProcessingType();
+            this.setElVal(this.idUI.lProcType, max(1,code_dd_sa), 0);
+            
+            this.setElVal(this.idUI.cTropo, state.flag_tropo, 0);
+            
+            %   DATA SELECTION
+            % ===============================================================
+            
+            this.setElVal(this.idUI.cL1, state.cc.list.GPS.flag_f(1), 0);
+            this.setElVal(this.idUI.cL2, state.cc.list.GPS.flag_f(2), 0);
+            this.setElVal(this.idUI.cL5, state.cc.list.GPS.flag_f(3), 0);
+            this.setElVal(this.idUI.cL6, state.cc.list.GAL.flag_f(5), 0);
+            
+            rates = this.UI_P_RATE;
+            id = find(ismember(rates, state.p_rate));
+            if isempty(id)
+                id = 1;
+            end
+            
+            this.setElVal(this.idUI.lProcRate, max(1, id), 0);
+
+            this.setElVal(this.idUI.lObsComb, state.flag_ionofree + 1, 0);
+            
+            this.setElVal(this.idUI.nCutOff, num2str(state.cut_off,'%g'), 0);
+            this.setElVal(this.idUI.nSNR, num2str(state.snr_thr,'%g'), 0);
+            this.setElVal(this.idUI.nMinNSat, num2str(state.min_n_sat,'%g'), 0);
+            this.setElVal(this.idUI.nMinArc, num2str(state.min_arc,'%g'), 0);
+
+            %   OUTLIER DETECTION
+            % ===============================================================
+            
+            this.setElVal(this.idUI.cOutlier, state.flag_outlier, 0);
+            this.setElVal(this.idUI.nSPPthr, num2str(state.pp_spp_thr,'%g'), 0);
+            this.setElVal(this.idUI.nCodeThr, num2str(state.pp_max_code_err_thr,'%g'), 0);
+            this.setElVal(this.idUI.nPhaseThr, num2str(state.pp_max_phase_err_thr,'%g'), 0);
+            
+            %   OPTIONS
+            % ===============================================================
+            
+            this.setElVal(this.idUI.cPrePro, state.flag_pre_pro, 0);
+            this.setElVal(this.idUI.cMPos, state.flag_rinex_mpos, 0);
+            this.setElVal(this.idUI.cConstraint, state.constrain, 0);
+            this.setElVal(this.idUI.cPlotProc, state.plot_proc, 0);
+            this.setElVal(this.idUI.cRefPath, state.plot_ref_path, 0);
+            this.setElVal(this.idUI.cSkyPlot, ~state.plot_skyplot_snr, 0);
+            this.setElVal(this.idUI.cGEarth, state.plot_google_earth, 0);
+            this.setElVal(this.idUI.cErrEllipse, state.plot_err_ellipse, 0);
+            this.setElVal(this.idUI.cPlotMaster, state.plot_master, 0);
+            this.setElVal(this.idUI.cPlotAmb, state.plot_ambiguities, 0);
+            this.setElVal(this.idUI.cUseNTRIP, state.flag_ntrip, 0);
+            this.setElVal(this.idUI.cDoppler, state.flag_doppler, 0);
+            
+            this.setElVal(this.idUI.cOcean, state.flag_ocean, 0);
+            % Temporary check in the migration to SBAS use period
+            ss_list = state.cc.list;
+            this.setElVal(this.idUI.cUse_SBAS, state.cc.list.SBS.isActive, 0);
+            
+            %   INTEGER AMBIGUITY RESOLUTION
+            % ===============================================================
+            
+            this.setElVal(this.idUI.cLAMBDA, state.flag_iar, 0);
+            this.setElVal(this.idUI.lLAMBDAMethod, state.iar_mode+1, 0);
+            this.setElVal(this.idUI.nP0, num2str(state.iar_P0,'%g'), 0);
+            this.setElVal(this.idUI.cP0, state.flag_iar_default_P0, 0);
+            this.setElVal(this.idUI.nMu, num2str(state.iar_mu,'%g'), 0);
+            this.setElVal(this.idUI.cMu, state.flag_iar_auto_mu, 0);
+            
+            %   INPUT/OUTPUT FILE AND FOLDERS
+            % ===============================================================
+            
+            % The new goGPS version is moving the settings folder from
+            % goGPS->settings to data->deprecate_settings, the new settings
+            % system is actually replacing the old approach of a .mat file
+            % + ini file. the new ini flile system will be stoRED in a
+            % project folder
+            if not(isempty(state.input_file_ini_path)) && not(exist(state.input_file_ini_path,'file'))
+                [path, name, ext] = fileparts(checkPath(state.input_file_ini_path));
+                state.setDeprecateIniPath([regexprep(path, './settings', '../data/old/settings/') name ext]);
+            end
+            this.setElVal(this.idUI.sINI, state.input_file_ini_path, 0);
+
+            this.setElVal(this.idUI.sDirGoOut, state.out_dir, 0);
+            this.setElVal(this.idUI.sPrefixGoOut, state.out_prefix, 0);
+            
+            this.setElVal(this.idUI.cGPS, ss_list.GPS.isActive(), 0);
+            this.setElVal(this.idUI.cGLONASS, ss_list.GLO.isActive(), 0);
+            this.setElVal(this.idUI.cGalileo, ss_list.GAL.isActive(), 0);
+            this.setElVal(this.idUI.cBeiDou, ss_list.BDS.isActive(), 0);
+            this.setElVal(this.idUI.cQZSS, ss_list.QZS.isActive(), 0);
+            this.setElVal(this.idUI.cSBAS, ss_list.SBS.isActive(), 0);
+            
+            %   SETTINGS - MASTER STATION
+            % ===============================================================
+            
+            this.setElVal(this.idUI.lCRS, 1, 0);
+            
+            this.setElVal(this.idUI.nMX, state.mpos.X, 0);
+            this.setElVal(this.idUI.nMY, state.mpos.Y, 0);
+            this.setElVal(this.idUI.nMZ, state.mpos.Z, 0);
+            this.setElVal(this.idUI.nMLat, 0, 0);
+            this.setElVal(this.idUI.nMLon, 0, 0);
+            this.setElVal(this.idUI.nMh, 0, 0);
+            
+            %   SETTINGS - KALMAN FILTER - STD
+            % ===============================================================
+            
+            this.setElVal(this.idUI.nStdE, num2str(state.std_k_ENU.E,'%g'), 0);
+            this.setElVal(this.idUI.nStdN, num2str(state.std_k_ENU.N,'%g'), 0);
+            this.setElVal(this.idUI.nStdU, num2str(state.std_k_ENU.U,'%g'), 0);
+            this.setElVal(this.idUI.nStdCode, num2str(state.std_code,'%g'), 0);
+            this.setElVal(this.idUI.nStdPhase, num2str(state.std_phase,'%g'), 0);
+            this.setElVal(this.idUI.nStdDTM, num2str(state.std_dtm,'%g'), 0);
+            this.setElVal(this.idUI.nHAntenna, num2str(state.antenna_h,'%g'), 0);
+            this.setElVal(this.idUI.bStdPhase, state.std_phase < 1e30, 0);
+            this.setElVal(this.idUI.bStdDTM, state.std_dtm < 1e30, 0);
+            this.setElVal(this.idUI.nStdT0, num2str(state.sigma0_k_pos,'%g'), 0);
+            this.setElVal(this.idUI.nStdVel, num2str(state.std_k_vel_mod,'%g'), 0);
+                                    
+            %   SETTINGS - OBSERVATION MODELLING
+            % ===============================================================
+            if (isfield(state,'wModel'))
+                this.setElVal(this.idUI.lWeight, state.w_mode + 1, 0);
+            end
+            if (isfield(state,'ionoModel'))
+                this.setElVal(this.idUI.lIono, state.iono_model + 1, 0);
+            end
+            if (isfield(state,'tropoModel'))
+                this.setElVal(this.idUI.lTropo, state.tropo_model + 1, 0);
+            end
+
+            %   SETTINGS - KALMAN FILTER
+            % ===============================================================
+            
+            this.setElVal(this.idUI.nCS, num2str(state.cs_thr_pre_pro, '%g'), 0);
+            this.setElVal(this.idUI.cStopGoStop, state.stop_go_stop, 0);
+            
+            %   SETTINGS - KALMAN FILTER - DYNAMIC MODEL
+            % ===============================================================
+            
+            this.resetDynModel();
+            this.setElVal(this.idUI.lDynModel, state.kf_order + 1, 0);
+            
+            %   SETTINGS - KALMAN FILTER - ARAA
+            % ===============================================================
+            
+            this.setElVal(this.idUI.lARAA, state.iar_restart_mode + 1, 0);
+            
+            %   SETTINGS - PORTS
+            % ===============================================================
+            
+            this.setElVal(this.idUI.lnPorts, state.c_n_receivers, 0);
+            
+            rates = this.UI_C_RATE;
+            this.setElVal(this.idUI.lRate, find(ismember(rates, state.c_rate)), 0); %#ok<FNDSB>
+
+            % Match the settings with the com path of the local machine 
+            contents = get(this.goh.com_select_0,'String');            
+
+            for r = 1 : min(4,state.c_n_receivers)
+                % Find if one com_addr, match the one in the settings
+                i = numel(contents);
+                while (i > 1) && not(strcmp(contents{i},state.c_com_addr(r)))
+                    i = i - 1;
+                end
+                this.setElVal(this.idUI.(sprintf('lPort%d',r)), i);
+                this.setElVal(this.idUI.(sprintf('lProt%d',r)), state.c_prtc);
+            end
+            
+            %   SETTINGS - MASTER SERVER
+            % ===============================================================
+            
+            this.setElVal(this.idUI.sIPaddr, state.ntrip.ip_addr, 0);
+            this.setElVal(this.idUI.sIPport, state.ntrip.port, 0);
+            this.setElVal(this.idUI.sMnt, state.ntrip.mountpoint, 0);
+            
+            this.setElVal(this.idUI.sUName, state.ntrip.username, 0);
+            this.setPassword(state.ntrip.password);
+            
+            this.setElVal(this.idUI.nVLat, num2str(state.ntrip.approx_position.lat,'%g'), 0);
+            this.setElVal(this.idUI.nVLon, num2str(state.ntrip.approx_position.lon,'%g'), 0);
+            this.setElVal(this.idUI.nVH, num2str(state.ntrip.approx_position.h,'%g'), 1);
+
+            % Check all the dependencies
+            this.syncFromGUI(this.idUI.lProcMode);
+        end
+        
+        % Load the state of the gui from a matlab file.
+        function importLegacyStateMatlab(this,file_name)
             % Load the state of the gui from a matlab file.
             load(file_name); % the file contains the variable state
             this.status = state;
@@ -2920,6 +3129,10 @@ isOn = this.isEnabled(this.idUI.lProcMode);
             % ===============================================================
             
             if (isfield(state,'INIsettings')) % backward compatibility check
+                if not(exist(state.INIsettings,'file'))
+                    [path name ext] = fileparts(checkPath(state.INIsettings));
+                    state.INIsettings = [regexprep(path, './settings', '../data/old/settings/') name ext];                    
+                end
                 this.setElVal(this.idUI.sINI, state.INIsettings, 0);
             end
             this.setElVal(this.idUI.sDirGoOut, state.gogps_data_output, 0);
@@ -3032,67 +3245,68 @@ isOn = this.isEnabled(this.idUI.lProcMode);
             
             %   MODE
             % ===============================================================
-            state.mode              = this.getElVal(this.idUI.lProcMode);
-            state.nav_mon           = this.getElVal(this.idUI.lCaptMode);
-            state.kalman_ls         = this.getElVal(this.idUI.lAlgType);
-            state.code_dd_sa        = this.getElVal(this.idUI.lProcType);
-            state.tropo             = this.getElVal(this.idUI.cTropo);
+            
+            tmp_state.mode              = this.getElVal(this.idUI.lProcMode);
+            tmp_state.nav_mon           = this.getElVal(this.idUI.lCaptMode);
+            tmp_state.kalman_ls         = this.getElVal(this.idUI.lAlgType);
+            tmp_state.code_dd_sa        = this.getElVal(this.idUI.lProcType);
+            tmp_state.tropo             = this.getElVal(this.idUI.cTropo);
 
             %   DATA SELECTION
             % ===============================================================
             
-            state.activeFreq        = [this.getElVal(this.idUI.cL1) ...
+            tmp_state.activeFreq        = [this.getElVal(this.idUI.cL1) ...
                                        this.getElVal(this.idUI.cL2) ...
                                        this.getElVal(this.idUI.cL5) ...
                                        this.getElVal(this.idUI.cL6)];
-            state.srate             = this.getElVal(this.idUI.lProcRate);
-            state.obs_comb          = this.getElVal(this.idUI.lObsComb);
-            state.ocean             = this.getElVal(this.idUI.cOcean);
+            tmp_state.srate             = this.getElVal(this.idUI.lProcRate);
+            tmp_state.obs_comb          = this.getElVal(this.idUI.lObsComb);
+            tmp_state.ocean             = this.getElVal(this.idUI.cOcean);
 
-            state.cut_off           = this.getElVal(this.idUI.nCutOff);
-            state.snr_thres         = this.getElVal(this.idUI.nSNR);
-            state.min_sat           = this.getElVal(this.idUI.nMinNSat);
-            state.min_arc           = this.getElVal(this.idUI.nMinArc);
+            tmp_state.cut_off           = this.getElVal(this.idUI.nCutOff);
+            tmp_state.snr_thres         = this.getElVal(this.idUI.nSNR);
+            tmp_state.min_sat           = this.getElVal(this.idUI.nMinNSat);
+            tmp_state.min_arc           = this.getElVal(this.idUI.nMinArc);
 
             %   OPTIONS
             % ===============================================================
 
-            state.pre_pro           = this.getElVal(this.idUI.cPrePro);
-            state.master_pos        = this.getElVal(this.idUI.cMPos);
-            state.constraint        = this.getElVal(this.idUI.cConstraint);
-            state.plotproc          = this.getElVal(this.idUI.cPlotProc);
-            state.ref_path          = this.getElVal(this.idUI.cRefPath);
-            state.no_skyplot_snr    = this.getElVal(this.idUI.cSkyPlot);
-            state.google_earth      = this.getElVal(this.idUI.cGEarth);
-            state.err_ellipse       = this.getElVal(this.idUI.cErrEllipse);
-            state.plot_master       = this.getElVal(this.idUI.cPlotMaster);
-            state.plot_amb          = this.getElVal(this.idUI.cPlotAmb);
-            state.use_ntrip         = this.getElVal(this.idUI.cUseNTRIP);
-            state.flag_doppler      = this.getElVal(this.idUI.cDoppler);
-            state.use_sbas          = this.getElVal(this.idUI.cUse_SBAS);
-            state.outlier           = this.getElVal(this.idUI.cOutlier);
-            state.spp_thr           = this.getElVal(this.idUI.nSPPthr);
-            state.code_thr          = this.getElVal(this.idUI.nCodeThr);
-            state.phase_thr         = this.getElVal(this.idUI.nPhaseThr);
-            state.use_sbas          = this.getElVal(this.idUI.cUse_SBAS);
+            tmp_state.pre_pro           = this.getElVal(this.idUI.cPrePro);
+            tmp_state.master_pos        = this.getElVal(this.idUI.cMPos);
+            tmp_state.constraint        = this.getElVal(this.idUI.cConstraint);
+            tmp_state.plotproc          = this.getElVal(this.idUI.cPlotProc);
+            tmp_state.ref_path          = this.getElVal(this.idUI.cRefPath);
+            tmp_state.no_skyplot_snr    = this.getElVal(this.idUI.cSkyPlot);
+            tmp_state.google_earth      = this.getElVal(this.idUI.cGEarth);
+            tmp_state.err_ellipse       = this.getElVal(this.idUI.cErrEllipse);
+            tmp_state.plot_master       = this.getElVal(this.idUI.cPlotMaster);
+            tmp_state.plot_amb          = this.getElVal(this.idUI.cPlotAmb);
+            tmp_state.use_ntrip         = this.getElVal(this.idUI.cUseNTRIP);
+            tmp_state.flag_doppler      = this.getElVal(this.idUI.cDoppler);
+            tmp_state.use_sbas          = this.getElVal(this.idUI.cUse_SBAS);
+            tmp_state.outlier           = this.getElVal(this.idUI.cOutlier);
+            tmp_state.spp_thr           = this.getElVal(this.idUI.nSPPthr);
+            tmp_state.code_thr          = this.getElVal(this.idUI.nCodeThr);
+            tmp_state.phase_thr         = this.getElVal(this.idUI.nPhaseThr);
+            tmp_state.use_sbas          = this.getElVal(this.idUI.cUse_SBAS);
             
             %   INTEGER AMBIGUITY RESOLUTION
             % ===============================================================
             
-            state.use_lambda        = this.getElVal(this.idUI.cLAMBDA);
-            state.lambda_method     = this.getElVal(this.idUI.lLAMBDAMethod);
-            state.lambda_P0         = this.getElVal(this.idUI.nP0);
-            state.lambda_default_P0 = this.getElVal(this.idUI.cP0);
-            state.lambda_mu         = this.getElVal(this.idUI.nMu);
-            state.lambda_auto_mu    = this.getElVal(this.idUI.cMu);
+            tmp_state.use_lambda        = this.getElVal(this.idUI.cLAMBDA);
+            tmp_state.lambda_method     = this.getElVal(this.idUI.lLAMBDAMethod);
+            tmp_state.lambda_P0         = this.getElVal(this.idUI.nP0);
+            tmp_state.lambda_default_P0 = this.getElVal(this.idUI.cP0);
+            tmp_state.lambda_mu         = this.getElVal(this.idUI.nMu);
+            tmp_state.lambda_auto_mu    = this.getElVal(this.idUI.cMu);
 
             %   INPUT/OUTPUT FILE AND FOLDERS
             % ===============================================================
 
-            state.INIsettings       = this.getElVal(this.idUI.sINI);
-            state.gogps_data_output = this.getElVal(this.idUI.sDirGoOut);
-            state.gogps_data_output_prefix = this.getElVal(this.idUI.sPrefixGoOut);
-            state.activeGNSS        = [this.isActive(this.idUI.cGPS) ...
+            tmp_state.INIsettings       = this.getElVal(this.idUI.sINI);
+            tmp_state.gogps_data_output = this.getElVal(this.idUI.sDirGoOut);
+            tmp_state.gogps_data_output_prefix = this.getElVal(this.idUI.sPrefixGoOut);
+            tmp_state.activeGNSS        = [this.isActive(this.idUI.cGPS) ...
                                        this.isActive(this.idUI.cGLONASS) ...
                                        this.isActive(this.idUI.cGalileo) ...
                                        this.isActive(this.idUI.cBeiDou) ...
@@ -3102,82 +3316,83 @@ isOn = this.isEnabled(this.idUI.lProcMode);
             %   SETTINGS - MASTER STATION
             % ===============================================================
 
-            state.crs               = this.getElVal(this.idUI.lCRS);
-            state.master_X          = this.getElVal(this.idUI.nMX);
-            state.master_Y          = this.getElVal(this.idUI.nMY);
-            state.master_Z          = this.getElVal(this.idUI.nMZ);
-            state.master_lat        = this.getElVal(this.idUI.nMLat);
-            state.master_lon        = this.getElVal(this.idUI.nMLon);
-            state.master_h          = this.getElVal(this.idUI.nMh);
+            tmp_state.crs               = this.getElVal(this.idUI.lCRS);
+            tmp_state.master_X          = this.getElVal(this.idUI.nMX);
+            tmp_state.master_Y          = this.getElVal(this.idUI.nMY);
+            tmp_state.master_Z          = this.getElVal(this.idUI.nMZ);
+            tmp_state.master_lat        = this.getElVal(this.idUI.nMLat);
+            tmp_state.master_lon        = this.getElVal(this.idUI.nMLon);
+            tmp_state.master_h          = this.getElVal(this.idUI.nMh);
             
             %   SETTINGS - KALMAN FILTER - STD
             % ===============================================================
                         
-            state.std_X             = this.getElVal(this.idUI.nStdE);
-            state.std_Y             = this.getElVal(this.idUI.nStdN);
-            state.std_Z             = this.getElVal(this.idUI.nStdU);
-            state.std_code          = this.getElVal(this.idUI.nStdCode);
-            state.std_phase         = this.getElVal(this.idUI.nStdPhase);
-            state.std_dtm           = this.getElVal(this.idUI.nStdDTM);
-            state.toggle_std_phase  = this.getElVal(this.idUI.bStdPhase);
-            state.toggle_std_dtm    = this.getElVal(this.idUI.bStdDTM);
-            state.std_init          = this.getElVal(this.idUI.nStdT0);
-            state.std_vel           = this.getElVal(this.idUI.nStdVel);
-            state.antenna_h         = this.getElVal(this.idUI.nHAntenna);
+            tmp_state.std_X             = this.getElVal(this.idUI.nStdE);
+            tmp_state.std_Y             = this.getElVal(this.idUI.nStdN);
+            tmp_state.std_Z             = this.getElVal(this.idUI.nStdU);
+            tmp_state.std_code          = this.getElVal(this.idUI.nStdCode);
+            tmp_state.std_phase         = this.getElVal(this.idUI.nStdPhase);
+            tmp_state.std_dtm           = this.getElVal(this.idUI.nStdDTM);
+            tmp_state.toggle_std_phase  = this.getElVal(this.idUI.bStdPhase);
+            tmp_state.toggle_std_dtm    = this.getElVal(this.idUI.bStdDTM);
+            tmp_state.std_init          = this.getElVal(this.idUI.nStdT0);
+            tmp_state.std_vel           = this.getElVal(this.idUI.nStdVel);
+            tmp_state.antenna_h         = this.getElVal(this.idUI.nHAntenna);
             
             %   SETTINGS - OBSERVATION MODELLING
             % ===============================================================
-            state.wModel            = this.getElVal(this.idUI.lWeight);
-            state.ionoModel         = this.getElVal(this.idUI.lIono);
-            state.tropoModel        = this.getElVal(this.idUI.lTropo);            
+            tmp_state.wModel            = this.getElVal(this.idUI.lWeight);
+            tmp_state.ionoModel         = this.getElVal(this.idUI.lIono);
+            tmp_state.tropoModel        = this.getElVal(this.idUI.lTropo);            
 
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
 
-            state.cs_thresh         = this.getElVal(this.idUI.nCS);
-            state.stopGOstop        = this.getElVal(this.idUI.cStopGoStop);
+            tmp_state.cs_thresh         = this.getElVal(this.idUI.nCS);
+            tmp_state.stopGOstop        = this.getElVal(this.idUI.cStopGoStop);
             
             %   SETTINGS - KALMAN FILTER - DYNAMIC MODEL
             % ===============================================================
                         
-            state.dyn_mod           = this.getElVal(this.idUI.lDynModel);
+            tmp_state.dyn_mod           = this.getElVal(this.idUI.lDynModel);
             
             %   SETTINGS - KALMAN FILTER - ARAA
             % ===============================================================
             
-            state.amb_select        = this.getElVal(this.idUI.lARAA);
+            tmp_state.amb_select        = this.getElVal(this.idUI.lARAA);
                 
             %   SETTINGS - PORTS
             % ===============================================================
             
-            state.captureRate       = get(this.goh.pumCaptureRate,'Value');
-            state.num_receivers     = this.getElVal(this.idUI.lnPorts);
+            tmp_state.captureRate       = get(this.goh.pumCaptureRate,'Value');
+            tmp_state.num_receivers     = this.getElVal(this.idUI.lnPorts);
             contents = cellstr(get(this.goh.com_select_0,'String'));
-            state.com_select_0 = contents{get(this.goh.com_select_0,'Value')};
+            tmp_state.com_select_0 = contents{get(this.goh.com_select_0,'Value')};
             contents = cellstr(get(this.goh.com_select_1,'String'));
-            state.com_select_1 = contents{get(this.goh.com_select_1,'Value')};
+            tmp_state.com_select_1 = contents{get(this.goh.com_select_1,'Value')};
             contents = cellstr(get(this.goh.com_select_2,'String'));
-            state.com_select_2 = contents{get(this.goh.com_select_2,'Value')};
+            tmp_state.com_select_2 = contents{get(this.goh.com_select_2,'Value')};
             contents = cellstr(get(this.goh.com_select_3,'String'));
-            state.com_select_3 = contents{get(this.goh.com_select_3,'Value')};                       
-            state.protocol_select_0 = this.getElVal(this.idUI.lProt0);
-            state.protocol_select_1 = this.getElVal(this.idUI.lProt1);
-            state.protocol_select_2 = this.getElVal(this.idUI.lProt2);
-            state.protocol_select_3 = this.getElVal(this.idUI.lProt3);
+            tmp_state.com_select_3 = contents{get(this.goh.com_select_3,'Value')};                       
+            tmp_state.protocol_select_0 = this.getElVal(this.idUI.lProt0);
+            tmp_state.protocol_select_1 = this.getElVal(this.idUI.lProt1);
+            tmp_state.protocol_select_2 = this.getElVal(this.idUI.lProt2);
+            tmp_state.protocol_select_3 = this.getElVal(this.idUI.lProt3);
             
             %   SETTINGS - MASTER SERVER
             % ===============================================================
             
-            state.IP_address        = this.getElVal(this.idUI.sIPaddr);
-            state.port              = this.getElVal(this.idUI.sIPport);
-            state.mountpoint        = this.getElVal(this.idUI.sMnt);
-            state.username          = this.getElVal(this.idUI.sUName);
-            state.password          = this.getPassword();
-            state.approx_lat        = this.getElVal(this.idUI.nVLat);
-            state.approx_lon        = this.getElVal(this.idUI.nVLon);
-            state.approx_h          = this.getElVal(this.idUI.nVH);
+            tmp_state.IP_address        = this.getElVal(this.idUI.sIPaddr);
+            tmp_state.port              = this.getElVal(this.idUI.sIPport);
+            tmp_state.mountpoint        = this.getElVal(this.idUI.sMnt);
+            tmp_state.username          = this.getElVal(this.idUI.sUName);
+            tmp_state.password          = this.getPassword();
+            tmp_state.approx_lat        = this.getElVal(this.idUI.nVLat);
+            tmp_state.approx_lon        = this.getElVal(this.idUI.nVLon);
+            tmp_state.approx_h          = this.getElVal(this.idUI.nVH);
             
-            save(file_name, 'state');
+            this.state.legacyImport(tmp_state);
+            this.state.save(file_name);
         end
     end
       
@@ -3291,19 +3506,19 @@ isOn = this.isEnabled(this.idUI.lProcMode);
                 end
             end
             
-            if (mode == goGNSS.MODE_RT_R_MON || mode == goGNSS.MODE_RT_RM_MON || mode == goGNSS.MODE_RT_NAV) %if a COM connection to the rover is required
+            if (mode == goGNSS.MODE_RT_R_MON || mode == goGNSS.MODE_RT_RM_MON || mode == goGNSS.MODE_RT_NAV) %if a COM connection to the rover is requiRED
                 if(strcmp(COMportR0, 'NA'))
                     msgbox('Please select an existing COM port.'); ready = 0;
                 end
             end
             
-            if (mode == goGNSS.MODE_RT_M_MON || mode == goGNSS.MODE_RT_RM_MON || mode == goGNSS.MODE_RT_NAV) %if a TCP/IP connection to the master is required
+            if (mode == goGNSS.MODE_RT_M_MON || mode == goGNSS.MODE_RT_RM_MON || mode == goGNSS.MODE_RT_NAV) %if a TCP/IP connection to the master is requiRED
                 if (isempty(master_ip))
                     msgbox('Please provide an IP address for the connection to the master.'); ready = 0;
                 elseif (isnan(master_port) || master_port < 0 || master_port > 65535)
                     msgbox('Please provide a valid port number for the connection to the master (between 0 and 65535).'); ready = 0;
                 end
-                if (flag_NTRIP) %if a NTRIP connection is required
+                if (flag_NTRIP) %if a NTRIP connection is requiRED
                     if (isempty(ntrip_mountpoint))
                         msgbox('Please provide a mountpoint for the NTRIP connection.'); ready = 0;
                     end
@@ -3320,9 +3535,9 @@ isOn = this.isEnabled(this.idUI.lProcMode);
             if (ready)
                 % If the working folder does not exist
                 if isempty(dir(this.getSettingsDir()))
-                    msgbox('Non existent settings folder. It has beeen probably erased! It is not possible to save the last settings.');
+                    msgbox('Non existent settings folder. It has beeen probably erased! It is not possible to save the last state.');
                 else
-                    this.exportStateMatlab([this.getSettingsDir() this.lastSettingsFile]);
+                    this.exportStateMatlab(Main_Settings.LAST_SETTINGS);
                 end
                 uiresume(this.goh.main_panel);
             end
@@ -3381,7 +3596,7 @@ isOn = this.isEnabled(this.idUI.lProcMode);
             
             processing_rate = this.valProcRate(this.getElVal(this.idUI.lProcRate));
             
-            filerootOUT = checkPath([get(this.goh.sDirGoOut,'String') '/' get(this.goh.sPrefixGoOut,'String')]);
+            filerootOUT = checkPath([get(this.goh.sDirGoOut,'String') filesep get(this.goh.sPrefixGoOut,'String')]);
             if (this.isPostProc) % I need these informations only in Post Processing
                 data_path = goIni.getData('Bin','data_path');
                 file_prefix = goIni.getData('Bin','file_prefix');
@@ -3659,7 +3874,7 @@ isOn = this.isEnabled(this.idUI.lProcMode);
             selection = contents{min(get(this.id2handle(this.idUI.lARAA),'Value'), length(contents))};
             if (strcmp(selection, 'Observed code - phase difference'))
                 amb_restart_method = 0;
-            elseif (strcmp(selection, 'Kalman-predicted code - phase difference'))
+            elseif (strcmp(selection, 'Kalman-pREDicted code - phase difference'))
                 amb_restart_method = 1;
             else
                 amb_restart_method = 2;
@@ -3761,7 +3976,7 @@ isOn = this.isEnabled(this.idUI.lProcMode);
                 file_name = '';
             end
             if isempty(file_name)
-                file_name = [this.getSettingsDir() this.defaultINIFile];
+                file_name = [this.state.input_file_ini_path];
                 file_name = checkPath(file_name);
                 if ~exist(file_name, 'file')
                     file_name = '';
@@ -3858,8 +4073,8 @@ isOn = this.isEnabled(this.idUI.lProcMode);
                 
                 % Get the name of the ini file
                 if isempty(file_name)
-                    file_name = [this.getSettingsDir() this.defaultINIFile];
-                    if ~exist(file_name, 'file');
+                    file_name = [this.state.input_file_ini_path];
+                    if ~exist(file_name, 'file')
                         file_name = '';
                     end
                 end
@@ -4056,9 +4271,9 @@ isOn = this.isEnabled(this.idUI.lProcMode);
                 state = 'on';
             end
             if strcmp(state,'off')
-                set(hObject, 'ForegroundColor', goGUIclass.disableCol);
+                set(hObject, 'ForegroundColor', goGUIclass.DISABLE_COL);
             else
-                set(hObject, 'ForegroundColor', goGUIclass.enableCol);
+                set(hObject, 'ForegroundColor', goGUIclass.ENABLE_COL);
             end
         end        
      
@@ -4071,7 +4286,7 @@ isOn = this.isEnabled(this.idUI.lProcMode);
         % Get enabled status of a panel element
         function state = isGuiPanelOn(hObject)
             % Get enabled status of a panel element
-            state = isequal(get(hObject, 'ForegroundColor'), goGUIclass.enableCol);
+            state = isequal(get(hObject, 'ForegroundColor'), goGUIclass.ENABLE_COL);
         end
         
         % Get a value from an element of the interface

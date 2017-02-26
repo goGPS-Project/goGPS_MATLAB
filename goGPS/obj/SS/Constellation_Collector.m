@@ -245,23 +245,23 @@ classdef Constellation_Collector < Settings_Interface
     %  INTERFACE REQUIREMENTS
     % =========================================================================    
     methods (Access = 'public')
-        function import(this, settings)
+        function import(this, state)
             % This function import processing settings from another setting object or ini file
-            if isa(settings, 'Ini_Manager')
+            if isa(state, 'Ini_Manager')
                 vl = this.logger.getVerbosityLev();
                 this.logger.setVerbosityLev(0);
                 this.init([0 0 0 0 0 0]);
             	this.logger.setVerbosityLev(vl);
                 
-                this.list.GPS.import(settings);
-                this.list.GLO.import(settings);
-                this.list.GAL.import(settings);
-                this.list.BDS.import(settings);
-                this.list.QZS.import(settings);
-                this.list.SBS.import(settings);                
+                this.list.GPS.import(state);
+                this.list.GLO.import(state);
+                this.list.GAL.import(state);
+                this.list.BDS.import(state);
+                this.list.QZS.import(state);
+                this.list.SBS.import(state);                
                 this.update();
             else
-                this.list = repmat(settings.list,1,1);
+                this.list = repmat(state.list,1,1);
                 this.update();
             end
         end
@@ -333,6 +333,7 @@ classdef Constellation_Collector < Settings_Interface
                 this.list.GAL.setActiveFrequencies(state.activeFreq);
                 this.list.BDS.setActiveFrequencies(state.activeFreq);
                 this.list.QZS.setActiveFrequencies(state.activeFreq);
+                this.list.SBS.setActiveFrequencies(state.activeFreq);
             end
         end
     end

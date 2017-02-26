@@ -1,18 +1,24 @@
-function [flagIntervals] = getOutliers(flags)
+function vec_out = struct2array(struct_in)
 % SYNTAX:
-%    [flagIntervals] = getOutliers(flags)
+%   [vec_out] = struct2array(struct_in);
+%
+% INPUT:
+%   struct_in = structure with fields of the same type
+%
+% OUTPUT:
+%   vec_out = vectorized content of the struct
 %
 % DESCRIPTION:
-%    returns start and end of flagged intervals
-%
+%   Convert to a vector the fields of the structure in input
+%   Note: It works only when the fields are of the same type
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
+%               ___ ___ ___
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.0
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
@@ -34,26 +40,9 @@ function [flagIntervals] = getOutliers(flags)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
+tmp = struct2cell(struct_in);
+vec_out = [tmp{:}];
 
-    % convert flags into array
-    if isstruct(flags)
-        flagArray = int8(struct2flagVec(flags, max(flags.pos+1)));
-        % add padding to avoid problem with flags on the borders
-    else
-        flagArray = flags;
-    end
-    flagArray = flagArray(:);
-    flagArray = [0; flagArray; 0];
-    flagArray(flagArray ~= 0) = 1;
-    diff = flagArray(1:end-1) - flagArray(2:end);
-    clear flagArray;
-    flagIntervals = [find(diff<0), find(diff>0)-1];
-end
-
-function [flagArray] = struct2flagVec(flags, maxSize)
-flagArray = int8(zeros(maxSize,1));
-flagArray(flags.pos) = flags.val;
-end

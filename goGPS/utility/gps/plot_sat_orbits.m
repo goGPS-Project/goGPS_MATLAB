@@ -4,7 +4,7 @@
 filename_obs = '../data/data_RINEX/test_ephemeris/RISH1930.12o';
 filename_nav = '../data/data_RINEX/test_ephemeris/brdc1930.12n';
 filename_sp3 = '../data/data_RINEX/test_ephemeris/igs16963.sp3';
-filename_pco = '../data/stations/I08.ATX';
+filename_pco = '../data/antenna/ATX/I08.ATX';
 
 obs_comb = 'NONE';
 frequencies = [1];
@@ -56,7 +56,7 @@ lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
 % SP3.X_sun  = X_sun;
 % SP3.X_moon = X_moon;
 % 
-% DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
+% DCB = load_dcb(state.dcb_dir, week_R, time_R, codeC1_R, constellations);
 % 
 % %if DCB files are not available or not sufficient, try to download them
 % if ((~any(DCB.P1C1.value(:)) | ~any(DCB.P1P2.value(:))) && constellations.GPS.enabled)
@@ -69,7 +69,7 @@ lambda = goGNSS.getGNSSWavelengths(Eph, SP3, nSatTot);
 %     end
 %     
 %     %try again to read DCB files
-%     DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
+%     DCB = load_dcb(state.dcb_dir, week_R, time_R, codeC1_R, constellations);
 % end
 % 
 % SP3.DCB = DCB;

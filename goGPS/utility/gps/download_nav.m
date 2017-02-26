@@ -47,6 +47,9 @@ function [download_successful, compressed] = download_nav(filename, nav_path)
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
+% Pointer to the global settings:
+state = GO_Settings.getCurrentSettings();
+
 download_successful = 0;
 compressed = 0;
 
@@ -58,9 +61,14 @@ aiub_url = 'ftp.unibe.ch';
 
 %download directory
 if (nargin < 2)
-    down_dir = '../data/ORB/';
+    down_dir = state.eph_dir;
 else
     down_dir = nav_path;
+end
+
+% Check / create output folder
+if not(exist(down_dir, 'dir'))
+    mkdir(down_dir);
 end
 
 %identify requested file type

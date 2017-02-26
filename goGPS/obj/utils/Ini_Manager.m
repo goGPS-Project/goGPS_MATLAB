@@ -950,7 +950,7 @@ classdef Ini_Manager < handle
             end
             
             if ischar(value) % is string
-                cell_str{numel(cell_str) + 1} = [variable_name ' = "' value '"'];
+                cell_str{numel(cell_str) + 1} = [variable_name ' = "' value(:)' '"'];
             elseif isnumeric(value) % is string
                 if isempty(format)
                     format = '%g';

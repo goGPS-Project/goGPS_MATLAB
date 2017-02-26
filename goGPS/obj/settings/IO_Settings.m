@@ -50,12 +50,14 @@ classdef IO_Settings < Settings_Interface
                 
         DEFAULT_DIR_IN = ['..' filesep 'data' filesep];
         DEFAULT_DIR_OUT = ['..' filesep 'data' filesep];  
-        
-        % Location of the latest project (the ini contains just a reference to the default project ini file - that is actually a settings file
-        last_prj_ini_path = [IO_Settings.DEFAULT_DIR_IN 'last_prj.ini'];
     end
     
-    properties (SetAccess = private, GetAccess = public)
+    properties (Constant, Access = 'public')
+        % Location of the latest project (the ini contains just a reference to the default project ini file - that is actually a settings file
+        LAST_SETTINGS = [IO_Settings.DEFAULT_DIR_IN 'last_settings.ini'];
+    end
+    
+    properties (SetAccess = protected, GetAccess = public)
         %------------------------------------------------------------------
         % PROJECT
         %------------------------------------------------------------------        
@@ -64,15 +66,15 @@ classdef IO_Settings < Settings_Interface
         prj_name = 'Default PPP project';
                 
         % Location of the project <relative path from goGPS folder>
-        prj_home = [IO_Settings.DEFAULT_DIR_IN 'default_ppp_prj' filesep];
+        prj_home = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep];
         
-        cur_ini = [IO_Settings.DEFAULT_DIR_IN 'default_PPP_prj' filesep 'Config' filesep 'config.ini'];        
+        cur_ini = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep 'Config' filesep 'settings.ini'];
         
         %------------------------------------------------------------------
         % DEPRECATE
         %------------------------------------------------------------------
         % deprecate INI - it contains some additional setting (yet not imported in the new settings system)
-        deprecate_ini_path = '../data/deprecate_settings/testTropo_ZIMM_InputFiles.ini';
+        input_file_ini_path = '../data/project/default_DD/config/inputFiles.ini';
 
         %------------------------------------------------------------------
         % RECEIVERS
@@ -85,31 +87,34 @@ classdef IO_Settings < Settings_Interface
         % SATELLITES
         %------------------------------------------------------------------
         
-        % Path to Navigational files folder
-        nav_dir = [IO_Settings.DEFAULT_DIR_IN 'SAT' filesep 'NAV' filesep];
-        
+        % Path to Ephemeris files folder
+        eph_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep];
+
         % Path to Clock Offset files folder
-        clk_dir = [IO_Settings.DEFAULT_DIR_IN 'SAT' filesep 'CLK' filesep];
+        clk_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep];
         
         % Path to CRX folder containing files of Satellites problems
-        crx_dir = [IO_Settings.DEFAULT_DIR_IN 'SAT' filesep 'CRX' filesep];
+        crx_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CRX' filesep];
 
         % Path to DCB folder containing files of Differential Code Biases
-        dcb_dir = [IO_Settings.DEFAULT_DIR_IN 'SAT' filesep 'DCB' filesep];
+        dcb_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'DCB' filesep];
+
+        % Path to EMS folder containing files of EGNOS Message Server.
+        ems_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'SBAS' filesep 'EMS' filesep];
 
         %------------------------------------------------------------------
         % REFERENCE
         %------------------------------------------------------------------
         
         % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
-        geoid_dir = [IO_Settings.DEFAULT_DIR_IN 'geoid' filesep];
+        geoid_dir = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep];
         
         %------------------------------------------------------------------
         % DTM (SET PATH AND LOAD PARAMETER FILES)
         %------------------------------------------------------------------
 
         % Path to DTM folder containing DTM files
-        dtm_dir = [IO_Settings.DEFAULT_DIR_IN 'dtm' filesep];
+        dtm_dir = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep];
         
         %------------------------------------------------------------------
         % UI IMAGES
@@ -132,10 +137,10 @@ classdef IO_Settings < Settings_Interface
         %  - out_style = 2... other values for future implementation, e.g. each output in a folder with a certain format (doy_hh-hh)
                 
         % Directory containing the output of the project
-        out_dir = 'out'; % location relative to the project home
+        out_dir = [IO_Settings.DEFAULT_DIR_OUT  'default_DD' filesep 'out' filesep]; % location relative to the project home
         
         % Every time a solution is computed a folder with prefix followed by the run number is created
-        prefix = 'run_'
+        out_prefix = 'yamatogawa'
         
         % This parameter store the current run number
         run_counter = 0;
@@ -148,10 +153,6 @@ classdef IO_Settings < Settings_Interface
         function this = IO_Settings()
             % Creator of IO_settings - verbosity level (true/false) can be set or ini file
             this.img_logo64 = [this.img_dir 'goGPS_logo_64.png'];
-            if exist(this.last_prj_ini_path, 'file')
-                ini = Ini_Manager(this.last_prj_ini_path);
-                this.cur_ini = ini.getData('CurrentProject', 'last_prj_ini');
-            end
         end                
     end
     
@@ -163,27 +164,28 @@ classdef IO_Settings < Settings_Interface
             % This function import IO (only) settings from another setting object
             if isa(settings, 'Ini_Manager')
                 % PROJECT
-                this.prj_name   = settings.getData('prj_name');
-                this.prj_home   = settings.getData('prj_home');
+                this.prj_name   = checkPath(settings.getData('prj_name'));
+                this.prj_home   = checkPath(settings.getData('prj_home'));
                 %this.cur_ini    = settings.getData('cur_ini');
                 % DEPRECATE
-                this.deprecate_ini_path = settings.getData('deprecate_ini_path');
+                this.input_file_ini_path = checkPath(settings.getData('input_file_ini_path'));
                 % RECEIVERS
                 % SATELLITES
-                this.nav_dir    = settings.getData('nav_dir');
-                this.clk_dir    = settings.getData('clk_dir');
-                this.crx_dir    = settings.getData('crx_dir');
-                this.dcb_dir    = settings.getData('dcb_dir');
+                this.eph_dir    = checkPath(settings.getData('eph_dir'));
+                this.clk_dir    = checkPath(settings.getData('clk_dir'));
+                this.crx_dir    = checkPath(settings.getData('crx_dir'));
+                this.dcb_dir    = checkPath(settings.getData('dcb_dir'));
+                this.ems_dir    = checkPath(settings.getData('ems_dir'));
                 % REFERENCE
-                this.geoid_dir  = settings.getData('geoid_dir');
-                this.dtm_dir    = settings.getData('dtm_dir');
+                this.geoid_dir  = checkPath(settings.getData('geoid_dir'));
+                this.dtm_dir    = checkPath(settings.getData('dtm_dir'));
                 % UI
-                this.img_dir    = settings.getData('img_dir');
-                this.img_logo64 = settings.getData('img_logo64');
+                this.img_dir    = checkPath(settings.getData('img_dir'));
+                this.img_logo64 = checkPath(settings.getData('img_logo64'));
                 % OUTPUT
                 this.out_style  = settings.getData('out_style');
-                this.out_dir = settings.getData('out_dir');
-                this.prefix = settings.getData('prefix');
+                this.out_dir = checkPath(settings.getData('out_dir'));
+                this.out_prefix = checkPath(settings.getData('out_prefix'));
                 this.run_counter = settings.getData('run_counter');
             else
                 % PROJECT
@@ -191,13 +193,14 @@ classdef IO_Settings < Settings_Interface
                 this.prj_home   = settings.prj_home;
                 %this.cur_ini   = settings.cur_ini;
                 % DEPRECATE
-                this.deprecate_ini_path = settings.deprecate_ini_path;
+                this.input_file_ini_path = settings.input_file_ini_path;
                 % RECEIVERS
                 % SATELLITES
-                this.nav_dir    = settings.nav_dir;
+                this.eph_dir    = settings.eph_dir;
                 this.clk_dir    = settings.clk_dir;
                 this.crx_dir    = settings.crx_dir;
                 this.dcb_dir    = settings.dcb_dir;
+                this.ems_dir    = settings.ems_dir;
                 % REFERENCE
                 this.geoid_dir  = settings.geoid_dir;
                 this.dtm_dir    = settings.dtm_dir;
@@ -207,7 +210,7 @@ classdef IO_Settings < Settings_Interface
                 % OUTPUT
                 this.out_style  = settings.out_style;
                 this.out_dir = settings.out_dir;
-                this.prefix = settings.prefix;
+                this.out_prefix = settings.out_prefix;
                 this.run_counter = settings.run_counter;                
             end
         end
@@ -222,12 +225,13 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf(' Project home:                                     %s\n', this.prj_home)];
             str = [str sprintf(' Path to the current project ini file:             %s\n\n', this.cur_ini)];
             str = [str '---- DEPRECATE ------------------------------------------------------------' 10 10];
-            str = [str sprintf(' Deprecate ini (of additional parameters):         %s\n\n', this.deprecate_ini_path)];            
+            str = [str sprintf(' Deprecate ini (of additional parameters):         %s\n\n', this.input_file_ini_path)];            
             str = [str '---- INPUT FOLDERS: SATELLITE ---------------------------------------------' 10 10];
-            str = [str sprintf(' Directory of Navigational Files:                  %s\n', this.nav_dir)];
+            str = [str sprintf(' Directory of Ephemeris Files:                     %s\n', this.eph_dir)];
             str = [str sprintf(' Directory of Satellite clock offsets:             %s\n', this.clk_dir)];
             str = [str sprintf(' Directory of CRX (satellite problems):            %s\n', this.crx_dir)];
-            str = [str sprintf(' Directory of DCB (Differential Code Biases):      %s\n\n', this.dcb_dir)];
+            str = [str sprintf(' Directory of DCB (Differential Code Biases):      %s\n', this.dcb_dir)];
+            str = [str sprintf(' Directory of EMS (EGNOS Message Server):          %s\n\n', this.ems_dir)];
             str = [str '---- INPUT FOLDERS: REFERENCE ---------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Geoid models:                        %s\n', this.geoid_dir)];
             str = [str sprintf(' Directory of DTM data:                            %s\n\n', this.dtm_dir)];
@@ -237,7 +241,7 @@ classdef IO_Settings < Settings_Interface
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
             str = [str sprintf(' Output style %s\n\n', this.OUT_MODE{this.out_style + 1})];
             str = [str sprintf(' Directory containing the output of the project:   %s\n', this.out_dir)];
-            str = [str sprintf(' Prefix of each run:                               %s\n', this.prefix)];
+            str = [str sprintf(' Prefix of each run:                               %s\n', this.out_prefix)];
             str = [str sprintf(' Run counter:                                      %d\n\n', this.run_counter)];
         end
         
@@ -256,19 +260,21 @@ classdef IO_Settings < Settings_Interface
             % DEPRECATE
             str_cell = Ini_Manager.toIniStringSection('DEPRECATE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Deprecate ini - path - it contains some additional setting (yet not imported in the new settings system)', str_cell);
-            str_cell = Ini_Manager.toIniString('deprecate_ini_path', this.deprecate_ini_path, str_cell);
+            str_cell = Ini_Manager.toIniString('input_file_ini_path', this.input_file_ini_path, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % RECEIVERS
             % SATELLITES
             str_cell = Ini_Manager.toIniStringSection('INPUT_SAT', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Directory of Navigational files', str_cell);
-            str_cell = Ini_Manager.toIniString('nav_dir', this.nav_dir, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of Ephemeris files', str_cell);
+            str_cell = Ini_Manager.toIniString('eph_dir', this.eph_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of clock offset files', str_cell);
             str_cell = Ini_Manager.toIniString('clk_dir', this.clk_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of CRX files (containing satellite problems)', str_cell);
             str_cell = Ini_Manager.toIniString('crx_dir', this.crx_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of DCB files (Differential Code Biases)', str_cell);
             str_cell = Ini_Manager.toIniString('dcb_dir', this.dcb_dir, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of EMS files (EGNOS Message Server).', str_cell);
+            str_cell = Ini_Manager.toIniString('ems_dir', this.ems_dir, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % REFERENCE
             str_cell = Ini_Manager.toIniStringSection('INPUT_REF', str_cell);
@@ -297,7 +303,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('out_dir', this.out_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('out_style = 0 -> Every time a solution is computed a file with prefix followed by the run number is created', str_cell);
             str_cell = Ini_Manager.toIniStringComment('out_style = 1 -> Every time a solution is computed a folder with prefix followed by the run number is created and the outputs are stored into it', str_cell);
-            str_cell = Ini_Manager.toIniString('prefix', this.prefix, str_cell);
+            str_cell = Ini_Manager.toIniString('out_prefix', this.out_prefix, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Current run number', str_cell);
             str_cell = Ini_Manager.toIniString('run_counter', this.run_counter, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
@@ -316,9 +322,9 @@ classdef IO_Settings < Settings_Interface
             
             % RECEIVER DEFAULT PARAMETERS ---------------------------------            
             try 
-                this.deprecate_ini_path = state.INIsettings;
+                this.input_file_ini_path = state.INIsettings;
                 this.out_dir = state.gogps_data_output;
-                this.prefix = state.gogps_data_output_prefix;
+                this.out_prefix = state.gogps_data_output_prefix;
             catch ex
                 this.logger.addWarning(['Legacy import "IO file / folders" failed - ', ex.message])
             end
@@ -330,13 +336,50 @@ classdef IO_Settings < Settings_Interface
     % =========================================================================
     methods
         function dir = getImgDir(this)
+            % Get the directory of UI images
+            % SYNTAX: dir = this.getImgDir()
             dir = this.img_dir;
         end
         
         function dir = getLogo(this)
+            % Get the logo of goGPS to be shown on the UI
+            % SYNTAX: dir = this.getLogo()
             dir = this.img_logo64;
+        end        
+    end
+    
+    % =========================================================================
+    %  SETTERS
+    % =========================================================================
+    methods
+        function setDeprecateIniPath(this, new_path)
+            % Get the directory of UI images
+            % SYNTAX: dir = this.setDeprecateIniPath(new_path)
+            this.input_file_ini_path = new_path;
         end
         
+        function setFilePath(this, file_path)
+            % Set the file name of the current settings
+            % SYNTAX: this.setFilePath(file_path)
+            [path_str, name, ~] = fileparts(file_path);
+            this.cur_ini = [path_str filesep name '.ini'];
+        end
+        
+        function updatePrj(this, file_path)
+            % Set the file project name / home / file_path from file_path
+            % SYNTAX: this.autoUpdatePrj(this, file_path)
+            [path_str, name, ~] = fileparts(checkPath(file_path));
+            this.cur_ini = [path_str filesep name '.ini'];
+            path_parts = strsplit(path_str,filesep);
+            if numel(path_parts) > 3
+                this.prj_home = sprintf(['%s' filesep], string(path_parts(1:end-1)));
+                this.prj_name = path_parts{end-1};
+                this.logger.addMessage('Trying to guess project name / home / ini');
+                this.logger.addMessage(sprintf(' name: %s', this.prj_name));
+                this.logger.addMessage(sprintf(' home: %s', this.prj_home));
+                this.logger.addMessage(sprintf(' ini:  %s', this.cur_ini));                
+            end            
+        end
     end
     
     % =========================================================================

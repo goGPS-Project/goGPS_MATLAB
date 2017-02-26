@@ -90,7 +90,7 @@ handles.output = hObject;
 guidata(hObject, handles);
 
 %last settings file path
-file_path = './settings/last_settings_polyline.mat';
+file_path = '../data/old/settings/last_settings_polyline.mat';
 
 %load last used settings, if any
 if exist(file_path,'file')
@@ -225,7 +225,7 @@ min_nodes = str2double(get(handles.min_nodes,'String'));
 %check if input data are available
 d1 = dir([filerootIN '_position.txt']);
 d2 = dir([filerootIN '_cov_ENU.txt']);
-if (flag_iter0 == 0 & flag_iter1 == 0)
+if (flag_iter0 == 0 && flag_iter1 == 0)
     if ~isempty(d1)
         polyline(filerootIN, angle_threshold, dist_threshold_AGNES, dN1, dN2, ...
             delta_iter0, delta_iter1, dist_threshold_update_iter0, dist_threshold_update_iter1, ...
@@ -234,7 +234,7 @@ if (flag_iter0 == 0 & flag_iter1 == 0)
         msgbox('*_position.txt file is needed to run the polyline simplification algorithm.');
     end
 else
-    if ~isempty(d1) & ~isempty(d2)
+    if ~isempty(d1) && ~isempty(d2)
         polyline(filerootIN, angle_threshold, dist_threshold_AGNES, dN1, dN2, ...
             delta_iter0, delta_iter1, dist_threshold_update_iter0, dist_threshold_update_iter1, ...
             flag_iter0, flag_iter1, min_nodes);
@@ -244,7 +244,7 @@ else
 end
 
 %last settings file path
-file_path = './settings/last_settings_polyline.mat';
+file_path = '../data/old/settings/last_settings_polyline.mat';
 
 %save settings
 saveState(handles, file_path);

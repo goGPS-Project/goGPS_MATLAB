@@ -62,6 +62,9 @@ warning off; %#ok<WNOFF>
 % include all subdirectories
 addpath(genpath(pwd));
 
+% Pointer to the global settings:
+state = GO_Settings.getCurrentSettings();
+
 %----------------------------------------------------------------------------------------------
 % INTERFACE TYPE DEFINITION
 %----------------------------------------------------------------------------------------------
@@ -494,7 +497,7 @@ while read_files
                 
                 %if (~strcmp(obs_comb, 'IONO_FREE'))
                 %try first to read already available DCB files
-                DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
+                DCB = load_dcb(state.dcb_dir, week_R, time_R, codeC1_R, constellations);
                 
                 %if DCB files are not available or not sufficient, try to download them
                 if ((~any(DCB.P1C1.value(:)) | ~any(DCB.P1P2.value(:))) && constellations.GPS.enabled)
@@ -507,7 +510,7 @@ while read_files
                     end
                     
                     %try again to read DCB files
-                    DCB = load_dcb('../data/DCB', week_R, time_R, codeC1_R, constellations);
+                    DCB = load_dcb(state.dcb_dir, week_R, time_R, codeC1_R, constellations);
                 end
                 
                 SP3.DCB = DCB;
@@ -521,14 +524,14 @@ while read_files
             %----------------------------------------------------------------------------------------------
             
             %try first to read already available CRX files
-            [CRX, found]  = load_crx('../data/CRX', week_R, time_GPS, nSatTot, constellations);
+            [CRX, found]  = load_crx(state.crx_dir, week_R, time_GPS, nSatTot, constellations);
             %if CRX files are not available or not sufficient, try to download them
             if (~found)
                 %download
                 file_crx = download_crx([week_R(1) week_R(end)], [time_GPS(1) time_GPS(end)]);
                 
                 %try again to read CRX files
-                [CRX, found] = load_crx('../data/CRX', week_R, time_GPS, nSatTot, constellations);
+                [CRX, found] = load_crx(state.crx_dir, week_R, time_GPS, nSatTot, constellations);
             end
             
             %retrieve multi-constellation wavelengths
@@ -586,7 +589,7 @@ while read_files
                 %      have any effect on the positioning
                 
                 %try first to read .ems files already available
-                [sbas] = load_ems('../data/EMS', week_R, time_R);
+                [sbas] = load_ems(state.ems_dir, week_R, time_R);
                 
                 %if .ems files are not available or not sufficient, try to download them
                 if (isempty(sbas))
@@ -603,7 +606,7 @@ while read_files
                     end
                     
                     %try again to read .ems files
-                    [sbas] = load_ems('../data/EMS', week_R, time_R);
+                    [sbas] = load_ems(state.ems_dir, week_R, time_R);
                 end
                 
                 %check if the survey is within the EMS grids
@@ -855,10 +858,10 @@ while read_files
                 
                 %if (~strcmp(obs_comb, 'IONO_FREE'))
                 %try first to read already available DCB files
-                DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M(:,:,ones(1,size(codeC1_R,3)))), constellations);
+                DCB = load_dcb(state.dcb_dir, week_M, time_M, or(codeC1_R,codeC1_M(:,:,ones(1,size(codeC1_R,3)))), constellations);
                 
                 %if DCB files are not available or not sufficient, try to download them
-                if ((~any(DCB.P1C1.value(:)) | ~any(DCB.P1P2.value(:))) && constellations.GPS.enabled)
+                if ((~any(DCB.P1C1.value(:)) || ~any(DCB.P1P2.value(:))) && constellations.GPS.enabled)
                     
                     %download
                     [file_dcb, compressed] = download_dcb([week_M(1) week_M(end)], [time_M(1) time_M(end)]);
@@ -868,7 +871,7 @@ while read_files
                     end
                     
                     %try again to read DCB files
-                    DCB = load_dcb('../data/DCB', week_M, time_M, or(codeC1_R,codeC1_M(:,:,ones(1,size(codeC1_R,3)))), constellations);
+                    DCB = load_dcb(state.dcb_dir, week_M, time_M, or(codeC1_R,codeC1_M(:,:,ones(1,size(codeC1_R,3)))), constellations);
                 end
                 
                 SP3.DCB = DCB;
@@ -882,14 +885,14 @@ while read_files
             %----------------------------------------------------------------------------------------------
             
             %try first to read already available CRX files
-            [CRX, found] = load_crx('../data/CRX', week_M, time_GPS, nSatTot, constellations);
+            [CRX, found] = load_crx(state.crx_dir, week_M, time_GPS, nSatTot, constellations);
             %if CRX files are not available or not sufficient, try to download them
             if (~found)
                 %download
                 file_crx = download_crx([week_M(1) week_M(end)], [time_GPS(1) time_GPS(end)]);
                 
                 %try again to read CRX files
-                [CRX, found] = load_crx('../data/CRX', week_M, time_GPS, nSatTot, constellations);
+                [CRX, found] = load_crx(state.crx_dir, week_M, time_GPS, nSatTot, constellations);
             end
             
             %retrieve multi-constellation wavelengths
@@ -946,7 +949,7 @@ while read_files
                 %      have any effect on the positioning
                 
                 %try first to read .ems files already available
-                [sbas] = load_ems('../data/EMS', week_M, time_M);
+                [sbas] = load_ems(state.ems_dir, week_M, time_M);
                 
                 %if .ems files are not available or not sufficient, try to download them
                 if (isempty(sbas))
@@ -963,7 +966,7 @@ while read_files
                     end
                     
                     %try again to read .ems files
-                    [sbas] = load_ems('../data/EMS', week_M, time_M);
+                    [sbas] = load_ems(state.ems_dir, week_M, time_M);
                 end
                 
                 %check if the survey is within the EMS grids

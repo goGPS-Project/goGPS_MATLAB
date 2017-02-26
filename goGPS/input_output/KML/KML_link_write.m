@@ -72,7 +72,7 @@ fprintf(flink, '\t<ScreenOverlay>\n');
 fprintf(flink, '\t\t<name>goGPS logo</name>\n');
 fprintf(flink, '\t\t<visibility>1</visibility>\n');
 fprintf(flink, '\t\t<Icon>\n');
-fprintf(flink, '\t\t\t<href>./ge-goGPS.png</href>\n');
+fprintf(flink, '\t\t\t<href>../img/ge-goGPS.png</href>\n');
 fprintf(flink, '\t\t</Icon>\n');
 fprintf(flink, '\t\t<overlayXY x="0" y="1" xunits="fraction" yunits="fraction"/>\n');
 fprintf(flink, '\t\t<screenXY x="0" y="1" xunits="fraction" yunits="fraction"/>\n');

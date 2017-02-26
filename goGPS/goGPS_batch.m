@@ -70,6 +70,9 @@ if (~exist('folder', 'var'))
     folder = '';
 end
 
+% Pointer to the global settings:
+state = GO_Settings.getCurrentSettings();
+
 is_batch = 1; %#ok<*NASGU>
 folderOUT = ['../data/out/batch/' folder];
 if (exist(folderOUT,'dir') ~= 7)
@@ -392,7 +395,7 @@ for year = year_start : 1 : year_end
     
     for doy = doy_s : 1 : doy_e
         for session_i=1:n_session
-            delete('../data/EMS/*.ems');
+            delete([state.ems_dir filesep '*.ems']);
             if n_session > 1
                 sessionR=num2str(session_i,'%d');
                 sessionM=num2str(session_i,'%d');

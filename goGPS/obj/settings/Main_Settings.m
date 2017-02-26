@@ -5,7 +5,7 @@
 %   Class to store all the Processing parameters
 %
 % EXAMPLE
-%   settings = Main_Settings();
+%   state = Main_Settings();
 %
 % SEE ALSO
 %   - GO_Settings     
@@ -48,12 +48,18 @@
 classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     
     properties (Constant, Access = 'protected')
+        % id to string of Kalman Filter dynamic modes
+        DYN_MODE = {'0: static', ...
+                    '1: constant velocity' ...
+                    '2: constant acceleration', ...
+                    '3: variable (stop-go-stop)'}
+
         % id to string of IAR modes
         IAR_MODE = {'0: ILS method with numeration in search (LAMBDA2)', ...
                     '1: ILS method with shrinking ellipsoid during search (LAMBDA3)' ...
                     '2: ILS method with numeration in search (LAMBDA3)', ...
                     '3: integer rounding method (LAMBDA3)', ...
-                    '4: iar_mode = 4; % integer bootstrapping method (LAMBDA3)', ...
+                    '4: integer bootstrapping method (LAMBDA3)', ...
                     '5: Partial Ambiguity Resolution (PAR) (LAMBDA3)'}
                 
         % id to string of IAR restart function
@@ -83,7 +89,13 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         C_PROTOCOL = {'1: UBX (u-blox)', ...
                       '2: iTalk (Fastrax)', ...
                       '3: SkyTraq', ...
-                      '4: BINR (NVS)'}                          
+                      '4: BINR (NVS)'}
+
+        % processing rates used in UI -> to convert UI to settings format
+        UI_P_RATE = goGUIclass.UI_P_RATE;
+        
+        % capture rates used in UI -> to convert UI to settings format
+        UI_C_RATE = goGUIclass.UI_C_RATE;
     end
     
     %  Processing parameters
@@ -101,17 +113,17 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % These values are kept if not specified elsewhere
         
         % Std of code observations [m]
-        std_code = 0.3; 
+        std_code = 3; 
 
         % Std of phase observations [m]
-        std_ph = 0.003; % (maximize to obtain a code-based solution)
+        std_phase = 0.03; % (maximize to obtain a code-based solution)
         % Std of iono-free phase observations [m]
-        std_ph_if = 0.003;
+        std_phase_if = 0.009;
         
         % Std of a priori receiver clock
-        sigma0_clock = 4.5e-09        
+        sigma0_clock = 4.47e-09        
         % Std of receiver clock
-        sigma0_r_clock = 1e3;
+        sigma0_r_clock = 31;
         
         % Flag to read the position of the master form the RINEX file (deprecate)
         flag_rinex_mpos = true;
@@ -133,7 +145,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % Signal-to-noise ratio threshold [dB]
         snr_thr = 0;                
         % Flag for enabling the usage of ocean tides modeling
-        flag_ocean = true;        
+        flag_ocean = false;        
         % Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
         min_arc = 10;
 
@@ -144,7 +156,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % Flag for enabling pre-processing
         flag_pre_pro = true;        
         % Cycle slip threshold (pre-processing) [cycles]
-        cs_thr_pre_pro = 1;
+        cs_thr_pre_pro = 3;
 
         %------------------------------------------------------------------
         % OUTLIER DETECTION
@@ -165,7 +177,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         %------------------------------------------------------------------
         
         % Flag for enabling the computation of thropospheric derived informations
-        flag_tropo = true;
+        flag_tropo = false;
         
         % Parameter used to select the weightening mode for GPS observations
         w_mode = 1;
@@ -182,7 +194,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         cs_thr = 1;
 
         % Flag for enabling the usage of iono-free combination
-        flag_ionofree = true;
+        flag_ionofree = false;
 
         % Constrain the solution using a reference path
         constrain = false; 
@@ -206,18 +218,18 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         
         % Parameter used to select Integer Least Squares estimator
         iar_mode = 1; % ILS method with shrinking ellipsoid during search (LAMBDA3)
-        % - iar_mode = 0; % ILS method with numeration in search (LAMBDA2)
-        % - iar_mode = 1; % ILS method with shrinking ellipsoid during search (LAMBDA3)
-        % - iar_mode = 2; % ILS method with numeration in search (LAMBDA3)
-        % - iar_mode = 3; % integer rounding method (LAMBDA3)
-        % - iar_mode = 4; % integer bootstrapping method (LAMBDA3)
-        % - iar_mode = 5; % Partial Ambiguity Resolution (PAR) (LAMBDA3)
+        % - iar_mode = 0: % ILS method with numeration in search (LAMBDA2)
+        % - iar_mode = 1: % ILS method with shrinking ellipsoid during search (LAMBDA3)
+        % - iar_mode = 2: % ILS method with numeration in search (LAMBDA3)
+        % - iar_mode = 3: % integer rounding method (LAMBDA3)
+        % - iar_mode = 4: % integer bootstrapping method (LAMBDA3)
+        % - iar_mode = 5: % Partial Ambiguity Resolution (PAR) (LAMBDA3)
 
         % User defined fixed failure rate (for methods 1,2) or minimum required success rate (for method 5)
         iar_P0 = 0.001;
 
         % Std of a priori ambiguity combinations [cycles]
-        sigma0_N = 1000;
+        sigma0_N = 31;
 
         % User defined threshold for ratio test
         iar_mu = 0.5;
@@ -237,7 +249,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         
         % Order of the dynamic model polynomial
         kf_order = 1;
-
+        % - kf_order = 0; static
+        % - kf_order = 1; constant velocity
+        % - kf_order = 2; constant acceleration
+        % - kf_order = 3; variable (stop-go-stop)
+        
         %------------------------------------------------------------------
         % RECEIVER POSITION / MOTION 
         %------------------------------------------------------------------
@@ -256,7 +272,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % Std of a priori tropospheric delay
         sigma0_tropo = 0.1;
         % Std of tropospheric delay
-        std_tropo = 4.6e-4;
+        std_tropo = 4.5644e-4;
                 
         % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
         iono_model = 2; % Klobuchar model
@@ -356,6 +372,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Creator
             % SYNTAX: s_obj = Main_Settings();
             this.postImportInit();
+            if exist(this.LAST_SETTINGS, 'file')
+                this.logger.addMessage('Importing settings from last settings file')
+                this.importIniFile(this.LAST_SETTINGS);
+            end
         end
     end
     
@@ -363,201 +383,201 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     %  INTERFACE REQUIREMENTS
     % =========================================================================    
     methods (Access = 'public')
-        function import(this, settings)
+        function import(this, state)
             % This function import processing settings from another setting object or ini file
-            % SYNTAX: s_obj.import(settings)
+            % SYNTAX: s_obj.import(state)
             
-            if isa(settings, 'Ini_Manager')         
+            if isa(state, 'Ini_Manager')         
                 % RECEIVER DEFAULT PARAMETERS
-                this.std_code = settings.getData('std_code');
-                this.std_ph = settings.getData('std_ph');
-                this.std_ph_if = settings.getData('std_ph_if');
-                this.sigma0_clock = settings.getData('sigma0_clock');
-                this.sigma0_r_clock = settings.getData('sigma0_r_clock');
+                this.std_code = state.getData('std_code');
+                this.std_phase = state.getData('std_phase');
+                this.std_phase_if = state.getData('std_phase_if');
+                this.sigma0_clock = state.getData('sigma0_clock');
+                this.sigma0_r_clock = state.getData('sigma0_r_clock');
 
-                this.flag_rinex_mpos = settings.getData('flag_rinex_mpos');                
-                tmp = settings.getData('mpos_XYZ');
+                this.flag_rinex_mpos = state.getData('flag_rinex_mpos');                
+                tmp = state.getData('mpos_XYZ');
                 this.mpos = struct('X', tmp(1), 'Y', tmp(2), 'Z', tmp(3));
                 
                 % DATA SELECTION
-                this.cc.import(settings);
-                this.p_rate = settings.getData('p_rate');
-                this.min_n_sat  = settings.getData('min_n_sat');
-                this.cut_off = settings.getData('cut_off');
-                this.snr_thr = settings.getData('snr_thr');                
-                this.flag_ocean = settings.getData('flag_ocean');
-                this.min_arc = settings.getData('min_arc');
+                this.cc.import(state);
+                this.p_rate = state.getData('p_rate');
+                this.min_n_sat  = state.getData('min_n_sat');
+                this.cut_off = state.getData('cut_off');
+                this.snr_thr = state.getData('snr_thr');                
+                this.flag_ocean = state.getData('flag_ocean');
+                this.min_arc = state.getData('min_arc');
                 
                 % PRE PROCESSING                
-                this.flag_pre_pro = settings.getData('flag_pre_pro');
-                this.cs_thr_pre_pro = settings.getData('cs_thr_pre_pro');
+                this.flag_pre_pro = state.getData('flag_pre_pro');
+                this.cs_thr_pre_pro = state.getData('cs_thr_pre_pro');
                 
                 % OUTLIER DETECTION
-                this.flag_outlier = settings.getData('flag_outlier');
-                this.pp_spp_thr = settings.getData('pp_spp_thr');
-                this.pp_max_code_err_thr = settings.getData('pp_max_code_err_thr');
-                this.pp_max_phase_err_thr = settings.getData('pp_max_phase_err_thr');
+                this.flag_outlier = state.getData('flag_outlier');
+                this.pp_spp_thr = state.getData('pp_spp_thr');
+                this.pp_max_code_err_thr = state.getData('pp_max_code_err_thr');
+                this.pp_max_phase_err_thr = state.getData('pp_max_phase_err_thr');
 
                 % PROCESSING PARAMETERS
-                this.flag_tropo = settings.getData('flag_tropo');
-                this.w_mode = settings.getData('w_mode');
-                tmp = settings.getData('w_snr');
+                this.flag_tropo = state.getData('flag_tropo');
+                this.w_mode = state.getData('w_mode');
+                tmp = state.getData('w_snr');
                 this.w_snr = struct('a', tmp(1), 'zero', tmp(2), 'one', tmp(2), 'A', tmp(4));
-                this.cs_thr = settings.getData('cs_thr');
-                this.flag_ionofree = settings.getData('flag_ionofree');
-                this.constrain = settings.getData('constrain');
-                this.stop_go_stop = settings.getData('stop_go_stop');
+                this.cs_thr = state.getData('cs_thr');
+                this.flag_ionofree = state.getData('flag_ionofree');
+                this.constrain = state.getData('constrain');
+                this.stop_go_stop = state.getData('stop_go_stop');
                 
                 % INTEGER AMBIGUITY RESOLUTION
-                this.flag_iar = settings.getData('flag_iar');
-                this.iar_restart_mode = settings.getData('iar_restart_mode');
-                this.iar_mode = settings.getData('iar_mode');
-                this.iar_P0 = settings.getData('iar_P0');
-                this.sigma0_N = settings.getData('sigma0_N');
-                this.iar_mu = settings.getData('iar_mu');
-                this.flag_iar_auto_mu = settings.getData('flag_iar_auto_mu');
-                this.flag_iar_default_P0 = settings.getData('flag_iar_default_P0');
-                this.flag_doppler = settings.getData('flag_doppler');
+                this.flag_iar = state.getData('flag_iar');
+                this.iar_restart_mode = state.getData('iar_restart_mode');
+                this.iar_mode = state.getData('iar_mode');
+                this.iar_P0 = state.getData('iar_P0');
+                this.sigma0_N = state.getData('sigma0_N');
+                this.iar_mu = state.getData('iar_mu');
+                this.flag_iar_auto_mu = state.getData('flag_iar_auto_mu');
+                this.flag_iar_default_P0 = state.getData('flag_iar_default_P0');
+                this.flag_doppler = state.getData('flag_doppler');
                 
                 % KF
-                this.kf_order      = settings.getData('kf_order');
+                this.kf_order = state.getData('kf_order');
 
                 % RECEIVER POSITION / MOTION
-                this.sigma0_k_pos    = settings.getData('sigma0_k_pos');
-                tmp = settings.getData('std_k_ENU');
+                this.sigma0_k_pos    = state.getData('sigma0_k_pos');
+                tmp = state.getData('std_k_ENU');
                 this.std_k_ENU = struct('E', tmp(1), 'N', tmp(2), 'U', tmp(3));
-                this.std_k_vel_mod = settings.getData('std_k_vel_mod');
+                this.std_k_vel_mod = state.getData('std_k_vel_mod');
                                 
                 % ATMOSPHERE
-                this.sigma0_tropo  = settings.getData('sigma0_tropo');
-                this.std_tropo   = settings.getData('std_tropo');
+                this.sigma0_tropo  = state.getData('sigma0_tropo');
+                this.std_tropo   = state.getData('std_tropo');
 
-                this.iono_model = settings.getData('iono_model');
-                this.tropo_model = settings.getData('tropo_model');
+                this.iono_model = state.getData('iono_model');
+                this.tropo_model = state.getData('tropo_model');
                 
                 % DTM
-                %this.dtm_dir    = settings.getData('dtm_dir');
-                this.flag_dtm = settings.getData('flag_dtm');
-                this.std_dtm = settings.getData('std_dtm');
-                this.antenna_h = settings.getData('antenna_h');
+                %this.dtm_dir    = state.getData('dtm_dir');
+                this.flag_dtm = state.getData('flag_dtm');
+                this.std_dtm = state.getData('std_dtm');
+                this.antenna_h = state.getData('antenna_h');
                 
                 % GUI
-                this.plot_proc = settings.getData('plot_proc');
-                this.plot_ref_path = settings.getData('plot_ref_path');
-                this.plot_skyplot_snr = settings.getData('plot_skyplot_snr');
-                this.plot_err_ellipse = settings.getData('plot_err_ellipse');
-                this.plot_ambiguities = settings.getData('plot_ambiguities');
-                this.plot_master = settings.getData('plot_master');
-                this.plot_google_earth = settings.getData('plot_google_earth');
+                this.plot_proc = state.getData('plot_proc');
+                this.plot_ref_path = state.getData('plot_ref_path');
+                this.plot_skyplot_snr = state.getData('plot_skyplot_snr');
+                this.plot_err_ellipse = state.getData('plot_err_ellipse');
+                this.plot_ambiguities = state.getData('plot_ambiguities');
+                this.plot_master = state.getData('plot_master');
+                this.plot_google_earth = state.getData('plot_google_earth');
                 
                 % CAPTURE
-                this.c_n_receivers = settings.getData('c_n_receivers');
-                this.c_rate = settings.getData('c_rate');
+                this.c_n_receivers = state.getData('c_n_receivers');
+                this.c_rate = state.getData('c_rate');
                 for r = 1 : this.c_n_receivers
-                    this.c_prtc(r) = settings.getData(sprintf('c_prtc_%02d', r));
-                    this.c_com_addr{r} = settings.getData(sprintf('c_com_addr_%02d', r));
+                    this.c_prtc(r) = state.getData(sprintf('c_prtc_%02d', r));
+                    this.c_com_addr{r} = state.getData(sprintf('c_com_addr_%02d', r));
                 end
                 
                 % NTRIP
-                this.flag_ntrip = settings.getData('flag_ntrip');
-                this.ntrip = struct('ip_addr', settings.getData('NTRIP','ip_addr'), ...
-                       'port', settings.getData('NTRIP','port'), ...
-                       'mountpoint', settings.getData('NTRIP','mountpoint'), ...
-                       'username', settings.getData('NTRIP','username'), ...
-                       'password', settings.getData('NTRIP','password'), ...
-                       'approx_position', struct('lat', settings.getData('NTRIP','ntrip_lat'), 'lon', settings.getData('NTRIP','ntrip_lon'), 'h', settings.getData('NTRIP','ntrip_h')));                
+                this.flag_ntrip = state.getData('flag_ntrip');
+                this.ntrip = struct('ip_addr', state.getData('NTRIP','ip_addr'), ...
+                       'port', state.getData('NTRIP','port'), ...
+                       'mountpoint', state.getData('NTRIP','mountpoint'), ...
+                       'username', state.getData('NTRIP','username'), ...
+                       'password', state.getData('NTRIP','password'), ...
+                       'approx_position', struct('lat', state.getData('NTRIP','ntrip_lat'), 'lon', state.getData('NTRIP','ntrip_lon'), 'h', state.getData('NTRIP','ntrip_h')));                
             else
                 % RECEIVER DEFAULT PARAMETERS
-                this.std_code = settings.std_code;
-                this.std_ph = settings.std_ph;
-                this.std_ph_if = settings.std_ph_if;
-                this.sigma0_clock = settings.sigma0_clock;
-                this.sigma0_r_clock = settings.sigma0_r_clock;
-                this.flag_rinex_mpos = settings.flag_rinex_mpos;
-                this.mpos = settings.mpos;
+                this.std_code = state.std_code;
+                this.std_phase = state.std_phase;
+                this.std_phase_if = state.std_phase_if;
+                this.sigma0_clock = state.sigma0_clock;
+                this.sigma0_r_clock = state.sigma0_r_clock;
+                this.flag_rinex_mpos = state.flag_rinex_mpos;
+                this.mpos = state.mpos;
                 
                 % DATA SELECTION
-                this.cc.import(settings.cc);
-                this.p_rate = settings.p_rate;
-                this.min_n_sat  = settings.min_n_sat;
-                this.cut_off = settings.cut_off;
-                this.snr_thr = settings.snr_thr;
-                this.flag_ocean = settings.flag_ocean;
-                this.min_arc = settings.min_arc;
+                this.cc.import(state.cc);
+                this.p_rate = state.p_rate;
+                this.min_n_sat  = state.min_n_sat;
+                this.cut_off = state.cut_off;
+                this.snr_thr = state.snr_thr;
+                this.flag_ocean = state.flag_ocean;
+                this.min_arc = state.min_arc;
                 
                 % PRE PROCESSING
-                this.flag_pre_pro = settings.flag_pre_pro;
-                this.cs_thr_pre_pro = settings.cs_thr_pre_pro;
+                this.flag_pre_pro = state.flag_pre_pro;
+                this.cs_thr_pre_pro = state.cs_thr_pre_pro;
                 
                 % OUTLIER DETECTION                
-                this.flag_outlier = settings.flag_outlier;
-                this.pp_spp_thr = settings.pp_spp_thr;
-                this.pp_max_code_err_thr = settings.pp_max_code_err_thr;
-                this.pp_max_phase_err_thr = settings.pp_max_phase_err_thr;
+                this.flag_outlier = state.flag_outlier;
+                this.pp_spp_thr = state.pp_spp_thr;
+                this.pp_max_code_err_thr = state.pp_max_code_err_thr;
+                this.pp_max_phase_err_thr = state.pp_max_phase_err_thr;
 
                 % PROCESSING PARAMETERS                
-                this.flag_tropo = settings.flag_tropo;
-                this.w_mode = settings.w_mode;
-                this.w_snr = settings.w_snr;
-                this.cs_thr = settings.cs_thr;
-                this.flag_ionofree = settings.flag_ionofree;
-                this.constrain = settings.constrain;
-                this.stop_go_stop = settings.stop_go_stop;
+                this.flag_tropo = state.flag_tropo;
+                this.w_mode = state.w_mode;
+                this.w_snr = state.w_snr;
+                this.cs_thr = state.cs_thr;
+                this.flag_ionofree = state.flag_ionofree;
+                this.constrain = state.constrain;
+                this.stop_go_stop = state.stop_go_stop;
                 
                 % INTEGER AMBIGUITY RESOLUTION
-                this.flag_iar = settings.flag_iar;
-                this.iar_restart_mode = settings.iar_restart_mode;
-                this.iar_mode = settings.iar_mode;
-                this.iar_P0 = settings.iar_P0;
-                this.sigma0_N = settings.sigma0_N;
-                this.iar_mu = settings.iar_mu;
-                this.flag_iar_auto_mu = settings.flag_iar_auto_mu;
-                this.flag_iar_default_P0 = settings.flag_iar_default_P0;
-                this.flag_doppler = settings.flag_doppler;                                
+                this.flag_iar = state.flag_iar;
+                this.iar_restart_mode = state.iar_restart_mode;
+                this.iar_mode = state.iar_mode;
+                this.iar_P0 = state.iar_P0;
+                this.sigma0_N = state.sigma0_N;
+                this.iar_mu = state.iar_mu;
+                this.flag_iar_auto_mu = state.flag_iar_auto_mu;
+                this.flag_iar_default_P0 = state.flag_iar_default_P0;
+                this.flag_doppler = state.flag_doppler;                                
                 
                 % KF
-                this.kf_order = settings.kf_order;
+                this.kf_order = state.kf_order;
 
                 % RECEIVER POSITION / MOTION 
-                this.sigma0_k_pos = settings.sigma0_k_pos;
-                this.std_k_ENU = settings.std_k_ENU;
-                this.std_k_vel_mod = settings.std_k_vel_mod;
+                this.sigma0_k_pos = state.sigma0_k_pos;
+                this.std_k_ENU = state.std_k_ENU;
+                this.std_k_vel_mod = state.std_k_vel_mod;
                        
                 % ATMOSPHERE
-                this.sigma0_tropo = settings.sigma0_tropo;
-                this.std_tropo = settings.std_tropo;                                
-                this.iono_model = settings.iono_model;
-                this.tropo_model = settings.tropo_model;
+                this.sigma0_tropo = state.sigma0_tropo;
+                this.std_tropo = state.std_tropo;                                
+                this.iono_model = state.iono_model;
+                this.tropo_model = state.tropo_model;
                         
                 % DTM 
-                this.flag_dtm = settings.flag_dtm;
-                %this.dtm_dir    = settings.dtm_dir;
-                this.std_dtm = settings.std_dtm;
-                this.antenna_h = settings.antenna_h;
+                this.flag_dtm = state.flag_dtm;
+                %this.dtm_dir    = state.dtm_dir;
+                this.std_dtm = state.std_dtm;
+                this.antenna_h = state.antenna_h;
                 
                 % GUI
-                this.plot_proc = settings.plot_proc;
-                this.plot_ref_path = settings.plot_ref_path;
-                this.plot_skyplot_snr = settings.plot_skyplot_snr;
-                this.plot_err_ellipse = settings.plot_err_ellipse;
-                this.plot_ambiguities = settings.plot_ambiguities;
-                this.plot_master = settings.plot_master;
-                this.plot_google_earth = settings.plot_google_earth;
+                this.plot_proc = state.plot_proc;
+                this.plot_ref_path = state.plot_ref_path;
+                this.plot_skyplot_snr = state.plot_skyplot_snr;
+                this.plot_err_ellipse = state.plot_err_ellipse;
+                this.plot_ambiguities = state.plot_ambiguities;
+                this.plot_master = state.plot_master;
+                this.plot_google_earth = state.plot_google_earth;
                 
                 % CAPTURE
-                this.c_n_receivers = settings.c_n_receivers;
-                this.c_rate = settings.c_rate;
-                this.c_prtc = settings.c_prtc;
-                this.c_com_addr = settings.c_com_addr;
+                this.c_n_receivers = state.c_n_receivers;
+                this.c_rate = state.c_rate;
+                this.c_prtc = state.c_prtc;
+                this.c_com_addr = state.c_com_addr;
                 
                 % NTRIP
-                this.flag_ntrip = settings.flag_ntrip;
-                this.ntrip = settings.ntrip;
+                this.flag_ntrip = state.flag_ntrip;
+                this.ntrip = state.ntrip;
             end
 
             % Call to Super Methods
-            this.import@Mode_Settings(settings);
-            this.import@IO_Settings(settings);
+            this.import@Mode_Settings(state);
+            this.import@IO_Settings(state);
             
             this.postImportInit();
         end
@@ -573,9 +593,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = this.toString@IO_Settings(str);
             str = [str '---- RECEIVERS -----------------------------------------------------------' 10 10];
             str = [str sprintf(' Default STD of code observations [m]:             %g\n', this.std_code)];
-            str = [str sprintf(' Default STD of phase observations [m]:            %g\n', this.std_ph)];
-            str = [str sprintf(' Default STD of iono-free phase observations [m]:  %g\n', this.std_ph_if)];
-            str = [str sprintf(' Default STD of a priori receiver clock:            %g\n', this.sigma0_clock)];
+            str = [str sprintf(' Default STD of phase observations [m]:            %g\n', this.std_phase)];
+            str = [str sprintf(' Default STD of iono-free phase observations [m]:  %g\n', this.std_phase_if)];
+            str = [str sprintf(' Default STD of a priori receiver clock:           %g\n', this.sigma0_clock)];
             str = [str sprintf(' Default STD of receiver clock:                    %g\n', this.sigma0_r_clock)];
             str = [str sprintf(' Read master position from RINEX:                  %d\n', this.flag_rinex_mpos)];
             str = [str sprintf(' Default Master position (when not ovewrrided):\n')];
@@ -619,7 +639,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str '---- AMBIGUITY (IAR) ------------------------------------------------------' 10 10];
             str = [str sprintf(' Use ambiguity fix resolution:                     %d\n\n', this.flag_iar)];
             str = [str sprintf(' Ambiguity restart mode: %s\n\n', this.IAR_RESTART{this.iar_restart_mode+1})];
-            str = [str sprintf(' Using method: %s\n\n', this.IAR_MODE{this.iar_mode+1})];
+            str = [str sprintf(' Using method %s\n\n', this.IAR_MODE{this.iar_mode+1})];
             str = [str sprintf(' User defined fixed failure rate (methods 1,2):    %g\n', this.iar_P0)];
             str = [str sprintf(' User defined minimum success rate (for method 5): %g\n', this.iar_P0)];
             str = [str sprintf(' STD of a priori ambiguity combinations [cycles]:   %d\n\n', this.sigma0_N)];
@@ -629,11 +649,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Use doppler predicted phase range:                %d\n\n', this.flag_doppler)];            
             
             str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
-            str = [str sprintf(' Order of the KF:                                  %d\n\n', this.kf_order)];
+            str = [str sprintf(' Order of the KF %s\n\n', this.DYN_MODE{this.kf_order+1})];
             str = [str sprintf(' STD of initial state:                             %g\n', this.sigma0_k_pos)];
             str = [str sprintf(' STD of ENU variation:                             %g %g %g\n', struct2array(this.std_k_ENU))];
             str = [str sprintf(' STD of 3D modulus variation:                      %g\n\n', this.std_k_vel_mod)];
-            str = [str sprintf(' STD of a priori tropospheric delay:                %g\n', this.sigma0_tropo)];
+            str = [str sprintf(' STD of a priori tropospheric delay:               %g\n', this.sigma0_tropo)];
             str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
             
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
@@ -692,9 +712,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment('Default STD of code observations [m]', str_cell);
             str_cell = Ini_Manager.toIniString('std_code', this.std_code, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of phase observations [m]', str_cell);
-            str_cell = Ini_Manager.toIniString('std_ph', this.std_ph, str_cell);
+            str_cell = Ini_Manager.toIniString('std_phase', this.std_phase, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of iono-free phase observations [m', str_cell);
-            str_cell = Ini_Manager.toIniString('std_ph_if', this.std_ph_if, str_cell);
+            str_cell = Ini_Manager.toIniString('std_phase_if', this.std_phase_if, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of a priori receiver clock', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_clock', this.sigma0_clock, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Default STD of receiver clock', str_cell);
@@ -795,13 +815,16 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('flag_iar_default_P0', this.flag_iar_default_P0, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Use Doppler-predicted phase range for detecting cycle slips (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_doppler', this.flag_doppler, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
             
             % KF
             str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Order of the KF', str_cell);
             str_cell = Ini_Manager.toIniString('kf_order', this.kf_order, str_cell);
+            for i = 1 : numel(this.DYN_MODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_MODE{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
             str_cell = Ini_Manager.toIniStringComment('STD of initial state [m]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_k_pos', this.sigma0_k_pos, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of ENU variation [m] / [m/s] / [m/s^2]', str_cell);
@@ -912,9 +935,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try 
                 this.std_code = str2double(state.std_code);
                 if (state.toggle_std_phase)
-                    this.std_ph = str2double(state.std_phase);
+                    this.std_phase = str2double(state.std_phase);
                 else
-                    this.std_ph = 1e30;
+                    this.std_phase = 1e30;
                 end
             catch ex
                 this.logger.addWarning(['Legacy import "Receiver defaults" failed - ', ex.message])
@@ -924,7 +947,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try
                 this.cc.legacyImport(state);
                 if (isfield(state,'srate'))
-                    rates = [1/10 1/5 1/2 1 5 15 30];
+                    rates = this.UI_P_RATE;
                     this.p_rate = rates(state.srate);
                 end
                 this.min_n_sat = str2double(state.min_sat);
@@ -1030,7 +1053,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         
             % KALMAN FILTER PARAMETERS ------------------------------------
             try
-                this.kf_order = state.dyn_mod;
+                this.kf_order = state.dyn_mod - 1;
                 this.sigma0_k_pos = str2double(state.std_init);
                 this.std_k_ENU = struct('E', str2double(state.std_X), 'N', str2double(state.std_Y), 'U', str2double(state.std_Z));
                 this.std_k_vel_mod = str2double(state.std_vel);
@@ -1087,8 +1110,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % CAPTURE -----------------------------------------------------
             try
                 this.c_n_receivers = state.num_receivers;
-                this.c_rate = state.captureRate;
-                for r = 1 : this.c_n_receivers      
+                rates = this.UI_C_RATE;
+                this.c_rate = rates(state.captureRate);
+                for r = 1 : this.c_n_receivers
                     this.c_prtc(r) = state.(sprintf('protocol_select_%d', r));
                     this.c_com_addr{r} = state.(sprintf('com_select_%d', r));
                 end
@@ -1097,7 +1121,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             end   
 
         end
-    end
+    end    
     
     % =========================================================================
     %  Additional Protected
@@ -1105,11 +1129,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     methods (Access = 'protected')
         function postImportInit(this)
             % Operations to run after the import of new parameters
-            % SYNTAX: s_obj.postImportInit
+            % SYNTAX: this.postImportInit
             this.init_dtm();
         end
     end
-    
+        
     % =========================================================================
     %  Additional Public methods
     % =========================================================================    
@@ -1143,7 +1167,18 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 file_path = this.cur_ini;
             end
             this.importIniFile@Settings_Interface(file_path);
-        end       
+        end
+        
+        function importLegacyFile(this, file_path)
+            % Import from an INI file the content of the Settings object
+            % SYNTAX: this.importIniFile(file_path);
+            try
+                load(file_path, 'state');
+                this.legacyImport(state);
+            catch ex
+                this.logger.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
+            end
+        end
         
         function init_dtm(this, dtm_dir)
             % Try to load default DTM values (if flag_dtm is on)?
@@ -1174,7 +1209,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     methods (Static, Access = 'public')        
         function test()      
             % Test the class
-            % SYNTAX: settings.test()            
+            % SYNTAX: state.test()            
             s = Main_Settings();
             s.testInterfaceRoutines();
         end

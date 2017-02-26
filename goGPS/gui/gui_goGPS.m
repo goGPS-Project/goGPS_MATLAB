@@ -84,7 +84,7 @@ function gui_goGPS_OpeningFcn(hObject, eventdata, handles, varargin) %#ok<*INUSL
 % varargin   command line arguments to gui_goGPS (see VARARGIN)
 clearvars -global goGUI
 global goGUI
-goGUI = goGUIclass(handles, goGUIclass.isWin);
+goGUI = goGUIclass(handles);
 
 % UIWAIT makes gui_goGPS wait for user response (see UIRESUME)
 uiwait(hObject);

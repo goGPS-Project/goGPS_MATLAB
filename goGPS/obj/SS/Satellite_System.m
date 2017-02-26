@@ -195,7 +195,7 @@ classdef Satellite_System < Settings_Interface
             str_cell = Ini_Manager.toIniString(sprintf('%s_is_active', this.SYS_NAME), this.isActive(), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Frequencies to be used when this constellation is active', str_cell);            
             for i = 1 : numel(name)
-                str_cell = Ini_Manager.toIniString(sprintf('%s_%s', this.SYS_NAME, name{i}), this.flag_f(i), str_cell);
+                str_cell = Ini_Manager.toIniString(sprintf('%s_%s', this.SYS_NAME, name{i}), this.isActive() && this.flag_f(i), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end        
