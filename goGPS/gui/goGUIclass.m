@@ -2988,7 +2988,13 @@ classdef goGUIclass < handle
             % ===============================================================
             
             this.resetDynModel();
-            this.setElVal(this.idUI.lDynModel, state.kf_order + 1, 0);
+            if state.isPP(state.p_mode)
+                interface2settings = [3 1 2 4];
+                this.setElVal(this.idUI.lDynModel, interface2settings(state.kf_order + 1));
+            else
+                this.setElVal(this.idUI.lDynModel, state.kf_order + 1, 0);
+            end
+
             
             %   SETTINGS - KALMAN FILTER - ARAA
             % ===============================================================

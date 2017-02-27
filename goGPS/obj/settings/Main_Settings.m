@@ -174,10 +174,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     
     properties (Constant, Access = 'protected')
         % id to string of Kalman Filter dynamic modes
-        DYN_SMODE = {'0: static', ...
-                     '1: constant velocity' ...
-                     '2: constant acceleration', ...
-                     '3: variable (stop-go-stop)'}
+        DYN_SMODE_RT = {'0: constant', ...
+                        '1: variable'}
+        DYN_SMODE_PP = {'0: static', ...
+                        '1: constant velocity' ...
+                        '2: constant acceleration', ...
+                        '3: variable (stop-go-stop)'}
 
         % id to string of IAR modes
         IAR_SMODE = {'0: ILS method with numeration in search (LAMBDA2)', ...
@@ -770,7 +772,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Use doppler predicted phase range:                %d\n\n', this.flag_doppler)];            
             
             str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
-            str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE{this.kf_order+1})];
+            if this.isPP(this.p_mode)
+                str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE_PP{this.kf_order+1})];
+            else
+                str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE_RT{this.kf_order+1})];
+            end
             str = [str sprintf(' STD of initial state:                             %g\n', this.sigma0_k_pos)];
             str = [str sprintf(' STD of ENU variation:                             %g %g %g\n', struct2array(this.std_k_ENU))];
             str = [str sprintf(' STD of 3D modulus variation:                      %g\n\n', this.std_k_vel_mod)];
@@ -944,10 +950,15 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Order of the KF', str_cell);
             str_cell = Ini_Manager.toIniString('kf_order', this.kf_order, str_cell);
-            for i = 1 : numel(this.DYN_SMODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_SMODE{i}), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('When capture/monitor modes are in use', str_cell);
+            for i = 1 : numel(this.DYN_SMODE_RT)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_SMODE_RT{i}), str_cell);
             end
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringComment('When post processing is in use:', str_cell);
+            for i = 1 : numel(this.DYN_SMODE_PP)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_SMODE_PP{i}), str_cell);
+            end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of initial state [m]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_k_pos', this.sigma0_k_pos, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of ENU variation [m] / [m/s] / [m/s^2]', str_cell);
@@ -1178,8 +1189,13 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             end
         
             % KALMAN FILTER PARAMETERS ------------------------------------
-            try
-                this.kf_order = state.dyn_mod - 1;
+            try                
+                if this.isPP(this.p_mode)
+                    interface2settings = [2 0 1 3];
+                    this.kf_order = interface2settings(state.dyn_mod);
+                else
+                    this.kf_order = state.dyn_mod - 1;
+                end
                 this.sigma0_k_pos = str2double(state.std_init);
                 this.std_k_ENU = struct('E', str2double(state.std_X), 'N', str2double(state.std_Y), 'U', str2double(state.std_Z));
                 this.std_k_vel_mod = str2double(state.std_vel);
@@ -1437,7 +1453,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkLogicalField('flag_doppler');
     
             % KF
-            this.checkNumericField('kf_order',[0 numel(this.DYN_SMODE)-1]);
+            if this.isPP(this.p_mode)
+                this.checkNumericField('kf_order',[0 numel(this.DYN_SMODE_PP)-1]);
+            else
+                this.checkNumericField('kf_order',[0 numel(this.DYN_SMODE_RT)-1]);
+            end
         
             % RECEIVER POSITION / MOTION 
             this.checkNumericField('sigma0_k_pos',[0 1e3]);
