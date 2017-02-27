@@ -56,10 +56,10 @@ classdef goGUIclass < handle
         BLUE = [0 0 1];                     % Blue - for flag
                 
         % processing rates used in UI -> to convert UI to settings format
-        UI_P_RATE = [1/10 1/5 1/2 1 5 15 30];
+        UI_P_SRATE = [1/10 1/5 1/2 1 5 15 30];
         
         % capture rates used in UI -> to convert UI to settings format
-        UI_C_RATE = [1 1/2 1/5 1/10];
+        UI_C_SRATE = [1 1/2 1/5 1/10];
     end
 
     properties (GetAccess = 'private', SetAccess = 'private')
@@ -2640,10 +2640,16 @@ classdef goGUIclass < handle
         function browseINIFile(this)
             % Browse INI file
             % In multi receiver mode, I read from ini file
+            config_dir = this.state.prj_home;
+            if exist([config_dir filesep 'config'], 'dir')
+                config_dir = [config_dir filesep 'config'];
+            else
+                config_dir = this.getSettingsDir();
+            end
             [file_name, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
                 '*.*',  'All Files (*.*)'}, ...
-                'Choose an INI configuration file',[this.getSettingsDir()]);
+                'Choose an INI configuration file', config_dir);
             if (file_name ~= 0)
                 this.setElVal(this.idUI.sINI, fullfile(pathname, file_name));
             end
@@ -2774,11 +2780,12 @@ classdef goGUIclass < handle
     methods
         function loadState(this)
             % Load state settings
+            
             config_dir = this.state.prj_home;
             if exist([config_dir filesep 'config'], 'dir')
                 config_dir = [config_dir filesep 'config'];
             end
-            [file_name, pathname] = uigetfile('*.ini;*.mat', 'Choose file with saved settings', config_dir);
+            [file_name, pathname] = uigetfile({'*.ini;','INI configuration file (*.ini)'; '*.mat;','state file goGPS < 0.5 (*.mat)'}, 'Choose file with saved settings', config_dir);
             
             if pathname == 0 % if the user pressed cancelled, then we exit this callback
                 return
@@ -2823,7 +2830,7 @@ classdef goGUIclass < handle
             this.exportStateMatlab(saveDataName);
         end
         
-        % Load the state of the gui from a matlab file.
+        % Load the state of the gui from a settings object
         function importSettings(this, state)
             % Load the state of the gui from a settings object
             % SYNTAX: this.importStateMatlab(<settings>)
@@ -2854,7 +2861,7 @@ classdef goGUIclass < handle
             this.setElVal(this.idUI.cL5, state.cc.list.GPS.flag_f(3), 0);
             this.setElVal(this.idUI.cL6, state.cc.list.GAL.flag_f(5), 0);
             
-            rates = this.UI_P_RATE;
+            rates = this.UI_P_SRATE;
             id = find(ismember(rates, state.p_rate));
             if isempty(id)
                 id = 1;
@@ -2903,8 +2910,8 @@ classdef goGUIclass < handle
             
             this.setElVal(this.idUI.cLAMBDA, state.flag_iar, 0);
             this.setElVal(this.idUI.lLAMBDAMethod, state.iar_mode+1, 0);
-            this.setElVal(this.idUI.nP0, num2str(state.iar_P0,'%g'), 0);
-            this.setElVal(this.idUI.cP0, state.flag_iar_default_P0, 0);
+            this.setElVal(this.idUI.nP0, num2str(state.iar_p0,'%g'), 0);
+            this.setElVal(this.idUI.cP0, state.flag_iar_default_p0, 0);
             this.setElVal(this.idUI.nMu, num2str(state.iar_mu,'%g'), 0);
             this.setElVal(this.idUI.cMu, state.flag_iar_auto_mu, 0);
             
@@ -2993,7 +3000,7 @@ classdef goGUIclass < handle
             
             this.setElVal(this.idUI.lnPorts, state.c_n_receivers, 0);
             
-            rates = this.UI_C_RATE;
+            rates = this.UI_C_SRATE;
             this.setElVal(this.idUI.lRate, find(ismember(rates, state.c_rate)), 0); %#ok<FNDSB>
 
             % Match the settings with the com path of the local machine 
@@ -4061,10 +4068,17 @@ classdef goGUIclass < handle
         function browseINIEditInFile(this)
             % Browse INI file => select a file to be edited
             % In multi receiver mode, I read from ini file
+            
+            config_dir = this.state.prj_home;
+            if exist([config_dir filesep 'config'], 'dir')
+                config_dir = [config_dir filesep 'config'];
+            else
+                config_dir = this.getSettingsDir();
+            end
             [file_name, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
                 '*.*',  'All Files (*.*)'}, ...
-                'Choose an INI configuration file',[this.getSettingsDir()]);
+                'Choose an INI configuration file', config_dir);
             if (file_name ~= 0)
                 file_name = checkPath([pathname file_name]);
 

@@ -42,12 +42,43 @@
 
 classdef IO_Settings < Settings_Interface
     
+    % Default values for each field - useful to restore corrupted field
+    properties (Constant, Access = 'protected')
+        
+        % PROJECT                
+        PRJ_NAME = 1;  % Name of the project
+        PRJ_HOME = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep]; % Location of the project <relative path from goGPS folder> 
+        CUR_INI = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep 'Config' filesep 'settings.ini']; % Location of the current ini file
+        % DEPRECATE                
+        INPUT_FILE_INI_PATH = '../data/project/default_DD/config/inputFiles.ini'; % deprecate INI - it contains some additional setting (yet not imported in the new settings system)
+        % RECEIVERS
+        % SATELLITES                
+        EPH_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep]; % Path to Ephemeris files folder
+        CLK_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep]; % Path to Clock Offset files folder
+        CRX_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CRX' filesep]; % Path to CRX folder containing files of Satellites problems
+        DCB_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'DCB' filesep]; % Path to DCB folder containing files of Differential Code Biases
+        EMS_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'SBAS' filesep 'EMS' filesep]; % Path to EMS folder containing files of EGNOS Message Server.
+        % REFERENCE        
+        GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs        
+        % DTM (SET PATH AND LOAD PARAMETER FILES)        
+        DTM_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep]; % Path to DTM folder containing DTM files
+        % UI IMAGES
+        IMG_DIR = [IO_Settings.DEFAULT_DIR_IN 'img' filesep];  % Path to images used by the interface
+        IMG_LOGO64 = [IO_Settings.IMG_DIR 'goGPS_logo_64.png'];     % Location of the goGPS logo 64x64
+        OUT_STYLE = 0;       % Output style
+                             %  - out_style = 0: old goGPS naming: each file saved with run number in out_dir 
+                             %  - out_style = 1: run naming: each file saved in a folder containing the run number in out_dir 
+                             %  - out_style = 2... other values for future implementation, e.g. each output in a folder with a certain format (doy_hh-hh)
+        OUT_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % Directory containing the output of the project
+        OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
+        RUN_COUNTER = 0;     % This parameter store the current run number
+    end
+    
     properties (Constant, Access = 'protected')
         % id to string of out modes
         OUT_MODE = {'0: old goGPS naming - each file saved with run number in out_dir', ...
                     '1: run naming - each file saved in a folder containing the run number in out_dir' ...
-                    '2... other values for future implementation, e.g. each output in a folder with a certain format (doy_hh-hh)'}
-                
+                    '2... other values for future implementation, e.g. each output in a folder with a certain format (doy_hh-hh)'}                
         DEFAULT_DIR_IN = ['..' filesep 'data' filesep];
         DEFAULT_DIR_OUT = ['..' filesep 'data' filesep];  
     end
@@ -63,87 +94,84 @@ classdef IO_Settings < Settings_Interface
         %------------------------------------------------------------------        
 
         % Name of the project
-        prj_name = 'Default PPP project';
+        prj_name = IO_Settings.PRJ_NAME;
                 
         % Location of the project <relative path from goGPS folder>
-        prj_home = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep];
+        prj_home = IO_Settings.PRJ_HOME;
         
-        cur_ini = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep 'Config' filesep 'settings.ini'];
+        % Location of the current ini file
+        cur_ini = IO_Settings.CUR_INI;
         
         %------------------------------------------------------------------
         % DEPRECATE
         %------------------------------------------------------------------
         % deprecate INI - it contains some additional setting (yet not imported in the new settings system)
-        input_file_ini_path = '../data/project/default_DD/config/inputFiles.ini';
+        input_file_ini_path = IO_Settings.INPUT_FILE_INI_PATH;
 
         %------------------------------------------------------------------
         % RECEIVERS
         %------------------------------------------------------------------
 
         % Observation files of the Receivers
-        %receiver_rinex_file = Receiver_File;        
+        % receiver_rinex_file = Receiver_File;        
 
         %------------------------------------------------------------------
         % SATELLITES
         %------------------------------------------------------------------
         
         % Path to Ephemeris files folder
-        eph_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'EPH' filesep];
-
+        eph_dir = IO_Settings.EPH_DIR;
         % Path to Clock Offset files folder
-        clk_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CLK' filesep];
-        
+        clk_dir = IO_Settings.CLK_DIR;
         % Path to CRX folder containing files of Satellites problems
-        crx_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CRX' filesep];
-
+        crx_dir = IO_Settings.CRX_DIR;
         % Path to DCB folder containing files of Differential Code Biases
-        dcb_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'DCB' filesep];
-
+        dcb_dir = IO_Settings.DCB_DIR;
         % Path to EMS folder containing files of EGNOS Message Server.
-        ems_dir = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'SBAS' filesep 'EMS' filesep];
+        ems_dir = IO_Settings.EMS_DIR;
 
         %------------------------------------------------------------------
         % REFERENCE
         %------------------------------------------------------------------
         
         % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
-        geoid_dir = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep];
+        geoid_dir = IO_Settings.GEOID_DIR;
         
         %------------------------------------------------------------------
         % DTM (SET PATH AND LOAD PARAMETER FILES)
         %------------------------------------------------------------------
 
         % Path to DTM folder containing DTM files
-        dtm_dir = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep];
+        dtm_dir = IO_Settings.DTM_DIR;
         
         %------------------------------------------------------------------
         % UI IMAGES
         %------------------------------------------------------------------
 
         % Path to images used by the interface
-        img_dir = [IO_Settings.DEFAULT_DIR_IN 'img' filesep];
+        img_dir = IO_Settings.IMG_DIR;
         
         % Location of the goGPS logo 64x64
-        img_logo64;        
+        img_logo64 = IO_Settings.IMG_LOGO64;      
         
         %------------------------------------------------------------------
         % OUTPUT
         %------------------------------------------------------------------
         
         % Output style
-        out_style = 0;
+        out_style = IO_Settings.OUT_STYLE;
         %  - out_style = 0: old goGPS naming: each file saved with run number in out_dir 
         %  - out_style = 1: run naming: each file saved in a folder containing the run number in out_dir 
         %  - out_style = 2... other values for future implementation, e.g. each output in a folder with a certain format (doy_hh-hh)
                 
         % Directory containing the output of the project
-        out_dir = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % location relative to the project home
+        out_dir = IO_Settings.OUT_DIR;
         
         % Every time a solution is computed a folder with prefix followed by the run number is created
-        out_prefix = 'yamatogawa'
+        out_prefix = IO_Settings.OUT_PREFIX;
         
         % This parameter store the current run number
-        run_counter = 0;
+        run_counter = IO_Settings.RUN_COUNTER;
     end
             
     % =========================================================================
@@ -213,6 +241,7 @@ classdef IO_Settings < Settings_Interface
                 this.out_prefix = settings.out_prefix;
                 this.run_counter = settings.run_counter;                
             end
+            this.check();
         end
         
         function str = toString(this, str)
@@ -328,6 +357,7 @@ classdef IO_Settings < Settings_Interface
             catch ex
                 this.logger.addWarning(['Legacy import "IO file / folders" failed - ', ex.message])
             end
+            this.check();
         end
     end
     
@@ -379,6 +409,78 @@ classdef IO_Settings < Settings_Interface
                 this.logger.addMessage(sprintf(' home: %s', this.prj_home));
                 this.logger.addMessage(sprintf(' ini:  %s', this.cur_ini));                
             end            
+        end
+    end
+
+    % =========================================================================
+    %  TEST PARAMETERS VALIDITY
+    % =========================================================================    
+    methods (Access = 'protected')
+        function checkLogicalField(this, field_name)
+            % Check if a logical field of the object is a valid logical number
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.checkLogicalField(string_field_name);
+            this.(field_name) = this.checkLogical(field_name, this.(field_name), this.(upper(field_name)));
+        end
+
+        function checkStringField(this, field_name, empty_is_valid, check_existence)
+            % Check if a string field of the object is a valid string
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);            
+            switch nargin
+                case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
+                case 4, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
+                otherwise, error('Settings checkStringField called with the wrong number of parameters');
+            end
+        end
+        
+        function checkNumericField(this, field_name, limits, valid_val)
+            % Check if a numeric field of the object is valid
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.checkNumericField(string_field_name, <limits>, <valid_values>);
+            switch nargin
+                case 2, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits);
+                case 4, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits, valid_val);
+                otherwise, error('Settings checkNumericField called with the wrong number of parameters');
+            end
+        end
+    end
+    
+    % =========================================================================
+    %  TEST PARAMETERS VALIDITY
+    % =========================================================================       
+    
+    methods (Access = 'public')
+        function check(this)            
+            % Check the validity of the fields
+            % SYNTAX: this.check();
+            
+            this.checkStringField('prj_name', false);
+            this.checkStringField('prj_home', false, true);
+            this.checkStringField('cur_ini', false);
+
+            this.checkStringField('input_file_ini_path', false);
+            
+            this.checkStringField('eph_dir', false, true);
+            this.checkStringField('clk_dir', false, true);
+            this.checkStringField('crx_dir', false, true);
+            this.checkStringField('dcb_dir', false, true);
+            this.checkStringField('ems_dir', true);
+
+            this.checkStringField('geoid_dir', true);
+            this.checkStringField('dtm_dir', true);
+
+            this.checkStringField('img_dir', false, true);
+            this.checkStringField('img_logo64', false, true);
+
+            this.checkNumericField('out_style',[0 numel(this.OUT_MODE)-2]);
+            this.checkStringField('out_prefix', true);
+            this.checkNumericField('run_counter',[0 1e6]);
         end
     end
     

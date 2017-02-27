@@ -161,7 +161,7 @@ classdef Logger < handle
             if (color_mode)
                 cprintf('text', [text '\n']);
             else
-                fprintf('%s\n', text);
+                fprintf([text '\n']);
             end
         end
         
@@ -175,7 +175,7 @@ classdef Logger < handle
                 cprintf('SystemCommands', 'Warning: ');
                 cprintf('text', [text '\n']);
             else
-                fprintf('Warning: %s\n', text);
+                fprintf(['Warning: ' text '\n']);
             end
         end
         
@@ -189,7 +189,7 @@ classdef Logger < handle
                 cprintf('err', 'Error: ');
                 cprintf('text', [text '\n']);
             else
-                fprintf('Error: %s\n', text);
+                fprintf(['Error: ' text '\n']);
             end
         end
 

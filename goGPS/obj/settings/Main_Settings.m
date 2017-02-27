@@ -47,55 +47,180 @@
 
 classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     
+    % Default values for each field - useful to restore corrupted fields
+    properties (Constant, Access = 'private')
+        % RECEIVER DEFAULT PARAMETERS
+        STD_CODE = 3;                                   % Std of code observations [m]
+        STD_PHASE = 0.03;                               % Std of phase observations [m]
+        STD_PHASE_IF = 0.009;                           % Std of iono-free phase observations [m]
+        SIGMA0_CLOCK = 4.47e-9;                         % Std of a priori receiver clock
+        SIGMA0_R_CLOCK = 31                             % Std of receiver clock
+        FLAG_RINEX_MPOS = true;                         % Flag to read the position of the master form the RINEX file (deprecate)
+        MPOS = struct('X', 0, 'Y', 0, 'Z', 0);          % Default master position (these are overrided when the coordinates are specified elsewhere) (deprecate)
+        
+        % DATA SELECTION        
+        CC = Constellation_Collector('G');              % object containing info on the activated constellations
+        P_RATE = 1;                                     % Minimum processing rate [s]
+        MIN_N_SAT = 2;                                  % Minimum number of satellites to be used in the Kalman filter
+        CUT_OFF = 10;                                   % Cut-off [degrees]
+        SNR_THR = 0;                                    % Signal-to-noise ratio threshold [dB]
+        FLAG_OCEAN = false;                             % Flag for enabling the usage of ocean tides modeling
+        MIN_ARC = 10;                                   % Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
+        
+        % PRE PROCESSING
+        FLAG_PRE_PRO = true;                            % Flag for enabling pre-processing
+        CS_THR_PRE_PRO = 3;                             % Cycle slip threshold (pre-processing) [cycles]
+        
+        % OUTLIER DETECTION
+        FLAG_OUTLIER = true;                            % Flag for enabling outlier detection
+        PP_SPP_THR = 4;                                 % Threshold on the code point-positioning least squares estimation error [m]
+        PP_MAX_CODE_ERR_THR = 30;                       % Threshold on the maximum residual of code observations [m]
+        PP_MAX_PHASE_ERR_THR = 0.2;                     % Threshold on the maximum residual of phase observations [m]
+        
+        % PROCESSING PARAMETERS
+        FLAG_TROPO = false;                             % Flag for enabling the computation of thropospheric derived informations
+        W_MODE = 1;                                     % Parameter used to select the weightening mode for GPS observations
+                                                        %  - weights = 0: same weight for all the observations
+                                                        %  - weights = 1: weight based on satellite elevation (sin)
+                                                        %  - weights = 2: weight based on signal-to-noise ratio
+                                                        %  - weights = 3: weight based on combined elevation and signal-to-noise ratio
+                                                        %  - weights = 4: weight based on satellite elevation (exp)
+        W_SNR = struct('a', 30, 'zero', 10, 'one', 50, 'A', 30); % Weight function parameters (when based on SNR)
+        CS_THR = 1;                                     % Cycle slip threshold (processing) [cycles]
+        FLAG_IONOFREE = false;                          % Flag for enabling the usage of iono-free combination
+        CONSTRAIN = false;                              % Constrain the solution using a reference path
+        STOP_GO_STOP = false;                           % This flag add the possibility to process in stop go stop mode        
+
+        % INTEGER AMBIGUITY RESOLUTION
+        FLAG_IAR = 0;                                   % Flag for enabling the automatic detection of cycle sleep
+        IAR_RESTART_MODE = 2;                           % Ambiguity restart mode
+                                                        % - iar_restart_mode = 0; % Observed code - phase difference
+                                                        % - iar_restart_mode = 1; % Kalman-predicted code - phase difference
+                                                        % - iar_restart_mode = 2; % Least squares adjustment
+        IAR_MODE = 1;                                   % Parameter used to select Integer Least Squares estimator
+                                                        % - iar_mode = 0: % ILS method with numeration in search (LAMBDA2)
+                                                        % - iar_mode = 1: % ILS method with shrinking ellipsoid during search (LAMBDA3)
+                                                        % - iar_mode = 2: % ILS method with numeration in search (LAMBDA3)
+                                                        % - iar_mode = 3: % integer rounding method (LAMBDA3)
+                                                        % - iar_mode = 4: % integer bootstrapping method (LAMBDA3)
+                                                        % - iar_mode = 5: % Partial Ambiguity Resolution (PAR) (LAMBDA3)
+        IAR_P0 = 0.001;                                 % User defined fixed failure rate (for methods 1,2) or minimum required success rate (for method 5)
+        SIGMA0_N = 31;                                  % Std of a priori ambiguity combinations [cycles]
+        IAR_MU = 0.5;                                   % User defined threshold for ratio test
+        FLAG_IAR_AUTO_MU = true;                        % Flag for enabling the automatic determination of mu
+        FLAG_IAR_DEFAULT_P0 = true;                     % Flag for enabling the default value for P0
+        FLAG_DOPPLER = false;                           % Flag for using doppler-predicted phase range for detecting cycle slips
+        
+        % KF
+        KF_ORDER = 1;                                   % Order of the dynamic model polynomial
+                                                        % - kf_order = 0; static
+                                                        % - kf_order = 1; constant velocity
+                                                        % - kf_order = 2; constant acceleration
+                                                        % - kf_order = 3; variable (stop-go-stop)
+
+        % RECEIVER POSITION / MOTION 
+        SIGMA0_K_POS = 1;                               % Std of initial state [m]
+        STD_K_ENU = struct('E', 0.5, 'N', 0.5, 'U', 0.1); % Std of ENU coordinates variation [m] / [m/s] / [m/s^2]
+        STD_K_VEL_MOD = 0.1                             % Std of 3D modulus variation [m] / [m/s] / [m/s^2]
+                                                        
+        % ATMOSPHERE
+        SIGMA0_TROPO = 0.1;                             % Std of a priori tropospheric delay
+        STD_TROPO = 4.5644e-4;                          % Std of tropospheric delay
+        IONO_MODEL = 2;                                 % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
+                                                        % - iono_model = 0: no model
+                                                        % - iono_model = 1: Geckle and Feen model
+                                                        % - iono_model = 2: Klobuchar model
+                                                        % - iono_model = 3: SBAS grid
+        TROPO_MODEL = 1;                                % Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
+                                                        % - tropo_model = 0: no model
+                                                        % - tropo_model = 1: Saastamoinen model (with standard atmosphere parameters)
+                                                        % - tropo_model = 2: Saastamoinen model (with Global Pressure Temperature model)
+
+        % DTM
+        FLAG_DTM = false;                               % DTM flag (use / do not use)
+        STD_DTM = 0.03;                                 % Std of DEM height [m]
+        ANTENNA_H = 0;                                  % Elevation of the antenna above ground
+        DTM_TILE_HEADER = struct('nrows', 0, 'ncols', 0, 'cellsize', 0, 'nodata', 0); % Parameters common to all DTM tiles
+        DTM_TILE_GEOREF = zeros(1,1,4);                 % Parameters used to georeference every DTM tile
+
+        % GUI
+        PLOT_PROC = true;                               % plot during processing
+        PLOT_REF_PATH = false;                          % plot ref during processing
+        PLOT_SKYPLOT_SNR = false;                       % plot sky plot during processing
+        PLOT_ERR_ELLIPSE = false;                       % plot error_ellipse
+        PLOT_AMBIGUITIES = false;                       % plot ambiguities
+        PLOT_MASTER = false;                            % plot master station
+        PLOT_GOOGLE_EARTH = false;                      % plot on google earth
+        
+        % CAPTURE
+        C_N_RECEIVERS = 1;                              % Number of receiver to use for capturing data
+        C_RATE = 1;                                     % Capture rate [s]
+        C_PRTC = 1;                                     % Array with the size of c_n_receivers
+                                                        % - c_prtc = 1: UBX (u-blox)
+                                                        % - c_prtc = 2: iTalk (Fastrax)
+                                                        % - c_prtc = 3: SkyTraq
+                                                        % - c_prtc = 4: BINR (NVS)
+        C_COM_ADDR = {'/dev/tty.lpss-serial1'};         % Cell array with the com address of each receiver to be used
+        
+        % NTRIP
+        FLAG_NTRIP = false;                             % NTRIP flag (use / do not use) 
+        NTRIP = struct('ip_addr', '127.0.0.1', ...      % Struct containing NTRIP parameters:
+                       'port', '2101', ...
+                       'mountpoint', '/', ...
+                       'username', 'user', ...
+                       'password', 'pswd', ...
+                       'approx_position', struct('lat', 0, 'lon', 0, 'h', 0));
+    end
+    
     properties (Constant, Access = 'protected')
         % id to string of Kalman Filter dynamic modes
-        DYN_MODE = {'0: static', ...
-                    '1: constant velocity' ...
-                    '2: constant acceleration', ...
-                    '3: variable (stop-go-stop)'}
+        DYN_SMODE = {'0: static', ...
+                     '1: constant velocity' ...
+                     '2: constant acceleration', ...
+                     '3: variable (stop-go-stop)'}
 
         % id to string of IAR modes
-        IAR_MODE = {'0: ILS method with numeration in search (LAMBDA2)', ...
-                    '1: ILS method with shrinking ellipsoid during search (LAMBDA3)' ...
-                    '2: ILS method with numeration in search (LAMBDA3)', ...
-                    '3: integer rounding method (LAMBDA3)', ...
-                    '4: integer bootstrapping method (LAMBDA3)', ...
-                    '5: Partial Ambiguity Resolution (PAR) (LAMBDA3)'}
+        IAR_SMODE = {'0: ILS method with numeration in search (LAMBDA2)', ...
+                     '1: ILS method with shrinking ellipsoid during search (LAMBDA3)' ...
+                     '2: ILS method with numeration in search (LAMBDA3)', ...
+                     '3: integer rounding method (LAMBDA3)', ...
+                     '4: integer bootstrapping method (LAMBDA3)', ...
+                     '5: Partial Ambiguity Resolution (PAR) (LAMBDA3)'}
                 
         % id to string of IAR restart function
-        IAR_RESTART = {'0: Observed code - phase difference', ...
-                       '1: Kalman-predicted code - phase difference', ...
-                       '2: Least squares adjustment'}
+        IAR_SRESTART = {'0: Observed code - phase difference', ...
+                        '1: Kalman-predicted code - phase difference', ...
+                        '2: Least squares adjustment'}
        
         % id to string of weight functions
-        W_MODE = {'same weight for all the observations', ...
-                  'weight based on satellite elevation (sin)' ...
-                  'weight based on signal-to-noise ratio', ...
-                  'weight based on combined elevation and signal-to-noise ratio', ...
-                  'weight based on satellite elevation (exp)'}
+        W_SMODE = {'same weight for all the observations', ...
+                   'weight based on satellite elevation (sin)' ...
+                   'weight based on signal-to-noise ratio', ...
+                   'weight based on combined elevation and signal-to-noise ratio', ...
+                   'weight based on satellite elevation (exp)'}
               
         % id to string of ionospheric models
-        IONO_MODE = {'0: no model', ...
-                     '1: Geckle and Feen model' ...
-                     '2: Klobuchar model', ...
-                     '3: SBAS grid'}
+        IONO_SMODE = {'0: no model', ...
+                      '1: Geckle and Feen model' ...
+                      '2: Klobuchar model', ...
+                      '3: SBAS grid'}
                  
         % id to string of tropospheric models 
-        TROPO_MODE = {'0: no model', ...
-                      '1: Saastamoinen model (with standard atmosphere parameters)' ...
-                      '2: Saastamoinen model (with Global Pressure Temperature model)'} 
+        TROPO_SMODE = {'0: no model', ...
+                       '1: Saastamoinen model (with standard atmosphere parameters)' ...
+                       '2: Saastamoinen model (with Global Pressure Temperature model)'} 
                           
         % id to string of capturing protocols
-        C_PROTOCOL = {'1: UBX (u-blox)', ...
-                      '2: iTalk (Fastrax)', ...
-                      '3: SkyTraq', ...
-                      '4: BINR (NVS)'}
+        C_SPROTOCOL = {'1: UBX (u-blox)', ...
+                       '2: iTalk (Fastrax)', ...
+                       '3: SkyTraq', ...
+                       '4: BINR (NVS)'}
 
         % processing rates used in UI -> to convert UI to settings format
-        UI_P_RATE = goGUIclass.UI_P_RATE;
+        UI_P_SRATE = goGUIclass.UI_P_SRATE;
         
         % capture rates used in UI -> to convert UI to settings format
-        UI_C_RATE = goGUIclass.UI_C_RATE;
+        UI_C_SRATE = goGUIclass.UI_C_SRATE;
     end
     
     %  Processing parameters
@@ -113,74 +238,74 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % These values are kept if not specified elsewhere
         
         % Std of code observations [m]
-        std_code = 3; 
+        std_code = Main_Settings.STD_CODE; 
 
         % Std of phase observations [m]
-        std_phase = 0.03; % (maximize to obtain a code-based solution)
+        std_phase = Main_Settings.STD_PHASE; % (maximize to obtain a code-based solution)
         % Std of iono-free phase observations [m]
-        std_phase_if = 0.009;
+        std_phase_if = Main_Settings.STD_PHASE_IF;
         
         % Std of a priori receiver clock
-        sigma0_clock = 4.47e-09        
+        sigma0_clock = Main_Settings.SIGMA0_CLOCK;       
         % Std of receiver clock
-        sigma0_r_clock = 31;
+        sigma0_r_clock = Main_Settings.SIGMA0_R_CLOCK;
         
         % Flag to read the position of the master form the RINEX file (deprecate)
-        flag_rinex_mpos = true;
+        flag_rinex_mpos = Main_Settings.FLAG_RINEX_MPOS;
         % Default master position (these are overrided when the coordinates are specified elsewhere) (deprecate)
-        mpos = struct('X', 0, 'Y', 0, 'Z', 0);
+        mpos = Main_Settings.MPOS;
         
         %------------------------------------------------------------------
         % DATA SELECTION
         %------------------------------------------------------------------
         
         % object containing info on the activated constellations
-        cc =  Constellation_Collector('G');
+        cc =  Main_Settings.CC;
         % Minimum processing rate [s]
-        p_rate = 1;
+        p_rate = Main_Settings.P_RATE;
         % Minimum number of satellites to be used in the Kalman filter
-        min_n_sat = 2;        
+        min_n_sat = Main_Settings.MIN_N_SAT;        
         % Cut-off [degrees]
-        cut_off = 10;
+        cut_off = Main_Settings.CUT_OFF;
         % Signal-to-noise ratio threshold [dB]
-        snr_thr = 0;                
+        snr_thr = Main_Settings.SNR_THR;                
         % Flag for enabling the usage of ocean tides modeling
-        flag_ocean = false;        
+        flag_ocean = Main_Settings.FLAG_OCEAN;        
         % Minimum length an arc (a satellite to be used must be seen for a number of consecutive epochs greater than this value)
-        min_arc = 10;
+        min_arc = Main_Settings.MIN_ARC;
 
         %------------------------------------------------------------------
         % PRE PROCESSING 
         %------------------------------------------------------------------
         
         % Flag for enabling pre-processing
-        flag_pre_pro = true;        
+        flag_pre_pro = Main_Settings.FLAG_PRE_PRO;        
         % Cycle slip threshold (pre-processing) [cycles]
-        cs_thr_pre_pro = 3;
+        cs_thr_pre_pro = Main_Settings.CS_THR_PRE_PRO;
 
         %------------------------------------------------------------------
         % OUTLIER DETECTION
         %------------------------------------------------------------------
 
         % Flag for enabling outlier detection
-        flag_outlier = true;
+        flag_outlier = Main_Settings.FLAG_OUTLIER;
                 
         % Threshold on the code point-positioning least squares estimation error [m]
-        pp_spp_thr = 4;                 
+        pp_spp_thr = Main_Settings.PP_SPP_THR;
         % Threshold on the maximum residual of code observations [m]
-        pp_max_code_err_thr = 30;            
+        pp_max_code_err_thr = Main_Settings.PP_MAX_CODE_ERR_THR;            
         % Threshold on the maximum residual of phase observations [m]
-        pp_max_phase_err_thr = 0.2;  
+        pp_max_phase_err_thr = Main_Settings.PP_MAX_PHASE_ERR_THR;  
         
         %------------------------------------------------------------------
         % PROCESSING PARAMETERS 
         %------------------------------------------------------------------
         
         % Flag for enabling the computation of thropospheric derived informations
-        flag_tropo = false;
+        flag_tropo = Main_Settings.FLAG_TROPO;
         
         % Parameter used to select the weightening mode for GPS observations
-        w_mode = 1;
+        w_mode = Main_Settings.W_MODE;
         %  - weights = 0: same weight for all the observations
         %  - weights = 1: weight based on satellite elevation (sin)
         %  - weights = 2: weight based on signal-to-noise ratio
@@ -188,36 +313,36 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         %  - weights = 4: weight based on satellite elevation (exp)
                 
         % Weight function parameters (when based on SNR)
-        w_snr = struct('a', 30, 'zero', 10, 'one', 50, 'A', 30);
+        w_snr = Main_Settings.W_SNR;
         
         % Cycle slip threshold (processing) [cycles]
-        cs_thr = 1;
+        cs_thr = Main_Settings.CS_THR;
 
         % Flag for enabling the usage of iono-free combination
-        flag_ionofree = false;
+        flag_ionofree = Main_Settings.FLAG_IONOFREE;
 
         % Constrain the solution using a reference path
-        constrain = false; 
+        constrain = Main_Settings.CONSTRAIN; 
         
         % This flag add the possibility to process in stop go stop mode
         % static convergence / movement / static convergence
-        stop_go_stop = false;
+        stop_go_stop = Main_Settings.STOP_GO_STOP;
         
         %------------------------------------------------------------------
         % INTEGER AMBIGUITY RESOLUTION
         %------------------------------------------------------------------
         
         % Flag for enabling the automatic detection of cycle sleep
-        flag_iar = 0;
+        flag_iar = Main_Settings.FLAG_IAR;
 
         % Ambiguity restart mode
-        iar_restart_mode = 2;        
+        iar_restart_mode = Main_Settings.IAR_RESTART_MODE;        
         % - iar_restart_mode = 0; % Observed code - phase difference
         % - iar_restart_mode = 1; % Kalman-predicted code - phase difference
         % - iar_restart_mode = 2; % Least squares adjustment
         
         % Parameter used to select Integer Least Squares estimator
-        iar_mode = 1; % ILS method with shrinking ellipsoid during search (LAMBDA3)
+        iar_mode = Main_Settings.IAR_MODE;
         % - iar_mode = 0: % ILS method with numeration in search (LAMBDA2)
         % - iar_mode = 1: % ILS method with shrinking ellipsoid during search (LAMBDA3)
         % - iar_mode = 2: % ILS method with numeration in search (LAMBDA3)
@@ -226,29 +351,29 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % - iar_mode = 5: % Partial Ambiguity Resolution (PAR) (LAMBDA3)
 
         % User defined fixed failure rate (for methods 1,2) or minimum required success rate (for method 5)
-        iar_P0 = 0.001;
+        iar_p0 = Main_Settings.IAR_P0;
 
         % Std of a priori ambiguity combinations [cycles]
-        sigma0_N = 31;
+        sigma0_N = Main_Settings.SIGMA0_N;
 
         % User defined threshold for ratio test
-        iar_mu = 0.5;
+        iar_mu = Main_Settings.IAR_MU;
         
         % Flag for enabling the automatic determination of mu
-        flag_iar_auto_mu = true;
+        flag_iar_auto_mu = Main_Settings.FLAG_IAR_AUTO_MU;
         
         % Flag for enabling the default value for P0
-        flag_iar_default_P0 = true;
+        flag_iar_default_p0 = Main_Settings.FLAG_IAR_DEFAULT_P0;
         
         % Flag for using doppler-predicted phase range for detecting cycle slips
-        flag_doppler = false;
+        flag_doppler = Main_Settings.FLAG_DOPPLER;
         
         %------------------------------------------------------------------
         % KF
         %------------------------------------------------------------------
         
         % Order of the dynamic model polynomial
-        kf_order = 1;
+        kf_order = Main_Settings.KF_ORDER;
         % - kf_order = 0; static
         % - kf_order = 1; constant velocity
         % - kf_order = 2; constant acceleration
@@ -259,30 +384,30 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         %------------------------------------------------------------------
         
         % Std of initial state [m]
-        sigma0_k_pos = 1;         
+        sigma0_k_pos = Main_Settings.SIGMA0_K_POS;         
         % Std of ENU coordinates variation [m] / [m/s] / [m/s^2]
-        std_k_ENU = struct('E', 0.5, 'N', 0.5, 'U', 0.1);
+        std_k_ENU = Main_Settings.STD_K_ENU;
         % Std of 3D modulus variation [m] / [m/s] / [m/s^2]
-        std_k_vel_mod = 0.1;
+        std_k_vel_mod = Main_Settings.STD_K_VEL_MOD;
                                 
         %------------------------------------------------------------------
         % ATMOSPHERE
         %------------------------------------------------------------------
 
         % Std of a priori tropospheric delay
-        sigma0_tropo = 0.1;
+        sigma0_tropo = Main_Settings.SIGMA0_TROPO;
         % Std of tropospheric delay
-        std_tropo = 4.5644e-4;
+        std_tropo = Main_Settings.STD_TROPO;
                 
         % Ionospheric model to be used (0: none, 1: Geckle and Feen, 2: Klobuchar, 3: SBAS)
-        iono_model = 2; % Klobuchar model
+        iono_model = Main_Settings.IONO_MODEL;
         % - iono_model = 0: no model
         % - iono_model = 1: Geckle and Feen model
         % - iono_model = 2: Klobuchar model
         % - iono_model = 3: SBAS grid
         
         % Tropospheric model to be used (0: none, 1: Saastamoinen std parameters, 2: Saastamoinen global pararameters)
-        tropo_model = 1; % Saastamoinen model (with standard atmosphere parameters)
+        tropo_model = Main_Settings.TROPO_MODEL;
         % - tropo_model = 0: no model
         % - tropo_model = 1: Saastamoinen model (with standard atmosphere parameters)
         % - tropo_model = 2: Saastamoinen model (with Global Pressure Temperature model)
@@ -292,76 +417,71 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         %------------------------------------------------------------------
                 
         % DTM flag (use / do not use)
-        flag_dtm = false;
+        flag_dtm = Main_Settings.FLAG_DTM;
 
         % Folder containing DTM files
         % dtm_dir = '../data/dtm'; -> defined in superclass IO_Settings
 
         % Std of DEM height [m]
-        std_dtm = 0.03  % (maximize to disable DEM usage: e.g. 1e30)
+        std_dtm = Main_Settings.STD_DTM  % (maximize to disable DEM usage: e.g. 1e30)
         
         % Elevation of the antenna above ground
-        antenna_h = 0; % when fixing 
+        antenna_h = Main_Settings.ANTENNA_H; % when fixing 
         
         % Parameters common to all DTM tiles
-        dtm_tile_header = struct('nrows', 0, 'ncols', 0, 'cellsize', 0, 'nodata', 0);
+        dtm_tile_header = Main_Settings.DTM_TILE_HEADER;
         
         % Parameters used to georeference every DTM tile
-        dtm_tile_georef = zeros(1,1,4);        
+        dtm_tile_georef = Main_Settings.DTM_TILE_GEOREF;        
         
         %------------------------------------------------------------------
         % GUI
         %------------------------------------------------------------------
         
         % plot during processing
-        plot_proc = false;        
+        plot_proc = Main_Settings.PLOT_PROC;        
         % plot ref during processing
-        plot_ref_path = false;        
+        plot_ref_path = Main_Settings.PLOT_REF_PATH;        
         % plot sky plot during processing
-        plot_skyplot_snr = false;        
+        plot_skyplot_snr = Main_Settings.PLOT_SKYPLOT_SNR;        
         % plot error_ellipse
-        plot_err_ellipse = false;        
+        plot_err_ellipse = Main_Settings.PLOT_ERR_ELLIPSE;        
         % plot ambiguities
-        plot_ambiguities = false;        
+        plot_ambiguities = Main_Settings.PLOT_AMBIGUITIES;        
         % plot master station
-        plot_master = false;        
+        plot_master = Main_Settings.PLOT_MASTER;        
         % plot on google earth
-        plot_google_earth = false;     
+        plot_google_earth = Main_Settings.PLOT_GOOGLE_EARTH;     
                 
         %------------------------------------------------------------------
         % CAPTURE
         %------------------------------------------------------------------
         
         % Number of receiver to use for capturing data
-        c_n_receivers = 1;
+        c_n_receivers = Main_Settings.C_N_RECEIVERS;
         
         % Capture rate [s]
-        c_rate = 1;
+        c_rate = Main_Settings.C_RATE;
         
         % Array with the size of c_n_receivers
-        c_prtc = 1
+        c_prtc = Main_Settings.C_PRTC
         % - c_prtc = 1: UBX (u-blox)
         % - c_prtc = 2: iTalk (Fastrax)
         % - c_prtc = 3: SkyTraq
         % - c_prtc = 4: BINR (NVS)
         
         % Cell array with the com address of each receiver to be used
-        c_com_addr = {'/dev/tty.lpss-serial1'};
+        c_com_addr = Main_Settings.C_COM_ADDR;
         
         %------------------------------------------------------------------
         % NTRIP
         %------------------------------------------------------------------
         
         % NTRIP flag (use / do not use) 
-        flag_ntrip = false;
+        flag_ntrip = Main_Settings.FLAG_NTRIP;
         
-        % struct containing NTRIP parameters:
-        ntrip = struct('ip_addr', '127.0.0.1', ...
-                       'port', '2101', ...
-                       'mountpoint', '/', ...
-                       'username', 'user', ...
-                       'password', 'pswd', ...
-                       'approx_position', struct('lat', 0, 'lon', 0, 'h', 0));        
+        % Struct containing NTRIP parameters:
+        ntrip = Main_Settings.NTRIP;
     end
     
     % =========================================================================
@@ -432,11 +552,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_iar = state.getData('flag_iar');
                 this.iar_restart_mode = state.getData('iar_restart_mode');
                 this.iar_mode = state.getData('iar_mode');
-                this.iar_P0 = state.getData('iar_P0');
+                this.iar_p0 = state.getData('iar_p0');
                 this.sigma0_N = state.getData('sigma0_N');
                 this.iar_mu = state.getData('iar_mu');
                 this.flag_iar_auto_mu = state.getData('flag_iar_auto_mu');
-                this.flag_iar_default_P0 = state.getData('flag_iar_default_P0');
+                this.flag_iar_default_p0 = state.getData('flag_iar_default_p0');
                 this.flag_doppler = state.getData('flag_doppler');
                 
                 % KF
@@ -528,11 +648,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_iar = state.flag_iar;
                 this.iar_restart_mode = state.iar_restart_mode;
                 this.iar_mode = state.iar_mode;
-                this.iar_P0 = state.iar_P0;
+                this.iar_p0 = state.iar_p0;
                 this.sigma0_N = state.sigma0_N;
                 this.iar_mu = state.iar_mu;
                 this.flag_iar_auto_mu = state.flag_iar_auto_mu;
-                this.flag_iar_default_P0 = state.flag_iar_default_P0;
+                this.flag_iar_default_p0 = state.flag_iar_default_p0;
                 this.flag_doppler = state.flag_doppler;                                
                 
                 % KF
@@ -579,6 +699,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.import@Mode_Settings(state);
             this.import@IO_Settings(state);
             
+            this.check(); % check after import
             this.postImportInit();
         end
         
@@ -625,7 +746,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = this.toString@Mode_Settings(str);
             str = [str sprintf(' Compute tropospheric indicators                   %d\n\n', this.flag_tropo)];
-            str = [str sprintf(' Using %s\n\n', this.W_MODE{this.w_mode+1})];
+            str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode+1})];
             str = [str sprintf(' Weight function parameters (when based on SNR): \n')];
             str = [str sprintf('   - w.a:     %d\n', this.w_snr.a)];
             str = [str sprintf('   - w.zero:  %d\n', this.w_snr.zero)];
@@ -638,18 +759,18 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
             str = [str '---- AMBIGUITY (IAR) ------------------------------------------------------' 10 10];
             str = [str sprintf(' Use ambiguity fix resolution:                     %d\n\n', this.flag_iar)];
-            str = [str sprintf(' Ambiguity restart mode: %s\n\n', this.IAR_RESTART{this.iar_restart_mode+1})];
-            str = [str sprintf(' Using method %s\n\n', this.IAR_MODE{this.iar_mode+1})];
-            str = [str sprintf(' User defined fixed failure rate (methods 1,2):    %g\n', this.iar_P0)];
-            str = [str sprintf(' User defined minimum success rate (for method 5): %g\n', this.iar_P0)];
+            str = [str sprintf(' Ambiguity restart mode: %s\n\n', this.IAR_SRESTART{this.iar_restart_mode+1})];
+            str = [str sprintf(' Using method %s\n\n', this.IAR_SMODE{this.iar_mode+1})];
+            str = [str sprintf(' User defined fixed failure rate (methods 1,2):    %g\n', this.iar_p0)];
+            str = [str sprintf(' User defined minimum success rate (for method 5): %g\n', this.iar_p0)];
             str = [str sprintf(' STD of a priori ambiguity combinations [cycles]:   %d\n\n', this.sigma0_N)];
             str = [str sprintf(' User defined threshold for ratio test:            %g\n', this.iar_mu)];
             str = [str sprintf(' Automatic determination of mu:                    %d\n', this.flag_iar_auto_mu)];
-            str = [str sprintf(' Use default value for P0:                         %d\n', this.flag_iar_default_P0)];
+            str = [str sprintf(' Use default value for P0:                         %d\n', this.flag_iar_default_p0)];
             str = [str sprintf(' Use doppler predicted phase range:                %d\n\n', this.flag_doppler)];            
             
             str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
-            str = [str sprintf(' Order of the KF %s\n\n', this.DYN_MODE{this.kf_order+1})];
+            str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE{this.kf_order+1})];
             str = [str sprintf(' STD of initial state:                             %g\n', this.sigma0_k_pos)];
             str = [str sprintf(' STD of ENU variation:                             %g %g %g\n', struct2array(this.std_k_ENU))];
             str = [str sprintf(' STD of 3D modulus variation:                      %g\n\n', this.std_k_vel_mod)];
@@ -657,8 +778,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' STD of tropospheric delay:                        %g\n\n', this.std_tropo)];
             
             str = [str '---- ATMOSPHERE ----------------------------------------------------------' 10 10];
-            str = [str sprintf(' Ionospheric model  %s\n', this.IONO_MODE{this.iono_model+1})];
-            str = [str sprintf(' Tropospheric model %s\n\n', this.TROPO_MODE{this.tropo_model+1})];
+            str = [str sprintf(' Ionospheric model  %s\n', this.IONO_SMODE{this.iono_model+1})];
+            str = [str sprintf(' Tropospheric model %s\n\n', this.TROPO_SMODE{this.tropo_model+1})];
             
             str = [str '---- DTM -----------------------------------------------------------------' 10 10];
             str = [str sprintf(' Use DTM:                                          %d\n', this.flag_dtm)];
@@ -680,7 +801,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str sprintf(' Capture rate [s]:                                 %d\n\n', this.c_rate)];
             for r = 1 : this.c_n_receivers
                 str = [str sprintf(' Receiver number %d\n', r)];  %#ok<AGROW>
-                str = [str sprintf('  - Protocol in use %s\n', this.C_PROTOCOL{this.c_prtc(r)})]; %#ok<AGROW>
+                str = [str sprintf('  - Protocol in use %s\n', this.C_SPROTOCOL{this.c_prtc(r)})]; %#ok<AGROW>
                 str = [str sprintf('  - COM address: %s\n\n', this.c_com_addr{r})]; %#ok<AGROW>
             end
             
@@ -703,7 +824,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             if (nargin == 1)
                 str_cell = {};
             end
-                        
+            
+            this.check(); % check before export
+
             str_cell = this.export@IO_Settings(str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
@@ -771,8 +894,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
             str_cell = Ini_Manager.toIniString('w_mode', this.w_mode, str_cell);
-            for i = 1 : numel(this.W_MODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %d: %s', i - 1, this.W_MODE{i}), str_cell);
+            for i = 1 : numel(this.W_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %d: %s', i - 1, this.W_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Weight function parameters (when based on SNR): a / 0 / 1 / A', str_cell);
@@ -794,17 +917,17 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Ambiguity restart mode', str_cell);
             str_cell = Ini_Manager.toIniString('iar_restart_mode', this.iar_restart_mode, str_cell);
-            for i = 1 : numel(this.IAR_RESTART)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IAR_RESTART{i}), str_cell);
+            for i = 1 : numel(this.IAR_SRESTART)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IAR_SRESTART{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringComment('Ambiguity detection mode', str_cell);
             str_cell = Ini_Manager.toIniString('iar_mode', this.iar_mode, str_cell);
-            for i = 1 : numel(this.IAR_MODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IAR_MODE{i}), str_cell);
+            for i = 1 : numel(this.IAR_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IAR_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('User defined fixed failure rate (methods 1,2) / user defined minimum success rate (for method 5)', str_cell);
-            str_cell = Ini_Manager.toIniString('iar_P0', this.iar_P0, str_cell);
+            str_cell = Ini_Manager.toIniString('iar_p0', this.iar_p0, str_cell);
             str_cell = Ini_Manager.toIniStringComment('STD of a priori ambiguity combinations [cycles]', str_cell);
             str_cell = Ini_Manager.toIniString('sigma0_N', this.sigma0_N, str_cell);
             str_cell = Ini_Manager.toIniStringComment('User defined threshold for ratio test', str_cell);
@@ -812,7 +935,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment('Automatic determination of mu (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_iar_auto_mu', this.flag_iar_auto_mu, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Use default value for P0 (0/1)', str_cell);
-            str_cell = Ini_Manager.toIniString('flag_iar_default_P0', this.flag_iar_default_P0, str_cell);
+            str_cell = Ini_Manager.toIniString('flag_iar_default_p0', this.flag_iar_default_p0, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Use Doppler-predicted phase range for detecting cycle slips (0/1)', str_cell);
             str_cell = Ini_Manager.toIniString('flag_doppler', this.flag_doppler, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
@@ -821,8 +944,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Order of the KF', str_cell);
             str_cell = Ini_Manager.toIniString('kf_order', this.kf_order, str_cell);
-            for i = 1 : numel(this.DYN_MODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_MODE{i}), str_cell);
+            for i = 1 : numel(this.DYN_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
             str_cell = Ini_Manager.toIniStringComment('STD of initial state [m]', str_cell);
@@ -841,14 +964,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringSection('ATMOSPHERE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Ionospheric model', str_cell);
             str_cell = Ini_Manager.toIniString('iono_model', this.iono_model, str_cell);
-            for i = 1 : numel(this.IONO_MODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IONO_MODE{i}), str_cell);
+            for i = 1 : numel(this.IONO_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.IONO_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Tropospheric model', str_cell);
             str_cell = Ini_Manager.toIniString('tropo_model', this.tropo_model, str_cell);
-            for i = 1 : numel(this.TROPO_MODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.TROPO_MODE{i}), str_cell);
+            for i = 1 : numel(this.TROPO_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.TROPO_SMODE{i}), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
                         
@@ -861,7 +984,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringComment('STD of DEM model [m]', str_cell);
             str_cell = Ini_Manager.toIniString('std_dtm', this.std_dtm, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Elevation of the antenna above ground [m]', str_cell);
-            str_cell = Ini_Manager.toIniString('antenna_h', this.std_dtm, str_cell);
+            str_cell = Ini_Manager.toIniString('antenna_h', this.antenna_h, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             
             % GUI
@@ -892,8 +1015,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             for r = 1 : this.c_n_receivers
                 str_cell = Ini_Manager.toIniStringComment(sprintf('Protocol for receiver %d', r), str_cell);
                 str_cell = Ini_Manager.toIniString(sprintf('c_prtc_%02d', r), this.c_prtc(r), str_cell);
-                for i = 1 : numel(this.C_PROTOCOL)
-                    str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.C_PROTOCOL{i}), str_cell);
+                for i = 1 : numel(this.C_SPROTOCOL)
+                    str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.C_SPROTOCOL{i}), str_cell);
                 end
                 str_cell = Ini_Manager.toIniStringNewLine(str_cell);
                 str_cell = Ini_Manager.toIniStringComment(sprintf('COM address for receiver %d', r), str_cell);
@@ -947,7 +1070,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try
                 this.cc.legacyImport(state);
                 if (isfield(state,'srate'))
-                    rates = this.UI_P_RATE;
+                    rates = this.UI_P_SRATE;
                     this.p_rate = rates(state.srate);
                 end
                 this.min_n_sat = str2double(state.min_sat);
@@ -1019,7 +1142,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try 
                 this.flag_rinex_mpos = state.master_pos;   
                 if (state.crs == 1)
-                    this.mpos = struct('X', str2double(state.master_X), 'Y', str2double(state.master_Y), 'Z', str2double(state.master_Z));
+                    X = str2double(state.master_X); if isempty(X); X = 0; end
+                    Y = str2double(state.master_Y); if isempty(Y); Y = 0; end
+                    Z = str2double(state.master_Z); if isempty(Z); Z = 0; end
+                    this.mpos = struct('X', X, 'Y', Y, 'Z', Z);
                 else
                     [X, Y, Z] = geod2cart(str2double(state.master_lat), str2double(state.master_lon), str2double(state.master_h));
                     this.mpos = struct('X', X, 'Y', Y, 'Z', Z);
@@ -1042,10 +1168,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.iar_restart_mode = state.amb_select - 1;
                 this.flag_iar = state.use_lambda;
                 this.iar_mode = state.lambda_method-1;
-                this.iar_P0 = str2double(state.lambda_P0);
+                this.iar_p0 = str2double(state.lambda_P0);
                 this.iar_mu = str2double(state.lambda_mu);
                 this.flag_iar_auto_mu = state.lambda_auto_mu;                
-                this.flag_iar_default_P0 = state.lambda_default_P0;                
+                this.flag_iar_default_p0 = state.lambda_default_P0;                
                 this.flag_doppler = state.flag_doppler;
             catch ex
                 this.logger.addWarning(['Legacy import "iar" failed - ', ex.message])
@@ -1110,7 +1236,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % CAPTURE -----------------------------------------------------
             try
                 this.c_n_receivers = state.num_receivers;
-                rates = this.UI_C_RATE;
+                rates = this.UI_C_SRATE;
                 this.c_rate = rates(state.captureRate);
                 for r = 1 : this.c_n_receivers
                     this.c_prtc(r) = state.(sprintf('protocol_select_%d', r));
@@ -1118,13 +1244,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 end
             catch ex
                 this.logger.addWarning(['Legacy import "Capture parameters" failed - ', ex.message])
-            end   
-
+            end
+            
+            this.check(); % check after import
         end
     end    
     
     % =========================================================================
-    %  Additional Protected
+    %  ADDITIONAL PROTECTED
     % =========================================================================    
     methods (Access = 'protected')
         function postImportInit(this)
@@ -1135,7 +1262,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     end
         
     % =========================================================================
-    %  Additional Public methods
+    %  ADDITIONAL PUBLIC METHODS
     % =========================================================================    
     methods (Access = 'public')
         function ini = save(this, file_path)
@@ -1150,10 +1277,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             if (nargin == 1)
                 file_path = this.cur_ini;
             end
-            [dir_path, name, ext] = fileparts(file_path);
+            [dir_path, ~, ~] = fileparts(file_path);
             if not(exist(dir_path, 'dir'))
                 mkdir(dir_path);
             end
+            this.check(); % check before saving
             ini = this.save@Settings_Interface(file_path);
         end
         
@@ -1200,6 +1328,159 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                     % use default zeroes values
                 end
             end
+        end
+    end
+
+    % =========================================================================
+    %  TEST PARAMETERS VALIDITY
+    % =========================================================================    
+    methods (Access = 'protected')
+        
+        function checkLogicalField(this, field_name)
+            % Check if a logical field of the object is a valid logical number
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.checkLogicalField(string_field_name);
+            this.(field_name) = this.checkLogical(field_name, this.(field_name), this.(upper(field_name)));
+        end
+
+        function checkStringField(this, field_name, empty_is_valid, check_existence)
+            % Check if a string field of the object is a valid string
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            
+            switch nargin
+                case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
+                case 4, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
+                otherwise, error('Settings checkStringField called with the wrong number of parameters');
+            end
+        end
+        
+        function checkNumericField(this, field_name, limits, valid_val)
+            % Check if a numeric field of the object is valid
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.checkNumericField(string_field_name, <limits>, <valid_values>);
+            switch nargin
+                case 2, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits);
+                case 4, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits, valid_val);
+                otherwise, error('Settings checkNumericField called with the wrong number of parameters');
+            end
+        end
+    end
+    
+    % =========================================================================
+    %  TEST PARAMETERS VALIDITY
+    % =========================================================================       
+    
+    methods (Access = 'public')
+        function check(this)    
+            % Check the validity of the fields
+            % SYNTAX: this.check();
+            
+            % RECEIVER DEFAULT PARAMETERS
+            this.checkNumericField('std_code',[0 1e50]);
+            this.checkNumericField('std_phase',[0 1e50]);
+            this.checkNumericField('std_phase_if',[0 1e50]);
+            this.checkNumericField('sigma0_clock',[0 1e50]);
+            this.checkNumericField('sigma0_r_clock',[0 1e50]);            
+            this.checkLogicalField('flag_rinex_mpos');
+           
+            this.mpos.X = this.checkNumber('mpos.X', this.mpos.X, this.MPOS.X, [-1e9 1e9]);
+            this.mpos.Y = this.checkNumber('mpos.Y', this.mpos.Y, this.MPOS.Y, [-1e9 1e9]);
+            this.mpos.Z = this.checkNumber('mpos.Z', this.mpos.Z, this.MPOS.Z, [-1e9 1e9]);
+    
+            % DATA SELECTION            
+            this.checkNumericField('p_rate',[0.0001 1800]);
+            this.checkNumericField('min_n_sat',[1 300]);
+            this.checkNumericField('cut_off',[0 90]);
+            this.checkNumericField('snr_thr',[10 70]);
+            this.checkLogicalField('flag_ocean');
+            this.checkNumericField('min_arc',[1 1800]);
+
+            % PRE PROCESSING 
+            this.checkLogicalField('flag_pre_pro');
+            this.checkNumericField('cs_thr_pre_pro',[0 1e50]);
+    
+            % OUTLIER DETECTION
+            this.checkLogicalField('flag_outlier');
+            this.checkNumericField('pp_spp_thr',[0.001 1e50]);
+            this.checkNumericField('pp_max_code_err_thr',[0.001 1e50]);
+            this.checkNumericField('pp_max_phase_err_thr',[0.001 1e50]);
+    
+            % PROCESSING PARAMETERS
+            this.checkLogicalField('flag_tropo');
+            this.checkNumericField('w_mode',[0 numel(this.W_SMODE)-1]);
+
+            this.w_snr.a = this.checkNumber('w_snr.a', this.w_snr.a, this.W_SNR.a, [0.001 100]);
+            this.w_snr.zero = this.checkNumber('w_snr.zero', this.w_snr.zero, this.W_SNR.zero, [0.001 100]);
+            this.w_snr.one = this.checkNumber('w_snr.one', this.w_snr.one, this.W_SNR.one, [0.001 100]);
+            this.w_snr.A = this.checkNumber('w_snr.A', this.w_snr.A, this.W_SNR.A, [0.001 100]);            
+            
+            this.checkNumericField('cs_thr',[0 1e50]);
+            this.checkLogicalField('flag_ionofree');
+            this.checkLogicalField('constrain');
+            this.checkLogicalField('stop_go_stop');
+    
+            % INTEGER AMBIGUITY RESOLUTION
+            this.checkLogicalField('flag_iar');
+            this.checkNumericField('iar_restart_mode',[0 numel(this.IAR_SRESTART)-1]);
+            this.checkNumericField('iar_mode',[0 numel(this.IAR_SMODE)-1]);
+            this.checkNumericField('iar_p0',[0.00001 1]);
+            this.checkNumericField('sigma0_N',[1 100]);
+            this.checkNumericField('iar_mu',[0.001 1]);
+            this.checkLogicalField('flag_iar_auto_mu');
+            this.checkLogicalField('flag_iar_default_p0');
+            this.checkLogicalField('flag_doppler');
+    
+            % KF
+            this.checkNumericField('kf_order',[0 numel(this.DYN_SMODE)-1]);
+        
+            % RECEIVER POSITION / MOTION 
+            this.checkNumericField('sigma0_k_pos',[0 1e3]);
+            this.std_k_ENU.E = this.checkNumber('std_k_ENU.E', this.std_k_ENU.E, this.STD_K_ENU.E, [0 1e9]);
+            this.std_k_ENU.N = this.checkNumber('std_k_ENU.N', this.std_k_ENU.N, this.STD_K_ENU.N, [0 1e9]);
+            this.std_k_ENU.U = this.checkNumber('std_k_ENU.U', this.std_k_ENU.U, this.STD_K_ENU.U, [0 1e9]);
+            this.checkNumericField('std_k_vel_mod',[0 1e9]);
+                                
+            % ATMOSPHERE
+            this.checkNumericField('sigma0_tropo',[1e-6 10]);
+            this.checkNumericField('std_tropo',[1e-6 1]);
+            this.checkNumericField('iono_model',[0 numel(this.IONO_SMODE)-1]);
+            this.checkNumericField('tropo_model',[0 numel(this.TROPO_SMODE)-1]);
+       
+            % DTM 
+            this.checkLogicalField('flag_dtm');
+            this.checkNumericField('std_dtm',[0 1e50]);
+            this.checkNumericField('antenna_h',[0 1e6]);
+        
+            % GUI        
+            this.checkLogicalField('plot_proc');
+            this.checkLogicalField('plot_ref_path');
+            this.checkLogicalField('plot_skyplot_snr');
+            this.checkLogicalField('plot_err_ellipse');
+            this.checkLogicalField('plot_ambiguities');
+            this.checkLogicalField('plot_master');
+            this.checkLogicalField('plot_google_earth');   
+                
+            % CAPTURE
+            this.checkNumericField('c_n_receivers',[0 100]);
+            this.checkNumericField('c_rate',[0.0001 1800]);
+            this.checkNumericField('c_prtc',[1 numel(this.C_SPROTOCOL)]);
+
+            % NTRIP        
+            this.checkLogicalField('flag_ntrip');
+            this.ntrip.ip_addr = this.checkString('ntrip.ip_addr', this.ntrip.ip_addr, this.NTRIP.ip_addr, true);
+            this.ntrip.port = this.checkString('ntrip.port', this.ntrip.port, this.NTRIP.port, true);
+            this.ntrip.mountpoint = this.checkString('ntrip.mountpoint', this.ntrip.mountpoint, this.NTRIP.mountpoint, true);
+            this.ntrip.username = this.checkString('ntrip.username', this.ntrip.username, this.NTRIP.username, true);
+            this.ntrip.password = this.checkString('ntrip.password', this.ntrip.password, this.NTRIP.password, true);
+            this.ntrip.approx_position.lat = this.checkNumber('ntrip.approx_position.lat', this.ntrip.approx_position.lat, this.NTRIP.approx_position.lat, [-90 90]);
+            this.ntrip.approx_position.lon = this.checkNumber('ntrip.approx_position.lon', this.ntrip.approx_position.lon, this.NTRIP.approx_position.lon, [-90 90]);
+            this.ntrip.approx_position.h = this.checkNumber('ntrip.approx_position.h', this.ntrip.approx_position.h, this.NTRIP.approx_position.h, [-1e4 1e6]);
         end
     end
     

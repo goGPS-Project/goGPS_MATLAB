@@ -898,9 +898,8 @@ classdef Ini_Manager < handle
                                         obj.section{s}.key{p}.data = tmpData;
                                     end
                                 else
-                                    % If it is not a string but apparently is
-                                    % not a number
-                                    obj.section{s}.key{p}.data = strData{1};
+                                    % If it appears to be an empty string
+                                    obj.section{s}.key{p}.data = '';
                                 end
                             end
                         end

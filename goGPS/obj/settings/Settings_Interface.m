@@ -84,6 +84,109 @@ classdef Settings_Interface < handle
         
     end
         
+    % =========================================================================
+    %  TEST PARAMETERS VALIDITY
+    % =========================================================================    
+    methods (Access = 'protected')
+        
+        function checkLogicalField(this, field_name)
+            % Check if a logical field of the object is a valid logical number
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % This superclass function must be copied in each child (to
+            % have read / write permission on the parameters
+            % SYNTAX: this.checkLogicalField(string_field_name);
+            this.(field_name) = this.checkLogical(field_name, this.(field_name), this.(upper(field_name)));
+        end
+
+        function checkStringField(this, field_name, empty_is_valid, check_existence)
+            % Check if a string field of the object is a valid string
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % This superclass function must be copied in each child (to
+            % have read / write permission on the parameters
+            % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            
+            switch nargin
+                case 2, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
+                case 4, this.(field_name) = this.checkString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid, check_existence);
+                otherwise, error('Settings checkStringField called with the wrong number of parameters');
+            end
+        end
+        
+        function checkNumericField(this, field_name, limits, valid_val)
+            % Check if a numeric field of the object is valid
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % This superclass function must be copied in each child (to
+            % have read / write permission on the parameters
+            % SYNTAX: this.checkNumericField(string_field_name, <limits>, <valid_values>);
+            switch nargin
+                case 2, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)));
+                case 3, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits);
+                case 4, this.(field_name) = this.checkNumber(field_name, this.(field_name), this.(upper(field_name)), limits, valid_val);
+                otherwise, error('Settings checkNumericField called with the wrong number of parameters');
+            end
+        end
+        
+        function checked_val = checkLogical(this, field_name, field_val, default_val)
+            % Check if a logical is a valid logical 
+            % This superclass function must be called in each child
+            % SYNTAX: checked_val = this.checkLogicalField(string_field_name);            
+            checked_val = default_val;
+            if (~isnan(field_val)) && (~isempty(field_val))
+                checked_val = logical(field_val);
+            else
+                this.logger.addWarning(sprintf('The settings field %s is not valid => using default %d', field_name, checked_val));
+            end
+        end
+        
+        function checked_val = checkString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
+            % Check if a string is a valid string
+            % SYNTAX: checked_val = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            if (nargin < 5)
+                empty_is_valid = false;
+            end
+            if (nargin < 6)
+                check_existence = false;
+            end
+            
+            checked_val = default_val;
+            if (ischar(field_val) || (empty_is_valid && isempty(field_val))) && ((~isempty(field_val)) || empty_is_valid) && ((exist(field_val,'file')) || ~check_existence)
+                checked_val = field_val;
+            else
+                this.logger.addWarning(sprintf('The settings field %s is not valid => using default %s', field_name, checked_val));
+            end
+        end       
+        
+        function checked_val = checkNumber(this, field_name, field_val, default_val, limits, valid_val)
+            % Check if a number is valid
+            % SYNTAX: checked_val = this.checkNumericField(string_variable_name, value, default_value, <limits>, <valid_values>);
+            checked_val = default_val;
+            if isnumeric(field_val) && (~isempty(field_val)) && (~isnan(field_val))
+                checked_val = field_val;
+                % if I have limits to check => check for out of bound
+                if (nargin >= 5) && (numel(limits) == 2) && ...
+                   ((checked_val > limits(2)) || (checked_val < limits(1)))
+                   checked_val = max(limits(1), min(limits(2), checked_val));
+                   this.logger.addWarning(sprintf('The value %g of the settings field %s is not within the valid limits (%g .. %g) => updating it to %g', field_val, field_name, limits(1),limits(2), checked_val));
+                end
+                % if I have a set of values => check for set intersection
+                if (nargin >= 6) && (~isempty(valid_val)) && (~ismember(checked_val, valid_val))
+                   checked_val = default_val;
+                   this.logger.addWarning(sprintf('The value %g for the settings field %s is not valid => using default %g. It should be one of: %s', field_val, field_name, checked_val, sprintf('%g ', valid_val)));
+                end
+            else
+                this.logger.addWarning(sprintf('The settings field %s is not valid => using default %g', field_name, checked_val));
+            end
+        end
+    end
+    
+    % =========================================================================
+    %  TEST
+    % =========================================================================    
+
     methods (Access = 'protected')
         function testInterfaceRoutines(this)
             % test the class (Interface Routines)
@@ -95,7 +198,7 @@ classdef Settings_Interface < handle
                 test = this;
                 raw_data = test.export();
                 
-                ini = Ini_Manager('test.ini', raw_data);
+                ini = Ini_Manager('test__.ini', raw_data);
                 ini.showData();
                 
                 test.import(ini);
@@ -104,6 +207,7 @@ classdef Settings_Interface < handle
                 clear test_copy;
                 fprintf('\n');
                 disp(test.toString());
+                delete('test__.ini');
             catch ex
                 this.logger.addError(['Test failed: ' ex.message]);
             end

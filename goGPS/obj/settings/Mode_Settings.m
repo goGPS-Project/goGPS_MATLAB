@@ -42,6 +42,11 @@
 
 classdef Mode_Settings < Settings_Interface
     
+    % Default values for each field - useful to restore corrupted fields
+    properties (Constant, Access = 'protected')
+        P_MODE = 1;                                     % Processing mode
+    end
+    
     properties (Constant, GetAccess = public)
         % Deprecated modes, in a future version of goGPS modes will be managed in a different way     
         MODE_RT_NAV          = 24;  % Real Time Navigation (Kalman Filter on Code and Phase Double Differences (with/without a constraint)
@@ -51,7 +56,7 @@ classdef Mode_Settings < Settings_Interface
         
         MODE_PP_LS_C_SA      = 1;   % Post Proc Least Squares on Code Stand Alone
         MODE_PP_LS_CP_SA     = 3;   % Post Proc Least Squares on Code and Phase Stand Alone
-        MODE_PP_LS_CP_VEL    = 5; % Post Proc Least Squares on Code and Phase for Velocity estimation
+        MODE_PP_LS_CP_VEL    = 5;   % Post Proc Least Squares on Code and Phase for Velocity estimation
         MODE_PP_LS_C_DD      = 11;  % Post Proc Least Squares on Code Double Differences
         MODE_PP_LS_CP_DD_L   = 13;  % Post Proc Least Squares on Code and Phase Double Differences with LAMBDA
         MODE_PP_LS_CP_DD_MR  = 16;  % Post Proc Least Squares on Code and Phase Double Differences, Multiple Receivers
@@ -64,8 +69,8 @@ classdef Mode_Settings < Settings_Interface
         MODE_PP_KF_CP_DD_MR      = 15;  % Post Proc Kalman Filter on Code and Phase Double Differences, Multiple Receivers
         MODE_PP_SEID_PPP         = 18;  % SEID followed by PPP (Kalman Filter on Code and Phase Stand Alone (PPP)) it is both stand alone and DD
         
-        % goGPS MODES -----------------------------------------------------
-                 
+        % goGPS MODES -----------------------------------------------------         
+        
         % Group of post processing modes
         GMODE_PP = [ Mode_Settings.MODE_PP_LS_C_SA ...     
             Mode_Settings.MODE_PP_LS_CP_SA ...
@@ -86,6 +91,9 @@ classdef Mode_Settings < Settings_Interface
             Mode_Settings.MODE_RT_R_MON ...
             Mode_Settings.MODE_RT_M_MON ...
             Mode_Settings.MODE_RT_RM_MON];
+        
+        % Group of all the available modes
+        ALL_MODE = [Mode_Settings.GMODE_PP, Mode_Settings.GMODE_RT];
         
         % Group of monitor modes
         GMODE_MON = [ Mode_Settings.MODE_RT_R_MON ...      
@@ -159,7 +167,7 @@ classdef Mode_Settings < Settings_Interface
                         16, 2031, Mode_Settings.MODE_PP_KF_CP_DD_MR;
                         17, 2032, Mode_Settings.MODE_PP_SEID_PPP;];                         
         
-        P_MODE = { sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(1,3),'Real Time Navigation (Kalman Filter on Code and Phase Double Differences (with/without a constraint)'), ...
+        P_SMODE = { sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(1,3),'Real Time Navigation (Kalman Filter on Code and Phase Double Differences (with/without a constraint)'), ...
                        sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(2,3),'Real Time Rover Monitor'), ...
                        sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(3,3),'Real Time Master Monitor'), ...
                        sprintf('%02d: %s', Mode_Settings.P_MODE_2_ID(4,3),'Real Time Master + Rover Monitor'), ...
@@ -184,7 +192,7 @@ classdef Mode_Settings < Settings_Interface
         %------------------------------------------------------------------
         
         % Processing mode
-        p_mode = 1;        
+        p_mode = Mode_Settings.P_MODE;       
     end
         
     % =========================================================================
@@ -207,6 +215,7 @@ classdef Mode_Settings < Settings_Interface
             else                
                 this.p_mode = settings.p_mode;
             end
+            this.checkNumericField('p_mode',[], Mode_Settings.ALL_MODE); % Defined in superclass Mode_Settings            
         end
         
         function str = toString(this, str)
@@ -214,7 +223,7 @@ classdef Mode_Settings < Settings_Interface
             if (nargin == 1)
                 str = '';
             end            
-            str = [str sprintf(' Processing using %s\n\n', this.P_MODE{this.P_MODE_2_ID(this.P_MODE_2_ID(:,3) == this.p_mode, 1)})];
+            str = [str sprintf(' Processing using %s\n\n', this.P_SMODE{this.P_MODE_2_ID(this.P_MODE_2_ID(:,3) == this.p_mode, 1)})];
 
         end
         
@@ -226,8 +235,8 @@ classdef Mode_Settings < Settings_Interface
             
             str_cell = Ini_Manager.toIniStringComment('Processing using mode:', str_cell);
             str_cell = Ini_Manager.toIniString('p_mode', this.p_mode, str_cell);
-            for i = 1 : numel(this.P_MODE)
-                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.P_MODE{i}), str_cell);
+            for i = 1 : numel(this.P_SMODE)
+                str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.P_SMODE{i}), str_cell);
             end
         end        
     end    
