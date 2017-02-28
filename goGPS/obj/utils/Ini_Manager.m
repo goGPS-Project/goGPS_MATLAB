@@ -256,8 +256,12 @@ classdef Ini_Manager < handle
                 if (obj.fid ~= -1)   % If file access is ok                    
                     try
                         obj.fid = fopen(obj.getFileName(), obj.getRW());
-                        %fprintf(obj.fid, char(obj.raw_data));
-                        fwrite(obj.fid, sprintf('%s\n', string(obj.raw_data)));
+                        % Convert raw data to string
+                        tmp_str = '';
+                        for i = 1 : numel(obj.raw_data)
+                            tmp_str = [tmp_str obj.raw_data{i} 10]; %#ok<AGROW>
+                        end                                                
+                        fwrite(obj.fid, tmp_str);
                         fclose(obj.fid);
                     catch ex
                         errStatus = true;

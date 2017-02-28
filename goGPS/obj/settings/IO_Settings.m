@@ -402,7 +402,7 @@ classdef IO_Settings < Settings_Interface
             this.cur_ini = [path_str filesep name '.ini'];
             path_parts = strsplit(path_str,filesep);
             if numel(path_parts) > 3
-                this.prj_home = sprintf(['%s' filesep], string(path_parts(1:end-1)));
+                this.prj_home = fullfile(path_parts{1:end-1}, filesep);
                 this.prj_name = path_parts{end-1};
                 this.logger.addMessage('Trying to guess project name / home / ini');
                 this.logger.addMessage(sprintf(' name: %s', this.prj_name));

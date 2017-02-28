@@ -159,10 +159,10 @@ classdef Satellite_System < Settings_Interface
             % This function import Satellite System (only) settings from another setting object
             if isa(settings, 'Ini_Manager')
                 this.enable(settings.getData(sprintf('%s_is_active', this.SYS_NAME)));
-                name = string(this.getFreqName());
+                name = this.getFreqName();
                 tmp = true(numel(name),1);
                 for i = 1 : numel(name)
-                    tmp(i) = logical(settings.getData(sprintf('%s_%s', this.SYS_NAME, name{i})));
+                    tmp(i) = logical(settings.getData(sprintf('%s_%s', this.SYS_NAME, char(name{i}))));
                 end
                 this.flag_f = tmp;
             else
