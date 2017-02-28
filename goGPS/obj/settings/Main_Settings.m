@@ -1031,7 +1031,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 end
                 str_cell = Ini_Manager.toIniStringNewLine(str_cell);
                 str_cell = Ini_Manager.toIniStringComment(sprintf('COM address for receiver %d', r), str_cell);
-                str_cell = Ini_Manager.toIniString(sprintf('c_com_addr_%02d', r), this.c_com_addr{r}, str_cell);                str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+                str_cell = Ini_Manager.toIniString(sprintf('c_com_addr_%02d', r), this.c_com_addr{r}, str_cell);                
                 str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             end
             

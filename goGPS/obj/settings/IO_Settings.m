@@ -504,8 +504,8 @@ classdef IO_Settings < Settings_Interface
             
             this.checkStringField('eph_dir', false, true);
             this.checkStringField('clk_dir', false, true);
-            this.checkStringField('crx_dir', false, true);
-            this.checkStringField('dcb_dir', false, true);
+            this.checkStringField('crx_dir', false);
+            this.checkStringField('dcb_dir', false);
             this.checkStringField('ems_dir', true);
 
             this.checkStringField('crd_dir', false);

@@ -4,8 +4,8 @@
 /data/project/*
 !/data/project/default_DD/*
 /data/project/default_DD/out/*
-#!/data/project/default_PPP/*
-#/data/project/default_PPP/out/*
+!/data/project/default_PPP/*
+/data/project/default_PPP/out/*
 
 !/data/antenna
 /data/antenna/*
@@ -17,9 +17,12 @@
 /data/satellite/*
 !/data/satellite/CLK
 /data/satellite/CLK/*
+!/data/satellite/CLK/igs18590.clk_30s
+!/data/satellite/CLK/igs18591.clk_30s
 !/data/satellite/EPH
 /data/satellite/EPH/*
-#!/data/satellite/EPH/igs18590.sp3
+!/data/satellite/EPH/igs18590.sp3
+!/data/satellite/EPH/igs18591.sp3
 !/data/satellite/CRX
 /data/satellite/CRX/*
 !/data/satellite/ATM
@@ -42,6 +45,9 @@
 !/data/stations/CRD/
 /data/stations/CRD/*
 !/data/stations/CRD/stations.crd
+!/data/stations/MET/
+/data/stations/MET/*
+!/data/stations/MET/example_met.m
 !/data/stations/SNX/
 /data/stations/SNX/*
 !/data/stations/Ocean/
