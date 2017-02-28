@@ -1413,7 +1413,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkNumericField('p_rate',[0.0001 1800]);
             this.checkNumericField('min_n_sat',[1 300]);
             this.checkNumericField('cut_off',[0 90]);
-            this.checkNumericField('snr_thr',[10 70]);
+            this.checkNumericField('snr_thr',[0 70]);
             this.checkLogicalField('flag_ocean');
             this.checkNumericField('min_arc',[1 1800]);
 
