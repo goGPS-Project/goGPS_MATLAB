@@ -1191,7 +1191,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % KALMAN FILTER PARAMETERS ------------------------------------
             try                
                 if this.isPP(this.p_mode)
-                    interface2settings = [2 0 1 3];
+                    interface2settings = [1 2 0 3];
                     this.kf_order = interface2settings(state.dyn_mod);
                 else
                     this.kf_order = state.dyn_mod - 1;
