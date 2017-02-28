@@ -55,6 +55,9 @@ function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
+state = GO_Settings.getCurrentSettings();
+logger = Logger.getInstance();
+
 if (isempty(constellations)) %then use only GPS as default
     [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
 end
@@ -269,12 +272,26 @@ if (~flag_unavail)
     % for each part (SP3 file)
     for p = 1 : size(week_dow,1)
         % CLK file
-        f_clk = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk'],'r');
+        clk_file_name = [filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk'];
+        if ~exist(clk_file_name, 'file')
+            % Try to search for the file in the default path
+            [~, file_name, file_ext] = fileparts(clk_file_name);
+            clk_file_name = [state.clk_dir filesep file_name file_ext];
+        end
+        f_clk = fopen(clk_file_name,'r');
         
         % CLK_30S file
-        f_clk_30s = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk_30s'],'r');
+        clk30_file_name = [filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk_30s'];
+        if ~exist(clk30_file_name, 'file')
+            % Try to search for the file in the default path
+            [~, file_name, file_ext] = fileparts(clk30_file_name);
+            clk30_file_name = [state.clk_dir filesep file_name file_ext];
+        end
+        f_clk_30s = fopen(clk30_file_name,'r');
         
-        if (f_clk ~= -1 || f_clk_30s ~= -1)            
+        if (f_clk == -1 && f_clk_30s == -1)
+            logger.addWarning(sprintf('No clk files have been found at %s', clk30_file_name));
+        else
             % set the best clock available
             if (f_clk_30s ~= -1)
                 if (f_clk ~= -1)
@@ -366,7 +383,6 @@ if (~flag_unavail)
             for s = 1 : constellations.nEnabledSat                
                 SP3.clock_hr(s,idx(s,w(s,:) > 0)) = clk(s,w(s,:) > 0);
             end
-            
         end
     end
     

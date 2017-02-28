@@ -2785,7 +2785,8 @@ classdef goGUIclass < handle
             if exist([config_dir filesep 'config'], 'dir')
                 config_dir = [config_dir filesep 'config'];
             end
-            [file_name, pathname] = uigetfile({'*.ini;','INI configuration file (*.ini)'; '*.mat;','state file goGPS < 0.5 (*.mat)'}, 'Choose file with saved settings', config_dir);
+            % On MacOS doesn't work anymore: [file_name, pathname] = uigetfile({'*.ini;','INI configuration file (*.ini)'; '*.mat;','state file goGPS < 0.5 (*.mat)'}, 'Choose file with saved settings', config_dir);
+            [file_name, pathname] = uigetfile('*.mat; *.ini', 'Choose file with saved settings', config_dir);
             
             if pathname == 0 % if the user pressed cancelled, then we exit this callback
                 return

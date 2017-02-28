@@ -29,6 +29,7 @@
     ├─ Stations
     │   ├─ station_info.ini        // Info of the station
     │   ├─ network_info.ini        // Info of the network (FTP info)
+    │   ├─ < MET >                 // Meteorological data files
     │   ├─ < CRD >                 // Permanent station positions
     │   ├─ < SNX >                 // Sinex files, global solutions
     │   └─ < Ocean >               // Computed ocean loading
