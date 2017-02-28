@@ -178,8 +178,10 @@ classdef Satellite_System < Settings_Interface
                 str = '';
             end            
             if (this.isActive())
-                name = string(this.getFreqName());
-                str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n', this.SYS_EXT_NAME, sprintf('"%s" ',  name(this.flag_f)))];
+                name = this.getFreqName();
+                for f = 1 : find(this.flag_f)
+                    str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n', this.SYS_EXT_NAME, sprintf('"%s" ',  name{f}))]; %#ok<AGROW>
+                end
             else
                 str = [str sprintf(' Satellite system "%s" is inactive\n', this.SYS_EXT_NAME)];
             end
@@ -190,12 +192,12 @@ classdef Satellite_System < Settings_Interface
             if (nargin == 1)
                 str_cell = {};
             end
-            name = string(this.getFreqName());
+            name = this.getFreqName();            
             str_cell = Ini_Manager.toIniStringComment(sprintf('%s satellite system', this.SYS_EXT_NAME), str_cell);
             str_cell = Ini_Manager.toIniString(sprintf('%s_is_active', this.SYS_NAME), this.isActive(), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Frequencies to be used when this constellation is active', str_cell);            
-            for i = 1 : numel(name)
-                str_cell = Ini_Manager.toIniString(sprintf('%s_%s', this.SYS_NAME, name{i}), this.isActive() && this.flag_f(i), str_cell);
+            for f = 1 : numel(name)
+                str_cell = Ini_Manager.toIniString(sprintf('%s_%s', this.SYS_NAME, name{f}), this.isActive() && this.flag_f(f), str_cell);
             end
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
         end        
