@@ -3324,12 +3324,18 @@ classdef goGUIclass < handle
             % ===============================================================
 
             tmp_state.crs               = this.getElVal(this.idUI.lCRS);
-            tmp_state.master_X          = this.getElVal(this.idUI.nMX);
-            tmp_state.master_Y          = this.getElVal(this.idUI.nMY);
-            tmp_state.master_Z          = this.getElVal(this.idUI.nMZ);
+            tmp_state.master_X          = this.getElVal(this.idUI.nMX); 
+            if (isnan(tmp_state.master_X)); tmp_state.master_X = 0; end
+            tmp_state.master_Y          = this.getElVal(this.idUI.nMY); 
+            if (isnan(tmp_state.master_Y)); tmp_state.master_Y = 0; end
+            tmp_state.master_Z          = this.getElVal(this.idUI.nMZ); 
+            if (isnan(tmp_state.master_Z)); tmp_state.master_Z = 0; end
             tmp_state.master_lat        = this.getElVal(this.idUI.nMLat);
+            if (isnan(tmp_state.master_lat)); tmp_state.master_lat = 0; end
             tmp_state.master_lon        = this.getElVal(this.idUI.nMLon);
+            if (isnan(tmp_state.master_lon)); tmp_state.master_lon = 0; end
             tmp_state.master_h          = this.getElVal(this.idUI.nMh);
+            if (isnan(tmp_state.master_h)); tmp_state.master_h = 0; end
             
             %   SETTINGS - KALMAN FILTER - STD
             % ===============================================================
