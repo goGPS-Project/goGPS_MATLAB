@@ -19,7 +19,7 @@
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
 %  Written by:       Andrea Gatti
-%  Contributors:     Andrea Gatti, ...
+%  Contributors:     Andrea Gatti, Eugenio Realini, ...
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -2968,15 +2968,9 @@ classdef goGUIclass < handle
                                     
             %   SETTINGS - OBSERVATION MODELLING
             % ===============================================================
-            if (isfield(state,'wModel'))
-                this.setElVal(this.idUI.lWeight, state.w_mode + 1, 0);
-            end
-            if (isfield(state,'ionoModel'))
-                this.setElVal(this.idUI.lIono, state.iono_model + 1, 0);
-            end
-            if (isfield(state,'tropoModel'))
-                this.setElVal(this.idUI.lTropo, state.tropo_model + 1, 0);
-            end
+            this.setElVal(this.idUI.lWeight, state.w_mode + 1, 0);
+            this.setElVal(this.idUI.lIono, state.iono_model + 1, 0);
+            this.setElVal(this.idUI.lTropo, state.tropo_model + 1, 0);
 
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
