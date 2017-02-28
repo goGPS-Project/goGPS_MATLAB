@@ -175,7 +175,7 @@ classdef Logger < handle
                 cprintf('SystemCommands', 'Warning: ');
                 cprintf('text', [text '\n']);
             else
-                fprintf(['Warning: ' text '\n']);
+                fprintf(['WARNING: ' text '\n']);
             end
         end
         
@@ -189,7 +189,7 @@ classdef Logger < handle
                 cprintf('err', 'Error: ');
                 cprintf('text', [text '\n']);
             else
-                fprintf(['Error: ' text '\n']);
+                fprintf(['ERROR: ' text '\n']);
             end
         end
 
