@@ -1500,7 +1500,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.ntrip.password = this.checkString('ntrip.password', this.ntrip.password, this.NTRIP.password, true);
             this.ntrip.approx_position.lat = this.checkNumber('ntrip.approx_position.lat', this.ntrip.approx_position.lat, this.NTRIP.approx_position.lat, [-90 90]);
             this.ntrip.approx_position.lon = this.checkNumber('ntrip.approx_position.lon', this.ntrip.approx_position.lon, this.NTRIP.approx_position.lon, [-90 90]);
-            this.ntrip.approx_position.h = this.checkNumber('ntrip.approx_position.h', this.ntrip.approx_position.h, this.NTRIP.approx_position.h, [-1e4 1e6]);
+            this.ntrip.approx_position.h = this.checkNumber('ntrip.approx_position.h', this.ntrip.approx_position.h, this.NTRIP.approx_position.h, [-1e4 1e6]);            
+            this.check@IO_Settings();
         end
     end
     

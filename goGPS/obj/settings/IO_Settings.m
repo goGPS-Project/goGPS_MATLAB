@@ -58,6 +58,10 @@ classdef IO_Settings < Settings_Interface
         CRX_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'CRX' filesep]; % Path to CRX folder containing files of Satellites problems
         DCB_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'DCB' filesep]; % Path to DCB folder containing files of Differential Code Biases
         EMS_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'SBAS' filesep 'EMS' filesep]; % Path to EMS folder containing files of EGNOS Message Server.
+        % STATIONS
+        CRD_DIR = [IO_Settings.DEFAULT_DIR_IN 'stations' filesep 'CRD' filesep]; % Path to Ephemeris files folder
+        MET_DIR = [IO_Settings.DEFAULT_DIR_IN 'stations' filesep 'MET' filesep]; % Path to Clock Offset files folder
+        OCEAN_DIR = [IO_Settings.DEFAULT_DIR_IN 'stations' filesep 'ocean' filesep]; % Path to CRX folder containing files of Satellites problems
         % REFERENCE        
         GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs        
         % DTM (SET PATH AND LOAD PARAMETER FILES)        
@@ -129,6 +133,17 @@ classdef IO_Settings < Settings_Interface
         dcb_dir = IO_Settings.DCB_DIR;
         % Path to EMS folder containing files of EGNOS Message Server.
         ems_dir = IO_Settings.EMS_DIR;
+
+        %------------------------------------------------------------------
+        % STATIONS
+        %------------------------------------------------------------------
+
+        % Path to stations coordinates files
+        crd_dir = IO_Settings.CRD_DIR;
+        % Path to stations metereological files
+        met_dir = IO_Settings.MET_DIR;
+        % Path to stations ocean loading files
+        ocean_dir = IO_Settings.OCEAN_DIR;
 
         %------------------------------------------------------------------
         % REFERENCE
@@ -204,6 +219,10 @@ classdef IO_Settings < Settings_Interface
                 this.crx_dir    = checkPath(settings.getData('crx_dir'));
                 this.dcb_dir    = checkPath(settings.getData('dcb_dir'));
                 this.ems_dir    = checkPath(settings.getData('ems_dir'));
+                % STATIONS
+                this.crd_dir    = checkPath(settings.getData('crd_dir'));
+                this.met_dir    = checkPath(settings.getData('met_dir'));
+                this.ocean_dir  = checkPath(settings.getData('ocean_dir'));
                 % REFERENCE
                 this.geoid_dir  = checkPath(settings.getData('geoid_dir'));
                 this.dtm_dir    = checkPath(settings.getData('dtm_dir'));
@@ -229,6 +248,10 @@ classdef IO_Settings < Settings_Interface
                 this.crx_dir    = settings.crx_dir;
                 this.dcb_dir    = settings.dcb_dir;
                 this.ems_dir    = settings.ems_dir;
+                % STATIONS
+                this.crd_dir    = settings.crd_dir;
+                this.met_dir    = settings.met_dir;
+                this.ocean_dir    = settings.ocean_dir;
                 % REFERENCE
                 this.geoid_dir  = settings.geoid_dir;
                 this.dtm_dir    = settings.dtm_dir;
@@ -256,11 +279,15 @@ classdef IO_Settings < Settings_Interface
             str = [str '---- DEPRECATE ------------------------------------------------------------' 10 10];
             str = [str sprintf(' Deprecate ini (of additional parameters):         %s\n\n', this.input_file_ini_path)];            
             str = [str '---- INPUT FOLDERS: SATELLITE ---------------------------------------------' 10 10];
-            str = [str sprintf(' Directory of Ephemeris Files:                     %s\n', this.eph_dir)];
+            str = [str sprintf(' Directory of Ephemeris files:                     %s\n', this.eph_dir)];
             str = [str sprintf(' Directory of Satellite clock offsets:             %s\n', this.clk_dir)];
             str = [str sprintf(' Directory of CRX (satellite problems):            %s\n', this.crx_dir)];
             str = [str sprintf(' Directory of DCB (Differential Code Biases):      %s\n', this.dcb_dir)];
             str = [str sprintf(' Directory of EMS (EGNOS Message Server):          %s\n\n', this.ems_dir)];
+            str = [str '---- INPUT FOLDERS: STATIONS ----------------------------------------------' 10 10];
+            str = [str sprintf(' Directory of coordinates files:                   %s\n', this.crd_dir)];
+            str = [str sprintf(' Directory of metereological data:                 %s\n', this.met_dir)];
+            str = [str sprintf(' Directory of ocean loading files:                 %s\n', this.ocean_dir)];
             str = [str '---- INPUT FOLDERS: REFERENCE ---------------------------------------------' 10 10];
             str = [str sprintf(' Directory of Geoid models:                        %s\n', this.geoid_dir)];
             str = [str sprintf(' Directory of DTM data:                            %s\n\n', this.dtm_dir)];
@@ -304,6 +331,15 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('dcb_dir', this.dcb_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of EMS files (EGNOS Message Server).', str_cell);
             str_cell = Ini_Manager.toIniString('ems_dir', this.ems_dir, str_cell);
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            % STATIONS
+            str_cell = Ini_Manager.toIniStringSection('INPUT_STATIONS', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of coordinates files', str_cell);
+            str_cell = Ini_Manager.toIniString('crd_dir', this.crd_dir, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of metereological data', str_cell);
+            str_cell = Ini_Manager.toIniString('met_dir', this.met_dir, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Directory of ocean loading files', str_cell);
+            str_cell = Ini_Manager.toIniString('ocean_dir', this.ocean_dir, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % REFERENCE
             str_cell = Ini_Manager.toIniStringSection('INPUT_REF', str_cell);
@@ -471,6 +507,10 @@ classdef IO_Settings < Settings_Interface
             this.checkStringField('crx_dir', false, true);
             this.checkStringField('dcb_dir', false, true);
             this.checkStringField('ems_dir', true);
+
+            this.checkStringField('crd_dir', false);
+            this.checkStringField('met_dir', false);
+            this.checkStringField('ocean_dir', false);
 
             this.checkStringField('geoid_dir', true);
             this.checkStringField('dtm_dir', true);
