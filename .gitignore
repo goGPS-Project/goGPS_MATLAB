@@ -71,9 +71,10 @@
 !/data/stations/SNX/
 /data/stations/SNX/*
 !/data/stations/SNX/.gitignore
-!/data/stations/Ocean/
-/data/stations/Ocean/*
-!/data/stations/Ocean/.gitignore
+!/data/stations/ocean/
+/data/stations/ocean/*
+!/data/stations/ocean/.gitignore
+!/data/stations/ocean/ocean_loading.blq
 
 !/data/img
 /goGPS/settings
