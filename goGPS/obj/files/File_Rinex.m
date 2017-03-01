@@ -51,7 +51,7 @@ classdef File_Rinex < handle
        base_dir = '../data/project/default_DD/RINEX/';                  % directory containing all the files
        file_name_list = {'yamatogawa_rover', 'yamatogawa_master'};      % file names (they can be multiple files for different days)
        ext = '.obs';
-       is_valid_list = false;                       % for each element of file_name_list check the validity of the file
+       is_valid_list = false(1, 2);                 % for each element of file_name_list check the validity of the file
        
        is_composed = false;                         % when this flag is set, it means that the file_name depends on variables such as DOY DOW YYYY SSSS MM ecc...              
        
@@ -114,6 +114,10 @@ classdef File_Rinex < handle
     methods
         function checkValidity(this)
             % Update the status of validity of the files here pointed
+            % SYNTAX: this.checkValidity();
+            
+            % pre allocate
+            this.is_valid_list = false(1, numel(this.file_name_list));
             
             % for each file present in the list
             for f = 1 : numel(this.file_name_list)
@@ -132,13 +136,10 @@ classdef File_Rinex < handle
                         epoch_line = fgetl(fid);
                         
                         % try to guess the time format
-                        regexp(epoch_line, '[.0-9]*','match')
                         [id_start, id_stop] = regexp(epoch_line, '[.0-9]*');
-                        this.id_date = id_start(1) : id_stop(6);
-                        % this data conversion lines must be moved into a class GPS_Time
-                        date = cell2mat(textscan(epoch_line(this.id_date)),'%f%f%f%f%f%f'));
-                        if (date(1) < 80), date(1) = date(1) + 2000; end
-                        this.first_epoch.addEpoch(datenum(date), [], true);
+                        this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
+                        
+                        this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                         this.logger.addStatusOk(['"' this.file_name_list{f} this.ext '" appears to be a valid RINEX']);
                         this.logger.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()));
                         
@@ -155,16 +156,14 @@ classdef File_Rinex < handle
                             end
                             line = fgetl(fid);
                         end
-                        fclose(fid);
-                        
+                        fclose(fid);                        
                         % this data conversion lines must be moved into a class GPS_Time
-                        date = cell2mat(textscan(epoch_line(this.id_date)),'%f%f%f%f%f%f'));
-                        if (date(1) < 80), date(1) = date(1) + 2000; end
-                        this.first_epoch.addEpoch(datenum(date), [], true);
+                        this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
                         this.logger.addMessage(sprintf('        last  epoch found at: %s', this.first_epoch.last.toString()));
-
+                        this.is_valid_list(f) = true;
                     catch
                         this.logger.addWarning(['"' full_path '" appears to be a corrupted RINEX file']);
+                        this.is_valid_list(f) = false;
                     end
                 end
             end
@@ -172,6 +171,16 @@ classdef File_Rinex < handle
             if (~this.is_valid)
                 this.logger.addWarning('No valid RINEX found!!!');
             end
-        end        
+        end
+        
+        function file_name = getFileName(this, file_number)
+            % Get the full path of a file (if the object contains a list of files, the id can be specified)
+            % SYNTAX: file_name = this.getFileName(<file_number = 1>)
+            if nargin == 1
+                file_number = 1;
+            end
+            file_name = fullfile(this.base_dir, [this.file_name_list{file_number} this.ext]);
+        end
+
     end    
 end

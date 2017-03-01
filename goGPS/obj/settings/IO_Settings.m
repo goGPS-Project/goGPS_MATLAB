@@ -59,9 +59,9 @@ classdef IO_Settings < Settings_Interface
         DCB_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'DCB' filesep]; % Path to DCB folder containing files of Differential Code Biases
         EMS_DIR = [IO_Settings.DEFAULT_DIR_IN 'satellite' filesep 'SBAS' filesep 'EMS' filesep]; % Path to EMS folder containing files of EGNOS Message Server.
         % STATIONS
-        CRD_DIR = [IO_Settings.DEFAULT_DIR_IN 'stations' filesep 'CRD' filesep]; % Path to Ephemeris files folder
-        MET_DIR = [IO_Settings.DEFAULT_DIR_IN 'stations' filesep 'MET' filesep]; % Path to Clock Offset files folder
-        OCEAN_DIR = [IO_Settings.DEFAULT_DIR_IN 'stations' filesep 'ocean' filesep]; % Path to CRX folder containing files of Satellites problems
+        CRD_DIR = [IO_Settings.DEFAULT_DIR_IN 'station' filesep 'CRD' filesep]; % Path to Ephemeris files folder
+        MET_DIR = [IO_Settings.DEFAULT_DIR_IN 'station' filesep 'MET' filesep]; % Path to Clock Offset files folder
+        OCEAN_DIR = [IO_Settings.DEFAULT_DIR_IN 'station' filesep 'ocean' filesep]; % Path to CRX folder containing files of Satellites problems
         % REFERENCE        
         GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs        
         % DTM (SET PATH AND LOAD PARAMETER FILES)        
