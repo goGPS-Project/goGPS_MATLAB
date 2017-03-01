@@ -117,6 +117,19 @@ classdef GPS_Time < handle
     
     % Function to simulate polymorphism
     methods (Access = 'private')
+        function this = GPS_Time_str(this, string_time, is_gps)
+            % Private constructor - simulate polymorphism - GPS_Time_str(string_time, is_gps)                        
+            if (nargin == 3)
+                if isempty(is_gps)
+                    is_gps = true;
+                end
+                this.is_gps = is_gps;
+            end
+            date = sscanf(string_time,'%f%f%f%f%f%f')';
+            if (date(1) < 80), date(1) = date(1) + 2000; end
+            this.GPS_Time_mat(datenum(date), is_gps);            
+        end
+        
         function this = GPS_Time_mat(this, matlab_time, is_gps)
             % Private constructor - simulate polymorphism - GPS_Time_mat(matlab_time, is_gps)            
             this.time_type = 0;
@@ -155,6 +168,18 @@ classdef GPS_Time < handle
             end                
         end
                 
+        function this = appendStrTime(this, string_time, is_gps)
+            % Append elements - appendMatTime(matlab_time, is_gps)            
+            if (nargin == 3)
+                if isempty(is_gps)
+                    is_gps = this.is_gps;
+                end
+            end
+            date = sscanf(string_time,'%f%f%f%f%f%f')';
+            if (date(1) < 80), date(1) = date(1) + 2000; end
+            this.append(GPS_Time(datenum(date), [], is_gps, 0));
+        end
+        
         function this = appendMatTime(this, matlab_time, is_gps)
             % Append elements - appendMatTime(matlab_time, is_gps)            
             if (nargin == 3)
@@ -185,7 +210,7 @@ classdef GPS_Time < handle
 
             this.append(GPS_Time(time_matlab_reference, time_difference, is_gps, 2));            
         end        
-        
+                
     end
     
     
@@ -198,24 +223,37 @@ classdef GPS_Time < handle
             %   t = GPS_Time(time_matlab_reference, time_difference, <is_gps = 1>, <2>);
             
             switch nargin                
-                % With one parameter I assume to read GPS time in matlab format
+                % With one parameter I assume to read GPS time in matlab format (string or number)
                 % one value (in seconds) with milliseconds precision since 1 Jan 0000
-                case 1, this.GPS_Time_mat(arg1);                    
+                case 1 
+                    if isa(arg1,'char')
+                        % string time (matlab time)
+                        this.GPS_Time_str(arg1);
+                    else
+                        % matlab time
+                        this.GPS_Time_mat(arg1);
+                    end                       
                 % With two parameters it can be a unix o ref time format
                 case 2
-                    if isa(uint32(arg1),'uint32')
+                    if isa(arg1,'uint32')
                         % UNIX time
                         this.GPS_Time_unix(arg1, arg2);
-                    else
+                    else 
                         % Ref Time
                         this.GPS_Time_ref(arg1, arg2);
                     end
                 % With three parameters the thirsd is a flag (is_gps)
                 case 3
                     if isempty(arg2)
-                        this.GPS_Time_mat(arg1, arg3);
+                        if isa(arg1,'char')
+                            % string time (matlab time)
+                            this.GPS_Time_str(arg1, arg3);
+                        else
+                            % matlab time
+                            this.GPS_Time_mat(arg1, arg3);
+                        end
                     else
-                        if isa(uint32(arg1),'uint32')
+                        if isa(arg1,'uint32')
                             % UNIX time
                             this.GPS_Time_unix(arg1, arg2, arg3);
                         else
@@ -238,7 +276,7 @@ classdef GPS_Time < handle
             %this.computeLeapSeconds();
         end
         
-        function this = addEpoch(this, arg1, arg2, arg3, arg4)
+        function addEpoch(this, arg1, arg2, arg3, arg4)
             % Add epochs to the object as matlab/unix/ref time
             % SYNTAX:
             %   t = t.appendEpoch(matlab_time, <[]>, <is_gps = 1>, <0>);
@@ -248,7 +286,15 @@ classdef GPS_Time < handle
             switch nargin                
                 % With one parameter I assume to read GPS time in matlab format
                 % one value (in seconds) with milliseconds precision since 1 Jan 0000
-                case 2, this.appendMatTime(arg1);                    
+                case 2
+                    if isa(arg1,'char')
+                        % string time (matlab time)
+                        this.appendStrTime(arg1);
+                    else
+                        % matlab time
+                        this.appendMatTime(arg1);
+                    end
+
                 % With two parameters it can be a unix o ref time format
                 case 3
                     if isa(uint32(arg1),'uint32')
@@ -261,7 +307,13 @@ classdef GPS_Time < handle
                 % With three parameters the thirsd is a flag (is_gps)
                 case 4
                     if isempty(arg2)
-                        this.GPS_Time_mat(arg1, arg3);
+                        if isa(arg1,'char')
+                            % string time (matlab time)
+                            this.appendStrTime(arg1, arg3);
+                        else
+                            % matlab time
+                            this.appendMatTime(arg1, arg3);
+                        end
                     else
                         if isa(uint32(arg1),'uint32')
                             % UNIX time
@@ -286,52 +338,72 @@ classdef GPS_Time < handle
             %this.computeLeapSeconds();
         end        
         
+        function import(this, time)
+            % Copy from an object of the same type
+            this.time_type = time.time_type;
+            this.mat_time = time.mat_time;
+            this.unix_time = time.unix_time;
+            this.unix_time_f = time.unix_time_f;
+            this.time_ref = time.time_ref;
+            this.time_diff = time.time_diff;
+            this.is_gps = time.is_gps;
+            this.date_format = time.date_format;
+            this.leap_seconds = time.leap_seconds;
+        end
+        
         function this = append(this, time, time_type, is_gps)
             % Append a GPS_Time object into the this
-            % When not specified the new format is the format of the append
-            if (nargin < 3)
-                time_type = time.time_type;
-            end
-            if (nargin < 4)
-                is_gps = time.is_gps;
-            end
             
-            % Merge is done in GPS time -> it has no ambiguity
-            this.toGPS;
-            time.toGPS;
-            
-            switch time_type
-                case 0 % I'm in MAT TIME
-                    this.toMatlabTime();
-                    time.toMatlabTime();
-
-                    this.mat_time = [this.mat_time; time.mat_time];
-
-                case 1 % I'm in UNIX TIME
-                    this.toUnixTime();
-                    time.toUnixTime();
-                    
-                    this.unix_time = [this.unix_time; time.unix_time];
-                    this.unix_time_f = [this.unix_time_f; time.unix_time_f];
-                    
-                case 2 % I'm in REF TIME
-                    this.toRefTime();
-                    time.toRefTime();
-                    
-                    % keep the reference of the this
-                    this.time_diff = [this.time_diff; (time.time_diff + (this.time_ref - time.time_ref) * 86400)];
-            end    
-            
-            % Convert into correct format time
-            if is_gps
-                this.toGps();
+            % check if the object is empty
+            if isempty(this.time_type)
+                this.import(time); % copy time in this
             else
-                this.toUtc();
-            end
-
-            % Compute leap seconds, if the original data stored them
-            if (time.leap_seconds < 999) ||  (this.leap_seconds < 999)
-                this.computeLeapSeconds();
+                
+                % When not specified the new format is the format of the append
+                if (nargin < 3)
+                    time_type = time.time_type;
+                end
+                if (nargin < 4)
+                    is_gps = time.is_gps;
+                end
+                
+                % Merge is done in GPS time -> it has no ambiguity
+                this.toGps;
+                time.toGps;
+                
+                switch time_type
+                    case 0 % I'm in MAT TIME
+                        this.toMatlabTime();
+                        time.toMatlabTime();
+                        
+                        this.mat_time = [this.mat_time; time.mat_time];
+                        
+                    case 1 % I'm in UNIX TIME
+                        this.toUnixTime();
+                        time.toUnixTime();
+                        
+                        this.unix_time = [this.unix_time; time.unix_time];
+                        this.unix_time_f = [this.unix_time_f; time.unix_time_f];
+                        
+                    case 2 % I'm in REF TIME
+                        this.toRefTime();
+                        time.toRefTime();
+                        
+                        % keep the reference of the this
+                        this.time_diff = [this.time_diff; (time.time_diff + (this.time_ref - time.time_ref) * 86400)];
+                end
+                
+                % Convert into correct format time
+                if is_gps
+                    this.toGps();
+                else
+                    this.toUtc();
+                end
+                
+                % Compute leap seconds, if the original data stored them
+                if (time.leap_seconds < 999) ||  (this.leap_seconds < 999)
+                    this.computeLeapSeconds();
+                end
             end
         end
     end
