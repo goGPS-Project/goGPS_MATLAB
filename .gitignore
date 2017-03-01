@@ -2,7 +2,9 @@
 
 !/data/project
 /data/project/*
+!/data/project/default_DD
 !/data/project/default_DD/*
+/data/project/default_DD/out
 /data/project/default_DD/out/*
 !/data/project/default_PPP/*
 /data/project/default_PPP/out/*
