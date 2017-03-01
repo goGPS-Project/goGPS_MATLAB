@@ -26,11 +26,13 @@
 !/data/satellite/CLK
 /data/satellite/CLK/*
 !/data/satellite/CLK/.gitignroe
+!/data/satellite/CLK/igs18586.clk_30s
 !/data/satellite/CLK/igs18590.clk_30s
 !/data/satellite/CLK/igs18591.clk_30s
 !/data/satellite/EPH
 /data/satellite/EPH/*
 !/data/satellite/EPH/.gitignore
+!/data/satellite/EPH/igs18586.sp3
 !/data/satellite/EPH/igs18590.sp3
 !/data/satellite/EPH/igs18591.sp3
 !/data/satellite/CRX
