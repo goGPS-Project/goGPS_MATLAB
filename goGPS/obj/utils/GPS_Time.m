@@ -174,6 +174,8 @@ classdef GPS_Time < handle
                 if isempty(is_gps)
                     is_gps = this.is_gps;
                 end
+            elseif (nargin == 2)
+                is_gps = this.is_gps;
             end
             date = sscanf(string_time,'%f%f%f%f%f%f')';
             if (date(1) < 80), date(1) = date(1) + 2000; end
@@ -186,7 +188,9 @@ classdef GPS_Time < handle
                 if isempty(is_gps)
                     is_gps = this.is_gps;
                 end
-            end            
+            elseif (nargin == 2)
+                is_gps = this.is_gps;
+            end
             this.append(GPS_Time(matlab_time, [], is_gps, 0));
         end
         
@@ -196,6 +200,8 @@ classdef GPS_Time < handle
                 if isempty(is_gps)
                     is_gps = this.is_gps;
                 end
+            elseif (nargin == 3)
+                is_gps = this.is_gps;
             end
             this.append(GPS_Time(unix_time, fraction_of_second, is_gps, 1));
         end
@@ -206,6 +212,8 @@ classdef GPS_Time < handle
                 if isempty(is_gps)
                     is_gps = this.is_gps;
                 end
+            elseif (nargin == 3)
+                is_gps = this.is_gps;
             end
 
             this.append(GPS_Time(time_matlab_reference, time_difference, is_gps, 2));            
@@ -625,7 +633,7 @@ classdef GPS_Time < handle
         end
         
         function [unix_time, unix_time_f] = getUnixTime(this)
-            % Convert the internal structure toget Unix Time, precision up to the ps precision
+            % get Unix Time, precision up to the ps precision
             switch this.time_type
                 case 0 % I'm in MAT TIME
                     % constants in matlab are slower than copied values :-( switching to values
@@ -650,10 +658,9 @@ classdef GPS_Time < handle
             % get Reference Time, precision up to the ps precision            
             switch this.time_type
                 case 0 % I'm in MAT TIME
-                    this.time_ref = fix(this.mat_time(1));
+                    time_ref = fix(this.mat_time(1));
                     % due to numerical error propagation I can keep only 4 decimal digits
-                    this.time_diff = (this.mat_time - this.time_ref) * 86400;
-                    this.mat_time = [];
+                    time_diff = (this.mat_time - time_ref) * 86400;
                 case 1 % I'm already in UNIX TIME
                     % constants in matlab are slower than copied values :-( switching to values
                     % time_d = double(this.unix_time) / this.SEC_IN_DAY + this.UNIX_REF;
@@ -704,28 +711,33 @@ classdef GPS_Time < handle
                     end
             end
         end
-
+        
         function new_obj = first(this)
             % Get first element stored in GPS_Time
             new_obj = this.getId(1);
         end
         
         function new_obj = last(this)
-            % Get first element stored in GPS_Time
+            % Get last element stored in GPS_Time
             new_obj = this.getId(this.lenght());
         end
         
         function n_element = lenght(this)
             % Get the total number of element stored in the object
-            switch this.time_type
-                case 0 % I'm in MAT TIME
-                    n_element = length(this.mat_time);
-                case 1 % I'm in UNIX TIME
-                    n_element = length(this.unix_time);
-                case 2 % I'm in REF TIME
-                    n_element = length(this.time_diff);
+            if isempty(this.time_type)
+                n_element = 0;
+            else
+                switch this.time_type
+                    case 0 % I'm in MAT TIME
+                        n_element = length(this.mat_time);
+                    case 1 % I'm in UNIX TIME
+                        n_element = length(this.unix_time);
+                    case 2 % I'm in REF TIME
+                        n_element = length(this.time_diff);
+                end
             end
         end
+        
     end
     
     % =========================================================================
@@ -737,6 +749,25 @@ classdef GPS_Time < handle
             % Change the default value for "date format"
             this.date_format = date_format;
         end
+        
+        function delId(this, id)
+            % Delete time with id = id
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    this.mat_time(id) =  [];
+                case 1 % I'm in UNIX TIME
+                    this.unix_time(id) = [];
+                    this.unix_time_f(id) = [];
+                case 2 % I'm in REF TIME
+                    this.time_diff(id) = [];
+            end
+        end
+        
+        function delLast(this)
+            % Delete last element stored in GPS_Time
+            this.delId(this.lenght());
+        end
+
     end
 
     % =========================================================================
