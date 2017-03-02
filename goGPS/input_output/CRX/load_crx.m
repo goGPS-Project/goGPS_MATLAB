@@ -179,13 +179,14 @@ for j = 1 : nmax
                     s = s - datenum([0 0 0 0 15 0]);
                     e = s + datenum([0 0 0 0 15 0]);
                 else
-                    %e = floor(s) + 1; %arc split: exclude the satellite for the rest of the processing
-                    e = date_end; %arc split: exclude the satellite for the rest of the processing
+                    e = floor(s) + 1; %arc split: exclude the satellite for the rest of the processing
+                    %e = date_end; %arc split: exclude the satellite for the rest of the processing
                 end
             end
-            if ((p == 0 && ((s >= date_start && s <= date_end) || (e >= date_start && e <= date_end))) || ... %satellite maneuver
-                    (p >= 1 && p <= 3 && (s <= date_end && e >= date_start)) || ... %bad code and/or phase data
-                    (p == 4 && s >= date_start && e <= date_end)) % arc split
+            if ((p == 0 &&           (s <= date_end && e >= date_start)) || ... %satellite maneuver
+                (p >= 1 && p <= 3 && (s <= date_end && e >= date_start)) || ... %bad code and/or phase data
+                (p == 4 &&           (s <= date_end && e >= date_start))) % arc split
+            
                 [~, idx_start] = min(abs(s - dnum));
                 [~, idx_end]   = min(abs(e - dnum));
                 CRX(index, idx_start:idx_end) = 1;
