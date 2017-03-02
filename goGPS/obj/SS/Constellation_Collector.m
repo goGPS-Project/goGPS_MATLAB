@@ -234,7 +234,7 @@ classdef Constellation_Collector < Settings_Interface
             active_ss_list = [this.list.GPS.isActive this.list.GLO.isActive this.list.GAL.isActive this.list.BDS.isActive this.list.QZS.isActive this.list.SBS.isActive];
             
             % If some constellation have been activated not in the proper way 
-            if (sum(not(this.active_list & active_ss_list)) > 0) 
+            if (sum(not(this.active_list(:) & active_ss_list(:))) > 0) 
                 this.updateStatus(active_ss_list);
             end
         end
