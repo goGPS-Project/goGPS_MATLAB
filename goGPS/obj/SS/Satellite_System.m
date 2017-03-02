@@ -130,7 +130,7 @@ classdef Satellite_System < Settings_Interface
         
         function flag = isActive(this)
             % Get the status of activation of the constellation
-            flag = this.flag_enable();
+            flag = this.flag_enable;
         end
         
         function enable(this, status)
@@ -146,7 +146,7 @@ classdef Satellite_System < Settings_Interface
         function disable(this)
             % Disable this satellite system
             % SYNTAX: this.disable();
-            this.flag_enable = falser;
+            this.flag_enable = false;
         end
 
     end

@@ -82,16 +82,24 @@ end
 
 % rover
 %find the correct marker
-marker_idx = find(strcmpi(markers, marker_R),1,'last');
-
-if ~isempty(marker_idx)
-    %extract the corresponding coordinates
-    XR = coords_X(marker_idx);
-    YR = coords_Y(marker_idx);
-    ZR = coords_Z(marker_idx);
+pos_R_crd = zeros(3,size(marker_R,2));
+for m = 1 : size(marker_R,2)
+    if (iscell(marker_R))
+        target_marker = marker_R{1,m};
+    else
+        target_marker = marker_R;
+    end
+    marker_idx = find(strcmpi(markers, target_marker),1,'last');
     
-    %set rover station position
-    pos_R_crd = [XR; YR; ZR];
-    
-    flag_XR = flags(marker_idx);
+    if ~isempty(marker_idx)
+        %extract the corresponding coordinates
+        XR = coords_X(marker_idx);
+        YR = coords_Y(marker_idx);
+        ZR = coords_Z(marker_idx);
+        
+        %set rover station position
+        pos_R_crd(:,m) = [XR; YR; ZR];
+        
+        flag_XR = flags(marker_idx);
+    end
 end

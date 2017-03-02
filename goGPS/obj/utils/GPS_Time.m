@@ -384,7 +384,7 @@ classdef GPS_Time < handle
                         this.toMatlabTime();
                         time.toMatlabTime();
                         
-                        this.mat_time = [this.mat_time; time.mat_time];
+                        this.mat_time = [this.mat_time(:); time.mat_time(:)];
                         
                     case 1 % I'm in UNIX TIME
                         this.toUnixTime();

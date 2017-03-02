@@ -80,6 +80,8 @@ classdef File_Rinex < handle
                     return
                 case 1 % populate from (file_name)
                     if iscellstr(base_dir)
+                        this.file_name_list = {};
+                        this.ext = {};
                         for f = 1 : numel(base_dir)
                             [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(base_dir{f}));
                         end
@@ -90,6 +92,8 @@ classdef File_Rinex < handle
                     end
                 case 2 % populate from (base_dir, file_name)
                     if iscellstr(file_name)
+                        this.file_name_list = {};
+                        this.ext = {};
                         for f = 1 : numel(file_name)
                             [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(fullfile(base_dir, file_name{f})));
                         end
@@ -103,6 +107,8 @@ classdef File_Rinex < handle
                         ext = ['~' ext];
                     end
                     if iscellstr(file_name)
+                        this.file_name_list = {};
+                        this.ext = {};
                         for f = 1 : numel(file_name)
                             [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(fullfile(base_dir, [file_name{f} ext])));
                         end
@@ -180,7 +186,7 @@ classdef File_Rinex < handle
                     end
                 end
             end
-            this.is_valid = any(this.is_valid_list);
+            this.is_valid = all(this.is_valid_list);
             if (~this.is_valid)
                 this.logger.addWarning('No valid RINEX found!!!');
             end
