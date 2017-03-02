@@ -106,7 +106,7 @@ classdef Ini_Manager < handle
                 obj.parseData();
                 obj.setReadStatus(true)
                 obj.raw_data = {};
-            end                
+            end
         end
         
         % Distructor ------------------------------------------------------

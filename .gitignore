@@ -65,11 +65,12 @@
 !/data/station/CRD/
 /data/station/CRD/*
 !/data/station/CRD/.gitignore
-!/data/station/CRD/station.crd
+!/data/station/CRD/stations.crd
 !/data/station/MET
 /data/station/MET/*
 !/data/station/MET/.gitignore
 !/data/station/MET/example_met.m
+!/data/station/MET/zimm2350.15m
 !/data/station/SNX/
 /data/station/SNX/*
 !/data/station/SNX/.gitignore

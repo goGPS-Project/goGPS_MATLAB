@@ -142,6 +142,9 @@ classdef Meteo_Data < handle
                             if type_is_present
                                 % Read types of obs
                                 this.n_type = sscanf(line(1:6),'%d');
+                                if (this.n_type >= 10)
+                                    this.logger.addWarning('Reading more than 10 fields is not yet supported');
+                                end
                                 for t = 0 : (this.n_type - 1)
                                     str_type = line(8 + (3:4) + t * 6);
                                     this.type = [this.type find(this.DATA_TYPE_ID == (sum(uint16(str_type) .* uint16([1 256]))))];
@@ -333,8 +336,9 @@ classdef Meteo_Data < handle
             str = [str sprintf(' The following meteorological data are present:\n')];
             type_ext = this.getTypeExt();
             for t = 1 : this.n_type
-                str = [str sprintf('  - %s\n', type_ext{t})];
+                str = [str sprintf('  - %s\n', type_ext{t})]; %#ok<AGROW>
             end
+            str = [str 10];
         end
     end        
 end
