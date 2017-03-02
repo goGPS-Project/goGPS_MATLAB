@@ -78,6 +78,10 @@ classdef IO_Settings < Settings_Interface
         RUN_COUNTER = 0;     % This parameter store the current run number
         
         % EXTERNAL INFO as imported from the input ini file does not have default values
+        CRD_PATH = '';    % Location of the stations coordinate file
+        ATX_PATH = '';    % Location of the antex file
+        OCEAN_PATH = '';  % Location of the ocean loading file
+        MET_PATH = '';    % Location of the meteorological file
     end
     
     properties (Constant, Access = 'protected')
@@ -196,6 +200,12 @@ classdef IO_Settings < Settings_Interface
         %------------------------------------------------------------------
         
         ext_ini; % ini file object containing info about external data
+        
+        crd_path = IO_Settings.CRD_PATH;       % Location of the stations coordinate file
+        atx_path = IO_Settings.ATX_PATH;       % Location of the antex file
+        ocean_path =  IO_Settings.OCEAN_PATH;  % Location of the ocean loading file
+        met_path =  IO_Settings.MET_PATH;      % Location of the meteorological file
+
     end
             
     % =========================================================================
@@ -273,9 +283,8 @@ classdef IO_Settings < Settings_Interface
                 this.out_prefix = settings.out_prefix;
                 this.run_counter = settings.run_counter;                
             end
-            this.check();
-            
-            this.ext_ini = Ini_Manager(this.input_file_ini_path);
+            this.check();  
+            this.updateExternals();
         end
         
         function str = toString(this, str)
@@ -406,15 +415,14 @@ classdef IO_Settings < Settings_Interface
                 str_cell = Ini_Manager.toIniString('receiver_source_number', this.ext_ini.getData('Receivers', 'nRec'), str_cell);
                 str_cell = Ini_Manager.toIniString('receiver_source_path', this.ext_ini.getData('Receivers', 'data_path'), str_cell);
                 str_cell = Ini_Manager.toIniString('receiver_source_file', this.ext_ini.getData('Receivers', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Stations coordinates file', str_cell);
+                str_cell = Ini_Manager.toIniString('crd_path', this.crd_path, str_cell);
                 str_cell = Ini_Manager.toIniStringComment('PCO - PCV files', str_cell);
-                str_cell = Ini_Manager.toIniString('pco_pcv_path', this.ext_ini.getData('PCO_PCV_file', 'data_path'), str_cell);
-                str_cell = Ini_Manager.toIniString('pco_pcv_file', this.ext_ini.getData('PCO_PCV_file', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniString('atx_path', this.atx_path, str_cell);
                 str_cell = Ini_Manager.toIniStringComment('Ocean loading file', str_cell);
-                str_cell = Ini_Manager.toIniString('ocean_loading_path', this.ext_ini.getData('OCEAN_LOADING_file', 'data_path'), str_cell);
-                str_cell = Ini_Manager.toIniString('ocean_loading_file', this.ext_ini.getData('OCEAN_LOADING_file', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniString('ocean_path', this.ocean_path, str_cell);
                 str_cell = Ini_Manager.toIniStringComment('Meteorological file', str_cell);
-                str_cell = Ini_Manager.toIniString('meteorological_path', this.ext_ini.getData('METEOROLOGICAL_file', 'data_path'), str_cell);
-                str_cell = Ini_Manager.toIniString('meteorological_file', this.ext_ini.getData('METEOROLOGICAL_file', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniString('met_path', this.met_path, str_cell);
                 str_cell = Ini_Manager.toIniStringComment('Reference path path', str_cell);
                 str_cell = Ini_Manager.toIniString('ref_path', this.ext_ini.getData('RefPath', 'data_path'), str_cell);
                 str_cell = Ini_Manager.toIniStringComment('Reference DTM path', str_cell);
@@ -444,8 +452,7 @@ classdef IO_Settings < Settings_Interface
                 this.logger.addWarning(['Legacy import "IO file / folders" failed - ', ex.message])
             end
             this.check();
-            
-            this.ext_ini = Ini_Manager(this.input_file_ini_path);
+            this.updateExternals();
         end
     end
     
@@ -470,6 +477,33 @@ classdef IO_Settings < Settings_Interface
     %  SETTERS
     % =========================================================================
     methods
+        function updateExternals(this)
+            % Import the value of the external input files ( stored in
+            % inputFile.ini
+            % SYNTAX: this.check();
+            this.ext_ini = Ini_Manager(this.input_file_ini_path);
+            
+            % import file location and check for default folders
+            dir_path = this.ext_ini.getData('STATIONS_file', 'data_path');
+            file_path = this.ext_ini.getData('STATIONS_file', 'file_name');            
+            this.crd_path = this.checkCrdPath(this.getFullPath(dir_path, file_path));
+
+            % import file location and check for default folders
+            dir_path = this.ext_ini.getData('PCO_PCV_file', 'data_path');
+            file_path = this.ext_ini.getData('PCO_PCV_file', 'file_name');            
+            this.atx_path = this.checkAtxPath(this.getFullPath(dir_path, file_path));
+
+            % import file location and check for default folders
+            dir_path = this.ext_ini.getData('OCEAN_LOADING_file', 'data_path');
+            file_path = this.ext_ini.getData('OCEAN_LOADING_file', 'file_name');            
+            this.ocean_path = this.checkOceanPath(this.getFullPath(dir_path, file_path));
+            
+            % import file location and check for default folders
+            dir_path = this.ext_ini.getData('METEOROLOGICAL_file', 'data_path');
+            file_path = this.ext_ini.getData('METEOROLOGICAL_file', 'file_name');            
+            this.met_path = this.checkMetPath(this.getFullPath(dir_path, file_path));
+        end
+        
         function setDeprecateIniPath(this, new_path)
             % Get the directory of UI images
             % SYNTAX: dir = this.setDeprecateIniPath(new_path)
@@ -537,14 +571,151 @@ classdef IO_Settings < Settings_Interface
                 otherwise, error('Settings checkNumericField called with the wrong number of parameters');
             end
         end
+
+        % File type specific ----------------------------------------------
+               
+        function file_path = checkCrdPath(this, file_path)
+            % Check if the crd file exists, if not try to look for it into the default dirs
+            % SYNTAX: file_path = this.checkAtxPath(<file_path>)
+            if ~exist(file_path, 'file')
+                [~, name, ext] = fileparts(file_path);
+                % check for existence in the local project folder standard location
+                tmp_path = checkPath([this.prj_home this.CRD_DIR(length(IO_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                if exist(tmp_path, 'file')
+                    file_path = tmp_path;
+                else
+                    % check for existence in the data folder standard location
+                    tmp_path = checkPath([this.crd_dir filesep name ext]);
+                    if exist(tmp_path, 'file')
+                        file_path = tmp_path;
+                    else
+                        % the file cannot be found
+                    end
+                end
+            end
+        end
+        
+        function file_path = checkAtxPath(this, file_path)
+            % Check if the atx file exists, if not try to look for it into the default dirs
+            % SYNTAX: file_path = this.checkAtxPath(<file_path>)
+            if ~exist(file_path, 'file')
+                [~, name, ext] = fileparts(file_path);
+                % check for existence in the local project folder standard location
+                tmp_path = checkPath([this.prj_home this.ATX_DIR(length(IO_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                if exist(tmp_path, 'file')
+                    file_path = tmp_path;
+                else
+                    % check for existence in the data folder standard location
+                    tmp_path = checkPath([this.atx_dir filesep name ext]);
+                    if exist(tmp_path, 'file')
+                        file_path = tmp_path;
+                    else
+                        % the file cannot be found
+                    end
+                end
+            end
+        end
+        
+        function file_path = checkOceanPath(this, file_path)
+            % Check if the atx file exists, if not try to look for it into the default dirs
+            % SYNTAX: file_path = this.checkAtxPath(<file_path>)
+            if ~exist(file_path, 'file')
+                [~, name, ext] = fileparts(file_path);
+                % check for existence in the local project folder standard location
+                tmp_path = checkPath([this.prj_home this.OCEAN_DIR(length(IO_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                if exist(tmp_path, 'file')
+                    file_path = tmp_path;
+                else
+                    % check for existence in the data folder standard location
+                    tmp_path = checkPath([this.ocean_dir filesep name ext]);
+                    if exist(tmp_path, 'file')
+                        file_path = tmp_path;
+                    else
+                        % the file cannot be found
+                    end
+                end
+            end
+        end
+        
+        function file_path = checkMetPath(this, file_path)
+            % Check if the met file exists, if not try to look for it into the default dirs
+            % SYNTAX: file_path = this.checkMetPath(<file_path>)
+            if ~exist(file_path, 'file')
+                [~, name, ext] = fileparts(file_path);
+                % check for existence in the local project folder standard location
+                tmp_path = checkPath([this.prj_home this.MET_DIR(length(IO_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
+                if exist(tmp_path, 'file')
+                    file_path = tmp_path;
+                else
+                    % check for existence in the data folder standard location
+                    tmp_path = checkPath([this.met_dir filesep name ext]);
+                    if exist(tmp_path, 'file')
+                        file_path = tmp_path;
+                    else
+                        % the file cannot be found
+                    end
+                end
+            end
+        end        
+
+    end    
+    
+    % =========================================================================
+    %  PUBLIC GETTERS
+    % =========================================================================
+    methods (Access = 'public')
+        function file_path = getCrdPath(this)
+            % Get the path of the stations coordinates file
+            % SYNTAX: file_path = this.getMetPath()
+            file_path = this.checkCrdPath(this.crd_path);
+        end
+        
+        function file_path = getAtxPath(this)
+            % Get the path of the antex file
+            % SYNTAX: file_path = this.getMetPath()
+            file_path = this.checkAtxPath(this.atx_path);
+        end
+        
+        function file_path = getOceanPath(this)
+            % Get the path of the ocean loading file
+            % SYNTAX: file_path = this.getMetPath()
+            file_path = this.checkOceanPath(this.ocean_path);
+        end
+        
+        function file_path = getMetPath(this)
+            % Get the path of the meteorological file
+            % SYNTAX: file_path = this.getMetPath()
+            file_path = this.checkMetPath(this.met_path);
+        end
+    end
+    
+    
+    % =========================================================================
+    %  STATIC UTILITIES
+    % =========================================================================
+    methods (Static)
+        function full_path = getFullPath(dir_path, file_path)
+            % Get the list of files combining dir_path + file_path
+            % It works when file_path is a cell or a simple string
+            % SYNTAX: full_path = IO_Settings.getFullPath(dir_path, file_path);
+            
+            if iscell(file_path)
+                full_path = cell(numel(file_path),1);
+                for f = 1 : numel(file_path)
+                    full_path{f} = checkPath([dir_path filesep file_path{f}]);
+                end
+            else
+                full_path = checkPath([dir_path filesep file_path]);
+            end
+        end
     end
     
     % =========================================================================
     %  TEST PARAMETERS VALIDITY
-    % =========================================================================       
-    
-    methods (Access = 'public')
-        function check(this)            
+    % =========================================================================           
+    methods (Access = 'public')        
+        
+        function check(this)
             % Check the validity of the fields
             % SYNTAX: this.check();
             
@@ -572,7 +743,7 @@ classdef IO_Settings < Settings_Interface
 
             this.checkNumericField('out_style',[0 numel(this.OUT_MODE)-2]);
             this.checkStringField('out_prefix', true);
-            this.checkNumericField('run_counter',[0 1e6]);
+            this.checkNumericField('run_counter',[0 1e6]);            
         end
     end
     

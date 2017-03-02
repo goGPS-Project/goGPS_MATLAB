@@ -52,7 +52,8 @@ if not(isempty(path))
         % for each line of the cell+
         universal_path = cell(size(path));
         for c = 1 : length(path)
-            universal_path{c} = regexprep(path{c}, '(\\(?=[a-zA-Z0-9]))|(\/)', filesep);
+            universal_path{c} = regexprep(path{c}, '(\\(?![ ]))|(\/)', filesep);
+            universal_path = regexprep(universal_path{c}, ['\' filesep '\' filesep], filesep);
         end
         if (nargout == 2)
             is_valid = zeros(size(path));
@@ -61,7 +62,8 @@ if not(isempty(path))
             end
         end
     else
-        universal_path = regexprep(path, '(\\(?=[a-zA-Z0-9]))|(\/)', filesep);
+        universal_path = regexprep(path, '(\\(?![ ]))|(\/)', filesep);
+        universal_path = regexprep(universal_path, ['\' filesep '\' filesep], filesep);
         if (nargout == 2)
             is_valid = exist(path, 'file'); % if it is a file is_valid contains 2, if it is a dir it contains 7
         end

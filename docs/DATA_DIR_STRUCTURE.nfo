@@ -58,6 +58,7 @@
             │
             ├─ < Stations >        // <opt> use the global dir if not present
             │   ├─ < CRD >         // <opt> use the global dir if not present
+            │   ├─ < MET >         // <opt> Meteorological data files
             │   └─ < Ocean >       // <opt> use the global dir if not present
             │
             └ Out
