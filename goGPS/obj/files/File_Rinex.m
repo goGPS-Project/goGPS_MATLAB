@@ -50,7 +50,7 @@ classdef File_Rinex < handle
         is_valid = false;                            % flag, if true it means that the object contains at least one valid rinex file
         base_dir = '../data/project/default_DD/RINEX/';                  % directory containing all the files
         file_name_list = {'yamatogawa_rover', 'yamatogawa_master'};      % file names (they can be multiple files for different days)
-        ext = '.obs';
+        ext = {'.obs', '.obs'};                                          % file names extension (they can be multiple files for different days)
         is_valid_list = false(1, 2);                 % for each element of file_name_list check the validity of the file
         
         is_composed = false;                         % when this flag is set, it means that the file_name depends on variables such as DOY DOW YYYY SSSS MM ecc...
@@ -81,20 +81,22 @@ classdef File_Rinex < handle
                 case 1 % populate from (file_name)
                     if iscellstr(base_dir)
                         for f = 1 : numel(base_dir)
-                            [this.base_dir, this.file_name_list{f}, this.ext] = fileparts(checkPath(base_dir{f}));
+                            [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(base_dir{f}));
                         end
                     else
-                        [this.base_dir, file_name, this.ext] = fileparts(checkPath(fullfile(base_dir)));
+                        [this.base_dir, file_name, ext] = fileparts(checkPath(fullfile(base_dir)));
                         this.file_name_list = {file_name};
+                        this.ext = {ext};
                     end
                 case 2 % populate from (base_dir, file_name)
                     if iscellstr(file_name)
                         for f = 1 : numel(file_name)
-                            [this.base_dir, this.file_name_list{f}, this.ext] = fileparts(checkPath(fullfile(base_dir, file_name{f})));
+                            [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(fullfile(base_dir, file_name{f})));
                         end
                     else
-                        [this.base_dir, file_name, this.ext] = fileparts(checkPath(fullfile(base_dir, file_name)));
+                        [this.base_dir, file_name, ext] = fileparts(checkPath(fullfile(base_dir, file_name)));
                         this.file_name_list = {file_name};
+                        this.ext = {ext};
                     end
                 case 3 % populate from (base_dir, file_name, ext)
                     if (ext(1) ~= '.')
@@ -102,11 +104,12 @@ classdef File_Rinex < handle
                     end
                     if iscellstr(file_name)
                         for f = 1 : numel(file_name)
-                            [this.base_dir, this.file_name_list{f}, this.ext] = fileparts(checkPath(fullfile(base_dir, [file_name{f} ext])));
+                            [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(fullfile(base_dir, [file_name{f} ext])));
                         end
                     else
-                        [this.base_dir, file_name, this.ext] = fileparts(checkPath(fullfile(base_dir, [file_name ext])));
+                        [this.base_dir, file_name, ext] = fileparts(checkPath(fullfile(base_dir, [file_name ext])));
                         this.file_name_list = {file_name};
+                        this.ext = {ext};
                     end
             end
             this.checkValidity();
@@ -123,14 +126,14 @@ classdef File_Rinex < handle
             this.eoh = zeros(1, numel(this.file_name_list));
             % for each file present in the list
             for f = 1 : numel(this.file_name_list)
-                full_path = fullfile(this.base_dir, [this.file_name_list{f} this.ext]);
+                full_path = fullfile(this.base_dir, [this.file_name_list{f} this.ext{f}]);
                 
                 % check the existence
                 this.is_valid_list(f) = exist(full_path, 'file');
                 if this.is_valid_list(f)
                     % try to find the first and the last epoch stored in the file
                     try
-                        fid = fopen(fullfile(this.base_dir, [this.file_name_list{f} this.ext]));
+                        fid = fopen(fullfile(this.base_dir, [this.file_name_list{f} this.ext{f}]));
                         l = 1;
                         line = fgetl(fid);
                         while isempty(strfind(line,'END OF HEADER')) && ischar(line)
@@ -145,7 +148,7 @@ classdef File_Rinex < handle
                         this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
                         
                         this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
-                        this.logger.addStatusOk(['"' this.file_name_list{f} this.ext '" appears to be a valid RINEX']);
+                        this.logger.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX']);
                         this.logger.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()));
                         
                         % go to the end of the file to search for the last epoch
@@ -189,7 +192,7 @@ classdef File_Rinex < handle
             if nargin == 1
                 file_number = 1;
             end
-            file_name = fullfile(this.base_dir, [this.file_name_list{file_number} this.ext]);
+            file_name = fullfile(this.base_dir, [this.file_name_list{file_number} this.ext{f}]);
         end        
 
         function line_num = getEOH(this, file_number)

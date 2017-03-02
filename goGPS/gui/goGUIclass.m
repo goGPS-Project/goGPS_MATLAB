@@ -878,24 +878,30 @@ classdef goGUIclass < handle
             
             idG.PCO = [id.tPCO id.fPCO];
             
-            % OCEAN LOADING file ------------------------------------------------
+            % OCEAN LOADING file ------------------------------------------
             i=i+1; id.tBLQ          = i;    id2h(i) = this.goh.tBLQ;
             i=i+1; id.fBLQ          = i;    id2h(i) = this.goh.fBLQ;
             
             idG.BLQ = [id.tBLQ id.fBLQ];
             
-            % STATIONS file ------------------------------------------------
+            % STATIONS file -----------------------------------------------
             i=i+1; id.tSTA          = i;    id2h(i) = this.goh.tSTA;
             i=i+1; id.fSTA          = i;    id2h(i) = this.goh.fSTA;
-            
+
             idG.STA = [id.tSTA id.fSTA];
             
+            % METEOROLOGICAL file -----------------------------------------
+            i=i+1; id.tMET          = i;    id2h(i) = this.goh.tMET;
+            i=i+1; id.fMET          = i;    id2h(i) = this.goh.fMET;
+            
+            idG.MET = [id.tMET id.fMET];
+            
             % Group of ids in the panel pIOFiles
-            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.GoOut idG.DTM idG.RefPath idG.PCO idG.BLQ idG.STA];
+            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.GoOut idG.DTM idG.RefPath idG.PCO idG.BLQ idG.STA idG.MET];
             
             % For a correct LED management these following id groups must be synchronized 
-            idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ id.fSTA];
-            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ id.fSTA];
+            idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ id.fSTA id.fMET];
+            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ id.fSTA id.fMET];
             idG.gDirLED =  [id.fDirGoOut];
             idG.gLED = [idG.gFileLED idG.gDirLED];
 
@@ -1246,7 +1252,7 @@ classdef goGUIclass < handle
           
             
             % On RINEX / BIN
-            idG.onRin = [idG.RinRover idG.RinMaster idG.RinNav idG.PCO idG.BLQ idG.STA];
+            idG.onRin = [idG.RinRover idG.RinMaster idG.RinNav idG.PCO idG.BLQ idG.STA idG.MET];
 
             [idG.gPanels idG.strEl idG.valEl] = this.autoElClassification(id2h);
             
@@ -2528,7 +2534,7 @@ classdef goGUIclass < handle
                                 end
                             end
                             
-                            % PCO/PCV file ------------------------------------
+                            % PCO/PCV file -------------------------------------------
                             data_path = checkPath(goIni.getData('PCO_PCV_file','data_path'));
                             file_name = goIni.getData('PCO_PCV_file','file_name');
                             if (isempty(data_path))
@@ -2545,7 +2551,7 @@ classdef goGUIclass < handle
                                 end
                             end
                             
-                            % OCEAN LOADING file ------------------------------------
+                            % OCEAN LOADING file -------------------------------------
                             data_path = checkPath(goIni.getData('OCEAN_LOADING_file','data_path'));
                             file_name = goIni.getData('OCEAN_LOADING_file','file_name');
                             if (isempty(data_path))
@@ -2562,7 +2568,7 @@ classdef goGUIclass < handle
                                 end
                             end
                             
-                            % STATIONS file ------------------------------------
+                            % STATIONS file ------------------------------------------
                             data_path = checkPath(goIni.getData('STATIONS_file','data_path'));
                             file_name = goIni.getData('STATIONS_file','file_name');
                             if (isempty(data_path))
@@ -2576,6 +2582,23 @@ classdef goGUIclass < handle
                                     this.setGUILedStatus(this.idUI.fSTA, this.ledOk, 0);
                                 else
                                     this.setGUILedStatus(this.idUI.fSTA, this.ledCk, 0);
+                                end
+                            end
+                            
+                            % METEOROLOGICAL file ------------------------------------
+                            data_path = checkPath(goIni.getData('METEOROLOGICAL_file','data_path'));
+                            file_name = goIni.getData('METEOROLOGICAL_file','file_name');
+                            if (isempty(data_path))
+                                data_path = '';
+                            end
+                            if (isempty(file_name))
+                                this.setGUILedStatus(this.idUI.fMET, this.ledOp, 0);
+                            else
+                                % Check the presence of all the files
+                                if exist([data_path file_name],'file')
+                                    this.setGUILedStatus(this.idUI.fMET, this.ledOk, 0);
+                                else
+                                    this.setGUILedStatus(this.idUI.fMET, this.ledCk, 0);
                                 end
                             end
                         end
@@ -3482,6 +3505,9 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('STATIONS_file','data_path');
                 file_name = goIni.getData('STATIONS_file','file_name');
                 file_name_sta = [data_path file_name];
+                data_path = goIni.getData('METEOROLOGICAL_file','data_path');
+                file_name = goIni.getData('METEOROLOGICAL_file','file_name');
+                file_name_met = [data_path file_name];
             end
             
             %serial communication
@@ -3657,6 +3683,10 @@ classdef goGUIclass < handle
                 data_path = goIni.getData('STATIONS_file','data_path');
                 file_name = goIni.getData('STATIONS_file','file_name');
                 file_name_sta = checkPath([data_path file_name]);
+                data_path = goIni.getData('METEOROLOGICAL_file','data_path');
+                file_name = goIni.getData('METEOROLOGICAL_file','file_name');
+                file_name_met = checkPath([data_path file_name]);
+                
                 if(this.isMultiReceiver)
                     [multi_antenna_rf, ~] = goIni.getGeometry();
                 else
@@ -3671,6 +3701,7 @@ classdef goGUIclass < handle
                 file_name_pco = '';
                 file_name_blq = '';
                 file_name_sta = '';
+                file_name_met = '';
                 rates = get(this.goh.pumCaptureRate,'String');                
                 goIni.setCaptureRate(rates{get(this.goh.pumCaptureRate,'Value')});
                 multi_antenna_rf = [];
@@ -3787,6 +3818,7 @@ classdef goGUIclass < handle
             funout{37} = obs_comb;
             funout{38} = flag_full_prepro;
             funout{39} = file_name_sta;
+            funout{40} = file_name_met;
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock

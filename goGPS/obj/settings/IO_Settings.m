@@ -76,6 +76,8 @@ classdef IO_Settings < Settings_Interface
         OUT_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % Directory containing the output of the project
         OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
         RUN_COUNTER = 0;     % This parameter store the current run number
+        
+        % EXTERNAL INFO as imported from the input ini file does not have default values
     end
     
     properties (Constant, Access = 'protected')
@@ -110,6 +112,7 @@ classdef IO_Settings < Settings_Interface
         % DEPRECATE
         %------------------------------------------------------------------
         % deprecate INI - it contains some additional setting (yet not imported in the new settings system)
+        % the ini file is instantiated in the ext_ini property of this class
         input_file_ini_path = IO_Settings.INPUT_FILE_INI_PATH;
 
         %------------------------------------------------------------------
@@ -187,6 +190,12 @@ classdef IO_Settings < Settings_Interface
         
         % This parameter store the current run number
         run_counter = IO_Settings.RUN_COUNTER;
+        
+        %------------------------------------------------------------------
+        % EXTERNAL INFO as imported from INPUT FILE INI
+        %------------------------------------------------------------------
+        
+        ext_ini; % ini file object containing info about external data
     end
             
     % =========================================================================
@@ -265,6 +274,8 @@ classdef IO_Settings < Settings_Interface
                 this.run_counter = settings.run_counter;                
             end
             this.check();
+            
+            this.ext_ini = Ini_Manager(this.input_file_ini_path);
         end
         
         function str = toString(this, str)
@@ -371,7 +382,46 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('out_prefix', this.out_prefix, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Current run number', str_cell);
             str_cell = Ini_Manager.toIniString('run_counter', this.run_counter, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);   
+            
+            % EXTERNAL INFO
+            % this operation should not be blocking -> use try catch
+            % update external ini
+            try
+                this.ext_ini = Ini_Manager(this.input_file_ini_path);
+                
+                str_cell = Ini_Manager.toIniStringSection('EXTERNAL FILE INPUT INI', str_cell);
+                str_cell = Ini_Manager.toIniStringComment('The information of this section are here present as imported from the external input ini file', str_cell);
+                str_cell = Ini_Manager.toIniStringComment('All the parameters here listed cannot be modified for import', str_cell);
+                str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Variometric approach parameter', str_cell);
+                str_cell = Ini_Manager.toIniString('variometric_time_step', this.ext_ini.getData('Variometric', 'timeStep'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Navigational files', str_cell);
+                str_cell = Ini_Manager.toIniString('nav_path', this.ext_ini.getData('Navigational', 'data_path'), str_cell);
+                str_cell = Ini_Manager.toIniString('nav_file', this.ext_ini.getData('Navigational', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Master/Target(if SEID) file', str_cell);
+                str_cell = Ini_Manager.toIniString('master_target_path', this.ext_ini.getData('Master', 'data_path'), str_cell);
+                str_cell = Ini_Manager.toIniString('master_target_file', this.ext_ini.getData('Master', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Receivers/Source(if SEID) files', str_cell);
+                str_cell = Ini_Manager.toIniString('receiver_source_number', this.ext_ini.getData('Receivers', 'nRec'), str_cell);
+                str_cell = Ini_Manager.toIniString('receiver_source_path', this.ext_ini.getData('Receivers', 'data_path'), str_cell);
+                str_cell = Ini_Manager.toIniString('receiver_source_file', this.ext_ini.getData('Receivers', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('PCO - PCV files', str_cell);
+                str_cell = Ini_Manager.toIniString('pco_pcv_path', this.ext_ini.getData('PCO_PCV_file', 'data_path'), str_cell);
+                str_cell = Ini_Manager.toIniString('pco_pcv_file', this.ext_ini.getData('PCO_PCV_file', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Ocean loading file', str_cell);
+                str_cell = Ini_Manager.toIniString('ocean_loading_path', this.ext_ini.getData('OCEAN_LOADING_file', 'data_path'), str_cell);
+                str_cell = Ini_Manager.toIniString('ocean_loading_file', this.ext_ini.getData('OCEAN_LOADING_file', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Meteorological file', str_cell);
+                str_cell = Ini_Manager.toIniString('meteorological_path', this.ext_ini.getData('METEOROLOGICAL_file', 'data_path'), str_cell);
+                str_cell = Ini_Manager.toIniString('meteorological_file', this.ext_ini.getData('METEOROLOGICAL_file', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Reference path path', str_cell);
+                str_cell = Ini_Manager.toIniString('ref_path', this.ext_ini.getData('RefPath', 'data_path'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Reference DTM path', str_cell);
+                str_cell = Ini_Manager.toIniString('dtm_path', this.ext_ini.getData('DTM', 'data_path'), str_cell);
+            catch ex
+                this.logger.addWarning(sprintf('Exporting of external INFO failed - %s', ex.message));
+            end
         end
     end    
     
@@ -394,6 +444,8 @@ classdef IO_Settings < Settings_Interface
                 this.logger.addWarning(['Legacy import "IO file / folders" failed - ', ex.message])
             end
             this.check();
+            
+            this.ext_ini = Ini_Manager(this.input_file_ini_path);
         end
     end
     
