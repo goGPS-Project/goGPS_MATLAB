@@ -3437,89 +3437,18 @@ classdef goGUIclass < handle
     % -------------------------------------------------------------------------
     % This part still needs to be modified (cleaned)
     methods
-        % Function to return values to goGPS.m
+        % Function to prepare the return of values to goGPS.m
         function go(this)
             % Function to return values to goGPS.m
             global goObj goIni
-            this.saveConstellations();
 
-            %master station coordinates
-            crs_contents = cellstr(get(this.goh.crs,'String'));
-            master_X = str2double(get(this.goh.master_X,'String'));
-            master_Y = str2double(get(this.goh.master_Y,'String'));
-            master_Z = str2double(get(this.goh.master_Z,'String'));
-            master_lat = str2double(get(this.goh.master_lat,'String'));
-            master_lon = str2double(get(this.goh.master_lon,'String'));
-            master_h = str2double(get(this.goh.master_h,'String'));
-            %KF parameters
-            std_init = str2double(get(this.goh.std_init,'String'));
-            std_X = str2double(get(this.goh.std_X,'String'));
-            std_Y = str2double(get(this.goh.std_Y,'String'));
-            std_Z = str2double(get(this.goh.std_Z,'String'));
-            std_vel = str2double(get(this.goh.std_vel,'String'));
-            std_code = str2double(get(this.goh.std_code,'String'));
-            if (get(this.goh.toggle_std_phase,'Value'))
-                std_phase = str2double(get(this.goh.std_phase,'String'));
-            else
-                std_phase = 1e30;
-            end
-            if (get(this.goh.toggle_std_dtm,'Value'))
-                std_dtm = str2double(get(this.goh.std_dtm,'String'));
-            else
-                std_dtm = 1e30;
-            end
-            min_nsat = str2double(get(this.goh.min_sat,'String'));
-            cutoff = str2double(get(this.goh.cut_off,'String'));
-            snr_threshold = str2double(get(this.goh.snr_thres,'String'));
-            cs_threshold = str2double(get(this.goh.cs_thresh,'String'));
-            antenna_h = str2double(get(this.goh.antenna_h,'String'));
             contents_dyn_mod = cellstr(get(this.goh.dyn_mod,'String'));
             flag_stopGOstop = get(this.goh.stopGOstop,'Value');
-            %input files
-            filerootOUT = [get(this.goh.sDirGoOut,'String') '/' get(this.goh.sPrefixGoOut,'String')];
-            if this.isPostProc()
-                data_path = goIni.getData('Bin','data_path');
-                file_prefix = goIni.getData('Bin','file_prefix');
-                filerootIN = [data_path file_prefix];
-                data_path = goIni.getData('Receivers','data_path');
-                file_name = goIni.getData('Receivers','file_name');
-                file_name_R_obs = [data_path file_name];
-                data_path = goIni.getData('Master','data_path');
-                file_name = goIni.getData('Master','file_name');
-                file_name_M_obs = [data_path file_name];
-                data_path = goIni.getData('Navigational','data_path');
-                file_name = goIni.getData('Navigational','file_name');
-                file_name_nav = [data_path file_name];
-                ref_path = get(this.goh.ref_path, 'Value');
-                data_path = goIni.getData('RefPath','data_path');
-                file_name = goIni.getData('RefPath','file_name');
-                file_name_ref = [data_path file_name];
-                data_path = goIni.getData('DTM','data_path');
-                dtm_dir = data_path;
-                data_path = goIni.getData('PCO_PCV_file','data_path');
-                file_name = goIni.getData('PCO_PCV_file','file_name');
-                file_name_pco = [data_path file_name];
-                data_path = goIni.getData('OCEAN_LOADING_file','data_path');
-                file_name = goIni.getData('OCEAN_LOADING_file','file_name');
-                file_name_blq = [data_path file_name];
-                data_path = goIni.getData('STATIONS_file','data_path');
-                file_name = goIni.getData('STATIONS_file','file_name');
-                file_name_sta = [data_path file_name];
-                data_path = goIni.getData('METEOROLOGICAL_file','data_path');
-                file_name = goIni.getData('METEOROLOGICAL_file','file_name');
-                file_name_met = [data_path file_name];
-            end
-            
+                        
             %serial communication
             % global COMportR
             contents = cellstr(get(this.goh.com_select_0,'String'));
             COMportR0 = contents{get(this.goh.com_select_0,'Value')};
-            % contents = cellstr(get(this.goh.com_select_1,'String'));
-            % COMportR1 = contents{get(this.goh.com_select_1,'Value')};
-            % contents = cellstr(get(this.goh.com_select_2,'String'));
-            % COMportR2 = contents{get(this.goh.com_select_2,'Value')};
-            % contents = cellstr(get(this.goh.com_select_3,'String'));
-            % COMportR3 = contents{get(this.goh.com_select_3,'Value')};
             %TCPIP / NTRIP
             flag_NTRIP = get(this.goh.use_ntrip,'Value');
             master_ip = get(this.goh.IP_address,'String');
@@ -3527,7 +3456,7 @@ classdef goGUIclass < handle
             ntrip_mountpoint = get(this.goh.mountpoint,'String');
             %functioning mode
             mode = this.getgoGPSMode();
-            
+                        
             % If I'm in a mode that uses objects instead of regular code, set goObj flag to 1
             if (mode == goGNSS.MODE_PP_KF_CP_DD_MR)
                 goObj = true;
@@ -3539,6 +3468,9 @@ classdef goGUIclass < handle
             ready = 1;
                         
             if this.isPostProc()
+                data_path = goIni.getData('Bin','data_path');
+                file_prefix = goIni.getData('Bin','file_prefix');
+                filerootIN = [data_path file_prefix];
                 %check if the dataset was surveyed with a variable dynamic model
                 d = dir([filerootIN '_dyn_000.bin']);
                 if (this.isPostProc && (flag_stopGOstop || strcmp(contents_dyn_mod{get(this.goh.dyn_mod,'Value')},'Variable')) && isempty(d))
@@ -3591,7 +3523,6 @@ classdef goGUIclass < handle
                 goIni = Go_Ini_Manager;
             end
             
-            this.saveConstellations();
             mode = this.getgoGPSMode();
             mode_vinc = get(this.goh.constraint,'Value') * this.isActive(this.idUI.cConstraint);
             contents_dyn_mod = cellstr(get(this.goh.dyn_mod,'String'));
@@ -3969,23 +3900,7 @@ classdef goGUIclass < handle
             else
                 nmea_init = '';
             end
-        end
-        
-        % Function to save in the goIni object the status of activation of the various GNSS
-        function saveConstellations(this)
-            % Function to save in the goIni object the status of activation of the various GNSS
-            global goIni
-            if isempty(goIni)
-                goIni = Go_Ini_Manager;
-            end            
-            goIni.addSection('Constellations');
-            goIni.addKey('Constellations','GPS',this.isActive(this.idUI.cGPS));
-            goIni.addKey('Constellations','GLONASS',this.isActive(this.idUI.cGLONASS));
-            goIni.addKey('Constellations','Galileo',this.isActive(this.idUI.cGalileo));
-            goIni.addKey('Constellations','BeiDou',this.isActive(this.idUI.cBeiDou));
-            goIni.addKey('Constellations','QZSS',this.isActive(this.idUI.cQZSS));
-            goIni.addKey('Constellations','SBAS',this.isActive(this.idUI.cSBAS));
-        end
+        end        
     end    
     
     

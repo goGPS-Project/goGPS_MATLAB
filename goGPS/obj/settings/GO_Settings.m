@@ -98,8 +98,7 @@ classdef GO_Settings < Settings_Interface
             this = GO_Settings.getInstance();
             % Return the handler to the object containing the current settings
             cur_settings = handle(this.cur_settings);
-        end
-        
+        end        
     end
     
     % =========================================================================
@@ -140,7 +139,10 @@ classdef GO_Settings < Settings_Interface
             str_cell = this.cur_settings.export(str_cell);
         end        
     end
-    
+   
+    methods
+        
+    end
     % =========================================================================
     %  TEST
     % =========================================================================

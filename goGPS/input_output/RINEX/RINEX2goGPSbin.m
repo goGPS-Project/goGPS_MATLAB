@@ -64,13 +64,13 @@ else
 end
 
 %load multi-constellation settings and initialize 'constellations' struct
-global goIni;
-GPS_flag = goIni.getData('Constellations','GPS');
-GLO_flag = goIni.getData('Constellations','GLONASS');
-GAL_flag = goIni.getData('Constellations','Galileo');
-BDS_flag = goIni.getData('Constellations','BeiDou');
-QZS_flag = goIni.getData('Constellations','QZSS');
-SBS_flag = goIni.getData('Constellations','SBAS');
+state = GO_Settings.getCurrentSettings();
+GPS_flag = state.cc.list.GPS.isActive();
+GLO_flag = state.cc.list.GLO.isActive();
+GAL_flag = state.cc.list.GAL.isActive();
+BDS_flag = state.cc.list.BDS.isActive();
+QZS_flag = state.cc.list.QZS.isActive();
+SBS_flag = state.cc.list.SBS.isActive();
 [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)

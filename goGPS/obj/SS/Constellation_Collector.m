@@ -272,8 +272,8 @@ classdef Constellation_Collector < Settings_Interface
                 str = '';
             end
             this.update();
-            [~, ids] = intersect(this.sys_c, this.sys_c);
-            toString = @(var) regexprep(regexprep(evalc(['disp(var)']), '''   ', ','), '''', '');
+            %[~, ids] = intersect(this.sys_c, this.sys_c);
+            %toString = @(var) regexprep(regexprep(evalc(['disp(var)']), '''   ', ','), '''', '');
             %str = [str ' Constellation in use: ' toString(this.SYS_EXT_NAME(sort(ids)))];
             
             str = this.list.GPS.toString(str);
