@@ -692,19 +692,19 @@ classdef GPS_Time < handle
             % Overloading of the operator index ()
             switch this.time_type
                 case 0 % I'm in MAT TIME
-                    if (length(this.mat_time) <= id)
+                    if (length(this.mat_time) >= id)
                         new_obj = GPS_Time(this.mat_time(id), [], this.is_gps);
                     else
                         new_obj = GPS_Time();
                     end
                 case 1 % I'm in UNIX TIME
-                    if (length(this.unix_time) <= id)
+                    if (length(this.unix_time) >= id)
                         new_obj = GPS_Time(uint32(this.unix_time(id), this.unix_time_f(id), this.is_gps));
                     else
                         new_obj = GPS_Time();
                     end
                 case 2 % I'm in REF TIME
-                    if (length(this.time_diff) <= id)
+                    if (length(this.time_diff) >= id)
                         new_obj = GPS_Time(uint32(this.time_ref, this.time_diff(id), this.is_gps));
                     else
                         new_obj = GPS_Time();
