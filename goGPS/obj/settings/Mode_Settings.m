@@ -274,7 +274,13 @@ classdef Mode_Settings < Settings_Interface
             % SYNTAX: mode = this.getMode();
             mode = this.p_mode;
         end
-        
+
+        function setMode(this, mode)
+            % Set the current mode
+            % SYNTAX: this.setMode(mode);
+            this.p_mode = mode;
+        end
+
     end
     
     % =========================================================================
@@ -302,52 +308,130 @@ classdef Mode_Settings < Settings_Interface
     end
     
     % =========================================================================
+    %   MODE FUNCTION (from obj)
+    % =========================================================================
+    % function to detect a certain kind of processing
+    methods (Static, Access = 'public')
+        function is_post_processing = isModePP(this, mode)
+            % return whether or not the mode in use is a Post Processing mode
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_post_processing = sum(intersect(mode, Mode_Settings.GMODE_PP));
+        end
+        
+        function is_monitor = isModeMonitor(mode)
+            % return whether or not the mode in use is a Monitor mode
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_monitor = sum(intersect(mode, Mode_Settings.GMODE_MON));
+        end
+        
+        function is_real_time = isModeRT(mode)
+            % return whether or not the mode in use is a Real Time mode
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_real_time = sum(intersect(mode, Mode_Settings.GMODE_RT));
+        end
+        
+        function is_double_differences = isModeDD(mode)
+            % return whether or not the mode in use is a Double Difference mode
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_double_differences = sum(intersect(mode, Mode_Settings.GMODE_DD));
+        end
+        
+        function is_stand_alone = isModeSA(mode)
+            % return whether or not the mode in use is a Stand Alone mode
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_stand_alone = sum(intersect(mode, Mode_Settings.GMODE_SA));
+        end
+        
+        function is_multi_receiver = isModeMR(mode)
+            % return whether or not the mode in use is a Stand Alone mode
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_multi_receiver = sum(intersect(mode, Mode_Settings.GMODE_MR));
+        end
+        
+        function is_using_phase = isModePH(mode)
+            % return whether or not the mode in use uses Phase
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_using_phase = sum(intersect(mode, Mode_Settings.GMODE_PH));
+        end
+        
+        function is_kalman = isModeKM(mode)
+            % return whether or not the mode in use uses Kalman Filter
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_kalman = sum(intersect(mode, Mode_Settings.GMODE_KM));
+        end
+        
+        function is_ppp = isModePPP(mode)
+            % return whether or not the mode in use uses Kalman Filter
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_ppp = sum(intersect(mode, Mode_Settings.GMODE_PPP));
+        end   
+    end
+    
+    % =========================================================================
     %   MODE FUNCTION (STATIC)
     % =========================================================================
     % function to detect a certain kind of processing
     methods (Static, Access = 'public')
         function is_post_processing = isPP(mode)
-            % return whether or not the mode given in use is a Post Processing mode
+            % return whether or not the given mode in use is a Post Processing mode
             is_post_processing = sum(intersect(mode, Mode_Settings.GMODE_PP));
         end
         
         function is_monitor = isMON(mode)
-            % return whether or not the mode given in use is a Monitor mode
+            % return whether or not the given mode in use is a Monitor mode
             is_monitor = sum(intersect(mode, Mode_Settings.GMODE_MON));
         end
         
         function is_real_time = isRT(mode)
-            % return whether or not the mode given in use is a Real Time mode
+            % return whether or not the given mode in use is a Real Time mode
             is_real_time = sum(intersect(mode, Mode_Settings.GMODE_RT));
         end
         
         function is_double_differences = isDD(mode)
-            % return whether or not the mode given in use is a Double Difference mode
+            % return whether or not the given mode in use is a Double Difference mode
             is_double_differences = sum(intersect(mode, Mode_Settings.GMODE_DD));
         end
         
         function is_stand_alone = isSA(mode)
-            % return whether or not the mode given in use is a Stand Alone mode
+            % return whether or not the given mode in use is a Stand Alone mode
             is_stand_alone = sum(intersect(mode, Mode_Settings.GMODE_SA));
         end
         
         function is_multi_receiver = isMR(mode)
-            % return whether or not the mode given in use is a Stand Alone mode
+            % return whether or not the given mode in use is a Stand Alone mode
             is_multi_receiver = sum(intersect(mode, Mode_Settings.GMODE_MR));
         end
         
         function is_using_phase = isPH(mode)
-            % return whether or not the mode given in use uses Phase
+            % return whether or not the given mode in use uses Phase
             is_using_phase = sum(intersect(mode, Mode_Settings.GMODE_PH));
         end
         
         function is_kalman = isKM(mode)
-            % return whether or not the mode given in use uses Kalman Filter
+            % return whether or not the given mode in use uses Kalman Filter
             is_kalman = sum(intersect(mode, Mode_Settings.GMODE_KM));
         end
         
         function is_ppp = isPPP(mode)
-            % return whether or not the mode given in use uses Kalman Filter
+            % return whether or not the given mode in use uses Kalman Filter
             is_ppp = sum(intersect(mode, Mode_Settings.GMODE_PPP));
         end        
     end
