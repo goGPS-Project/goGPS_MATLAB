@@ -53,7 +53,7 @@ if not(isempty(path))
         universal_path = cell(size(path));
         for c = 1 : length(path)
             universal_path{c} = regexprep(path{c}, '(\\(?![ ]))|(\/)', filesep);
-            universal_path = regexprep(universal_path{c}, ['\' filesep '\' filesep], filesep);
+            universal_path{c} = regexprep(universal_path{c}, ['\' filesep '\' filesep], filesep);
         end
         if (nargout == 2)
             is_valid = zeros(size(path));
