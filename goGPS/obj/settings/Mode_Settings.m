@@ -149,6 +149,11 @@ classdef Mode_Settings < Settings_Interface
         GMODE_PPP = [ Mode_Settings.MODE_PP_SEID_PPP ...
             Mode_Settings.MODE_PP_KF_CP_SA];
         
+        % Group of SEID modes
+        GMODE_SEID = [ Mode_Settings.MODE_PP_SEID_PPP ...
+            Mode_Settings.MODE_PP_KF_CP_DD_MR];
+        
+        
     end
     
     properties (Constant, GetAccess = protected)
@@ -311,7 +316,7 @@ classdef Mode_Settings < Settings_Interface
     %   MODE FUNCTION (from obj)
     % =========================================================================
     % function to detect a certain kind of processing
-    methods (Static, Access = 'public')
+    methods (Access = 'public')
         function is_post_processing = isModePP(this, mode)
             % return whether or not the mode in use is a Post Processing mode
             if nargin == 1
@@ -320,7 +325,7 @@ classdef Mode_Settings < Settings_Interface
             is_post_processing = sum(intersect(mode, Mode_Settings.GMODE_PP));
         end
         
-        function is_monitor = isModeMonitor(mode)
+        function is_monitor = isModeMonitor(this, mode)
             % return whether or not the mode in use is a Monitor mode
             if nargin == 1
                 mode = this.getMode();
@@ -328,7 +333,7 @@ classdef Mode_Settings < Settings_Interface
             is_monitor = sum(intersect(mode, Mode_Settings.GMODE_MON));
         end
         
-        function is_real_time = isModeRT(mode)
+        function is_real_time = isModeRT(this, mode)
             % return whether or not the mode in use is a Real Time mode
             if nargin == 1
                 mode = this.getMode();
@@ -336,7 +341,7 @@ classdef Mode_Settings < Settings_Interface
             is_real_time = sum(intersect(mode, Mode_Settings.GMODE_RT));
         end
         
-        function is_double_differences = isModeDD(mode)
+        function is_double_differences = isModeDD(this, mode)
             % return whether or not the mode in use is a Double Difference mode
             if nargin == 1
                 mode = this.getMode();
@@ -344,7 +349,7 @@ classdef Mode_Settings < Settings_Interface
             is_double_differences = sum(intersect(mode, Mode_Settings.GMODE_DD));
         end
         
-        function is_stand_alone = isModeSA(mode)
+        function is_stand_alone = isModeSA(this, mode)
             % return whether or not the mode in use is a Stand Alone mode
             if nargin == 1
                 mode = this.getMode();
@@ -352,7 +357,7 @@ classdef Mode_Settings < Settings_Interface
             is_stand_alone = sum(intersect(mode, Mode_Settings.GMODE_SA));
         end
         
-        function is_multi_receiver = isModeMR(mode)
+        function is_multi_receiver = isModeMultiReceiver(this, mode)
             % return whether or not the mode in use is a Stand Alone mode
             if nargin == 1
                 mode = this.getMode();
@@ -360,7 +365,7 @@ classdef Mode_Settings < Settings_Interface
             is_multi_receiver = sum(intersect(mode, Mode_Settings.GMODE_MR));
         end
         
-        function is_using_phase = isModePH(mode)
+        function is_using_phase = isModePH(this, mode)
             % return whether or not the mode in use uses Phase
             if nargin == 1
                 mode = this.getMode();
@@ -368,7 +373,7 @@ classdef Mode_Settings < Settings_Interface
             is_using_phase = sum(intersect(mode, Mode_Settings.GMODE_PH));
         end
         
-        function is_kalman = isModeKM(mode)
+        function is_kalman = isModeKM(this, mode)
             % return whether or not the mode in use uses Kalman Filter
             if nargin == 1
                 mode = this.getMode();
@@ -376,13 +381,22 @@ classdef Mode_Settings < Settings_Interface
             is_kalman = sum(intersect(mode, Mode_Settings.GMODE_KM));
         end
         
-        function is_ppp = isModePPP(mode)
+        function is_ppp = isModePPP(this, mode)
             % return whether or not the mode in use uses Kalman Filter
             if nargin == 1
                 mode = this.getMode();
             end
             is_ppp = sum(intersect(mode, Mode_Settings.GMODE_PPP));
-        end   
+        end  
+        
+        function is_seid = isModeSEID(this, mode)
+            % return whether or not the mode in use uses Kalman Filter
+            if nargin == 1
+                mode = this.getMode();
+            end
+            is_seid = sum(intersect(mode, Mode_Settings.GMODE_SEID));
+        end
+
     end
     
     % =========================================================================
@@ -416,7 +430,7 @@ classdef Mode_Settings < Settings_Interface
         end
         
         function is_multi_receiver = isMR(mode)
-            % return whether or not the given mode in use is a Stand Alone mode
+            % return whether or not the given mode in use is a multi receiver
             is_multi_receiver = sum(intersect(mode, Mode_Settings.GMODE_MR));
         end
         
@@ -433,7 +447,12 @@ classdef Mode_Settings < Settings_Interface
         function is_ppp = isPPP(mode)
             % return whether or not the given mode in use uses Kalman Filter
             is_ppp = sum(intersect(mode, Mode_Settings.GMODE_PPP));
-        end        
+        end
+        
+        function is_seid = isSEID(mode)
+            % return whether or not the given mode in use uses Kalman Filter
+            is_seid = sum(intersect(mode, Mode_Settings.GMODE_SEID));
+        end
     end
     
     % =========================================================================

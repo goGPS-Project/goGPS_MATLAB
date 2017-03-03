@@ -3008,9 +3008,9 @@ classdef goGUIclass < handle
             this.resetDynModel();
             if state.isPP(state.getMode())
                 interface2settings = [3 1 2 4];
-                this.setElVal(this.idUI.lDynModel, interface2settings(state.kf_order + 1));
+                this.setElVal(this.idUI.lDynModel, interface2settings(state.kf_mode + 1));
             else
-                this.setElVal(this.idUI.lDynModel, state.kf_order + 1, 0);
+                this.setElVal(this.idUI.lDynModel, state.kf_mode + 1, 0);
             end
 
             
@@ -3437,14 +3437,14 @@ classdef goGUIclass < handle
     % -------------------------------------------------------------------------
     % This part still needs to be modified (cleaned)
     methods
-        % Function to prepare the return of values to goGPS.m
+        % Function to check the validity of some parameters before go
         function go(this)
-            % Function to return values to goGPS.m
+            % Function to check the validity of some parameters before go
             global goObj goIni
-
+            
             contents_dyn_mod = cellstr(get(this.goh.dyn_mod,'String'));
             flag_stopGOstop = get(this.goh.stopGOstop,'Value');
-                        
+            
             %serial communication
             % global COMportR
             contents = cellstr(get(this.goh.com_select_0,'String'));
@@ -3708,7 +3708,7 @@ classdef goGUIclass < handle
             end
             protocol_idx = protocol_idx(~isnan(protocol_idx));
             
-            funout = cell(39,1);
+            funout = cell(40,1);
             
             funout{1} = mode;
             funout{2} = mode_vinc;

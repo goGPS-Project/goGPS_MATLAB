@@ -46,7 +46,7 @@ classdef IO_Settings < Settings_Interface
     properties (Constant, Access = 'protected')
         
         % PROJECT                
-        PRJ_NAME = 1;  % Name of the project
+        PRJ_NAME = 'Defauld DD';  % Name of the project
         PRJ_HOME = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep]; % Location of the project <relative path from goGPS folder> 
         CUR_INI = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep 'Config' filesep 'settings.ini']; % Location of the current ini file
         % DEPRECATE                
@@ -87,8 +87,8 @@ classdef IO_Settings < Settings_Interface
     properties (Constant, Access = 'protected')
         % id to string of out modes
         OUT_MODE = {'0: old goGPS naming - each file saved with run number in out_dir', ...
-                    '1: run naming - each file saved in a folder containing the run number in out_dir' ...
-                    '2... other values for future implementation, e.g. each output in a folder with a certain format (doy_hh-hh)'}                
+                    % '1: run naming - each file saved in a folder containing the run number in out_dir' ...
+                    '1... other values for future implementation, e.g. each output in a folder with a certain format (doy_hh-hh)'}                
         DEFAULT_DIR_IN = ['..' filesep 'data' filesep];
         DEFAULT_DIR_OUT = ['..' filesep 'data' filesep];  
     end
@@ -281,7 +281,7 @@ classdef IO_Settings < Settings_Interface
                 this.out_style  = settings.out_style;
                 this.out_dir = settings.out_dir;
                 this.out_prefix = settings.out_prefix;
-                this.run_counter = settings.run_counter;                
+                this.run_counter = settings.run_counter;
             end
             this.check();  
             this.updateExternals();
@@ -415,6 +415,9 @@ classdef IO_Settings < Settings_Interface
                 str_cell = Ini_Manager.toIniString('receiver_source_number', this.ext_ini.getData('Receivers', 'nRec'), str_cell);
                 str_cell = Ini_Manager.toIniString('receiver_source_path', this.ext_ini.getData('Receivers', 'data_path'), str_cell);
                 str_cell = Ini_Manager.toIniString('receiver_source_file', this.ext_ini.getData('Receivers', 'file_name'), str_cell);
+                str_cell = Ini_Manager.toIniStringComment('Binary files', str_cell);
+                str_cell = Ini_Manager.toIniString('bin_path', this.ext_ini.getData('Bin', 'data_path'), str_cell);
+                str_cell = Ini_Manager.toIniString('bin_file', this.ext_ini.getData('Bin', 'file_name'), str_cell);
                 str_cell = Ini_Manager.toIniStringComment('Stations coordinates file', str_cell);
                 str_cell = Ini_Manager.toIniString('crd_path', this.crd_path, str_cell);
                 str_cell = Ini_Manager.toIniStringComment('PCO - PCV files', str_cell);
@@ -482,6 +485,23 @@ classdef IO_Settings < Settings_Interface
             % inputFile.ini
             % SYNTAX: this.check();
             this.ext_ini = Ini_Manager(this.input_file_ini_path);
+            
+            % get the output prefix
+            full_out_prefix = checkPath([this.out_dir filesep this.out_prefix]);
+            % make sure to have the name of the file and the name of the
+            % output folder
+            [~, out_prefix, ~] = fileparts(full_out_prefix); %#ok<PROP>
+            % list all the files that match the prefix
+            file_list = dir([full_out_prefix '*']); 
+            % if there are no files in the putput folder
+            if isempty(file_list)
+                this.run_counter = 0; % set the counter of the putput == 0
+            else
+                % put the cell of the file in a single string
+                file_list = fullfile(file_list(:).name);
+                % parse with regexp for output numbers -> get the maximum
+                this.run_counter = max(str2double(unique(regexp(file_list, [ '(?<=' out_prefix '_)[0-9]*(?=_)'], 'match')))) + 1; %#ok<PROP>
+            end
             
             % import file location and check for default folders
             dir_path = this.ext_ini.getData('STATIONS_file', 'data_path');
@@ -593,6 +613,9 @@ classdef IO_Settings < Settings_Interface
                     end
                 end
             end
+            if strcmp(file_path, filesep)
+                file_path = '';
+            end
         end
         
         function file_path = checkAtxPath(this, file_path)
@@ -613,6 +636,9 @@ classdef IO_Settings < Settings_Interface
                         % the file cannot be found
                     end
                 end
+            end
+            if strcmp(file_path, filesep)
+                file_path = '';
             end
         end
         
@@ -635,6 +661,9 @@ classdef IO_Settings < Settings_Interface
                     end
                 end
             end
+            if strcmp(file_path, filesep)
+                file_path = '';
+            end            
         end
         
         function file_path = checkMetPath(this, file_path)
@@ -656,6 +685,9 @@ classdef IO_Settings < Settings_Interface
                     end
                 end
             end
+            if strcmp(file_path, filesep)
+                file_path = '';
+            end            
         end        
 
     end    

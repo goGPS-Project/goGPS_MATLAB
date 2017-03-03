@@ -78,24 +78,58 @@ classdef GO_Settings < Settings_Interface
     % =========================================================================
     methods (Static)
         % Concrete implementation.  See Singleton superclass.
-        function this = getInstance(force_clean)
+        function this = getInstance(ini_settings_file, force_clean)
+            % Get the persistent instance of the class
             persistent unique_instance_settings__
-            if (nargin == 1) && force_clean
+            ini_is_present = false;
+            switch nargin
+                case 0
+                    force_clean = false;
+                case 1
+                    if ischar(ini_settings_file)
+                        ini_is_present = true;
+                        force_clean = false;
+                    else
+                        force_clean = ini_settings_file;
+                    end
+                case 2
+                    ini_is_present = true;
+            end
+            
+            if force_clean
                 logger = Logger.getInstance();
-                logger.addWarning('cleaning settings of the session');
+                logger.addWarning('Cleaning settings of the session');
                 clear unique_instance_settings__;
                 unique_instance_settings__ = [];
             end
+            
             if isempty(unique_instance_settings__)
-                this = GO_Settings();
+                if ini_is_present
+                    this = GO_Settings(ini_settings_file);
+                else
+                    this = GO_Settings();
+                end
                 unique_instance_settings__ = this;
             else
-                this = unique_instance_settings__;
+                if ini_is_present
+                    this = unique_instance_settings__;
+                    this.cur_settings.importIniFile(ini_settings_file);
+                else
+                    this = unique_instance_settings__;
+                    if isempty(this.cur_settings.ext_ini)
+                        this.cur_settings.updateExternals();
+                    end
+                end
             end
         end
         
-        function cur_settings = getCurrentSettings()
-            this = GO_Settings.getInstance();
+        function cur_settings = getCurrentSettings(ini_settings_file)
+            % Get the persistent sittings
+            if nargin == 0
+                this = GO_Settings.getInstance();
+            else
+                this = GO_Settings.getInstance(ini_settings_file);
+            end
             % Return the handler to the object containing the current settings
             cur_settings = handle(this.cur_settings);
         end        
@@ -140,9 +174,231 @@ classdef GO_Settings < Settings_Interface
         end        
     end
    
+    % =========================================================================
+    %  GOGPS EXPORT
+    % =========================================================================
     methods
-        
+        function varargout = settingsToGo(this, state)
+            % export settings as they are exported by the GUI
+            if nargin == 1
+                state = this.cur_settings;
+            end
+            
+            global goIni;
+            if isempty(goIni)
+                goIni = Go_Ini_Manager(state.input_file_ini_path);
+            end
+            goIni.readFile(); % re-read the file
+            
+            varargout = cell(40,1);
+            varargout{1}  = state.getMode();         % mode
+            varargout{2}  = state.constrain;       % constrain
+            varargout{3}  = 0;                       % it was mode_data, now goGPS bin files are unsupported, dropping support
+            varargout{4}  = state.plot_ref_path;   % plot ref_path
+            varargout{5}  = state.flag_rinex_mpos; % get Master position from RINEX 
+            varargout{6}  = state.plot_master;     % plot master
+            varargout{7}  = state.plot_google_earth; % plot Google Earth
+            varargout{8}  = state.plot_err_ellipse;  % plot error ellipse
+            varargout{9}  = state.flag_ntrip;      % flag NTRIP
+            varargout{10} = state.plot_ambiguities;  % plot ambiguities    
+            varargout{11} = state.plot_skyplot_snr; % plot skyplot
+            varargout{12} = state.plot_proc;   % plot while processing
+            varargout{13} = state.isVariable();   % flag kalman filter mode variable
+            varargout{14} = state.stop_go_stop; % stop go stop mode
+            varargout{15} = state.cc.list.SBS.isActive(); % use sbas
+            varargout{16} = state.flag_iar; % use iar
+            
+            file_root_out = checkPath([state.out_dir filesep state.out_prefix '_' num2str(state.run_counter,'%03d') ]);
+            
+            if state.isModePP()
+                % deprecate bin files
+                data_path = goIni.getData('Bin','data_path');
+                file_prefix = goIni.getData('Bin','file_prefix');
+                file_root_in = checkPath([data_path file_prefix]);
+                
+                data_path = state.ext_ini.getData('Navigational', 'data_path');
+                file_name = state.ext_ini.getData('Navigational', 'file_name');
+                file_name_nav = checkPath([data_path file_name]);
+                data_path = state.ext_ini.getData('Receivers', 'data_path');
+                file_name = state.ext_ini.getData('Receivers', 'file_name');
+                file_name_R_obs = checkPath([data_path file_name]);
+                data_path = state.ext_ini.getData('Master', 'data_path');
+                file_name = state.ext_ini.getData('Master', 'file_name');
+                file_name_M_obs = checkPath([data_path file_name]);
+                data_path = state.ext_ini.getData('RefPath', 'data_path');
+                file_name = state.ext_ini.getData('RefPath', 'file_name');
+                file_name_ref = checkPath([data_path file_name]);
+                file_name_pco = state.atx_path;
+                file_name_blq = state.ocean_path;
+                
+                
+                if(state.isModeMultiReceiver())
+                    [multi_antenna_rf, ~] = goIni.getGeometry();
+                else
+                    multi_antenna_rf = [];
+                end
+
+            else
+                file_root_in = '';
+                file_name_R_obs = '';
+                file_name_M_obs = '';
+                file_name_nav = '';
+                file_name_ref = '';
+                file_name_pco = '';
+                file_name_blq = '';
+                multi_antenna_rf = [];
+            end
+            
+            protocol_idx = state.c_prtc;
+            
+            
+            varargout{17} = file_root_in;      % prefix of the in binary file
+            varargout{18} = file_root_out;     % prefix of the out prefix
+            varargout{19} = file_name_R_obs;
+            varargout{20} = file_name_M_obs;
+            varargout{21} = file_name_nav;
+            varargout{22} = file_name_ref;
+            varargout{23} = file_name_pco;
+            varargout{24} = file_name_blq;
+            varargout{25} = [ state.mpos.X; state.mpos.Y; state.mpos.Z]; % position master station
+            varargout{26} = protocol_idx;            
+            varargout{27} = multi_antenna_rf;
+            
+            varargout{28} = state.iono_model;      % iono model
+            varargout{29} = state.tropo_model;      % tropo 
+            
+            % mixed
+            fsep = goIni.getData('Various','field_separator');
+            if (isempty(fsep))
+                varargout{30} = 'default';
+            else
+                varargout{31} = fsep;
+            end
+            
+            varargout{31} = state.flag_ocean; 
+            varargout{32} = state.flag_outlier;
+            varargout{33} = state.flag_tropo;
+            varargout{34} = find(state.cc.list.GPS.flag_f);
+            varargout{35} = state.isModeSEID();
+            varargout{36} = state.p_rate;
+            varargout{37} = iif(state.flag_ionofree,'IONO_FREE', 'NONE');
+            varargout{38} = state.flag_pre_pro;       % flag pre-processing
+            varargout{39} = state.crd_path;
+            varargout{40} = state.met_path;
+            
+            global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
+            global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
+            global min_nsat min_arc cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
+            global h_antenna
+            global tile_header tile_georef dtm_dir
+            global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
+            global nmea_init
+            global flag_doppler_cs
+            global COMportR
+            global IAR_method P0 mu flag_auto_mu flag_default_P0
+            global SPP_threshold max_code_residual max_phase_residual
+
+            IAR_method = state.iar_mode;
+            P0 = state.iar_p0;
+            mu = state.iar_mu;
+            flag_auto_mu = state.flag_iar_auto_mu;
+            flag_default_P0 = state.flag_iar_default_p0;
+            
+            SPP_threshold = state.pp_spp_thr;
+            max_code_residual = state.pp_max_code_err_thr;
+            max_phase_residual = state.pp_max_phase_err_thr;
+            
+            
+            if state.c_n_receivers >= 1
+                COMportR{1,1} = state.c_com_addr{1};
+                if state.c_n_receivers >= 2
+                    COMportR{2,1} = state.c_com_addr{1};
+                    if state.c_n_receivers >= 3
+                        COMportR{3,1} = state.c_com_addr{1};
+                        if state.c_n_receivers >= 4
+                            COMportR{4,1} = state.c_com_addr{1};
+                        end
+                    end
+                end
+            end
+
+            flag_doppler_cs = state.flag_doppler;
+            sigmaq0 = state.sigma0_k_pos ^ 2;
+            sigmaq_vE = state.std_k_ENU.E ^ 2;
+            sigmaq_vN = state.std_k_ENU.N ^ 2;
+            sigmaq_vU = state.std_k_ENU.U ^ 2;
+            sigmaq_vel = state.std_k_vel_mod ^ 2;
+            sigmaq_cod1 = state.std_code ^  2;            
+            sigmaq_cod2 = 0.16;                 % <-- to be changed in the future
+            sigmaq_codIF = 1.2 ^ 2;             % <-- to be changed in the future
+            
+            sigmaq_ph = state.std_phase ^ 2;
+            sigmaq_phIF = iif(state.std_phase == 1e30, 1e30, 0.009^2); % <-- to be changed in the future
+            sigmaq0_N = 1000;
+            
+            sigmaq_dtm = state.std_dtm ^ 2;     
+            sigmaq0_tropo = 1e-2;               % <-- to be changed in the future
+            sigmaq_tropo = 2.0834e-07;          %(0.005/sqrt(120))^2 % <-- to be changed in the future      
+            sigmaq0_rclock = 2e-17;             % <-- to be changed in the future
+            sigmaq_rclock = 1e3;                % <-- to be changed in the future
+            
+            min_nsat = state.min_n_sat;
+            min_arc = state.min_arc;
+            
+            goIni.addSection('Generic');
+            goIni.addKey('Generic','cutoff', state.cut_off);
+            cutoff = state.cut_off;
+            goIni.addKey('Generic','snrThr', state.snr_thr);
+            snr_threshold = state.snr_thr;
+            goIni.addKey('Generic','csThr', state.cs_thr);
+            
+            cs_threshold = state.cs_thr;
+            cs_threshold_preprocessing = state.cs_thr_pre_pro;
+            
+            weights = state.w_mode;
+            snr_a = state.w_snr.a;
+            snr_0 = state.w_snr.zero;
+            snr_1 = state.w_snr.one;
+            snr_A = state.w_snr.A;
+            
+            global amb_restart_method
+            amb_restart_method = state.iar_restart_mode;
+            order = state.kf_mode + 1;            
+            
+            o1 = order;
+            o2 = order*2;
+            o3 = order*3;
+            
+            h_antenna = state.antenna_h;
+
+            dtm_dir = state.dtm_dir;
+            try
+                load([dtm_dir '/tiles/tile_header'], 'tile_header');
+                load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
+            catch e
+                tile_header.nrows = 0;
+                tile_header.ncols = 0;
+                tile_header.cellsize = 0;
+                tile_header.nodata = 0;
+                tile_georef = zeros(1,1,4);
+            end
+            master_ip = state.ntrip.ip_addr;
+            master_port = iif(ischar(state.ntrip.port), str2num(state.ntrip.port), state.ntrip.port);
+            ntrip_user = state.ntrip.username;
+            ntrip_pw = state.ntrip.password;
+            ntrip_mountpoint = state.ntrip.mountpoint;
+            phiApp = state.ntrip.approx_position.lat;
+            lamApp = state.ntrip.approx_position.lon;
+            hApp = state.ntrip.approx_position.h;
+            [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, 6378137, 1/298.257222101);
+            if ~isnan(XApp) && ~isnan(YApp) && ~isnan(ZApp)
+                nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
+            else
+                nmea_init = '';
+            end    
+        end        
     end
+    
     % =========================================================================
     %  TEST
     % =========================================================================

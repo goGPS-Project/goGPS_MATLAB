@@ -31,8 +31,8 @@
 % NOTE: using only 'clearvars' does not clear global variables, while using
 % 'clear all' removes breakpoints
 if (~exist('is_batch','var'))
-    clearvars -global;
-    clearvars;
+    clearvars -global -except ini_settings_file use_gui;
+    clearvars -except ini_settings_file use_gui;
 end
 
 % if the plotting gets slower than usual, there might be problems with the
@@ -63,15 +63,25 @@ warning off; %#ok<WNOFF>
 addpath(genpath(pwd));
 
 % Pointer to the global settings:
-state = GO_Settings.getCurrentSettings();
-
+gos = GO_Settings.getInstance();
+state = gos.getCurrentSettings();
+%settings_file = checkPath('..\data\project\default_PPP\config\settings.ini');
+if exist('ini_settings_file', 'var')
+    state.importIniFile(ini_settings_file);
+end
+        
 %----------------------------------------------------------------------------------------------
 % INTERFACE TYPE DEFINITION
 %----------------------------------------------------------------------------------------------
 
-mode_user =  1; % user interface type
-%         = 0 --> use text interface
-%         = 1 --> use GUI
+if exist('use_gui', 'var')
+    mode_user = use_gui;
+else
+    mode_user =   1; % user interface type
+    % mode_user = 0 --> use text interface
+    % mode_user = 1 --> use GUI
+end
+
 if (exist('is_batch','var'))
     mode_user = 0;
 end
@@ -81,7 +91,7 @@ w_bar = Go_Wait_Bar.getInstance(100,'Welcome to goGPS');
 if mode_user == 1    
     w_bar.setOutputType(1); % 0 means text, 1 means GUI, 5 both
 else
-    w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both
+    w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both    
 end
 logger = Logger.getInstance();
 
@@ -114,104 +124,55 @@ if (mode_user == 1)
         filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
         flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gui_goGPS;
 
-    global goIni; %#ok<TLEV>
     if (isempty(mode))
         return
     end
 else
-
     if (~exist('is_batch','var'))
-        %-------------------------------------------------------------------------------------------
-        % DEFINITION OF THE FUNCTIONING MODE (TEXT INTERFACE)
-        %-------------------------------------------------------------------------------------------
-        
-        mode = goGNSS.MODE_PP_KF_CP_DD;   % functioning mode
-        
-        mode_vinc = 0;    % navigation mode
-        % mode_vinc=0 --> without linear constraint
-        % mode_vinc=1 --> with linear constraint        
-        
-        mode_ref = 0;     % reference path mode
-        % mode_ref=0 --> do not use a reference path
-        % mode_ref=1 --> use a reference path (plot it and use it for statistics)
-        
-        flag_ms_pos = 0;     % read master station position from RTCM or RINEX header
-        
-        flag_ms = 0;         % plot master station position --> no=0, yes=1
-        
-        flag_ge = 0;         % use google earth --> no=0, yes=1
-        
-        flag_cov = 0;        % plot error ellipse --> no=0, yes=1
-        
-        flag_NTRIP = 1;      % use NTRIP --> no=0, yes=1
-        
-        flag_amb = 0;        % plot ambiguities (only in post-processing)
-        
-        flag_skyplot = 0;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
-        
-        flag_plotproc = 0;   % plot while processing
-        
-        flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
-        
-        flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
-        
-        flag_SBAS = 0;          % apply SBAS corrections --> no=0, yes=1
-        
-        flag_IAR = 1;           % try to solve integer ambiguities by LAMBDA method --> no=0, yes=1
-        
-        flag_tropo = 0;         % estimate zenith tropospheric delay
-
-        flag_ocean = 0;      % use ocean tides
-        
-        flag_SEID = 0;       % Satellite-specific Epoch-differenced Ionospheric Delay (SEID) model
-        
-        frequencies = [1];   % array containing the frequencies band to use
-
-        obs_comb = 'NONE';   % combination of observations, valid input 'NONE' or 'IONO_FREE'
-        
-        fsep_char = 'default';
-                
         %----------------------------------------------------------------------------------------------
         % USER-DEFINED SETTINGS
         %----------------------------------------------------------------------------------------------
         
-        %User-defined global settings
-        global_settings;
+        [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
+            flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
+            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+            filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
+            flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = settingsToGo(gos);
     else
         
         %-------------------------------------------------------------------------------------------
         % DISABLE FUNCTIONS NOT USED FOR BATCH PROCESSING
         %-------------------------------------------------------------------------------------------
 
-        flag_full_prepro = 1;     % pre-proccessing
-        mode_vinc = 0;       % navigation mode
-        mode_ref = 0;        % reference path mode
-        flag_ms = 0;         % plot master station position --> no=0, yes=1
-        flag_ge = 0;         % use google earth --> no=0, yes=1
-        flag_cov = 0;        % plot error ellipse --> no=0, yes=1
-        flag_NTRIP = 1;      % use NTRIP --> no=0, yes=1
-        flag_amb = 0;        % plot ambiguities (only in post-processing)
-        flag_skyplot = 0;    % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
-        flag_plotproc = 0;   % plot while processing
-        flag_stopGOstop = 0; % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
+        flag_full_prepro = 1;   % pre-proccessing
+        mode_vinc = 0;          % navigation mode
+        mode_ref = 0;           % reference path mode
+        flag_ms = 0;            % plot master station position --> no=0, yes=1
+        flag_ge = 0;            % use google earth --> no=0, yes=1
+        flag_cov = 0;           % plot error ellipse --> no=0, yes=1
+        flag_NTRIP = 1;         % use NTRIP --> no=0, yes=1
+        flag_amb = 0;           % plot ambiguities (only in post-processing)
+        flag_skyplot = 0;       % draw skyplot and SNR graph (save CPU) --> no=0, yes=1
+        flag_plotproc = 0;      % plot while processing
+        flag_stopGOstop = 0;    % use a stop-go-stop procedure for direction estimation --> no=0, yes=1
         flag_var_dyn_model = 0; % variable dynamic model --> no=0, yes=1
         fsep_char = 'default';
     end
 end
 
+global goIni;
+
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
 
-if mode_user ~= 0
-    GPS_flag = state.cc.list.GPS.isActive();
-    GLO_flag = state.cc.list.GLO.isActive();
-    GAL_flag = state.cc.list.GAL.isActive();
-    BDS_flag = state.cc.list.BDS.isActive();
-    QZS_flag = state.cc.list.QZS.isActive();
-    SBS_flag = state.cc.list.SBS.isActive();
-    [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
-end
+GPS_flag = state.cc.list.GPS.isActive();
+GLO_flag = state.cc.list.GLO.isActive();
+GAL_flag = state.cc.list.GAL.isActive();
+BDS_flag = state.cc.list.BDS.isActive();
+QZS_flag = state.cc.list.QZS.isActive();
+SBS_flag = state.cc.list.SBS.isActive();
+[constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 
 nSatTot = constellations.nEnabledSat;
 if (nSatTot == 0)

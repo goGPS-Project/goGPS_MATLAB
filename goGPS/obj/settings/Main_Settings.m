@@ -112,11 +112,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         FLAG_DOPPLER = false;                           % Flag for using doppler-predicted phase range for detecting cycle slips
         
         % KF
-        KF_ORDER = 1;                                   % Order of the dynamic model polynomial
-                                                        % - kf_order = 0; static
-                                                        % - kf_order = 1; constant velocity
-                                                        % - kf_order = 2; constant acceleration
-                                                        % - kf_order = 3; variable (stop-go-stop)
+        KF_MODE = 1;                                    % Order of the dynamic model polynomial
+                                                        % - kf_mode = 0; static
+                                                        % - kf_mode = 1; constant velocity
+                                                        % - kf_mode = 2; constant acceleration
+                                                        % - kf_mode = 3; variable (stop-go-stop)
 
         % RECEIVER POSITION / MOTION 
         SIGMA0_K_POS = 1;                               % Std of initial state [m]
@@ -164,7 +164,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         
         % NTRIP
         FLAG_NTRIP = false;                             % NTRIP flag (use / do not use) 
-        NTRIP = struct('ip_addr', '127.0.0.1', ...      % Struct containing NTRIP parameters:
+        NTRIP = struct('ip_addr', '127.0.0.1', ...      % Struct containing NTRIP parameters: ip_addr, port, mountpoint, username, password, approx_position (lat, lon, h)
                        'port', '2101', ...
                        'mountpoint', '/', ...
                        'username', 'user', ...
@@ -375,11 +375,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         %------------------------------------------------------------------
         
         % Order of the dynamic model polynomial
-        kf_order = Main_Settings.KF_ORDER;
-        % - kf_order = 0; static
-        % - kf_order = 1; constant velocity
-        % - kf_order = 2; constant acceleration
-        % - kf_order = 3; variable (stop-go-stop)
+        kf_mode = Main_Settings.KF_MODE;
+        % - kf_mode = 0; static
+        % - kf_mode = 1; constant velocity
+        % - kf_mode = 2; constant acceleration
+        % - kf_mode = 3; variable (stop-go-stop)
         
         %------------------------------------------------------------------
         % RECEIVER POSITION / MOTION 
@@ -482,7 +482,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % NTRIP flag (use / do not use) 
         flag_ntrip = Main_Settings.FLAG_NTRIP;
         
-        % Struct containing NTRIP parameters:
+        % Struct containing NTRIP parameters: ip_addr, port, mountpoint, username, password, approx_position (lat, lon, h)
         ntrip = Main_Settings.NTRIP;
     end
     
@@ -490,13 +490,27 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     %  INIT
     % =========================================================================    
     methods
-        function this = Main_Settings()
+        function this = Main_Settings(ini_settings_file)
             % Creator
-            % SYNTAX: s_obj = Main_Settings();
-            this.postImportInit();
-            if exist(this.LAST_SETTINGS, 'file')
-                this.logger.addMessage('Importing settings from last settings file')
-                this.importIniFile(this.LAST_SETTINGS);
+            % SYNTAX: s_obj = Main_Settings(<ini_settings_file>);
+            
+            this.logger.addMessage('Building settings oject...');
+            if (nargin == 1)
+                if ~exist(ini_settings_file, 'file')
+                    this.logger.addWarning(sprintf('File "%s" not found!', ini_settings_file));
+                    ini_settings_file = this.LAST_SETTINGS;
+                end
+            else
+                ini_settings_file = this.LAST_SETTINGS;
+            end
+                    
+            if exist(ini_settings_file, 'file')
+                this.logger.addMessage(sprintf('File "%s" found!', ini_settings_file));
+                this.logger.addStatusOk('Settings imported!')
+                this.importIniFile(ini_settings_file);
+            else
+                this.logger.addMessage('using default settings')
+                this.postImportInit();
             end
         end
     end
@@ -562,7 +576,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_doppler = state.getData('flag_doppler');
                 
                 % KF
-                this.kf_order = state.getData('kf_order');
+                this.kf_mode = state.getData('kf_mode');
 
                 % RECEIVER POSITION / MOTION
                 this.sigma0_k_pos    = state.getData('sigma0_k_pos');
@@ -658,7 +672,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.flag_doppler = state.flag_doppler;                                
                 
                 % KF
-                this.kf_order = state.kf_order;
+                this.kf_mode = state.kf_mode;
 
                 % RECEIVER POSITION / MOTION 
                 this.sigma0_k_pos = state.sigma0_k_pos;
@@ -773,9 +787,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             
             str = [str '---- KALMAN FILTER PARAMETERS --------------------------------------------' 10 10];
             if this.isPP(this.p_mode)
-                str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE_PP{this.kf_order+1})];
+                str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE_PP{this.kf_mode+1})];
             else
-                str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE_RT{this.kf_order+1})];
+                str = [str sprintf(' Order of the KF %s\n\n', this.DYN_SMODE_RT{this.kf_mode+1})];
             end
             str = [str sprintf(' STD of initial state:                             %g\n', this.sigma0_k_pos)];
             str = [str sprintf(' STD of ENU variation:                             %g %g %g\n', struct2array(this.std_k_ENU))];
@@ -949,7 +963,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % KF
             str_cell = Ini_Manager.toIniStringSection('KALMAN_FILTER', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Order of the KF', str_cell);
-            str_cell = Ini_Manager.toIniString('kf_order', this.kf_order, str_cell);
+            str_cell = Ini_Manager.toIniString('kf_mode', this.kf_mode, str_cell);
             str_cell = Ini_Manager.toIniStringComment('When capture/monitor modes are in use', str_cell);
             for i = 1 : numel(this.DYN_SMODE_RT)
                 str_cell = Ini_Manager.toIniStringComment(sprintf(' %s', this.DYN_SMODE_RT{i}), str_cell);
@@ -1135,7 +1149,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 end
                 this.legacyImport@Mode_Settings(state);
                 this.constrain = state.constraint;
-                this.cs_thr = str2double(state.cs_thresh);
+                if (isfield(state,'cs_thresh'))
+                    this.cs_thr = str2double(state.cs_thresh);
+                end
                 if (isfield(state,'wModel'))
                     this.w_mode = state.wModel - 1;
                 elseif (isfield(state,'weight_0'))
@@ -1192,9 +1208,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try                
                 if this.isPP(this.p_mode)
                     interface2settings = [1 2 0 3];
-                    this.kf_order = interface2settings(state.dyn_mod);
+                    this.kf_mode = interface2settings(state.dyn_mod);
                 else
-                    this.kf_order = state.dyn_mod - 1;
+                    this.kf_mode = state.dyn_mod - 1;
                 end
                 this.sigma0_k_pos = str2double(state.std_init);
                 this.std_k_ENU = struct('E', str2double(state.std_X), 'N', str2double(state.std_Y), 'U', str2double(state.std_Z));
@@ -1273,6 +1289,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         function postImportInit(this)
             % Operations to run after the import of new parameters
             % SYNTAX: this.postImportInit
+            this.updateExternals();
             this.init_dtm();
         end
     end
@@ -1412,6 +1429,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % DATA SELECTION            
             this.checkNumericField('p_rate',[0.0001 1800]);
             this.checkNumericField('min_n_sat',[1 300]);
+            if(this.getMode() == this.MODE_PP_LS_CP_SA && this.min_n_sat < 4)
+                this.logger.addWarning('Minimum number of satellites is forced to 4 (for LS undifferenced positioning)');
+                this.min_n_sat = 4;
+            end
             this.checkNumericField('cut_off',[0 90]);
             this.checkNumericField('snr_thr',[0 70]);
             this.checkLogicalField('flag_ocean');
@@ -1437,6 +1458,19 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.w_snr.A = this.checkNumber('w_snr.A', this.w_snr.A, this.W_SNR.A, [0.001 100]);            
             
             this.checkNumericField('cs_thr',[0 1e50]);
+            
+            if this.isModePPP()
+                if (this.cs_thr < 1e30)
+                    this.logger.addMessage('In PPP mode the cycle sleep detection is computed during pre-processing');
+                    this.cs_thr = 1e30; % i.e. disable cycle-slip detection during KF processing
+                end
+            else
+                if (this.cs_thr_pre_pro < 1e30)
+                    this.logger.addMessage('Fixing cycle sleep detection threshold for pre-processing to 1');
+                    this.cs_thr_pre_pro = 1;
+                end
+            end
+
             this.checkLogicalField('flag_ionofree');
             this.checkLogicalField('constrain');
             this.checkLogicalField('stop_go_stop');
@@ -1454,9 +1488,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     
             % KF
             if this.isPP(this.p_mode)
-                this.checkNumericField('kf_order',[0 numel(this.DYN_SMODE_PP)-1]);
+                this.checkNumericField('kf_mode',[0 numel(this.DYN_SMODE_PP)-1]);
             else
-                this.checkNumericField('kf_order',[0 numel(this.DYN_SMODE_RT)-1]);
+                this.checkNumericField('kf_mode',[0 numel(this.DYN_SMODE_RT)-1]);
             end
         
             % RECEIVER POSITION / MOTION 
@@ -1505,6 +1539,15 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         end
     end
     
+    % =========================================================================
+    %  GETTERS
+    % =========================================================================
+    methods (Access = 'public')
+        function is_variable = isVariable(this)
+            % Check wether the current KF mode is variable
+            is_variable = (this.isModeMonitor() && this.kf_mode == 1) || (~this.isModeMonitor() && this.kf_mode == 3);
+        end
+    end
     % =========================================================================
     %  TEST
     % =========================================================================    
