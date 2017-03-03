@@ -375,7 +375,7 @@ sm_weight = 1;
 global geoid
 
 try
-    load ../data/geoid/geoid_EGM2008_05.mat
+    load ../data/reference/geoid/geoid_EGM2008_05.mat
     %geoid grid and parameters
     geoid.grid = N_05x05;
     geoid.cellsize = 0.5;
