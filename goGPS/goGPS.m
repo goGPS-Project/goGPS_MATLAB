@@ -3109,7 +3109,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     ZWD = zeros(size(estim_tropo));
     PWV = zeros(size(estim_tropo));
     
-    if (md.isvalid)
+    if (md.isValid())
         P = md.getPressure(GPS_Time(datenum(date_R(:,:))));
         ZHD = saast_dry(P, h_ortho, phi_KAL);
         ZTD = estim_tropo(:);

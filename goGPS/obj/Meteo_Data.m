@@ -102,9 +102,10 @@ classdef Meteo_Data < handle
         n_type = 0;         % number of observation types
         type = 1:10;        % supposing to have all the fields
         
-        time = GPS_Time(); % array of observation epochs
+        time = GPS_Time();  % array of observation epochs
                 
-        data = [];        
+        data = [];          % Meteorological file
+        is_valid = false;   % Status of valitity of the file;
     end
     
     methods (Access = private)
@@ -199,6 +200,7 @@ classdef Meteo_Data < handle
                 end
             catch ex 
                 this.logger.addWarning(sprintf('Problem detected while reading metereological data: %s', ex.message));
+                this.is_valid = false;
             end
             this.data = this.data'; % keep one column per data type
         end
@@ -243,9 +245,10 @@ classdef Meteo_Data < handle
             for t = 1 : this.n_type
                 this.logger.addMessage([' - ' this.getTypeExt{t}]);
             end
-            
+            this.is_valid = this.file.isValid();
             % Parse the data
-            this.parseData(meteo_file);            
+            this.parseData(meteo_file);   
+            
         end
     end
     
@@ -253,6 +256,13 @@ classdef Meteo_Data < handle
     %  GETTERS
     % =========================================================================
     methods
+        
+        function validity = isValid(this)
+            % Get the validity of a RINEX file or the object
+            % SYNTAX: validity = isValid()
+            validity = this.file.isValid();
+        end
+        
         function time = getTime(this)
             % Get the epochs of the data
             % SYNTAX: time = this.getTime()
