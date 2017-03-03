@@ -198,7 +198,7 @@ classdef File_Rinex < handle
             if nargin == 1
                 file_number = 1;
             end
-            file_name = fullfile(this.base_dir, [this.file_name_list{file_number} this.ext{f}]);
+            file_name = fullfile(this.base_dir, [this.file_name_list{file_number} this.ext{file_number}]);
         end        
 
         function line_num = getEOH(this, file_number)
