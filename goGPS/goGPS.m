@@ -3043,7 +3043,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
 
     %file saving
     if (strcmp(fsep_char,'default'))
-        head_str = '    Date        GPS time         GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD              ZWD              PWV\n';
+        head_str = '    Date        GPS time           GPS week          GPS tow         Latitude        Longitude      h (ellips.)           ECEF X           ECEF Y           ECEF Z        UTM North         UTM East      h (orthom.)         UTM zone        Num. Sat.             HDOP            KHDOP      Local North       Local East          Local H    Ambiguity fix     Success rate              ZTD              ZWD              PWV\n';
         row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.8f %16.8f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16.4f %16s %16d %16.3f %16.3f %16.4f %16.4f %16.4f %16d %16.4f %16.3f %16.3f %16.3f\n';
     else
         head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'Latitude',fsep_char,'Longitude',fsep_char,'h (ellips.)',fsep_char,'ECEF X',fsep_char,'ECEF Y',fsep_char,'ECEF Z',fsep_char,'UTM North',fsep_char,'UTM East',fsep_char,'h (orthom.)',fsep_char,'UTM zone',fsep_char,'Num. Sat.',fsep_char,'HDOP',fsep_char,'KHDOP',fsep_char,'Local North',fsep_char,'Local East',fsep_char,'Local H',fsep_char,'Ambiguity fix',fsep_char,'Success rate',fsep_char,'ZTD',fsep_char,'ZWD',fsep_char,'PWV\n');
@@ -3103,7 +3103,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     if (~exist('is_batch','var'))
         % Save in matlab format all the outputs
         if flag_tropo
-            save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'nsat', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate', 'estim_tropo');
+            save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'nsat', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate', 'estim_tropo', 'ZWD', 'PWV');
         else
             save([filerootOUT '_position.mat'], 'date_R', 'week_R', 'tow', 'phi_KAL', 'lam_KAL', 'h_KAL', 'X_KAL', 'Y_KAL', 'Z_KAL', 'NORTH_UTM', 'EAST_UTM', 'utm_zone', 'nsat', 'HDOP', 'KHDOP', 'NORTH_KAL', 'EAST_KAL', 'UP_KAL', 'fixed_amb', 'succ_rate');
         end
@@ -3422,8 +3422,8 @@ if (goGNSS.isPP(mode) && goGNSS.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(m
     fprintf('Writing troposphere file...\n');
     %file saving
     if (strcmp(fsep_char,'default'))
-        head_str = '    Date        GPS time         GPS week          GPS tow              ZHD              ZTD';
-        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.3f %16.3f';
+        head_str = '    Date          GPS time         GPS week          GPS tow              ZHD              ZTD              ZWD              PWV';
+        row_str = '%02d/%02d/%02d    %02d:%02d:%06.3f %16d %16.3f %16.3f %16.3f %16.3f %16.3f';
         for s = 1 : nSatTot
             head_str = [head_str '         STD ' constellations.systems(s) num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
             row_str  = [row_str  '%16.3f']; %#ok<AGROW>
@@ -3431,8 +3431,8 @@ if (goGNSS.isPP(mode) && goGNSS.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(m
         head_str = [head_str '\n'];
         row_str  = [row_str  '\n'];
     else
-        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD',fsep_char,'ZTD');
-        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
+        head_str = strcat('Date',fsep_char,'GPS time',fsep_char,'GPS week',fsep_char,'GPS tow',fsep_char,'ZHD',fsep_char,'ZTD',fsep_char,'ZWD',fsep_char,'PWV');
+        row_str = strcat('%02d/%02d/%02d',fsep_char,'%02d:%02d:%f',fsep_char,'%d',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f',fsep_char,'%f');
         for s = 1 : nSatTot
             head_str = [head_str,fsep_char,constellations.systems(s),num2str(constellations.PRN(s),'%02d')]; %#ok<AGROW>
             row_str  = [row_str, fsep_char,'%16.3f']; %#ok<AGROW>
@@ -3444,7 +3444,7 @@ if (goGNSS.isPP(mode) && goGNSS.isSA(mode) && goGNSS.isPH(mode) && goGNSS.isKM(m
     fprintf(fid_tropo, head_str);
     for i = 1 : nObs
         %file writing
-        fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), STDs(:,i)');
+        fprintf(fid_tropo, row_str, date_R(i,1), date_R(i,2), date_R(i,3), date_R(i,4), date_R(i,5), date_R(i,6), week_R(i), tow(i), ZHD(i), estim_tropo(i), ZWD(i), PWV(i), STDs(:,i)');
     end
     
     %file closing
