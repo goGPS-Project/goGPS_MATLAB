@@ -92,7 +92,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         STOP_GO_STOP = false;                           % This flag add the possibility to process in stop go stop mode        
 
         % INTEGER AMBIGUITY RESOLUTION
-        FLAG_IAR = 0;                                   % Flag for enabling the automatic detection of cycle sleep
+        FLAG_IAR = 0;                                   % Flag for enabling the automatic detection of cycle slip
         IAR_RESTART_MODE = 2;                           % Ambiguity restart mode
                                                         % - iar_restart_mode = 0; % Observed code - phase difference
                                                         % - iar_restart_mode = 1; % Kalman-predicted code - phase difference
@@ -334,7 +334,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % INTEGER AMBIGUITY RESOLUTION
         %------------------------------------------------------------------
         
-        % Flag for enabling the automatic detection of cycle sleep
+        % Flag for enabling the automatic detection of cycle slip
         flag_iar = Main_Settings.FLAG_IAR;
 
         % Ambiguity restart mode
@@ -1461,12 +1461,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             
             if this.isModePPP()
                 if (this.cs_thr < 1e30)
-                    this.logger.addMessage('In PPP mode the cycle sleep detection is computed during pre-processing');
+                    this.logger.addMessage('In PPP mode the cycle slips detection is computed during pre-processing');
                     this.cs_thr = 1e30; % i.e. disable cycle-slip detection during KF processing
                 end
             else
                 if (this.cs_thr_pre_pro < 1e30)
-                    this.logger.addMessage('Fixing cycle sleep detection threshold for pre-processing to 1');
+                    this.logger.addMessage('Fixing cycle slips detection threshold for pre-processing to 1');
                     this.cs_thr_pre_pro = 1;
                 end
             end

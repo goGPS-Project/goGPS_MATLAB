@@ -65,7 +65,7 @@ classdef GPS_Time < handle
                               729025; 729572; 730121; 732678; 733774;
                               735051; 736146; 736696]); 
                           
-        % datenum ignores cycle sleeps -> in UTC leap seconds happen "before"
+        % datenum ignores cycle slips -> in UTC leap seconds happen "before"
         LEAP_DATES_GPS =   ... %LEAP_DATES_UTC + (1:(length(LEAP_DATES_UTC)))'/86400;
                            ([ 723728.000011574; 724093.000023148; 724458.000034722; 725189.000046296; 726103.00005787; ...
                               726834.000069444; 727199.000081019; 727746.000092593; 728111.000104167; 728476.000115741; ...
@@ -581,7 +581,7 @@ classdef GPS_Time < handle
         end
         
         function toUtc(this)
-            % Transform the internal allocation in UTF format (corrects for cycle-sleeps
+            % Transform the internal allocation in UTF format (corrects for cycle-slip
             if (this.is_gps == true)
                 if (this.leap_seconds >= 999)
                     this.leap_seconds = this.computeLeapSeconds();
@@ -593,7 +593,7 @@ classdef GPS_Time < handle
         end
         
         function toGps(this)
-            % Transform the internal allocation in GPS format (corrects for cycle-sleeps)
+            % Transform the internal allocation in GPS format (corrects for cycle-slips)
             if (this.is_gps == false)
                 if (this.leap_seconds >= 999)
                     this.leap_seconds = this.computeLeapSeconds();
