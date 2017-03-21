@@ -53,6 +53,8 @@
             │   └─ < Year >        // Year corresponding to GPS time
             │       └─ DOY         // DOY corresponding to GPS time
             │
+            ├─ < Ref_path >        // <opt> reference paths
+            │
             ├─ < Antenna >         // <opt> use the global dir if not present
             │   └─ < ATX >         // <opt> use the global dir if not present
             │

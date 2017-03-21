@@ -93,6 +93,8 @@ classdef goGUIclass < handle
         initialized = 0;    % Logical containing the status of initialization if the GUI
         echoChar = '*';     % Character for masking the password
         
+        ok_go = false;      % only when go is pressed everything is ok!
+        
     %  INTERFACE STATUS - PATH
     % =========================================================================        
     %  Deprecate, everything should be moved into config.ini
@@ -1479,6 +1481,8 @@ classdef goGUIclass < handle
             % Get the status of the interface and prepare the Obj for the management of the GUI
             this.w_bar.goMsg('Loading GUI manager object...');
 
+            this.ok_go = false;
+
             % Set value for elements ids
             this.initUIids();
             
@@ -1529,7 +1533,7 @@ classdef goGUIclass < handle
             % this.disableAll();
             this.checkUIdependencies();
 
-            this.initialized = 1;
+            this.initialized = 1;            
         end
 
         % Add an undocumented password box
@@ -1669,9 +1673,13 @@ classdef goGUIclass < handle
         
         function isOk  = okGo(this, idEl)
             % Test element readyness
-            isOk = ~this.isEnabled(idEl);
-            if ~isOk
-                isOk = this.isColor(idEl, this.GREEN) || this.isColor(idEl, this.BLUE);
+            if (nargin == 1)
+                isOk = this.ok_go;
+            else
+                isOk = ~this.isEnabled(idEl);
+                if ~isOk
+                    isOk = this.isColor(idEl, this.GREEN) || this.isColor(idEl, this.BLUE);
+                end
             end
         end
                        
@@ -2880,10 +2888,10 @@ classdef goGUIclass < handle
             %   DATA SELECTION
             % ===============================================================
             
-            this.setElVal(this.idUI.cL1, state.cc.list.GPS.flag_f(1), 0);
-            this.setElVal(this.idUI.cL2, state.cc.list.GPS.flag_f(2), 0);
-            this.setElVal(this.idUI.cL5, state.cc.list.GPS.flag_f(3), 0);
-            this.setElVal(this.idUI.cL6, state.cc.list.GAL.flag_f(5), 0);
+            this.setElVal(this.idUI.cL1, state.cc.ss_gps.flag_f(1), 0);
+            this.setElVal(this.idUI.cL2, state.cc.ss_gps.flag_f(2), 0);
+            this.setElVal(this.idUI.cL5, state.cc.ss_gps.flag_f(3), 0);
+            this.setElVal(this.idUI.cL6, state.cc.ss_gal.flag_f(5), 0);
             
             rates = this.UI_P_SRATE;
             id = find(ismember(rates, state.p_rate));
@@ -2926,8 +2934,7 @@ classdef goGUIclass < handle
             
             this.setElVal(this.idUI.cOcean, state.flag_ocean, 0);
             % Temporary check in the migration to SBAS use period
-            ss_list = state.cc.list;
-            this.setElVal(this.idUI.cUse_SBAS, state.cc.list.SBS.isActive, 0);
+            this.setElVal(this.idUI.cUse_SBAS, state.cc.isSbsActive(), 0);
             
             %   INTEGER AMBIGUITY RESOLUTION
             % ===============================================================
@@ -2956,12 +2963,12 @@ classdef goGUIclass < handle
             this.setElVal(this.idUI.sDirGoOut, state.out_dir, 0);
             this.setElVal(this.idUI.sPrefixGoOut, state.out_prefix, 0);
             
-            this.setElVal(this.idUI.cGPS, ss_list.GPS.isActive(), 0);
-            this.setElVal(this.idUI.cGLONASS, ss_list.GLO.isActive(), 0);
-            this.setElVal(this.idUI.cGalileo, ss_list.GAL.isActive(), 0);
-            this.setElVal(this.idUI.cBeiDou, ss_list.BDS.isActive(), 0);
-            this.setElVal(this.idUI.cQZSS, ss_list.QZS.isActive(), 0);
-            this.setElVal(this.idUI.cSBAS, ss_list.SBS.isActive(), 0);
+            this.setElVal(this.idUI.cGPS, state.cc.isGpsActive(), 0);
+            this.setElVal(this.idUI.cGLONASS, state.cc.isGloActive(), 0);
+            this.setElVal(this.idUI.cGalileo, state.cc.isGalActive(), 0);
+            this.setElVal(this.idUI.cBeiDou, state.cc.isBdsActive(), 0);
+            this.setElVal(this.idUI.cQZSS, state.cc.isQzsActive(), 0);
+            this.setElVal(this.idUI.cSBAS, state.cc.isSbsActive(), 0);
             
             %   SETTINGS - MASTER STATION
             % ===============================================================
@@ -3286,10 +3293,10 @@ classdef goGUIclass < handle
             %   DATA SELECTION
             % ===============================================================
             
-            tmp_state.activeFreq        = [this.getElVal(this.idUI.cL1) ...
-                                       this.getElVal(this.idUI.cL2) ...
-                                       this.getElVal(this.idUI.cL5) ...
-                                       this.getElVal(this.idUI.cL6)];
+            tmp_state.activeFreq        = [this.getElVal(this.idUI.cL1) && this.isEnabled(this.idUI.cL1) ...
+                                       this.getElVal(this.idUI.cL2) && this.isEnabled(this.idUI.cL2)...
+                                       this.getElVal(this.idUI.cL5) && this.isEnabled(this.idUI.cL5)...
+                                       this.getElVal(this.idUI.cL6) && this.isEnabled(this.idUI.cL6) ];
             tmp_state.srate             = this.getElVal(this.idUI.lProcRate);
             tmp_state.obs_comb          = this.getElVal(this.idUI.lObsComb);
             tmp_state.ocean             = this.getElVal(this.idUI.cOcean);
@@ -3513,395 +3520,19 @@ classdef goGUIclass < handle
                 end
                 uiresume(this.goh.main_panel);
             end
+            
+            this.ok_go = true;
         end
         
         % Function to return values to goGPS.m
         function funout = outputFun(this)
-            % Function to return values to goGPS.m
-            global goIni;
-            if isempty(goIni)
-                goIni = Go_Ini_Manager;
-            end
-            
-            mode = this.getgoGPSMode();
-            mode_vinc = get(this.goh.constraint,'Value') * this.isActive(this.idUI.cConstraint);
-            contents_dyn_mod = cellstr(get(this.goh.dyn_mod,'String'));
-            if (strcmp(contents_dyn_mod{get(this.goh.dyn_mod,'Value')},'Variable') || get(this.goh.stopGOstop,'Value'))
-                flag_var_dyn_model = 1;
+            if this.ok_go
+                funout = this.state;
             else
-                flag_var_dyn_model = 0;
+                funout = [];
             end
-
-            % atm model
-            iono_model = this.getElVal(this.idUI.lIono) - 1;
-            tropo_model = this.getElVal(this.idUI.lTropo) - 1;            
-            
-            % mixed
-            fsep = goIni.getData('Various','field_separator');
-            if (isempty(fsep))
-                fsep_char = 'default';
-            else
-                fsep_char = fsep;
-            end           
-            
-            flag_full_prepro = this.getElVal(this.idUI.cPrePro);
-            
-            mode_ref = get(this.goh.ref_path,'Value');
-            flag_ms_pos = get(this.goh.master_pos,'Value');
-            flag_ms = get(this.goh.plot_master,'Value');
-            flag_ge = get(this.goh.google_earth,'Value');
-            flag_cov = get(this.goh.err_ellipse,'Value');
-            flag_NTRIP = get(this.goh.use_ntrip,'Value');
-            flag_amb = get(this.goh.plot_amb,'Value');
-            flag_skyplot = get(this.goh.no_skyplot_snr,'Value');
-            flag_plotproc = get(this.goh.plotproc,'Value');
-            flag_stopGOstop = get(this.goh.stopGOstop,'Value');
-            flag_SBAS = get(this.goh.use_SBAS,'Value');
-            flag_IAR = get(this.goh.cLAMBDA,'Value');
-            flag_tropo = this.isActive(this.idUI.cTropo);
-            flag_ocean = this.isActive(this.idUI.cOcean);
-            flag_SEID = this.isSEID();
-            active_freq = this.getFreq();
-            obs_comb = this.getObsComb();
-            flag_outlier =  this.isActive(this.idUI.cOutlier);
-            
-            processing_rate = this.valProcRate(this.getElVal(this.idUI.lProcRate));
-            
-            filerootOUT = checkPath([get(this.goh.sDirGoOut,'String') filesep get(this.goh.sPrefixGoOut,'String')]);
-            if (this.isPostProc) % I need these informations only in Post Processing
-                data_path = goIni.getData('Bin','data_path');
-                file_prefix = goIni.getData('Bin','file_prefix');
-                filerootIN = checkPath([data_path file_prefix]);
-                i = 1;
-                j = length(filerootOUT);
-                while (~isempty(dir([filerootOUT '_????_rover.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_master*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_????_obs*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_????_eph*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_????_dyn*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_sat*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_kal*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_dt*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_conf*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_dop*.bin'])) || ...
-                        ~isempty(dir([filerootOUT '_ECEF*.txt'])) || ...
-                        ~isempty(dir([filerootOUT '_geod*.txt'])) || ...
-                        ~isempty(dir([filerootOUT '_plan*.txt'])) || ...
-                        ~isempty(dir([filerootOUT '_????_NMEA*.txt'])) || ...
-                        ~isempty(dir([filerootOUT '.kml'])) )
-                    
-                    filerootOUT(j+1:j+4) = ['_' num2str(i,'%03d')];
-                    i = i + 1;
-                end
-                data_path = goIni.getData('Receivers','data_path');
-                file_name = goIni.getData('Receivers','file_name');
-                file_name_R_obs = checkPath([data_path file_name]);
-                data_path = goIni.getData('Master','data_path');
-                file_name = goIni.getData('Master','file_name');
-                file_name_M_obs = checkPath([data_path file_name]);
-                data_path = goIni.getData('Navigational','data_path');
-                file_name = goIni.getData('Navigational','file_name');
-                file_name_nav = checkPath([data_path file_name]);
-                data_path = goIni.getData('RefPath','data_path');
-                file_name = goIni.getData('RefPath','file_name');
-                file_name_ref = checkPath([data_path file_name]);
-                data_path = goIni.getData('PCO_PCV_file','data_path');
-                file_name = goIni.getData('PCO_PCV_file','file_name');
-                file_name_pco = checkPath([data_path file_name]);
-                data_path = goIni.getData('OCEAN_LOADING_file','data_path');
-                file_name = goIni.getData('OCEAN_LOADING_file','file_name');
-                file_name_blq = checkPath([data_path file_name]);
-                data_path = goIni.getData('STATIONS_file','data_path');
-                file_name = goIni.getData('STATIONS_file','file_name');
-                file_name_sta = checkPath([data_path file_name]);
-                data_path = goIni.getData('METEOROLOGICAL_file','data_path');
-                file_name = goIni.getData('METEOROLOGICAL_file','file_name');
-                file_name_met = checkPath([data_path file_name]);
-                
-                if(this.isMultiReceiver)
-                    [multi_antenna_rf, ~] = goIni.getGeometry();
-                else
-                    multi_antenna_rf = [];
-                end
-            else
-                filerootIN = '';
-                file_name_R_obs = '';
-                file_name_M_obs = '';
-                file_name_nav = '';
-                file_name_ref = '';
-                file_name_pco = '';
-                file_name_blq = '';
-                file_name_sta = '';
-                file_name_met = '';
-                rates = get(this.goh.pumCaptureRate,'String');                
-                goIni.setCaptureRate(rates{get(this.goh.pumCaptureRate,'Value')});
-                multi_antenna_rf = [];
-            end
-            
-            contents = cellstr(get(this.goh.crs,'String'));
-            if (strcmp(contents{get(this.goh.crs,'Value')},'ECEF (X,Y,Z)'))
-                XM = str2double(get(this.goh.master_X,'String'));
-                YM = str2double(get(this.goh.master_Y,'String'));
-                ZM = str2double(get(this.goh.master_Z,'String'));
-            else
-                latM = str2double(get(this.goh.master_lat,'String'));
-                lonM = str2double(get(this.goh.master_lon,'String'));
-                hM = str2double(get(this.goh.master_h,'String'));
-                [XM, YM, ZM] = geod2cart (latM*pi/180, lonM*pi/180, hM, 6378137, 1/298.257222101);
-            end
-            pos_M_man = [XM; YM; ZM];
-            
-            contents = cellstr(get(this.goh.num_receivers,'String'));
-            num_rec = str2double(contents{get(this.goh.num_receivers,'Value')});
-            protocol_idx = nan(4,1);
-            
-            if num_rec >= 1
-                contentsProt = cellstr(get(this.goh.protocol_select_0,'String'));
-                if (strcmp(contentsProt{get(this.goh.protocol_select_0,'Value')},'UBX (u-blox)'))
-                    protocol_idx(1) = 0;
-                elseif (strcmp(contentsProt{get(this.goh.protocol_select_0,'Value')},'iTalk (Fastrax)'))
-                    protocol_idx(1) = 1;
-                elseif (strcmp(contentsProt{get(this.goh.protocol_select_0,'Value')},'SkyTraq'))
-                    protocol_idx(1) = 2;
-                elseif (strcmp(contentsProt{get(this.goh.protocol_select_0,'Value')},'BINR (NVS)'))
-                    protocol_idx(1) = 3;
-                end
-                
-                if num_rec >= 2
-                    contentsProt = cellstr(get(this.goh.protocol_select_1,'String'));
-                    if (strcmp(contentsProt{get(this.goh.protocol_select_1,'Value')},'UBX (u-blox)'))
-                        protocol_idx(2) = 0;
-                    elseif (strcmp(contentsProt{get(this.goh.protocol_select_1,'Value')},'iTalk (Fastrax)'))
-                        protocol_idx(2) = 1;
-                    elseif (strcmp(contentsProt{get(this.goh.protocol_select_1,'Value')},'SkyTraq'))
-                        protocol_idx(2) = 2;
-                    elseif (strcmp(contentsProt{get(this.goh.protocol_select_1,'Value')},'BINR (NVS)'))
-                        protocol_idx(2) = 3;
-                    end
-                    
-                    if num_rec >= 3
-                        contentsProt = cellstr(get(this.goh.protocol_select_2,'String'));
-                        if (strcmp(contentsProt{get(this.goh.protocol_select_2,'Value')},'UBX (u-blox)'))
-                            protocol_idx(3) = 0;
-                        elseif (strcmp(contentsProt{get(this.goh.protocol_select_2,'Value')},'iTalk (Fastrax)'))
-                            protocol_idx(3) = 1;
-                        elseif (strcmp(contentsProt{get(this.goh.protocol_select_2,'Value')},'SkyTraq'))
-                            protocol_idx(3) = 2;
-                        elseif (strcmp(contentsProt{get(this.goh.protocol_select_2,'Value')},'BINR (NVS)'))
-                            protocol_idx(3) = 3;
-                        end
-                        
-                        if num_rec >= 4
-                            contentsProt = cellstr(get(this.goh.protocol_select_3,'String'));
-                            if (strcmp(contentsProt{get(this.goh.protocol_select_3,'Value')},'UBX (u-blox)'))
-                                protocol_idx(4) = 0;
-                            elseif (strcmp(contentsProt{get(this.goh.protocol_select_3,'Value')},'iTalk (Fastrax)'))
-                                protocol_idx(4) = 1;
-                            elseif (strcmp(contentsProt{get(this.goh.protocol_select_3,'Value')},'SkyTraq'))
-                                protocol_idx(4) = 2;
-                            elseif (strcmp(contentsProt{get(this.goh.protocol_select_3,'Value')},'BINR (NVS)'))
-                                protocol_idx(4) = 3;
-                            end
-                        end
-                    end
-                end
-            end
-            protocol_idx = protocol_idx(~isnan(protocol_idx));
-            
-            funout = cell(40,1);
-            
-            funout{1} = mode;
-            funout{2} = mode_vinc;
-            funout{3} = 0;  % it was mode_data, now goGPS bin files are unsupported, dropping support
-            funout{4} = mode_ref;
-            funout{5} = flag_ms_pos;
-            funout{6} = flag_ms;
-            funout{7} = flag_ge;
-            funout{8} = flag_cov;
-            funout{9} = flag_NTRIP;
-            funout{10} = flag_amb;
-            funout{11} = flag_skyplot;
-            funout{12} = flag_plotproc;
-            funout{13} = flag_var_dyn_model;
-            funout{14} = flag_stopGOstop;
-            funout{15} = flag_SBAS;
-            funout{16} = flag_IAR;
-            funout{17} = filerootIN;
-            funout{18} = filerootOUT;
-            funout{19} = file_name_R_obs;
-            funout{20} = file_name_M_obs;
-            funout{21} = file_name_nav;
-            funout{22} = file_name_ref;
-            funout{23} = file_name_pco;
-            funout{24} = file_name_blq;
-            funout{25} = pos_M_man;
-            funout{26} = protocol_idx;
-            funout{27} = multi_antenna_rf;
-            funout{28} = iono_model;
-            funout{29} = tropo_model;            
-            funout{30} = fsep_char;
-            funout{31} = flag_ocean;
-            funout{32} = flag_outlier;
-            funout{33} = flag_tropo;
-            funout{34} = active_freq;
-            funout{35} = flag_SEID;
-            funout{36} = processing_rate;
-            funout{37} = obs_comb;
-            funout{38} = flag_full_prepro;
-            funout{39} = file_name_sta;
-            funout{40} = file_name_met;
-            
-            global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
-            global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
-            global min_nsat min_arc cutoff snr_threshold cs_threshold_preprocessing cs_threshold weights snr_a snr_0 snr_1 snr_A order o1 o2 o3
-            global h_antenna
-            global tile_header tile_georef dtm_dir
-            global master_ip master_port ntrip_user ntrip_pw ntrip_mountpoint
-            global nmea_init
-            global flag_doppler_cs
-            global COMportR
-            global IAR_method P0 mu flag_auto_mu flag_default_P0
-            global SPP_threshold max_code_residual max_phase_residual
-
-            IAR_method = get(this.goh.lLAMBDAMethod,'Value') - 1;
-            P0 = str2double(get(this.goh.nP0,'String'));
-            mu = str2double(get(this.goh.nMu,'String'));
-            flag_auto_mu = get(this.goh.cMu,'Value') && ~this.isLambda2;
-            flag_default_P0 = get(this.goh.cP0,'Value') && ~this.isLambda2;
-            
-            SPP_threshold = str2double(get(this.goh.nSPPthr,'String'));
-            max_code_residual = str2double(get(this.goh.nCodeThr,'String'));
-            max_phase_residual = str2double(get(this.goh.nPhaseThr,'String'));
-
-            contents = cellstr(get(this.goh.com_select_0,'String'));
-            COMportR0 = contents{get(this.goh.com_select_0,'Value')};
-            contents = cellstr(get(this.goh.com_select_1,'String'));
-            COMportR1 = contents{get(this.goh.com_select_1,'Value')};
-            contents = cellstr(get(this.goh.com_select_2,'String'));
-            COMportR2 = contents{get(this.goh.com_select_2,'Value')};
-            contents = cellstr(get(this.goh.com_select_3,'String'));
-            COMportR3 = contents{get(this.goh.com_select_3,'Value')};
-            
-            if num_rec >= 1
-                COMportR{1,1} = COMportR0;
-                if num_rec >= 2
-                    COMportR{2,1} = COMportR1;
-                    if num_rec >= 3
-                        COMportR{3,1} = COMportR2;
-                        if num_rec >= 4
-                            COMportR{4,1} = COMportR3;
-                        end
-                    end
-                end
-            end
-            
-            flag_doppler_cs = get(this.goh.flag_doppler,'Value');
-            sigmaq0 = str2double(get(this.goh.std_init,'String'))^2;
-            sigmaq_vE = str2double(get(this.goh.std_X,'String'))^2;
-            sigmaq_vN = str2double(get(this.goh.std_Y,'String'))^2;
-            sigmaq_vU = str2double(get(this.goh.std_Z,'String'))^2;
-            sigmaq_vel = str2double(get(this.goh.std_vel,'String'))^2;
-            sigmaq_cod1 = str2double(get(this.goh.std_code,'String'))^2;
-            sigmaq_cod2 = 0.16;
-            sigmaq_codIF = 1.2^2;
-            if (get(this.goh.toggle_std_phase,'Value'))
-                sigmaq_ph = str2double(get(this.goh.std_phase,'String'))^2;
-                sigmaq_phIF = 0.009^2;
-            else
-                sigmaq_ph = 1e30;
-                sigmaq_phIF = 1e30;
-            end
-            sigmaq0_N = 1000;
-            if (get(this.goh.toggle_std_dtm,'Value'))
-                sigmaq_dtm = str2double(get(this.goh.std_dtm,'String'))^2;
-            else
-                sigmaq_dtm = 1e30;
-            end
-            sigmaq0_tropo = 1e-2;
-            sigmaq_tropo = 2.0834e-07; %(0.005/sqrt(120))^2
-            sigmaq0_rclock = 2e-17;
-            sigmaq_rclock = 1e3;
-            min_nsat =  str2double(get(this.goh.min_sat,'String'));
-            min_arc = str2double(get(this.goh.nMinArc,'String'));
-            if (mode == 2)
-                disp('Minimum number of satellites is forced to 4 (for undifferenced positioning)');
-                min_nsat = 4;
-            end
-            goIni.addSection('Generic');
-            goIni.addKey('Generic','cutoff', str2double(get(this.goh.cut_off,'String')));
-            cutoff = str2double(get(this.goh.cut_off,'String'));
-            goIni.addKey('Generic','snrThr', str2double(get(this.goh.snr_thres,'String')));
-            snr_threshold = str2double(get(this.goh.snr_thres,'String'));
-            goIni.addKey('Generic','csThr', str2double(get(this.goh.cs_thresh,'String')));
-            if this.isPPP()
-                cs_threshold = 1e30; %i.e. disable cycle-slip detection during KF processing
-                cs_threshold_preprocessing = str2double(get(this.goh.cs_thresh,'String'));
-            else
-                cs_threshold = str2double(get(this.goh.cs_thresh,'String'));
-                cs_threshold_preprocessing = 1;
-            end
-            
-            weights = this.getElVal(this.idUI.lWeight) - 1;
-            snr_a = 30;
-            snr_0 = 10;
-            snr_1 = 50;
-            snr_A = 30;
-            global amb_restart_method
-            contents = cellstr(get(this.id2handle(this.idUI.lARAA),'String'));
-            selection = contents{min(get(this.id2handle(this.idUI.lARAA),'Value'), length(contents))};
-            if (strcmp(selection, 'Observed code - phase difference'))
-                amb_restart_method = 0;
-            elseif (strcmp(selection, 'Kalman-pREDicted code - phase difference'))
-                amb_restart_method = 1;
-            else
-                amb_restart_method = 2;
-            end
-            contents = cellstr(get(this.id2handle(this.idUI.lDynModel),'String'));
-            if (strcmp(contents{min(get(this.id2handle(this.idUI.lDynModel),'Value'), length(contents))},'Static'))
-                order = 1;
-            else
-                if (strcmp(contents{min(get(this.id2handle(this.idUI.lDynModel),'Value'), length(contents))},'Const. acceleration'))
-                    order = 3;
-                elseif (strcmp(contents{min(get(this.id2handle(this.idUI.lDynModel),'Value'), length(contents))},'Const. velocity'))
-                    order = 2;
-                else
-                    order = 1;
-                end
-            end
-            
-            o1 = order;
-            o2 = order*2;
-            o3 = order*3;
-            h_antenna = str2double(get(this.goh.antenna_h,'String'));
-%             if (this.isPostProc) % I need these informations only in Post Processing
-                dtm_dir = goIni.getData('DTM','data_path');
-                try
-                    load([dtm_dir '/tiles/tile_header'], 'tile_header');
-                    load([dtm_dir '/tiles/tile_georef'], 'tile_georef');
-                catch e
-                    tile_header.nrows = 0;
-                    tile_header.ncols = 0;
-                    tile_header.cellsize = 0;
-                    tile_header.nodata = 0;
-                    tile_georef = zeros(1,1,4);
-                end
-%             end
-            master_ip = get(this.goh.IP_address,'String');
-            master_port = str2double(get(this.goh.port,'String'));
-            ntrip_user = get(this.goh.username,'String');
-            ntrip_pw = this.getPassword();
-            ntrip_mountpoint = get(this.goh.mountpoint,'String');
-            phiApp = str2double(get(this.goh.approx_lat,'String'));
-            lamApp = str2double(get(this.goh.approx_lon,'String'));
-            hApp = str2double(get(this.goh.approx_h,'String'));
-            [XApp,YApp,ZApp] = geod2cart (phiApp*pi/180, lamApp*pi/180, hApp, 6378137, 1/298.257222101);
-            if ~isnan(XApp) && ~isnan(YApp) && ~isnan(ZApp)
-                nmea_init = NMEA_GGA_gen([XApp YApp ZApp],10);
-            else
-                nmea_init = '';
-            end
-        end        
-    end    
+        end
+    end
     
     
     %   GO FUNCTIONS (OUTPUT)

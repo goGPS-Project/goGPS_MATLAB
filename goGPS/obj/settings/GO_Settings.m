@@ -2,9 +2,10 @@
 % =========================================================================
 %
 % DESCRIPTION
-%   Collector of settings to manage a useful parameters of goGPS
+%   Collector of settings to manage the parameters of the execution of goGPS
 %   This singleton class collects multiple objects containing various
-%   parameters
+%   parameters, cur_settings contains the parameter in use, while the other
+%   properties of the class are needed during the execution of goGPS
 %
 % EXAMPLE
 %   settings = GO_Settings.getInstance();
@@ -58,6 +59,12 @@ classdef GO_Settings < Settings_Interface
                      'STD_HUMI', 50.0);        % humidity [%]               
     end
     
+    properties (GetAccess = private, SetAccess = private) % Public Access
+        geoid;                                           % parameters of the reference geoid
+        
+        reference = struct('path' , [], 'adj_mat', []);  % reference path for constrained solution, and adjacency matrix
+    end
+    
     properties % Public Access
         cur_settings = Main_Settings();        % Processing settings
     end
@@ -70,7 +77,7 @@ classdef GO_Settings < Settings_Interface
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
         function obj = GO_Settings()
-        end
+        end        
     end
     
     % =========================================================================
@@ -175,10 +182,102 @@ classdef GO_Settings < Settings_Interface
     end
    
     % =========================================================================
+    %  GOGPS INIT FUNCTIONS
+    % =========================================================================
+    methods (Access = public)
+        function initProcessing(this)
+            % Load external resources and update
+            this.initRef();
+            this.initGeoid();
+        end
+    end
+    
+    methods (Access = private)
+        function initRef(this)   
+            % load external ref_path
+            
+            %-------------------------------------------------------------------------------------------
+            % REFERENCE PATH LOAD
+            %-------------------------------------------------------------------------------------------
+            if this.cur_settings.plot_ref_path                
+                filename_ref = this.cur_settings.getRefPath();
+                d = dir(filename_ref);
+                
+                if ~isempty(d)
+                    load(filename_ref, 'ref_path', 'mat_path');
+                    
+                    % adjust the reference path according to antenna height
+                    [ref_phi, ref_lam, ref_h] = cart2geod(ref_path(:,1),ref_path(:,2),ref_path(:,3)); %#ok<NODEF,PROP>
+                    ref_h = ref_h + this.cur_settings.antenna_h;
+                    orbital_p = this.cur_settings.cc.ss_gps.ORBITAL_P; % Using GPS orbital parameters
+                    [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, orbital_p.ELL.A, orbital_p.ELL.F);
+                    this.reference.path = [ref_X , ref_Y , ref_Z];
+                    this.reference.adj_mat = mat_path; %#ok<CPROP>                     
+                else
+                    this.reference.path = [];
+                    this.reference.adj_mat = [];
+                end
+                
+            else
+                this.reference.path = [];
+                this.reference.adj_mat = [];
+            end            
+        end
+        
+        function initGeoid(this)
+            % load external geoid (code to be updated...it's not parametric)
+            try                
+                load ([this.cur_settings.geoid_dir filesep 'geoid_EGM2008_05.mat']);
+                % geoid grid and parameters
+                this.geoid.grid = N_05x05;
+                this.geoid.cellsize = 0.5;
+                this.geoid.Xll = -179.75;
+                this.geoid.Yll = -89.75;
+                this.geoid.ncols = 720;
+                this.geoid.nrows = 360;                
+                clear N_05x05
+            catch
+                this.logger.addWarning('Reference geoid not found', 50);
+                % geoid unavailable
+                this.geoid.grid = 0;
+                this.geoid.cellsize = 0;
+                this.geoid.Xll = 0;
+                this.geoid.Yll = 0;
+                this.geoid.ncols = 0;
+                this.geoid.nrows = 0;
+            end
+        end
+    end
+    
+    % =========================================================================
+    %  ADDITIONAL GETTERS
+    % =========================================================================
+    methods
+        function [ref_path, mat_path] = getReferencePath(this)
+            % Get reference path
+            if (nargout == 2)
+                ref_path = this.reference.path;
+                mat_path = this.reference.adj_mat;
+            elseif (nargout == 1)
+                ref_path = this.reference;
+            end
+            
+        end
+        
+        function [geoid] = getRefGeoid(this)
+            % Get reference path
+            geoid = this.geoid;
+        end
+        
+    end
+        
+    % =========================================================================
     %  GOGPS EXPORT
     % =========================================================================
     methods
         function varargout = settingsToGo(this, state)
+            %initGeoid();
+            
             % export settings as they are exported by the GUI
             if nargin == 1
                 state = this.cur_settings;
@@ -205,7 +304,7 @@ classdef GO_Settings < Settings_Interface
             varargout{12} = state.plot_proc;   % plot while processing
             varargout{13} = state.isVariable();   % flag kalman filter mode variable
             varargout{14} = state.stop_go_stop; % stop go stop mode
-            varargout{15} = state.cc.list.SBS.isActive(); % use sbas
+            varargout{15} = state.cc.isSbsActive(); % use sbas
             varargout{16} = state.flag_iar; % use iar
             
             file_root_out = checkPath([state.out_dir filesep state.out_prefix '_' num2str(state.run_counter,'%03d') ]);
@@ -225,9 +324,7 @@ classdef GO_Settings < Settings_Interface
                 data_path = state.ext_ini.getData('Master', 'data_path');
                 file_name = state.ext_ini.getData('Master', 'file_name');
                 file_name_M_obs = checkPath([data_path file_name]);
-                data_path = state.ext_ini.getData('RefPath', 'data_path');
-                file_name = state.ext_ini.getData('RefPath', 'file_name');
-                file_name_ref = checkPath([data_path file_name]);
+                file_name_ref = state.getRefPath();
                 file_name_pco = state.atx_path;
                 file_name_blq = state.ocean_path;
                 
@@ -278,7 +375,7 @@ classdef GO_Settings < Settings_Interface
             varargout{31} = state.flag_ocean; 
             varargout{32} = state.flag_outlier;
             varargout{33} = state.flag_tropo;
-            varargout{34} = find(state.cc.list.GPS.flag_f);
+            varargout{34} = find(state.cc.ss_gps.flag_f);
             varargout{35} = state.isModeSEID();
             varargout{36} = state.p_rate;
             varargout{37} = iif(state.flag_ionofree,'IONO_FREE', 'NONE');

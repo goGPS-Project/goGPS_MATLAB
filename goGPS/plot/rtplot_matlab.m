@@ -1,7 +1,7 @@
-function rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, matrix, flag_amb)
+function rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, flag_amb)
 
 % SYNTAX:
-%   rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, matrix, flag_amb);
+%   rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check_cs, origin, ref, flag_amb);
 %
 % INPUT:
 %   t = survey time (t=1,2,...)
@@ -12,8 +12,7 @@ function rtplot_matlab (t, pos_R, pos_M, check_on, check_off, check_pivot, check
 %   check_pivot = boolean variable for change of pivot
 %   check_cs = boolean variable for cycle-slip
 %   origin = boolean variable for displaying the axes origin or not
-%   ref = reference path
-%   matrix = adjacency matrix
+%   ref = reference path struct(ref.path , ref.adj_mat -> adjancency matrix)
 %   flag_amb = boolean variable for displaying ambiguities or not
 %
 % DESCRIPTION:
@@ -79,13 +78,13 @@ if (t == 1)
     %EAST_O = EST_M; %NORTH_O = NORD_M;
     [EAST_O, NORTH_O] = cart2plan(pos_R(1), pos_R(2), pos_R(3));
     
-    if ~isempty(ref) % & ~isempty(matrix)
-        [EAST_ref, NORTH_ref, h_ref] = cart2plan(ref(:,1), ref(:,2), ref(:,3)); %#ok<NASGU>
+    if ~isempty(ref.path) % & ~isempty(ref.adj_mat)
+        [EAST_ref, NORTH_ref, h_ref] = cart2plan(ref.path(:,1), ref.path(:,2), ref.path(:,3)); %#ok<NASGU>
         
         plot(EAST_ref-EAST_O, NORTH_ref-NORTH_O, 'm', 'LineWidth', 2);
         for i = 1 : length(EAST_ref)-1
             for j = i+1 : length(EAST_ref)
-                if (matrix(i,j) == 1)
+                if (ref.adj_mat(i,j) == 1)
                     plot([EAST_ref(i)-EAST_O,EAST_ref(j)-EAST_O],[NORTH_ref(i)-NORTH_O,NORTH_ref(j)-NORTH_O],'-m', 'LineWidth', 2);
                 end
             end

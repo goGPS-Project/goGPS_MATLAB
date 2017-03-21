@@ -54,7 +54,7 @@ function goGPS_LS_DD_code(time_rx, XM, pr1_R, pr1_M, pr2_R, pr2_M, snr_R, snr_M,
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------global sigmaq0
-global cutoff snr_threshold cond_num_threshold o1 o2 o3
+global cutoff snr_threshold cond_num_threshold o1 o2 o3 sigmaq0
 
 global Xhat_t_t Cee conf_sat conf_cs pivot pivot_old
 global azR elR distR azM elM distM

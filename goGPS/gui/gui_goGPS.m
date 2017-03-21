@@ -99,11 +99,13 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 global goGUI
     % If I press the exit button
     if(~isstruct(handles))
-        varargout = cell(40,1);
+        varargout{1} = GO_Settings.getCurrentSettings();
+        varargout{2} = goGUI.okGo();    
         return
     end
     
-    varargout = goGUI.outputFun();
+    varargout{1} = goGUI.outputFun();
+    varargout{2} = goGUI.okGo();
 %close main panel
 delete(gcf)
 

@@ -719,6 +719,14 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: file_path = this.getMetPath()
             file_path = this.checkMetPath(this.met_path);
         end
+        
+        function file_path = getRefPath(this)
+            % Get the path of the reference path file
+            % SYNTAX: file_path = this.getRefPath()
+            data_path = this.ext_ini.getData('RefPath', 'data_path');
+            file_name = this.ext_ini.getData('RefPath', 'file_name');
+            file_path = checkPath([data_path file_name]);
+        end
     end
     
     
