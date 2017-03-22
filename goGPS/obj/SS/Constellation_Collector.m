@@ -381,6 +381,47 @@ classdef Constellation_Collector < Settings_Interface
     % =========================================================================
     %  TEST
     % =========================================================================    
+
+    % =========================================================================
+    %  GETTERS
+    % =========================================================================    
+    methods (Access = 'public')
+        function n_sat = getNumSat(this)
+            % return the number of enabled satellites
+            n_sat = this.n_sat();
+        end
+        
+        function gps = getGPS(this)
+            % return the GPS satellite system object
+            gps = handle(this.ss_gps);
+        end
+
+        function gps = getGLONASS(this)
+            % return the GLONASS satellite system object
+            gps = handle(this.ss_glo);
+        end
+
+        function gps = getGalileo(this)
+            % return the Galileo satellite system object
+            gps = handle(this.ss_gal);
+        end
+        
+        function gps = getBeiDou(this)
+            % return the BeiDou satellite system object
+            gps = handle(this.ss_bds);
+        end
+        
+        function gps = getQZSS(this)
+            % return the QZSS satellite system object
+            gps = handle(this.ss_qzs);
+        end
+        
+        function gps = getSBAS(this)
+            % return the SBAS satellite system object
+            gps = handle(this.ss_sbs);
+        end
+    end
+    
     methods (Static, Access = 'public')        
         function test()
             % Test the class

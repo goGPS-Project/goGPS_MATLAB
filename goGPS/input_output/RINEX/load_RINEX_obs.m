@@ -1,16 +1,15 @@
 function [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
           time_ref, time, week, date, pos, interval, antoff, antmod, codeC1, marker] = ...
-          load_RINEX_obs(filename, constellations, processing_interval, wait_dlg)
+          load_RINEX_obs(filename, cc, processing_interval, wait_dlg)
 
 % SYNTAX:
 %   [pr1, ph1, pr2, ph2, dop1, dop2, snr1, snr2, ...
 %    time_ref, time, week, date, pos, interval, antoff, antmod, codeC1] = ...
-%    load_RINEX_obs(filename, constellations, processing_interval, wait_dlg);
+%    load_RINEX_obs(filename, cc, processing_interval, wait_dlg);
 %
 % INPUT:
 %   filename = RINEX observation file(s)
-%   constellations = struct with multi-constellation settings
-%                   (see 'multi_constellation_settings.m' - empty if not available)
+%   cc = Constellation_Collector object, contains the satus of the satellite systems in use
 %   processing_interval = user-requested processing interval
 %   wait_dlg = optional handler to waitbar figure (optional)
 %
@@ -81,12 +80,8 @@ if (nargin < 3 || processing_interval < 0)
     processing_interval = 0;
 end
 
-if (nargin < 2 || isempty(constellations)) %then use only GPS as default
-    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
-end
-
 %number of satellite slots for enabled constellations
-nSatTot = constellations.nEnabledSat;
+nSatTot = cc.getNumSat();
 
 %number of RINEX files to be read
 if (iscell(filename))
@@ -175,7 +170,7 @@ for f = 1 : nFiles
         end
         
         %read ROVER observations
-        obs = RINEX_get_obs(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, constellations);
+        obs = RINEX_get_obs(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, cc);
         
         idx_P1 = obs.P1 ~= 0;
         idx_C1 = obs.C1 ~= 0;

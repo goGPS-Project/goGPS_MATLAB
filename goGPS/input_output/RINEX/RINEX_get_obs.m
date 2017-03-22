@@ -1,4 +1,4 @@
-function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col, nObsTypes, constellations)
+function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col, nObsTypes, cc)
 
 % SYNTAX:
 %   [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col, nObsTypes, constellations);
@@ -7,10 +7,10 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col,
 %   file_RINEX = observation RINEX file
 %   nSat = number of available satellites (NOTE: RINEX v3.xx does not provide 'sat' and 'sat_types'))
 %   sat = list of all available satellites
-%   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS)
+%   sat_types = ordered list of satellite types ('G' = GPS, 'R' = GLONASS, 'S' = SBAS) in the observation
 %   obs_col = structure defining in which columns each observation type is to be found
 %   nObsTypes = number of available observations
-%   constellations = struct with multi-constellation settings (see goGNSS.initConstellation)
+%   cc = Constellation_Collector object, contains the satus of the satellite systems in use
 %
 % OUTPUT:
 %   obs_struct = struct with observations of enabled constellations
@@ -50,18 +50,18 @@ function [obs_struct] = RINEX_get_obs(file_RINEX, nSat, sat, sat_types, obs_col,
 %--------------------------------------------------------------------------
 
 %total number of satellites (according to enabled constellations)
-nSatTot = constellations.nEnabledSat;
+nSatTot = cc.getNumSat();
 
 %array to contain the starting index for each constellation in the total array (with length = nSatTot)
 sat_types_id = zeros(size(sat_types));
 
 %starting index in the total array for the various constellations
-idGPS = constellations.GPS.indexes(1);
-idGLONASS = constellations.GLONASS.indexes(1);
-idGalileo = constellations.Galileo.indexes(1);
-idBeiDou = constellations.BeiDou.indexes(1);
-idQZSS = constellations.QZSS.indexes(1);
-idSBAS = constellations.SBAS.indexes(1);
+idGPS = cc.getGPS().getFirstId();
+idGLONASS = cc.getGLONASS().getFirstId();
+idGalileo = cc.getGalileo().getFirstId();
+idBeiDou = cc.getBeiDou().getFirstId();
+idQZSS = cc.getQZSS().getFirstId();
+idSBAS = cc.getSBAS().getFirstId();
 
 %output observations structure initialization
 obs_struct = struct('L1', zeros(nSatTot,1), 'L2', zeros(nSatTot,1), ...
@@ -75,12 +75,12 @@ obs_tmp = struct('TMP1', zeros(nSatTot,1), 'TMP2', zeros(nSatTot,1));
 if (~isempty(sat_types)) %RINEX v2.xx
     
     %convert constellations letter to starting index in the total array
-    sat_types_id(sat_types == 'G') = idGPS*constellations.GPS.enabled;
-    sat_types_id(sat_types == 'R') = idGLONASS*constellations.GLONASS.enabled;
-    sat_types_id(sat_types == 'E') = idGalileo*constellations.Galileo.enabled;
-    sat_types_id(sat_types == 'C') = idBeiDou*constellations.BeiDou.enabled;
-    sat_types_id(sat_types == 'J') = idQZSS*constellations.QZSS.enabled;
-    sat_types_id(sat_types == 'S') = idSBAS*constellations.SBAS.enabled;
+    sat_types_id(sat_types == 'G') = idGPS;
+    sat_types_id(sat_types == 'R') = idGLONASS;
+    sat_types_id(sat_types == 'E') = idGalileo;
+    sat_types_id(sat_types == 'C') = idBeiDou;
+    sat_types_id(sat_types == 'J') = idQZSS;
+    sat_types_id(sat_types == 'S') = idSBAS;
     
     %observation types
     nLinesToRead = ceil(nObsTypes/5);  % I read a maximum of 5 obs per line => this is the number of lines to read
@@ -208,37 +208,37 @@ else %RINEX v3.xx
         %constellation is required (if not, skip the line)
         switch (sysId)
             case 'G'
-                if (constellations.GPS.enabled)
+                if (cc.getGPS().isActive())
                     index = idGPS + satId - 1;
                 else
                     continue
                 end
             case 'R'
-                if (constellations.GLONASS.enabled)
+                if (cc.getGLONASS().isActive())
                     index = idGLONASS + satId - 1;
                 else
                     continue
                 end
             case 'E'
-                if (constellations.Galileo.enabled)
+                if (cc.getGalileo().isActive())
                     index = idGalileo + satId - 1;
                 else
                     continue
                 end
             case 'C'
-                if (constellations.BeiDou.enabled)
+                if (cc.getBeiDou().isActive())
                     index = idBeiDou + satId - 1;
                 else
                     continue
                 end
             case 'J'
-                if (constellations.QZSS.enabled)
+                if (cc.getQZSS().isActive())
                     index = idQZSS + satId - 1;
                 else
                     continue
                 end
             case 'S'
-                if (constellations.SBAS.enabled)
+                if (cc.getSBAS().isActive())
                     index = idSBAS + satId - 1;
                 else
                     continue

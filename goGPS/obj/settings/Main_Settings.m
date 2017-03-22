@@ -1543,6 +1543,11 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     %  GETTERS
     % =========================================================================
     methods (Access = 'public')
+        function cc = getConstellationCollector(this)
+            % Get the constellation collector object
+            cc = handle(this.cc);
+        end
+
         function is_variable = isVariable(this)
             % Check wether the current KF mode is variable
             is_variable = (this.isModeMonitor() && this.kf_mode == 1) || (~this.isModeMonitor() && this.kf_mode == 3);

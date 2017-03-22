@@ -172,52 +172,26 @@ global goIni;
 
 gs.initProcessing();
 
-
-GPS_flag = state.cc.isGpsActive();
-GLO_flag = state.cc.isGloActive();
-GAL_flag = state.cc.isGalActive();
-BDS_flag = state.cc.isBdsActive();
-QZS_flag = state.cc.isQzsActive();
-SBS_flag = state.cc.isSbsActive();
+cc = state.getConstellationCollector();
+GPS_flag = cc.isGpsActive();
+GLO_flag = cc.isGloActive();
+GAL_flag = cc.isGalActive();
+BDS_flag = cc.isBdsActive();
+QZS_flag = cc.isQzsActive();
+SBS_flag = cc.isSbsActive();
 [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 
-nSatTot = constellations.nEnabledSat;
+nSatTot = cc.getNumSat();
 
 %initialization of global variables/constants
 global_init;
 
 %number of enabled constellations
-n_sys = sum(state.cc.getActive);
+n_sys = sum(cc.getActive);
+clear cc;
 
 % start evaluating computation time
 tic;
-
-%-------------------------------------------------------------------------------------------
-% REFERENCE PATH LOAD
-%-------------------------------------------------------------------------------------------
-
-if (mode_ref == 1)
-
-    d = dir(filename_ref);
-
-    if ~isempty(d)
-        load(filename_ref, 'ref_path', 'mat_path');
-
-        %adjust the reference path according to antenna height
-        [ref_phi, ref_lam, ref_h] = cart2geod(ref_path(:,1),ref_path(:,2),ref_path(:,3));
-        ref_h = ref_h + h_antenna;
-        [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, a_GPS, f_GPS);
-        ref_path = [ref_X , ref_Y , ref_Z];
-
-    else
-        ref_path = [];
-        mat_path = [];
-    end
-
-else
-    ref_path = [];
-    mat_path = [];
-end
 
 %-------------------------------------------------------------------------------------------
 % DETECT IF NAVIGATION FILE IS IN SP3 FORMAT
@@ -358,7 +332,7 @@ while read_files
             %read observation RINEX file(s)
             [pr1_R, ph1_R, pr2_R, ph2_R, dop1_R, dop2_R, snr1_R, snr2_R, ...
                 time_GPS, time_R, week_R, date_R, pos_R, interval, antoff_R, antmod_R, codeC1_R, marker_R] = ...
-                load_RINEX_obs(filename_obs, constellations, processing_interval);
+                load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
             
             %read navigation RINEX file(s)
             [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
@@ -485,14 +459,14 @@ while read_files
             %----------------------------------------------------------------------------------------------
             
             %try first to read already available CRX files
-            [CRX, found]  = load_crx(state.crx_dir, week_R, time_GPS, nSatTot, constellations);
+            [CRX, found]  = load_crx(state.crx_dir, week_R, time_GPS, state.getConstellationCollector());
             %if CRX files are not available or not sufficient, try to download them
             if (~found)
                 %download
                 file_crx = download_crx([week_R(1) week_R(end)], [time_GPS(1) time_GPS(end)]);
                 
                 %try again to read CRX files
-                [CRX, found] = load_crx(state.crx_dir, week_R, time_GPS, nSatTot, constellations);
+                [CRX, found] = load_crx(state.crx_dir, week_R, time_GPS, state.getConstellationCollector());
             end
             
             %retrieve multi-constellation wavelengths
@@ -655,7 +629,7 @@ while read_files
             %read observation RINEX file(s)
             [pr1_RM, ph1_RM, pr2_RM, ph2_RM, dop1_RM, dop2_RM, snr1_RM, snr2_RM, ...
                 time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
-                load_RINEX_obs(filename_obs, constellations, processing_interval);
+                load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
             
             [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
             if (flag_return)
@@ -846,14 +820,14 @@ while read_files
             %----------------------------------------------------------------------------------------------
             
             %try first to read already available CRX files
-            [CRX, found] = load_crx(state.crx_dir, week_M, time_GPS, nSatTot, constellations);
+            [CRX, found] = load_crx(state.crx_dir, week_M, time_GPS, state.getConstellationCollector());
             %if CRX files are not available or not sufficient, try to download them
             if (~found)
                 %download
                 file_crx = download_crx([week_M(1) week_M(end)], [time_GPS(1) time_GPS(end)]);
                 
                 %try again to read CRX files
-                [CRX, found] = load_crx(state.crx_dir, week_M, time_GPS, nSatTot, constellations);
+                [CRX, found] = load_crx(state.crx_dir, week_M, time_GPS, state.getConstellationCollector());
             end
             
             %retrieve multi-constellation wavelengths
@@ -2763,7 +2737,8 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
     
     %repeat more than once the reference loop
     %(this constrained mode works only for circuits)
-    ref_loop = [ref_path; ref_path];
+    ref = gs.getReferencePath();
+    ref_loop = [ref.path; ref.path];
     
     if (~exist('seamless_proc','var') || seamless_proc == 0)
         kalman_initialized = 0;
@@ -4431,8 +4406,9 @@ end
 % STATISTICS COMPUTATION AND VISUALIZATION
 %----------------------------------------------------------------------------------------------
 
-if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(ref_path)) && (~isempty(EAST_KAL))
+if goGNSS.isPP(mode) && (mode_vinc == 0) && (~isempty(gs.getReferencePath().path)) && (~isempty(EAST_KAL))
     %coordinate transformation
+    ref_path = gs.getReferencePath().path;
     [EAST_REF, NORTH_REF, h_REF] = cart2plan(ref_path(:,1), ref_path(:,2), ref_path(:,3));
 
     ref = [EAST_REF NORTH_REF h_REF];

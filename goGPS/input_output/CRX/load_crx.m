@@ -1,4 +1,4 @@
-function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations)
+function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, cc)
 
 % SYNTAX:
 %   [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, constellations);
@@ -7,9 +7,7 @@ function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, conste
 %   data_dir_crx = path to the directory containing CRX files [string]
 %   gps_week = reference vector of GPS week numbers
 %   time_R = reference vector of GPS time
-%   nSatTot = total number of satellites
-%   constellations = struct with multi-constellation settings
-%                   (see goGNSS.initConstellation - empty if not available)
+%   cc = Constellation_Collector object, contains the satus of the satellite systems in use
 %
 % OUTPUT:
 %   CRX = matrix containing CRX data
@@ -49,20 +47,8 @@ function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, nSatTot, conste
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-if (isempty(constellations)) %then use only GPS as default
-    [constellations] = multi_constellation_settings(1, 0, 0, 0, 0, 0);
-end
-
-%starting index in the total array for the various constellations
-idGPS = constellations.GPS.indexes(1);
-idGLONASS = constellations.GLONASS.indexes(1);
-idGalileo = constellations.Galileo.indexes(1);
-idBeiDou = constellations.BeiDou.indexes(1);
-idQZSS = constellations.QZSS.indexes(1);
-idSBAS = constellations.SBAS.indexes(1);
-
 %output initialization
-CRX = zeros(nSatTot, length(time_R));
+CRX = sparse(false(cc.getNumSat, length(time_R)));
 
 %convert GPS time to time-of-week
 gps_tow = weektime2tow(gps_week, time_R);
@@ -132,65 +118,79 @@ for j = 1 : nmax
         end
         fgetl(fid_fd);
         
+        % for each data line
         while(~feof(fid_fd))
             line = fgetl(fid_fd);
             
-            if (isempty(line))
-                continue
-            end
-            
-            PRN = abs(str2num(line(3:5))); %#ok<ST2NM>
-            e = [];
-            
-            if (isempty(PRN))
-                continue
-            end
-            
-            if (PRN <= 0+constellations.GPS.numSat && constellations.GPS.enabled) %GPS
-                index = idGPS;
-            elseif (PRN > 100 && PRN <= 100+constellations.GLONASS.numSat && constellations.GLONASS.enabled) %GLONASS
-                index = idGLONASS;
-                PRN = PRN - 100;
-            elseif (PRN > 200 && PRN <= 200+constellations.Galileo.numSat && constellations.Galileo.enabled) %Galileo
-                index = idGalileo;
-                PRN = PRN - 200;
-            elseif (PRN > 300 && PRN <= 300+constellations.SBAS.numSat && constellations.SBAS.enabled)    %SBAS
-                index = idSBAS;
-                PRN = PRN - 300;
-            elseif (PRN > 400 && PRN <= 400+constellations.BeiDou.numSat && constellations.BeiDou.enabled)  %BeiDou
-                index = idBeiDou;
-                PRN = PRN - 400;
-            elseif (PRN > 500 && PRN <= 500+constellations.QZSS.numSat && constellations.QZSS.enabled)    %QZSS
-                index = idQZSS;
-                PRN = PRN - 500;
-            else
-                continue
-            end
-            
-            index = index + PRN - 1;
-            
-            p = str2num(line(12:18)); %problem
-            s = datenum(str2num(line(33:51))); %start date
-            if (length(line) >= 72)
-                e = datenum(str2num(line(54:72))); %end date
-            end
-            if (isempty(e))
-                if (p == 0) %satellite maneuver: remove 15 minutes before and after
-                    s = s - datenum([0 0 0 0 15 0]);
-                    e = s + datenum([0 0 0 0 15 0]);
-                else
-                    e = floor(s) + 1; %arc split: exclude the satellite for the rest of the processing
-                    %e = date_end; %arc split: exclude the satellite for the rest of the processing
+            if (~isempty(line))
+                
+                prn = abs(str2num(line(3:5))); %#ok<ST2NM>
+                e = [];
+                
+                if (~isempty(prn))
+                    
+                    offset = -1;
+                    if (prn < 100) % GPS
+                        prn = prn;
+                        if cc.getGPS().isActive() && (prn < cc.getGPS().N_SAT)
+                            offset = cc.getGPS().getFirstId(); % starting index in the total array for the various constellations
+                        end
+                    elseif (prn < 200) % GLONASS
+                        prn = prn - 100;
+                        if cc.getGLONASS().isActive() && (prn < cc.getGLONASS().N_SAT)
+                            offset = cc.getGLONASS().getFirstId(); % starting index in the total array for the various constellations
+                        end
+                    elseif (prn < 300) % Galileo
+                        prn = prn - 200;
+                        if cc.getGalileo().isActive() && (prn < cc.getGalileo().N_SAT)
+                            offset = cc.getGalileo().getFirstId(); % starting index in the total array for the various constellations
+                        end                        
+                    elseif (prn < 400) % SBAS
+                        prn = prn - 300;
+                        if cc.getSBAS().isActive() && (prn < cc.getSBAS().N_SAT)
+                            offset = cc.getSBAS().getFirstId(); % starting index in the total array for the various constellations
+                        end
+                    elseif (prn < 500) % BeiDou
+                        prn = prn - 400;
+                        if cc.getBeiDou().isActive() && (prn < cc.getBeiDou().N_SAT)
+                            offset = cc.getBeiDou().getFirstId(); % starting index in the total array for the various constellations
+                        end
+                    elseif (prn < 600) % QZSS
+                        prn = prn - 500;
+                        if cc.getQZSS().isActive() && (prn < cc.getQZSS().N_SAT)
+                            offset = cc.getQZSS().getFirstId(); % starting index in the total array for the various constellations
+                        end                        
+                    end
+                    
+                    if (offset >= 0)                        
+                        index = offset + prn - 1;
+                        
+                        p = str2num(line(12:18)); %problem
+                        s = datenum(str2num(line(33:51))); %start date
+                        if (length(line) >= 72)
+                            e = datenum(str2num(line(54:72))); %end date
+                        end
+                        if (isempty(e))
+                            if (p == 0) %satellite maneuver: remove 15 minutes before and after
+                                s = s - datenum([0 0 0 0 15 0]);
+                                e = s + datenum([0 0 0 0 15 0]);
+                            else
+                                e = floor(s) + 1; %arc split: exclude the satellite for the rest of the processing
+                                %e = date_end; %arc split: exclude the satellite for the rest of the processing
+                            end
+                        end
+                        if ((p == 0 &&           (s <= date_end && e >= date_start)) || ... %satellite maneuver
+                                (p >= 1 && p <= 3 && (s <= date_end && e >= date_start)) || ... %bad code and/or phase data
+                                (p == 4 &&           (s <= date_end && e >= date_start))) % arc split
+                            
+                            [~, idx_start] = min(abs(s - dnum));
+                            [~, idx_end]   = min(abs(e - dnum));
+                            CRX(index, idx_start:idx_end) = 1;
+                        end
+                    end
                 end
             end
-            if ((p == 0 &&           (s <= date_end && e >= date_start)) || ... %satellite maneuver
-                (p >= 1 && p <= 3 && (s <= date_end && e >= date_start)) || ... %bad code and/or phase data
-                (p == 4 &&           (s <= date_end && e >= date_start))) % arc split
             
-                [~, idx_start] = min(abs(s - dnum));
-                [~, idx_end]   = min(abs(e - dnum));
-                CRX(index, idx_start:idx_end) = 1;
-            end
         end
         
         fclose(fid_fd);

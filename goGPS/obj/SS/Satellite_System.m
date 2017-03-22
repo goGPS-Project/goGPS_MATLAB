@@ -122,6 +122,15 @@ classdef Satellite_System < Settings_Interface
             this.go_ids = offset + (1 : this.N_SAT);
         end 
         
+        function id = getFirstId(this)
+            % get the first goGPS id -> if constellation is inactive 
+            try
+                id = this.go_ids(1) * this.isActive();
+            catch
+                id = 0;
+            end
+        end
+        
         function name = getFreqName(this)
             % Get the name of the frequencies for the current constellation
             % SYNTAX: name = this.getFreqNames();
