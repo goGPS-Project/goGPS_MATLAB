@@ -256,12 +256,12 @@ flag_doppler_cs = 0;
 
 if (~exist('seamless_proc','var') || seamless_proc == 0 || (seamless_proc == 1 && ~kalman_initialized))
     %Doppler-predicted range (ROVER)
-    doppler_pred_range1_R = zeros(nSatTot,1);
-    doppler_pred_range2_R = zeros(nSatTot,1);
+    doppler_pred_range1_R = zeros(state.getCC().getNumSat(),1);
+    doppler_pred_range2_R = zeros(state.getCC().getNumSat(),1);
     
     %Doppler-predicted range (MASTER)
-    doppler_pred_range1_M = zeros(nSatTot,1);
-    doppler_pred_range2_M = zeros(nSatTot,1);
+    doppler_pred_range1_M = zeros(state.getCC().getNumSat(),1);
+    doppler_pred_range2_M = zeros(state.getCC().getNumSat(),1);
 end
 
 %-------------------------------------------------------------------------------

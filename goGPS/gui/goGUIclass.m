@@ -2888,10 +2888,10 @@ classdef goGUIclass < handle
             %   DATA SELECTION
             % ===============================================================
             
-            this.setElVal(this.idUI.cL1, state.cc.ss_gps.flag_f(1), 0);
-            this.setElVal(this.idUI.cL2, state.cc.ss_gps.flag_f(2), 0);
-            this.setElVal(this.idUI.cL5, state.cc.ss_gps.flag_f(3), 0);
-            this.setElVal(this.idUI.cL6, state.cc.ss_gal.flag_f(5), 0);
+            this.setElVal(this.idUI.cL1, state.cc.getGPS().flag_f(1), 0);
+            this.setElVal(this.idUI.cL2, state.cc.getGPS().flag_f(2), 0);
+            this.setElVal(this.idUI.cL5, state.cc.getGPS().flag_f(3), 0);
+            this.setElVal(this.idUI.cL6, state.cc.getGalileo().flag_f(5), 0);
             
             rates = this.UI_P_SRATE;
             id = find(ismember(rates, state.p_rate));

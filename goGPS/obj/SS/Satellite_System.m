@@ -144,6 +144,7 @@ classdef Satellite_System < Settings_Interface
         
         function enable(this, status)
             % Enable this satellite system
+            % Warning: when the obj is used within Constellation Collectore  use activateXXXX deactivateXXXX functions
             % SYNTAX: this.enable(<status>);
             if (nargin == 2)
                 this.flag_enable = logical(status);
@@ -154,6 +155,7 @@ classdef Satellite_System < Settings_Interface
         
         function disable(this)
             % Disable this satellite system
+            % Warning: when the obj is used within Constellation Collectore  use activateXXXX deactivateXXXX functions
             % SYNTAX: this.disable();
             this.flag_enable = false;
         end

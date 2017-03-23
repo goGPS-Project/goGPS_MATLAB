@@ -1,11 +1,11 @@
-function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
+function [Eph, iono] = RINEX_get_nav(file_nav, cc)
 
 % SYNTAX:
-%   [Eph, iono] = RINEX_get_nav(file_nav, constellations);
+%   [Eph, iono] = RINEX_get_nav(file_nav, cc);
 %
 % INPUT:
 %   file_nav = RINEX navigation file
-%   constellations = struct with multi-constellation settings (see goGNSS.initConstellation)
+%   cc = Constellation_Collector object, contains the satus of the satellite systems in use
 %
 % OUTPUT:
 %   Eph = matrix containing 33 navigation parameters for each satellite
@@ -49,13 +49,6 @@ function [Eph, iono] = RINEX_get_nav(file_nav, constellations)
 % ioparam = 0;
 Eph = [];
 iono = zeros(8,1);
-
-if (nargin < 2 || isempty(constellations)) %then use only GPS as default
-    constellations.GPS = struct('numSat', 32, 'enabled', 1, 'indexes', [1:32], 'PRN', [1:32]);
-    constellations.nEnabledSat = 32;
-    constellations.indexes = constellations.GPS.indexes;
-    constellations.PRN     = constellations.GPS.PRN;
-end
 
 %open navigation file
 fid = fopen(file_nav,'rt');
@@ -142,27 +135,27 @@ while (~feof(fid))
     if (strcmp(sys_id,'G') || strcmp(sys_id,'R') || strcmp(sys_id,'E') || strcmp(sys_id,'C') || strcmp(sys_id,'J') || strcmp(sys_id,'S'))
         o = 1;                 %RINEX v2.12(not GPS) or v3.xx
         if (strcmp(sys_id,'G'))
-            sys_index = constellations.GPS.indexes(1);
+            sys_index = cc.getGPS().getFirstId();
         elseif (strcmp(sys_id,'R'))
-            sys_index = constellations.GLONASS.indexes(1);
+            sys_index = cc.getGLONASS().getFirstId();
         elseif (strcmp(sys_id,'E'))
-            sys_index = constellations.Galileo.indexes(1);
+            sys_index = cc.getGalileo().getFirstId();
         elseif (strcmp(sys_id,'C'))
-            sys_index = constellations.BeiDou.indexes(1);
+            sys_index = cc.getBeiDou().getFirstId();
         elseif (strcmp(sys_id,'J'))
-            sys_index = constellations.QZSS.indexes(1);
+            sys_index = cc.getQZSS().getFirstId();
         elseif (strcmp(sys_id,'S'))
-            %sys_index = constellations.SBAS.indexes(1);
+            %sys_index = cc.getSBAS().getFirstId();
         end
     elseif (sys_uint == 32 || (sys_uint >= 48 && sys_uint <= 57)) %if blank space or number
         if (strcmpi(file_nav(end),'g'))
             sys_id = 'R';
             o = 0;                 %RINEX v<=2.12, GLONASS
-            sys_index = constellations.GLONASS.indexes(1);
+            sys_index = cc.getGLONASS().getFirstId();
         else
             sys_id = 'G';
             o = 0;                 %RINEX v<=2.12, GPS
-            sys_index = constellations.GPS.indexes(1);
+            sys_index = cc.getGPS().getFirstId();
         end
     else
         return
@@ -199,20 +192,20 @@ while (~feof(fid))
     
     switch sys_id
         case 'G'
-            if (~constellations.GPS.enabled), continue, end
+            if (~cc.getGPS().isActive), continue, end
         case 'R'
-            if (~constellations.GLONASS.enabled), continue, end
+            if (~cc.getGLONASS().isActive), continue, end
         case 'E'
-            if (~constellations.Galileo.enabled), continue, end
+            if (~cc.getGalileo().isActive), continue, end
         case 'C'
-            if (~constellations.BeiDou.enabled), continue, end
+            if (~cc.getBeiDou().isActive), continue, end
         case 'J'
-            if (~constellations.QZSS.enabled), continue, end
+            if (~cc.getQZSS().isActive), continue, end
         case 'S'
-            if (~constellations.SBAS.enabled), continue, end
+            if (~cc.getSBAS().isActive), continue, end
     end
 
-    svprn  = str2num(lin1(o+[1:2])); %When input is a scalar, str2double is better than str2num. But str2double does not support 'D'
+    svprn  = str2num(lin1(o+[1:2])); %#ok<*ST2NM> % When input is a scalar, str2double is better than str2num. But str2double does not support 'D'
     if (version < 3)
         year   = str2num(lin1(o+[3:6])); year = four_digit_year(year);
         month  = str2num(lin1(o+[7:9]));

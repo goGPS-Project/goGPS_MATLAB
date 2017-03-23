@@ -1545,11 +1545,19 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     methods (Access = 'public')
         function cc = getConstellationCollector(this)
             % Get the constellation collector object
+            % SYNTEX: cc = this.getConstellationCollector()
+            cc = handle(this.cc);
+        end
+        
+        function cc = getCC(this)
+            % Get the constellation collector object (short name)
+            % SYNTEX: cc = this.getCC();
             cc = handle(this.cc);
         end
 
-        function is_variable = isVariable(this)
+        function is_variable = isVariableKF(this)
             % Check wether the current KF mode is variable
+            % SYNTAX = this.isVariableKF();
             is_variable = (this.isModeMonitor() && this.kf_mode == 1) || (~this.isModeMonitor() && this.kf_mode == 3);
         end
     end

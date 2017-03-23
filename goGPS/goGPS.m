@@ -335,7 +335,7 @@ while read_files
                 load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
             
             %read navigation RINEX file(s)
-            [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
+            [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
             if (flag_return)
                 return
             end
@@ -631,7 +631,7 @@ while read_files
                 time_GPS, time_RM, week_RM, date_RM, pos_RM, interval, antoff_RM, antmod_RM, codeC1_RM, marker_RM] = ...
                 load_RINEX_obs(filename_obs, state.getConstellationCollector(), processing_interval);
             
-            [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, constellations, flag_SP3, iono_model, time_GPS);
+            [Eph, iono, flag_return] = load_RINEX_nav(filename_nav, state.getConstellationCollector(), flag_SP3, iono_model, time_GPS);
             if (flag_return)
                 return
             end
@@ -657,15 +657,15 @@ while read_files
             codeC1_R = codeC1_RM(:,:,1:end-1); codeC1_M = codeC1_RM(:,:,end);
             marker_R = marker_RM(:,1,1:end-1); marker_M = marker_RM(:,1,end);
             
-            %read stations coordinates file
+            % read stations coordinates file
             if (~exist('pos_R_crd','var') || ~any(pos_R_crd) || ~exist('pos_M_crd','var') || ~any(pos_M_crd))
                 [pos_R_crd, flag_XR, pos_M_crd, flag_XM] = load_CRD(filename_sta, marker_R, marker_M);
             end
             
-            %read receiver antenna phase center offset
+            % read receiver antenna phase center offset
             antenna_PCV = read_antenna_PCV(filename_pco, antmod_RM);
             
-            %read satellite antenna phase center offset
+            % read satellite antenna phase center offset
             antmod_S = sat_antenna_ID(constellations);
             antenna_PCV_S = read_antenna_PCV(filename_pco, antmod_S, date_M);
             

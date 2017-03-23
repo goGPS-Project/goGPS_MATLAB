@@ -55,12 +55,12 @@ classdef Constellation_Collector < Settings_Interface
     end
     
     properties (SetAccess = private, GetAccess = public)        
-        ss_gps = GPS_SS();      % GPS parameters
-        ss_glo = GLONASS_SS();  % GLONASS parameters
-        ss_gal = Galileo_SS();  % Galileo parameters        
-        ss_bds = BeiDou_SS();   % BeiDou parameters
-        ss_qzs = QZSS_SS();     % QZSS parameters
-        ss_sbs = SBAS_SS();     % sbs parameters
+        gps = GPS_SS();      % GPS parameters
+        glo = GLONASS_SS();  % GLONASS parameters
+        gal = Galileo_SS();  % Galileo parameters        
+        bds = BeiDou_SS();   % BeiDou parameters
+        qzs = QZSS_SS();     % QZSS parameters
+        sbs = SBAS_SS();     % sbs parameters
                 
         sys_name     % array of active constellations names (as in the list structure)
         num_id       % array of active constellations numeric id
@@ -76,17 +76,17 @@ classdef Constellation_Collector < Settings_Interface
     end
     
     methods (Access = 'private')        
-        function init(this, active_ss_list)
+        function init(this, active_list)
             % Init function for the Constellation_Collector Class
-            % SYNTAX: this.init(active_ss_list)
-            this.updateStatus(active_ss_list);
+            % SYNTAX: this.init(active_list)
+            this.updateStatus(active_list);
         end
         
-        function updateStatus(this, active_ss_list)
+        function updateStatus(this, active_list)
             % Update function for the Constellation_Collector Class
-            % SYNTAX: this.updateStatus(active_ss_list)            
-            this.active_list = active_ss_list;
-            if (sum(active_ss_list) > 0)
+            % SYNTAX: this.updateStatus(active_list)            
+            this.active_list = active_list;
+            if (sum(active_list) > 0)
                 this.prn = [];     % relative id number in the satellite system
                 this.system = '';  % char id of the constellation per satellite
                 
@@ -97,65 +97,65 @@ classdef Constellation_Collector < Settings_Interface
                 this.prn = [];
                 this.n_sat = [];
                 this.n_sat_tot = 0;                
-                if active_ss_list(1) % GPS is active
-                    this.ss_gps.updateGoIds(this.n_sat_tot);
-                    this.ss_gps.enable();
+                if active_list(1) % GPS is active
+                    this.gps.updateGoIds(this.n_sat_tot);
+                    this.gps.enable();
                     this.num_id = [this.num_id this.ID_GPS];
-                    this.sys_c = [this.sys_c this.ss_gps.SYS_C];
-                    this.system = [this.system char(ones(1, this.ss_gps.N_SAT) * this.ss_gps.SYS_C)];
-                    this.prn = [this.prn; this.ss_gps.PRN];
-                    this.n_sat = [this.n_sat this.ss_gps.N_SAT];
-                    this.n_sat_tot = this.n_sat_tot + this.ss_gps.N_SAT;
+                    this.sys_c = [this.sys_c this.gps.SYS_C];
+                    this.system = [this.system char(ones(1, this.gps.N_SAT) * this.gps.SYS_C)];
+                    this.prn = [this.prn; this.gps.PRN];
+                    this.n_sat = [this.n_sat this.gps.N_SAT];
+                    this.n_sat_tot = this.n_sat_tot + this.gps.N_SAT;
                 end
-                if active_ss_list(2) % GLONASS is active
-                    this.ss_glo.updateGoIds(this.n_sat_tot);
-                    this.ss_glo.enable();
+                if active_list(2) % GLONASS is active
+                    this.glo.updateGoIds(this.n_sat_tot);
+                    this.glo.enable();
                     this.num_id = [this.num_id this.ID_GLONASS];
-                    this.sys_c = [this.sys_c this.ss_glo.SYS_C];
-                    this.system = [this.system char(ones(1, this.ss_glo.N_SAT) * this.ss_glo.SYS_C)];
-                    this.prn = [this.prn; this.ss_glo.PRN];
-                    this.n_sat = [this.n_sat this.ss_glo.N_SAT];
-                    this.n_sat_tot = this.n_sat_tot + this.ss_glo.N_SAT;
+                    this.sys_c = [this.sys_c this.glo.SYS_C];
+                    this.system = [this.system char(ones(1, this.glo.N_SAT) * this.glo.SYS_C)];
+                    this.prn = [this.prn; this.glo.PRN];
+                    this.n_sat = [this.n_sat this.glo.N_SAT];
+                    this.n_sat_tot = this.n_sat_tot + this.glo.N_SAT;
                 end
-                if active_ss_list(3) % Galileo is active
-                    this.ss_gal.updateGoIds(this.n_sat_tot);
-                    this.ss_gal.enable();
+                if active_list(3) % Galileo is active
+                    this.gal.updateGoIds(this.n_sat_tot);
+                    this.gal.enable();
                     this.num_id = [this.num_id this.ID_GALILEO];
-                    this.sys_c = [this.sys_c this.ss_gal.SYS_C];
-                    this.system = [this.system char(ones(1, this.ss_gal.N_SAT) * this.ss_gal.SYS_C)];
-                    this.prn = [this.prn; this.ss_gal.PRN];
-                    this.n_sat = [this.n_sat this.ss_gal.N_SAT];
-                    this.n_sat_tot = this.n_sat_tot + this.ss_gal.N_SAT;
+                    this.sys_c = [this.sys_c this.gal.SYS_C];
+                    this.system = [this.system char(ones(1, this.gal.N_SAT) * this.gal.SYS_C)];
+                    this.prn = [this.prn; this.gal.PRN];
+                    this.n_sat = [this.n_sat this.gal.N_SAT];
+                    this.n_sat_tot = this.n_sat_tot + this.gal.N_SAT;
                 end
-                if active_ss_list(4) % BeiDou is active
-                    this.ss_bds.updateGoIds(this.n_sat_tot);
-                    this.ss_bds.enable();
+                if active_list(4) % BeiDou is active
+                    this.bds.updateGoIds(this.n_sat_tot);
+                    this.bds.enable();
                     this.num_id = [this.num_id this.ID_BEIDOU];
-                    this.sys_c = [this.sys_c this.ss_bds.SYS_C];
-                    this.system = [this.system char(ones(1, this.ss_bds.N_SAT) * this.ss_bds.SYS_C)];
-                    this.prn = [this.prn; this.ss_bds.PRN];
-                    this.n_sat = [this.n_sat this.ss_bds.N_SAT];
-                    this.n_sat_tot = this.n_sat_tot + this.ss_bds.N_SAT;
+                    this.sys_c = [this.sys_c this.bds.SYS_C];
+                    this.system = [this.system char(ones(1, this.bds.N_SAT) * this.bds.SYS_C)];
+                    this.prn = [this.prn; this.bds.PRN];
+                    this.n_sat = [this.n_sat this.bds.N_SAT];
+                    this.n_sat_tot = this.n_sat_tot + this.bds.N_SAT;
                 end
-                if active_ss_list(5) % QZSS is active
-                    this.ss_qzs.updateGoIds(this.n_sat_tot);
-                    this.ss_qzs.enable();
+                if active_list(5) % QZSS is active
+                    this.qzs.updateGoIds(this.n_sat_tot);
+                    this.qzs.enable();
                     this.num_id = [this.num_id this.ID_QZSS];
-                    this.sys_c = [this.sys_c this.ss_qzs.SYS_C];
-                    this.system = [this.system char(ones(1, this.ss_qzs.N_SAT) * this.ss_qzs.SYS_C)];
-                    this.prn = [this.prn; this.ss_qzs.PRN];
-                    this.n_sat = [this.n_sat this.ss_qzs.N_SAT];
-                    this.n_sat_tot = this.n_sat_tot + this.ss_qzs.N_SAT;
+                    this.sys_c = [this.sys_c this.qzs.SYS_C];
+                    this.system = [this.system char(ones(1, this.qzs.N_SAT) * this.qzs.SYS_C)];
+                    this.prn = [this.prn; this.qzs.PRN];
+                    this.n_sat = [this.n_sat this.qzs.N_SAT];
+                    this.n_sat_tot = this.n_sat_tot + this.qzs.N_SAT;
                 end
-                if active_ss_list(6) % SBAS is active (not yet implemented)
-                    this.ss_sbs.updateGoIds(this.n_sat_tot);
-                    this.ss_sbs.enable();
+                if active_list(6) % SBAS is active (not yet implemented)
+                    this.sbs.updateGoIds(this.n_sat_tot);
+                    this.sbs.enable();
                     this.num_id = [this.num_id this.ID_SBAS];
-                    this.sys_c = [this.sys_c this.ss_sbs.SYS_C];
-                    this.system = [this.system char(ones(1, this.ss_sbs.N_SAT) * this.ss_sbs.SYS_C)];
-                    this.prn = [this.prn; this.ss_sbs.PRN];
-                    this.n_sat = [this.n_sat this.ss_sbs.N_SAT];
-                    this.n_sat_tot = this.n_sat_tot + this.ss_sbs.N_SAT;
+                    this.sys_c = [this.sys_c this.sbs.SYS_C];
+                    this.system = [this.system char(ones(1, this.sbs.N_SAT) * this.sbs.SYS_C)];
+                    this.prn = [this.prn; this.sbs.PRN];
+                    this.n_sat = [this.n_sat this.sbs.N_SAT];
+                    this.n_sat_tot = this.n_sat_tot + this.sbs.N_SAT;
                 end
                 
                 this.index = (1 : this.n_sat_tot)';   % incremental index of the active satellite system
@@ -196,30 +196,30 @@ classdef Constellation_Collector < Settings_Interface
             switch nargin
                 case 1
                     if (ischar(GPS_flag))
-                        active_ss_list = false(1,this.N_SYS_TOT);
+                        active_list = false(1,this.N_SYS_TOT);
                         [~, ids] = intersect('GRECJS',GPS_flag);
-                        active_ss_list(ids) = true;
+                        active_list(ids) = true;
                     else
-                        active_ss_list = logical(GPS_flag);
+                        active_list = logical(GPS_flag);
                     end
-                case 5,  active_ss_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, 0]);
-                case 6,  active_ss_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
+                case 5,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, 0]);
+                case 6,  active_list = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
                 otherwise, error(['Initialization of Constellation_Collector failed: ' 10 '   invalid number of parameters in the constructor call']);
             end
             
             % check the size of the array active_list
-            if (numel(active_ss_list) < this.N_SYS_TOT)
+            if (numel(active_list) < this.N_SYS_TOT)
                 tmp = false(this.N_SYS_TOT, 1);
-                tmp(1:numel(active_ss_list)) = active_ss_list;
-                active_ss_list = tmp;
+                tmp(1:numel(active_list)) = active_list;
+                active_list = tmp;
                 clear tmp;
             else
-                active_ss_list = active_ss_list(1:this.N_SYS_TOT);
+                active_list = active_list(1:this.N_SYS_TOT);
             end
-            if active_ss_list(6)
+            if active_list(6)
                 this.logger.addWarning('usage of SBAS satellite system not yet tested in the latest goGPS version, something may not work correctly!');
             end
-            this.init(active_ss_list);
+            this.init(active_list);
         end
         
         function update(this)
@@ -228,14 +228,14 @@ classdef Constellation_Collector < Settings_Interface
             this.getActive;
         end
 
-        function active_ss_list = getActive(this)
+        function active_list = getActive(this)
             % get the logical array of satellite actually active, order: GPS GLO GAL BDS QZS SBS -> and update the object if something has changed
             % SYNTAX: active_list = this.getActive();
-            active_ss_list = [this.ss_gps.isActive this.ss_glo.isActive this.ss_gal.isActive this.ss_bds.isActive this.ss_qzs.isActive this.ss_sbs.isActive];
+            active_list = [this.gps.isActive this.glo.isActive this.gal.isActive this.bds.isActive this.qzs.isActive this.sbs.isActive];
             
             % If some constellation have been activated not in the proper way 
-            if (sum(not(this.active_list(:) & active_ss_list(:))) > 0) 
-                this.updateStatus(active_ss_list);
+            if (sum(not(this.active_list(:) & active_list(:))) > 0) 
+                this.updateStatus(active_list);
             end
         end
 
@@ -253,20 +253,20 @@ classdef Constellation_Collector < Settings_Interface
                 this.init([0 0 0 0 0 0]);
             	this.logger.setVerbosityLev(vl);
                 
-                this.ss_gps.import(state);
-                this.ss_glo.import(state);
-                this.ss_gal.import(state);
-                this.ss_bds.import(state);
-                this.ss_qzs.import(state);
-                this.ss_sbs.import(state);                
+                this.gps.import(state);
+                this.glo.import(state);
+                this.gal.import(state);
+                this.bds.import(state);
+                this.qzs.import(state);
+                this.sbs.import(state);                
                 this.update();
             else
-                this.ss_gps = repmat(state.ss_gps,1,1);
-                this.ss_glo = repmat(state.ss_glo,1,1);
-                this.ss_gal = repmat(state.ss_gal,1,1);
-                this.ss_bds = repmat(state.ss_bds,1,1);
-                this.ss_qzs = repmat(state.ss_qzs,1,1);
-                this.ss_sbs = repmat(state.ss_sbs,1,1);
+                this.gps = repmat(state.gps,1,1);
+                this.glo = repmat(state.glo,1,1);
+                this.gal = repmat(state.gal,1,1);
+                this.bds = repmat(state.bds,1,1);
+                this.qzs = repmat(state.qzs,1,1);
+                this.sbs = repmat(state.sbs,1,1);
                 this.update();
             end
         end
@@ -281,12 +281,12 @@ classdef Constellation_Collector < Settings_Interface
             %toString = @(var) regexprep(regexprep(evalc(['disp(var)']), '''   ', ','), '''', '');
             %str = [str ' Constellation in use: ' toString(this.SYS_EXT_NAME(sort(ids)))];
             
-            str = this.ss_gps.toString(str);
-            str = this.ss_glo.toString(str);
-            str = this.ss_gal.toString(str);
-            str = this.ss_bds.toString(str);
-            str = this.ss_qzs.toString(str);
-            str = this.ss_sbs.toString(str);
+            str = this.gps.toString(str);
+            str = this.glo.toString(str);
+            str = this.gal.toString(str);
+            str = this.bds.toString(str);
+            str = this.qzs.toString(str);
+            str = this.sbs.toString(str);
             str = [str 10];
         end
         
@@ -306,12 +306,12 @@ classdef Constellation_Collector < Settings_Interface
             %str_cell = Ini_Manager.toIniStringComment(' - "S" SBAS (not yet available)', str_cell);
             %str_cell = Ini_Manager.toIniString('active_constellation_ch', this.sys_c, str_cell);
             
-            str_cell = this.ss_gps.export(str_cell);
-            str_cell = this.ss_glo.export(str_cell);
-            str_cell = this.ss_gal.export(str_cell);
-            str_cell = this.ss_bds.export(str_cell);
-            str_cell = this.ss_qzs.export(str_cell);
-            str_cell = this.ss_sbs.export(str_cell);
+            str_cell = this.gps.export(str_cell);
+            str_cell = this.glo.export(str_cell);
+            str_cell = this.gal.export(str_cell);
+            str_cell = this.bds.export(str_cell);
+            str_cell = this.qzs.export(str_cell);
+            str_cell = this.sbs.export(str_cell);
             
             % Maybe in a future it will be useful to export and import specific satellites in use
             % str_cell = Ini_Manager.toIniString('index', this.index, str_cell);
@@ -321,40 +321,117 @@ classdef Constellation_Collector < Settings_Interface
     end
 
     % =========================================================================
+    %  STATUS MODIFIER
+    % =========================================================================
+    methods (Access = 'public')
+        function activateGPS(this)
+            % Activate the use of GPS
+            this.gps.enable();
+            this.update();
+        end
+        
+        function deactivateGPS(this)
+            % De-activate the use of GPS
+            this.gps.disable();
+            this.update();
+        end
+        
+        function activateGLONASS(this)
+            % Activate the use of GLONASS
+            this.glo.enable();
+            this.update();
+        end
+        
+        function deactivateGLONASS(this)
+            % De-activate the use of GLONASS
+            this.glo.disable();
+            this.update();
+        end
+        
+        function activateGalileo(this)
+            % Activate the use of Galileo
+            this.gal.enable();
+            this.update();
+        end
+        
+        function deactivateGalileo(this)
+            % De-activate the use of Galileo
+            this.gal.disable();
+            this.update();
+        end
+        
+        function activateBeiDou(this)
+            % Activate the use of BeiDou
+            this.bds.enable();
+            this.update();
+        end
+        
+        function deactivateBeiDou(this)
+            % De-activate the use of BeiDou
+            this.bds.disable();
+            this.update();
+        end
+        
+        function activateQZSS(this)
+            % Activate the use of QZSS
+            this.qzs.enable();
+            this.update();
+        end
+        
+        function deactivateQZSS(this)
+            % De-activate the use of QZSS
+            this.qzs.disable();
+            this.update();
+        end
+        
+        function activateSBAS(this)
+            % Activate the use of SBAS
+            this.gps.enable();
+            this.update();
+        end
+        
+        function deactivateSBAS(this)
+            % De-activate the use of SBAS
+            this.sbs.disable();
+            this.update();
+        end
+    end
+    
+    % =========================================================================
     %  STATUS CHECKER
     % =========================================================================
     methods (Access = 'public')
         function isActive = isGpsActive(this)
             % get the activation status for GPS
-            isActive = this.ss_gps.isActive();
+            isActive = this.gps.isActive();
         end
         
         function isActive = isGloActive(this)
             % get the activation status for GLONASS
-            isActive = this.ss_glo.isActive();
+            isActive = this.glo.isActive();
         end
         
         function isActive = isGalActive(this)
             % get the activation status for Galileo
-            isActive = this.ss_gal.isActive();
+            isActive = this.gal.isActive();
         end
         
         function isActive = isBdsActive(this)
             % get the activation status for Beidou
-            isActive = this.ss_bds.isActive();
+            isActive = this.bds.isActive();
         end
         
         function isActive = isQzsActive(this)
             % get the activation status for QZSS
-            isActive = this.ss_qzs.isActive();
+            isActive = this.qzs.isActive();
         end
         
         function isActive = isSbsActive(this)
             % get the activation status for SBAS
-            isActive = this.ss_sbs.isActive();
-        end        
+            isActive = this.sbs.isActive();
+        end
     end
-        
+    
     % =========================================================================
     %  LEGACY IMPORT
     % =========================================================================
@@ -363,65 +440,66 @@ classdef Constellation_Collector < Settings_Interface
             % Import from the state variable (saved into the old interface mat file of goGPS)
             % This function import processing settings from another setting object or ini file
             % SYNTAX: obj.legacyImport(state)
-            active_ss_list = false(1,this.N_SYS_TOT);
-            active_ss_list(state.activeGNSS) = true;
-            active_ss_list(6) = active_ss_list(6) || state.use_sbas;
-            this.init(active_ss_list);
+            active_list = false(1,this.N_SYS_TOT);
+            active_list(state.activeGNSS) = true;
+            active_list(6) = active_list(6) || state.use_sbas;
+            this.init(active_list);
             if isfield(state,'activeFreq')
-                this.ss_gps.setActiveFrequencies(state.activeFreq);
-                this.ss_glo.setActiveFrequencies(state.activeFreq);
-                this.ss_gal.setActiveFrequencies(state.activeFreq);
-                this.ss_bds.setActiveFrequencies(state.activeFreq);
-                this.ss_qzs.setActiveFrequencies(state.activeFreq);
-                this.ss_sbs.setActiveFrequencies(state.activeFreq);
+                this.gps.setActiveFrequencies(state.activeFreq);
+                this.glo.setActiveFrequencies(state.activeFreq);
+                this.gal.setActiveFrequencies(state.activeFreq);
+                this.bds.setActiveFrequencies(state.activeFreq);
+                this.qzs.setActiveFrequencies(state.activeFreq);
+                this.sbs.setActiveFrequencies(state.activeFreq);
             end
         end
     end
-            
-    % =========================================================================
-    %  TEST
-    % =========================================================================    
-
+        
     % =========================================================================
     %  GETTERS
-    % =========================================================================    
+    % =========================================================================
     methods (Access = 'public')
         function n_sat = getNumSat(this)
-            % return the number of enabled satellites
-            n_sat = this.n_sat();
+            % return the total number of enabled satellites
+            % SYNTAX: n_sat = this.getNumSat();
+            n_sat = this.n_sat_tot();
         end
         
         function gps = getGPS(this)
             % return the GPS satellite system object
-            gps = handle(this.ss_gps);
+            gps = handle(this.gps);
         end
-
+        
         function gps = getGLONASS(this)
             % return the GLONASS satellite system object
-            gps = handle(this.ss_glo);
+            gps = handle(this.glo);
         end
 
         function gps = getGalileo(this)
             % return the Galileo satellite system object
-            gps = handle(this.ss_gal);
+            gps = handle(this.gal);
         end
         
         function gps = getBeiDou(this)
             % return the BeiDou satellite system object
-            gps = handle(this.ss_bds);
+            gps = handle(this.bds);
         end
         
         function gps = getQZSS(this)
             % return the QZSS satellite system object
-            gps = handle(this.ss_qzs);
+            gps = handle(this.qzs);
         end
         
         function gps = getSBAS(this)
             % return the SBAS satellite system object
-            gps = handle(this.ss_sbs);
-        end
+            gps = handle(this.sbs);
+        end        
     end
     
+    % =========================================================================
+    %  TEST
+    % =========================================================================
+
     methods (Static, Access = 'public')        
         function test()
             % Test the class

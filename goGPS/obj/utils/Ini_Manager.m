@@ -89,7 +89,7 @@ classdef Ini_Manager < handle
     methods
         
         % Creator ---------------------------------------------------------
-        function obj = Ini_Manager(file_name, raw_data)
+        function this = Ini_Manager(file_name, raw_data)
         % Ini_Manager(fileName, verbosity) creator
             if (nargin == 0)
                 file_name = '';
@@ -97,31 +97,31 @@ classdef Ini_Manager < handle
             if isempty(file_name)
                 file_name = '';
             end
-            obj.setFileName(file_name);
+            this.setFileName(file_name);
             if nargin == 2
-                obj.raw_data = raw_data;
-                obj.setRW('w');
-                obj.writeFile();
-                obj.cleanRaw();
-                obj.parseData();
-                obj.setReadStatus(true)
-                obj.raw_data = {};
+                this.raw_data = raw_data;
+                this.setRW('w');
+                this.writeFile();
+                this.cleanRaw();
+                this.parseData();
+                this.setReadStatus(true)
+                this.raw_data = {};
             end
         end
         
         % Distructor ------------------------------------------------------
-        function delete(obj)
+        function delete(this)
             % Empty Destructor
         end
         
         % Cleaner ---------------------------------------------------------
-        function clearAll(obj)
+        function clearAll(this)
             % Reset the object
-            obj.fid = 0;
-            obj.rw = 'r';
-            obj.file_name = 'config.ini';
-            obj.raw_data = {};
-            obj.section = {};
+            this.fid = 0;
+            this.rw = 'r';
+            this.file_name = 'config.ini';
+            this.raw_data = {};
+            this.section = {};
         end
         
     end
@@ -132,15 +132,15 @@ classdef Ini_Manager < handle
     methods
         
         % Set file name ---------------------------------------------------
-        function setFileName(obj, file_name)
+        function setFileName(this, file_name)
             % Set the complete path of the ini file
-            obj.file_name = file_name;
+            this.file_name = file_name;
         end
         
         % Get file name ---------------------------------------------------
-        function file_name = getFileName(obj)
+        function file_name = getFileName(this)
             % Get the complete path of the ini file
-            file_name = obj.file_name;
+            file_name = this.file_name;
         end
         
     end
@@ -151,15 +151,15 @@ classdef Ini_Manager < handle
     methods
         
         % Set Comment Character -------------------------------------------
-        function setCommentChar(obj, character)
+        function setCommentChar(this, character)
             % define the characters that define comment lines
-            obj.c_comment = unique([character obj.STD_COMMENT]);
+            this.c_comment = unique([character this.STD_COMMENT]);
         end
         
         % Get Comment Character -------------------------------------------
-        function characters = getCommentChar(obj)
+        function characters = getCommentChar(this)
             % Get the characters that define comment lines
-            characters = obj.c_comment;
+            characters = this.c_comment;
         end
 
     end
@@ -170,25 +170,25 @@ classdef Ini_Manager < handle
     methods
                 
         % Set RW mode -----------------------------------------------------
-        function setRW(obj,rwMode)
+        function setRW(this,rwMode)
             % Set mode for open the ini file
-            if ( ~obj.readMode() && ~writeMode())
-                obj.rw = 'r';
+            if ( ~this.readMode() && ~writeMode())
+                this.rw = 'r';
             else
-                obj.rw = rwMode;
+                this.rw = rwMode;
             end
         end
         
         % Get RW mode -----------------------------------------------------
-        function rwMode = getRW(obj)
+        function rwMode = getRW(this)
             % Get the current mode of the file
-            rwMode = obj.rw;
+            rwMode = this.rw;
         end
         
         % Read mode? ------------------------------------------------------
-        function bool = readMode(obj)
+        function bool = readMode(this)
             % Is it in read mode?
-            if ((obj.rw(1)=='r'))
+            if ((this.rw(1)=='r'))
                 bool = true;
             else
                 bool = false;
@@ -196,9 +196,9 @@ classdef Ini_Manager < handle
         end
         
         % Write mode? -----------------------------------------------------
-        function bool = writeMode(obj)
+        function bool = writeMode(this)
             % Is it in write mode?
-            if ((obj.rw(1)=='w'))
+            if ((this.rw(1)=='w'))
                 bool = true;
             else
                 bool = false;
@@ -206,77 +206,77 @@ classdef Ini_Manager < handle
         end
         
         % Get read status mode --------------------------------------------        
-        function bool = getReadStatus(obj)
+        function bool = getReadStatus(this)
             % Return if the file has been already parsed
-            bool = obj.read_status;
+            bool = this.read_status;
         end
         
         % Read File -------------------------------------------------------
-        function errStatus = readFile(obj)
+        function errStatus = readFile(this)
             % Force reading of the File
             errStatus = false;            
             % If the object already contains data - clean it
-            if (obj.getReadStatus())
-                obj.raw_data = {};
+            if (this.getReadStatus())
+                this.raw_data = {};
             end
-            if ~exist(obj.getFileName(),'file')
-                obj.logger.addError('INI file name not set');                
+            if ~exist(this.getFileName(),'file')
+                this.logger.addError('INI file name not set');                
                 errStatus = true;
             else
-                obj.fid = fopen(obj.getFileName(), obj.getRW());
+                this.fid = fopen(this.getFileName(), this.getRW());
                 
-                if (obj.fid ~= -1)   % If reading is ok
-                    obj.raw_data = textscan(obj.fid, '%s', 'delimiter', '\n', 'endOfLine', '\r\n');                    
-                    fclose(obj.fid);
+                if (this.fid ~= -1)   % If reading is ok
+                    this.raw_data = textscan(this.fid, '%s', 'delimiter', '\n', 'endOfLine', '\r\n');                    
+                    fclose(this.fid);
                     
-                    obj.read_status = true;
-                    obj.raw_data = obj.raw_data{1};
+                    this.read_status = true;
+                    this.raw_data = this.raw_data{1};
                     
-                    obj.logger.addStatusOk('The INI file has been parsed correctly.', 15);
+                    this.logger.addStatusOk('The INI file has been parsed correctly.', 15);
                     
-                    obj.cleanRaw();      % Strip comments and spaces
-                    obj.parseData();     % Parse file
-                    obj.raw_data = {};   % clean RAW temp data
+                    this.cleanRaw();      % Strip comments and spaces
+                    this.parseData();     % Parse file
+                    this.raw_data = {};   % clean RAW temp data
                 else
-                    obj.logger.addError(['INI file read failed:' ferror(obj.fid)]);
-                    obj.setReadStatus(false);
-                    obj.raw_data = {};
+                    this.logger.addError(['INI file read failed:' ferror(this.fid)]);
+                    this.setReadStatus(false);
+                    this.raw_data = {};
                 end
             end
         end
        
         % Write File -------------------------------------------------------
-        function errStatus = writeFile(obj)
+        function errStatus = writeFile(this)
             % Force reading of the File
             errStatus = false;            
-            if isempty(obj.getFileName())
-                obj.logger.addError('INI file name not set');
+            if isempty(this.getFileName())
+                this.logger.addError('INI file name not set');
                 errStatus = true;
             else                
-                if (obj.fid ~= -1)   % If file access is ok                    
+                if (this.fid ~= -1)   % If file access is ok                    
                     try
-                        obj.fid = fopen(obj.getFileName(), obj.getRW());
+                        this.fid = fopen(this.getFileName(), this.getRW());
                         % Convert raw data to string
                         tmp_str = '';
-                        for i = 1 : numel(obj.raw_data)
-                            tmp_str = [tmp_str obj.raw_data{i} 10]; %#ok<AGROW>
+                        for i = 1 : numel(this.raw_data)
+                            tmp_str = [tmp_str this.raw_data{i} 10]; %#ok<AGROW>
                         end                                                
-                        fwrite(obj.fid, tmp_str);
-                        fclose(obj.fid);
+                        fwrite(this.fid, tmp_str);
+                        fclose(this.fid);
                     catch ex
                         errStatus = true;
-                        obj.logger.addError(['INI file cannot be written (' obj.file_name '): ' ex.message]);
+                        this.logger.addError(['INI file cannot be written (' this.file_name '): ' ex.message]);
                     end
                     
-                    obj.logger.addStatusOk('The INI file has been writted correctly', 10);
+                    this.logger.addStatusOk('The INI file has been writted correctly', 10);
                 else
-                    obj.logger.addError(['INI file write failed:' ferror(obj.fid)]);
+                    this.logger.addError(['INI file write failed:' ferror(this.fid)]);
                 end
             end
         end
         
         % Update File (when needed) ---------------------------------------
-        function reloaded = update(obj, file_name, force_read)
+        function reloaded = update(this, file_name, force_read)
             % Update the object when needed:
             %  - file_name changed 
             %  - force flag == 1
@@ -285,9 +285,9 @@ classdef Ini_Manager < handle
                 force_read = 0;
             end
             reloaded = 0;
-            if (~strcmp(file_name,obj.getFileName) || (force_read == 1) || ~obj.getReadStatus())
-                obj.setFileName(file_name);
-                obj.readFile();
+            if (~strcmp(file_name,this.getFileName) || (force_read == 1) || ~this.getReadStatus())
+                this.setFileName(file_name);
+                this.readFile();
                 reloaded = 1;
             end            
         end
@@ -300,11 +300,11 @@ classdef Ini_Manager < handle
     methods
         
         % Search a section in the object Ini_Manager ----------------------
-        function isPresent = containsSection(obj, section)
+        function isPresent = containsSection(this, section)
             % Search a section in the object Ini_Manager
             s = 1;
-            while ((s<=length(obj.section)) && (s ~= 0))
-                if (strcmp(obj.section{s}.name,section))
+            while ((s<=length(this.section)) && (s ~= 0))
+                if (strcmp(this.section{s}.name,section))
                     s = 0;
                 else
                     s = s + 1;    % go on with the search of the section
@@ -318,13 +318,13 @@ classdef Ini_Manager < handle
         end
         
         % Search a key in the object Ini_Manager --------------------------
-        function isPresent = containsKey(obj, section, key)
+        function isPresent = containsKey(this, section, key)
             % Search a key in the object Ini_Manager
             s = 1;
-            while ((s<=length(obj.section)) && (s ~= 0))
-                if (strcmp(obj.section{s}.name,section))
-                    while ((k<=length(obj.section{s}.key)) && (k ~= 0))
-                        if (strcmp(obj.section{s}.key{k}.name,key))
+            while ((s<=length(this.section)) && (s ~= 0))
+                if (strcmp(this.section{s}.name,section))
+                    while ((k<=length(this.section{s}.key)) && (k ~= 0))
+                        if (strcmp(this.section{s}.key{k}.name,key))
                             k = 0;
                         else
                             k = k + 1;
@@ -350,25 +350,25 @@ classdef Ini_Manager < handle
     methods
         
         % Get the list of sections present in the file --------------------        
-        function section_list = getSections(obj)
+        function section_list = getSections(this)
             % Get the list of available sections
-            if (~obj.getReadStatus())
-                %obj.printWarning('File not yet read!\n');
-                obj.readFile();
+            if (~this.getReadStatus())
+                %this.printWarning('File not yet read!\n');
+                this.readFile();
             end
             
-            section_list = cell(length(obj.section),1);
-            for s=1:length(obj.section)
-                section_list{s} = obj.section{s}.name;
+            section_list = cell(length(this.section),1);
+            for s=1:length(this.section)
+                section_list{s} = this.section{s}.name;
             end
         end 
         
         % Return the presence of a section --------------------------------
-        function isS = isSection(obj, section)
+        function isS = isSection(this, section)
             % Get the presence of a section
             s = 1;
-            while ((s<=length(obj.section)) && (s ~= 0))
-                if (strcmp(obj.section{s}.name,section))
+            while ((s<=length(this.section)) && (s ~= 0))
+                if (strcmp(this.section{s}.name,section))
                     s = 0;      % Stop searching
                 else
                     s = s+1;    % go on with the search of the section
@@ -378,15 +378,15 @@ classdef Ini_Manager < handle
         end
         
         % Return the presence of a key ------------------------------------
-        function isK = isKey(obj, section, key)
+        function isK = isKey(this, section, key)
             % Get the presence of a key 
             s = 1;
             k = 1;
-            while ((s<=length(obj.section)) && (s ~= 0))
-                if (strcmp(obj.section{s}.name,section))
+            while ((s<=length(this.section)) && (s ~= 0))
+                if (strcmp(this.section{s}.name,section))
                     k = 1;
-                    while ((k<=length(obj.section{s}.key)) && (k ~= 0))
-                        if (strcmp(obj.section{s}.key{k}.name,key))
+                    while ((k<=length(this.section{s}.key)) && (k ~= 0))
+                        if (strcmp(this.section{s}.key{k}.name,key))
                             k = 0;
                         else
                             k = k + 1;
@@ -401,32 +401,32 @@ classdef Ini_Manager < handle
         end
                 
         % Get the list of keys present in the file ------------------------
-        function keyList = getKeys(obj, section)
+        function keyList = getKeys(this, section)
             % Get the list of the keys available
             if (nargin == 1)
                 section = 0;
             end
             
-            if (~obj.getReadStatus())                
-                %obj.printWarning('File not yet read!\n');
-                obj.readFile();
+            if (~this.getReadStatus())                
+                %this.printWarning('File not yet read!\n');
+                this.readFile();
             end
             
             keyList = {};
             l = 1;
             if (section == 0)
-                for s = 1:length(obj.section)
-                    for p = 1:length(obj.section{s}.key)
-                        keyList{l} = obj.section{s}.key{p}.name;
+                for s = 1:length(this.section)
+                    for p = 1:length(this.section{s}.key)
+                        keyList{l} = this.section{s}.key{p}.name;
                         l = l+1;
                     end
                 end
             else
                 s = 1;
-                while ((s<=length(obj.section)) && (s ~= 0))
-                    if (strcmp(obj.section{s}.name,section))
-                        for p = 1:length(obj.section{s}.key)
-                            keyList{l} = obj.section{s}.key{p}.name;
+                while ((s<=length(this.section)) && (s ~= 0))
+                    if (strcmp(this.section{s}.name,section))
+                        for p = 1:length(this.section{s}.key)
+                            keyList{l} = this.section{s}.key{p}.name;
                             l = l+1;
                         end
                         s = 0;      % Stop searching
@@ -438,11 +438,11 @@ classdef Ini_Manager < handle
         end
         
         % Get data --------------------------------------------------------        
-        function data = getData(obj, section, key)            
+        function data = getData(this, section, key)            
             % Get the value of a specified key
-            if (~obj.getReadStatus() && isempty(obj.section))
-               %obj.printWarning('File not yet read!\n');
-               obj.readFile();
+            if (~this.getReadStatus() && isempty(this.section))
+               %this.printWarning('File not yet read!\n');
+               this.readFile();
             end
             
             data = [];
@@ -450,11 +450,11 @@ classdef Ini_Manager < handle
                 key = section;
                 % Search the key among all the sections
                 s = 1;
-                while ((s<=length(obj.section)) && (s > 0))
+                while ((s<=length(this.section)) && (s > 0))
                     p = 1;
-                    while ((p <= length(obj.section{s}.key)) && (p ~= 0))
-                        if (strcmp(obj.section{s}.key{p}.name,key))
-                            data = obj.section{s}.key{p}.data;
+                    while ((p <= length(this.section{s}.key)) && (p ~= 0))
+                        if (strcmp(this.section{s}.key{p}.name,key))
+                            data = this.section{s}.key{p}.data;
                             p = 0;      % Stop searching key
                         else
                             p = p+1;    % go on with the search of the key
@@ -467,18 +467,18 @@ classdef Ini_Manager < handle
                     end
                 end
                 if (isempty(data))
-                    obj.logger.addWarning(['Key "' key '" not found while reading: "' obj.file_name '"'], 10);
+                    this.logger.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
                     data = [];
                 end
             else                
                 % Search the key of a specific section
                 s = 1;
-                while ((s<=length(obj.section)) && (s > 0))
-                    if (strcmp(obj.section{s}.name,section))
+                while ((s<=length(this.section)) && (s > 0))
+                    if (strcmp(this.section{s}.name,section))
                         p = 1;
-                        while ((p <= length(obj.section{s}.key)) && (p ~= 0))
-                            if (strcmp(obj.section{s}.key{p}.name,key))
-                                data = obj.section{s}.key{p}.data;
+                        while ((p <= length(this.section{s}.key)) && (p ~= 0))
+                            if (strcmp(this.section{s}.key{p}.name,key))
+                                data = this.section{s}.key{p}.data;
                                 p = 0; % Stop searching key
                             else
                                 p = p+1;    % go on with the search of the key
@@ -490,7 +490,7 @@ classdef Ini_Manager < handle
                     end
                 end
                 if (isempty(data))
-                    obj.logger.addWarning(['Key "' key '" not found in section "' section '" while reading: "' obj.file_name '"'], 10);
+                    this.logger.addWarning(['Key "' key '" not found in section "' section '" while reading: "' this.file_name '"'], 100);
                     data = [];
                 end
             end
@@ -505,73 +505,73 @@ classdef Ini_Manager < handle
     methods
         
         % Add a new section to the object ---------------------------------        
-        function addSection(obj, new_section)
+        function addSection(this, new_section)
             % Add a new section to the object
-            if ~obj.isSection(new_section)
-                newId = length(obj.section)+1;
-                obj.section{newId}.name = new_section;
-                obj.section{newId}.key = {};
+            if ~this.isSection(new_section)
+                newId = length(this.section)+1;
+                this.section{newId}.name = new_section;
+                this.section{newId}.key = {};
             end
         end
         
         % Add a new keys to the object ------------------------------------
-        function addKey(obj, section, key, data)
+        function addKey(this, section, key, data)
             % Add a new key to the object if the section exist
-            if obj.isKey(section, key)
-                obj.editKey(section, key, data);
+            if this.isKey(section, key)
+                this.editKey(section, key, data);
             else
                 s = 1;
-                while ((s<=length(obj.section)) && (s ~= 0))
-                    if (strcmp(obj.section{s}.name,section))
-                        newId = length(obj.section{s}.key)+1;
-                        obj.section{s}.key{newId}.name = key;
-                        obj.section{s}.key{newId}.data = data;
+                while ((s<=length(this.section)) && (s ~= 0))
+                    if (strcmp(this.section{s}.name,section))
+                        newId = length(this.section{s}.key)+1;
+                        this.section{s}.key{newId}.name = key;
+                        this.section{s}.key{newId}.data = data;
                         s = 0;
                     else
                         s = s+1;    % go on with the search of the section
                     end
                 end
                 if (s ~= 0)
-                    obj.printError(['Section "' section '" not found!\n']);
+                    this.printError(['Section "' section '" not found!\n']);
                 end
             end
         end
         
         % Add a data to the object giving key and section -----------------
-        function addData(obj, section, key, data)
+        function addData(this, section, key, data)
             % Add a data to the object an eventually create the section and key to store it
-            obj.addSection(section)
-            obj.addKey(section, key, data)
+            this.addSection(section)
+            this.addKey(section, key, data)
         end
 
         % Remove a section from the object Ini_Manager --------------------
-        function rmSection(obj, section)
+        function rmSection(this, section)
             % Remove a section from the object Ini_Manager
             s = 1;
-            while ((s<=length(obj.section)) && (s ~= 0))
-                if (strcmp(obj.section{s}.name,section))
-                    obj.section(s) = [];
+            while ((s<=length(this.section)) && (s ~= 0))
+                if (strcmp(this.section{s}.name,section))
+                    this.section(s) = [];
                     s = 0;
                 else
                     s = s+1;    % go on with the search of the section
                 end
             end
             if (s ~= 0)
-                obj.printError(['Section "' section '" not found!\n']);
+                this.printError(['Section "' section '" not found!\n']);
             end
         end
         
         % Remove a key from the object Ini_Manager ------------------------
-        function rmKey(obj, section, key)
+        function rmKey(this, section, key)
             % Remove a key from the object Ini_Manager
             s = 1;
             k = 1;
-            while ((s<=length(obj.section)) && (s ~= 0))
-                if (strcmp(obj.section{s}.name,section))
+            while ((s<=length(this.section)) && (s ~= 0))
+                if (strcmp(this.section{s}.name,section))
                     k = 1;
-                    while ((k<=length(obj.section{s}.key)) && (k ~= 0))
-                        if (strcmp(obj.section{s}.key{k}.name,key))
-                            obj.section{s}.key(k) = [];
+                    while ((k<=length(this.section{s}.key)) && (k ~= 0))
+                        if (strcmp(this.section{s}.key{k}.name,key))
+                            this.section{s}.key(k) = [];
                             k = 0;
                         else
                             k = k + 1;
@@ -583,21 +583,21 @@ classdef Ini_Manager < handle
                 end
             end
             if (k ~= 0)
-                obj.printError(['Key "' key '" not found!\n']);
+                this.printError(['Key "' key '" not found!\n']);
             end
         end
         
         % Edit a key in the object Ini_Manager ----------------------------
-        function editKey(obj, section, key, data)
+        function editKey(this, section, key, data)
             % Edit a key in the object Ini_Manager
             s = 1;
             k = 1;
-            while ((s<=length(obj.section)) && (s ~= 0))
-                if (strcmp(obj.section{s}.name,section))
+            while ((s<=length(this.section)) && (s ~= 0))
+                if (strcmp(this.section{s}.name,section))
                     k = 1;
-                    while ((k<=length(obj.section{s}.key)) && (k ~= 0))
-                        if (strcmp(obj.section{s}.key{k}.name,key))
-                            obj.section{s}.key{k}.data = data;
+                    while ((k<=length(this.section{s}.key)) && (k ~= 0))
+                        if (strcmp(this.section{s}.key{k}.name,key))
+                            this.section{s}.key{k}.data = data;
                             k = 0;
                         else
                             k = k + 1;
@@ -609,7 +609,7 @@ classdef Ini_Manager < handle
                 end
             end
             if (k ~= 0)
-                obj.printError(['Key "' key '" not found!\n']);
+                this.printError(['Key "' key '" not found!\n']);
             end
         end
         
@@ -621,61 +621,61 @@ classdef Ini_Manager < handle
     methods
         
         % List Sections ---------------------------------------------------
-        function listSections(obj, color_mode)
+        function listSections(this, color_mode)
             % List the list of available sections
             if (nargin == 1)
-                color_mode = obj.logger.getColorMode();
+                color_mode = this.logger.getColorMode();
             end
             
-            if (~obj.getReadStatus())
-                %obj.printWarning('File not yet read!\n');
+            if (~this.getReadStatus())
+                %this.printWarning('File not yet read!\n');
 
-                obj.readFile();
+                this.readFile();
             end
             
             fprintf('        List of sections:\n')
-            for s=1:length(obj.section)
-                obj.printSection(obj.section{s}.name, color_mode);
+            for s=1:length(this.section)
+                this.printSection(this.section{s}.name, color_mode);
             end
         end
         
         % List Key --------------------------------------------------------
-        function listKeys(obj, section, color_mode)
+        function listKeys(this, section, color_mode)
             % List the list of the keys available
             if (nargin == 1)
                 section = 0;
-                color_mode = obj.logger.getColorMode();
+                color_mode = this.logger.getColorMode();
             end
             if (nargin == 2)
                 if (ischar(section))
-                    color_mode = obj.logger.getColorMode();
+                    color_mode = this.logger.getColorMode();
                 else
                     color_mode = section;
                     section = 0;
                 end                
             end
             
-            if (~obj.getReadStatus() && isempty(obj.section))
-                %obj.printWarning('File not yet read!\n');
-                obj.readFile();
+            if (~this.getReadStatus() && isempty(this.section))
+                %this.printWarning('File not yet read!\n');
+                this.readFile();
             end
             
             if (section == 0)
                 fprintf('        List of all the keys:\n')
-                for s = 1:length(obj.section)
-                    obj.printSection(obj.section{s}.name, color_mode);
-                    for p = 1:length(obj.section{s}.key)
-                        obj.printData(obj.section{s}.key{p}.name, obj.section{s}.key{p}.data, color_mode)
+                for s = 1:length(this.section)
+                    this.printSection(this.section{s}.name, color_mode);
+                    for p = 1:length(this.section{s}.key)
+                        this.printData(this.section{s}.key{p}.name, this.section{s}.key{p}.data, color_mode)
                     end
                 end
             else
                 fprintf('        List of all the keys in section "%s":\n', section)
                 s = 1;
-                while ((s<=length(obj.section)) && (s ~= 0))
-                    if (strcmp(obj.section{s}.name,section))
-                        obj.printSection(obj.section{s}.name, color_mode);
-                        for p = 1:length(obj.section{s}.key)
-                            obj.printData(obj.section{s}.key{p}.name, obj.section{s}.key{p}.data, color_mode)
+                while ((s<=length(this.section)) && (s ~= 0))
+                    if (strcmp(this.section{s}.name,section))
+                        this.printSection(this.section{s}.name, color_mode);
+                        for p = 1:length(this.section{s}.key)
+                            this.printData(this.section{s}.key{p}.name, this.section{s}.key{p}.data, color_mode)
                         end
                         s = 0;      % Stop searching
                     else
@@ -686,42 +686,42 @@ classdef Ini_Manager < handle
         end
 
         % Show data -------------------------------------------------------
-        function showData(obj, section, color_mode)
+        function showData(this, section, color_mode)
             % List the data contained in the ini
             if (nargin == 1)
                 section = 0;
-                color_mode = obj.logger.getColorMode();
+                color_mode = this.logger.getColorMode();
             end
             if (nargin == 2)
                 if (ischar(section))
-                    color_mode = obj.logger.getColorMode();
+                    color_mode = this.logger.getColorMode();
                 else
                     color_mode = section;
                     section = 0;
                 end                
             end            
             
-            if (~obj.getReadStatus())
-                %obj.printWarning('File not yet read')
-                obj.readFile();
+            if (~this.getReadStatus())
+                %this.printWarning('File not yet read')
+                this.readFile();
             end
             
             if (section == 0)
                 fprintf('        List of all the key values:\n')
-                for s = 1:length(obj.section)
-                    obj.printSection(obj.section{s}.name, color_mode);
-                    for p = 1:length(obj.section{s}.key)
-                        obj.printData(obj.section{s}.key{p}.name, obj.section{s}.key{p}.data, color_mode)
+                for s = 1:length(this.section)
+                    this.printSection(this.section{s}.name, color_mode);
+                    for p = 1:length(this.section{s}.key)
+                        this.printData(this.section{s}.key{p}.name, this.section{s}.key{p}.data, color_mode)
                     end
                 end
             else
                 fprintf('        List of all the key values in section "%s":\n', section)
                 s = 1;
-                while ((s <= length(obj.section)) && (s ~= 0))
-                    if (strcmp(obj.section{s}.name,section))
-                        obj.printSection(obj.section{s}.name, color_mode);
-                        for p = 1:length(obj.section{s}.key)
-                            obj.printData(obj.section{s}.key{p}.name, obj.section{s}.key{p}.data, color_mode)                           
+                while ((s <= length(this.section)) && (s ~= 0))
+                    if (strcmp(this.section{s}.name,section))
+                        this.printSection(this.section{s}.name, color_mode);
+                        for p = 1:length(this.section{s}.key)
+                            this.printData(this.section{s}.key{p}.name, this.section{s}.key{p}.data, color_mode)                           
                         end
                         s = 0;      % Stop searching
                     else
@@ -741,10 +741,10 @@ classdef Ini_Manager < handle
     methods (Access = 'protected')
         
         % Display a Section -----------------------------------------------
-        function printSection(obj, section, color_mode)
+        function printSection(this, section, color_mode)
             % Display a sections on a tree
             if (nargin == 2)
-                color_mode = obj.color_mode;
+                color_mode = this.color_mode;
             end
             if (color_mode)
                 cprintf('blue','         - ');
@@ -755,10 +755,10 @@ classdef Ini_Manager < handle
         end
         
         % Display a Key ---------------------------------------------------
-        function printKey(obj, key, color_mode)
+        function printKey(this, key, color_mode)
             % Display a key on a tree
             if (nargin == 2)
-                color_mode = obj.color_mode;
+                color_mode = this.color_mode;
             end
             if (color_mode)
                 cprintf('blue','             |- ');
@@ -769,10 +769,10 @@ classdef Ini_Manager < handle
         end
         
         % Display a Key ---------------------------------------------------
-        function printData(obj, key, data, color_mode)
+        function printData(this, key, data, color_mode)
             % Display the data of a key
             if (nargin == 3)
-                color_mode = obj.color_mode;
+                color_mode = this.color_mode;
             end
             if (color_mode)
                 cprintf('blue','             |- ');
@@ -818,78 +818,78 @@ classdef Ini_Manager < handle
     methods (Access = 'private')
         
         % Strip empty/comment lines ---------------------------------------
-        function cleanRaw(obj)
+        function cleanRaw(this)
             % Strip empty lines
-            obj.raw_data((cellfun(@length, obj.raw_data)==0)) = [];
+            this.raw_data((cellfun(@length, this.raw_data)==0)) = [];
             % Strip commented lines
             r = 1;
-            while (r <= length(obj.raw_data))
-                if ismember(obj.raw_data{r}(1), obj.c_comment)
-                    obj.raw_data(r) = [];
+            while (r <= length(this.raw_data))
+                if ismember(this.raw_data{r}(1), this.c_comment)
+                    this.raw_data(r) = [];
                 else
                     r = r + 1;
                 end
             end
             
-            for r=1:length(obj.raw_data)
+            for r=1:length(this.raw_data)
                 % Strip inline comments
                 
-                start = regexp(obj.raw_data{r}, ['([' obj.c_comment ']).*'], 'start');
+                start = regexp(this.raw_data{r}, ['([' this.c_comment ']).*'], 'start');
                 if (~isempty(start))
-                    obj.raw_data{r}(start:end) = [];
+                    this.raw_data{r}(start:end) = [];
                 end
                 
-                start = regexp(obj.raw_data{r}, ' *$', 'start');
+                start = regexp(this.raw_data{r}, ' *$', 'start');
                 if (~isempty(start))
-                    obj.raw_data{r}(start:end) = [];
+                    this.raw_data{r}(start:end) = [];
                 end
             end
         end
         
         % Parse the file (cleaned) ----------------------------------------
-        function parseData(obj)
+        function parseData(this)
             p = 0;
             s = 0;
-            obj.section = {};
-            for r=1:length(obj.raw_data)
-                sectionName = regexp(obj.raw_data{r}, '(?<=^\[).*(?=\])', 'match');
+            this.section = {};
+            for r=1:length(this.raw_data)
+                sectionName = regexp(this.raw_data{r}, '(?<=^\[).*(?=\])', 'match');
                 if (~isempty(sectionName))
                     % we have a new SECTION!
                     s = s+1;
                     p = 0;
-                    obj.section{s}.name = sectionName{1};
-                    obj.section{s}.key = [];
+                    this.section{s}.name = sectionName{1};
+                    this.section{s}.key = [];
                 else
                     % maybe this line contains a key, let's check
-                    parName = regexp(obj.raw_data{r}, '^(.*(?=\s\=))', 'match');
+                    parName = regexp(this.raw_data{r}, '^(.*(?=\s\=))', 'match');
                     if (isempty(parName))
-                        parName = regexp(obj.raw_data{r}, '^(.*(?=\=))', 'match');
+                        parName = regexp(this.raw_data{r}, '^(.*(?=\=))', 'match');
                     end
                     if (~isempty(parName))
                         % we have a PARAMETER!
                         p = p+1;
                         if (s == 0)
                             s = s + 1;
-                            obj.section{s}.name = 'Section';
-                            obj.section{s}.key = [];
+                            this.section{s}.name = 'Section';
+                            this.section{s}.key = [];
                         end
-                        obj.section{s}.key{p}.name = parName{1};
+                        this.section{s}.key{p}.name = parName{1};
                         
                         % Get the DATA!
-                        strData = regexp(obj.raw_data{r}, '(?<=\=).*', 'match');
+                        strData = regexp(this.raw_data{r}, '(?<=\=).*', 'match');
                         if (isempty(strData))
-                            obj.section{s}.key{p}.data = [];
+                            this.section{s}.key{p}.data = [];
                         else
                             tmpData = str2num(strData{1});
                             if (~isempty(tmpData))   % It's a number!
-                                obj.section{s}.key{p}.data = tmpData;
+                                this.section{s}.key{p}.data = tmpData;
                             else
                                 % It's a string!
                                 % If it is a string properly formatted "string data"
                                 tmpData = regexp(strData{1}, '(?<=\")[^"]*(?=\")', 'match');
                                 if (~isempty(tmpData))
                                     if (size(tmpData,2) == 1)
-                                        obj.section{s}.key{p}.data = tmpData{1};
+                                        this.section{s}.key{p}.data = tmpData{1};
                                     else                                        
                                         % Strip empty cells
                                         tmpData((cellfun(@length, tmpData)==0)) = [];
@@ -899,11 +899,11 @@ classdef Ini_Manager < handle
                                                 tmpData(c) = [];
                                             end
                                         end
-                                        obj.section{s}.key{p}.data = tmpData;
+                                        this.section{s}.key{p}.data = tmpData;
                                     end
                                 else
                                     % If it appears to be an empty string
-                                    obj.section{s}.key{p}.data = '';
+                                    this.section{s}.key{p}.data = '';
                                 end
                             end
                         end
@@ -915,8 +915,8 @@ classdef Ini_Manager < handle
         end 
         
         % Set read status -------------------------------------------------
-        function setReadStatus(obj, bool)
-            obj.read_status = bool;
+        function setReadStatus(this, bool)
+            this.read_status = bool;
         end        
     end
     

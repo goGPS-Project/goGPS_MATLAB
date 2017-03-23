@@ -302,7 +302,7 @@ classdef GO_Settings < Settings_Interface
             varargout{10} = state.plot_ambiguities;  % plot ambiguities    
             varargout{11} = state.plot_skyplot_snr; % plot skyplot
             varargout{12} = state.plot_proc;   % plot while processing
-            varargout{13} = state.isVariable();   % flag kalman filter mode variable
+            varargout{13} = state.isVariableKF();   % flag kalman filter mode variable
             varargout{14} = state.stop_go_stop; % stop go stop mode
             varargout{15} = state.cc.isSbsActive(); % use sbas
             varargout{16} = state.flag_iar; % use iar
@@ -375,7 +375,7 @@ classdef GO_Settings < Settings_Interface
             varargout{31} = state.flag_ocean; 
             varargout{32} = state.flag_outlier;
             varargout{33} = state.flag_tropo;
-            varargout{34} = find(state.cc.ss_gps.flag_f);
+            varargout{34} = find(state.cc.getGPS().flag_f);
             varargout{35} = state.isModeSEID();
             varargout{36} = state.p_rate;
             varargout{37} = iif(state.flag_ionofree,'IONO_FREE', 'NONE');

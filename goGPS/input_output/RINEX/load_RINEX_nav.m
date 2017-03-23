@@ -1,12 +1,11 @@
-function [Eph, iono, flag_return] = load_RINEX_nav(filename, constellations, flag_SP3, iono_model, time, wait_dlg)
+function [Eph, iono, flag_return] = load_RINEX_nav(filename, cc, flag_SP3, iono_model, time, wait_dlg)
 
 % SYNTAX:
 %   [Eph, iono, flag_return] = load_RINEX_nav(filename, constellations, flag_SP3, iono_model, time, wait_dlg);
 %
 % INPUT:
 %   filename = RINEX navigation file
-%   constellations = struct with multi-constellation settings
-%                   (see goGNSS.initConstellation - empty if not available)
+%   cc = Constellation_Collector object, contains the satus of the satellite systems in use
 %   flag_SP3 = boolean flag to indicate SP3 availability
 %   wait_dlg = optional handler to waitbar figure (optional)
 %
@@ -60,12 +59,8 @@ end
 
 flag_return = 0;
 
-if (isempty(constellations)) %then use only GPS as default
-    [constellations] = goGNSS.initConstellation(1, 0, 0, 0, 0, 0);
-end
-
 %number of satellite slots for enabled constellations
-nSatTot = constellations.nEnabledSat;
+nSatTot = cc.getNumSat();
 
 %read navigation files
 if (~flag_SP3)
@@ -76,7 +71,7 @@ else
 end
 
 %if Klobuchar ionospheric delay correction is requested but parameters are not available in the navigation file, try to download them
-if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && constellations.GLONASS.enabled))
+if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && cc.getGLONASS().isActive()))
     [week, sow] = time2weektow(time(1));
     [date, DOY] = gps2date(week, sow);
     
@@ -87,7 +82,7 @@ if ((iono_model == 2 & ~any(iono)) || (flag_SP3 && constellations.GLONASS.enable
     pos = find(filename == '/'); if(isempty(pos)), pos = find(filename == '\'); end;
     nav_path = filename(1:pos(end));
     
-    flag_GLO = flag_SP3 && constellations.GLONASS.enabled;
+    flag_GLO = flag_SP3 && cc.getGLONASS().isActive();
     
     file_avail = 0;
     if (exist([nav_path filename_brdm],'file') && flag_GLO)
@@ -143,64 +138,64 @@ end
             flag_mixed = 0;
         end
         
-        if (constellations.GPS.enabled || flag_mixed || only_iono)
+        if (cc.getGPS().isActive() || flag_mixed || only_iono)
             if (exist(filename,'file'))
                 %parse RINEX navigation file (GPS) NOTE: filename expected to
                 %end with 'n' or 'N' (GPS) or with 'p' or 'P' (mixed GNSS)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
-                [Eph_G, iono_G] = RINEX_get_nav(filename, constellations);
+                [Eph_G, iono_G] = RINEX_get_nav(filename, cc);
                 if(~only_iono), fprintf('done\n'); end
             else
                 fprintf('... WARNING: GPS navigation file not found. Disabling GPS positioning. \n');
-                constellations.GPS.enabled = 0;
+                cc.deactivateGPS();
             end
         end
         
-        if (constellations.GLONASS.enabled && ~only_iono)
+        if (cc.getGLONASS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'g'],'file'))
                 %parse RINEX navigation file (GLONASS)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
-                [Eph_R, iono_R] = RINEX_get_nav([filename(1:end-1) 'g'], constellations);
+                [Eph_R, iono_R] = RINEX_get_nav([filename(1:end-1) 'g'], cc);
                 if(~only_iono), fprintf('done\n'); end
             elseif (~flag_mixed)
                 fprintf('... WARNING: GLONASS navigation file not found. Disabling GLONASS positioning. \n');
-                constellations.GLONASS.enabled = 0;
+                cc.deactivateGLONASS();
             end
         end
         
-        if (constellations.Galileo.enabled && ~only_iono)
+        if (cc.getGalileo().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'l'],'file'))
                 %parse RINEX navigation file (Galileo)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
-                [Eph_E, iono_E] = RINEX_get_nav([filename(1:end-1) 'l'], constellations);
+                [Eph_E, iono_E] = RINEX_get_nav([filename(1:end-1) 'l'], cc);
                 if(~only_iono), fprintf('done\n'); end
             elseif (~flag_mixed)
                 fprintf('... WARNING: Galileo navigation file not found. Disabling Galileo positioning. \n');
-                constellations.Galileo.enabled = 0;
+                cc.deactivateGalileo();
             end
         end
         
-        if (constellations.BeiDou.enabled && ~only_iono)
+        if (cc.getBeiDou().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'c'],'file'))
                 %parse RINEX navigation file (BeiDou)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
-                [Eph_C, iono_C] = RINEX_get_nav([filename(1:end-1) 'c'], constellations);
+                [Eph_C, iono_C] = RINEX_get_nav([filename(1:end-1) 'c'], cc);
                 if(~only_iono), fprintf('done\n'); end
             elseif (~flag_mixed)
                 fprintf('... WARNING: BeiDou navigation file not found. Disabling BeiDou positioning. \n');
-                constellations.BeiDou.enabled = 0;
+                cc.deactivateBeiDou();
             end
         end
         
-        if (constellations.QZSS.enabled && ~only_iono)
+        if (cc.getQZSS().isActive() && ~only_iono)
             if (exist([filename(1:end-1) 'q'],'file'))
                 %parse RINEX navigation file (QZSS)
                 if(~only_iono), fprintf('%s',['Reading RINEX file ' filename ': ... ']); end
-                [Eph_J, iono_J] = RINEX_get_nav([filename(1:end-1) 'q'], constellations);
+                [Eph_J, iono_J] = RINEX_get_nav([filename(1:end-1) 'q'], cc);
                 if(~only_iono), fprintf('done\n'); end
             elseif (~flag_mixed)
                 fprintf('... WARNING: QZSS navigation file not found. Disabling QZSS positioning. \n');
-                constellations.QZSS.enabled = 0;
+                cc.deactivateQZSS();
             end
         end
         
