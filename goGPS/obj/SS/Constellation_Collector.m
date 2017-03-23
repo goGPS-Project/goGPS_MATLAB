@@ -106,6 +106,8 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.gps.PRN];
                     this.n_sat = [this.n_sat this.gps.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.gps.N_SAT;
+                else
+                    this.gps.disable();
                 end
                 if active_list(2) % GLONASS is active
                     this.glo.updateGoIds(this.n_sat_tot);
@@ -116,6 +118,8 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.glo.PRN];
                     this.n_sat = [this.n_sat this.glo.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.glo.N_SAT;
+                else
+                    this.glo.disable();
                 end
                 if active_list(3) % Galileo is active
                     this.gal.updateGoIds(this.n_sat_tot);
@@ -126,6 +130,8 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.gal.PRN];
                     this.n_sat = [this.n_sat this.gal.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.gal.N_SAT;
+                else
+                    this.gal.disable();
                 end
                 if active_list(4) % BeiDou is active
                     this.bds.updateGoIds(this.n_sat_tot);
@@ -136,6 +142,8 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.bds.PRN];
                     this.n_sat = [this.n_sat this.bds.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.bds.N_SAT;
+                else
+                    this.bds.disable();
                 end
                 if active_list(5) % QZSS is active
                     this.qzs.updateGoIds(this.n_sat_tot);
@@ -146,6 +154,8 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.qzs.PRN];
                     this.n_sat = [this.n_sat this.qzs.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.qzs.N_SAT;
+                else
+                    this.qzs.disable();
                 end
                 if active_list(6) % SBAS is active (not yet implemented)
                     this.sbs.updateGoIds(this.n_sat_tot);
@@ -156,6 +166,8 @@ classdef Constellation_Collector < Settings_Interface
                     this.prn = [this.prn; this.sbs.PRN];
                     this.n_sat = [this.n_sat this.sbs.N_SAT];
                     this.n_sat_tot = this.n_sat_tot + this.sbs.N_SAT;
+                else
+                    this.sbs.disable();
                 end
                 
                 this.index = (1 : this.n_sat_tot)';   % incremental index of the active satellite system
