@@ -121,7 +121,7 @@ for file_pcv = 1 : size(filename, 1)
                         while (l < numel(atx_file) && found < length(antmod) && ~flag_stop)
                             % go to the next antenna
                             line = atx_file{l};
-                            while (l < numel(atx_file)) && ((length(line) < 76) || isempty(strfind(line(61:76),'START OF ANTENNA')))
+                            while (l < numel(atx_file)-1) && ((length(line) < 76) || isempty(strfind(line(61:76),'START OF ANTENNA')))
                                 l = l + 1; line = atx_file{l};
                             end
                             l = l + 1; line = atx_file{l};
