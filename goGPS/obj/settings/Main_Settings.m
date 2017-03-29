@@ -1243,7 +1243,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try
                 this.plot_proc = state.plotproc;                
                 this.plot_ref_path = state.ref_path;                
-                this.plot_skyplot_snr = ~(state.no_skyplot_snr);
+                this.plot_skyplot_snr = state.no_skyplot_snr;
                 this.plot_err_ellipse = state.err_ellipse;
                 this.plot_ambiguities = state.plot_amb;
                 this.plot_master = state.plot_master;
