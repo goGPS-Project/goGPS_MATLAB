@@ -217,8 +217,7 @@ classdef GPS_Time < handle
             end
 
             this.append(GPS_Time(time_matlab_reference, time_difference, is_gps, 2));            
-        end        
-                
+        end                    
     end
     
     
@@ -347,6 +346,11 @@ classdef GPS_Time < handle
         end        
         
         function import(this, time)
+            % Copy from an object of the same type (alias to copyFrom)
+            this.copyFrom(time)
+        end
+        
+        function copyFrom(this, time)
             % Copy from an object of the same type
             this.time_type = time.time_type;
             this.mat_time = time.mat_time;
@@ -357,6 +361,12 @@ classdef GPS_Time < handle
             this.is_gps = time.is_gps;
             this.date_format = time.date_format;
             this.leap_seconds = time.leap_seconds;
+        end
+        
+        function copy = getCopy(this)
+            % Get a copy of this
+            copy = GPS_Time();
+            copy.copyFrom(this);
         end
         
         function this = append(this, time, time_type, is_gps)
@@ -685,7 +695,7 @@ classdef GPS_Time < handle
         
         function [gps_week, gps_sow, gps_dow] = getGpsWeek(this)
             % get Reference Time, precision up to the ps precision
-            gps_time = repmat(this,1,1);
+            gps_time = this.getCopy();
             gps_time.toGps();
             [unix_time, unix_time_f] = gps_time.getUnixTime(); %#ok<PROP>
             [gps_week, gps_sow, gps_dow] = gps_time.unixTimeToGps(unix_time, unix_time_f); %#ok<PROP>
@@ -693,15 +703,14 @@ classdef GPS_Time < handle
        
         function [year, doy] = getDOY(this)
             % get Reference Time, precision up to the ps precision            
-            utc_time = repmat(this,1,1);
+            utc_time = this.getCopy();
             utc_time.toUtc();
             utc_time.toMatlabTime();
             
             [year, ~] = datevec(utc_time.mat_time);
             doy = floor(utc_time.mat_time - datenum(year,1,1)) + 1; % days from the beginning of the year
         end
-
-        
+    
         function date_string = toString(this, date_format)
             % Convert a date to string format
             if (nargin == 2)
@@ -764,8 +773,7 @@ classdef GPS_Time < handle
                         n_element = length(this.time_diff);
                 end
             end
-        end
-        
+        end    
     end
     
     % =========================================================================
@@ -795,7 +803,6 @@ classdef GPS_Time < handle
             % Delete last element stored in GPS_Time
             this.delId(this.lenght());
         end
-
     end
 
     % =========================================================================
@@ -835,8 +842,7 @@ classdef GPS_Time < handle
     %    STATIC UNIX TIME
     % =========================================================================
     
-    methods (Static, Access = 'public')
-        
+    methods (Static, Access = 'public')    
         function [unix_time, unix_time_f] = matToUnixTime(mat_time)
             % Conversion From MATLAB (expressed in days) type to UNIX TIME (expressed in uint32 seconds)
             time_s = round((mat_time - 719529) * 86400 * 1e4)/1e4; % convert mat_time in seconds
@@ -867,11 +873,8 @@ classdef GPS_Time < handle
     %    GPS TIME
     % =========================================================================
     
-    methods (Access = 'public')
-    end
 
-    methods (Static, Access = 'public')
-        
+    methods (Static, Access = 'public')    
         % Shift from UNIX time (January 1, 1970 - msec) to GPS time (January 6, 1980 - sec)
         function [gps_week, gps_sow, gps_dow] = unixTimeToGps(unix_time, unix_time_f)
             % Conversion (shift) from Unix Time (January 1, 1970) to GPS time (January 6, 1980)
@@ -884,7 +887,7 @@ classdef GPS_Time < handle
             gps_dow = uint32(fix(gps_sow / 86400));
         end
                 
-        function [gps_week, gps_sow, gps_dow] = date2gps(date_vec)            
+        function [gps_week, gps_sow, gps_dow] = date2gps(date_vec)
             % Conversion from calendar date to GPS time.
             % SYNTAX:
             %   [gps_week, gps_sow, gps_dow] = date2gps(date);
