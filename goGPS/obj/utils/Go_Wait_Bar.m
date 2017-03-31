@@ -102,9 +102,18 @@ classdef Go_Wait_Bar < handle
         function getNewBar(this, title)
             % Build a new graphic bar
             if (this.type == 1) ||  (this.type == 5)
-                if isempty(this.h) || (~isvalid(this.h))
-                    delete(this.h);
-                    this.h = waitbar(0, this.msg, 'Visible', 'off');
+                if verLessThan('matlab', 'R2015a')
+                    try
+                        delete(this.h);
+                        this.h = waitbar(0, this.msg, 'Visible', 'off');
+                    catch
+                        %handle is not valid, or empty
+                    end
+                else
+                    if isempty(this.h) || (~isvalid(this.h))
+                        delete(this.h);
+                        this.h = waitbar(0, this.msg, 'Visible', 'off');
+                    end
                 end
                 this.ext_h = getappdata(this.h,'TMWWaitbar_handles');
                 if (isunix())
@@ -180,8 +189,16 @@ classdef Go_Wait_Bar < handle
                 if (nargin >= 2)
                     this.msg = msg;
                     if (this.type == 1) ||  (this.type == 5)
-                        if not(isempty(this.h)) && (isvalid(this.h))
-                            this.setMsg(msg);
+                        if verLessThan('matlab', 'R2015a')
+                            try
+                                this.setMsg(msg);
+                            catch
+                                %handle is not valid, or empty
+                            end
+                        else
+                            if not(isempty(this.h)) && (isvalid(this.h))
+                                this.setMsg(msg);
+                            end
                         end
                     end
                 end
@@ -331,8 +348,16 @@ classdef Go_Wait_Bar < handle
         function setOutputType(this, type)
             % Set output type: 0 means text, 1 means GUI, 5 both
             this.type = type;
-            if (type == 0) && (~isempty(this.h)) && (isvalid(this.h))
-                delete (this.h)
+            if verLessThan('matlab', 'R2015a')
+                try
+                    delete (this.h)
+                catch
+                    %handle is not valid, or empty
+                end
+            else
+                if (type == 0) && (~isempty(this.h)) && (isvalid(this.h))
+                    delete (this.h)
+                end
             end
         end
         
@@ -340,8 +365,16 @@ classdef Go_Wait_Bar < handle
         function setTitle(this, msg)
             % Change the title of the waitbar
             this.title = msg;
-            if ~isempty(this.h) && (isvalid(this.h))
-                this.h.Name = msg;
+            if verLessThan('matlab', 'R2015a')
+                try
+                    this.h.Name = msg;
+                catch
+                    %handle is not valid, or empty
+                end
+            else
+                if ~isempty(this.h) && (isvalid(this.h))
+                    this.h.Name = msg;
+                end
             end
         end
         
