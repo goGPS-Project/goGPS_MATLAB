@@ -130,6 +130,8 @@ classdef File_Rinex < handle
             % pre allocate
             this.is_valid_list = false(1, numel(this.file_name_list));
             this.eoh = zeros(1, numel(this.file_name_list));
+            this.first_epoch = GPS_Time();
+            this.last_epoch = GPS_Time();
             % for each file present in the list
             for f = 1 : numel(this.file_name_list)
                 full_path = fullfile(this.base_dir, [this.file_name_list{f} this.ext{f}]);
