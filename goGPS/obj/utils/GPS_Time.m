@@ -89,7 +89,7 @@ classdef GPS_Time < handle
         REF_TIME = 2;       % time_type value for times stored in time_ref: (double) origin of the "time system" expressed in datenum format + (double array) difference in seconds w.r.t. time_ref
     end
     
-    properties (SetAccess = private, GetAccess = public)
+    properties (SetAccess = private, GetAccess = private)
         logger = Logger.getInstance(); % Handler to the logger object
 
         time_type           % flag depending on its value different representation of time are possible
@@ -246,7 +246,7 @@ classdef GPS_Time < handle
                     if isa(arg1,'uint32')
                         % UNIX time
                         this.GPS_Time_unix(arg1, arg2);
-                    else 
+                    else
                         % Ref Time
                         this.GPS_Time_ref(arg1, arg2);
                     end
@@ -618,6 +618,16 @@ classdef GPS_Time < handle
     % =========================================================================
 
     methods
+        function [is_utc] = isUTC(this)
+            % Get the memorization type
+            is_utc = ~this.is_gps;
+        end
+        
+        function [is_gps] = isGPS(this)
+            % Get the memorization type
+            is_gps = this.is_gps;
+        end
+        
         function [mat_time]  = getMatlabTime(this)
             % get Matlab Time, precision up to the 0.1 milliseconds precision
             switch this.time_type
@@ -672,19 +682,37 @@ classdef GPS_Time < handle
                     time_diff = this.time_diff;
             end
         end
-
-        function [gps_week, gps_time] = getGpsTime(this)
-            % Get the GPS_week and the number of seconbds from the start of the week
-            [unix_time, unix_time_f] = this.getUnixTime();
-            [gps_week, gps_time] = GPS_Time.unixTimeToGps(unix_time, unix_time_f);
+        
+        function [gps_week, gps_sow, gps_dow] = getGpsWeek(this)
+            % get Reference Time, precision up to the ps precision
+            gps_time = repmat(this,1,1);
+            gps_time.toGps();
+            [unix_time, unix_time_f] = gps_time.getUnixTime(); %#ok<PROP>
+            [gps_week, gps_sow, gps_dow] = gps_time.unixTimeToGps(unix_time, unix_time_f); %#ok<PROP>
+        end
+       
+        function [year, doy] = getDOY(this)
+            % get Reference Time, precision up to the ps precision            
+            utc_time = repmat(this,1,1);
+            utc_time.toUtc();
+            utc_time.toMatlabTime();
+            
+            [year, ~] = datevec(utc_time.mat_time);
+            doy = floor(utc_time.mat_time - datenum(year,1,1)) + 1; % days from the beginning of the year
         end
 
+        
         function date_string = toString(this, date_format)
             % Convert a date to string format
             if (nargin == 2)
                 date_string = datestr(this.getMatlabTime(), date_format);
             else    
                 date_string = datestr(this.getMatlabTime(), this.date_format);
+            end
+            if this.isGPS()
+                date_string = [char(date_string(:,:)) char(repmat(' GPS Time',size(date_string,1),1))];
+            else
+                date_string = [char(date_string(:,:)) char(repmat(' UTC Time',size(date_string,1),1))];
             end
         end       
         
@@ -845,15 +873,41 @@ classdef GPS_Time < handle
     methods (Static, Access = 'public')
         
         % Shift from UNIX time (January 1, 1970 - msec) to GPS time (January 6, 1980 - sec)
-        function [gps_week, gps_time] = unixTimeToGps(unix_time, unix_time_f)
+        function [gps_week, gps_sow, gps_dow] = unixTimeToGps(unix_time, unix_time_f)
             % Conversion (shift) from Unix Time (January 1, 1970) to GPS time (January 6, 1980)
 
             % constants in matlab are slower than copied values :-( switching to values
             % gps_time = mod(double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF, GPS_Time.SEC_IN_WEEK)) + unix_time_f;
             % gps_week = uint32(fix((unix_time - GPS_Time.UNIX_GPS_SEC_DIFF / GPS_Time.SEC_IN_WEEK));
-            gps_time = double(mod(unix_time - 315964800, 604800)) + unix_time_f;
-            gps_week = uint32(fix((unix_time - 315964800) / 604800));            
-        end    
+            gps_sow = double(mod(unix_time - 315964800, 604800)) + unix_time_f;
+            gps_week = uint32(fix((unix_time - 315964800) / 604800));
+            gps_dow = uint32(fix(gps_sow / 86400));
+        end
+                
+        function [gps_week, gps_sow, gps_dow] = date2gps(date_vec)            
+            % Conversion from calendar date to GPS time.
+            % SYNTAX:
+            %   [gps_week, gps_sow, gps_dow] = date2gps(date);
+            %
+            % INPUT:
+            %   date = date [year, month, day, hour, min, sec]
+            %
+            % OUTPUT:
+            %   gps_week = GPS week
+            %   gps_sow  = GPS seconds of week
+            %   gps_dow  = GPS day of week
+            gps_start_datenum = 723186; %This is datenum([1980,1,6,0,0,0])
+            
+            %number of days since the beginning of GPS time
+            %deltat   = (datenum([date(:,1), date(:,2), date(:,3)]) - gps_start_datenum);
+            % hack: datenummmx is faster cause it does not check argins
+            deltat   = (datenummx(date_vec(:,1:3)) - gps_start_datenum);
+            
+            gps_week = floor(deltat/7);            %GPS week
+            gps_dow  = floor(deltat - gps_week*7); %GPS day of week
+            gps_sow  = (deltat - gps_week*7)*86400;
+            gps_sow = gps_sow + date_vec(:,4)*3600 + date_vec(:,5)*60 + date_vec(:,6); %GPS seconds of week
+        end
     end
     
     % =========================================================================
