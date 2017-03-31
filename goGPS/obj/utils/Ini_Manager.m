@@ -926,6 +926,21 @@ classdef Ini_Manager < handle
     
     methods (Static)
         
+        % cellStringtoString -----------------------------------------------------
+        function str = cellString2String(value)
+            % Converta cell of string to string
+            % SYNTAX:
+            %   str = cellString2String(value)
+            if ~isempty(value)
+                str = strcat('"', value{1}, '"');
+                for i = 2 : numel(value)
+                    str = strcat(str, ' "', value{i}, '"');
+                end
+            else
+                str = '[]';
+            end
+        end
+        
         % toIniString -----------------------------------------------------
         function cell_str = toIniString(variable_name, value, format, cell_str)
             % Convert any variable to ini string format
@@ -954,7 +969,7 @@ classdef Ini_Manager < handle
             
             if ischar(value) % is string
                 cell_str{numel(cell_str) + 1} = [variable_name ' = "' value(:)' '"'];
-            elseif isnumeric(value) % is string
+            elseif isnumeric(value)
                 if isempty(format)
                     format = '%g';
                 else
@@ -971,7 +986,11 @@ classdef Ini_Manager < handle
             else % generic converter (may not work properly)
                 toString = @(var) strtrim(regexprep(evalc(['disp(var)']), '\n', ''));
                 if iscell(value)
-                    cell_str{numel(cell_str) + 1} = [variable_name ' = [' toString(value) ']'];
+                    if ischar(value{1})
+                        cell_str{numel(cell_str) + 1} = [variable_name ' = [' Ini_Manager.cellString2String(value) ']'];
+                    else
+                        cell_str{numel(cell_str) + 1} = [variable_name ' = [' toString(value) ']'];
+                    end
                 else
                     cell_str{numel(cell_str) + 1} = [variable_name ' = ' toString(value)];
                 end                
