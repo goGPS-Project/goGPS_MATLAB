@@ -59,20 +59,20 @@ classdef Logger < handle
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
-        function obj = Logger()
+        function this = Logger()
             % Initialisation of the variables
         end
     end
     
     methods (Static)        
-        function obj = getInstance()
+        function this = getInstance()
             % Concrete implementation.  See Singleton superclass.
             persistent unique_instance_logger__
             if isempty(unique_instance_logger__)
-                obj = Logger();
-                unique_instance_logger__ = obj;
+                this = Logger();
+                unique_instance_logger__ = this;
             else
-                obj = unique_instance_logger__;
+                this = unique_instance_logger__;
             end
         end
     end
@@ -82,25 +82,25 @@ classdef Logger < handle
     % =========================================================================
     methods    
         % Set read status mode --------------------------------------------
-        function setColorMode(obj, bool)
+        function setColorMode(this, bool)
             % Set useage of colors in text output
-            obj.color_mode = bool;
+            this.color_mode = bool;
         end
         
-        function bool = getColorMode(obj)
+        function bool = getColorMode(this)
             % Get useage of colors in text output
-            bool = obj.color_mode;
+            bool = this.color_mode;
         end
         
         % Set verbosity level ---------------------------------------------
-        function setVerbosityLev(obj, verbosity)
+        function setVerbosityLev(this, verbosity)
             % Set level of verbosity
-            obj.verbosity = verbosity;
+            this.verbosity = verbosity;
         end
         
-        function verbosity = getVerbosityLev(obj)
+        function verbosity = getVerbosityLev(this)
             % Get level of verbosity
-            verbosity = obj.verbosity;
+            verbosity = this.verbosity;
         end
     end
 
@@ -108,43 +108,50 @@ classdef Logger < handle
     %  OUTPUT UTILITIES (respect verbosity)
     % =========================================================================
     methods       
-        function addMessage(obj, text, verbosity_level)
+        function addMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
-                verbosity_level = obj.DEFAULT_VERBOSITY_LEV;
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
-            if (verbosity_level <= obj.verbosity)
+            if (verbosity_level <= this.verbosity)
                 fprintf('%s\n', text);
             end
         end
         
-        function addStatusOk(obj, text, verbosity_level)
+        function addStatusOk(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
-                verbosity_level = obj.DEFAULT_VERBOSITY_LEV;
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
-            if (verbosity_level <= obj.verbosity)
-                obj.printStatusOk(text);
+            if (verbosity_level <= this.verbosity)
+                this.printStatusOk(text);
             end
         end
         
-        function addWarning(obj, text, verbosity_level)
+        function addWarning(this, text, verbosity_level)
             % Send a warning through the standard interface
             if (nargin < 3)
-                verbosity_level = obj.WARNING_VERBOSITY_LEV;
+                verbosity_level = this.WARNING_VERBOSITY_LEV;
             end
-            if (verbosity_level <= obj.verbosity)
-                obj.printWarning(text);
+            if (verbosity_level <= this.verbosity)
+                this.printWarning(text);
             end
         end
         
-        function addError(obj, text)
+        function addError(this, text)
             % Send a warning through the standard interface
-            if (obj.ERROR_VERBOSITY_LEV <= obj.verbosity)
-                obj.printError(text);
+            if (this.ERROR_VERBOSITY_LEV <= this.verbosity)
+                this.printError(text);
             end
         end
+        
+        function status(this, status)
+            % Display a flag of operation status ( -1 Err, 0 Ok, 1 Warning) on the previous line
+            fprintf(char(08));
+            this.opStatus(status, this.color_mode);
+        end            
     end
+    
     
     % =========================================================================
     %    PRIVATE DISPLAY UTILITIES
@@ -152,12 +159,12 @@ classdef Logger < handle
 
     methods (Access = 'protected')
 
-        function printStatusOk(obj, text, color_mode)
+        function printStatusOk(this, text, color_mode)
             % Display Warnings
             if (nargin == 2)
-                color_mode = obj.color_mode;
+                color_mode = this.color_mode;
             end
-            obj.opStatus(0, color_mode);
+            this.opStatus(0, color_mode);
             if (color_mode)
                 cprintf('text', [text '\n']);
             else
@@ -165,12 +172,12 @@ classdef Logger < handle
             end
         end
         
-        function printWarning(obj, text, color_mode)
+        function printWarning(this, text, color_mode)
             % Display Warnings
             if (nargin == 2)
-                color_mode = obj.color_mode;
+                color_mode = this.color_mode;
             end
-            obj.opStatus(1, color_mode);
+            this.opStatus(1, color_mode);
             if (color_mode)
                 cprintf('SystemCommands', 'Warning: ');
                 cprintf('text', [text '\n']);
@@ -179,12 +186,12 @@ classdef Logger < handle
             end
         end
         
-        function printError(obj, text, color_mode)
+        function printError(this, text, color_mode)
             % Display Errors
             if (nargin == 2)
-                color_mode = obj.color_mode;
+                color_mode = this.color_mode;
             end
-            obj.opStatus(-1, color_mode);
+            this.opStatus(-1, color_mode);
             if (color_mode)
                 cprintf('err', 'Error: ');
                 cprintf('text', [text '\n']);
