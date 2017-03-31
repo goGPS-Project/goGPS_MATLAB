@@ -117,8 +117,13 @@ classdef GLONASS_SS < Satellite_System
             % Creator            
             if (nargin == 0)
                 offset = 0;
-            end
+            end            
             this@Satellite_System(offset);
+        end
+        
+        function copy = getCopy(this)
+            % Get a copy of this
+            copy = GLONASS_SS(this.getOffset());
         end
     end
     

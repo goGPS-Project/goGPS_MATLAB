@@ -273,12 +273,12 @@ classdef Constellation_Collector < Settings_Interface
                 this.sbs.import(state);                
                 this.update();
             else
-                this.gps = repmat(state.gps,1,1);
-                this.glo = repmat(state.glo,1,1);
-                this.gal = repmat(state.gal,1,1);
-                this.bds = repmat(state.bds,1,1);
-                this.qzs = repmat(state.qzs,1,1);
-                this.sbs = repmat(state.sbs,1,1);
+                this.gps = state.gps.getCopy();
+                this.glo = state.glo.getCopy();
+                this.gal = state.gal.getCopy();
+                this.bds = state.bds.getCopy();
+                this.qzs = state.qzs.getCopy();
+                this.sbs = state.sbs.getCopy();
                 this.update();
             end
         end

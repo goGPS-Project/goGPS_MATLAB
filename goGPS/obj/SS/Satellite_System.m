@@ -122,6 +122,15 @@ classdef Satellite_System < Settings_Interface
             this.go_ids = offset + (1 : this.N_SAT);
         end 
         
+        function offset = getOffset(this)
+            % Get offset of the go_ids
+            if ~isempty(this.go_ids)
+                offset = this.go_ids(1) - 1;
+            else
+                offset = 0;
+            end
+        end
+        
         function id = getFirstId(this)
             % get the first goGPS id -> if constellation is inactive 
             try
@@ -159,7 +168,10 @@ classdef Satellite_System < Settings_Interface
             % SYNTAX: this.disable();
             this.flag_enable = false;
         end
-
+    end
+    
+    methods (Abstract)
+        copy = getCopy(this);
     end
     
     % =========================================================================

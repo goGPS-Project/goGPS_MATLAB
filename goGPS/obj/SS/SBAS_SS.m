@@ -94,5 +94,10 @@ classdef SBAS_SS < Satellite_System
             end
             this@Satellite_System(offset);
         end
+        
+        function copy = getCopy(this)
+            % Get a copy of this
+            copy = SBAS_SS(this.getOffset());
+        end        
     end
 end
