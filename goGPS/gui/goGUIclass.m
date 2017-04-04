@@ -1610,6 +1610,8 @@ classdef goGUIclass < handle
             value = this.newVal{idEl};
             if isempty(value)
                 value = this.getGuiElVal(this.id2handle(idEl));
+                val = get(this.id2handle(idEl), 'Value');
+
                 this.setElVal(idEl, value, 0);
             end
         end
@@ -3288,15 +3290,15 @@ classdef goGUIclass < handle
             tmp_state.nav_mon           = this.getElVal(this.idUI.lCaptMode);
             tmp_state.kalman_ls         = this.getElVal(this.idUI.lAlgType);
             tmp_state.code_dd_sa        = this.getElVal(this.idUI.lProcType);
-            tmp_state.tropo             = this.getElVal(this.idUI.cTropo);
+            tmp_state.tropo             = this.isActive(this.idUI.cTropo);
 
             %   DATA SELECTION
             % ===============================================================
             
-            tmp_state.activeFreq        = [this.getElVal(this.idUI.cL1) && this.isEnabled(this.idUI.cL1) ...
-                                       this.getElVal(this.idUI.cL2) && this.isEnabled(this.idUI.cL2)...
-                                       this.getElVal(this.idUI.cL5) && this.isEnabled(this.idUI.cL5)...
-                                       this.getElVal(this.idUI.cL6) && this.isEnabled(this.idUI.cL6) ];
+            tmp_state.activeFreq        = [this.isActive(this.idUI.cL1)...
+                                           this.isActive(this.idUI.cL2)...
+                                           this.isActive(this.idUI.cL5)...
+                                           this.isActive(this.idUI.cL6)];
             tmp_state.srate             = this.getElVal(this.idUI.lProcRate);
             tmp_state.obs_comb          = this.getElVal(this.idUI.lObsComb);
             tmp_state.ocean             = this.getElVal(this.idUI.cOcean);

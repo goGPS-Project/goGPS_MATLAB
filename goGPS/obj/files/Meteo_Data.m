@@ -227,7 +227,7 @@ classdef Meteo_Data < handle
                 fclose(fid);
                 meteo_file = meteo_file{1};
             catch ex
-                this.logger.addError(sprintf('Error reading metereological file %s (%s)', file_name, ex.message));
+                this.logger.addError(sprintf('Error reading meteorological file %s (%s)', file_name, ex.message));
                 return
             end
             

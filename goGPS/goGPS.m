@@ -3040,29 +3040,31 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     % PWV RETRIEVAL
     %-----------------------------------------------------------------------------------------------
     
-    md = Meteo_Data(state.getMetPath);
-    date_R(:,1) = four_digit_year(date_R(:,1));
-    
     ZWD = zeros(size(estim_tropo));
     PWV = zeros(size(estim_tropo));
     
-    if (md.isValid())
-        P = md.getPressure(GPS_Time(datenum(date_R(:,:))));
-        ZHD = saast_dry(P, h_ortho, phi_KAL);
-        ZTD = estim_tropo(:);
-        ZWD = ZTD - ZHD;
+    if (state.isTropoEnabled())
+        md = Meteo_Data(state.getMetPath());
+        date_R(:,1) = four_digit_year(date_R(:,1));
         
-        T = md.getTemperature(GPS_Time(datenum(date_R(:,:))));
-        degCtoK = 273.15;
-        
-        % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
-        Tm = (T + degCtoK)*0.72 + 70.2;
-        
-        % Askne and Nordius formula (from Bevis et al., 1994)
-        Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
-        
-        %Precipitable Water Vapor
-        PWV = ZWD ./ Q * 1e3;
+        if (md.isValid())
+            P = md.getPressure(GPS_Time(datenum(date_R(:,:))));
+            ZHD = saast_dry(P, h_ortho, phi_KAL);
+            ZTD = estim_tropo(:);
+            ZWD = ZTD - ZHD;
+            
+            T = md.getTemperature(GPS_Time(datenum(date_R(:,:))));
+            degCtoK = 273.15;
+            
+            % weighted mean temperature of the atmosphere over Alaska (Bevis et al., 1994)
+            Tm = (T + degCtoK)*0.72 + 70.2;
+            
+            % Askne and Nordius formula (from Bevis et al., 1994)
+            Q = (4.61524e-3*((3.739e5./Tm) + 22.1));
+            
+            %Precipitable Water Vapor
+            PWV = ZWD ./ Q * 1e3;
+        end
     end
     
     for i = 1 : nObs

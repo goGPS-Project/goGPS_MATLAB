@@ -237,7 +237,7 @@ classdef Constellation_Collector < Settings_Interface
         function update(this)
             % update the class, if some constallation have been modified
             % SYNTAX: this.update();
-            this.getActive;
+            this.getActive();
         end
 
         function active_list = getActive(this)

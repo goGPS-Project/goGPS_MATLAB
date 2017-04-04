@@ -495,12 +495,13 @@ classdef IO_Settings < Settings_Interface
             file_list = dir([full_out_prefix '*']); 
             % if there are no files in the putput folder
             if isempty(file_list)
-                this.run_counter = 0; % set the counter of the putput == 0
+                this.run_counter = this.RUN_COUNTER; % set the counter of the output == 0
             else
                 % put the cell of the file in a single string
                 file_list = fullfile(file_list(:).name);
                 % parse with regexp for output numbers -> get the maximum
                 this.run_counter = max(str2double(unique(regexp(file_list, [ '(?<=' out_prefix '_)[0-9]*(?=_)'], 'match')))) + 1; %#ok<PROP>
+                this.run_counter = iif(isempty(this.run_counter), this.RUN_COUNTER, this.run_counter);
             end
             
             % import file location and check for default folders

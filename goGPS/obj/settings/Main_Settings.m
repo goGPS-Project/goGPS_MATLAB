@@ -1169,12 +1169,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try 
                 this.flag_rinex_mpos = state.master_pos;   
                 if (state.crs == 1)
-                    X = str2double(state.master_X); if isempty(X); X = 0; end
-                    Y = str2double(state.master_Y); if isempty(Y); Y = 0; end
-                    Z = str2double(state.master_Z); if isempty(Z); Z = 0; end
+                    X = state.master_X; if isempty(X); X = 0; end
+                    Y = state.master_Y; if isempty(Y); Y = 0; end
+                    Z = state.master_Z; if isempty(Z); Z = 0; end
                     this.mpos = struct('X', X, 'Y', Y, 'Z', Z);
                 else
-                    [X, Y, Z] = geod2cart(str2double(state.master_lat), str2double(state.master_lon), str2double(state.master_h));
+                    [X, Y, Z] = geod2cart(state.master_lat, state.master_lon, state.master_h);
                     this.mpos = struct('X', X, 'Y', Y, 'Z', Z);
                 end
                 
@@ -1465,8 +1465,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                     this.cs_thr = 1e30; % i.e. disable cycle-slip detection during KF processing
                 end
             else
-                if (this.cs_thr_pre_pro < 1e30)
-                    this.logger.addMessage('Fixing cycle slips detection threshold for pre-processing to 1');
+                if (this.cs_thr_pre_pro ~= 1)
+                    this.logger.addMessage('Forcing cycle slips detection threshold for pre-processing to 1');
                     this.cs_thr_pre_pro = 1;
                 end
             end
@@ -1559,6 +1559,12 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Check wether the current KF mode is variable
             % SYNTAX = this.isVariableKF();
             is_variable = (this.isModeMonitor() && this.kf_mode == 1) || (~this.isModeMonitor() && this.kf_mode == 3);
+        end
+        
+        function is_tropo = isTropoEnabled(this)
+            % Check whether the tropospheric delay estimation is enabled
+            % SYNTAX = this.isTropoEnabled();
+            is_tropo = this.flag_tropo;
         end
     end
     % =========================================================================
