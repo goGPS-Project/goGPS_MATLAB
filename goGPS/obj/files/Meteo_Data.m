@@ -218,7 +218,7 @@ classdef Meteo_Data < handle
             % blocking for the processing, even if the data are not good
             
             % Try to read the file
-            this.logger.addMessage(sprintf('Loading Metereological data from %s\n', file_name));
+            this.logger.addMessage(sprintf('Loading Meteorological data from %s\n', file_name));
             try
                 this.time = GPS_Time(); % empty the time
                 this.file = File_Rinex(file_name);
