@@ -106,6 +106,7 @@ classdef QZSS_SS < Satellite_System
         function copy = getCopy(this)
             % Get a copy of this
             copy = QZSS_SS(this.getOffset());
+            copy.import(this);
         end
     end
 end

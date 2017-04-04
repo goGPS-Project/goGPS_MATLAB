@@ -106,6 +106,7 @@ classdef GPS_SS < Satellite_System
         function copy = getCopy(this)
             % Get a copy of this
             copy = GPS_SS(this.getOffset());
+            copy.import(this);
         end
     end    
 end

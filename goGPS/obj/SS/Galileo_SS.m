@@ -114,6 +114,7 @@ classdef Galileo_SS < Satellite_System
         function copy = getCopy(this)
             % Get a copy of this
             copy = Galileo_SS(this.getOffset());
+            copy.import(this);
         end
 
     end

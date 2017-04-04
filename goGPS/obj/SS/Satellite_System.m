@@ -202,9 +202,7 @@ classdef Satellite_System < Settings_Interface
             end            
             if (this.isActive())
                 name = this.getFreqName();
-                for f = 1 : find(this.flag_f)
-                    str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n', this.SYS_EXT_NAME, sprintf('"%s" ',  name{f}))]; %#ok<AGROW>
-                end
+                str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n', this.SYS_EXT_NAME, sprintf('"%s" ',  strcell2str(name(this.flag_f),', ')))];
             else
                 str = [str sprintf(' Satellite system "%s" is inactive\n', this.SYS_EXT_NAME)];
             end
