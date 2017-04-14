@@ -113,5 +113,5 @@
 /goGPS/positioning/lambda/lambda_v3
 de421.bin
 .DS_Store
-*.m~
+*~
 goGPS_batch_multiple_station.m

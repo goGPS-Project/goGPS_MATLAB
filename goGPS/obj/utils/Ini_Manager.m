@@ -90,15 +90,25 @@ classdef Ini_Manager < handle
         
         % Creator ---------------------------------------------------------
         function this = Ini_Manager(file_name, raw_data)
-        % Ini_Manager(fileName, verbosity) creator
+        % Creator of the class    
+        % SYNTAX:  Ini_Manager(<file_name>, <raw_data>) creator
             if (nargin == 0)
                 file_name = '';
             end
             if isempty(file_name)
                 file_name = '';
             end
-            this.setFileName(file_name);
-            if nargin == 2
+            
+            if (nargin == 1) && iscell(file_name) % ---------------- Parse RAW but do not save it
+                this.setFileName('');
+                this.raw_data = file_name;
+                this.setRW('w');
+                this.cleanRaw();
+                this.parseData();
+                this.setReadStatus(true)
+                this.raw_data = {};                  
+            elseif (nargin == 2) % --------------------------------- Parse and save RAW
+                this.setFileName(file_name);
                 this.raw_data = raw_data;
                 this.setRW('w');
                 this.writeFile();
@@ -106,6 +116,8 @@ classdef Ini_Manager < handle
                 this.parseData();
                 this.setReadStatus(true)
                 this.raw_data = {};
+            else
+                this.setFileName(file_name);
             end
         end
         
@@ -444,7 +456,7 @@ classdef Ini_Manager < handle
                %this.printWarning('File not yet read!\n');
                this.readFile();
             end
-            
+            found = false;
             data = [];
             if (nargin == 2)
                 key = section;
@@ -455,6 +467,7 @@ classdef Ini_Manager < handle
                     while ((p <= length(this.section{s}.key)) && (p ~= 0))
                         if (strcmp(this.section{s}.key{p}.name,key))
                             data = this.section{s}.key{p}.data;
+                            found = true;
                             p = 0;      % Stop searching key
                         else
                             p = p+1;    % go on with the search of the key
@@ -466,7 +479,7 @@ classdef Ini_Manager < handle
                         s = s+1;   % go on with the search of the section
                     end
                 end
-                if (isempty(data))
+                if ~found
                     this.logger.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
                     data = [];
                 end
@@ -479,6 +492,7 @@ classdef Ini_Manager < handle
                         while ((p <= length(this.section{s}.key)) && (p ~= 0))
                             if (strcmp(this.section{s}.key{p}.name,key))
                                 data = this.section{s}.key{p}.data;
+                                found = true;
                                 p = 0; % Stop searching key
                             else
                                 p = p+1;    % go on with the search of the key
@@ -489,7 +503,7 @@ classdef Ini_Manager < handle
                         s = s+1;    % go on with the search of the section
                     end
                 end
-                if (isempty(data))
+                if ~found
                     this.logger.addWarning(['Key "' key '" not found in section "' section '" while reading: "' this.file_name '"'], 100);
                     data = [];
                 end
@@ -589,27 +603,56 @@ classdef Ini_Manager < handle
         
         % Edit a key in the object Ini_Manager ----------------------------
         function editKey(this, section, key, data)
+            this.setData(section, key, data)
+        end
+        
+        function setData(this, section, key, data)
             % Edit a key in the object Ini_Manager
             s = 1;
             k = 1;
-            while ((s<=length(this.section)) && (s ~= 0))
-                if (strcmp(this.section{s}.name,section))
-                    k = 1;
-                    while ((k<=length(this.section{s}.key)) && (k ~= 0))
-                        if (strcmp(this.section{s}.key{k}.name,key))
+            if (nargin == 3)
+                data  = key;
+                key = section;
+                % Search the key among all the sections
+                while ((s<=length(this.section)) && (s > 0))
+                    p = 1;
+                    while ((p <= length(this.section{s}.key)) && (p ~= 0))
+                        if (strcmp(this.section{s}.key{p}.name,key))
                             this.section{s}.key{k}.data = data;
-                            k = 0;
+                            p = 0;      % Stop searching key
                         else
-                            k = k + 1;
+                            p = p+1;    % go on with the search of the key
                         end
                     end
-                    s = 0;
-                else
-                    s = s + 1;    % go on with the search of the section
+                    if (p == 0)
+                        s = 0;     % Stop searching section
+                    else
+                        s = s+1;   % go on with the search of the section
+                    end
                 end
-            end
-            if (k ~= 0)
-                this.printError(['Key "' key '" not found!\n']);
+                if (isempty(data))
+                    this.logger.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
+                end
+            else
+                while ((s<=length(this.section)) && (s ~= 0))
+                    if (strcmp(this.section{s}.name,section))
+                        k = 1;
+                        while ((k<=length(this.section{s}.key)) && (k ~= 0))
+                            if (strcmp(this.section{s}.key{k}.name,key))
+                                this.section{s}.key{k}.data = data;
+                                k = 0;
+                            else
+                                k = k + 1;
+                            end
+                        end
+                        s = 0;
+                    else
+                        s = s + 1;    % go on with the search of the section
+                    end
+                end
+                if (k ~= 0)
+                    this.logger.addWarning(['Key "' key '" not found while reading: "' this.file_name '"'], 10);
+                end
             end
         end
         
@@ -927,11 +970,14 @@ classdef Ini_Manager < handle
     methods (Static)
         
         % cellStringtoString -----------------------------------------------------
-        function str = cellString2String(value)
+        function str = strCell2Str(value)
             % Converta cell of string to string
             % SYNTAX:
-            %   str = cellString2String(value)
+            %   str = strCell2Str(value)
             if ~isempty(value)
+                if ~iscell(value)
+                    value = {value};
+                end
                 str = strcat('"', value{1}, '"');
                 for i = 2 : numel(value)
                     str = strcat(str, ' "', value{i}, '"');
@@ -987,7 +1033,7 @@ classdef Ini_Manager < handle
                 toString = @(var) strtrim(regexprep(evalc(['disp(var)']), '\n', ''));
                 if iscell(value)
                     if ischar(value{1})
-                        cell_str{numel(cell_str) + 1} = [variable_name ' = [' Ini_Manager.cellString2String(value) ']'];
+                        cell_str{numel(cell_str) + 1} = [variable_name ' = [' Ini_Manager.strCell2Str(value) ']'];
                     else
                         cell_str{numel(cell_str) + 1} = [variable_name ' = [' toString(value) ']'];
                     end

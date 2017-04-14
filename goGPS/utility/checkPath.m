@@ -12,7 +12,7 @@ function [universal_path, is_valid] = checkPath(path)
 %
 % DESCRIPTION:
 %   Conversion of path OS specific to a universal one: "/" or "\" are converted to filesep 
-%   if the second parameter is present is_valid contains the status of existence 
+%   if the second output parameter is present is_valid contains the status of existence 
 %       2 => is a file
 %       7 => is a folder
 
@@ -47,28 +47,5 @@ function [universal_path, is_valid] = checkPath(path)
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
 
-if not(isempty(path))
-    if (iscell(path))
-        % for each line of the cell+
-        universal_path = cell(size(path));
-        for c = 1 : length(path)
-            universal_path{c} = regexprep(path{c}, '(\\(?![ ]))|(\/)', filesep);
-            universal_path{c} = regexprep(universal_path{c}, ['\' filesep '\' filesep], filesep);
-        end
-        if (nargout == 2)
-            is_valid = zeros(size(path));
-            for c = 1 : length(path)
-                is_valid(c) = exist(universal_path{c}, 'file'); % if it is a file is_valid contains 2, if it is a dir it contains 7
-            end
-        end
-    else
-        universal_path = regexprep(path, '(\\(?![ ]))|(\/)', filesep);
-        universal_path = regexprep(universal_path, ['\' filesep '\' filesep], filesep);
-        if (nargout == 2)
-            is_valid = exist(path, 'file'); % if it is a file is_valid contains 2, if it is a dir it contains 7
-        end
-    end    
-else
-    universal_path = [];
-    is_valid = 0;
-end
+[universal_path, is_valid] = File_Name_Processor.checkPath(path);
+

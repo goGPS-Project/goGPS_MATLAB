@@ -49,7 +49,7 @@
 
 classdef Settings_Interface < handle
     properties (SetAccess = protected, GetAccess = protected)
-        logger = Logger.getInstance(); % Handler to the logger object
+        logger; % Handler to the logger object
     end
     
     properties (Abstract)
@@ -67,6 +67,11 @@ classdef Settings_Interface < handle
     end
     
     methods (Access = 'public')
+        function initLogger(this)
+            % Init the logger object
+            % SYNTAX: this.initLogger();
+            this.logger = Logger.getInstance();
+        end
         
         function ini = save(this, file_path)
             % Save to a file (in INI fomat) the content of the Settings object
@@ -142,6 +147,22 @@ classdef Settings_Interface < handle
             end
         end
         
+        function checked_val = checkCellString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
+            % Check if a string is a valid string
+            % SYNTAX: checked_val = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == false>);
+            if (nargin < 5)
+                empty_is_valid = false;
+            end
+            if (nargin < 6)
+                check_existence = false;
+            end
+            
+            checked_val = checkString(this, field_name, field_val, default_val, empty_is_valid, check_existence);
+            if ~iscell(checked_val)
+                checked_val = {checked_val};
+            end
+        end
+        
         function checked_val = checkString(this, field_name, field_val, default_val, empty_is_valid, check_existence)
             % Check if a string is a valid string
             % SYNTAX: checked_val = this.checkString(string_field_name, <empty_is_valid == false>, <check_existence == false>);
@@ -153,12 +174,20 @@ classdef Settings_Interface < handle
             end
             
             checked_val = default_val;
-            if (ischar(field_val) || (empty_is_valid && isempty(field_val))) && ((~isempty(field_val)) || empty_is_valid) && ((exist(field_val,'file')) || ~check_existence)
-                checked_val = field_val;
-            else
-                this.logger.addWarning(sprintf('The settings field %s is not valid => using default %s', field_name, checked_val));
+            default_val = field_val;
+            if iscell(field_val) % A cell of strings must contain at least one string
+                field_val = field_val{1};
             end
-        end       
+            if (ischar(field_val) || (empty_is_valid && isempty(field_val))) && ((~isempty(field_val)) || empty_is_valid) && ((exist(field_val,'file') || exist(field_val,'dir')) || ~check_existence)
+                checked_val = default_val;
+            else
+                if iscell(checked_val)
+                    this.logger.addWarning(sprintf('The settings field %s is not valid => using default %s', field_name, Ini_Manager.strCell2Str(checked_val)));
+                else
+                    this.logger.addWarning(sprintf('The settings field %s is not valid => using default %s', field_name, checked_val));
+                end
+            end
+        end
         
         function checked_val = checkNumber(this, field_name, field_val, default_val, limits, valid_val)
             % Check if a number is valid
@@ -192,7 +221,7 @@ classdef Settings_Interface < handle
             % test the class (Interface Routines)
             % SINTAX: this.testInterfaceRoutines();
             
-            try
+            %try
                 vl = this.logger.getVerbosityLev();
                 this.logger.setVerbosityLev(1e3);
                 test = this;
@@ -207,10 +236,10 @@ classdef Settings_Interface < handle
                 clear test_copy;
                 fprintf('\n');
                 disp(test.toString());
-                delete('test__.ini');
-            catch ex
-                this.logger.addError(['Test failed: ' ex.message]);
-            end
+                %delete('test__.ini');
+            %catch ex
+            %    this.logger.addError(['Test failed: ' ex.message]);
+            %end
             this.logger.setVerbosityLev(vl);
         end        
     end

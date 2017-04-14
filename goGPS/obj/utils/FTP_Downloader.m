@@ -44,13 +44,22 @@
 %--------------------------------------------------------------------------
 
 classdef FTP_Downloader < handle
-    
+    properties (Constant, GetAccess = public)
+        OK           =  0;   % All the files have been downloaded properly
+        ERR_NEP      = -1;   % Not Enough parameters!
+        ERR_NIC      = -2;   % No Internet Connection!
+        ERR_FTP_FAIL = -3;   % Download failed for FTP problems
+        ERR_FNF      = -4;   % at least one file not found        
+        ERR_FNV      = -5;   % at least one file not valid (it can not be uncompressed)        
+        W_FP         =  1    % Warning File Present - at least one file to be dowloaded is already present
+    end
+
     properties (SetAccess = protected, GetAccess = protected)
-        ftp_ip;       % IP address of the FTP server, stored as string
-        remote_dir;   % Base dir path on the remote server to locate the file to download
-        file_name;    % name of the file
-        local_dir;    % Download directory: location on the local machine for the storage of the file to be downloaded
-        
+        addr;           % IP address of the FTP server, stored as string
+        port = '21';    % PORT to access the FTP server, stored as number
+        remote_dir;     % Base dir path on the remote server to locate the file to download
+        file_name;      % name of the file
+        local_dir;      % Download directory: location on the local machine for the storage of the file to be downloaded        
     end
                           
                               
@@ -58,18 +67,184 @@ classdef FTP_Downloader < handle
         logger = Logger.getInstance(); % Handler to the logger object
     end
     
-   
     methods        
-        function this = FTP_Downloader(ftp_ip, remote_dir, file_ame,  local_dir)
+        function this = FTP_Downloader(ftp_addr, ftp_port, remote_dir, file_name,  local_dir)
             % Constructor
-
-        end        
+            % EXAMPLE: FTP_Downloader('')
+            
+            this.addr = ftp_addr;
+            % Cleaning address
+            if strcmp(this.addr(end),'/')
+                this.addr(end) = [];
+            end            
+            this.addr = strrep(this.addr,'ftp://','');
+            
+            if (nargin > 1) && (~isempty(ftp_port))
+                if ~ischar(ftp_port)
+                    ftp_port = num2str(ftp_port);
+                end
+                this.port = ftp_port;
+            end
+            if (nargin > 2)
+                this.remote_dir = remote_dir;
+            end
+            if (nargin > 3)
+                this.file_name = file_name;
+            end
+            if (nargin > 4)
+                this.local_dir = local_dir;
+            end
+        end
+        
+        
+        function [status, compressed] = download(this, remote_dir, file_name, local_dir, force_overwrite)
+            % function to download a file (or a list of files) from a ftp a server
+            % SYNTAX:
+            %   status = this.download(<remote_dir>, file_name, local_dir, <force_overwrite = true>)
+            %   status = this.download(remote_dir, file_name, local_dir)
+            %   status = this.download(file_name, local_dir)
+            %   status = this.download(file_name, local_dir, force_overwrite)
+            %
+            % EXAMPLE:            
+            %   ftpd = FTP_Downloader('127.0.0.1','25','/');
+            %   ftpd.download('file.txt', './');
+            
+            % managing function overloading
+            if (nargin < 3)
+                this.logger.addError('FTP_Downloader.download, not enough input parameters');
+                status = FTP_Downloader.ERR_NEP;
+                return;
+            elseif (nargin == 3)
+                force_overwrite = false;
+                local_dir = file_name;
+                this.file_name = remote_dir;                
+            elseif (nargin == 4) 
+                if ~ischar(local_dir)
+                    force_overwrite = local_dir;
+                    local_dir = file_name;
+                    this.file_name = remote_dir;
+                    this.remote_dir = FTP_Downloader.remote_dir;
+                else
+                    force_overwrite = false;
+                    this.remote_dir = remote_dir;
+                    this.file_name = file_name;
+                end
+            else
+                this.remote_dir = remote_dir;
+                this.file_name = file_name;
+            end
+            
+            % function start 
+            if (this.checkNet)
+                % connect to the server
+                try
+                    this.logger.addMarkedMessage(sprintf('Initializing download process from %s', strcat(this.addr, ':', this.port)));
+                    ftp_server = ftp(strcat(this.addr, ':', this.port));
+                    this.logger.addStatusOk('connected with remote FTP');
+                    
+                    % convert file_name in a cell array
+                    if ~iscell(this.file_name)
+                        this.file_name{1} = this.file_name;
+                    end
+                                        
+                    n_files = numel(this.file_name);
+                    status = FTP_Downloader.OK;
+                    i = 0;
+                    while (i < n_files) && (status >= FTP_Downloader.OK)
+                        i = i + 1;
+                        
+                        % get the exact remote path / file name
+                        full_path = fullfile(this.remote_dir, this.file_name{i});
+                        if (full_path(1) ~= '/')
+                            full_path = strcat('/', full_path);
+                        end
+                        [remote_dir, file_name, file_ext] = fileparts(full_path);                        
+                        compressed = strcmpi(file_ext,'.Z');
+                        
+                        % check for a local version
+                        local_path = fullfile(local_dir, iif(compressed, file_name, strcat(file_name, file_ext)));
+                        local_file = exist(local_path, 'file');
+                        
+                        if ~local_file || force_overwrite
+                            try
+                                % move to the remote dir of the file
+                                cd(ftp_server, remote_dir);
+                                % check file existence (without extension)
+                                file_exist = ~isempty(dir(ftp_server, full_path));
+                                if (~compressed && ~file_exist)
+                                    full_path = strcat(full_path,'.Z');
+                                    file_ext = strcat(file_ext,'.Z');
+                                    file_exist = ~isempty(dir(ftp_server, full_path));
+                                    compressed = true;
+                                end
+                                file_name = strcat(file_name, file_ext);
+                                
+                                if (file_exist)
+                                    this.logger.addStatusOk(sprintf('%s found in %s, downloading...',file_name, remote_dir));
+                                    
+                                    try
+                                        if ~(exist(local_dir,'dir'))
+                                            mkdir(local_dir);
+                                        end
+                                        mget(ftp_server, file_name, local_dir);
+                                        if compressed
+                                            try
+                                                if (isunix())
+                                                    system(['uncompress -f ' local_dir file_name]);
+                                                    compressed = false;
+                                                else
+                                                    try
+                                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir file_name '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
+                                                        delete([down_dir file_name]);
+                                                    catch
+                                                        this.logger.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
+                                                        compressed = 1;
+                                                    end
+                                                end
+                                                this.file_name{i} = file_name(1:end-2);
+                                                this.logger.addMessage(sprintf('\b file ready!'));
+                                            catch
+                                                this.logger.addWarning(sprintf('decompression of %s from %s failed', file_name, strcat(this.addr, ':', this.port)));
+                                                status = FTP_Downloader.ERR_FNV;
+                                            end
+                                        else
+                                            this.logger.addMessage(sprintf('\b file ready!'));
+                                        end
+                                    catch
+                                        this.logger.addWarning(sprintf('download of %s from %s failed', file_name, strcat(this.addr, ':', this.port, remote_dir)));
+                                        this.logger.addWarning('file not found or not accessible');
+                                        status = FTP_Downloader.ERR_FNF;
+                                    end
+                                else
+                                    this.logger.addWarning(sprintf('download of %s from %s failed', file_name, strcat(this.addr, ':', this.port, remote_dir)));
+                                    this.logger.addWarning('file not found or not accessible');
+                                    status = FTP_Downloader.ERR_FNF;
+                                end
+                            catch ex
+                                this.logger.addWarning(sprintf('connection to %s failed', strcat(this.addr, ':', this.port, remote_dir)));
+                                this.logger.addWarning(sprintf('%s', ex.message));
+                                status = FTP_Downloader.ERR_FNF;
+                            end
+                        else
+                            this.logger.addStatusOk(sprintf('%s has been found locally', strcat(file_name, file_ext)));
+                            status = FTP_Downloader.W_FP;
+                        end
+                    end
+                    close(ftp_server);
+                catch ex
+                    this.logger.addWarning(sprintf('connection to %s failed - %s', strcat(this.addr, ':', this.port), ex.message));                    
+                    status = FTP_Downloader.ERR_FTP_FAIL;
+                end                                
+            else
+                status = FTP_Downloader.ERR_NIP;
+            end            
+        end
     end
     
-    methods (Static)
+    methods (Static)        
         function flag = checkNet()
             % Check whether internet connection is available            
-            url =java.net.URL('http://www.google.org');
+            url =java.net.URL('http://igs.org');
             
             % read the URL
             try

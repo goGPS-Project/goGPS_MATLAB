@@ -1,4 +1,4 @@
-%   CLASS GO_Settings
+%   CLASS Go_State
 % =========================================================================
 %
 % DESCRIPTION
@@ -8,9 +8,9 @@
 %   properties of the class are needed during the execution of goGPS
 %
 % EXAMPLE
-%   settings = GO_Settings.getInstance();
+%   settings = Go_State.getInstance();
 %
-% FOR A LIST OF CONSTANTs and METHODS use doc GO_Settings
+% FOR A LIST OF CONSTANTs and METHODS use doc Go_State
 
 %--------------------------------------------------------------------------
 %               ___ ___ ___ 
@@ -43,7 +43,7 @@
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-classdef GO_Settings < Settings_Interface
+classdef Go_State < Settings_Interface
     
     properties (Constant)
         V_LIGHT = 299792458;                % Velocity of light in the void [m/s]
@@ -76,8 +76,9 @@ classdef GO_Settings < Settings_Interface
         % Guard the constructor against external invocation.  We only want
         % to allow a single instance of this class.  See description in
         % Singleton superclass.
-        function obj = GO_Settings()
-        end        
+        function this = Go_State()
+            this.initLogger();
+        end
     end
     
     % =========================================================================
@@ -112,9 +113,9 @@ classdef GO_Settings < Settings_Interface
             
             if isempty(unique_instance_settings__)
                 if ini_is_present
-                    this = GO_Settings(ini_settings_file);
+                    this = Go_State(ini_settings_file);
                 else
-                    this = GO_Settings();
+                    this = Go_State();
                 end
                 unique_instance_settings__ = this;
             else
@@ -133,9 +134,9 @@ classdef GO_Settings < Settings_Interface
         function cur_settings = getCurrentSettings(ini_settings_file)
             % Get the persistent sittings
             if nargin == 0
-                this = GO_Settings.getInstance();
+                this = Go_State.getInstance();
             else
-                this = GO_Settings.getInstance(ini_settings_file);
+                this = Go_State.getInstance(ini_settings_file);
             end
             % Return the handler to the object containing the current settings
             cur_settings = handle(this.cur_settings);
@@ -154,7 +155,7 @@ classdef GO_Settings < Settings_Interface
                 try
                     this.cur_settings.import(settings);
                 catch ex
-                    this.logger.addWarning(['GO_Settings.import failed to import settings (invalid input settings) ', ex.message()]);
+                    this.logger.addWarning(['Go_State.import failed to import settings (invalid input settings) ', ex.message()]);
                 end
             end            
         end
@@ -187,8 +188,12 @@ classdef GO_Settings < Settings_Interface
     methods (Access = public)
         function initProcessing(this)
             % Load external resources and update
+            this.logger.addMessage(this.cur_settings.cc.toString);
+            
             this.initRef();
             this.initGeoid();
+            fw = File_Wizard;
+            fw.conjureFiles();
         end
     end
     
@@ -200,19 +205,19 @@ classdef GO_Settings < Settings_Interface
             % REFERENCE PATH LOAD
             %-------------------------------------------------------------------------------------------
             if this.cur_settings.plot_ref_path                
-                filename_ref = this.cur_settings.getRefPath();
+                filename_ref = this.cur_settings.getRefFile();
                 d = dir(filename_ref);
                 
                 if ~isempty(d)
                     load(filename_ref, 'ref_path', 'mat_path');
                     
                     % adjust the reference path according to antenna height
-                    [ref_phi, ref_lam, ref_h] = cart2geod(ref_path(:,1),ref_path(:,2),ref_path(:,3)); %#ok<NODEF,PROP>
+                    [ref_phi, ref_lam, ref_h] = cart2geod(ref_path(:,1),ref_path(:,2),ref_path(:,3)); %#ok<NODEF>
                     ref_h = ref_h + this.cur_settings.antenna_h;
-                    orbital_p = this.cur_settings.cc.ss_gps.ORBITAL_P; % Using GPS orbital parameters
+                    orbital_p = this.cur_settings.cc.gps.ORBITAL_P; % Using GPS orbital parameters
                     [ref_X, ref_Y, ref_Z] = geod2cart(ref_phi, ref_lam, ref_h, orbital_p.ELL.A, orbital_p.ELL.F);
                     this.reference.path = [ref_X , ref_Y , ref_Z];
-                    this.reference.adj_mat = mat_path; %#ok<CPROP>                     
+                    this.reference.adj_mat = mat_path;
                 else
                     this.reference.path = [];
                     this.reference.adj_mat = [];
@@ -282,13 +287,7 @@ classdef GO_Settings < Settings_Interface
             if nargin == 1
                 state = this.cur_settings;
             end
-            
-            global goIni;
-            if isempty(goIni)
-                goIni = Go_Ini_Manager(state.input_file_ini_path);
-            end
-            goIni.readFile(); % re-read the file
-            
+                        
             varargout = cell(40,1);
             varargout{1}  = state.getMode();         % mode
             varargout{2}  = state.constrain;       % constrain
@@ -309,36 +308,19 @@ classdef GO_Settings < Settings_Interface
             
             file_root_out = checkPath([state.out_dir filesep state.out_prefix '_' num2str(state.run_counter,'%03d') ]);
             
-            if state.isModePP()
-                % deprecate bin files
-                data_path = goIni.getData('Bin','data_path');
-                file_prefix = goIni.getData('Bin','file_prefix');
-                file_root_in = checkPath([data_path file_prefix]);
-                
-                data_path = state.ext_ini.getData('Navigational', 'data_path');
-                file_name = state.ext_ini.getData('Navigational', 'file_name');
-                file_name_nav = checkPath([data_path file_name]);
-                data_path = state.ext_ini.getData('Receivers', 'data_path');
-                file_name = state.ext_ini.getData('Receivers', 'file_name');
-                file_name_R_obs = checkPath([data_path file_name]);
-                data_path = state.ext_ini.getData('Master', 'data_path');
-                file_name = state.ext_ini.getData('Master', 'file_name');
-                file_name_M_obs = checkPath([data_path file_name]);
-                file_name_ref = state.getRefPath();
-                file_name_pco = state.atx_path;
-                file_name_blq = state.ocean_path;
-                
+            if state.isModePP()                
+                file_name_nav = '';
+                file_name_ref = state.getReferencePath();
+                file_name_pco = state.getAtxFile();
+                file_name_blq = state.getOceanFile();                
                 
                 if(state.isModeMultiReceiver())
-                    [multi_antenna_rf, ~] = goIni.getGeometry();
+                    [multi_antenna_rf, ~] = state.getGeometry();
                 else
                     multi_antenna_rf = [];
                 end
 
             else
-                file_root_in = '';
-                file_name_R_obs = '';
-                file_name_M_obs = '';
                 file_name_nav = '';
                 file_name_ref = '';
                 file_name_pco = '';
@@ -349,10 +331,15 @@ classdef GO_Settings < Settings_Interface
             protocol_idx = state.c_prtc;
             
             
-            varargout{17} = file_root_in;      % prefix of the in binary file
+            varargout{17} = '';      % prefix of the in binary file no more supported
             varargout{18} = file_root_out;     % prefix of the out prefix
-            varargout{19} = file_name_R_obs;
-            varargout{20} = file_name_M_obs;
+            if state.isModeSEID()
+                varargout{19} = state.getReferencePath();
+                varargout{20} = state.getTargetPath();
+            else
+                varargout{19} = state.getTargetPath();
+                varargout{20} = state.getMasterPath();
+            end
             varargout{21} = file_name_nav;
             varargout{22} = file_name_ref;
             varargout{23} = file_name_pco;
@@ -365,12 +352,7 @@ classdef GO_Settings < Settings_Interface
             varargout{29} = state.tropo_model;      % tropo 
             
             % mixed
-            fsep = goIni.getData('Various','field_separator');
-            if (isempty(fsep))
-                varargout{30} = 'default';
-            else
-                varargout{31} = fsep;
-            end
+            varargout{30} = 'default';
             
             varargout{31} = state.flag_ocean; 
             varargout{32} = state.flag_outlier;
@@ -380,8 +362,8 @@ classdef GO_Settings < Settings_Interface
             varargout{36} = state.p_rate;
             varargout{37} = iif(state.flag_ionofree,'IONO_FREE', 'NONE');
             varargout{38} = state.flag_pre_pro;       % flag pre-processing
-            varargout{39} = state.crd_path;
-            varargout{40} = state.met_path;
+            varargout{39} = state.getCrdFile();
+            varargout{40} = state.getMetFile();
             
             global sigmaq0 sigmaq_vE sigmaq_vN sigmaq_vU sigmaq_vel
             global sigmaq_cod1 sigmaq_cod2 sigmaq_codIF sigmaq_ph sigmaq_phIF sigmaq0_N sigmaq_dtm sigmaq0_tropo sigmaq_tropo sigmaq0_rclock sigmaq_rclock
@@ -419,6 +401,8 @@ classdef GO_Settings < Settings_Interface
                 end
             end
 
+            cutoff = state.cut_off;
+            snr_threshold = state.snr_thr;
             flag_doppler_cs = state.flag_doppler;
             sigmaq0 = state.sigma0_k_pos ^ 2;
             sigmaq_vE = state.std_k_ENU.E ^ 2;
@@ -441,14 +425,7 @@ classdef GO_Settings < Settings_Interface
             
             min_nsat = state.min_n_sat;
             min_arc = state.min_arc;
-            
-            goIni.addSection('Generic');
-            goIni.addKey('Generic','cutoff', state.cut_off);
-            cutoff = state.cut_off;
-            goIni.addKey('Generic','snrThr', state.snr_thr);
-            snr_threshold = state.snr_thr;
-            goIni.addKey('Generic','csThr', state.cs_thr);
-            
+                        
             cs_threshold = state.cs_thr;
             cs_threshold_preprocessing = state.cs_thr_pre_pro;
             
@@ -502,7 +479,7 @@ classdef GO_Settings < Settings_Interface
     methods (Static, Access = 'public')
         function test()      
             % test the class
-            s = GO_Settings.getInstance();
+            s = Go_State.getInstance();
             s.testInterfaceRoutines();
         end
     end    

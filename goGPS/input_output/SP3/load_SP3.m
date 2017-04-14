@@ -55,7 +55,7 @@ function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
 % 01100111 01101111 01000111 01010000 01010011 
 %--------------------------------------------------------------------------
 
-state = GO_Settings.getCurrentSettings();
+state = Go_State.getCurrentSettings();
 logger = Logger.getInstance();
 
 if (isempty(constellations)) %then use only GPS as default
@@ -80,11 +80,8 @@ if (nargin > 4)
 end
 
 % extract containing folder
-pos = strfind(filename_SP3, '/');
-if (isempty(pos))
-    pos = strfind(filename_SP3, '\');
-end
-filename_SP3 = filename_SP3(1:pos(end)+3);
+[data_dir, file_name, file_ext] = fileparts(filename_SP3);
+filename_SP3 = File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3)));
 
 % define time window
 [week_start, time_start] = time2weektow(time(1));
@@ -270,36 +267,29 @@ if (~flag_unavail)
     q = zeros(constellations.nEnabledSat,1);
     
     % for each part (SP3 file)
+    [data_dir, file_name, file_ext] = fileparts(state.getFullNavClkPath(1));
+    if strcmp(file_ext, '.sp3')
+        file_ext = 'clk_05s';
+    end
     for p = 1 : size(week_dow,1)
         % CLK file
-        clk_file_name = [filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk'];
+        clk_file_name = strcat(File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3), num2str(week_dow(p,1)), num2str(week_dow(p,2)), file_ext)));
         if ~exist(clk_file_name, 'file')
             % Try to search for the file in the default path
-            [~, file_name, file_ext] = fileparts(clk_file_name);
-            clk_file_name = [state.clk_dir filesep file_name file_ext];
+            file_ext = '.clk_30s';
+            clk_file_name = strcat(File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3), num2str(week_dow(p,1)), num2str(week_dow(p,2)), file_ext)));
+        end
+        if ~exist(clk_file_name, 'file')
+            % Try to search for the file in the default path
+            file_ext = '.clk';
+            clk_file_name = strcat(File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3), num2str(week_dow(p,1)), num2str(week_dow(p,2)), file_ext)));
         end
         f_clk = fopen(clk_file_name,'r');
-        
-        % CLK_30S file
-        clk30_file_name = [filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.clk_30s'];
-        if ~exist(clk30_file_name, 'file')
-            % Try to search for the file in the default path
-            [~, file_name, file_ext] = fileparts(clk30_file_name);
-            clk30_file_name = [state.clk_dir filesep file_name file_ext];
-        end
-        f_clk_30s = fopen(clk30_file_name,'r');
-        
-        if (f_clk == -1 && f_clk_30s == -1)
-            logger.addWarning(sprintf('No clk files have been found at %s', clk30_file_name));
-        else
-            % set the best clock available
-            if (f_clk_30s ~= -1)
-                if (f_clk ~= -1)
-                    fclose(f_clk);
-                end
-                f_clk = f_clk_30s;
-            end
-            
+                
+        if (f_clk == -1)
+            logger.addWarning(sprintf('No clk files have been found at %s', clk_file_name));
+        else   
+            logger.addMessage(sprintf('Using as clock file: %s', clk_file_name));
             % read the entire clk file in memory
             clk_file = textscan(f_clk,'%s','Delimiter', '\n');
             if (length(clk_file) == 1)

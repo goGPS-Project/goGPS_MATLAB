@@ -50,9 +50,9 @@ classdef Logger < handle
     end
 
     properties (GetAccess = 'private', SetAccess = 'protected')
-        color_mode = false;            % Flag for coloured output messages (if true requires cprintf)        
+        color_mode = true;            % Flag for coloured output messages (if true requires cprintf)        
         verbosity = Logger.DEFAULT_VERBOSITY_LEV; % Verbosity level 
-        std_out = 0;                   % Define the standard output of the 
+        std_out = 0;                  % Define the standard output of the 
     end
         
     methods (Access = private)
@@ -107,14 +107,38 @@ classdef Logger < handle
     % =========================================================================
     %  OUTPUT UTILITIES (respect verbosity)
     % =========================================================================
-    methods       
+    methods   
+        function newLine(this, verbosity_level)
+            % Send a message through the standard interface
+            if (nargin < 2)
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= this.verbosity)
+                fprintf('\n');
+            end
+        end       
+        
+        function addMarkedMessage(this, text, verbosity_level)
+            % Send a message through the standard interface
+            if (nargin < 3)
+                verbosity_level = this.DEFAULT_VERBOSITY_LEV;
+            end
+            if (verbosity_level <= this.verbosity)
+                if this.color_mode
+                    cprintf('Green','   **  ');
+                    cprintf('text', strcat(text, '\n'));
+                else
+                    fprintf('   **  %s\n', text);
+                end
+            end
+        end
         function addMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
                 verbosity_level = this.DEFAULT_VERBOSITY_LEV;
             end
             if (verbosity_level <= this.verbosity)
-                fprintf('%s\n', text);
+                fprintf(' %s\n', text);
             end
         end
         
@@ -179,7 +203,7 @@ classdef Logger < handle
             end
             this.opStatus(1, color_mode);
             if (color_mode)
-                cprintf('SystemCommands', 'Warning: ');
+                cprintf([1 0.65 0], 'Warning: ');
                 cprintf('text', [text '\n']);
             else
                 fprintf(['WARNING: ' text '\n']);
@@ -216,7 +240,7 @@ classdef Logger < handle
                 cprintf('blue',' [ ');
                 switch (status)
                     case 0, cprintf('Green','ok');
-                    case 1, cprintf('SystemCommands','WW');
+                    case 1, cprintf([1 0.65 0],'WW');
                     otherwise, cprintf('Red','!!');
                 end
                 cprintf('blue',' ] ');

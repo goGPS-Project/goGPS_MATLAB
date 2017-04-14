@@ -62,8 +62,11 @@ warning off; %#ok<WNOFF>
 % include all subdirectories
 addpath(genpath(pwd));
 
+core = Core.getInstance();
+core.showTextHeader();
+
 % Pointer to the global settings:
-gs = GO_Settings.getInstance();
+gs = Go_State.getInstance();
 state = gs.getCurrentSettings();
 %settings_file = checkPath('..\data\project\default_PPP\config\settings.ini');
 if exist('ini_settings_file', 'var')
@@ -118,17 +121,15 @@ if (mode_user == 1)
     % to be compatible among various OSs the property "unit" of all the
     % elements must be set to "pixels" 
     % (default unit is "character", but the size of a character is OS dependent)    
-    [state_from_gui, ok_go] = gui_goGPS;
+    [ok_go] = gui_goGPS;
     if (~ok_go)
         return
     end
-    
-    state.import(state_from_gui);
-    
+        
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
         filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-        filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
+        ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
         flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo(state);
     
 else
@@ -140,7 +141,7 @@ else
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
             filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
-            filename_nav, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
+            ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
             flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
     else
         
@@ -164,13 +165,23 @@ else
     end
 end
 
-global goIni;
-
 %-------------------------------------------------------------------------------------------
 % GO goGPS - here the computations start
 %-------------------------------------------------------------------------------------------
 
-gs.initProcessing();
+gs.initProcessing(); % Set up / download observations and navigational files
+
+% Actually batch from settings is not supported -> filtering names
+for r = 1 : numel(filename_R_obs)
+    for e = 1 % : numel(filename_R_obs{r})
+        filename_R_obs{r} = filename_R_obs{r}{e};
+    end    
+end
+for r = 1 : min(1, numel(filename_M_obs))
+    for e = 1 : min(1, numel(filename_M_obs{r}))
+        filename_M_obs = filename_M_obs{r}{e};
+    end    
+end
 
 cc = state.getConstellationCollector();
 GPS_flag = cc.isGpsActive();
@@ -196,7 +207,7 @@ tic;
 %-------------------------------------------------------------------------------------------
 % DETECT IF NAVIGATION FILE IS IN SP3 FORMAT
 %-------------------------------------------------------------------------------------------
-
+filename_nav = state.getFullNavEphPath(1);
 if goGNSS.isPP(mode)
     fid = fopen(filename_nav);
     line1 = fgetl(fid); line2 = fgetl(fid);
@@ -324,7 +335,7 @@ while read_files
         
         SP3 = [];
         
-        %prepare the input for the load_RINEX_obs function
+        % prepare the input for the load_RINEX_obs function
         filename_obs = multiple_RINEX_interface(filename_R_obs, filename_M_obs, mode);
         
         if goGNSS.isSA(mode) % absolute positioning
@@ -398,7 +409,7 @@ while read_files
                 %----------------------------------------------------------------------------------------------
                 % LOAD SP3 DATA
                 %----------------------------------------------------------------------------------------------
-                SP3 = load_SP3(filename_nav, time_GPS, week_R, constellations);
+                SP3 = load_SP3(state.getFullNavEphPath(1), time_GPS, week_R, constellations);
                 
                 %store satellite antenna PCO/PCV and satellite type
                 SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
@@ -759,7 +770,7 @@ while read_files
                 %display message
                 logger.addMessage('Reading SP3 file...');
                 
-                SP3 = load_SP3(filename_nav, time_GPS, week_M, constellations);
+                SP3 = load_SP3(state.getFullNavEphPath(1), time_GPS, week_M, constellations);
                 
                 %store satellite antenna PCO/PCV and satellite type
                 SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
@@ -988,7 +999,6 @@ while read_files
                 
                 w_bar.close();
             end
-            
             
             logger.addMessage(['Selecting master observations (file ' filename_obs{end} ')...']);
             w_bar.setBarLen(length(time_GPS));
@@ -1638,7 +1648,7 @@ elseif (mode == goGNSS.MODE_PP_LS_CP_VEL)
     check_cs = 0;
     
     plot_t = 1;
-    time_step = goIni.getTimeStep();   %time step to perform the difference between phase observations
+    time_step = state.getVariometricTimeStep();   % time step to perform the difference between phase observations
     fprintf('TimeStep used is %d epochs\n', time_step);
     % External loop to show bar update every 15 epochs
     stepUpdate = 15;
@@ -2845,7 +2855,7 @@ elseif (mode == goGNSS.MODE_PP_KF_CP_DD) && (mode_vinc == 1)
 %----------------------------------------------------------------------------------------------
 
 elseif (mode == goGNSS.MODE_RT_R_MON)
-    goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop, goIni.getCaptureRate(), constellations);
+    goGPS_rover_monitor(filerootOUT, protocol_idx, flag_var_dyn_model, flag_stopGOstop, state.getCaptureRate(), constellations);
 
 %----------------------------------------------------------------------------------------------
 % REAL-TIME: MASTER MONITORING
@@ -3044,7 +3054,7 @@ if goGNSS.isPP(mode) || (mode == goGNSS.MODE_RT_NAV)
     PWV = zeros(size(estim_tropo));
     
     if (state.isTropoEnabled())
-        md = Meteo_Data(state.getMetPath());
+        md = Meteo_Data(state.getMetFile());
         date_R(:,1) = four_digit_year(date_R(:,1));
         
         if (md.isValid())

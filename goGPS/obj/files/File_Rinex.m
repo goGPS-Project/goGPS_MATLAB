@@ -161,13 +161,13 @@ classdef File_Rinex < handle
                         
                         % go to the end of the file to search for the last epoch
                         % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
-                        fseek(fid,-5000,'eof');
+                        fseek(fid,-10000,'eof');
                         fgetl(fid); % Probably i'm not at the beginning of a line -> disregard the first reading
                         % Start searching for a valid epoch
                         line = fgetl(fid);
                         while ischar(line)
                             % An epoch line has the second character containing the year of the observation
-                            if (line(2) ~= ' ')
+                            if (numel(line) > 2) && ~isempty(regexp(line(1:3),'(> [0-9].)|( [0-9].)', 'once'))
                                 epoch_line = line;
                             end
                             line = fgetl(fid);
@@ -176,14 +176,14 @@ classdef File_Rinex < handle
                         this.last_epoch.addEpoch(epoch_line(this.id_date), [], true);
                         this.logger.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()));
                         this.is_valid_list(f) = true;
-                    catch
+                    catch ex
                         if this.first_epoch.lenght < f
                             this.first_epoch.addEpoch(0);
                         end
                         if this.last_epoch.lenght < f
                             this.last_epoch.addEpoch(0);
                         end
-                        this.logger.addWarning(['"' full_path '" appears to be a corrupted RINEX file']);
+                        this.logger.addWarning(sprintf('"%s" appears to be a corrupted RINEX file - %s', full_path, ex.message()));
                         this.is_valid_list(f) = false;
                     end
                 end

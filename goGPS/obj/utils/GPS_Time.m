@@ -92,7 +92,7 @@ classdef GPS_Time < handle
     properties (SetAccess = private, GetAccess = private)
         logger = Logger.getInstance(); % Handler to the logger object
 
-        time_type           % flag depending on its value different representation of time are possible
+        time_type = 0;      % flag depending on its value different representation of time are possible
         
         % time_type == 0 MATLAB_TIME DEFAULT it supports up to ~0.1 ms precision 
         
@@ -638,6 +638,30 @@ classdef GPS_Time < handle
             is_gps = this.is_gps;
         end
         
+        function [len]  = numel(this)
+            % get number of epochs
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    len = numel(this.mat_time);
+                case 1 % I'm in UNIX TIME
+                    len = numel(this.unix_time);
+                case 2 % I'm in REF TIME
+                    len = numel(this.time_diff);
+            end
+        end
+
+        function [empty]  = isempty(this)
+            % return the status of emptyness of the object
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    empty = isempty(this.mat_time);
+                case 1 % I'm in UNIX TIME
+                    empty = isempty(this.unix_time);
+                case 2 % I'm in REF TIME
+                    empty = isempty(this.time_diff);
+            end
+        end
+
         function [mat_time]  = getMatlabTime(this)
             % get Matlab Time, precision up to the 0.1 milliseconds precision
             switch this.time_type
@@ -704,7 +728,7 @@ classdef GPS_Time < handle
         function [year, doy] = getDOY(this)
             % get Reference Time, precision up to the ps precision            
             utc_time = this.getCopy();
-            utc_time.toUtc();
+            utc_time.toGps();
             utc_time.toMatlabTime();
             
             [year, ~] = datevec(utc_time.mat_time);
@@ -713,15 +737,28 @@ classdef GPS_Time < handle
     
         function date_string = toString(this, date_format)
             % Convert a date to string format
-            if (nargin == 2)
-                date_string = datestr(this.getMatlabTime(), date_format);
-            else    
-                date_string = datestr(this.getMatlabTime(), this.date_format);
-            end
-            if this.isGPS()
-                date_string = [char(date_string(:,:)) char(repmat(' GPS Time',size(date_string,1),1))];
+            % add TTT to date_format to display the type (GPS/UTC)
+            if this.isempty()
+                date_string = '';
             else
-                date_string = [char(date_string(:,:)) char(repmat(' UTC Time',size(date_string,1),1))];
+                if (nargin == 2)
+                    date_string = datestr(this.getMatlabTime(), date_format);
+                else
+                    date_string = datestr(this.getMatlabTime(), this.date_format);
+                end
+                if (nargin == 1)
+                    if this.isGPS()
+                        date_string = [char(date_string(:,:)) char(repmat(' GPS',size(date_string,1),1))];
+                    else
+                        date_string = [char(date_string(:,:)) char(repmat(' UTC',size(date_string,1),1))];
+                    end
+                elseif strfind(date_format,'TTT')
+                    if this.isGPS()
+                        date_string = reshape(regexprep(serialize(date_string')', 'TTT','GPS'), size(date_string,2), size(date_string,1))';
+                    else
+                        date_string = reshape(regexprep(serialize(date_string')', 'TTT','UTC'), size(date_string,2), size(date_string,1))';
+                    end
+                end
             end
         end       
         
@@ -883,7 +920,7 @@ classdef GPS_Time < handle
             % gps_time = mod(double(unix_time -  GPS_Time.UNIX_GPS_SEC_DIFF, GPS_Time.SEC_IN_WEEK)) + unix_time_f;
             % gps_week = uint32(fix((unix_time - GPS_Time.UNIX_GPS_SEC_DIFF / GPS_Time.SEC_IN_WEEK));
             gps_sow = double(mod(unix_time - 315964800, 604800)) + unix_time_f;
-            gps_week = uint32(fix((unix_time - 315964800) / 604800));
+            gps_week = uint32(fix(double(unix_time - 315964800) / 604800));
             gps_dow = uint32(fix(gps_sow / 86400));
         end
                 

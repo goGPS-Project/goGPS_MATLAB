@@ -64,7 +64,7 @@ else
 end
 
 %load multi-constellation settings and initialize 'constellations' struct
-state = GO_Settings.getCurrentSettings();
+state = Go_State.getCurrentSettings();
 GPS_flag = state.cc.isGpsActive();
 GLO_flag = state.cc.isGloActive();
 GAL_flag = state.cc.isGalActive();

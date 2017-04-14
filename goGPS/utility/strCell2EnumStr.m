@@ -1,23 +1,28 @@
-function versionChanger(new_version_str, base_dir)
+function str = strCell2EnumStr(str_cell, separator)
 % SYNTAX:
-%    versionChanger(new_version_str, base_dir);
-% EXAMPLE:
-%    versionChanger('0.5.0');
+%   [str] = strcell2enumstr(str_cell, <separator == ' '>);
+%
+% INPUT:
+%   str_cell  = cell array of strings
+%   separator = <optional> contains the separator string (white space as default) 
+%
+% OUTPUT:
+%   str = single string of the element list separated by the "separator"
 %
 % DESCRIPTION:
-%    Change the version number in all the goGPS source files with standard
-% header - it requires a unix system
-%
+%   Convert to a character array the input cell of strings
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
-%               ___ ___ ___ 
+%               ___ ___ ___
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
 %    |___/                    v 0.5.0
-% 
+%
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
+%  Written by:       Andrea Gatti
+%  Contributors:     Andrea Gatti
 %  A list of all the historical goGPS contributors is in CREDITS.nfo
 %--------------------------------------------------------------------------
 %
@@ -35,36 +40,20 @@ function versionChanger(new_version_str, base_dir)
 %   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 %
 %--------------------------------------------------------------------------
-% 01100111 01101111 01000111 01010000 01010011 
+% 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-
-
-% find all the m files in goGPS directory
-if (nargin <= 1)
-    base_dir = '.';
-end
-if (nargin == 0)
-    new_version_str = Core.GO_GPS_VERSION;
-[~, list] = dos(['find ' base_dir ' -name \*.m']); 
-list = textscan(list,'%s','Delimiter','\n','whitespace',''); 
-list = list{1};
-
-tic
-for i = 1 : length(list)
-    file_name = list{i};
-    fprintf('Opening file %3d/%3d: %s', i, length(list), file_name);
-    fid = fopen(file_name, 'r');
-    txt = char(fread(fid))';
-    fclose(fid);
-    te = regexp(txt, '(?<=(\n%\s*\|___\/\s*v\s*))(.[^\n]*)','once','tokenExtents');
-    if not(isempty(te))
-        txt = [txt(1:te(1)) new_version_str txt(te(2)+1:end)];
-        fid = fopen(file_name, 'w');
-        fwrite(fid, txt);
-        fclose(fid);
-        fprintf(' -> changed\n');
+    if nargin == 1
+        separator = ' ';
+    end
+    if ischar(str_cell)
+        str_cell = {str_cell};
+    end
+    if ~isempty(str_cell)
+        str = sprintf('%d: %s', 0, str_cell{1});
+        for i = 2 : numel(str_cell)
+            str = sprintf('%s%s%d: %s', str, separator, i-1, str_cell{i});        
+        end
     else
-        fprintf('\n');
-    end    
+        str = '';
+    end
 end
-toc;

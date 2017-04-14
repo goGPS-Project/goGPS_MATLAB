@@ -48,6 +48,7 @@ function [CRX, found] = load_crx(data_dir_crx, gps_week, time_R, cc)
 %--------------------------------------------------------------------------
 
 %output initialization
+%CRX = sparse(false(cc.getNumSat, length(time_R)));
 CRX = sparse(false(cc.getNumSat, length(time_R)));
 
 %convert GPS time to time-of-week
@@ -59,7 +60,7 @@ year_start = date(1,1);
 year_end   = date(end,1);
 dnum = datenum(date);
 date_start = dnum(1);
-date_end   = dnum(end);
+date_stop  = dnum(end);
 
 %directory containing CRX files
 data_dir = dir(data_dir_crx);
@@ -176,12 +177,12 @@ for j = 1 : nmax
                                 e = s + datenum([0 0 0 0 15 0]);
                             else
                                 e = floor(s) + 1; %arc split: exclude the satellite for the rest of the processing
-                                %e = date_end; %arc split: exclude the satellite for the rest of the processing
+                                %e = date_stop; %arc split: exclude the satellite for the rest of the processing
                             end
                         end
-                        if ((p == 0 &&           (s <= date_end && e >= date_start)) || ... %satellite maneuver
-                                (p >= 1 && p <= 3 && (s <= date_end && e >= date_start)) || ... %bad code and/or phase data
-                                (p == 4 &&           (s <= date_end && e >= date_start))) % arc split
+                        if ((p == 0 &&           (s <= date_stop && e >= date_start)) || ... %satellite maneuver
+                                (p >= 1 && p <= 3 && (s <= date_stop && e >= date_start)) || ... %bad code and/or phase data
+                                (p == 4 &&           (s <= date_stop && e >= date_start))) % arc split
                             
                             [~, idx_start] = min(abs(s - dnum));
                             [~, idx_end]   = min(abs(e - dnum));

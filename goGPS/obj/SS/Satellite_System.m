@@ -102,6 +102,7 @@ classdef Satellite_System < Settings_Interface
             end
             this.flag_f = false(1, size(this.F_VEC, 2));
             this.updateGoIds(offset);
+            this.setActiveFrequencies([1 0 0]);            
         end
         
         function setActiveFrequencies(this, flag_freq)
@@ -202,7 +203,7 @@ classdef Satellite_System < Settings_Interface
             end            
             if (this.isActive())
                 name = this.getFreqName();
-                str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n', this.SYS_EXT_NAME, sprintf('"%s" ',  strcell2str(name(this.flag_f),', ')))];
+                str = [str sprintf(' Satellite system "%s" active\n  - using frequencies: %s\n', this.SYS_EXT_NAME, sprintf('"%s" ',  strCell2Str(name(this.flag_f),', ')))];
             else
                 str = [str sprintf(' Satellite system "%s" is inactive\n', this.SYS_EXT_NAME)];
             end

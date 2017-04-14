@@ -71,7 +71,7 @@ if (~exist('folder', 'var'))
 end
 
 % Pointer to the global settings:
-state = GO_Settings.getCurrentSettings();
+state = Go_State.getCurrentSettings();
 
 is_batch = 1; %#ok<*NASGU>
 folderOUT = ['../data/out/batch/' folder];

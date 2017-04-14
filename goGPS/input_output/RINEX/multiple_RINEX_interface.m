@@ -34,14 +34,14 @@ function [filename_obs] = multiple_RINEX_interface(filename_R_obs, filename_M_ob
 %if multiple RINEX files in input
 if (iscell(filename_R_obs))
     %if mode is not multi-receiver, fall back to the first rover filename
-    if (~goGNSS.isMR(mode))
-        filename_obs{1,1} = [filename_R_obs{1,1} filename_R_obs{1,2}];
+    if (~goGNSS.isMR(mode) && numel(filename_R_obs)>1)
+        filename_obs = filename_R_obs(1);
         fprintf('... WARNING: multiple rover RINEX files in input for a single rover mode; using the first file.\n');
     else
-        nFiles = length(filename_R_obs)-1;
+        nFiles = length(filename_R_obs);
         filename_obs = cell(nFiles,1);
         for f = 1 : nFiles
-            filename_obs{f,1} = [filename_R_obs{1} filename_R_obs{f+1}];
+            filename_obs{f,1} = filename_R_obs{f};
         end
     end
 else

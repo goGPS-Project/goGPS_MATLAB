@@ -100,7 +100,6 @@ classdef GPS_SS < Satellite_System
                 offset = 0;
             end
             this@Satellite_System(offset);
-            this.setActiveFrequencies([1 0 0]);
         end
                 
         function copy = getCopy(this)

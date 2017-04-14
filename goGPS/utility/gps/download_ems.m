@@ -50,7 +50,7 @@ function [file_ems] = download_ems(prn, gps_week, gps_time)
 %--------------------------------------------------------------------------
 
 % Pointer to the global settings:
-state = GO_Settings.getCurrentSettings();
+state = Go_State.getCurrentSettings();
 
 file_ems = {};
 

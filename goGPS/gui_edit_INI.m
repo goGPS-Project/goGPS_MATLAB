@@ -1,28 +1,28 @@
-function varargout = guiEditINI(varargin)
-% GUIEDITINI MATLAB code for guiEditINI.fig
-%      GUIEDITINI, by itself, creates a new GUIEDITINI or raises the existing
+function varargout = gui_edit_INI(varargin)
+% GUI_EDIT_INI MATLAB code for gui_edit_INI.fig
+%      GUI_EDIT_INI, by itself, creates a new GUI_EDIT_INI or raises the existing
 %      singleton*.
 %
-%      H = GUIEDITINI returns the handle to a new GUIEDITINI or the handle to
+%      H = GUI_EDIT_INI returns the handle to a new GUI_EDIT_INI or the handle to
 %      the existing singleton*.
 %
-%      GUIEDITINI('CALLBACK',hObject,eventData,handles,...) calls the local
-%      function named CALLBACK in GUIEDITINI.M with the given input arguments.
+%      GUI_EDIT_INI('CALLBACK',hObject,eventData,handles,...) calls the local
+%      function named CALLBACK in GUI_EDIT_INI.M with the given input arguments.
 %
-%      GUIEDITINI('Property','Value',...) creates a new GUIEDITINI or raises the
+%      GUI_EDIT_INI('Property','Value',...) creates a new GUI_EDIT_INI or raises the
 %      existing singleton*.  Starting from the left, property value pairs are
-%      applied to the GUI before guiEditINI_OpeningFcn gets called.  An
+%      applied to the GUI before gui_edit_INI_OpeningFcn gets called.  An
 %      unrecognized property name or invalid value makes property application
-%      stop.  All inputs are passed to guiEditINI_OpeningFcn via varargin.
+%      stop.  All inputs are passed to gui_edit_INI_OpeningFcn via varargin.
 %
 %      *See GUI Options on GUIDE's Tools menu.  Choose "GUI allows only one
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Edit the above text to modify the response to help guiEditINI
+% Edit the above text to modify the response to help gui_edit_INI
 
-% Last Modified by GUIDE v2.5 04-Mar-2013 18:10:24
+% Last Modified by GUIDE v2.5 11-Apr-2017 16:50:39
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___ 
@@ -59,8 +59,8 @@ function varargout = guiEditINI(varargin)
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @guiEditINI_OpeningFcn, ...
-                   'gui_OutputFcn',  @guiEditINI_OutputFcn, ...
+                   'gui_OpeningFcn', @gui_edit_INI_OpeningFcn, ...
+                   'gui_OutputFcn',  @gui_edit_INI_OutputFcn, ...
                    'gui_LayoutFcn',  [] , ...
                    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
@@ -75,27 +75,27 @@ end
 % End initialization code - DO NOT EDIT
 
 
-% --- Executes just before guiEditINI is made visible.
-function guiEditINI_OpeningFcn(hObject, eventdata, handles, varargin)
+% --- Executes just before gui_edit_INI is made visible.
+function gui_edit_INI_OpeningFcn(hObject, eventdata, handles, varargin)
 % This function has no output args, see OutputFcn.
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to guiEditINI (see VARARGIN)
+% varargin   command line arguments to gui_edit_INI (see VARARGIN)
 
-% Choose default command line output for guiEditINI
+% Choose default command line output for gui_edit_INI
 handles.output = hObject;
 
 % Update handles structure
 guidata(hObject, handles);
 
-% UIWAIT makes guiEditINI wait for user response (see UIRESUME)
+% UIWAIT makes gui_edit_INI wait for user response (see UIRESUME)
 % uiwait(handles.wEditINI);
 global goGUI
     goGUI.initEditINI(handles);
 
 % --- Outputs from this function are returned to the command line.
-function varargout = guiEditINI_OutputFcn(hObject, eventdata, handles) 
+function varargout = gui_edit_INI_OutputFcn(hObject, eventdata, handles) 
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -150,6 +150,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+
 % --- Executes on button press in bINI.
 function bINI_Callback(hObject, eventdata, handles)
 % hObject    handle to bINI (see GCBO)
@@ -181,6 +182,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+
+
 function eFields_Callback(hObject, eventdata, handles)
 % hObject    handle to eFields (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -188,6 +191,7 @@ function eFields_Callback(hObject, eventdata, handles)
 
 % Hints: get(hObject,'String') returns contents of eFields as text
 %        str2double(get(hObject,'String')) returns contents of eFields as a double
+
 
 % --- Executes during object creation, after setting all properties.
 function eFields_CreateFcn(hObject, eventdata, handles)
@@ -323,3 +327,11 @@ if length(eventdata.Modifier) == 1
         goGUI.saveINI();
     end
 end
+
+% --- Executes on button press in bAccept.
+function bAccept_Callback(hObject, eventdata, handles)
+% hObject    handle to bAccept (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+global goGUI
+    goGUI.acceptIniChanges();

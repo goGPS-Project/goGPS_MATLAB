@@ -22,7 +22,7 @@ function varargout = gui_goGPS(varargin)
 
 % Edit the above text to modify the response to help gui_goGPS
 
-% Last Modified by GUIDE v2.5 12-Jan-2017 15:09:59
+% Last Modified by GUIDE v2.5 07-Apr-2017 16:29:24
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___ 
@@ -99,13 +99,11 @@ function varargout = gui_goGPS_OutputFcn(hObject, eventdata, handles)
 global goGUI
     % If I press the exit button
     if(~isstruct(handles))
-        varargout{1} = GO_Settings.getCurrentSettings();
-        varargout{2} = goGUI.okGo();    
+        varargout{1} = goGUI.okGo();    
         return
     end
     
-    varargout{1} = goGUI.outputFun();
-    varargout{2} = goGUI.okGo();
+    varargout{1} = goGUI.okGo();
 %close main panel
 delete(gcf)
 
@@ -2017,4 +2015,27 @@ if length(eventdata.Modifier) == 1
     elseif strcmp(eventdata.Modifier{1},'alt') && strcmp(eventdata.Key,'2')
         goGUI.testFontSize(1.1);
     end
+end
+
+
+
+function out_prefix_str_Callback(hObject, eventdata, handles)
+% hObject    handle to sPrefixGoOut (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of sPrefixGoOut as text
+%        str2double(get(hObject,'String')) returns contents of sPrefixGoOut as a double
+
+
+% --- Executes during object creation, after setting all properties.
+function out_prefix_str_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to sPrefixGoOut (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end

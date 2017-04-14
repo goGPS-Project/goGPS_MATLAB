@@ -104,17 +104,17 @@ for i = 1 : N
         for j = 1 : n
             %L1
             if (abs(pr1_R(sat(j),i)) > 1e-100)
-                fprintf(fid_obs,'%14.3f %1d',pr1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
+                fprintf(fid_obs,'%14.3f %1d',full(pr1_R(sat(j),i)),floor(snr1_R(sat(j),i)/6));
             else
                 fprintf(fid_obs,'                ');
             end
             if (abs(ph1_R(sat(j),i)) > 1e-100)
-                fprintf(fid_obs,'%14.3f %1d',ph1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
+                fprintf(fid_obs,'%14.3f %1d',full(ph1_R(sat(j),i)),floor(snr1_R(sat(j),i)/6));
             else
                 fprintf(fid_obs,'                ');
             end
             fprintf(fid_obs,'%14.3f %1d',snr1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
-            fprintf(fid_obs,'%14.3f %1d',dop1_R(sat(j),i),floor(snr1_R(sat(j),i)/6));
+            fprintf(fid_obs,'%14.3f %1d',full(dop1_R(sat(j),i)),floor(snr1_R(sat(j),i)/6));
             %L2
             if (abs(pr2_R(sat(j),i)) > 1e-100)
                 fprintf(fid_obs,'%14.3f %1d',pr2_R(sat(j),i),floor(snr2_R(sat(j),i)/6));
@@ -128,7 +128,7 @@ for i = 1 : N
                 fprintf(fid_obs,'                ');
             end
             fprintf(fid_obs,'%14.3f %1d',snr2_R(sat(j),i),floor(snr2_R(sat(j),i)/6));
-            fprintf(fid_obs,'%14.3f %1d',dop2_R(sat(j),i),floor(snr2_R(sat(j),i)/6));
+            fprintf(fid_obs,'%14.3f %1d',full(dop2_R(sat(j),i)),floor(snr2_R(sat(j),i)/6));
             fprintf(fid_obs,'\n');
         end
     end

@@ -8,7 +8,7 @@
 %   state = Main_Settings();
 %
 % SEE ALSO
-%   - GO_Settings     
+%   - Go_State     
 %         it is a singleton class that store the status of the
 %         Main_Settings to be used in one goGPS session
 %
@@ -79,6 +79,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         
         % PROCESSING PARAMETERS
         FLAG_TROPO = false;                             % Flag for enabling the computation of thropospheric derived informations
+        VARIOMETRIC_STEP = 1;                           % Step in second for variometric approach
         W_MODE = 1;                                     % Parameter used to select the weightening mode for GPS observations
                                                         %  - weights = 0: same weight for all the observations
                                                         %  - weights = 1: weight based on satellite elevation (sin)
@@ -306,6 +307,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         % Flag for enabling the computation of thropospheric derived informations
         flag_tropo = Main_Settings.FLAG_TROPO;
         
+        % Step in second for variometric approach
+        variometric_step = Main_Settings.VARIOMETRIC_STEP;
+
         % Parameter used to select the weightening mode for GPS observations
         w_mode = Main_Settings.W_MODE;
         %  - weights = 0: same weight for all the observations
@@ -494,7 +498,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Creator
             % SYNTAX: s_obj = Main_Settings(<ini_settings_file>);
             
-            this.logger.addMessage('Building settings oject...');
+            this.initLogger();
+            this.logger.addMarkedMessage('Building settings oject...');
+            this.logger.newLine();
             if (nargin == 1)
                 if ~exist(ini_settings_file, 'file')
                     this.logger.addWarning(sprintf('File "%s" not found!', ini_settings_file));
@@ -503,10 +509,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             else
                 ini_settings_file = this.LAST_SETTINGS;
             end
-                    
+            
             if exist(ini_settings_file, 'file')
-                this.logger.addMessage(sprintf('File "%s" found!', ini_settings_file));
-                this.logger.addStatusOk('Settings imported!')
+                this.logger.addStatusOk(sprintf('File "%s" found, settings imported!', ini_settings_file));
                 this.importIniFile(ini_settings_file);
             else
                 this.logger.addMessage('using default settings')
@@ -556,6 +561,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % PROCESSING PARAMETERS
                 this.flag_tropo = state.getData('flag_tropo');
+                this.variometric_step = state.getData('variometric_step');
                 this.w_mode = state.getData('w_mode');
                 tmp = state.getData('w_snr');
                 this.w_snr = struct('a', tmp(1), 'zero', tmp(2), 'one', tmp(2), 'A', tmp(4));
@@ -653,6 +659,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
 
                 % PROCESSING PARAMETERS                
                 this.flag_tropo = state.flag_tropo;
+                this.variometric_step = state.variometric_step;
                 this.w_mode = state.w_mode;
                 this.w_snr = state.w_snr;
                 this.cs_thr = state.cs_thr;
@@ -762,6 +769,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str = [str '---- PROCESSING PARAMETERS -----------------------------------------------' 10 10];
             str = this.toString@Mode_Settings(str);
             str = [str sprintf(' Compute tropospheric indicators                   %d\n\n', this.flag_tropo)];
+            str = [str sprintf(' Variometric step [s] for velocity estimation:     %g\n', this.variometric_step)];
             str = [str sprintf(' Using %s\n\n', this.W_SMODE{this.w_mode+1})];
             str = [str sprintf(' Weight function parameters (when based on SNR): \n')];
             str = [str sprintf('   - w.a:     %d\n', this.w_snr.a)];
@@ -912,6 +920,8 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Compute tropospheric indicators (e.g. ZTD):', str_cell);
             str_cell = Ini_Manager.toIniString('flag_tropo', this.flag_tropo, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Variometric step [s] for velocity estimation', str_cell);
+            str_cell = Ini_Manager.toIniString('variometric_step', this.variometric_step, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Processing using weighting mode:', str_cell);
             str_cell = Ini_Manager.toIniString('w_mode', this.w_mode, str_cell);
             for i = 1 : numel(this.W_SMODE)
@@ -1169,9 +1179,9 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             try 
                 this.flag_rinex_mpos = state.master_pos;   
                 if (state.crs == 1)
-                    X = state.master_X; if isempty(X); X = 0; end
-                    Y = state.master_Y; if isempty(Y); Y = 0; end
-                    Z = state.master_Z; if isempty(Z); Z = 0; end
+                    X = state.master_X; if ischar(X); X = str2double(X); end; if isempty(X); X = 0; end
+                    Y = state.master_Y; if ischar(Y); Y = str2double(Y); end; if isempty(Y); Y = 0; end
+                    Z = state.master_Z; if ischar(Z); Z = str2double(Z); end; if isempty(Z); Z = 0; end
                     this.mpos = struct('X', X, 'Y', Y, 'Z', Z);
                 else
                     [X, Y, Z] = geod2cart(state.master_lat, state.master_lon, state.master_h);
@@ -1315,6 +1325,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 mkdir(dir_path);
             end
             this.check(); % check before saving
+            this.setFilePath(file_path);
             ini = this.save@Settings_Interface(file_path);
         end
         
@@ -1327,6 +1338,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             if (nargin == 1)
                 file_path = this.cur_ini;
             end
+            this.setFilePath(file_path);
             this.importIniFile@Settings_Interface(file_path);
         end
         
@@ -1339,29 +1351,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             catch ex
                 this.logger.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
             end
-        end
-        
-        function init_dtm(this, dtm_dir)
-            % Try to load default DTM values (if flag_dtm is on)?
-            % SYNTAX: s_obj.init_dtm(<dtm_dir>)
-
-            if this.flag_dtm
-                if nargin == 1
-                    dtm_dir = this.dtm_dir; % from superclass IO_Settings
-                end
-                try
-                    load([dtm_dir filesep 'tiles' filesep 'tile_header'], 'tile_header');
-                    this.tile_header = tile_header;
-                    this.logger.addMessage(sprintf(' - DTM tile header in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_header']));
-                    load([dtm_dir filesep 'tiles' filesep 'tile_georef'], 'tile_georef');
-                    this.tile_georef = tile_georef;
-                    this.logger.addMessage(sprintf(' - DTM tile georef in %s have been read', [dtm_dir filesep 'tiles' filesep 'tile_georef']));
-                catch
-                    this.logger.addWarning(sprintf('Failed to read DTM stored in %s', [dtm_dir '/tiles/']));
-                    % use default zeroes values
-                end
-            end
-        end
+        end        
     end
 
     % =========================================================================
@@ -1450,6 +1440,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
     
             % PROCESSING PARAMETERS
             this.checkLogicalField('flag_tropo');
+            this.checkNumericField('variometric_step',[0.001 60]);
             this.checkNumericField('w_mode',[0 numel(this.W_SMODE)-1]);
 
             this.w_snr.a = this.checkNumber('w_snr.a', this.w_snr.a, this.W_SNR.a, [0.001 100]);
@@ -1553,6 +1544,18 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             % Get the constellation collector object (short name)
             % SYNTEX: cc = this.getCC();
             cc = handle(this.cc);
+        end
+        
+        function time_step = getVariometricTimeStep(this)
+            % Get the time step for the Variometric approach
+            % SYNTEX: time_step = this.getVariometricTimeStep();
+            time_step = this.variometric_step;
+        end
+        
+        function capture_rate = getCaptureRate(this)
+            % Get the Capture Rate 
+            % SYNTEX: capture_rate = this.getCaptureRate();
+            capture_rate = this.c_rate;
         end
 
         function is_variable = isVariableKF(this)

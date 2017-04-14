@@ -1,6 +1,6 @@
-function str = strcell2str(str_cell, separator)
+function str = strCell2Str(str_cell, separator)
 % SYNTAX:
-%   [str] = strcell2str(str_cell, <separator == ' '>);
+%   [str] = strCell2Str(str_cell, <separator == ' '>);
 %
 % INPUT:
 %   str_cell  = cell array of strings
@@ -44,6 +44,9 @@ function str = strcell2str(str_cell, separator)
 %--------------------------------------------------------------------------
     if nargin == 1
         separator = ' ';
+    end
+    if ischar(str_cell)
+        str_cell = {str_cell};
     end
     if ~isempty(str_cell)
         str = str_cell{1};

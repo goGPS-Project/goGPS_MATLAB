@@ -72,11 +72,9 @@ classdef goGUIclass < handle
 
         goh = [];                      % goGPS gui handler
         
-        edtINI = [];              % Handler to everything related to the editor pf the ini files
-                                  
-        status; % DEPRECATE: structure containing the state of the parameters of the figure
-        
-        state = GO_Settings.getCurrentSettings(); % Object that will contain all the settings for goGPS
+        edtINI = [];                   % Handler to everything related to the editor pf the ini files
+                                          
+        state = Go_State.getCurrentSettings(); % Object that will contain all the settings for goGPS
         
     %  INTERFACE STATUS
     % =========================================================================
@@ -236,8 +234,6 @@ classdef goGUIclass < handle
         % Init all the UI
         function init(this, handles)
             % Init all the UI
-            clear global goIni
-
             tic;
             this.w_bar = Go_Wait_Bar.getInstance(5,'Initializing goGPS GUI...');
             this.w_bar.createNewBar('Init GUI');
@@ -279,7 +275,7 @@ classdef goGUIclass < handle
             this.initInterface();
             this.w_bar.close();
             t0 = toc;
-            fprintf('goGPS GUI initialization completed in %.2f seconds\n', t0);
+            this.logger.addStatusOk(sprintf('goGPS GUI initialization completed in %.2f seconds\n', t0));
         end
 
         % Fill all the Pop-up menus
@@ -824,13 +820,10 @@ classdef goGUIclass < handle
           % --------------------------------------------------------------- 
 
             % INI ---------------------------------------------------------
-            i=i+1; id.tINI          = i;    id2h(i) = this.goh.tINI;
-            i=i+1; id.fINI          = i;    id2h(i) = this.goh.fINI;
-            i=i+1; id.sINI          = i;    id2h(i) = this.goh.sINI;
             i=i+1; id.bINI          = i;    id2h(i) = this.goh.bINI;
             i=i+1; id.bEditINI      = i;    id2h(i) = this.goh.bEditINI;
             
-            idG.gINI = [id.tINI id.fINI id.sINI id.bINI id.bEditINI];
+            idG.gINI = [id.bINI id.bEditINI];
                         
             % Rover -------------------------------------------------------
             i=i+1; id.tRinRover     = i;    id2h(i) = this.goh.tRinRover;
@@ -845,21 +838,13 @@ classdef goGUIclass < handle
             
             idG.RinMaster = [id.tRinMaster id.fRinMaster];
             
-            % Navigation --------------------------------------------------
-            i=i+1; id.tRinNav       = i;    id2h(i) = this.goh.tRinNav;
-            i=i+1; id.fRinNav       = i;    id2h(i) = this.goh.fRinNav;
-            
-            idG.RinNav = [id.tRinNav id.fRinNav ];            
-
             % Output ------------------------------------------------------
             i=i+1; id.tDirGoOut     = i;    id2h(i) = this.goh.tDirGoOut;
             i=i+1; id.fDirGoOut     = i;    id2h(i) = this.goh.fDirGoOut;
-            i=i+1; id.sDirGoOut     = i;    id2h(i) = this.goh.sDirGoOut;
-            i=i+1; id.bDirGoOut     = i;    id2h(i) = this.goh.bDirGoOut;
             i=i+1; id.tPrefixGoOut  = i;    id2h(i) = this.goh.tPrefixGoOut;
             i=i+1; id.sPrefixGoOut  = i;    id2h(i) = this.goh.sPrefixGoOut;
             
-            idG.DirGoOut = [id.tDirGoOut id.fDirGoOut id.sDirGoOut id.bDirGoOut];
+            idG.DirGoOut = [id.tDirGoOut id.fDirGoOut];
             idG.GoOut = id.tDirGoOut:id.sPrefixGoOut;
 
             % DTM ---------------------------------------------------------
@@ -899,11 +884,11 @@ classdef goGUIclass < handle
             idG.MET = [id.tMET id.fMET];
             
             % Group of ids in the panel pIOFiles
-            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.RinNav idG.GoOut idG.DTM idG.RefPath idG.PCO idG.BLQ idG.STA idG.MET];
+            idG.pIOFiles = [id.pIOFiles idG.RinRover idG.RinMaster idG.GoOut idG.DTM idG.RefPath idG.PCO idG.BLQ idG.STA idG.MET];
             
             % For a correct LED management these following id groups must be synchronized 
-            idG.gFileLED = [id.fINI id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ id.fSTA id.fMET];
-            idG.gInINILED = [id.fRinRover id.fRinMaster id.fRinNav id.fDTM id.fRefPath id.fPCO id.fBLQ id.fSTA id.fMET];
+            idG.gFileLED = [id.fRinRover id.fRinMaster id.fDTM id.fRefPath id.fPCO id.fBLQ id.fSTA id.fMET];
+            idG.gInINILED = [id.fRinRover id.fRinMaster id.fDTM id.fRefPath id.fPCO id.fBLQ id.fSTA id.fMET];
             idG.gDirLED =  [id.fDirGoOut];
             idG.gLED = [idG.gFileLED idG.gDirLED];
 
@@ -1254,7 +1239,7 @@ classdef goGUIclass < handle
           
             
             % On RINEX / BIN
-            idG.onRin = [idG.RinRover idG.RinMaster idG.RinNav idG.PCO idG.BLQ idG.STA idG.MET];
+            idG.onRin = [idG.RinRover idG.RinMaster idG.PCO idG.BLQ idG.STA idG.MET];
 
             [idG.gPanels idG.strEl idG.valEl] = this.autoElClassification(id2h);
             
@@ -1610,8 +1595,6 @@ classdef goGUIclass < handle
             value = this.newVal{idEl};
             if isempty(value)
                 value = this.getGuiElVal(this.id2handle(idEl));
-                val = get(this.id2handle(idEl), 'Value');
-
                 this.setElVal(idEl, value, 0);
             end
         end
@@ -2220,7 +2203,7 @@ classdef goGUIclass < handle
         % Force INI update
         function forceINIupdate(this)
             % Force INI update
-            this.updateLEDstate(true);
+            this.updateLEDstate();
             goOk = this.test4Go();
             this.setElStatus([this.idUI.bSave this.idUI.bGo] , goOk, 1);
         end
@@ -2237,6 +2220,11 @@ classdef goGUIclass < handle
             % Read all the values of the elements
             this.getAllElContent();
             this.setAllElContent();
+            
+            if sum(intersect(idEl, this.idUI.sPrefixGoOut)) > 0
+                this.state.setOutPrefix(get(this.goh.sPrefixGoOut,'String'));
+            end
+
 
           %   MODE
           % --------------------------------------------------------------- 
@@ -2343,10 +2331,6 @@ classdef goGUIclass < handle
                 this.forceINIupdate();
             end
                 
-            % Browse output foder fo binary data
-            if sum(intersect(idEl, this.idUI.bDirGoOut)) > 0
-                this.browseOutDir()
-            end
 
           %   SETTINGS - MASTER STATION
           % ---------------------------------------------------------------
@@ -2380,7 +2364,7 @@ classdef goGUIclass < handle
             
             % on Exit
             if sum(intersect(idEl, this.idUI.bExit)) > 0
-                if isfield(this.goh, 'main_panel');
+                if isfield(this.goh, 'main_panel')
                     close(this.goh.main_panel);
                 else % Something went wrong in the initialization phase
                     close(gcf);
@@ -2394,249 +2378,138 @@ classdef goGUIclass < handle
     % Functions that manage events - auxiliar functions
     methods
         % Test if the active file/dir paths contain valid file/dir
-        function updateLEDstate(this, force)
-            % Test if the active file/dir paths contain valid file/dir
-            global goIni
-            if nargin == 1
-                force = 0;      % force file update
-            end
+        function updateLEDstate(this)
+            % Test if the active file/dir paths contain valid file/dir            
             
-            % Check INI file
-            if this.isEnabled(this.idUI.sINI)
-                file_name = checkPath(this.getElVal(this.idUI.sINI));
-                
-                if isempty(file_name)
-                    this.setGUILedStatus(this.idUI.fINI, this.ledKo, 0);
-                    % If I do not have an INI file, every LED should be RED
-                    for  i = 1:length(this.idGroup.gInINILED)
-                        this.setGUILedStatus(this.idGroup.gInINILED(i), this.ledKo, 0);
-                    end
+            this.state.updateExternals()
+            set(this.goh.main_panel, 'Name', sprintf('%s @ %s', this.state.prj_name, this.state.prj_home));
+
+            if this.isPostProc()
+                % Receivers file --------------------------------------
+                if this.state.isModeSEID()
+                    status = this.state.checkReferenceFiles();
+                    set(this.goh.tNumRec, 'String', num2str(this.state.getReferenceCount()));
                 else
-                    if exist(file_name,'file')
-                        this.setGUILedStatus(this.idUI.fINI, this.ledOk, 0);
-                        
-                        if this.isPostProc()
-                            % If needed init INI reader
-                            if isempty(goIni)
-                                goIni = Go_Ini_Manager(file_name);                                
-                            end
-                            if (~goIni.getReadStatus())
-                                goIni.readFile();
-                            end
-                            % If I have to update the ini file
-                            goIni.update(file_name, force);
-                            % Receivers file --------------------------------------
-                            nR = goIni.getData('Receivers','nRec');
-                            data_path = checkPath(goIni.getData('Receivers','data_path'));
-                            file_name = goIni.getData('Receivers','file_name');
-                            
-                            if (isempty(nR))
-                                if iscell(file_name)
-                                    nR = length(file_name);
-                                else
-                                    nR = 1;
-                                end
-                                goIni.addKey('Receivers','nRec',nR);
-                            end
-                            this.setElVal(this.idUI.tNumRec,['x ' num2str(nR)]);
-                            
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_name))
-                                this.setGUILedStatus(this.idUI.fRinRover, this.ledKo, 0);
-                            else
-                                % If I have more than one receiver
-                                if iscell(file_name)
-                                    % The number of receiver is = to the number of files?
-                                    if nR ~= length((file_name))   % DeclaRED number of file ~= number of files
-                                        this.setGUILedStatus(this.idUI.fRinRover, this.ledCk, 0);
-                                    else
-                                        % Check the presence of all the files
-                                        fileOk = true;
-                                        for r = 1:nR
-                                            if ~exist([data_path file_name{r}],'file')
-                                                fileOk = false;
-                                            end
-                                        end
-                                        if fileOk
-                                            this.setGUILedStatus(this.idUI.fRinRover, this.ledOk, 0);
-                                        else
-                                            this.setGUILedStatus(this.idUI.fRinRover, this.ledCk, 0);
-                                        end
-                                    end
-                                else
-                                    % The number of receiver is = to the number of files?
-                                    if nR > 1   % DeclaRED number of file ~= number of files
-                                        this.setGUILedStatus(this.idUI.fRinRover, this.ledCk, 0);
-                                    else
-                                        % Check the presence of all the files
-                                        if exist([data_path file_name],'file')
-                                            this.setGUILedStatus(this.idUI.fRinRover, this.ledOk, 0);
-                                        else
-                                            this.setGUILedStatus(this.idUI.fRinRover, this.ledCk, 0);
-                                        end
-                                    end
-                                end
-                            end
-                            
-                            % Master file -----------------------------------------
-                            data_path = checkPath(goIni.getData('Master','data_path'));
-                            file_name = goIni.getData('Master','file_name');
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_name))
-                                this.setGUILedStatus(this.idUI.fRinMaster, this.ledKo, 0);
-                            else
-                                % Check the presence of all the files
-                                if exist([data_path file_name],'file')
-                                    this.setGUILedStatus(this.idUI.fRinMaster, this.ledOk, 0);
-                                else
-                                    this.setGUILedStatus(this.idUI.fRinMaster, this.ledCk, 0);
-                                end
-                            end
-                            
-                            % Navigation file -------------------------------------
-                            data_path = checkPath(goIni.getData('Navigational','data_path'));
-                            file_name = goIni.getData('Navigational','file_name');
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_name))
-                                this.setGUILedStatus(this.idUI.fRinNav, this.ledKo, 0);
-                            else
-                                % Check the presence of all the files
-                                if exist([data_path file_name],'file')
-                                    this.setGUILedStatus(this.idUI.fRinNav, this.ledOk, 0);
-                                else
-                                    this.setGUILedStatus(this.idUI.fRinNav, this.ledCk, 0);
-                                end
-                            end
-                                                        
-                            % DTM file -----------------------------------------------
-                            data_path = checkPath(goIni.getData('DTM','data_path'));
-                            if (isempty(data_path))
-                                this.setGUILedStatus(this.idUI.fDTM, this.ledKo, 0);
-                            else
-                                % Check the presence of the directory
-                                if exist(data_path,'dir')
-                                    this.setGUILedStatus(this.idUI.fDTM, this.ledOk, 0);
-                                else
-                                    this.setGUILedStatus(this.idUI.fDTM, this.ledCk, 0);
-                                end
-                            end
-                            
-                            % Reference path file ------------------------------------
-                            data_path = checkPath(goIni.getData('RefPath','data_path'));
-                            file_name = goIni.getData('RefPath','file_name');
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_name))
-                                this.setGUILedStatus(this.idUI.fRefPath, this.ledKo, 0);
-                            else
-                                % Check the presence of all the files
-                                if exist([data_path file_name],'file')
-                                    this.setGUILedStatus(this.idUI.fRefPath, this.ledOk, 0);
-                                else
-                                    this.setGUILedStatus(this.idUI.fRefPath, this.ledCk, 0);
-                                end
-                            end
-                            
-                            % PCO/PCV file -------------------------------------------
-                            data_path = checkPath(goIni.getData('PCO_PCV_file','data_path'));
-                            file_name = goIni.getData('PCO_PCV_file','file_name');
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_name))
-                                this.setGUILedStatus(this.idUI.fPCO, this.ledOp, 0);
-                            else
-                                % Check the presence of all the files
-                                if exist([data_path file_name],'file')
-                                    this.setGUILedStatus(this.idUI.fPCO, this.ledOk, 0);
-                                else
-                                    this.setGUILedStatus(this.idUI.fPCO, this.ledCk, 0);
-                                end
-                            end
-                            
-                            % OCEAN LOADING file -------------------------------------
-                            data_path = checkPath(goIni.getData('OCEAN_LOADING_file','data_path'));
-                            file_name = goIni.getData('OCEAN_LOADING_file','file_name');
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_name))
-                                this.setGUILedStatus(this.idUI.fBLQ, this.ledOp, 0);
-                            else
-                                % Check the presence of all the files
-                                if exist([data_path file_name],'file')
-                                    this.setGUILedStatus(this.idUI.fBLQ, this.ledOk, 0);
-                                else
-                                    this.setGUILedStatus(this.idUI.fBLQ, this.ledCk, 0);
-                                end
-                            end
-                            
-                            % STATIONS file ------------------------------------------
-                            data_path = checkPath(goIni.getData('STATIONS_file','data_path'));
-                            file_name = goIni.getData('STATIONS_file','file_name');
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_name))
-                                this.setGUILedStatus(this.idUI.fSTA, this.ledOp, 0);
-                            else
-                                % Check the presence of all the files
-                                if exist([data_path file_name],'file')
-                                    this.setGUILedStatus(this.idUI.fSTA, this.ledOk, 0);
-                                else
-                                    this.setGUILedStatus(this.idUI.fSTA, this.ledCk, 0);
-                                end
-                            end
-                            
-                            % METEOROLOGICAL file ------------------------------------
-                            data_path = checkPath(goIni.getData('METEOROLOGICAL_file','data_path'));
-                            file_name = goIni.getData('METEOROLOGICAL_file','file_name');
-                            if (isempty(data_path))
-                                data_path = '';
-                            end
-                            if (isempty(file_name))
-                                this.setGUILedStatus(this.idUI.fMET, this.ledOp, 0);
-                            else
-                                % Check the presence of all the files
-                                if exist([data_path file_name],'file')
-                                    this.setGUILedStatus(this.idUI.fMET, this.ledOk, 0);
-                                else
-                                    this.setGUILedStatus(this.idUI.fMET, this.ledCk, 0);
-                                end
-                            end
-                        end
-                    else
-                        this.setGUILedStatus(this.idUI.fINI, this.ledCk, 0);
-                        % If I do not have an INI file, every LED should be RED
-                        for  i = 1:length(this.idGroup.gInINILED)
-                            this.setGUILedStatus(this.idGroup.gInINILED(i), this.ledKo, 0);
-                        end
-                    end
+                    status = this.state.checkTargetFiles();
+                    set(this.goh.tNumRec, 'String', num2str(this.state.getTargetCount()));
+                end
+                switch status
+                    case -1
+                        this.setGUILedStatus(this.idUI.fRinRover, this.ledKo, 0);
+                    case 0
+                        this.setGUILedStatus(this.idUI.fRinRover, this.ledOk, 0);
+                    case 1
+                        this.setGUILedStatus(this.idUI.fRinRover, this.ledCk, 0);
+                end
+                
+                % Master file -----------------------------------------
+                if this.state.isModeSEID()
+                    status = this.state.checkTargetFiles();
+                else
+                    status = this.state.checkMasterFiles();
+                end
+                switch status
+                    case -1
+                        this.setGUILedStatus(this.idUI.fRinMaster, this.ledKo, 0);
+                    case 0
+                        this.setGUILedStatus(this.idUI.fRinMaster, this.ledOk, 0);
+                    case 1
+                        this.setGUILedStatus(this.idUI.fRinMaster, this.ledCk, 0);
                 end
             end
             
-          % Output dir --------------------------------------------------------
+            % DTM file -----------------------------------------------
+            data_path = this.state.getDtmPath();
+            if (isempty(data_path))
+                this.setGUILedStatus(this.idUI.fDTM, this.ledKo, 0);
+            else
+                % Check the presence of the directory
+                if exist(data_path,'dir')
+                    this.setGUILedStatus(this.idUI.fDTM, this.ledOk, 0);
+                else
+                    this.setGUILedStatus(this.idUI.fDTM, this.ledCk, 0);
+                end
+            end
             
-          outDir = this.getElVal(this.idUI.sDirGoOut);
-          outDir = checkPath(outDir);
-          if isempty(outDir)
-              this.setGUILedStatus(this.idUI.fDirGoOut, this.ledKo, 0);
-          else
-              if ~exist(outDir,'dir');
-                  this.setGUILedStatus(this.idUI.fDirGoOut, this.ledCk, 0);
-              else
-                  this.setGUILedStatus(this.idUI.fDirGoOut, this.ledOk, 0);
-              end
-          end
+            % Reference path file ------------------------------------
+            file_name = this.state.getRefFile();
+            if (isempty(file_name))
+                this.setGUILedStatus(this.idUI.fRefPath, this.ledKo, 0);
+            else
+                % Check the presence of all the files
+                if exist(file_name, 'file')
+                    this.setGUILedStatus(this.idUI.fRefPath, this.ledOk, 0);
+                else
+                    this.setGUILedStatus(this.idUI.fRefPath, this.ledCk, 0);
+                end
+            end
             
-        end        
+            % PCO/PCV file -------------------------------------------
+            file_name = this.state.getAtxFile();
+            if (isempty(file_name))
+                this.setGUILedStatus(this.idUI.fPCO, this.ledOp, 0);
+            else
+                % Check the presence of all the files
+                if exist(file_name, 'file')
+                    this.setGUILedStatus(this.idUI.fPCO, this.ledOk, 0);
+                else
+                    this.setGUILedStatus(this.idUI.fPCO, this.ledCk, 0);
+                end
+            end
+            
+            % OCEAN LOADING file -------------------------------------
+            file_name = this.state.getOceanFile();
+            if (isempty(file_name))
+                this.setGUILedStatus(this.idUI.fBLQ, this.ledOp, 0);
+            else
+                % Check the presence of all the files
+                if exist(file_name, 'file')
+                    this.setGUILedStatus(this.idUI.fBLQ, this.ledOk, 0);
+                else
+                    this.setGUILedStatus(this.idUI.fBLQ, this.ledCk, 0);
+                end
+            end
+            
+            % STATIONS file ------------------------------------------
+            file_name = this.state.getCrdFile();
+            if (isempty(file_name))
+                this.setGUILedStatus(this.idUI.fSTA, this.ledOp, 0);
+            else
+                % Check the presence of all the files
+                if exist(file_name, 'file')
+                    this.setGUILedStatus(this.idUI.fSTA, this.ledOk, 0);
+                else
+                    this.setGUILedStatus(this.idUI.fSTA, this.ledCk, 0);
+                end
+            end
+            
+            % METEOROLOGICAL file ------------------------------------
+            file_name = this.state.getMetFile();
+            if (isempty(file_name))
+                this.setGUILedStatus(this.idUI.fMET, this.ledOp, 0);
+            else
+                % Check the presence of all the files
+                if exist(file_name, 'file')
+                    this.setGUILedStatus(this.idUI.fMET, this.ledOk, 0);
+                else
+                    this.setGUILedStatus(this.idUI.fMET, this.ledCk, 0);
+                end
+            end
+            
+            % Output dir --------------------------------------------------------
+            
+            outDir = this.state.getOutDir();
+            if isempty(outDir)
+                this.setGUILedStatus(this.idUI.fDirGoOut, this.ledKo, 0);
+            else
+                if ~exist(outDir,'dir')
+                    this.setGUILedStatus(this.idUI.fDirGoOut, this.ledCk, 0);
+                else
+                    this.setGUILedStatus(this.idUI.fDirGoOut, this.ledOk, 0);
+                end
+            end
+            this.setElVal(this.idUI.sPrefixGoOut, this.state.getOutPrefix(), 1);
+        end
         
         % Test if all the folder / files are ok and it is possible to activate go and save buttons
         function goOk = test4Go(this)
@@ -2684,7 +2557,10 @@ classdef goGUIclass < handle
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose an INI configuration file', config_dir);
             if (file_name ~= 0)
-                this.setElVal(this.idUI.sINI, fullfile(pathname, file_name));
+                this.state.setDeprecateIniPath(fullfile(pathname, file_name));
+                this.state.updateExternals();
+                msgbox('Settings have been updated');
+                this.logger.addWarning('Settings have been updated');                
             end
             this.updateGUI();
         end
@@ -2743,17 +2619,7 @@ classdef goGUIclass < handle
             end
             this.updateGUI();
         end               
-        
-        % Browse output foder fo binary data
-        function browseOutDir(this)
-            % Browse output foder fo binary data
-            dname = uigetdir(this.getWorkingDir(),'Choose a directory to store goGPS data');
-            if (dname ~= 0)
-                this.setElVal(this.idUI.sDirGoOut, dname);
-            end
-            this.updateGUI();
-        end
-        
+                
         % Browse for a DTM folder
         function browseDtmDir(this)
             % Browse for a DTM folder
@@ -2926,7 +2792,7 @@ classdef goGUIclass < handle
             this.setElVal(this.idUI.cConstraint, state.constrain, 0);
             this.setElVal(this.idUI.cPlotProc, state.plot_proc, 0);
             this.setElVal(this.idUI.cRefPath, state.plot_ref_path, 0);
-            this.setElVal(this.idUI.cSkyPlot, ~state.plot_skyplot_snr, 0);
+            this.setElVal(this.idUI.cSkyPlot, state.plot_skyplot_snr, 0);
             this.setElVal(this.idUI.cGEarth, state.plot_google_earth, 0);
             this.setElVal(this.idUI.cErrEllipse, state.plot_err_ellipse, 0);
             this.setElVal(this.idUI.cPlotMaster, state.plot_master, 0);
@@ -2960,10 +2826,6 @@ classdef goGUIclass < handle
                 [path, name, ext] = fileparts(checkPath(state.input_file_ini_path));
                 state.setDeprecateIniPath([regexprep(path, './settings', '../data/old/settings/') name ext]);
             end
-            this.setElVal(this.idUI.sINI, state.input_file_ini_path, 0);
-
-            this.setElVal(this.idUI.sDirGoOut, state.out_dir, 0);
-            this.setElVal(this.idUI.sPrefixGoOut, state.out_prefix, 0);
             
             this.setElVal(this.idUI.cGPS, state.cc.isGpsActive(), 0);
             this.setElVal(this.idUI.cGLONASS, state.cc.isGloActive(), 0);
@@ -3070,87 +2932,86 @@ classdef goGUIclass < handle
         % Load the state of the gui from a matlab file.
         function importLegacyStateMatlab(this,file_name)
             % Load the state of the gui from a matlab file.
-            load(file_name); % the file contains the variable state
-            this.status = state;
-            
+            load(file_name, 'state'); % the file contains the variable state
+            old_state = state; %#ok<CPROPLC>
             %   MODE
             % ===============================================================
             
-            this.setElVal(this.idUI.lProcMode, state.mode, 0);
+            this.setElVal(this.idUI.lProcMode, old_state.mode, 0);
             
             this.initCaptureMode();
-            this.setElVal(this.idUI.lCaptMode, state.nav_mon, 0);
+            this.setElVal(this.idUI.lCaptMode, old_state.nav_mon, 0);
             this.initAlgorithmType();
-            this.setElVal(this.idUI.lAlgType, state.kalman_ls, 0);
+            this.setElVal(this.idUI.lAlgType, old_state.kalman_ls, 0);
             this.initProcessingType();
-            this.setElVal(this.idUI.lProcType, state.code_dd_sa, 0);
-            if (isfield(state,'tropo'))
-                this.setElVal(this.idUI.cTropo, state.tropo, 0);
+            this.setElVal(this.idUI.lProcType, old_state.code_dd_sa, 0);
+            if (isfield(old_state,'tropo'))
+                this.setElVal(this.idUI.cTropo, old_state.tropo, 0);
             end
             
             %   DATA SELECTION
             % ===============================================================
             
-            if (isfield(state,'activeFreq'))
-                this.setElVal(this.idUI.cL1, state.activeFreq(1), 0);
-                this.setElVal(this.idUI.cL2, state.activeFreq(2), 0);
-                this.setElVal(this.idUI.cL5, state.activeFreq(3), 0);
-                this.setElVal(this.idUI.cL6, state.activeFreq(4), 0);
+            if (isfield(old_state,'activeFreq'))
+                this.setElVal(this.idUI.cL1, old_state.activeFreq(1), 0);
+                this.setElVal(this.idUI.cL2, old_state.activeFreq(2), 0);
+                this.setElVal(this.idUI.cL5, old_state.activeFreq(3), 0);
+                this.setElVal(this.idUI.cL6, old_state.activeFreq(4), 0);
             end
             
-            if (isfield(state,'srate'))
-                this.setElVal(this.idUI.lProcRate, state.srate, 0);
+            if (isfield(old_state,'srate'))
+                this.setElVal(this.idUI.lProcRate, old_state.srate, 0);
             end
-            if (isfield(state,'obs_comb'))
-                this.setElVal(this.idUI.lObsComb, state.obs_comb, 0);
+            if (isfield(old_state,'obs_comb'))
+                this.setElVal(this.idUI.lObsComb, old_state.obs_comb, 0);
             end
             
-            this.setElVal(this.idUI.nCutOff, state.cut_off, 0);
-            this.setElVal(this.idUI.nSNR, state.snr_thres, 0);
-            this.setElVal(this.idUI.nMinNSat, state.min_sat, 0);
-            if (isfield(state,'min_arc'))
-                this.setElVal(this.idUI.nMinArc, state.min_arc, 0);
+            this.setElVal(this.idUI.nCutOff, old_state.cut_off, 0);
+            this.setElVal(this.idUI.nSNR, old_state.snr_thres, 0);
+            this.setElVal(this.idUI.nMinNSat, old_state.min_sat, 0);
+            if (isfield(old_state,'min_arc'))
+                this.setElVal(this.idUI.nMinArc, old_state.min_arc, 0);
             end
 
             %   OUTLIER DETECTION
             % ===============================================================
             
-            if (isfield(state,'outlier'))
-                this.setElVal(this.idUI.cOutlier, state.outlier, 0);                
+            if (isfield(old_state,'outlier'))
+                this.setElVal(this.idUI.cOutlier, old_state.outlier, 0);                
             end
-            if (isfield(state,'spp_thr'))
-                this.setElVal(this.idUI.nSPPthr, state.spp_thr, 0);                
+            if (isfield(old_state,'spp_thr'))
+                this.setElVal(this.idUI.nSPPthr, old_state.spp_thr, 0);                
             end
-            if (isfield(state,'code_thr'))
-                this.setElVal(this.idUI.nCodeThr, state.code_thr, 0);                
+            if (isfield(old_state,'code_thr'))
+                this.setElVal(this.idUI.nCodeThr, old_state.code_thr, 0);                
             end
-            if (isfield(state,'phase_thr'))
-                this.setElVal(this.idUI.nPhaseThr, state.phase_thr, 0);                
+            if (isfield(old_state,'phase_thr'))
+                this.setElVal(this.idUI.nPhaseThr, old_state.phase_thr, 0);                
             end            
             
             %   OPTIONS
             % ===============================================================
             
-            if (isfield(state,'pre_pro'))
-                this.setElVal(this.idUI.cPrePro, state.pre_pro, 0);
+            if (isfield(old_state,'pre_pro'))
+                this.setElVal(this.idUI.cPrePro, old_state.pre_pro, 0);
             end
-            this.setElVal(this.idUI.cMPos, state.master_pos, 0);
-            this.setElVal(this.idUI.cConstraint, state.constraint, 0);
-            this.setElVal(this.idUI.cPlotProc, state.plotproc, 0);
-            this.setElVal(this.idUI.cRefPath, state.ref_path, 0);
-            this.setElVal(this.idUI.cSkyPlot, state.no_skyplot_snr, 0);
-            this.setElVal(this.idUI.cGEarth, state.google_earth, 0);
-            this.setElVal(this.idUI.cErrEllipse, state.err_ellipse, 0);
-            this.setElVal(this.idUI.cPlotMaster, state.plot_master, 0);
-            this.setElVal(this.idUI.cPlotAmb, state.plot_amb, 0);
-            this.setElVal(this.idUI.cUseNTRIP, state.use_ntrip, 0);
-            this.setElVal(this.idUI.cDoppler, state.flag_doppler, 0);
-            if (isfield(state,'ocean'))
-                this.setElVal(this.idUI.cOcean, state.ocean, 0);
+            this.setElVal(this.idUI.cMPos, old_state.master_pos, 0);
+            this.setElVal(this.idUI.cConstraint, old_state.constraint, 0);
+            this.setElVal(this.idUI.cPlotProc, old_state.plotproc, 0);
+            this.setElVal(this.idUI.cRefPath, old_state.ref_path, 0);
+            this.setElVal(this.idUI.cSkyPlot, old_state.no_skyplot_snr, 0);
+            this.setElVal(this.idUI.cGEarth, old_state.google_earth, 0);
+            this.setElVal(this.idUI.cErrEllipse, old_state.err_ellipse, 0);
+            this.setElVal(this.idUI.cPlotMaster, old_state.plot_master, 0);
+            this.setElVal(this.idUI.cPlotAmb, old_state.plot_amb, 0);
+            this.setElVal(this.idUI.cUseNTRIP, old_state.use_ntrip, 0);
+            this.setElVal(this.idUI.cDoppler, old_state.flag_doppler, 0);
+            if (isfield(old_state,'ocean'))
+                this.setElVal(this.idUI.cOcean, old_state.ocean, 0);
             end
             % Temporary check in the migration to SBAS use period
-            if (isfield(state,'use_sbas')) %since v0.3.2beta -> backward compatibility
-                this.setElVal(this.idUI.cUse_SBAS, state.use_sbas, 0);
+            if (isfield(old_state,'use_sbas')) %since v0.3.2beta -> backward compatibility
+                this.setElVal(this.idUI.cUse_SBAS, old_state.use_sbas, 0);
             else
                 this.setElVal(this.idUI.cUse_SBAS, 0, 0);
             end
@@ -3158,122 +3019,121 @@ classdef goGUIclass < handle
             %   INTEGER AMBIGUITY RESOLUTION
             % ===============================================================
             
-            this.setElVal(this.idUI.cLAMBDA, state.use_lambda, 0);
-            this.setElVal(this.idUI.lLAMBDAMethod, state.lambda_method, 0);
-            this.setElVal(this.idUI.nP0, state.lambda_P0, 0);
-            this.setElVal(this.idUI.cP0, state.lambda_default_P0, 0);
-            this.setElVal(this.idUI.nMu, state.lambda_mu, 0);
-            this.setElVal(this.idUI.cMu, state.lambda_auto_mu, 0);
+            this.setElVal(this.idUI.cLAMBDA, old_state.use_lambda, 0);
+            this.setElVal(this.idUI.lLAMBDAMethod, old_state.lambda_method, 0);
+            this.setElVal(this.idUI.nP0, old_state.lambda_P0, 0);
+            this.setElVal(this.idUI.cP0, old_state.lambda_default_P0, 0);
+            this.setElVal(this.idUI.nMu, old_state.lambda_mu, 0);
+            this.setElVal(this.idUI.cMu, old_state.lambda_auto_mu, 0);
             
             %   INPUT/OUTPUT FILE AND FOLDERS
             % ===============================================================
             
-            if (isfield(state,'INIsettings')) % backward compatibility check
-                if not(exist(state.INIsettings,'file'))
-                    [path name ext] = fileparts(checkPath(state.INIsettings));
-                    state.INIsettings = [regexprep(path, './settings', '../data/old/settings/') name ext];                    
+            if (isfield(old_state,'INIsettings')) % backward compatibility check
+                if not(exist(old_state.INIsettings,'file'))
+                    [path name ext] = fileparts(checkPath(old_state.INIsettings));
+                    old_state.INIsettings = [regexprep(path, './settings', '../data/old/settings/') name ext];                    
                 end
-                this.setElVal(this.idUI.sINI, state.INIsettings, 0);
+                this.setElVal(this.idUI.sINI, old_state.INIsettings, 0);
             end
-            this.setElVal(this.idUI.sDirGoOut, state.gogps_data_output, 0);
-            this.setElVal(this.idUI.sPrefixGoOut, state.gogps_data_output_prefix, 0);
-            if (isfield(state,'activeGNSS'))
-                this.setElVal(this.idUI.cGPS, state.activeGNSS(1), 0);
-                this.setElVal(this.idUI.cGLONASS, state.activeGNSS(2), 0);
-                this.setElVal(this.idUI.cGalileo, state.activeGNSS(3), 0);
-                this.setElVal(this.idUI.cBeiDou, state.activeGNSS(4), 0);
-                this.setElVal(this.idUI.cQZSS, state.activeGNSS(5), 0);
-                this.setElVal(this.idUI.cSBAS, state.activeGNSS(6), 0);
+            this.setElVal(this.idUI.sPrefixGoOut, old_state.gogps_data_output_prefix, 0);
+            if (isfield(old_state,'activeGNSS'))
+                this.setElVal(this.idUI.cGPS, old_state.activeGNSS(1), 0);
+                this.setElVal(this.idUI.cGLONASS, old_state.activeGNSS(2), 0);
+                this.setElVal(this.idUI.cGalileo, old_state.activeGNSS(3), 0);
+                this.setElVal(this.idUI.cBeiDou, old_state.activeGNSS(4), 0);
+                this.setElVal(this.idUI.cQZSS, old_state.activeGNSS(5), 0);
+                this.setElVal(this.idUI.cSBAS, old_state.activeGNSS(6), 0);
             end
             
             %   SETTINGS - MASTER STATION
             % ===============================================================
             
-            this.setElVal(this.idUI.lCRS, state.crs, 0);
+            this.setElVal(this.idUI.lCRS, old_state.crs, 0);
             
-            this.setElVal(this.idUI.nMX, state.master_X, 0);
-            this.setElVal(this.idUI.nMY, state.master_Y, 0);
-            this.setElVal(this.idUI.nMZ, state.master_Z, 0);
-            this.setElVal(this.idUI.nMLat, state.master_lat, 0);
-            this.setElVal(this.idUI.nMLon, state.master_lon, 0);
-            this.setElVal(this.idUI.nMh, state.master_h, 0);
+            this.setElVal(this.idUI.nMX, old_state.master_X, 0);
+            this.setElVal(this.idUI.nMY, old_state.master_Y, 0);
+            this.setElVal(this.idUI.nMZ, old_state.master_Z, 0);
+            this.setElVal(this.idUI.nMLat, old_state.master_lat, 0);
+            this.setElVal(this.idUI.nMLon, old_state.master_lon, 0);
+            this.setElVal(this.idUI.nMh, old_state.master_h, 0);
             
             %   SETTINGS - KALMAN FILTER - STD
             % ===============================================================
             
-            this.setElVal(this.idUI.nStdE, state.std_X, 0);
-            this.setElVal(this.idUI.nStdN, state.std_Y, 0);
-            this.setElVal(this.idUI.nStdU, state.std_Z, 0);
-            this.setElVal(this.idUI.nStdCode, state.std_code, 0);
-            this.setElVal(this.idUI.nStdPhase, state.std_phase, 0);
-            this.setElVal(this.idUI.nStdDTM, state.std_dtm, 0);
-            this.setElVal(this.idUI.nHAntenna, state.antenna_h, 0);
-            this.setElVal(this.idUI.bStdPhase, state.toggle_std_phase, 0);
-            this.setElVal(this.idUI.bStdDTM, state.toggle_std_dtm, 0);
-            this.setElVal(this.idUI.nStdT0, state.std_init, 0);
-            this.setElVal(this.idUI.nStdVel, state.std_vel, 0);
+            this.setElVal(this.idUI.nStdE, old_state.std_X, 0);
+            this.setElVal(this.idUI.nStdN, old_state.std_Y, 0);
+            this.setElVal(this.idUI.nStdU, old_state.std_Z, 0);
+            this.setElVal(this.idUI.nStdCode, old_state.std_code, 0);
+            this.setElVal(this.idUI.nStdPhase, old_state.std_phase, 0);
+            this.setElVal(this.idUI.nStdDTM, old_state.std_dtm, 0);
+            this.setElVal(this.idUI.nHAntenna, old_state.antenna_h, 0);
+            this.setElVal(this.idUI.bStdPhase, old_state.toggle_std_phase, 0);
+            this.setElVal(this.idUI.bStdDTM, old_state.toggle_std_dtm, 0);
+            this.setElVal(this.idUI.nStdT0, old_state.std_init, 0);
+            this.setElVal(this.idUI.nStdVel, old_state.std_vel, 0);
                                     
             %   SETTINGS - OBSERVATION MODELLING
             % ===============================================================
-            if (isfield(state,'wModel'))
-                this.setElVal(this.idUI.lWeight, state.wModel, 0);
+            if (isfield(old_state,'wModel'))
+                this.setElVal(this.idUI.lWeight, old_state.wModel, 0);
             end
-            if (isfield(state,'ionoModel'))
-                this.setElVal(this.idUI.lIono, state.ionoModel, 0);
+            if (isfield(old_state,'ionoModel'))
+                this.setElVal(this.idUI.lIono, old_state.ionoModel, 0);
             end
-            if (isfield(state,'tropoModel'))
-                this.setElVal(this.idUI.lTropo, state.tropoModel, 0);
+            if (isfield(old_state,'tropoModel'))
+                this.setElVal(this.idUI.lTropo, old_state.tropoModel, 0);
             end
 
             %   SETTINGS - KALMAN FILTER
             % ===============================================================
             
-            this.setElVal(this.idUI.nCS, state.cs_thresh, 0);
-            this.setElVal(this.idUI.cStopGoStop, state.stopGOstop, 0);
+            this.setElVal(this.idUI.nCS, old_state.cs_thresh, 0);
+            this.setElVal(this.idUI.cStopGoStop, old_state.stopGOstop, 0);
             
             %   SETTINGS - KALMAN FILTER - DYNAMIC MODEL
             % ===============================================================
             
             this.resetDynModel();
-            this.setElVal(this.idUI.lDynModel, state.dyn_mod, 0);
+            this.setElVal(this.idUI.lDynModel, old_state.dyn_mod, 0);
             
             %   SETTINGS - KALMAN FILTER - ARAA
             % ===============================================================
             
-            this.setElVal(this.idUI.lARAA, state.amb_select, 0);
+            this.setElVal(this.idUI.lARAA, old_state.amb_select, 0);
             
             %   SETTINGS - PORTS
             % ===============================================================
             
-            if (isfield(state,'captureRate'))
-                this.setElVal(this.idUI.lRate, state.captureRate, 0);
+            if (isfield(old_state,'captureRate'))
+                this.setElVal(this.idUI.lRate, old_state.captureRate, 0);
             end
-            [s0 s1 s2 s3] = this.getPortValues(state.com_select_0, state.com_select_1, state.com_select_2, state.com_select_3);
+            [s0 s1 s2 s3] = this.getPortValues(old_state.com_select_0, old_state.com_select_1, old_state.com_select_2, state.com_select_3);
             
-            this.setElVal(this.idUI.lnPorts, state.num_receivers, 0);
+            this.setElVal(this.idUI.lnPorts, old_state.num_receivers, 0);
             
             this.setElVal(this.idUI.lPort0, s0, 0);
             this.setElVal(this.idUI.lPort1, s1, 0);
             this.setElVal(this.idUI.lPort2, s2, 0);
             this.setElVal(this.idUI.lPort3, s3, 0);
-            this.setElVal(this.idUI.lProt0, state.protocol_select_0, 0);
-            this.setElVal(this.idUI.lProt1, state.protocol_select_1, 0);
-            this.setElVal(this.idUI.lProt2, state.protocol_select_2, 0);
-            this.setElVal(this.idUI.lProt3, state.protocol_select_3, 0);
+            this.setElVal(this.idUI.lProt0, old_state.protocol_select_0, 0);
+            this.setElVal(this.idUI.lProt1, old_state.protocol_select_1, 0);
+            this.setElVal(this.idUI.lProt2, old_state.protocol_select_2, 0);
+            this.setElVal(this.idUI.lProt3, old_state.protocol_select_3, 0);
             
             %   SETTINGS - MASTER SERVER
             % ===============================================================
             
-            this.setElVal(this.idUI.sIPaddr, state.IP_address, 0);
-            this.setElVal(this.idUI.sIPport, state.port, 0);
-            this.setElVal(this.idUI.sMnt, state.mountpoint, 0);
+            this.setElVal(this.idUI.sIPaddr, old_state.IP_address, 0);
+            this.setElVal(this.idUI.sIPport, old_state.port, 0);
+            this.setElVal(this.idUI.sMnt, old_state.mountpoint, 0);
             
-            this.setElVal(this.idUI.sUName, state.username, 0);
-            this.setPassword(state.password);
+            this.setElVal(this.idUI.sUName, old_state.username, 0);
+            this.setPassword(old_state.password);
             
-            this.setElVal(this.idUI.nVLat, state.approx_lat, 0);
-            this.setElVal(this.idUI.nVLon, state.approx_lon, 0);
-            this.setElVal(this.idUI.nVH, state.approx_h, 1);
+            this.setElVal(this.idUI.nVLat, old_state.approx_lat, 0);
+            this.setElVal(this.idUI.nVLon, old_state.approx_lon, 0);
+            this.setElVal(this.idUI.nVH, old_state.approx_h, 1);
 
             % Check all the dependencies
             this.syncFromGUI(this.idUI.lProcMode);
@@ -3343,9 +3203,6 @@ classdef goGUIclass < handle
             %   INPUT/OUTPUT FILE AND FOLDERS
             % ===============================================================
 
-            tmp_state.INIsettings       = this.getElVal(this.idUI.sINI);
-            tmp_state.gogps_data_output = this.getElVal(this.idUI.sDirGoOut);
-            tmp_state.gogps_data_output_prefix = this.getElVal(this.idUI.sPrefixGoOut);
             tmp_state.activeGNSS        = [this.isActive(this.idUI.cGPS) ...
                                        this.isActive(this.idUI.cGLONASS) ...
                                        this.isActive(this.idUI.cGalileo) ...
@@ -3449,7 +3306,7 @@ classdef goGUIclass < handle
         % Function to check the validity of some parameters before go
         function go(this)
             % Function to check the validity of some parameters before go
-            global goObj goIni
+            global goObj
             
             contents_dyn_mod = cellstr(get(this.goh.dyn_mod,'String'));
             flag_stopGOstop = get(this.goh.stopGOstop,'Value');
@@ -3475,18 +3332,7 @@ classdef goGUIclass < handle
             end
             
             ready = 1;
-                        
-            if this.isPostProc()
-                data_path = goIni.getData('Bin','data_path');
-                file_prefix = goIni.getData('Bin','file_prefix');
-                filerootIN = [data_path file_prefix];
-                %check if the dataset was surveyed with a variable dynamic model
-                d = dir([filerootIN '_dyn_000.bin']);
-                if (this.isPostProc && (flag_stopGOstop || strcmp(contents_dyn_mod{get(this.goh.dyn_mod,'Value')},'Variable')) && isempty(d))
-                    msgbox('The selected dataset was not surveyed with a variable dynamic model: please select another dynamic model.'); ready = 0;
-                end
-            end
-            
+                                    
             if (mode == goGNSS.MODE_RT_R_MON || mode == goGNSS.MODE_RT_RM_MON || mode == goGNSS.MODE_RT_NAV) %if a COM connection to the rover is requiRED
                 if(strcmp(COMportR0, 'NA'))
                     msgbox('Please select an existing COM port.'); ready = 0;
@@ -3524,16 +3370,7 @@ classdef goGUIclass < handle
             end
             
             this.ok_go = true;
-        end
-        
-        % Function to return values to goGPS.m
-        function funout = outputFun(this)
-            if this.ok_go
-                funout = this.state;
-            else
-                funout = [];
-            end
-        end
+        end        
     end
     
     
@@ -3550,54 +3387,19 @@ classdef goGUIclass < handle
                 end
                 delete this.edtINI.h
             end
-            guiEditINI();
-        end
+            gui_edit_INI();
+        end       
         
         % Function to init the INI editor
         % creates, objects, load default values, etc...
         function initEditINI(this, h)
-            % Function to init the INI editor
-            global goIni
-            
             % Save handler to the INI editor
             this.edtINI.h = h;
-            
-            % Get the name of the ini file
-            
-            if isobject(goIni)
-                file_name = goIni.getFileName();
-            else
-                file_name = '';
-            end
-            if isempty(file_name)
-                file_name = [this.state.input_file_ini_path];
-                file_name = checkPath(file_name);
-                if ~exist(file_name, 'file')
-                    file_name = '';
-                end
-            end
-            
-            % Get the content of the ini file
-            this.setGuiElStr(h.sINI, file_name);
-            this.setGuiElStr(h.sINIout, file_name);
-
-            if ~isempty(file_name)
-                if exist(file_name, 'file')
-                    fid = fopen(file_name,'r');
-                    text = fread(fid, '*char');
-                    text = text';
-                    fclose(fid);
-                else
-                    text = '# No INI file found';
-                end
-            else
-                text = '# No INI file found';
-            end
-            
+                                    
             % Undocumented edit box => better management of a text file
             % Create the widget containing the text
             jCodePaneINI = com.mathworks.widgets.SyntaxTextPane;
-            jCodePaneINI.setText(text);
+            jCodePaneINI.setText(strCell2Str(this.state.exportIO(), 10));
             % Create the ScrollPanel containing the widget
             jScrollPaneINI = com.mathworks.mwswing.MJScrollPane(jCodePaneINI);
             % Substitute the eINI edit box with the Java Scroll Pane
@@ -3609,31 +3411,7 @@ classdef goGUIclass < handle
             this.edtINI.jEdit.jINI = jCodePaneINI;
             this.edtINI.jEdit.hINI = hContainerINI;
             
-            % Load INI keywords
-            this.edtINI.keywordsINI = Go_Ini_Manager([this.getSettingsDir() this.defaultINIKeywordsFile]);
-            this.edtINI.keywordsINI.readFile();
-            % Sections
-            sections = this.edtINI.keywordsINI.getData('INI','sections');
-            this.setGuiElStr(h.lSections, sections);
             drawnow;
-            % Fields
-            this.updateFieldsINI();
-            
-            % Replacing the field
-            jCodePaneFields = com.mathworks.widgets.SyntaxTextPane;
-            jCodePaneFields.setText('');
-            % Create the ScrollPanel containing the widget
-            jScrollPaneFields = com.mathworks.mwswing.MJScrollPane(jCodePaneFields);
-            % Substitute the eFields edit box with the Java Scroll Pane
-            set(this.edtINI.h.eFields, 'Units', 'pixels');
-            [jhPanel, hContainerFields] = javacomponent(jScrollPaneFields,get(this.edtINI.h.eFields,'Position'),h.wEditINI);
-            delete(this.edtINI.h.eFields);
-            
-            % Save the new object
-            this.edtINI.jEdit.jFields = jCodePaneFields;
-            this.edtINI.jEdit.hFields = hContainerFields;
-            drawnow;
-            this.updateFieldsINI();
             
             % Replacing the field
             jCodePaneBrowse = com.mathworks.widgets.SyntaxTextPane;
@@ -3649,6 +3427,15 @@ classdef goGUIclass < handle
             this.edtINI.jEdit.jBrowse = jCodePaneBrowse;
             this.edtINI.jEdit.hBrowse = hContainerBrowse;
             drawnow;
+        end
+        
+        function acceptIniChanges(this)
+            txt = textscan(char(this.edtINI.jEdit.jINI.getText()),'%s','Delimiter', '\n');
+            this.state.importIO(Ini_Manager(txt{1}));
+            this.updateLEDstate();
+            this.edtINI.jEdit.jINI.setText(strCell2Str(this.state.exportIO(), 10));
+            this.logger.addWarning('Settings have been updated');
+            msgbox('Settings have been updated');
         end
         
         % Browse INI file => select a file to be edited
@@ -3667,30 +3454,14 @@ classdef goGUIclass < handle
                 '*.*',  'All Files (*.*)'}, ...
                 'Choose an INI configuration file', config_dir);
             if (file_name ~= 0)
-                file_name = checkPath([pathname file_name]);
-
-                this.setGuiElStr(this.edtINI.h.sINI, file_name);
-                this.setGuiElStr(this.edtINI.h.sINIout, file_name);
-                
-                % Get the name of the ini file
-                if isempty(file_name)
-                    file_name = [this.state.input_file_ini_path];
-                    if ~exist(file_name, 'file')
-                        file_name = '';
-                    end
-                end
-                
+                this.state.setDeprecateIniPath(fullfile(pathname, file_name));
+                this.state.updateExternals();
+                this.logger.addWarning('Settings have been updated');
+                msgbox('Settings have been updated');
                 % Get the content of the ini file
-                if ~isempty(file_name)
-                    fid = fopen(file_name,'r');
-                    text = fread(fid, '*char');
-                    text = text';
-                    fclose(fid);
-                else
-                    text = '# No INI file found';
-                end
-                this.edtINI.jEdit.jINI.setText(text);
-                drawnow;                
+                
+                this.edtINI.jEdit.jINI.setText(strCell2Str(this.state.exportIO(), 10));
+                drawnow;         
             end
         end
      
@@ -3804,7 +3575,7 @@ classdef goGUIclass < handle
             
             if (file_name ~= 0)
                 this.workingDir = [pathname];
-                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, file_name);
+                str = sprintf('"%s"\n"%s"', pathname, file_name);
                 this.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
@@ -3816,7 +3587,7 @@ classdef goGUIclass < handle
             dname = uigetdir(this.getWorkingDir(),'Choose a directory');
             if (dname ~= 0)
                 this.workingDir = [dname '../'];
-                str = sprintf('data_path = "%s"', dname);
+                str = sprintf('"%s"', dname);
                 this.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
@@ -3829,7 +3600,7 @@ classdef goGUIclass < handle
             
             if (file_name ~= 0)
                 this.workingDir = [pathname];
-                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, file_name);
+                str = sprintf('"%s"\n"%s"', pathname, file_name);
                 this.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
@@ -3844,7 +3615,7 @@ classdef goGUIclass < handle
                 'Choose a file',this.getWorkingDir());
             
             if (file_name ~= 0)
-                str = sprintf('data_path = "%s"\nfile_name = "%s"', pathname, file_name);
+                str = sprintf('"%s"\n"%s"', pathname, file_name);
                 this.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end

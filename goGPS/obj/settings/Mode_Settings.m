@@ -210,6 +210,7 @@ classdef Mode_Settings < Settings_Interface
     methods
         function this = Mode_Settings()
             % Creator of Mode_Settings
+            this.initLogger();
         end
     end
     

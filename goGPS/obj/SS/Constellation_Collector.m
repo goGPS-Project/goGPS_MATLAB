@@ -54,7 +54,7 @@ classdef Constellation_Collector < Settings_Interface
         SYS_C        = 'GRECJS'; % Array of constellation char ids GPS = 'G', GLONASS = 'R', ...        
     end
     
-    properties (SetAccess = private, GetAccess = public)        
+    properties (SetAccess = public, GetAccess = public)        
         gps = GPS_SS();      % GPS parameters
         glo = GLONASS_SS();  % GLONASS parameters
         gal = Galileo_SS();  % Galileo parameters        
@@ -79,6 +79,7 @@ classdef Constellation_Collector < Settings_Interface
         function init(this, active_list)
             % Init function for the Constellation_Collector Class
             % SYNTAX: this.init(active_list)
+            
             this.updateStatus(active_list);
         end
         
@@ -204,8 +205,21 @@ classdef Constellation_Collector < Settings_Interface
             % DESCRIPTION:
             %   Multi-constellation set-up.
             
+            this.initLogger();
+            
+            % this f***ing software called MATLAB does not create new
+            % constellation objects unless I do this
+            this.gps = this.gps.getCopy();
+            this.glo = this.glo.getCopy();
+            this.gal = this.gal.getCopy();
+            this.bds = this.bds.getCopy();
+            this.qzs = this.qzs.getCopy();
+            this.sbs = this.sbs.getCopy();
+            
             % Manually manage overloading
             switch nargin
+                case 0
+                    active_list = false(1,this.N_SYS_TOT);
                 case 1
                     if (ischar(GPS_flag))
                         active_list = false(1,this.N_SYS_TOT);
@@ -299,7 +313,6 @@ classdef Constellation_Collector < Settings_Interface
             str = this.bds.toString(str);
             str = this.qzs.toString(str);
             str = this.sbs.toString(str);
-            str = [str 10];
         end
         
         function str_cell = export(this, str_cell)
@@ -452,10 +465,10 @@ classdef Constellation_Collector < Settings_Interface
             % Import from the state variable (saved into the old interface mat file of goGPS)
             % This function import processing settings from another setting object or ini file
             % SYNTAX: obj.legacyImport(state)
-            active_list = false(1,this.N_SYS_TOT);
-            active_list(state.activeGNSS) = true;
-            active_list(6) = active_list(6) || state.use_sbas;
-            this.init(active_list);
+            active_lst = false(1,this.N_SYS_TOT);
+            active_lst(state.activeGNSS) = true;
+            active_lst(6) = active_lst(6) || state.use_sbas;
+            this.init(active_lst);
             if isfield(state,'activeFreq')
                 this.gps.setActiveFrequencies(state.activeFreq);
                 this.glo.setActiveFrequencies(state.activeFreq);
