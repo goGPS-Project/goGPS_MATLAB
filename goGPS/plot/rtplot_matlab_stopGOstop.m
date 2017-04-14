@@ -24,7 +24,7 @@ function rtplot_matlab_stopGOstop (t, pos_R, pos_M, P1, P2, origin, ref, matrix,
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.0
+%    |___/                    v 0.5.1 beta
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

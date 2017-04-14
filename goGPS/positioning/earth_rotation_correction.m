@@ -20,7 +20,7 @@ function [Xsat_rot] = earth_rotation_correction(traveltime, Xsat, Omegae_dot)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.0
+%    |___/                    v 0.5.1 beta
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) Kai Borre

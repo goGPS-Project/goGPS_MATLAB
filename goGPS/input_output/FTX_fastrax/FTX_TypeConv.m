@@ -21,7 +21,7 @@ function [dec_out, pos_out, part] = FTX_TypeConv(type_in, bin_msg, pos_in)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.0
+%    |___/                    v 0.5.1 beta
 % 
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

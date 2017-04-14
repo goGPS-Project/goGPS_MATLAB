@@ -23,7 +23,7 @@ function [bcheck, acheck, Qzhat, Qbcheck] = lambdafix(bhat, ahat, Qbb, Qahat, Qb
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.0
+%    |___/                    v 0.5.1 beta
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

@@ -25,7 +25,7 @@ function goGPS_LS_SA_variometric(time_rx_t0, time_rx_t1, pr1_t0, pr1_t1, pr2_t0,
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.0
+%    |___/                    v 0.5.1 beta
 %
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini

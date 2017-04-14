@@ -14,7 +14,7 @@ function versionChanger(new_version_str, base_dir)
 %     __ _ ___ / __| _ | __|
 %    / _` / _ \ (_ |  _|__ \
 %    \__, \___/\___|_| |___/
-%    |___/                    v 0.5.0
+%    |___/                    v 0.5.1 beta
 % 
 %--------------------------------------------------------------------------
 %  Copyright (C) 2009-2017 Mirko Reguzzoni, Eugenio Realini
@@ -45,8 +45,9 @@ if (nargin <= 1)
 end
 if (nargin == 0)
     new_version_str = Core.GO_GPS_VERSION;
-[~, list] = dos(['find ' base_dir ' -name \*.m']); 
-list = textscan(list,'%s','Delimiter','\n','whitespace',''); 
+end
+[~, list] = dos(['find ' base_dir ' -name \*.m']);
+list = textscan(list,'%s','Delimiter','\n','whitespace','');
 list = list{1};
 
 tic
