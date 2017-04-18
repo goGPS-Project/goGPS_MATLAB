@@ -64,11 +64,11 @@ fI = getOutliers(isnan(data_in));
 % trim the NaNs at the border of the dataset
 % I cannot process them
 rNaN  = [0; 0];
-if (fI(end) == numel(data_in))
+if (~isempty(fI) && fI(end) == numel(data_in))
     rNaN(2) = length(data_in) -  fI(end, 1) + 1;
     data_in = data_in(1:fI(end, 1)-1);
 end
-if (fI(1) == 1)
+if (~isempty(fI) && fI(1) == 1)
     data_in = data_in((fI(1, 2)+1):end);
     rNaN(1) = fI(1, 2);
 end
