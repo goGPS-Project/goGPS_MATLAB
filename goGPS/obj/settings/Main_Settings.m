@@ -1111,7 +1111,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 this.min_n_sat = str2double(state.min_sat);
                 this.cut_off = str2double(state.cut_off);
                 this.snr_thr = str2double(state.snr_thres);                
-                if (isfield(state,'flag_ocean'))
+                if (isfield(state,'ocean'))
                     this.flag_ocean = state.ocean;
                 end
                 if (isfield(state,'min_arc'))
