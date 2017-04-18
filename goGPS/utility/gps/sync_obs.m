@@ -109,8 +109,11 @@ snr1 = zeros(nSatTot, ref_len, nObsSet);
 snr2 = zeros(nSatTot, ref_len, nObsSet);
 codeC1 = zeros(nSatTot, ref_len, nObsSet);
 
-time_prog = time_i - min_time_prog; % substract the first element to reduce the magnitude of all the values
-time_ref_prog = time_ref - min_time_prog;
+% time_prog = time_i - min_time_prog; % substract the first element to reduce the magnitude of all the values
+% time_ref_prog = time_ref - min_time_prog;
+
+time_prog = time_i - time_ref(1); % substract the first element to reduce the magnitude of all the values
+time_ref_prog = time_ref - time_ref(1);
 
 for s = 1 : nObsSet
     [~, idx_t, idx_z] = intersect(roundmod(time_ref_prog, max_int), roundmod(time_prog(:,1,s), interval(s)));    
