@@ -1644,23 +1644,26 @@ classdef IO_Settings < Settings_Interface
             if ~iscell(file_name)
                 file_name = {file_name};
             end
-                        
-            this.logger.newLine();
-            this.logger.addMarkedMessage('Checking Navigational files');
-            this.logger.newLine();
-            i = 0;
-            while (i < numel(file_name) && eph_ok)
-                i = i + 1;
-                eph_ok = exist(fullfile(nav_dir, file_name{i}), 'file') == 2;
-                if eph_ok 
-                    this.logger.addStatusOk(sprintf('%s', fullfile(nav_dir, file_name{i})));
-                else
-                    if ~(exist(fullfile(nav_dir, file_name{i}), 'file') == 7) % if its not a folder
-                        this.logger.addWarning(sprintf('%s is not a valid clock file', fullfile(nav_dir, file_name{i})));
+            
+            if isempty(file_name{1})
+                eph_ok = false;
+            else
+                this.logger.addMarkedMessage('Checking Navigational files');
+                this.logger.newLine();
+                i = 0;
+                while (i < numel(file_name) && eph_ok)
+                    i = i + 1;
+                    eph_ok = exist(fullfile(nav_dir, file_name{i}), 'file') == 2;
+                    if eph_ok
+                        this.logger.addStatusOk(sprintf('%s', fullfile(nav_dir, file_name{i})));
+                    else
+                        if ~(exist(fullfile(nav_dir, file_name{i}), 'file') == 7) % if its not a folder
+                            this.logger.addWarning(sprintf('%s is not a valid clock file', fullfile(nav_dir, file_name{i})));
+                        end
                     end
                 end
+                this.logger.newLine();
             end
-            
         end
         
         function clk_ok = checkNavClkFiles(this, date_start, date_stop)
@@ -1670,7 +1673,7 @@ classdef IO_Settings < Settings_Interface
             nav_dir = this.getNavClkDir();
             switch nargin
                 case 1
-                    file_name = this.getNavClkFile();    
+                    file_name = this.getNavClkFile();
                 case 2
                     file_name = fnp.dateKeyRep(this.getNavClkFile(), date_start);
                 case 3
@@ -1682,22 +1685,26 @@ classdef IO_Settings < Settings_Interface
                 file_name = {file_name};
             end
             
-            this.logger.newLine();
-            this.logger.addMarkedMessage('Checking files with clock offsets');
-            this.logger.newLine();
-            i = 0;
-            while (i < numel(file_name) && clk_ok)
-                i = i + 1;
-                clk_ok = exist(fullfile(nav_dir, file_name{i}), 'file') == 2;
-                if clk_ok 
-                    this.logger.addStatusOk(sprintf('%s', fullfile(nav_dir, file_name{i})));
-                else
-                    this.logger.addWarning(sprintf('%s', fullfile(nav_dir, file_name{i})));
+            if isempty(file_name{1})
+                clk_ok = false;
+            else
+                this.logger.addMarkedMessage('Checking files with clock offsets');
+                this.logger.newLine();
+                i = 0;
+                while (i < numel(file_name) && clk_ok)
+                    i = i + 1;
+                    clk_ok = exist(fullfile(nav_dir, file_name{i}), 'file') == 2;
+                    if clk_ok
+                        this.logger.addStatusOk(sprintf('%s', fullfile(nav_dir, file_name{i})));
+                    else
+                        this.logger.addWarning(sprintf('%s', fullfile(nav_dir, file_name{i})));
+                    end
                 end
+                this.logger.newLine();
             end
         end
     end
-    
+
     % =========================================================================
     %  TEST
     % =========================================================================

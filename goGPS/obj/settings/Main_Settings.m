@@ -1451,9 +1451,10 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             this.checkNumericField('cs_thr',[0 1e50]);
             
             if this.isModePPP()
-                if (this.cs_thr < 1e30)
-                    this.logger.addMessage('In PPP mode the cycle slips detection is computed during pre-processing');
-                    this.cs_thr = 1e30; % i.e. disable cycle-slip detection during KF processing
+                if (this.cs_thr < 1e20)
+                    this.logger.addMessage('In PPP mode the cycle slips detection is computed during pre-processing',15);
+                    this.logger.addMessage('cycle slips detection is disabled during processing',15);
+                    this.cs_thr = 1e30; % i.e. disable cycle slips detection during KF processing
                 end
             else
                 if (this.cs_thr_pre_pro ~= 1)

@@ -136,6 +136,7 @@ classdef File_Wizard < handle
                         
             first_target_files = this.state.getTargetPath(1);
             fh = File_Rinex(first_target_files);
+            this.logger.newLine();
             first_epoch = fh.first_epoch.first;
             last_epoch = fh.last_epoch.last;
         end
@@ -144,16 +145,17 @@ classdef File_Wizard < handle
             % prepare the navigational files needed for processing
             date_start = date_start.getCopy; date_start.addIntSeconds(-3600*24); % Get navigational files with 24 hours of margin
             date_stop = date_stop.getCopy; date_stop.addIntSeconds(+3600*24); % Get navigational files with 24 hours of margin
-            nav_ok = this.state.checkNavEphFiles(date_start, date_stop) && this.state.checkNavClkFiles(date_start, date_stop);
+            eph_ok = this.state.checkNavEphFiles(date_start, date_stop);
+            nav_ok = eph_ok && this.state.checkNavClkFiles(date_start, date_stop);
             if (~nav_ok)
                 fnp = File_Name_Processor();
                 
-                % import custom server
+                % Just in case I need it, import custom server
                 [addr, port, path, nav_name, clk_name, ~] = this.state.getCustomArchive();
                 this.ftpd_custom = FTP_Downloader(addr, port, path);
                 clear addr port path;
                 
-                % get lists of preferences
+                % Get lists of preferences
                 archive_list = this.state.getNavArchive();
                 eph_type_list = this.state.getNavEphType();
                 clk_type_list = this.state.getNavClkType();
@@ -201,7 +203,8 @@ classdef File_Wizard < handle
                                 [~, name, ext] = fileparts(clk_name);
                                 this.state.setNavClkFile(strcat(name, ext));
                                 
-                                nav_ok = this.state.checkNavEphFiles(date_start, date_stop) && this.state.checkNavClkFiles(date_start, date_stop);
+                                eph_ok = this.state.checkNavEphFiles(date_start, date_stop);
+                                nav_ok =  eph_ok && this.state.checkNavClkFiles(date_start, date_stop);
                             elseif isfield(this.source, archive) &&  ...
                                    isfield(this.source.(archive).par, ss) && ...
                                    isfield(this.source.(archive).par.(ss).center, provider) && ...
@@ -213,13 +216,14 @@ classdef File_Wizard < handle
                                 this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getNavEphDir());
                                 [~, name, ext] = fileparts(nav_name);
                                 this.state.setNavEphFile(strcat(name, ext));
-                                                                
-                                nav_ok = this.state.checkNavEphFiles(date_start, date_stop);
+                                
+                                eph_ok = this.state.checkNavEphFiles(date_start, date_stop);
                                 
                                 % if nav_ok try to download clocks
-                                if nav_ok
+                                if eph_ok
                                     c = 0;
-                                    while (c < numel(clk_type_list)) && ~this.state.checkNavClkFiles(date_start, date_stop)
+                                    clk_ok = this.state.checkNavClkFiles(date_start, date_stop);
+                                    while (c < numel(clk_type_list)) && ~clk_ok
                                         c = c + 1;
                                         clk_type = clk_type_list{c};
                                         if isfield(this.source.(archive).par.(ss).center.(provider), clk_type) && ...
@@ -230,16 +234,22 @@ classdef File_Wizard < handle
                                             this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getNavClkDir());
                                             [~, name, ext] = fileparts(clk_name);
                                             this.state.setNavClkFile(strcat(name, ext));
+                                            clk_ok = this.state.checkNavClkFiles(date_start, date_stop);
                                         end
                                     end
+                                else
+                                    eph_ok = this.state.checkNavEphFiles(date_start, date_stop);
+                                    clk_ok = false;
                                 end
-                                nav_ok = this.state.checkNavEphFiles(date_start, date_stop) && this.state.checkNavClkFiles(date_start, date_stop);
+                                if ~clk_ok
+                                    clk_ok = this.state.checkNavClkFiles(date_start, date_stop);
+                                end
+                                nav_ok = eph_ok && clk_ok;
                             end                            
                         end
                     end
                 end
             else
-                this.logger.newLine();
                 this.logger.addStatusOk('Navigational files are present :-)');
                 this.logger.newLine();
             end

@@ -236,7 +236,7 @@ classdef FTP_Downloader < handle
                     status = FTP_Downloader.ERR_FTP_FAIL;
                 end                                
             else
-                status = FTP_Downloader.ERR_NIP;
+                status = FTP_Downloader.ERR_NIC;
             end            
         end
     end

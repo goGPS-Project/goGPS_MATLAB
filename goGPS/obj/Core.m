@@ -44,27 +44,27 @@
 %--------------------------------------------------------------------------
 
 classdef Core < handle
-    
+
     properties (Constant)
         GO_GPS_VERSION = '0.5.1 beta';
     end
-    
+
     properties % Public Access
-        logger;        
+        logger;
     end
-    
+
     methods (Static)
         function this = Core()
             % Core object creator
             this.logger = Logger.getInstance();
         end
-        
+
         % Concrete implementation.  See Singleton superclass.
         function this = getInstance()
             % Get the persistent instance of the class
             persistent unique_instance_core__
             unique_instance_core__ = [];
-            
+
             if isempty(unique_instance_core__)
                 this = Core();
                 unique_instance_core__ = this;
@@ -72,19 +72,19 @@ classdef Core < handle
                 this = unique_instance_core__;
             end
         end
-        
-        
+
+
         function showTextHeader()
             this.logger = Logger.getInstance();
             if this.logger.getColorMode()
                 cprintf([241 160 38]/255,'               ___ ___ ___\n     __ _ ___ / __| _ | __|\n    / _` / _ \\ (_ |  _|__ \\\n    \\__, \\___/\\___|_| |___/\n    |___/                    '); cprintf('text','v '); cprintf('text', Core.GO_GPS_VERSION); fprintf('\n');
                 fprintf('\n--------------------------------------------------------------------------\n\n');
-            else                
+            else
                 fprintf('--------------------------------------------------------------------------\n');
                 fprintf('               ___ ___ ___\n');
                 fprintf('     __ _ ___ / __| _ | __|\n');
-                fprintf('    / _` / _ \ (_ |  _|__ \\n');
-                fprintf('    \__, \___/\___|_| |___/\n');
+                fprintf('    / _` / _ \\ (_ |  _|__ \\n');
+                fprintf('    \\__, \\___/\\___|_| |___/\n');
                 fprintf('    |___/                    v %s\n', Core.GO_GPS_VERSION);
                 fprintf('\n');
                 fprintf('--------------------------------------------------------------------------\n\n');
@@ -94,7 +94,7 @@ classdef Core < handle
     % =========================================================================
     %  CONSTELLATION MANAGEMENT
     % =========================================================================
-    
+
     methods % Public Access
         function [ cc ] = initConstellation(obj, GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag)
             % Multi-constellation set-up.
@@ -120,19 +120,19 @@ classdef Core < handle
                 case 7,  enabled_ss = logical([GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag]);
                 otherwise, error(['Initialization of Constellation_Collector failed: ' 10 '   invalid number of parameters in the constructor call']);
             end
-            
+
             obj.cc = Costellation_Collector(enabled_ss);
-            
+
             cc = obj.cc;
         end
-        
+
         function [cc] = getConstellations(obj)
             % Get the object containing the actual status of the enabled constallation
             cc = obj.cc;
         end
     end
-    
+
     methods % Public Access (Legacy support)
     end
-    
+
 end
