@@ -380,8 +380,11 @@ classdef IO_Settings < Settings_Interface
                 this.ems_dir    = fnp.checkPath(settings.getData('ems_dir'));
                 % STATIONS
                 this.crd_dir    = fnp.checkPath(settings.getData('crd_dir'));
+                this.crd_name    = fnp.checkPath(settings.getData('crd_name'));
                 this.met_dir    = fnp.checkPath(settings.getData('met_dir'));
+                this.met_name    = fnp.checkPath(settings.getData('met_name'));
                 this.ocean_dir  = fnp.checkPath(settings.getData('ocean_dir'));
+                this.ocean_name  = fnp.checkPath(settings.getData('ocean_name'));
                 % REFERENCE
                 this.ref_graph_file  = fnp.checkPath(settings.getData('ref_graph_file'));
                 this.geoid_dir  = fnp.checkPath(settings.getData('geoid_dir'));
@@ -427,17 +430,20 @@ classdef IO_Settings < Settings_Interface
                 this.xyz_ant = settings.xyz_ant;
                 this.xyz_ev_point = settings.xyz_ev_point;
                 % SATELLITES
-                this.eph_dir    = settings.eph_dir;
-                this.eph_name   = settings.eph_name;
-                this.clk_dir    = settings.clk_dir;
-                this.clk_name   = settings.clk_name;
-                this.crx_dir    = settings.crx_dir;
-                this.dcb_dir    = settings.dcb_dir;
-                this.ems_dir    = settings.ems_dir;
+                this.eph_dir     = settings.eph_dir;
+                this.eph_name    = settings.eph_name;
+                this.clk_dir     = settings.clk_dir;
+                this.clk_name    = settings.clk_name;
+                this.crx_dir     = settings.crx_dir;
+                this.dcb_dir     = settings.dcb_dir;
+                this.ems_dir     = settings.ems_dir;
                 % STATIONS
-                this.crd_dir    = settings.crd_dir;
-                this.met_dir    = settings.met_dir;
-                this.ocean_dir    = settings.ocean_dir;
+                this.crd_dir     = settings.crd_dir;
+                this.crd_name    = settings.crd_name;
+                this.met_dir     = settings.met_dir;
+                this.met_name    = settings.met_name;
+                this.ocean_dir   = settings.ocean_dir;
+                this.ocean_name  = settings.ocean_name;
                 % REFERENCE
                 this.ref_graph_file = settings.ref_graph_file;
                 this.geoid_dir  = settings.geoid_dir;
@@ -924,7 +930,7 @@ classdef IO_Settings < Settings_Interface
         function out = getCrdFile(this)
             % Get the path of the stations coordinates file
             % SYNTAX: file_path = this.getCrdFile()
-            out = this.checkCrdPath(this.crd_name);
+            out = this.checkCrdPath(strcat(this.crd_dir, filesep, this.crd_name));
         end
         
         function out = getAtxFile(this)
@@ -936,13 +942,13 @@ classdef IO_Settings < Settings_Interface
         function out = getOceanFile(this)
             % Get the path of the ocean loading file
             % SYNTAX: file_path = this.getOceanFile()
-            out = this.checkOceanPath(this.ocean_name);
+            out = this.checkOceanPath(strcat(this.ocean_dir, filesep, this.ocean_name));
         end
                 
         function out = getMetFile(this)
             % Get the path of the meteorological file
             % SYNTAX: file_path = this.getMetFile()
-            out = this.checkMetPath(this.met_name);
+            out = this.checkMetPath(strcat(this.met_dir, filesep, this.met_name));
         end
         
         function out = getDtmPath(this)
@@ -1150,7 +1156,9 @@ classdef IO_Settings < Settings_Interface
                 file_path = this.ext_ini.getData('STATIONS_file', 'file_name');
                 file_name = File_Name_Processor.getFullPath(dir_path, file_path);
                 if ~isempty(file_name)
-                    this.crd_name = this.checkCrdPath(file_name);
+                    [file_dir, name, ext] = fileparts(file_name);
+                    this.crd_dir = file_dir;                    
+                    this.crd_name = strcat(name, ext);
                 end
                 
                 % import file location and check for default folders
@@ -1168,7 +1176,9 @@ classdef IO_Settings < Settings_Interface
                 file_path = this.ext_ini.getData('OCEAN_LOADING_file', 'file_name');
                 file_name = File_Name_Processor.getFullPath(dir_path, file_path);
                 if ~isempty(file_name)
-                    this.ocean_name = this.checkOceanPath(file_name);
+                    [file_dir, name, ext] = fileparts(file_name);
+                    this.ocean_dir = file_dir;                    
+                    this.ocean_name = strcat(name, ext);
                 end
                 
                 % import file location and check for default folders
@@ -1176,7 +1186,9 @@ classdef IO_Settings < Settings_Interface
                 file_path = this.ext_ini.getData('METEOROLOGICAL_file', 'file_name');
                 file_name = File_Name_Processor.getFullPath(dir_path, file_path);
                 if ~isempty(file_name)
-                    this.met_name = this.checkMetPath(file_name);
+                    [file_dir, name, ext] = fileparts(this.checkMetPath(file_name));
+                    this.met_dir = file_dir;                    
+                    this.met_name = strcat(name, ext);
                 end
                 
                 % import DTM folders

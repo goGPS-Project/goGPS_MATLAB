@@ -139,6 +139,7 @@ classdef FTP_Downloader < handle
                 % connect to the server
                 try
                     this.logger.addMarkedMessage(sprintf('Initializing download process from %s', strcat(this.addr, ':', this.port)));
+                    this.logger.newLine();
                     ftp_server = ftp(strcat(this.addr, ':', this.port));
                     this.logger.addStatusOk('connected with remote FTP');
                     

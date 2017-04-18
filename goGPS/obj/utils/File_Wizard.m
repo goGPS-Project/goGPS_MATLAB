@@ -250,7 +250,7 @@ classdef File_Wizard < handle
                     end
                 end
             else
-                this.logger.addStatusOk('Navigational files are present :-)');
+                this.logger.addStatusOk('Navigational files are present ^_^');
                 this.logger.newLine();
             end
         end
