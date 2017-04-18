@@ -294,7 +294,7 @@ classdef Mode_Settings < Settings_Interface
     % =========================================================================
     methods (Static, Access = 'protected')
         function [mode, nav_mon, ls_kalman, code_dd_sa] = mode2gui(p_mode)
-            % Convert GUI mode from internal mode - In the GUI mode is splitted in 4 list box, in  goGPS the mode has a unique id
+            % Convert GUI mode from internal mode - In the GUI mode is split in 4 list box, in  goGPS the mode has a unique id
             p_mode = Mode_Settings.P_MODE_2_ID(Mode_Settings.P_MODE_2_ID(:,3) == p_mode, 2);
             mode = floor(p_mode / 1000);
             p_mode = p_mode - mode * 1000;
@@ -306,7 +306,7 @@ classdef Mode_Settings < Settings_Interface
         end
         
         function  p_mode = gui2mode(mode, nav_mon, ls_kalman, code_dd_sa)
-            % Convert internal mode from GUI mode - In the GUI mode is splitted in 4 list box, in  goGPS the mode has a unique id
+            % Convert internal mode from GUI mode - In the GUI mode is split in 4 list box, in  goGPS the mode has a unique id
             p_mode = mode * 1000 + (mode == 1) * nav_mon * 100 + (mode > 1) * ls_kalman * 10 + (mode > 1) * code_dd_sa;
             p_mode = Mode_Settings.P_MODE_2_ID(Mode_Settings.P_MODE_2_ID(:,2) == p_mode, 3);
             p_mode = p_mode(1); % this shouldn't be necessary, gui mode are never duplicated
