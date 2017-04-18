@@ -318,10 +318,11 @@ if (nsat >= min_nsat)
     %number of visible satellites (after the cutoffs)
     nsat = size(sat_pr,1);
     n = nsat - 1;
-    
+
     %previous pivot
+    pivot_prev = pivot; %pivot at previous epoch (could be = 0)
     if (pivot ~= 0)
-        pivot_old = pivot;
+        pivot_old = pivot; %last valid pivot (never = 0)
     end
     
     %current pivot
@@ -368,6 +369,11 @@ if (nsat >= min_nsat)
         
         %search for a new satellite
         sat_born = setdiff(sat,sat_old);
+        
+        %if first epoch with a sufficient number of observations after one or more dynamics-only epochs
+        if (pivot_prev == 0 && pivot > 0)
+            sat_born = sat;
+        end
         
         if (~isempty(sat_born))
             
