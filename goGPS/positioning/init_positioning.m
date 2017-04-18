@@ -345,7 +345,7 @@ if (nsat >= nsat_required)
 
             [XR, dtR, ISBs, cov_XR, var_dtR, var_ISBs, PDOP, HDOP, VDOP, cond_num, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), y0, b, A, Q] = LS_SA_code(XR, XS, pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold, 1);
             residuals_obs(index_obs,2)=sat;
-            if (exist('flag_OOLO','var') && flag_OOLO==1)
+%             if (exist('flag_OOLO','var') && flag_OOLO==1)
                 if ~isempty(bad_obs)
                     % add outlier satellite to obs_outlier
                     obs_outlier(sat(bad_obs))=1;
@@ -366,6 +366,7 @@ if (nsat >= nsat_required)
                     if (flag_XS == 1)
                         XS0(bad_obs,:)  = [];
                     end
+                    eclipsed(bad_obs)=[];
                     
                     %satellite topocentric coordinates (azimuth, elevation, distance)
                     [az, el, dist] = topocent(XR, XS);
@@ -391,14 +392,15 @@ if (nsat >= nsat_required)
                     if (flag_XS == 1)
                         XS0  = XS0(index,:);
                     end
+                    eclipsed = eclipsed(index);
                 end
-            end
+%             end
             
         else
             [dtR, ISBs, var_dtR, var_ISBs, bad_obs, bad_epoch, var_SPP, residuals_obs(index_obs,1), y0, b, A, Q] = LS_SA_code_clock(pseudorange, snr, el, dist, dtS, err_tropo, err_iono, sys, SPP_threshold);
             residuals_obs(index_obs,2)=sat;
             cond_num = 0;
-            if (exist('flag_OOLO','var') && flag_OOLO==1)
+%             if (exist('flag_OOLO','var') && flag_OOLO==1)
                 if ~isempty(bad_obs)
                     % add outlier satellite to obs_outlier
                     obs_outlier(sat(bad_obs))=1;
@@ -418,6 +420,7 @@ if (nsat >= nsat_required)
                     if (flag_XS == 1)
                         XS0(bad_obs,:)  = [];
                     end
+                    eclipsed(bad_obs)=[];
                     
                     %satellite topocentric coordinates (azimuth, elevation, distance)
                     [az, el, dist] = topocent(XR, XS);
@@ -443,8 +446,9 @@ if (nsat >= nsat_required)
                     if (flag_XS == 1)
                         XS0  = XS0(index,:);
                     end
+                    eclipsed = eclipsed(index);
                 end
-            end
+%             end
         end
 
         if (flag_XS == 0)
