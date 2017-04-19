@@ -645,12 +645,12 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('Directory of Ephemeris files', str_cell);
             str_cell = Ini_Manager.toIniString('eph_dir', this.eph_dir, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of Ephemeris files - special keywords can be used', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATUIN_CENTER section', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
             str_cell = Ini_Manager.toIniString('eph_name', this.eph_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of clock offset files', str_cell);
             str_cell = Ini_Manager.toIniString('clk_dir', this.clk_dir, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATUIN_CENTER section', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of clock offset files - special keywords can be used', str_cell);
             str_cell = Ini_Manager.toIniString('clk_name', this.clk_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
