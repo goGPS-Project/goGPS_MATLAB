@@ -930,25 +930,41 @@ classdef IO_Settings < Settings_Interface
         function out = getCrdFile(this)
             % Get the path of the stations coordinates file
             % SYNTAX: file_path = this.getCrdFile()
-            out = this.checkCrdPath(strcat(this.crd_dir, filesep, this.crd_name));
+            if (isempty(this.crd_name))
+                out = '';
+            else
+                out = this.checkCrdPath(strcat(this.crd_dir, filesep, this.crd_name));
+            end
         end
         
         function out = getAtxFile(this)
             % Get the path of the antex file
             % SYNTAX: file_path = this.getAtxFile()
-            out = this.checkAtxPath(strcat(this.atx_dir, filesep, this.atx_name));
+            if (isempty(this.atx_name))
+                out = '';
+            else
+                out = this.checkAtxPath(strcat(this.atx_dir, filesep, this.atx_name));
+            end
         end
         
         function out = getOceanFile(this)
             % Get the path of the ocean loading file
             % SYNTAX: file_path = this.getOceanFile()
-            out = this.checkOceanPath(strcat(this.ocean_dir, filesep, this.ocean_name));
+            if (isempty(this.ocean_name))
+                out = '';
+            else
+                out = this.checkOceanPath(strcat(this.ocean_dir, filesep, this.ocean_name));
+            end
         end
                 
         function out = getMetFile(this)
             % Get the path of the meteorological file
             % SYNTAX: file_path = this.getMetFile()
-            out = this.checkMetPath(strcat(this.met_dir, filesep, this.met_name));
+            if (isempty(this.met_name))
+                out = '';
+            else
+                out = this.checkMetPath(strcat(this.met_dir, filesep, this.met_name));
+            end
         end
         
         function out = getDtmPath(this)

@@ -2450,7 +2450,7 @@ classdef goGUIclass < handle
                 this.setGUILedStatus(this.idUI.fPCO, this.ledOp, 0);
             else
                 % Check the presence of all the files
-                if exist(file_name, 'file')
+                if exist(file_name, 'file') == 2
                     this.setGUILedStatus(this.idUI.fPCO, this.ledOk, 0);
                 else
                     this.setGUILedStatus(this.idUI.fPCO, this.ledCk, 0);
@@ -2463,7 +2463,7 @@ classdef goGUIclass < handle
                 this.setGUILedStatus(this.idUI.fBLQ, this.ledOp, 0);
             else
                 % Check the presence of all the files
-                if exist(file_name, 'file')
+                if exist(file_name, 'file') == 2
                     this.setGUILedStatus(this.idUI.fBLQ, this.ledOk, 0);
                 else
                     this.setGUILedStatus(this.idUI.fBLQ, this.ledCk, 0);
@@ -2476,7 +2476,7 @@ classdef goGUIclass < handle
                 this.setGUILedStatus(this.idUI.fSTA, this.ledOp, 0);
             else
                 % Check the presence of all the files
-                if exist(file_name, 'file')
+                if exist(file_name, 'file') == 2
                     this.setGUILedStatus(this.idUI.fSTA, this.ledOk, 0);
                 else
                     this.setGUILedStatus(this.idUI.fSTA, this.ledCk, 0);
@@ -2489,7 +2489,7 @@ classdef goGUIclass < handle
                 this.setGUILedStatus(this.idUI.fMET, this.ledOp, 0);
             else
                 % Check the presence of all the files
-                if exist(file_name, 'file')
+                if exist(file_name, 'file') == 2
                     this.setGUILedStatus(this.idUI.fMET, this.ledOk, 0);
                 else
                     this.setGUILedStatus(this.idUI.fMET, this.ledCk, 0);
