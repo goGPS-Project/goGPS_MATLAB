@@ -2437,7 +2437,7 @@ classdef goGUIclass < handle
                 this.setGUILedStatus(this.idUI.fRefPath, this.ledKo, 0);
             else
                 % Check the presence of all the files
-                if exist(file_name, 'file')
+                if exist(file_name, 'file') == 2
                     this.setGUILedStatus(this.idUI.fRefPath, this.ledOk, 0);
                 else
                     this.setGUILedStatus(this.idUI.fRefPath, this.ledCk, 0);

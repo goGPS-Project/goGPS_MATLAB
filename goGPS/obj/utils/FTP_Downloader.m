@@ -203,13 +203,13 @@ classdef FTP_Downloader < handle
                                                     end
                                                 end
                                                 this.file_name{i} = file_name(1:end-2);
-                                                this.logger.addMessage(sprintf('\b file ready!'));
+                                                this.logger.addMessage(sprintf('\b\b file ready!'));
                                             catch
                                                 this.logger.addWarning(sprintf('decompression of %s from %s failed', file_name, strcat(this.addr, ':', this.port)));
                                                 status = FTP_Downloader.ERR_FNV;
                                             end
                                         else
-                                            this.logger.addMessage(sprintf('\b file ready!'));
+                                            this.logger.addMessage(sprintf('\b\b file ready!'));
                                         end
                                     catch
                                         this.logger.addWarning(sprintf('download of %s from %s failed', file_name, strcat(this.addr, ':', this.port, remote_dir)));
@@ -238,7 +238,8 @@ classdef FTP_Downloader < handle
                 end                                
             else
                 status = FTP_Downloader.ERR_NIC;
-            end            
+            end
+            this.logger.newLine();
         end
     end
     

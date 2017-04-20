@@ -956,7 +956,7 @@ classdef IO_Settings < Settings_Interface
                 out = this.checkOceanPath(strcat(this.ocean_dir, filesep, this.ocean_name));
             end
         end
-                
+        
         function out = getMetFile(this)
             % Get the path of the meteorological file
             % SYNTAX: file_path = this.getMetFile()
@@ -991,7 +991,7 @@ classdef IO_Settings < Settings_Interface
             fnp = File_Name_Processor;
             out_prefix = fnp.checkPath(this.out_prefix);
         end
-
+        
         function out_prefix = getFullOutPrefix(this, date_start, date_stop, session_list, session_start, session_stop)
             % Get the full path of the outputs
             % SYNTAX: out_prefix = this.getFullOutPrefix()
@@ -1365,8 +1365,9 @@ classdef IO_Settings < Settings_Interface
         function file_path = checkCrdPath(this, file_path)
             % Check if the crd file exists, if not try to look for it into the default dirs
             % SYNTAX: file_path = this.checkCrdPath(<file_path>)
+            fnp = File_Name_Processor();
+            file_path = fnp.checkPath(file_path);
             if ~isempty(file_path) && ~exist(file_path, 'file')
-                fnp = File_Name_Processor();
                 [~, name, ext] = fileparts(file_path);
                 % check for existence in the local project folder standard location
                 tmp_path = fnp.checkPath([this.prj_home this.CRD_DIR(length(IO_Settings.DEFAULT_DIR_IN)+1:end) filesep name ext]);
@@ -1417,6 +1418,9 @@ classdef IO_Settings < Settings_Interface
         function file_path = checkOceanPath(this, file_path)
             % Check if the atx file exists, if not try to look for it into the default dirs
             % SYNTAX: file_path = this.checkAtxPath(<file_path>)
+            fnp = File_Name_Processor();
+            file_path = fnp.checkPath(file_path);
+
             if ~isempty(file_path) && ~exist(file_path, 'file')
                 fnp = File_Name_Processor();
                 [~, name, ext] = fileparts(file_path);
@@ -1442,6 +1446,9 @@ classdef IO_Settings < Settings_Interface
         function file_path = checkMetPath(this, file_path)
             % Check if the met file exists, if not try to look for it into the default dirs
             % SYNTAX: file_path = this.checkMetPath(<file_path>)
+            fnp = File_Name_Processor();
+            file_path = fnp.checkPath(file_path);
+
             if ~isempty(file_path) && ~exist(file_path, 'file')
                 fnp = File_Name_Processor();
                 [~, name, ext] = fileparts(file_path);
@@ -1725,7 +1732,7 @@ classdef IO_Settings < Settings_Interface
                     if clk_ok
                         this.logger.addStatusOk(sprintf('%s', fullfile(nav_dir, file_name{i})));
                     else
-                        this.logger.addWarning(sprintf('%s', fullfile(nav_dir, file_name{i})));
+                        this.logger.addWarning(sprintf('%s does not exist', fullfile(nav_dir, file_name{i})));
                     end
                 end
                 this.logger.newLine();
