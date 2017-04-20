@@ -139,6 +139,7 @@ bad_epoch=0;
 bad_obs=[];
 A0=A;
 y00=y0-b;
+index_obs = 1:length(y00); index_obs = index_obs';
     
 if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres == 1)
     %remove observations with residuals exceeding thresholds
@@ -150,7 +151,7 @@ if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres ==
         if (n-length(index_outlier) < m)
             bad_epoch = 1;
         else
-            bad_obs=unique([bad_obs;index_outlier]);
+            bad_obs=unique([bad_obs;index_obs(index_outlier)]);
             A(index_outlier,:)=[];
             y0(index_outlier,:)=[];
             b(index_outlier,:)=[];
@@ -158,6 +159,7 @@ if (flag_outlier && exist('flag_residual_thres','var') && flag_residual_thres ==
             Q(:,index_outlier)=[];
             invQ=diag((diag(Q).^-1));
             N = (A'*(invQ)*A);
+            index_obs(index_outlier) = [];
             [n,m]=size(A);
         end
     end
@@ -181,8 +183,7 @@ else
     % OUTLIER DETECTION (OPTIMIZED LEAVE ONE OUT)
     %------------------------------------------------------------------------------------
     search_for_outlier = flag_outlier;
-    index_obs = 1:length(y0);
-    
+
     if (num_sys > 1)
         sys0=sys;
         uni_sys0 = uni_sys;
