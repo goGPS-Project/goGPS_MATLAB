@@ -88,7 +88,7 @@ if (processing_interval > max_int)
 end
 
 %define the reference time
-time_ref = (roundmod(min_time,max_int) : max_int : roundmod(max_time,max_int))';
+time_ref = (ceil(min_time/max_int)*max_int : max_int : roundmod(max_time,max_int))';
 tow_ref = mod(time_ref,60*60*24*7);
 tow_ref=roundmod(tow_ref,max_int);
 
