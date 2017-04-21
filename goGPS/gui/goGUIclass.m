@@ -3433,6 +3433,8 @@ classdef goGUIclass < handle
             txt = textscan(char(this.edtINI.jEdit.jINI.getText()),'%s','Delimiter', '\n');
             this.state.importIO(Ini_Manager(txt{1}));
             this.updateLEDstate();
+            goOk = this.test4Go();
+            this.setElStatus([this.idUI.bSave this.idUI.bGo] , goOk, 1);            
             this.edtINI.jEdit.jINI.setText(strCell2Str(this.state.exportIO(), 10));
             this.logger.addWarning('Settings have been updated');
             msgbox('Settings have been updated');
