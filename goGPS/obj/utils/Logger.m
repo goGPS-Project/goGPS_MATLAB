@@ -125,6 +125,7 @@ classdef Logger < handle
             end
             text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,7)]));
+            text = strrep(text, '\', '\\');
             if (verbosity_level <= this.verbosity)
                 if this.color_mode
                     cprintf('Green','   **  ');
@@ -142,6 +143,7 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
+                text = strrep(text, '\', '\\');
                 if this.color_mode
                     cprintf('text', strcat(' ', text, '\n'));
                 else
@@ -198,6 +200,7 @@ classdef Logger < handle
             end
             this.opStatus(0, color_mode);
             if (color_mode)
+                text = strrep(text, '\', '\\');
                 cprintf('text', [text '\n']);
             else
                 fprintf([text '\n']);
@@ -212,6 +215,7 @@ classdef Logger < handle
             this.opStatus(1, color_mode);
             text = strrep(text, char(10), char([10, 32 * ones(1,17)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,17)]));
+            text = strrep(text, '\', '\\');
             if (color_mode)
                 cprintf([1 0.65 0], 'Warning: ');
                 cprintf('text', [text '\n']);
@@ -228,6 +232,7 @@ classdef Logger < handle
             this.opStatus(-1, color_mode);
             text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,15)]));
+            text = strrep(text, '\', '\\');
             if (color_mode)
                 cprintf('err', 'Error: ');
                 cprintf('text', [text '\n']);

@@ -1693,7 +1693,7 @@ classdef IO_Settings < Settings_Interface
                         this.logger.addStatusOk(sprintf('%s', fullfile(nav_dir, file_name{i})));
                     else
                         if ~(exist(fullfile(nav_dir, file_name{i}), 'file') == 7) % if its not a folder
-                            this.logger.addWarning(sprintf('%s is not a valid clock file', fullfile(nav_dir, file_name{i})));
+                            this.logger.addWarning(sprintf('%s does not exist', fullfile(nav_dir, file_name{i})));
                         end
                     end
                 end

@@ -155,7 +155,7 @@ classdef FTP_Downloader < handle
                         i = i + 1;
                         
                         % get the exact remote path / file name
-                        full_path = fullfile(this.remote_dir, this.file_name{i});
+                        full_path = strcat(this.remote_dir, this.file_name{i});
                         if (full_path(1) ~= '/')
                             full_path = strcat('/', full_path);
                         end
@@ -168,8 +168,6 @@ classdef FTP_Downloader < handle
                         
                         if ~local_file || force_overwrite
                             try
-                                % move to the remote dir of the file
-                                cd(ftp_server, remote_dir);
                                 % check file existence (without extension)
                                 file_exist = ~isempty(dir(ftp_server, full_path));
                                 if (~compressed && ~file_exist)
@@ -187,6 +185,8 @@ classdef FTP_Downloader < handle
                                         if ~(exist(local_dir,'dir'))
                                             mkdir(local_dir);
                                         end
+                                        % move to the remote dir of the file
+                                        cd(ftp_server, remote_dir);
                                         mget(ftp_server, file_name, local_dir);
                                         if compressed
                                             try
@@ -195,8 +195,8 @@ classdef FTP_Downloader < handle
                                                     compressed = false;
                                                 else
                                                     try
-                                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir file_name '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>
-                                                        delete([down_dir file_name]);
+                                                        [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' local_dir file_name '"' ' -o' '"' local_dir '"']); %#ok<ASGLU>
+                                                        delete([local_dir file_name]);
                                                     catch
                                                         this.logger.addError(sprintf('Please decompress the %s file before trying to use it in goGPS!!!', file_name));
                                                         compressed = 1;
