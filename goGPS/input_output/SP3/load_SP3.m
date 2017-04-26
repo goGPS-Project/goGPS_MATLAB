@@ -1,7 +1,7 @@
-function [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg)
+function [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations, wait_dlg)
 
 % SYNTAX:
-%   [SP3] = load_SP3(filename_SP3, time, week, constellations, wait_dlg);
+%   [SP3] = load_SP3(filename_SP3, filename_CLK, time, week, constellations, wait_dlg);
 %
 % INPUT:
 %   filename_SP3 = SP3 file
@@ -75,13 +75,13 @@ n = 10;
 % number of seconds in a quarter of an hour
 quarter_sec = 900;
 
-if (nargin > 4)
+if (nargin > 5)
     waitbar(0.5,wait_dlg,'Reading SP3 (precise ephemeris) file...')
 end
 
 % extract containing folder
-[data_dir, file_name, file_ext] = fileparts(filename_SP3);
-filename_SP3 = File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3)));
+% [data_dir, file_name, file_ext] = fileparts(filename_SP3{1});
+% filename_SP3 = File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3)));
 
 % define time window
 [week_start, time_start] = time2weektow(time(1));
@@ -145,10 +145,10 @@ k = 0; % current epoch
 flag_unavail = 0;
 
 % for each part (SP3 file)
-for p = 1 : size(week_dow,1)
+for p = 1 : numel(filename_SP3)
     
     %SP3 file
-    f_sp3 = fopen([filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.sp3'],'r');
+    f_sp3 = fopen(filename_SP3{p},'r');
 
     if (f_sp3 ~= -1)
         
@@ -254,7 +254,7 @@ for p = 1 : size(week_dow,1)
         end
         clear sp3_file;   
     else
-        fprintf('Missing SP3 file: %s\n', [filename_SP3 num2str(week_dow(p,1)) num2str(week_dow(p,2)) '.sp3']);
+        fprintf('Missing SP3 file: %s\n', filename_SP3{p});
         flag_unavail = 1;
     end
 end
@@ -267,29 +267,14 @@ if (~flag_unavail)
     q = zeros(constellations.nEnabledSat,1);
     
     % for each part (SP3 file)
-    [data_dir, file_name, file_ext] = fileparts(state.getFullNavClkPath(1));
-    if strcmp(file_ext, '.sp3')
-        file_ext = 'clk_05s';
-    end
-    for p = 1 : size(week_dow,1)
-        % CLK file
-        clk_file_name = strcat(File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3), num2str(week_dow(p,1)), num2str(week_dow(p,2)), file_ext)));
-        if ~exist(clk_file_name, 'file')
-            % Try to search for the file in the default path
-            file_ext = '.clk_30s';
-            clk_file_name = strcat(File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3), num2str(week_dow(p,1)), num2str(week_dow(p,2)), file_ext)));
-        end
-        if ~exist(clk_file_name, 'file')
-            % Try to search for the file in the default path
-            file_ext = '.clk';
-            clk_file_name = strcat(File_Name_Processor.checkPath(strcat(data_dir, filesep, file_name(1:3), num2str(week_dow(p,1)), num2str(week_dow(p,2)), file_ext)));
-        end
-        f_clk = fopen(clk_file_name,'r');
+    for p = 1 : numel(filename_CLK)
+        
+        f_clk = fopen(filename_CLK{p},'r');
                 
         if (f_clk == -1)
-            logger.addWarning(sprintf('No clk files have been found at %s', clk_file_name));
+            logger.addWarning(sprintf('No clk files have been found at %s', filename_CLK{p}));
         else   
-            logger.addMessage(sprintf('Using as clock file: %s', clk_file_name));
+            logger.addMessage(sprintf('Using as clock file: %s', filename_CLK{p}));
             % read the entire clk file in memory
             clk_file = textscan(f_clk,'%s','Delimiter', '\n');
             if (length(clk_file) == 1)
@@ -395,6 +380,6 @@ SP3.time(k+1:nEpochs) = [];
 SP3.coord(:,:,k+1:nEpochs) = [];
 SP3.clock(:,k+1:nEpochs) = [];
 
-if (nargin > 4)
+if (nargin > 5)
     waitbar(1,wait_dlg)
 end

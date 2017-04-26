@@ -409,7 +409,7 @@ while read_files
                 %----------------------------------------------------------------------------------------------
                 % LOAD SP3 DATA
                 %----------------------------------------------------------------------------------------------
-                SP3 = load_SP3(state.getFullNavEphPath(1), time_GPS, week_R, constellations);
+                SP3 = load_SP3(state.getFullNavEphPath(), state.getFullNavClkPath(), time_GPS, week_R, constellations);
                 
                 %store satellite antenna PCO/PCV and satellite type
                 SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
@@ -770,7 +770,7 @@ while read_files
                 %display message
                 logger.addMessage('Reading SP3 file...');
                 
-                SP3 = load_SP3(state.getFullNavEphPath(1), time_GPS, week_M, constellations);
+                SP3 = load_SP3(state.getFullNavEphPath(), state.getFullClkEphPath(), time_GPS, week_M, constellations);
                 
                 %store satellite antenna PCO/PCV and satellite type
                 SP3.antPCO = zeros(1,3,size(antenna_PCV_S,2));
