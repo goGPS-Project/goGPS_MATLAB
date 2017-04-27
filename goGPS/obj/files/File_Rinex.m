@@ -167,8 +167,7 @@ classdef File_Rinex < handle
                         line = fgetl(fid);
                         while ischar(line)
                             % An epoch line has the second character containing the year of the observation
-                            % if (numel(line) > 2) && ~isempty(regexp(line(1:3),'(> [0-9].)|( [0-9].)', 'once')) % will not work for rinex with observation start with (10). e.g. prds2350.15o
-							if (numel(line) > 2) && ~isempty(regexp(line(1:4),'(> [0-9]. )|( [0-9]. )', 'once'))
+                            if (numel(line) > 2) && ~isempty(regexp(line(1:4),'(> [0-9].)|( [0-9]. )', 'once'))
                                 epoch_line = line;
                             end
                             line = fgetl(fid);
