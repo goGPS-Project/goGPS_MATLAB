@@ -3432,6 +3432,8 @@ classdef goGUIclass < handle
         function acceptIniChanges(this)
             txt = textscan(char(this.edtINI.jEdit.jINI.getText()),'%s','Delimiter', '\n');
             this.state.importIO(Ini_Manager(txt{1}));
+            this.state.updateObsFileName();
+            this.state.updateNavFileName();
             this.updateLEDstate();
             goOk = this.test4Go();
             this.setElStatus([this.idUI.bSave this.idUI.bGo] , goOk, 1);            
