@@ -60,6 +60,7 @@ classdef FTP_Downloader < handle
         remote_dir;     % Base dir path on the remote server to locate the file to download
         file_name;      % name of the file
         local_dir;      % Download directory: location on the local machine for the storage of the file to be downloaded        
+        ftp_server;     % object containing the connector
     end
                           
                               
@@ -75,6 +76,9 @@ classdef FTP_Downloader < handle
             this.addr = ftp_addr;
             % Cleaning address
             if strcmp(this.addr(end),'/')
+                this.addr(end) = [];
+            end            
+            if strcmp(this.addr(end),'\')
                 this.addr(end) = [];
             end            
             this.addr = strrep(this.addr,'ftp://','');
@@ -94,8 +98,16 @@ classdef FTP_Downloader < handle
             if (nargin > 4)
                 this.local_dir = local_dir;
             end
+            
+            %open the connection with the server
+            this.ftp_server = ftp(strcat(this.addr, ':', this.port));
         end
         
+        function delete(this)
+            % destructor close the connection with the server
+            close(this.ftp_server);
+        end
+
         
         function [status, compressed] = download(this, remote_dir, file_name, local_dir, force_overwrite)
             % function to download a file (or a list of files) from a ftp a server
@@ -140,8 +152,14 @@ classdef FTP_Downloader < handle
                 try
                     this.logger.addMarkedMessage(sprintf('Initializing download process from %s', strcat(this.addr, ':', this.port)));
                     this.logger.newLine();
-                    ftp_server = ftp(strcat(this.addr, ':', this.port));
-                    this.logger.addStatusOk('connected with remote FTP');
+                    
+                    % Try to get the current directory to check the ftp connection
+                    try
+                        cd(this.ftp_server);
+                    catch
+                        this.logger.addWarning('connected with remote FTP has been closed, trying to re-open it');
+                        this.ftp_server = ftp(strcat(this.addr, ':', this.port));
+                    end
                     
                     % convert file_name in a cell array
                     if ~iscell(this.file_name)
@@ -169,11 +187,11 @@ classdef FTP_Downloader < handle
                         if ~local_file || force_overwrite
                             try
                                 % check file existence (without extension)
-                                file_exist = ~isempty(dir(ftp_server, full_path));
+                                file_exist = ~isempty(dir(this.ftp_server, full_path));
                                 if (~compressed && ~file_exist)
                                     full_path = strcat(full_path,'.Z');
                                     file_ext = strcat(file_ext,'.Z');
-                                    file_exist = ~isempty(dir(ftp_server, full_path));
+                                    file_exist = ~isempty(dir(this.ftp_server, full_path));
                                     compressed = true;
                                 end
                                 file_name = strcat(file_name, file_ext);
@@ -186,8 +204,8 @@ classdef FTP_Downloader < handle
                                             mkdir(local_dir);
                                         end
                                         % move to the remote dir of the file
-                                        cd(ftp_server, remote_dir);
-                                        mget(ftp_server, file_name, local_dir);
+                                        cd(this.ftp_server, remote_dir);
+                                        mget(this.ftp_server, file_name, local_dir);
                                         if compressed
                                             try
                                                 if (isunix())
@@ -231,7 +249,6 @@ classdef FTP_Downloader < handle
                             status = FTP_Downloader.W_FP;
                         end
                     end
-                    close(ftp_server);
                 catch ex
                     this.logger.addWarning(sprintf('connection to %s failed - %s', strcat(this.addr, ':', this.port), ex.message));                    
                     status = FTP_Downloader.ERR_FTP_FAIL;
