@@ -47,6 +47,7 @@ global report
 
 % close all windows
 close all
+fclose('all');
 
 % clear the command prompt
 %clc
@@ -154,7 +155,6 @@ nSatTot = cc.getNumSat();
 
 %number of enabled constellations
 n_sys = sum(cc.getActive);
-clear cc;
 
 % start evaluating computation time
 tic;
@@ -927,13 +927,13 @@ for s = 1 : num_session
                 dop1_R(delsat,:,:) = 0;
                 dop2_R(delsat,:,:) = 0;
                 snr_R(delsat,:,:) = 0;
-                pr1_M(delsat,:,:) = 0;
-                pr2_M(delsat,:,:) = 0;
-                ph1_M(delsat,:,:) = 0;
-                ph2_M(delsat,:,:) = 0;
-                dop1_M(delsat,:,:) = 0;
-                dop2_M(delsat,:,:) = 0;
-                snr_M(delsat,:,:) = 0;
+                pr1_M(delsat,:) = 0;
+                pr2_M(delsat,:) = 0;
+                ph1_M(delsat,:) = 0;
+                ph2_M(delsat,:) = 0;
+                dop1_M(delsat,:) = 0;
+                dop2_M(delsat,:) = 0;
+                snr_M(delsat,:) = 0;
                 
                 dtR          = zeros(length(time_GPS), 1, size(time_R,3));
                 dtRdot       = zeros(length(time_GPS), 1, size(time_R,3));
@@ -4531,7 +4531,7 @@ for s = 1 : num_session
     
     if (exist('fout_report','var')), fclose(fout_report); end
     
-    if (mode_user == 1)
+    if (mode_user && ~is_batch)
         % close all the opened files
         fclose('all');
     end
@@ -4542,8 +4542,7 @@ for s = 1 : num_session
     %evaluate computation time
     toc
     
-    if is_batch
-        
+    if is_batch        
         idx = size(date_R,1);
         tropo_vec_ZTD = nan(1,86400/interval);
         tropo_vec_ZWD = nan(1,86400/interval);
@@ -4559,7 +4558,7 @@ for s = 1 : num_session
                 fprintf(fid_extract_ZWD,'\n');
             end
             for e = 1 : idx
-                fprintf(fid_extract_POS,' %04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', year4, doy, date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(e), NORTH_UTM(e), h_KAL(e), Xhat_t_t_OUT(end-1,e));
+                fprintf(fid_extract_POS,' %s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %15.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(e,1), date_R(e,2), date_R(e,3), date_R(e,4), date_R(e,5), date_R(e,6), EAST_UTM(e), NORTH_UTM(e), h_KAL(e), Xhat_t_t_OUT(end-1,e));
             end
             delete([filerootOUT '_*.bin']);
         else
@@ -4586,6 +4585,7 @@ for s = 1 : num_session
             fprintf(fid_extract_OBS,' %s  %s     %s\n',fnp.dateKeyRep('${YY}-${DOY}',cur_date_start), line1, line2);
             fclose(fid_rep_i);
         end
+        close all
     end
 end
 

@@ -71,7 +71,7 @@ classdef IO_Settings < Settings_Interface
         OBS_TYPE = [1 0];
 
         ATX_DIR = [IO_Settings.DEFAULT_DIR_IN 'antenna' filesep 'ATX' filesep]; % Location of the antex files
-        ATX_NAME = 'I08.ATX';    % Name antex file
+        ATX_NAME = 'igs14_1941.atx';    % Name antex file
         
         XYZ_ANT = zeros(3, 1);
         XYZ_EV_POINT = zeros(3, 1);
@@ -1566,6 +1566,8 @@ classdef IO_Settings < Settings_Interface
 
             this.checkStringField('obs_dir', false, true);
             this.checkCellStringField('obs_name', false);
+            this.checkStringField('atx_dir', false);
+            this.checkStringField('atx_name', false);
 
             this.checkStringField('input_file_ini_path', true);
             
