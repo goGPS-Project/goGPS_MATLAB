@@ -161,6 +161,12 @@ min_arc = max([min_arc lagr_order]);
 [pr2] = remove_short_arcs(pr2, min_arc);
 [ph1] = remove_short_arcs(ph1, min_arc);
 [ph2] = remove_short_arcs(ph2, min_arc);
+
+%correct nominal time desynchronization
+[pr1, ph1] = correct_time_desync(time_ref, time, pr1, ph1, lambda(:,1));
+[pr2, ph2] = correct_time_desync(time_ref, time, pr2, ph2, lambda(:,2));
+time = time_ref;
+
 if not(flag_full_prepro)
     dtRdot(end+1) = dtRdot(end);
 else
@@ -506,7 +512,12 @@ else
                     pr1(s,index) = pr1(s,index) - v_light*dtR(index)';
                 end
                 
-                pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), lagr_order);
+%                 if (any(dop1(s,index)))
+%                     corr = lambda(s,1).*dop1(s,index).*(time_desync(index) + dtR(index))';
+%                     pr1_interp(s,index) = pr1(s,index) - corr;
+%                 else
+                    pr1_interp(s,index) = lagrange_interp1(time(index), pr1(s,index), time_ref(index), lagr_order);
+%                 end
             else
                 bad_sats(s,1) = 1;
             end
@@ -523,7 +534,12 @@ else
                     pr2(s,index) = pr2(s,index) - v_light*dtR(index)';
                 end
                 
-                pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), lagr_order);
+%                 if (any(dop2(s,index)))
+%                     corr = lambda(s,2).*dop2(s,index).*(time_desync(index) + dtR(index))';
+%                     pr2_interp(s,index) = pr2(s,index) - corr;
+%                 else
+                    pr2_interp(s,index) = lagrange_interp1(time(index), pr2(s,index), time_ref(index), lagr_order);
+%                 end
             else
                 bad_sats(s,1) = 1;
             end
@@ -577,7 +593,12 @@ else
                 index_s = find(ph1(s,:) ~= 0);
                 index = intersect(index_e,index_s);
                 
-                ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
+%                 if (any(dop1(s,index)))
+%                     corr = dop1(s,index).*(time_desync(index) + dtR(index))';
+%                     ph1_interp(s,index) = ph1(s,index) - corr;
+%                 else
+                    ph1_interp(s,index) = lagrange_interp1(time(index), ph1(s,index), time_ref(index), lagr_order);
+%                 end
                 
                 if (exist('cs_found', 'var') && cs_found)
                     fprintf('Pre-processing: %d cycle-slip(s) detected on L1 for satellite %02d\n', cs_found, s);
@@ -609,7 +630,12 @@ else
                 index_s = find(ph2(s,:) ~= 0);
                 index = intersect(index_e,index_s);
                 
-                ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
+%                 if (any(dop2(s,index)))
+%                     corr = dop2(s,index).*(time_desync(index) + dtR(index))';
+%                     ph2_interp(s,index) = ph2(s,index) - corr;
+%                 else
+                    ph2_interp(s,index) = lagrange_interp1(time(index), ph2(s,index), time_ref(index), lagr_order);
+%                 end
                 
                 if (exist('cs_found', 'var') && cs_found)
                     fprintf('Pre-processing: %d cycle-slip(s) detected on L2 for satellite %02d\n', cs_found, s);
