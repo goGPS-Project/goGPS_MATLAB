@@ -737,7 +737,6 @@ classdef GPS_Time < handle
     
         function date_string = toString(this, date_format)
             % Convert a date to string format
-            % add TTT to date_format to display the type (GPS/UTC)
             if this.isempty()
                 date_string = '';
             else
@@ -760,7 +759,17 @@ classdef GPS_Time < handle
                     end
                 end
             end
-        end       
+        end
+        
+        function date_string = toStringGpsWeek(this)
+            % Convert a date to string format            
+            if this.isempty()
+                date_string = '';
+            else
+                [w, s, d] = this.getGpsWeek();
+                date_string = sprintf('Week %d - dow %d - sow %d\n', w, d, s);
+            end
+        end
         
         function new_obj = getId(this,id)
             % Overloading of the operator index ()
