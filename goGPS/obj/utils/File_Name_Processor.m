@@ -126,24 +126,13 @@ classdef File_Name_Processor < handle
             sss_stop = strfind(session_list, session_stop);            
                 
             % Check for GPS time placeholders
-            step_sec = 0;
-            if ~isempty(strfind(file_name, this.GPS_HH))
-                step_sec = 3600;
-            elseif ~isempty(strfind(file_name, this.GPS_6H))
-                step_sec = 6 * 3600;
-            elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY))
-                step_sec = 24 * 3600;
-            elseif ~isempty(strfind(file_name, this.GPS_WEEK))
-                step_sec = 24 * 3600 * 7;
-            elseif ~isempty(strfind(file_name, this.GPS_YYYY))
-                step_sec = 24 * 3600 * 365;
-            end
+            step_sec = this.getStepSec(file_name);
             
             if (step_sec > 0)
                 file_name_lst = {};
                 date0 = date_start.getCopy(); date0.toMatlabTime();
                 date1 = date_stop.getCopy(); date1.toMatlabTime();
-                date1.addIntSeconds(step_sec); % adding margin
+                date1.addIntSeconds(0.1); % adding margin
                 i = 1;
                 % Find all the file in the interval of dates
                 while (date0.getMatlabTime() <= date1.getMatlabTime())
