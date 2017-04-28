@@ -565,11 +565,11 @@ classdef IO_Settings < Settings_Interface
             % RECEIVERxS
             str_cell = Ini_Manager.toIniStringSection('RECEIVER_FILES', str_cell);            
             str_cell = Ini_Manager.toIniStringComment('"sss_" parameters define the session of observation, they are used to substitute special keywords in file names', str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Working session - first data of observation to consider (YYYY-MM-DD <hh:mm>)', str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Working session - first data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
             str_cell = Ini_Manager.toIniStringComment('mainly used to detect the name of the file to process', str_cell);
-            str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('YYYY/MM/DD hh:mm'), str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Working session - last data of observation to consider (YYYY-MM-DD <hh:mm>)', str_cell);
-            str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_start.toString('YYYY/MM/DD hh:mm'), str_cell);
+            str_cell = Ini_Manager.toIniString('sss_date_start', this.sss_date_start.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Working session - last data of observation to consider (yyyy-mm-dd <HH:MM:SS>)', str_cell);
+            str_cell = Ini_Manager.toIniString('sss_date_stop', this.sss_date_stop.toString('yyyy-mm-dd HH:MM:SS'), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Id character sequence to be use for the session $(S) special keyword (e.g. "01233456789ABCabc")', str_cell);
             str_cell = Ini_Manager.toIniString('sss_id_list', this.sss_id_list, str_cell);
             str_cell = Ini_Manager.toIniStringComment('First session id (char of sss_id_list)', str_cell);
@@ -881,7 +881,7 @@ classdef IO_Settings < Settings_Interface
 
         function file_name = getFullNavEphPath(this, id)
             % Get the file list of ephemeris files
-            % SYNTAX: file_name = this.getEphPath()
+            % SYNTAX: file_name = this.getFullNavEphPath(id)
             if isempty(this.eph_full_name)
                 this.updateNavFileName();
             end
@@ -893,7 +893,7 @@ classdef IO_Settings < Settings_Interface
         
         function file_name = getFullNavClkPath(this, id)
             % Get the file list of ephemeris files
-            % SYNTAX: file_name = this.getEphPath()
+            % SYNTAX: file_name = this.getFullNavClkPath(id)
             if isempty(this.clk_full_name)
                 this.updateNavFileName();
             end
@@ -901,6 +901,12 @@ classdef IO_Settings < Settings_Interface
             if (nargin == 2)
                 file_name = file_name{id};
             end
+        end
+        
+        function out = getNavEphFile(this)
+            % Get the file name of the navigational files
+            % SYNTAX: nav_path = this.getNavPath()
+            out = this.eph_name;
         end
         
         function clk_file = getNavClkFile(this)
@@ -914,19 +920,25 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: nav_path = this.getNavEphDir()
             out = this.eph_dir;            
         end
-                
-        function out = getNavEphFile(this)
-            % Get the file name of the navigational files
-            % SYNTAX: nav_path = this.getNavPath()
-            out = this.eph_name;
-        end
-        
+                              
         function out = getNavClkDir(this)
             % Get the path to the clock files
             % SYNTAX: nav_path = this.getClkPath()
             out = this.clk_dir;            
         end
                         
+        function out = getNavEphPath(this)
+            % Get the path to the navigational files
+            % SYNTAX: nav_path = this.getNavEphPath()
+            out = File_Name_Processor.checkPath(fullfile(this.eph_dir, this.eph_name));
+        end
+        
+        function out = getNavClkPath(this)
+            % Get the path to the clock files
+            % SYNTAX: nav_path = this.getNavClkPath()
+            out = File_Name_Processor.checkPath(fullfile(this.clk_dir, this.clk_name));
+        end
+        
         function out = getCrdFile(this)
             % Get the path of the stations coordinates file
             % SYNTAX: file_path = this.getCrdFile()
@@ -1061,21 +1073,40 @@ classdef IO_Settings < Settings_Interface
         function updateEphFileName(this)
             % Update the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: this.updateEphFileName();
-            fnp = File_Name_Processor();
-            date_start = this.sss_date_start.getCopy; date_start.addIntSeconds(-3600*6); % Get navigational files with 6 hours of margin
-            date_stop = this.sss_date_stop.getCopy; date_stop.addIntSeconds(+3600*6); % Get navigational files with 6 hours of margin
-            this.eph_full_name = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.eph_dir, this.eph_name)), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            this.eph_full_name = this.getEphFileName(this.sss_date_start, this.sss_date_stop);
         end
         
         function updateClkFileName(this)
             % Update the full name of the clock offset files (replacing special keywords)
             % SYNTAX: this.updateClkFileName();
-            fnp = File_Name_Processor();
-            date_start = this.sss_date_start.getCopy; date_start.addIntSeconds(-3600*6); % Get navigational files with 6 hours of margin
-            date_stop = this.sss_date_stop.getCopy; date_stop.addIntSeconds(+3600*6); % Get navigational files with 6 hours of margin
-            this.clk_full_name = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.clk_dir, this.clk_name)), date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            this.clk_full_name = this.getClkFileName(this.sss_date_start, this.sss_date_stop);
         end
 
+        function eph_full_name = getEphFileName(this, date_start, date_stop)
+            % Get the full name of the ephemerides files (replacing special keywords)
+            % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(fullfile(this.eph_dir, this.eph_name));
+            step_sec = fnp.getStepSec(file_name);
+            
+            date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+            date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+            eph_full_name = fnp.dateKeyRepBatch(file_name, date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+        
+        function clk_full_name = getClkFileName(this, date_start, date_stop)
+            % Get the full name of the clock offset files (replacing special keywords)
+            % SYNTAX: clk_full_name = getClkFileName(this, date_start, date_stop)
+            fnp = File_Name_Processor();
+            file_name = fnp.checkPath(fullfile(this.clk_dir, this.clk_name));
+            step_sec = fnp.getStepSec(file_name);
+            
+            date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+            date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+            clk_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+        end
+        
+        
         function updateExternals(this)
             % Import the value of the external input files (stored in inputFile.ini)
             % SYNTAX: this.updateExternals();
@@ -1668,81 +1699,63 @@ classdef IO_Settings < Settings_Interface
         function eph_ok = checkNavEphFiles(this, date_start, date_stop)
             % check whether or not all the ephemeris files are available
             eph_ok = true;
-            fnp = File_Name_Processor();
-            nav_dir = this.getNavEphDir();
-            switch nargin
-                case 1
-                    file_name = this.getNavFile();    
-                case 2
-                    file_name = fnp.dateKeyRep(this.getNavEphFile(), date_start);
-                case 3
-                    file_name = fnp.dateKeyRepBatch(this.getNavEphFile(), date_start, date_stop);
-            end
-            
-            % Put file name in an array of files
-            if ~iscell(file_name)
-                file_name = {file_name};
-            end
-            
-            if isempty(file_name{1})
+
+            file_name = this.getFullNavEphPath();
+                        
+            if isempty(file_name)
+                eph_ok = false;
+            elseif isempty(file_name{1})
                 eph_ok = false;
             else
-                this.logger.addMarkedMessage('Checking Navigational files');
+                this.logger.addMarkedMessage('Checking navigational files');
                 this.logger.newLine();
                 i = 0;
                 while (i < numel(file_name) && eph_ok)
                     i = i + 1;
-                    eph_ok = exist(fullfile(nav_dir, file_name{i}), 'file') == 2;
+                    eph_ok = exist(file_name{i}, 'file') == 2;
                     if eph_ok
-                        this.logger.addStatusOk(sprintf('%s', fullfile(nav_dir, file_name{i})));
+                        this.logger.addStatusOk(sprintf('%s', file_name{i}));
                     else
-                        if ~(exist(fullfile(nav_dir, file_name{i}), 'file') == 7) % if its not a folder
-                            this.logger.addWarning(sprintf('%s does not exist', fullfile(nav_dir, file_name{i})));
+                        if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
+                            this.logger.addWarning(sprintf('%s does not exist', file_name{i}));
+                        else
+                            this.logger.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
                         end
                     end
                 end
                 this.logger.newLine();
             end
-            this.eph_full_name = fnp.getFullPath(nav_dir, file_name);
         end
         
-        function clk_ok = checkNavClkFiles(this, date_start, date_stop)
+        function clk_ok = checkNavClkFiles(this)
             % check whether or not all the navigational clock files are available
+            
             clk_ok = true;
-            fnp = File_Name_Processor();
-            nav_dir = this.getNavClkDir();
-            switch nargin
-                case 1
-                    file_name = this.getNavClkFile();
-                case 2
-                    file_name = fnp.dateKeyRep(this.getNavClkFile(), date_start);
-                case 3
-                    file_name = fnp.dateKeyRepBatch(this.getNavClkFile(), date_start, date_stop);
-            end
+            file_name = this.getFullNavClkPath();
             
-            % Put file name in an array of files
-            if ~iscell(file_name)
-                file_name = {file_name};
-            end
-            
-            if isempty(file_name{1})
-                clk_ok = false;
+            if isempty(file_name)
+                clk_ok = true;
+            elseif isempty(file_name{1})
+                clk_ok = true;
             else
-                this.logger.addMarkedMessage('Checking files with clock offsets');
+                this.logger.addMarkedMessage('Checking clock offsets files');
                 this.logger.newLine();
                 i = 0;
                 while (i < numel(file_name) && clk_ok)
                     i = i + 1;
-                    clk_ok = exist(fullfile(nav_dir, file_name{i}), 'file') == 2;
+                    clk_ok = exist(file_name{i}, 'file') == 2;
                     if clk_ok
-                        this.logger.addStatusOk(sprintf('%s', fullfile(nav_dir, file_name{i})));
+                        this.logger.addStatusOk(sprintf('%s', file_name{i}));
                     else
-                        this.logger.addWarning(sprintf('%s does not exist', fullfile(nav_dir, file_name{i})));
+                        if ~(exist(file_name{i}, 'file') == 7) % if it's not a folder
+                            this.logger.addWarning(sprintf('%s does not exist', file_name{i}));
+                        else
+                            this.logger.addWarning(sprintf('%s it''s a folder, no file name have been declared', file_name{i}));
+                        end
                     end
                 end
                 this.logger.newLine();
             end
-            this.clk_full_name = fnp.getFullPath(nav_dir, file_name);           
         end
     end
 
