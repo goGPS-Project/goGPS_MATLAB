@@ -58,6 +58,8 @@ classdef File_Rinex < handle
         first_epoch = GPS_Time();                    % first epoch stored in the RINEX (updated after checkValidity)
         last_epoch = GPS_Time();                     % last epoch stored in the RINEX (updated after checkValidity)
         
+        verbosity_lev = 0;                          % Level of verbosity  0 = all messages, see Logger for more information
+        
         eoh = 0;                                     % end of header line - store the last line of the header
     end
     
@@ -65,59 +67,24 @@ classdef File_Rinex < handle
         id_date = 2:28;                              % Last character containing the 6 fields of the date (in case of 4digits year), it the pends on the type of rinex files (28 -> OBS RINEX 3)
     end
     
-    properties (SetAccess = private, GetAccess = public)
-    end
-    
     methods
-        function this = File_Rinex(base_dir, file_name, ext)
-            % Creator of File_Rinex (base_dir, file_name, ext)
-            %            File_Rinex (base_dir, file_name)
-            %            File_Rinex (file_name)
+        function this = File_Rinex(file_name, verbosity_lev)
+            % Creator of File_Rinex (file_name)
             
             % fill the path with the imported file names
-            switch (nargin)
-                case 0 % only instantiate the object
-                    return
-                case 1 % populate from (file_name)
-                    if iscellstr(base_dir)
-                        this.file_name_list = {};
-                        this.ext = {};
-                        for f = 1 : numel(base_dir)
-                            [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(base_dir{f}));
-                        end
-                    else
-                        [this.base_dir, file_name, ext] = fileparts(checkPath(fullfile(base_dir)));
-                        this.file_name_list = {file_name};
-                        this.ext = {ext};
-                    end
-                case 2 % populate from (base_dir, file_name)
-                    if iscellstr(file_name)
-                        this.file_name_list = {};
-                        this.ext = {};
-                        for f = 1 : numel(file_name)
-                            [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(fullfile(base_dir, file_name{f})));
-                        end
-                    else
-                        [this.base_dir, file_name, ext] = fileparts(checkPath(fullfile(base_dir, file_name)));
-                        this.file_name_list = {file_name};
-                        this.ext = {ext};
-                    end
-                case 3 % populate from (base_dir, file_name, ext)
-                    if (ext(1) ~= '.')
-                        ext = ['~' ext];
-                    end
-                    if iscellstr(file_name)
-                        this.file_name_list = {};
-                        this.ext = {};
-                        for f = 1 : numel(file_name)
-                            [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(fullfile(base_dir, [file_name{f} ext])));
-                        end
-                    else
-                        [this.base_dir, file_name, ext] = fileparts(checkPath(fullfile(base_dir, [file_name ext])));
-                        this.file_name_list = {file_name};
-                        this.ext = {ext};
-                    end
+            if ~iscellstr(file_name)
+                file_name = {file_name};
             end
+            this.file_name_list = {};
+            this.ext = {};
+            for f = 1 : numel(file_name)
+                [this.base_dir, this.file_name_list{f}, this.ext{f}] = fileparts(checkPath(file_name{f}));
+            end
+            
+            if nargin == 2
+                this.verbosity_lev = verbosity_lev;
+            end
+            
             this.checkValidity();
         end
     end
@@ -156,8 +123,8 @@ classdef File_Rinex < handle
                         this.id_date = id_start(1) : id_stop(6); % save first and last char limits of the date in the line -> suppose it composed by 6 fields
                         
                         this.first_epoch.addEpoch(epoch_line(this.id_date), [], true);
-                        this.logger.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX']);
-                        this.logger.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()));
+                        this.logger.addStatusOk(['"' this.file_name_list{f} this.ext{f} '" appears to be a valid RINEX'], this.verbosity_lev);
+                        this.logger.addMessage(sprintf('        first epoch found at: %s', this.first_epoch.last.toString()), this.verbosity_lev);
                         
                         % go to the end of the file to search for the last epoch
                         % to be sure to find at least one line containing a valid epoch, go to the end of the file minus 5000 characters
@@ -174,7 +141,7 @@ classdef File_Rinex < handle
                         end
                         fclose(fid);
                         this.last_epoch.addEpoch(epoch_line(this.id_date), [], true);
-                        this.logger.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()));
+                        this.logger.addMessage(sprintf('        last  epoch found at: %s', this.last_epoch.last.toString()), this.verbosity_lev);
                         this.is_valid_list(f) = true;
                     catch ex
                         if this.first_epoch.lenght < f
