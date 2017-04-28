@@ -1082,6 +1082,16 @@ classdef IO_Settings < Settings_Interface
             this.clk_full_name = this.getClkFileName(this.sss_date_start, this.sss_date_stop);
         end
 
+        function date = getSessionStart(this)
+            % SYNTAX: date = getSessionStart(this)
+            date = this.sss_date_start;
+        end
+            
+        function date = getSessionStop(this)
+            % SYNTAX: date = getSessionStop(this)
+            date = this.sss_date_stop;
+        end
+        
         function eph_full_name = getEphFileName(this, date_start, date_stop)
             % Get the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
