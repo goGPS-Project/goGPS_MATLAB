@@ -144,11 +144,7 @@ classdef Logger < handle
                 text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
                 text = strrep(text, '\', '\\');
-                if this.color_mode
-                    cprintf('text', strcat(' ', text, '\n'));
-                else
-                    fprintf(' %s\n', text);
-                end
+                fprintf(' %s\n', text);
             end
         end
         

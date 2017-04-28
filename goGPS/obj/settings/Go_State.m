@@ -188,7 +188,9 @@ classdef Go_State < Settings_Interface
     methods (Access = public)
         function initProcessing(this)
             % Load external resources and update
+            this.logger.newLine();
             this.logger.addMessage(this.cur_settings.cc.toString);
+            this.logger.newLine();
             
             this.initRef();
             this.initGeoid();

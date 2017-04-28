@@ -313,7 +313,6 @@ classdef Go_Wait_Bar < handle
             %remainingTime = sprintf('%02d:%02d:%04.1f', hh, mm, ss);
             
             this.msg = sprintf(' Elapsed time                %02d:%02d:%04.1f\n Remaining time            %02d:%02d:%04.1f', e_hh, e_mm, e_ss, r_hh, r_mm, r_ss);
-
                 
             % if graphic bar
             if (this.type == 1) ||  (this.type == 5)

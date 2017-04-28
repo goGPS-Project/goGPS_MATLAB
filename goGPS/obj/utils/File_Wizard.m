@@ -124,8 +124,8 @@ classdef File_Wizard < handle
                 [date_start, date_stop] = this.conjureObsFile();
             end
             this.state.setProcessingTime(date_start, date_stop, false);
-            this.conjureNavFiles(date_start, date_stop);
             this.state.updateNavFileName();
+            this.conjureNavFiles(date_start, date_stop);
         end
 
         function [first_epoch, last_epoch] = conjureObsFile(this)
@@ -141,10 +141,9 @@ classdef File_Wizard < handle
                 
         function conjureNavFiles(this, date_start, date_stop)
             % prepare the navigational files needed for processing
-            date_start = date_start.getCopy; date_start.addIntSeconds(-3600*6); % Get navigational files with 6 hours of margin
-            date_stop = date_stop.getCopy; date_stop.addIntSeconds(+3600*6); % Get navigational files with 6 hours of margin
-            eph_ok = this.state.checkNavEphFiles(date_start, date_stop);
-            nav_ok = eph_ok && this.state.checkNavClkFiles(date_start, date_stop);
+
+            eph_ok = this.state.checkNavEphFiles();
+            nav_ok = eph_ok && this.state.checkNavClkFiles();
             if (~nav_ok)
                 fnp = File_Name_Processor();
                 
@@ -191,18 +190,29 @@ classdef File_Wizard < handle
                             if strcmp(archive, 'custom')
                                 % custom provider is selected
                                 % download ephemeris
-                                file_list = fnp.dateKeyRepBatch(nav_name, date_start, date_stop);
+                                step_sec = fnp.getStepSec(nav_name);
+                                tmp_date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                                tmp_date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+                                
+                                file_list = fnp.dateKeyRepBatch(nav_name, tmp_date_start, tmp_date_stop);
                                 this.ftpd_custom.download(file_list, this.state.getNavEphDir());
                                 [~, name, ext] = fileparts(nav_name);
                                 this.state.setNavEphFile(strcat(name, ext));
+
                                 % download clocks
-                                file_list = fnp.dateKeyRepBatch(clk_name, date_start, date_stop);
+                                step_sec = fnp.getStepSec(clk_name);
+                                tmp_date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                                tmp_date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+                                file_list = fnp.dateKeyRepBatch(clk_name, tmp_date_start, tmp_date_stop);
                                 this.ftpd_custom.download(file_list, this.state.getNavClkDir());
                                 [~, name, ext] = fileparts(clk_name);
                                 this.state.setNavClkFile(strcat(name, ext));
                                 
-                                eph_ok = this.state.checkNavEphFiles(date_start, date_stop);
-                                nav_ok =  eph_ok && this.state.checkNavClkFiles(date_start, date_stop);
+                                % match the name of the ephemeris to use with what I've just downloaded
+                                this.state.updateNavFileName();
+
+                                eph_ok = this.state.checkNavEphFiles();
+                                nav_ok =  eph_ok && this.state.checkNavClkFiles();
                             elseif isfield(this.source, archive) &&  ...
                                    isfield(this.source.(archive).par, ss) && ...
                                    isfield(this.source.(archive).par.(ss).center, provider) && ...
@@ -210,17 +220,23 @@ classdef File_Wizard < handle
                                 
                                 % Download navigational
                                 nav_name = this.source.(archive).par.(ss).center.(provider).eph.(eph_type);
-                                file_list = fnp.dateKeyRepBatch(nav_name, date_start, date_stop);                                                                
+                                step_sec = fnp.getStepSec(nav_name);
+                                tmp_date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                                tmp_date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin            
+                                file_list = fnp.dateKeyRepBatch(nav_name, tmp_date_start, tmp_date_stop);
                                 this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getNavEphDir());
                                 [~, name, ext] = fileparts(nav_name);
                                 this.state.setNavEphFile(strcat(name, ext));
                                 
-                                eph_ok = this.state.checkNavEphFiles(date_start, date_stop);
+                                % match the name of the ephemeris to use with what I've just downloaded
+                                this.state.updateNavFileName();
+                                
+                                eph_ok = this.state.checkNavEphFiles();
                                 
                                 % if nav_ok try to download clocks
                                 if (eph_ok && ~strcmp(eph_type,'ultra'))
                                     c = 0;
-                                    clk_ok = this.state.checkNavClkFiles(date_start, date_stop);
+                                    clk_ok = this.state.checkNavClkFiles();
                                     while (c < numel(clk_type_list)) && ~clk_ok
                                         c = c + 1;
                                         clk_type = clk_type_list{c};
@@ -228,19 +244,26 @@ classdef File_Wizard < handle
                                            isfield(this.source.(archive).par.(ss).center.(provider).(clk_type), eph_type)
                                             % Download navigational
                                             clk_name = this.source.(archive).par.(ss).center.(provider).(clk_type).(eph_type);
-                                            file_list = fnp.dateKeyRepBatch(clk_name, date_start, date_stop);
+                                            step_sec = fnp.getStepSec(clk_name);
+                                            tmp_date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
+                                            tmp_date_stop = date_stop.getCopy; date_stop.addIntSeconds(+step_sec); % Get navigational files with 6 hours of margin
+                                            file_list = fnp.dateKeyRepBatch(clk_name, tmp_date_start, tmp_date_stop);
                                             this.source.(archive).ftpd.download(this.source.(archive).par.(ss).path, file_list, this.state.getNavClkDir());
                                             [~, name, ext] = fileparts(clk_name);
                                             this.state.setNavClkFile(strcat(name, ext));
-                                            clk_ok = this.state.checkNavClkFiles(date_start, date_stop);
+                                            
+                                            % match the name of the ephemeris to use with what I've just downloaded
+                                            this.state.updateNavFileName();
+
+                                            clk_ok = this.state.checkNavClkFiles();                                            
                                         end
                                     end
                                 else
-                                    eph_ok = this.state.checkNavEphFiles(date_start, date_stop);
+                                    eph_ok = this.state.checkNavEphFiles();
                                     clk_ok = true;
                                 end
                                 if ~clk_ok
-                                    clk_ok = this.state.checkNavClkFiles(date_start, date_stop);
+                                    clk_ok = this.state.checkNavClkFiles();
                                 end
                                 nav_ok = eph_ok && clk_ok;
                             end                            

@@ -1106,7 +1106,6 @@ classdef IO_Settings < Settings_Interface
             clk_full_name = fnp.dateKeyRepBatch(file_name, date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
         
-        
         function updateExternals(this)
             % Import the value of the external input files (stored in inputFile.ini)
             % SYNTAX: this.updateExternals();
