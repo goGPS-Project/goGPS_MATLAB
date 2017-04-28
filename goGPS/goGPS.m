@@ -119,7 +119,7 @@ if (mode_user == 1)
         
     [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
         flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-        filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+        filerootIN, ~, ~ , ~, ...
         ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
         flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo(state);
     
@@ -130,7 +130,7 @@ else
         
         [mode, mode_vinc, mode_data, mode_ref, flag_ms_pos, flag_ms, flag_ge, flag_cov, flag_NTRIP, flag_amb, ...
             flag_skyplot, flag_plotproc, flag_var_dyn_model, flag_stopGOstop, flag_SBAS, flag_IAR, ...
-            filerootIN, filerootOUT, filename_R_obs, filename_M_obs, ...
+            filerootIN, ~, ~, ~, ...
             ~, filename_ref, filename_pco, filename_blq, pos_M_man, protocol_idx, multi_antenna_rf, iono_model, tropo_model, fsep_char, ...
             flag_ocean, flag_outlier, flag_tropo, frequencies, flag_SEID, processing_interval, obs_comb, flag_full_prepro, filename_sta, filename_met] = gs.settingsToGo();
 end
@@ -151,9 +151,6 @@ SBS_flag = cc.isSbsActive();
 [constellations] = goGNSS.initConstellation(GPS_flag, GLO_flag, GAL_flag, BDS_flag, QZS_flag, SBS_flag);
 
 nSatTot = cc.getNumSat();
-
-%initialization of global variables/constants
-global_init;
 
 %number of enabled constellations
 n_sys = sum(cc.getActive);
@@ -193,6 +190,8 @@ num_session = numel(trg_rec{1});
 mst_rec = state.getMasterPath();
 num_mst_rec = numel(mst_rec);
 
+fnp = File_Name_Processor();
+
 if num_session > 1
     is_batch = true;
     
@@ -209,7 +208,6 @@ if num_session > 1
         marker_mst = '';
     end
     
-    fnp = File_Name_Processor();
     file_name_base = fnp.dateKeyRep(fnp.checkPath(fullfile(state.getOutDir(), sprintf('%s_%s${YYYY}${DOY}', marker_trg, marker_mst))), sss_date_start);
     file_name_base = fnp.dateKeyRep(sprintf('%s_${YYYY}${DOY}',file_name_base), sss_date_stop);
     fid_extract = fopen(sprintf('%s_extraction.txt', file_name_base),'w');
@@ -249,6 +247,14 @@ if is_batch
 end
 
 for s = 1 : num_session
+    
+    if is_batch
+        clear X_KAL Xhat_t_t
+    end
+    
+    %initialization of global variables/constants
+    global_init;
+    
     filename_R_obs = {};
     filename_M_obs = {};
         
@@ -274,14 +280,21 @@ for s = 1 : num_session
     if ~is_batch
         % close all the opened files
         fclose('all');
-    else
-        clear X_KAL Xhat_t_t
     end
     
     fr = File_Rinex(filename_R_obs{1},100);
     cur_date_start = fr.first_epoch.first();
     cur_date_stop = fr.last_epoch.last();
 
+    % updating the file path of the output -> special key are now supported
+    filerootOUT = fnp.dateKeyRep(state.getOutPath(), cur_date_start);
+    
+    % create a new directory when required
+    dir_name = fileparts(filerootOUT);
+    if ~(exist(dir_name, 'dir') == 7)
+        mkdir(dir_name);
+    end
+        
     %-------------------------------------------------------------------------------------------
     % REPORT INITIALIZATION
     %-------------------------------------------------------------------------------------------
@@ -848,7 +861,7 @@ for s = 1 : num_session
                     %compute sun and moon position
                     logger.addMessage('Computing Sun and Moon position...');
                     [X_sun, X_moon] = sun_moon_pos(datevec(gps2utc(datenum(date_M))));
-                    logger.addStatusOk(' done\n');
+                    logger.addStatusOk(' done');
                     
                     %store the position of Sun and Moon
                     SP3.t_sun  = time_GPS;
@@ -4535,7 +4548,8 @@ for s = 1 : num_session
         tropo_vec_ZTD = nan(1,86400/interval);
         tropo_vec_ZWD = nan(1,86400/interval);
         if exist('X_KAL','var') && exist('Xhat_t_t_OUT','var')
-            fprintf(fid_extract,'%04d-%03d  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', year4, doy, date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
+            
+            fprintf(fid_extract,'%s  %02d/%02d/%02d    %02d:%02d:%06.3f %16.6f %16.6f %16.6f %16.6f %16.6f %16.6f\n', fnp.dateKeyRep('${YYYY}-${DOY}',cur_date_start), date_R(idx,1), date_R(idx,2), date_R(idx,3), date_R(idx,4), date_R(idx,5), date_R(idx,6), X_KAL(idx), Y_KAL(idx), Z_KAL(idx), EAST_UTM(idx), NORTH_UTM(idx), h_KAL(idx));
             tropo_vec_ZTD(1,1:length(Xhat_t_t_OUT(end-1,:))) = Xhat_t_t_OUT(end-1,:); %#ok<NODEF>
             fprintf(fid_extract_ZTD,'%.6f ', tropo_vec_ZTD);
             fprintf(fid_extract_ZTD,'\n');
@@ -4569,7 +4583,7 @@ for s = 1 : num_session
                 line2(33:80)='';
             end
             
-            fprintf(fid_extract_OBS,' %s-%s  %s     %s\n',num2str(year2,'%02d'),num2str(doy,'%03d'), line1, line2);
+            fprintf(fid_extract_OBS,' %s  %s     %s\n',fnp.dateKeyRep('${YY}-${DOY}',cur_date_start), line1, line2);
             fclose(fid_rep_i);
         end
     end

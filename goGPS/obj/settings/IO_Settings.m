@@ -1004,6 +1004,19 @@ classdef IO_Settings < Settings_Interface
             out_prefix = fnp.checkPath(this.out_prefix);
         end
         
+        function out = getOutPath(this)
+            % Get the path of the out folder composed with the prefix and the count number
+            % SYNTAX: out_prefix = this.getOutPath()
+            fnp = File_Name_Processor;
+            out = fnp.checkPath([this.out_dir filesep this.out_prefix '_' num2str(this.run_counter,'%03d') ]);
+        end
+        
+        function counter = getRunCounter(this)
+            % Get the current run counter
+            % SYNTAX: counter = getRunCounter(this)
+            counter = this.run_counter;
+        end
+        
         function out_prefix = getFullOutPrefix(this, date_start, date_stop, session_list, session_start, session_stop)
             % Get the full path of the outputs
             % SYNTAX: out_prefix = this.getFullOutPrefix()
