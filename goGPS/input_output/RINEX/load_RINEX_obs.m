@@ -154,47 +154,48 @@ for f = 1 : nFiles
         
         %read data for the current epoch (ROVER)
         [time(k,1,f), date(k,:,f), num_sat, sat, sat_types, tow(k,1,f)] = RINEX_get_epoch(fid);
-
-        if (k > nEpochs)
-            %variable initialization (GPS)
-            pr1(:,k,f) = zeros(nSatTot,1);
-            pr2(:,k,f) = zeros(nSatTot,1);
-            ph1(:,k,f) = zeros(nSatTot,1);
-            ph2(:,k,f) = zeros(nSatTot,1);
-            dop1(:,k,f) = zeros(nSatTot,1);
-            dop2(:,k,f) = zeros(nSatTot,1);
-            snr1(:,k,f) = zeros(nSatTot,1);
-            snr2(:,k,f) = zeros(nSatTot,1);
+        if ~isnan(time(k,1,f))
+            if (k > nEpochs)
+                %variable initialization (GPS)
+                pr1(:,k,f) = zeros(nSatTot,1);
+                pr2(:,k,f) = zeros(nSatTot,1);
+                ph1(:,k,f) = zeros(nSatTot,1);
+                ph2(:,k,f) = zeros(nSatTot,1);
+                dop1(:,k,f) = zeros(nSatTot,1);
+                dop2(:,k,f) = zeros(nSatTot,1);
+                snr1(:,k,f) = zeros(nSatTot,1);
+                snr2(:,k,f) = zeros(nSatTot,1);
+                
+                nEpochs = nEpochs  + 1;
+            end
             
-            nEpochs = nEpochs  + 1;
+            %read ROVER observations
+            obs = RINEX_get_obs(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, cc);
+            
+            idx_P1 = obs.P1 ~= 0;
+            idx_C1 = obs.C1 ~= 0;
+            idx_codeC1 = idx_P1 - idx_C1;
+            codeC1(idx_codeC1 < 0,k,f) = 1;
+            pr1(:,k,f) = zeros(size(pr1(:,k,f)));
+            pr1(idx_P1,k,f) = obs.P1(idx_P1);
+            pr1(find(codeC1(:,k,f)),k,f) = obs.C1(find(codeC1(:,k,f))); %#ok<FNDSB>
+            
+            %         %read ROVER observations
+            %         if (~any(obs.C1) || sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
+            %             pr1(:,k,f) = obs.P1;
+            %         else
+            %             pr1(:,k,f) = obs.C1;
+            %             codeC1(:,:,f) = 1;
+            %         end
+            pr2(:,k,f) = obs.P2;
+            ph1(:,k,f) = obs.L1;
+            ph2(:,k,f) = obs.L2;
+            dop1(:,k,f) = obs.D1;
+            dop2(:,k,f) = obs.D2;
+            snr1(:,k,f) = obs.S1;
+            snr2(:,k,f) = obs.S2;
+            k = k + 1;
         end
-        
-        %read ROVER observations
-        obs = RINEX_get_obs(fid, num_sat, sat, sat_types, obsColumns, nObsTypes, cc);
-        
-        idx_P1 = obs.P1 ~= 0;
-        idx_C1 = obs.C1 ~= 0;
-        idx_codeC1 = idx_P1 - idx_C1;
-        codeC1(idx_codeC1 < 0,k,f) = 1;
-        pr1(:,k,f) = zeros(size(pr1(:,k,f)));
-        pr1(idx_P1,k,f) = obs.P1(idx_P1);
-        pr1(find(codeC1(:,k,f)),k,f) = obs.C1(find(codeC1(:,k,f))); %#ok<FNDSB>
-
-%         %read ROVER observations
-%         if (~any(obs.C1) || sum(obs.P1 ~= 0) == sum(obs.C1 ~= 0))
-%             pr1(:,k,f) = obs.P1;
-%         else
-%             pr1(:,k,f) = obs.C1;
-%             codeC1(:,:,f) = 1;
-%         end
-        pr2(:,k,f) = obs.P2;
-        ph1(:,k,f) = obs.L1;
-        ph2(:,k,f) = obs.L2;
-        dop1(:,k,f) = obs.D1;
-        dop2(:,k,f) = obs.D2;
-        snr1(:,k,f) = obs.S1;
-        snr2(:,k,f) = obs.S2;
-        k = k + 1;
     end
     
     if (wait_dlg_PresenceFlag)
