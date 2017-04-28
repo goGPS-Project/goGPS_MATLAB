@@ -360,6 +360,9 @@ classdef IO_Settings < Settings_Interface
                 this.obs_dir = fnp.checkPath(settings.getData('obs_dir'));
                 this.obs_name = fnp.checkPath(settings.getData('obs_name'));
                 this.obs_type = settings.getData('obs_type');
+                this.atx_dir    = fnp.checkPath(settings.getData('atx_dir'));
+                this.atx_name   = fnp.checkPath(settings.getData('atx_name'));
+                % GEOMETRY               
                 tmp_xyz_ant = zeros(3, this.getTargetCount());
                 for r = 1 : this.getTargetCount()
                     tmp = settings.getData(sprintf('xyz_ant_%02d', r));
@@ -427,6 +430,8 @@ classdef IO_Settings < Settings_Interface
                 this.obs_dir = settings.obs_dir;
                 this.obs_name = settings.obs_name;
                 this.obs_type = settings.obs_type;
+                this.atx_dir     = settings.atx_dir;
+                this.atx_name    = settings.atx_name;
                 this.xyz_ant = settings.xyz_ant;
                 this.xyz_ev_point = settings.xyz_ev_point;
                 % SATELLITES
