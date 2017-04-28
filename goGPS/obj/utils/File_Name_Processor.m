@@ -91,6 +91,24 @@ classdef File_Name_Processor < handle
             file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));            
         end
         
+        function step_sec = getStepSec(this, file_name)
+            % get the shorter time keyword present in file_name [seconds]
+            % SYNTEX: step_sec = this.getStepSec(file_name);
+            % Check for GPS time placeholders
+            step_sec = 0;
+            if ~isempty(strfind(file_name, this.GPS_HH))
+                step_sec = 3600;
+            elseif ~isempty(strfind(file_name, this.GPS_6H))
+                step_sec = 6 * 3600;
+            elseif ~isempty((strfind(file_name, this.GPS_DOW))) || ~isempty(strfind(file_name, this.GPS_WD)) || ~isempty(strfind(file_name, this.GPS_DOY))
+                step_sec = 24 * 3600;
+            elseif ~isempty(strfind(file_name, this.GPS_WEEK))
+                step_sec = 24 * 3600 * 7;
+            elseif ~isempty(strfind(file_name, this.GPS_YYYY))
+                step_sec = 24 * 3600 * 365;
+            end            
+        end
+        
         function file_name_lst = dateKeyRepBatch(this, file_name, date_start, date_stop, session_list, session_start, session_stop) 
             % substitute time placeholder with the proper format
             % SYNTAX: file_name = this.dateKeyRepBatch(file_name, date_start, date_stop)            
