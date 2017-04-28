@@ -487,7 +487,7 @@ classdef Constellation_Collector < Settings_Interface
         function n_sat = getNumSat(this)
             % return the total number of enabled satellites
             % SYNTAX: n_sat = this.getNumSat();
-            n_sat = this.n_sat_tot();
+            n_sat = this.n_sat_tot;
         end
         
         function gps = getGPS(this)
