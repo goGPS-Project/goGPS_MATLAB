@@ -1062,14 +1062,18 @@ classdef IO_Settings < Settings_Interface
             % Update the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: this.updateEphFileName();
             fnp = File_Name_Processor();
-            this.eph_full_name = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.eph_dir, this.eph_name)), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            date_start = this.sss_date_start.getCopy; date_start.addIntSeconds(-3600*6); % Get navigational files with 6 hours of margin
+            date_stop = this.sss_date_stop.getCopy; date_stop.addIntSeconds(+3600*6); % Get navigational files with 6 hours of margin
+            this.eph_full_name = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.eph_dir, this.eph_name)), date_start,  date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
         
         function updateClkFileName(this)
             % Update the full name of the clock offset files (replacing special keywords)
             % SYNTAX: this.updateClkFileName();
             fnp = File_Name_Processor();
-            this.clk_full_name = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.clk_dir, this.clk_name)), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+            date_start = this.sss_date_start.getCopy; date_start.addIntSeconds(-3600*6); % Get navigational files with 6 hours of margin
+            date_stop = this.sss_date_stop.getCopy; date_stop.addIntSeconds(+3600*6); % Get navigational files with 6 hours of margin
+            this.clk_full_name = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.clk_dir, this.clk_name)), date_start, date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
         end
 
         function updateExternals(this)
@@ -1699,6 +1703,7 @@ classdef IO_Settings < Settings_Interface
                 end
                 this.logger.newLine();
             end
+            this.eph_full_name = fnp.getFullPath(nav_dir, file_name);
         end
         
         function clk_ok = checkNavClkFiles(this, date_start, date_stop)
@@ -1737,6 +1742,7 @@ classdef IO_Settings < Settings_Interface
                 end
                 this.logger.newLine();
             end
+            this.clk_full_name = fnp.getFullPath(nav_dir, file_name);           
         end
     end
 
