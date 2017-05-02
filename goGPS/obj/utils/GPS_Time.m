@@ -862,7 +862,11 @@ classdef GPS_Time < handle
                 case 0 % I'm in MAT TIME
                     this.mat_time = this.mat_time + n_seconds / 86400;
                 case 1 % I'm in UNIX TIME
-                    this.unix_time = this.unix_time + uint32(n_seconds);
+                    if sign(n_seconds) == 1
+                        this.unix_time = this.unix_time + uint32(n_seconds);
+                    else
+                        this.unix_time = this.unix_time - uint32(-n_seconds);
+                    end    
                 case 2 % I'm in REF TIME
                     this.time_diff = this.time_diff + n_seconds;
             end                          
@@ -874,15 +878,18 @@ classdef GPS_Time < handle
                 case 0 % I'm in MAT TIME
                     this.mat_time = this.mat_time + n_seconds / 86400;
                 case 1 % I'm in UNIX TIME
-                    this.unix_time = this.unix_time + uint32(fix(n_seconds));                    
-                    this.unix_f = this.unix_time + rem(n_seconds,1);                    
+                    if sign(n_seconds) == 1
+                        this.unix_time = this.unix_time + uint32(fix(n_seconds));
+                        this.unix_f = this.unix_time + rem(n_seconds,1);                    
+                    else
+                        this.unix_time = this.unix_time - uint32(fix(-n_seconds));
+                        this.unix_f = this.unix_time - rem(n_seconds,1);                    
+                    end    
                 case 2 % I'm in REF TIME
                     this.time_diff = this.time_diff + n_seconds;
             end                          
         end
     end
-
-    
     
     % =========================================================================
     %    STATIC UNIX TIME
