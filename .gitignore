@@ -57,6 +57,7 @@
 !/data/station/MET
 /data/station/MET/*
 !/data/station/MET/.gitignore
+!/data/station/MET/example.met
 !/data/station/MET/example_met.m
 !/data/station/SNX/
 /data/station/SNX/*
@@ -110,6 +111,7 @@
 !/data/old/settings/
 /data/old/settings/*
 !/data/old/settings/goGPS_iniDefaultKeywords.ini
+/goGPS/reserved
 /goGPS/positioning/lambda/lambda_v3
 de421.bin
 .DS_Store

@@ -111,6 +111,7 @@ classdef IO_Settings < Settings_Interface
         REF_GRAPH_FILE = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'ref_path' filesep 'ref_path.mat']; % Reference path constraints
         ERP_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'ERP' filesep]; % Earth Rotation Parameters
         GEOID_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'geoid' filesep]; % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs        
+        GEOID_NAME = 'geoid_EGM2008_05.mat'; % File name of the Geoid containing the geoid to be used for the computation of hortometric heighs        
         
         % DTM (SET PATH AND LOAD PARAMETER FILES)        
         DTM_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep]; % Path to DTM folder containing DTM files
@@ -261,10 +262,12 @@ classdef IO_Settings < Settings_Interface
         ref_graph_file = IO_Settings.REF_GRAPH_FILE;
 
         % Path to ERP folder containing Earth Rotation Parameters (tipically realesed together with the orbits)
-        erp_dir = IO_Settings.GEOID_DIR;
+        erp_dir = IO_Settings.ERP_DIR;
         
         % Path to Geoid folder containing the geoid to be used for the computation of hortometric heighs
         geoid_dir = IO_Settings.GEOID_DIR;
+        % Name of the Geoid file containing the geoid to be used for the computation of hortometric heighs
+        geoid_name = IO_Settings.GEOID_NAME;
         
         % Location of the ocean loading file
         ocean_name =  IO_Settings.OCEAN_NAME;  
@@ -391,6 +394,7 @@ classdef IO_Settings < Settings_Interface
                 % REFERENCE
                 this.ref_graph_file  = fnp.checkPath(settings.getData('ref_graph_file'));
                 this.geoid_dir  = fnp.checkPath(settings.getData('geoid_dir'));
+                this.geoid_name = fnp.checkPath(settings.getData('geoid_name'));
                 this.dtm_dir    = fnp.checkPath(settings.getData('dtm_dir'));
                 % UI
                 this.img_dir    = fnp.checkPath(settings.getData('img_dir'));
@@ -452,6 +456,7 @@ classdef IO_Settings < Settings_Interface
                 % REFERENCE
                 this.ref_graph_file = settings.ref_graph_file;
                 this.geoid_dir  = settings.geoid_dir;
+                this.geoid_name = settings.geoid_name;
                 this.dtm_dir    = settings.dtm_dir;
                 % UI
                 this.img_dir    = settings.img_dir;
@@ -534,6 +539,7 @@ classdef IO_Settings < Settings_Interface
             str = [str '---- INPUT FOLDERS: REFERENCE ---------------------------------------------' 10 10];
             str = [str sprintf(' File contraining the reference graph:             %s\n', this.ref_graph_file)];
             str = [str sprintf(' Directory of Geoid models:                        %s\n', this.geoid_dir)];
+            str = [str sprintf(' Name of the Geoid map file:                       %s\n', this.geoid_name)];
             str = [str sprintf(' Directory of DTM data:                            %s\n\n', this.dtm_dir)];
             str = [str '---- INPUT FOLDERS: UI ----------------------------------------------------' 10 10];
             str = [str sprintf(' Directory of images for UI:                       %s\n', this.img_dir)];
@@ -689,6 +695,8 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('ref_graph_file', this.ref_graph_file, str_cell);            
             str_cell = Ini_Manager.toIniStringComment('Directory of Geoid files', str_cell);
             str_cell = Ini_Manager.toIniString('geoid_dir', this.geoid_dir, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Filename in Geoid dir containing the map of ondulation of the geoid', str_cell);
+            str_cell = Ini_Manager.toIniString('geoid_name', this.geoid_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of DTM data', str_cell);
             str_cell = Ini_Manager.toIniString('dtm_dir', this.dtm_dir, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -707,36 +715,7 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniString('out_prefix', this.out_prefix, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Current run number', str_cell);
             str_cell = Ini_Manager.toIniString('run_counter', this.run_counter, str_cell);
-            str_cell = Ini_Manager.toIniStringNewLine(str_cell);   
-            
-%             % EXTERNAL INFO
-%             % this operation should not be blocking -> use try catch
-%             % update external ini
-%             try
-%                 this.ext_ini = Ini_Manager(this.input_file_ini_path);
-%                 
-%                 str_cell = Ini_Manager.toIniStringSection('EXTERNAL FILE INPUT INI', str_cell);
-%                 str_cell = Ini_Manager.toIniStringComment('The information of this section are here present as imported from the external input ini file', str_cell);
-%                 str_cell = Ini_Manager.toIniStringComment('All the parameters here listed cannot be modified for import', str_cell);
-%                 str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-%                 str_cell = Ini_Manager.toIniStringComment('Variometric approach parameter', str_cell);
-%                 str_cell = Ini_Manager.toIniString('variometric_time_step', this.ext_ini.getData('Variometric', 'timeStep'), str_cell);
-%                 str_cell = Ini_Manager.toIniStringComment('Navigational files', str_cell);
-%                 str_cell = Ini_Manager.toIniString('nav_path', this.ext_ini.getData('Navigational', 'data_path'), str_cell);
-%                 str_cell = Ini_Manager.toIniString('nav_file', this.ext_ini.getData('Navigational', 'file_name'), str_cell);
-%                 str_cell = Ini_Manager.toIniStringComment('Master/Target(if SEID) file', str_cell);
-%                 str_cell = Ini_Manager.toIniString('master_target_path', this.ext_ini.getData('Master', 'data_path'), str_cell);
-%                 str_cell = Ini_Manager.toIniString('master_target_file', this.ext_ini.getData('Master', 'file_name'), str_cell);
-%                 str_cell = Ini_Manager.toIniStringComment('Receivers/Source(if SEID) files', str_cell);
-%                 str_cell = Ini_Manager.toIniString('receiver_source_number', this.ext_ini.getData('Receivers', 'nRec'), str_cell);
-%                 str_cell = Ini_Manager.toIniString('receiver_source_path', this.ext_ini.getData('Receivers', 'data_path'), str_cell);
-%                 str_cell = Ini_Manager.toIniString('receiver_source_file', this.ext_ini.getData('Receivers', 'file_name'), str_cell);
-%                 str_cell = Ini_Manager.toIniStringComment('Binary files', str_cell);
-%                 str_cell = Ini_Manager.toIniString('bin_path', this.ext_ini.getData('Bin', 'data_path'), str_cell);
-%                 str_cell = Ini_Manager.toIniString('bin_file', this.ext_ini.getData('Bin', 'file_name'), str_cell);
-%             catch ex
-%                 this.logger.addWarning(sprintf('Exporting of external INFO failed - %s', ex.message));
-%             end
+            str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
         end
     end    
     
@@ -995,6 +974,13 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: file_path = this.getRefPath()
             out = File_Name_Processor.checkPath(this.ref_graph_file);
         end
+        
+        function file_path = getGeoidFile(this)
+            % Get the path of the geoid file
+            % SYNTAX: file_path = this.getGeoidFile()
+            file_path = File_Name_Processor.checkPath(strcat(this.geoid_dir, filesep, this.geoid_name));
+        end
+
         
         function out_dir = getOutDir(this)
             % Get the path of the out folder
@@ -1586,6 +1572,7 @@ classdef IO_Settings < Settings_Interface
 
             this.checkStringField('ref_graph_file', true);
             this.checkStringField('geoid_dir', true);
+            this.checkStringField('geoid_name', true);
             this.checkStringField('dtm_dir', true);
 
             this.checkStringField('img_dir', false, true);
