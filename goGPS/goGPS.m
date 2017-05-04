@@ -1030,7 +1030,8 @@ for s = 1 : num_session
                     
                     %apply P1C1 DCBs if needed
                     if (flag_SP3 && ~isempty(SP3.DCB) && any(codeC1_R(:)))
-                        pr1_R(:,:,f) = pr1_R(:,:,f) + SP3.DCB.P1C1.value(:,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_R(:,:,f);
+                        avail_sat = any(lambda,2);
+                        pr1_R(avail_sat,:,f) = pr1_R(avail_sat,:,f) + SP3.DCB.P1C1.value(avail_sat,ones(size(pr1_R(:,:,f),2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_R(avail_sat,:,f);
                     end
                     
                     %time adjustments (to account for sub-integer approximations in MATLAB - thanks to radiolabs.it for pointing this out!)
@@ -1081,7 +1082,8 @@ for s = 1 : num_session
                 
                 %apply P1C1 DCBs if needed
                 if (flag_SP3 && ~isempty(DCB) && any(codeC1_M(:)))
-                    pr1_M = pr1_M + SP3.DCB.P1C1.value(:,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M;
+                    avail_sat = any(lambda,2);
+                    pr1_M(avail_sat,:) = pr1_M(avail_sat,:) + SP3.DCB.P1C1.value(avail_sat,ones(size(pr1_M,2),1))*1e-9*goGNSS.V_LIGHT.*codeC1_M(avail_sat,:);
                 end
                 
                 if (~flag_SEID)
