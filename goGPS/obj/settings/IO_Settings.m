@@ -1571,8 +1571,8 @@ classdef IO_Settings < Settings_Interface
             this.checkStringField('ocean_dir', false);
 
             this.checkStringField('ref_graph_file', true);
-            this.checkStringField('geoid_dir', true);
-            this.checkStringField('geoid_name', true);
+            this.checkStringField('geoid_dir', false);
+            this.checkStringField('geoid_name', false);
             this.checkStringField('dtm_dir', true);
 
             this.checkStringField('img_dir', false, true);

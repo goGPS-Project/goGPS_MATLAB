@@ -197,6 +197,7 @@ classdef Go_State < Settings_Interface
             fw = File_Wizard;
             fw.conjureFiles();
         end
+        
     end
     
     methods (Access = private)
@@ -231,18 +232,20 @@ classdef Go_State < Settings_Interface
             end            
         end
         
-        function initGeoid(this)
-            % load external geoid (code to be updated...it's not parametric)
+                function initGeoid(this)
+            % load external geoid
             try                
-                load ([this.cur_settings.geoid_dir filesep 'geoid_EGM2008_05.mat']);
+                geoid_file = this.cur_settings.getGeoidFile();
+                g = load(geoid_file);
+                fn = fieldnames(g);
                 % geoid grid and parameters
-                this.geoid.grid = N_05x05;
-                this.geoid.cellsize = 0.5;
-                this.geoid.Xll = -179.75;
-                this.geoid.Yll = -89.75;
-                this.geoid.ncols = 720;
-                this.geoid.nrows = 360;                
-                clear N_05x05
+                this.geoid.grid = g.(fn{1});
+                this.geoid.cellsize = 360 / size(this.geoid.grid, 2);
+                this.geoid.Xll = -180 + this.geoid.cellsize / 2;
+                this.geoid.Yll = -90 + this.geoid.cellsize / 2;
+                this.geoid.ncols = size(this.geoid.grid, 2);
+                this.geoid.nrows = size(this.geoid.grid, 1);                
+                clear g
             catch
                 this.logger.addWarning('Reference geoid not found', 50);
                 % geoid unavailable
@@ -254,6 +257,7 @@ classdef Go_State < Settings_Interface
                 this.geoid.nrows = 0;
             end
         end
+
     end
     
     % =========================================================================
@@ -273,6 +277,9 @@ classdef Go_State < Settings_Interface
         
         function [geoid] = getRefGeoid(this)
             % Get reference path
+            if isempty(this.geoid)
+                this.initGeoid();
+            end
             geoid = this.geoid;
         end
         

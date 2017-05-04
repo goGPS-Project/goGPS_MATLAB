@@ -375,7 +375,7 @@ sm_weight = 1;
 global geoid
 
 try
-    load ../data/reference/geoid/geoid_EGM2008_05.mat
+    load(state.getGeoidFile())
     %geoid grid and parameters
     geoid.grid = N_05x05;
     geoid.cellsize = 0.5;
