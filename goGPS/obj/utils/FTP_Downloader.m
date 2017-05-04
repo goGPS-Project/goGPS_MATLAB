@@ -206,6 +206,8 @@ classdef FTP_Downloader < handle
                                         % move to the remote dir of the file
                                         cd(this.ftp_server, remote_dir);
                                         mget(this.ftp_server, file_name, local_dir);
+                                        close(this.ftp_server);
+                                        this.ftp_server = ftp(strcat(this.addr, ':', this.port));
                                         if compressed
                                             try
                                                 if (isunix())
