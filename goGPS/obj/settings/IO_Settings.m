@@ -953,6 +953,16 @@ classdef IO_Settings < Settings_Interface
             end
         end
         
+        function out = getMetDir(this)
+            % Get the path of the meteorological file dir
+            % SYNTAX: file_path = this.getMetDir()
+            if (isempty(this.met_dir))
+                out = '';
+            else
+                out = this.checkMetPath(strcat(this.met_dir));
+            end
+        end
+        
         function out = getMetFile(this)
             % Get the path of the meteorological file
             % SYNTAX: file_path = this.getMetFile()

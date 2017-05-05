@@ -52,7 +52,7 @@ end
 
 N = zeros(numel(lam), 1);
 for i = 1 : numel(lam)
-    N(i) = grid_bilin_interp(lam(i), phi(i), geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
+    N(i) = grid_bilin_interp(lam(i) / pi * 180, phi(i) / pi * 180, geoid.grid, geoid.ncols, geoid.nrows, geoid.cellsize, geoid.Xll, geoid.Yll, -9999);
 end
 
 

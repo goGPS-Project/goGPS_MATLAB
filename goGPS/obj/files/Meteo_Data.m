@@ -66,7 +66,7 @@ classdef Meteo_Data < handle
                         Meteo_Data.HI_ID];        
     end
     
-    properties (Constant, GetAccess = public);
+    properties (Constant);
         DATA_TYPE = ['PR'; 'TD'; 'HR'; 'ZW'; 'ZD'; 'ZT'; 'WD'; 'WS'; 'RI'; 'HI'];
         DATA_TYPE_EXT = { 'Pressure [mbar]', ...
                           'Dry temperature (deg Celsius)', ...
@@ -99,12 +99,16 @@ classdef Meteo_Data < handle
         % contains an object to read the RINEX file 
         file;   % init this with File_Rinex('filename')
         
+        marker_name = '';   % name of the station    
         n_type = 0;         % number of observation types
         type = 1:10;        % supposing to have all the fields
         
         time = GPS_Time();  % array of observation epochs
                 
         data = [];          % Meteorological file
+        
+        xyz = [0 0 0];      % geocentric coordinate of the sensor
+        h_ortho = 0;        % hortometric height of the sensor        
         is_valid = false;   % Status of valitity of the file;
     end
     
@@ -120,7 +124,7 @@ classdef Meteo_Data < handle
             else           
                 % Try to parse header
                 try
-                    % Check for file description
+                    % Check for file description to verify the header
                     if isempty(strfind(meteo_file{1}(61:end),'VERSION / TYPE')) || isempty(strfind(meteo_file{1},'METEOROLOGICAL DATA'))
                         throw(MException('MeteorologicalFile:InvalidHeader', 'file type is not described as "METEOROLOGICAL DATA"'));
                     end
@@ -133,6 +137,8 @@ classdef Meteo_Data < handle
                     l = 1;
                     this.type = [];
                     type_is_present = false;
+                    pos_is_present = false;
+                    marker_name_is_present = false;
                     while (l < this.file.getEOH)
                         l = l + 1;
                         line = meteo_file{l};
@@ -154,8 +160,40 @@ classdef Meteo_Data < handle
                                     throw(MException('MeteorologicalFile:InvalidHeader', 'unrecognized data type'));
                                 end
                             end
+                        end                        
+                        if (~pos_is_present)
+                            % Check for sensor position
+                            pos_is_present = ~isempty(strfind(line(61:end),'SENSOR POS XYZ/H'));
+                            
+                            if pos_is_present
+                                this.xyz = sscanf(line(1:42), '%14f%14f%14f');
+                                if sum(abs(this.xyz)) > 0
+                                    [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
+                                    this.h_ortho = h - getHortometricCorr(phiC, lam);
+                                else
+                                    this.h_ortho = 0;
+                                end
+                            end
+                        end
+                        if (~marker_name_is_present)
+                            % Check for sensor position
+                            marker_name_is_present = ~isempty(strfind(line(61:end),'MARKER NAME'));                            
+                            if marker_name_is_present
+                                this.marker_name = strtrim(line(1:60));
+                            end
                         end
                     end
+                    
+                    % set default (empty) values if the following paremeters are not found in header
+                    if ~pos_is_present
+                        this.xyz = [0 0 0];
+                        this.h_ortho = 0;
+                    end
+                    
+                    if ~marker_name_is_present
+                        this.marker_name = '';
+                    end
+                    
                     if isempty(this.type)
                         this.type = [1:10];
                         this.n_type = numel(this.type);
@@ -204,19 +242,8 @@ classdef Meteo_Data < handle
             end
             this.data = this.data'; % keep one column per data type
         end
-    end
-    
-    % =========================================================================
-    %  INIT / READER
-    % =========================================================================
-    methods
-        function this = Meteo_Data(file_name, type) 
-            % Creator
-            
-            % The function calls all its creation methods within try and
-            % catch statements, reading the Meteo file should not be
-            % blocking for the processing, even if the data are not good
-            
+                
+        function init(this, file_name, type)
             % Try to read the file
             this.logger.addMessage(sprintf('Loading Meteorological data from %s\n', file_name));
             try
@@ -234,7 +261,7 @@ classdef Meteo_Data < handle
             % Parse the header and detect the types of data contained in the metereological file
             this.parseHeader(meteo_file);
             
-            if (nargin == 2)
+            if (nargin == 3)
                 this.logger.addWarning('Overriding the file type with custom types');
                 this.type = type;
                 this.n_type = numel(type);
@@ -247,9 +274,129 @@ classdef Meteo_Data < handle
             end
             this.is_valid = this.file.isValid();
             % Parse the data
-            this.parseData(meteo_file);   
-            
+            this.parseData(meteo_file);            
         end
+    end
+    
+    % =========================================================================
+    %  INIT / READER
+    % =========================================================================
+    methods
+        function this = Meteo_Data(file_name, type) 
+            % Creator
+            
+            % The function calls all its creation methods within try and
+            % catch statements, reading the Meteo file should not be
+            % blocking for the processing, even if the data are not good
+            
+            switch nargin
+                case 1
+                    this.init(file_name);
+                case 2
+                    this.init(file_name, type);
+            end
+        end
+    end
+    
+    % =========================================================================
+    %  IMPORT / EXPORT / TOSTRING
+    % =========================================================================
+    methods       
+        
+        function import_raw(this, obs_time, data, type, marker_name, pos_xyz)
+            % Import a meteorological file
+            % EXAMPLE: this.import_raw(GPS_Time(time - 1/12), [pres temp hum rain], [Meteo_Data.PR Meteo_Data.TD Meteo_Data.HR Meteo_Data.RT], 'GReD', xyz);
+            narginchk(6, 6);
+            
+            % Skip NaN epochs    
+            ok = ~obs_time.isnan();
+            this.marker_name = marker_name;
+            this.xyz = pos_xyz;
+            [~, lam, h, phiC] = cart2geod(this.xyz(1), this.xyz(2), this.xyz(3));
+            this.h_ortho = h - getHortometricCorr(phiC, lam);
+            this.time = obs_time.getId(ok);
+            this.data = data(ok, :);
+            this.type = type;            
+            this.n_type = numel(type);
+            this.is_valid = true;
+        end
+        
+        function import(this, file_name, type)
+            % import a meteorological file
+            narginchk(2,3);
+            
+            switch nargin
+                case 1
+                    this.init(file_name);
+                case 2
+                    this.init(file_name, type);
+            end
+        end
+        
+        function export(this, file_name)
+            % Export data to a metereological RINEX
+            % SYNTAX: this.toString(str)
+
+            narginchk(1,2);
+            if (nargin == 1)
+                state = Go_State.getCurrentSettings();
+                file_name =  this.marker_name;
+                if numel(file_name) < 4
+                    file_name = sprintf(['%0' num2str(4-numel(file_name)) 'd%s'], 0, file_name);
+                else
+                    file_name = file_name(1:4);
+                end
+                [year, doy] = this.time.getId(1).getDOY();                
+                year = mod(year,100);
+                file_name = File_Name_Processor.checkPath(sprintf('%s%s%s%03d0.%02dm', state.getMetDir(), filesep, file_name, doy, year));
+            end
+            
+            this.logger.addMessage(sprintf('Exporting met data to %s', file_name));
+            try
+                fid = fopen(file_name, 'w');
+                str = ['     3.03           METEOROLOGICAL DATA                     RINEX VERSION / TYPE', 10 ...
+                    'EXPORTED MET FILE FROM METEO_DATA MATLAB CLASS              COMMENT', 10];
+                if ~isempty(this.marker_name)
+                    str = sprintf(['%s%s%' num2str(59-numel(this.marker_name)) 's MARKER_NAME\n'], str, this.marker_name, '');
+                end
+                
+                line = sprintf('%6d', this.n_type);
+                for t = 1 : this.n_type
+                    line = sprintf('%s%6s', line, this.DATA_TYPE(this.type(t), :));
+                end
+                str = sprintf(['%s%s%' num2str(60 - (this.n_type + 1) * 6) 's# / TYPES OF OBSERV\n'], str, line, '');
+                str = sprintf('%s%14.4f%14.4f%14.4f%14.4f PR SENSOR POS XYZ/H\n', str, this.xyz, this.h_ortho);
+                str = [str '                                                            END OF HEADER' 10];
+                fwrite(fid, str);
+                epochs = this.time.toString(' yyyy mm dd HH MM SS ')';
+                str = [epochs; reshape(sprintf('%7.1f', this.data'), 7 * size(this.data,2), size(this.data,1)); 10 * ones(1, size(this.data,1))];
+                fwrite(fid, str);
+                fclose(fid);
+            catch ex
+                this.logger.addError(sprintf('Export failed - %s', ex.message));
+            end
+        end
+        
+        function str = toString(this, str)
+            % Display the loaded metereological data
+            % SYNTAX: this.toString(str)
+
+            if (nargin == 1)
+                str = '';
+            end
+            
+            str = [str '---- METEOROLOGICAL DATA -------------------------------------------------' 10 10];
+            if ~isempty(this.marker_name)
+                str = [str sprintf(' Station %s\n\n', this.marker_name)];
+            end
+            str = [str sprintf(' Data available from %s\n                  to %s\n\n', this.time.first.toString('dd mmm yyyy HH:MM:SS'), this.time.last.toString('dd mmm yyyy HH:MM:SS'))];
+            str = [str sprintf(' The following meteorological data are present:\n')];
+            type_ext = this.getTypeExt();
+            for t = 1 : this.n_type
+                str = [str sprintf('  - %s\n', type_ext{t})]; %#ok<AGROW>
+            end
+            str = [str 10];
+        end        
     end
     
     % =========================================================================
@@ -332,23 +479,12 @@ classdef Meteo_Data < handle
                 data = this.getComponent(3, time);                
             end
         end
+    end
+    
+    % =========================================================================
+    %  STATIC
+    % =========================================================================
+    methods (Static)
         
-        function str = toString(this, str)
-            % Display the loaded metereological data
-            % SYNTAX: this.toString(str)
-
-            if (nargin == 1)
-                str = '';
-            end
-            
-            str = [str '---- METEOROLOGICAL DATA -------------------------------------------------' 10 10];
-            str = [str sprintf(' Data available from %s\n                  to %s\n\n', this.time.first.toString('dd mmm yyyy HH:MM:SS'), this.time.last.toString('dd mmm yyyy HH:MM:SS'))];
-            str = [str sprintf(' The following meteorological data are present:\n')];
-            type_ext = this.getTypeExt();
-            for t = 1 : this.n_type
-                str = [str sprintf('  - %s\n', type_ext{t})]; %#ok<AGROW>
-            end
-            str = [str 10];
-        end
-    end        
+    end
 end

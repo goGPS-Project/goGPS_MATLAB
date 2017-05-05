@@ -58,7 +58,6 @@
 /data/station/MET/*
 !/data/station/MET/.gitignore
 !/data/station/MET/example.met
-!/data/station/MET/example_met.m
 !/data/station/SNX/
 /data/station/SNX/*
 !/data/station/SNX/.gitignore
