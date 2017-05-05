@@ -661,6 +661,18 @@ classdef GPS_Time < handle
                     empty = isempty(this.time_diff);
             end
         end
+        
+        function [nan_list] = isnan(this)
+            % return the logical NaN of the object
+            switch this.time_type
+                case 0 % I'm in MAT TIME
+                    nan_list = isnan(this.mat_time);
+                case 1 % I'm in UNIX TIME
+                    nan_list = isnan(this.unix_time);
+                case 2 % I'm in REF TIME
+                    nan_list = isnan(this.time_diff);
+            end
+        end
 
         function [mat_time]  = getMatlabTime(this)
             % get Matlab Time, precision up to the 0.1 milliseconds precision
@@ -741,9 +753,13 @@ classdef GPS_Time < handle
                 date_string = '';
             else
                 if (nargin == 2)
-                    date_string = datestr(this.getMatlabTime(), date_format);
+                    time = this.getMatlabTime();
+                    time(isnan(time)) = 0;
+                    date_string = datestr(time, date_format);
                 else
-                    date_string = datestr(this.getMatlabTime(), this.date_format);
+                    time = this.getMatlabTime();
+                    time(isnan(time)) = 0;
+                    date_string = datestr(time, this.date_format);
                 end
                 if (nargin == 1)
                     if this.isGPS()
@@ -773,21 +789,28 @@ classdef GPS_Time < handle
         
         function new_obj = getId(this,id)
             % Overloading of the operator index ()
-            switch this.time_type
+            
+            if islogical(id)
+                max_id = find(id == true, 1, 'last');
+            else
+                max_id = max(id);
+            end
+            
+            switch this.time_type                
                 case 0 % I'm in MAT TIME
-                    if (length(this.mat_time) >= id)
+                    if (length(this.mat_time) >= max_id)
                         new_obj = GPS_Time(this.mat_time(id), [], this.is_gps);
                     else
                         new_obj = GPS_Time();
                     end
                 case 1 % I'm in UNIX TIME
-                    if (length(this.unix_time) >= id)
+                    if (length(this.unix_time) >= max_id)
                         new_obj = GPS_Time(uint32(this.unix_time(id), this.unix_time_f(id), this.is_gps));
                     else
                         new_obj = GPS_Time();
                     end
                 case 2 % I'm in REF TIME
-                    if (length(this.time_diff) >= id)
+                    if (length(this.time_diff) >= max_id)
                         new_obj = GPS_Time(uint32(this.time_ref, this.time_diff(id), this.is_gps));
                     else
                         new_obj = GPS_Time();
