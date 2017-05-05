@@ -1562,6 +1562,18 @@ classdef IO_Settings < Settings_Interface
 
             this.checkStringField('obs_dir', false, true);
             this.checkCellStringField('obs_name', false);
+            
+            if numel(this.obs_name) > numel(this.obs_type)
+                this.logger.addError('I read more obs file names than obs types -> fixing setting all the other types to zeros\nplease review the applied solution!!!');
+                tmp = this.obs_type;
+                this.obs_type = zeros(numel(this.obs_name),1);
+                this.obs_type(1:numel(tmp)) = tmp(:);
+            end            
+            if numel(this.obs_name) < numel(this.obs_type)
+                this.logger.addError('I read less obs file names than obs types -> fixing cutting type array\nplease review the applied solution!!!');
+                this.obs_type = this.obs_type(1:numel(this.obs_name));
+            end
+            
             this.checkStringField('atx_dir', false);
             this.checkStringField('atx_name', false);
 
