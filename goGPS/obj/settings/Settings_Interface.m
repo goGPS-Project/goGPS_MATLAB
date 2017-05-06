@@ -157,7 +157,7 @@ classdef Settings_Interface < handle
                 check_existence = false;
             end
             
-            checked_val = checkString(this, field_name, field_val, default_val, empty_is_valid, check_existence);
+            checked_val = this.checkString(field_name, field_val, default_val, empty_is_valid, check_existence);
             if ~iscell(checked_val)
                 checked_val = {checked_val};
             end
@@ -175,7 +175,7 @@ classdef Settings_Interface < handle
             
             checked_val = default_val;
             default_val = field_val;
-            if iscell(field_val) % A cell of strings must contain at least one string
+            if ~isempty(field_val) && iscell(field_val) % A cell of strings must contain at least one string
                 field_val = field_val{1};
             end
             if (ischar(field_val) || (empty_is_valid && isempty(field_val))) && ((~isempty(field_val)) || empty_is_valid) && ((exist(field_val,'file') || exist(field_val,'dir')) || ~check_existence)

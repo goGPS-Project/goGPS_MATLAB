@@ -2735,10 +2735,13 @@ classdef goGUIclass < handle
         % Load the state of the gui from a settings object
         function importSettings(this, state)
             % Load the state of the gui from a settings object
-            % SYNTAX: this.importStateMatlab(<settings>)
+            % SYNTAX: this.importSettings(<settings>)
             if (nargin == 1)
                 state = this.state;
-            end            
+            end
+            
+            % Check the state validity
+            this.state.check();
             
             %   MODE
             % ===============================================================

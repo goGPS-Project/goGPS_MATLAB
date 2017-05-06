@@ -1136,164 +1136,170 @@ classdef IO_Settings < Settings_Interface
             if ~isempty(this.input_file_ini_path)
                 this.logger.addWarning('Legacy importing input ini files');
                 this.ext_ini = Ini_Manager(this.input_file_ini_path);
-                
-                fnp = File_Name_Processor();
-                
-                % Import Rinex from old ini file
-                dir_receiver = this.ext_ini.getData('Receivers', 'data_path');
-                if ~isempty(dir_receiver)
-                    this.obs_dir = dir_receiver;
-                end
-                dir_master = this.ext_ini.getData('Master', 'data_path');
-                if ~(isempty(dir_master)) && ~strcmp(dir_master, this.obs_dir)
-                    this.logger.addWarning('Importing legacy input file Master data_path seems different from Rover data_path - fix settings file manually');
-                end
-                
-                % import Receivers/SEID names
-                name_receiver = this.ext_ini.getData('Receivers', 'file_name');
-                this.obs_name = {};
-                if ~isempty(name_receiver)
-                    if iscell(name_receiver)
-                        this.obs_name = name_receiver;
-                        if this.isModeSEID()
-                            this.obs_type = this.REC_REFERENCE * ones(1, numel(name_receiver));
-                        else
-                            this.obs_type = this.REC_TARGET  * ones(1, numel(name_receiver));
-                        end
-                    else
-                        this.obs_name = {name_receiver};
-                        if this.isModeSEID()
-                            this.obs_type = this.REC_REFERENCE;
-                        else
-                            this.obs_type = this.REC_TARGET;
-                        end
-                    end
-                end
-                name_master = this.ext_ini.getData('Master', 'file_name');
-                if ~isempty(name_master)
-                    if iscell(name_master)
-                        this.obs_name = [this.obs_name name_master];
-                        if this.isModeSEID()
-                            this.obs_type = [this.obs_type this.REC_TARGET * ones(1, numel(name_master))];
-                        else
-                            this.obs_type = [this.obs_type this.REC_MASTER  * ones(1, numel(name_master))];
-                        end
-                    else
-                        this.obs_name = [this.obs_name {name_master}];
-                        if this.isModeSEID()
-                            this.obs_type = [this.obs_type this.REC_TARGET];
-                        else
-                            this.obs_type = [this.obs_type this.REC_MASTER];
-                        end
-                    end
-                end
-                
-                
-                % get the output prefix
-                full_out_prefix = fnp.checkPath([this.out_dir filesep this.out_prefix]);
-                % make sure to have the name of the file and the name of the
-                % output folder
-                [~, out_prefix, ~] = fileparts(full_out_prefix); %#ok<PROP>
-                % list all the files that match the prefix
-                file_list = dir([full_out_prefix '*']);
-                % if there are no files in the putput folder
-                if isempty(file_list)
-                    this.run_counter = this.RUN_COUNTER; % set the counter of the output == 0
+                if ~this.ext_ini.readFile()
+                    this.logger.addError(sprintf('Legacy import failed - "%s" can not be read!!!', this.ext_ini.getFileName()));
+                    this.input_file_ini_path = '';
                 else
-                    % put the cell of the file in a single string
-                    file_list = fnp.checkPath(strCell2Str({file_list(:).name},''));
-                    % parse with regexp for output numbers -> get the maximum
-                    this.run_counter = max(str2double(unique(regexp(file_list, [ '(?<=' out_prefix '_)[0-9]*(?=_)'], 'match')))) + 1; %#ok<PROP>
-                    this.run_counter = iif(isempty(this.run_counter), this.RUN_COUNTER, this.run_counter);
-                end
-                
-                % import receivers position
-                tmp_xyz_ant = zeros(3,this.getTargetCount());
-                ispresent = false;
-                for r = 1:this.getTargetCount()
-                    tmp = this.ext_ini.getData('Antennas RF',['XYZ_ant' num2str(r)]);
-                    if ~isempty(tmp)
-                        ispresent = true;
-                        tmp_xyz_ant(:, r) = tmp;
+                    
+                    fnp = File_Name_Processor();
+                    
+                    % Import Rinex from old ini file
+                    dir_receiver = this.ext_ini.getData('Receivers', 'data_path');
+                    if ~isempty(dir_receiver)
+                        this.obs_dir = dir_receiver;
                     end
+                    dir_master = this.ext_ini.getData('Master', 'data_path');
+                    if ~(isempty(dir_master)) && ~strcmp(dir_master, this.obs_dir)
+                        this.logger.addWarning('Importing legacy input file Master data_path seems different from Rover data_path - fix settings file manually');
+                    end
+                    
+                    % import Receivers/SEID names
+                    name_receiver = this.ext_ini.getData('Receivers', 'file_name');
+                    this.obs_name = {};
+                    if ~isempty(name_receiver)
+                        if iscell(name_receiver)
+                            this.obs_name = name_receiver;
+                            if this.isModeSEID()
+                                this.obs_type = this.REC_REFERENCE * ones(1, numel(name_receiver));
+                            else
+                                this.obs_type = this.REC_TARGET  * ones(1, numel(name_receiver));
+                            end
+                        else
+                            this.obs_name = {name_receiver};
+                            if this.isModeSEID()
+                                this.obs_type = this.REC_REFERENCE;
+                            else
+                                this.obs_type = this.REC_TARGET;
+                            end
+                        end
+                    end
+                    name_master = this.ext_ini.getData('Master', 'file_name');
+                    if ~isempty(name_master)
+                        if iscell(name_master)
+                            this.obs_name = [this.obs_name name_master];
+                            if this.isModeSEID()
+                                this.obs_type = [this.obs_type this.REC_TARGET * ones(1, numel(name_master))];
+                            else
+                                this.obs_type = [this.obs_type this.REC_MASTER  * ones(1, numel(name_master))];
+                            end
+                        else
+                            this.obs_name = [this.obs_name {name_master}];
+                            if this.isModeSEID()
+                                this.obs_type = [this.obs_type this.REC_TARGET];
+                            else
+                                this.obs_type = [this.obs_type this.REC_MASTER];
+                            end
+                        end
+                    end
+                    
+                    
+                    % get the output prefix
+                    full_out_prefix = fnp.checkPath([this.out_dir filesep this.out_prefix]);
+                    % make sure to have the name of the file and the name of the
+                    % output folder
+                    [~, out_prefix, ~] = fileparts(full_out_prefix); %#ok<PROP>
+                    % list all the files that match the prefix
+                    file_list = dir([full_out_prefix '*']);
+                    % if there are no files in the putput folder
+                    if isempty(file_list)
+                        this.run_counter = this.RUN_COUNTER; % set the counter of the output == 0
+                    else
+                        % put the cell of the file in a single string
+                        file_list = fnp.checkPath(strCell2Str({file_list(:).name},''));
+                        % parse with regexp for output numbers -> get the maximum
+                        this.run_counter = max(str2double(unique(regexp(file_list, [ '(?<=' out_prefix '_)[0-9]*(?=_)'], 'match')))) + 1; %#ok<PROP>
+                        this.run_counter = iif(isempty(this.run_counter), this.RUN_COUNTER, this.run_counter);
+                    end
+                    
+                    % import receivers position
+                    tmp_xyz_ant = zeros(3,this.getTargetCount());
+                    ispresent = false;
+                    for r = 1:this.getTargetCount()
+                        tmp = this.ext_ini.getData('Antennas RF',['XYZ_ant' num2str(r)]);
+                        if ~isempty(tmp)
+                            ispresent = true;
+                            tmp_xyz_ant(:, r) = tmp;
+                        end
+                    end
+                    if ispresent
+                        this.xyz_ant = tmp_xyz_ant;
+                    end
+                    tmp_ev_point = this.ext_ini.getData('Antennas RF','XYZ_ev_point');
+                    if ~isempty(tmp_ev_point)
+                        this.ev_point = tmp_ev_point;
+                    end
+                    
+                    % import file location and check for default folders
+                    dir_path = this.ext_ini.getData('STATIONS_file', 'data_path');
+                    file_path = this.ext_ini.getData('STATIONS_file', 'file_name');
+                    file_name = File_Name_Processor.getFullPath(dir_path, file_path);
+                    if ~isempty(file_name)
+                        [file_dir, name, ext] = fileparts(file_name);
+                        this.crd_dir = file_dir;
+                        this.crd_name = strcat(name, ext);
+                    end
+                    
+                    % import file location and check for default folders
+                    dir_path = this.ext_ini.getData('PCO_PCV_file', 'data_path');
+                    file_path = this.ext_ini.getData('PCO_PCV_file', 'file_name');
+                    file_name = File_Name_Processor.getFullPath(dir_path, file_path);
+                    if ~isempty(file_name)
+                        [file_dir, name, ext] = fileparts(file_name);
+                        this.atx_dir = fnp.checkPath(strcat(file_dir, filesep));
+                        this.atx_name = fnp.checkPath(strcat(name, ext));
+                    end
+                    
+                    % import file location and check for default folders
+                    dir_path = this.ext_ini.getData('OCEAN_LOADING_file', 'data_path');
+                    file_path = this.ext_ini.getData('OCEAN_LOADING_file', 'file_name');
+                    file_name = File_Name_Processor.getFullPath(dir_path, file_path);
+                    if ~isempty(file_name)
+                        [file_dir, name, ext] = fileparts(file_name);
+                        this.ocean_dir = file_dir;
+                        this.ocean_name = strcat(name, ext);
+                    end
+                    
+                    % import file location and check for default folders
+                    dir_path = this.ext_ini.getData('METEOROLOGICAL_file', 'data_path');
+                    file_path = this.ext_ini.getData('METEOROLOGICAL_file', 'file_name');
+                    file_name = File_Name_Processor.getFullPath(dir_path, file_path);
+                    if ~isempty(file_name)
+                        [file_dir, name, ext] = fileparts(this.checkMetPath(file_name));
+                        this.met_dir = file_dir;
+                        this.met_name = strcat(name, ext);
+                    end
+                    
+                    % import DTM folders
+                    dir_path = fnp.checkPath(this.ext_ini.getData('DTM','data_path'));
+                    if ~isempty(dir_path)
+                        this.dtm_dir = dir_path;
+                    end
+                    
+                    % import reference folder
+                    dir_path = this.ext_ini.getData('RefPath', 'data_path');
+                    file_path = this.ext_ini.getData('RefPath', 'file_name');
+                    file_name = File_Name_Processor.getFullPath(dir_path, file_path);
+                    if ~isempty(dir_path)
+                        this.ref_graph_file = fnp.checkPath(file_name);
+                    end
+                    
+                    % import file location for navigational files
+                    nav_path = this.ext_ini.getData('Navigational', 'data_path');
+                    if ~isempty(nav_path)
+                        this.eph_dir = nav_path;
+                        this.clk_dir = nav_path;
+                    end
+                    nav_name = this.ext_ini.getData('Navigational', 'file_name');
+                    if ~isempty(nav_name)
+                        this.eph_name = nav_name;
+                        this.clk_name = nav_name;
+                    end
+                    this.input_file_ini_path = '';
+                    this.eph_full_name = '';
+                    this.clk_full_name = '';
+                    this.check();
+                    this.updateObsFileName();
                 end
-                if ispresent
-                    this.xyz_ant = tmp_xyz_ant;
-                end
-                tmp_ev_point = this.ext_ini.getData('Antennas RF','XYZ_ev_point');
-                if ~isempty(tmp_ev_point)
-                    this.ev_point = tmp_ev_point;
-                end
-                
-                % import file location and check for default folders
-                dir_path = this.ext_ini.getData('STATIONS_file', 'data_path');
-                file_path = this.ext_ini.getData('STATIONS_file', 'file_name');
-                file_name = File_Name_Processor.getFullPath(dir_path, file_path);
-                if ~isempty(file_name)
-                    [file_dir, name, ext] = fileparts(file_name);
-                    this.crd_dir = file_dir;                    
-                    this.crd_name = strcat(name, ext);
-                end
-                
-                % import file location and check for default folders
-                dir_path = this.ext_ini.getData('PCO_PCV_file', 'data_path');
-                file_path = this.ext_ini.getData('PCO_PCV_file', 'file_name');
-                file_name = File_Name_Processor.getFullPath(dir_path, file_path);
-                if ~isempty(file_name)
-                    [file_dir, name, ext] = fileparts(file_name);
-                    this.atx_dir = fnp.checkPath(strcat(file_dir, filesep));
-                    this.atx_name = fnp.checkPath(strcat(name, ext));
-                end
-                
-                % import file location and check for default folders
-                dir_path = this.ext_ini.getData('OCEAN_LOADING_file', 'data_path');
-                file_path = this.ext_ini.getData('OCEAN_LOADING_file', 'file_name');
-                file_name = File_Name_Processor.getFullPath(dir_path, file_path);
-                if ~isempty(file_name)
-                    [file_dir, name, ext] = fileparts(file_name);
-                    this.ocean_dir = file_dir;                    
-                    this.ocean_name = strcat(name, ext);
-                end
-                
-                % import file location and check for default folders
-                dir_path = this.ext_ini.getData('METEOROLOGICAL_file', 'data_path');
-                file_path = this.ext_ini.getData('METEOROLOGICAL_file', 'file_name');
-                file_name = File_Name_Processor.getFullPath(dir_path, file_path);
-                if ~isempty(file_name)
-                    [file_dir, name, ext] = fileparts(this.checkMetPath(file_name));
-                    this.met_dir = file_dir;                    
-                    this.met_name = strcat(name, ext);
-                end
-                
-                % import DTM folders
-                dir_path = fnp.checkPath(this.ext_ini.getData('DTM','data_path'));
-                if ~isempty(dir_path)
-                    this.dtm_dir = dir_path;
-                end
-                
-                % import reference folder
-                dir_path = this.ext_ini.getData('RefPath', 'data_path');
-                file_path = this.ext_ini.getData('RefPath', 'file_name');
-                file_name = File_Name_Processor.getFullPath(dir_path, file_path);
-                if ~isempty(dir_path)
-                    this.ref_graph_file = fnp.checkPath(file_name);
-                end
-                
-                % import file location for navigational files
-                nav_path = this.ext_ini.getData('Navigational', 'data_path');
-                if ~isempty(nav_path)
-                    this.eph_dir = nav_path;
-                    this.clk_dir = nav_path;
-                end
-                nav_name = this.ext_ini.getData('Navigational', 'file_name');
-                if ~isempty(nav_name)
-                    this.eph_name = nav_name;
-                    this.clk_name = nav_name;
-                end
-                this.input_file_ini_path = '';
-                this.eph_full_name = '';
-                this.clk_full_name = '';
-                this.updateObsFileName();
             end
         end
         
@@ -1334,7 +1340,7 @@ classdef IO_Settings < Settings_Interface
             this.cur_ini = [path_str filesep name '.ini'];
             path_parts = strsplit(path_str,filesep);
             if numel(path_parts) > 3
-                this.prj_home = fnp.checkPath(path_parts{1:end-1}, filesep);
+                this.prj_home = fnp.checkPath(fullfile(path_parts{1:end-1}, filesep));
                 this.prj_name = path_parts{end-1};
                 this.logger.addMessage('Trying to guess project name / home / ini');
                 this.logger.addMessage(sprintf(' name: %s', this.prj_name));

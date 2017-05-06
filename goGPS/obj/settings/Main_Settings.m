@@ -1299,7 +1299,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
         function postImportInit(this)
             % Operations to run after the import of new parameters
             % SYNTAX: this.postImportInit
-            this.updateExternals();
+            this.check(); % check after import
             this.init_dtm();
         end
     end
@@ -1340,17 +1340,21 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             end
             this.setFilePath(file_path);
             this.importIniFile@Settings_Interface(file_path);
+            this.updateExternals();
+            this.postImportInit();            
         end
         
         function importLegacyFile(this, file_path)
-            % Import from an INI file the content of the Settings object
-            % SYNTAX: this.importIniFile(file_path);
+            % Import from an old mat settings file the content of the Settings object
+            % SYNTAX: this.importLegacyFile(file_path);
             try
                 load(file_path, 'state');
                 this.legacyImport(state);
             catch ex
                 this.logger.addError(sprintf('Failed to load state variable from legacy ".mat" file - %s', ex.message))
             end
+            this.updateExternals();
+            this.postImportInit();            
         end        
     end
 

@@ -22,7 +22,7 @@ function varargout = gui_edit_INI(varargin)
 
 % Edit the above text to modify the response to help gui_edit_INI
 
-% Last Modified by GUIDE v2.5 11-Apr-2017 16:50:39
+% Last Modified by GUIDE v2.5 06-May-2017 12:48:51
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___ 
@@ -335,4 +335,3 @@ function bAccept_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 global goGUI
     goGUI.acceptIniChanges();
-

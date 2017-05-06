@@ -224,16 +224,16 @@ classdef Ini_Manager < handle
         end
         
         % Read File -------------------------------------------------------
-        function errStatus = readFile(this)
+        function status = readFile(this)
             % Force reading of the File
-            errStatus = false;            
+            status = true;            
             % If the object already contains data - clean it
             if (this.getReadStatus())
                 this.raw_data = {};
             end
             if ~exist(this.getFileName(),'file')
-                this.logger.addError('INI file name not set');                
-                errStatus = true;
+                this.logger.addError(sprintf('INI reading of file "%s" failed', this.getFileName()))
+                status = false;
             else
                 this.fid = fopen(this.getFileName(), this.getRW());
                 
@@ -262,7 +262,7 @@ classdef Ini_Manager < handle
             % Force reading of the File
             errStatus = false;            
             if isempty(this.getFileName())
-                this.logger.addError('INI file name not set');
+                this.logger.addError(sprintf('INI writing  of file "%s" failed', this.getFileName()));
                 errStatus = true;
             else                
                 if (this.fid ~= -1)   % If file access is ok                    
@@ -1032,7 +1032,7 @@ classdef Ini_Manager < handle
             else % generic converter (may not work properly)
                 toString = @(var) strtrim(regexprep(evalc(['disp(var)']), '\n', ''));
                 if iscell(value)
-                    if ischar(value{1})
+                    if ~isempty(value) && ischar(value{1})
                         cell_str{numel(cell_str) + 1} = [variable_name ' = [' Ini_Manager.strCell2Str(value) ']'];
                     else
                         cell_str{numel(cell_str) + 1} = [variable_name ' = [' toString(value) ']'];
