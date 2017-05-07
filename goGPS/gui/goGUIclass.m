@@ -65,7 +65,7 @@ classdef goGUIclass < handle
     properties (GetAccess = 'private', SetAccess = 'private')
 
     %  HANDLERS
-    % =========================================================================
+    % ======================================================================
         
         w_bar = [];                    % waitbar handle
         logger = Logger.getInstance(); % Handler to the logger object
@@ -77,7 +77,7 @@ classdef goGUIclass < handle
         state = Go_State.getCurrentSettings(); % Object that will contain all the settings for goGPS
         
     %  INTERFACE STATUS
-    % =========================================================================
+    % ======================================================================
         
         curState = [];      % This array [n x 1] contains the current status of abilitation of each element of the interface
         newState = [];      % This array [n x 1] contains the future status of abilitation of each element of the interface
@@ -94,12 +94,9 @@ classdef goGUIclass < handle
         ok_go = false;      % only when go is pressed everything is ok!
         
     %  INTERFACE STATUS - PATH
-    % =========================================================================        
+    % ======================================================================
     %  Deprecate, everything should be moved into config.ini
     
-        intSettingsDir = '../data/old/settings/'; % Settings folder of goGPS, it contains default settings files
-        settingsDir = '../data/old/settings/';    % Settings folder of goGPS, it contains all the other settings files
-        workingDir = '../data/';                        % Working folder of goGPS, it contains data files/folders
         defaultINIKeywordsFile = 'goGPS_iniDefaultKeywords.ini'; % File containing hint parameters for building an ini files
         
     %  POP UP MENUS
@@ -216,7 +213,7 @@ classdef goGUIclass < handle
     % functions to be used to modify the GUI properties    
     methods
         %   CREATOR / DESTRUCTOR
-        % =================================================================
+        % ==================================================================
         
         % Creator (Brahma)
         function this = goGUIclass(handles)            
@@ -240,7 +237,7 @@ classdef goGUIclass < handle
             this.goh = handles;  % Save the handle of the figure
             
             % Init logo
-            [logo, map, transparency] = imread(this.state.getLogo());
+            [logo, transparency] = Core.getLogo();
             image(logo, 'AlphaData', transparency);
             axis off;
             
@@ -580,32 +577,7 @@ classdef goGUIclass < handle
             end
 
         end
-        
-        % Get working directory
-        function wdir = getWorkingDir(this)
-            % Get working directory
-            wdir = this.workingDir;
-            if isempty(wdir)
-                wdir = './';
-            end
-            if wdir == 0
-                wdir = './';
-            end
-            wdir = checkPath(wdir);
-        end
-        
-        % Get settings directory
-        function sdir = getSettingsDir(this)
-            % Get settings directory
-            sdir = this.intSettingsDir;
-            if isempty(sdir)
-                sdir = './';
-            end
-            if sdir == 0
-                sdir = './';
-            end
-            sdir = checkPath(sdir);
-        end
+                
     end
     
     %   INTERNAL OBJ STRUCTURE    < = >    GUI
@@ -1482,19 +1454,7 @@ classdef goGUIclass < handle
             % Create the password field
             this.initPasswordField('password');
             drawnow;
-            
-            % If the working folder does not exist
-            if isempty(dir(this.getSettingsDir()))
-                waitfor(msgbox('WARNING: The folder containing the settings is not in the working directory, please chose settings directory!'));
-                dname = uigetdir('../','Choose the directory that contains goGPS settings');
-                if (dname ~= 0)
-                    this.intSettingsDir = [dname '/'];
-                    if isempty(dir(this.getWorkingDir()))
-                        this.workingDir = [this.getSettingsDir() '../'];
-                    end
-                end
-            end
-            
+                        
             this.w_bar.goMsg('Loading GUI manager object...');
             this.w_bar.titleUpdate('Import Settings');
             
@@ -2552,7 +2512,7 @@ classdef goGUIclass < handle
             if exist([config_dir filesep 'config'], 'dir')
                 config_dir = [config_dir filesep 'config'];
             else
-                config_dir = this.getSettingsDir();
+                config_dir = ['.' filesep];
             end
             [file_name, pathname] = uigetfile( ...
                 {'*.ini;','INI configuration file (*.ini)'; ...
@@ -2565,67 +2525,12 @@ classdef goGUIclass < handle
                 this.logger.addWarning('Settings have been updated');                
             end
             this.updateGUI();
-        end
-        
-        % Browse for rover file
-        function browseRoverObsFile(this)
-            % Browse for rover file
-            if this.isPostProc() && (this.getElVal(this.idUI.lProcType) == this.idCP_DD_MR)
-                % In multi receiver mode, I read from ini file
-                [file_name, pathname] = uigetfile( ...
-                    {'*.ini;','INI configuration file (*.ini)'; ...
-                    '*.*',  'All Files (*.*)'}, ...
-                    'Choose an INI configuration file',[this.getSettingsDir()]);                
-            else
-                [file_name, pathname] = uigetfile( ...
-                    {'*.obs;*.??o;*.??O','RINEX observation files (*.obs,*.??o,*.??O)';
-                    '*.obs','Observation files (*.obs)'; ...
-                    '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
-                    '*.*',  'All Files (*.*)'}, ...
-                    'Choose a RINEX observation file for the rover',[this.getWorkingDir() 'data_RINEX']);
-            end
-            if (file_name ~= 0)
-                this.setElVal(this.idUI.sRinRover, fullfile(pathname, file_name));
-            end
-            this.updateGUI();
-        end
-        
-        % Browse for a master file
-        function browseMasterObsFile(this)
-            % Browse for a master file
-            [file_name, pathname] = uigetfile( ...
-                {'*.obs;*.??o','RINEX observation files (*.obs,*.??o)';
-                '*.obs','Observation files (*.obs)'; ...
-                '*.??o','Observation files (*.??o)'; ...
-                '*.*',  'All Files (*.*)'}, ...
-                'Choose a RINEX observation file for the master',[this.getWorkingDir() 'data_RINEX']);
-            
-            if (file_name ~= 0)
-                this.setElVal(this.idUI.sRinMaster, fullfile(pathname, file_name));
-            end
-            this.updateGUI();
-        end
-        
-        % Browse for a navigation file
-        function browseNavigationFile(this)
-            % Browse for a navigation file
-            [file_name, pathname] = uigetfile( ...
-                {'*.nav;*.??n;*.??N','RINEX navigation files (*.nav,*.??n,*.??N)';
-                '*.nav','Navigation files (*.nav)'; ...
-                '*.??n;*.??N','Navigation files (*.??n,*.??N)'; ...
-                '*.*',  'All Files (*.*)'}, ...
-                'Choose a RINEX navigation file',[this.getWorkingDir() 'data_RINEX']);
-            
-            if (file_name ~= 0)
-                this.setElVal(this.idUI.sRinNav, fullfile(pathname, file_name));
-            end
-            this.updateGUI();
-        end               
-                
+        end        
+                        
         % Browse for a DTM folder
         function browseDtmDir(this)
             % Browse for a DTM folder
-            dname = uigetdir([this.getWorkingDir() 'dtm'],'Choose a directory containing DTM data');
+            dname = uigetdir(this.state.getDtmPath(),'Choose a directory containing DTM data');
             if (dname ~= 0)
                 this.setElVal(this.idUI.sDTM, dname);
             end
@@ -3365,12 +3270,7 @@ classdef goGUIclass < handle
             end
             
             if (ready)
-                % If the working folder does not exist
-                if isempty(dir(this.getSettingsDir()))
-                    msgbox('Non existent settings folder. It has beeen probably erased! It is not possible to save the last state.');
-                else
-                    this.exportStateMatlab(Main_Settings.LAST_SETTINGS);
-                end
+                this.exportStateMatlab(Main_Settings.LAST_SETTINGS);
                 uiresume(this.goh.main_panel);
             end
             
@@ -3446,34 +3346,7 @@ classdef goGUIclass < handle
             this.logger.addWarning('Settings have been updated');
             msgbox('Settings have been updated');
         end
-        
-        % Browse INI file => select a file to be edited
-        function browseINIEditInFile(this)
-            % Browse INI file => select a file to be edited
-            % In multi receiver mode, I read from ini file
-            
-            config_dir = this.state.prj_home;
-            if exist([config_dir filesep 'config'], 'dir')
-                config_dir = [config_dir filesep 'config'];
-            else
-                config_dir = this.getSettingsDir();
-            end
-            [file_name, pathname] = uigetfile( ...
-                {'*.ini;','INI configuration file (*.ini)'; ...
-                '*.*',  'All Files (*.*)'}, ...
-                'Choose an INI configuration file', config_dir);
-            if (file_name ~= 0)
-                this.state.setDeprecateIniPath(fullfile(pathname, file_name));
-                this.state.updateExternals();
-                this.logger.addWarning('Settings have been updated');
-                msgbox('Settings have been updated');
-                % Get the content of the ini file
-                
-                this.edtINI.jEdit.jINI.setText(strCell2Str(this.state.exportIO(), 10));
-                drawnow;         
-            end
-        end
-     
+             
         % Save INI
         function saveINI(this)
             % Save INI
@@ -3553,10 +3426,9 @@ classdef goGUIclass < handle
                     '*.??o;*.??O','Observation files (*.??o,*.??O)'; ...
                     '*.*',  'All Files (*.*)'}, ...
                     'MultiSelect', 'on', ...
-                    'Choose a RINEX observation file',[this.getWorkingDir() 'data_RINEX']);
+                    'Choose a RINEX observation file', [this.state.getRinexBaseDir() filesep 'RINEX']);
                 
             if ~isempty(file_name)
-                this.workingDir = [pathname];
                 str = sprintf('data_path = "%s"\n', pathname);
                 if iscell(file_name)
                     str = sprintf('nRec = %d\n%sfile_name = [', length(file_name), str);
@@ -3570,58 +3442,25 @@ classdef goGUIclass < handle
                 this.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
-        end
-        
-        % Browse for a navigation file
-        function browse4Nav(this)
-            % Browse for a navigation file
-            [file_name, pathname] = uigetfile( ...
-                {'*.nav;*.??n;*.??N','RINEX navigation files (*.nav,*.??n,*.??N)';
-                '*.nav','Navigation files (*.nav)'; ...
-                '*.??n;*.??N','Navigation files (*.??n,*.??N)'; ...
-                '*.*',  'All Files (*.*)'}, ...
-                'Choose a RINEX navigation file',[this.getWorkingDir() 'data_RINEX']);
-            
-            if (file_name ~= 0)
-                this.workingDir = [pathname];
-                str = sprintf('"%s"\n"%s"', pathname, file_name);
-                this.edtINI.jEdit.jBrowse.setText(str);
-                clipboard('copy', str);
-            end
-        end
+        end       
                 
         % Browse output foder
         function browse4Dir(this)
             % Browse output foder
-            dname = uigetdir(this.getWorkingDir(),'Choose a directory');
+            dname = uigetdir(this.state.getHomeDir(),'Choose a directory');
             if (dname ~= 0)
-                this.workingDir = [dname '../'];
                 str = sprintf('"%s"', dname);
                 this.edtINI.jEdit.jBrowse.setText(str);
                 clipboard('copy', str);
             end
         end
-        
-        % Browse for the path containing reference points for constrained solutions
-        function browse4Ref(this)
-            % Browse for the path containing reference points for constrained solutions
-            [file_name, pathname] = uigetfile('*.mat', 'Choose file containing reference path',this.getWorkingDir());
-            
-            if (file_name ~= 0)
-                this.workingDir = [pathname];
-                str = sprintf('"%s"\n"%s"', pathname, file_name);
-                this.edtINI.jEdit.jBrowse.setText(str);
-                clipboard('copy', str);
-            end
-            this.updateGUI();
-        end
-        
+                
         % Browse for a Generic File
         function browse4Gen(this)
             % Browse for a Generic File
             [file_name, pathname] = uigetfile( ...
                 {'*.*',  'All Files (*.*)'}, ...
-                'Choose a file',this.getWorkingDir());
+                'Choose a file', this.state.getRinexBaseDir());
             
             if (file_name ~= 0)
                 str = sprintf('"%s"\n"%s"', pathname, file_name);
