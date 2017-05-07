@@ -12,6 +12,10 @@ function goGPSgo(ini_settings_file, use_gui) %#ok<INUSD>
 %
 % EXAMPLE:
 %   goGPSgo('../data/project/default_PPP/config/settings.ini');
+% 
+% COMPILATION STRING:
+%   tic; mcc -d ./bin/ -m goGPSgo; toc;
+%
 
 %--- * --. --- --. .--. ... * ---------------------------------------------
 %               ___ ___ ___
@@ -41,15 +45,28 @@ function goGPSgo(ini_settings_file, use_gui) %#ok<INUSD>
 %--------------------------------------------------------------------------
 % 01100111 01101111 01000111 01010000 01010011
 %--------------------------------------------------------------------------
-    if nargin >= 1
-        ini_settings_file = checkPath(ini_settings_file);
+    
+    if nargin >= 1        
         if  ~exist(ini_settings_file,'file')
             clear ini_settings_file;
         end
     end
     if nargin < 2
-        use_gui = false; %#ok<NASGU>
+        if isdeployed
+            use_gui = true;
+       else
+            use_gui = false;
+        end
     end
+    
+    % Every parameters when the application is deployed are strings
+    if isdeployed
+        if ischar(use_gui)
+            use_gui = logical(str2double(use_gui));
+        end
+    end    
     goGPS
-
+    if ~use_gui
+        close all;
+    end
 end

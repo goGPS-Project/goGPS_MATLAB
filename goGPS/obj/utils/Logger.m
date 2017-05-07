@@ -61,6 +61,9 @@ classdef Logger < handle
         % Singleton superclass.
         function this = Logger()
             % Initialisation of the variables
+            if isdeployed
+                this.color_mode = false;
+            end
         end
     end
     

@@ -510,8 +510,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 ini_settings_file = this.LAST_SETTINGS;
             end
             
-            if exist(ini_settings_file, 'file')
-                this.logger.addStatusOk(sprintf('File "%s" found, settings imported!', ini_settings_file));
+            if (exist(ini_settings_file, 'file') == 2)
                 this.importIniFile(ini_settings_file);
             else
                 this.logger.addMessage('using default settings')
@@ -811,7 +810,7 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
             
             str = [str '---- DTM -----------------------------------------------------------------' 10 10];
             str = [str sprintf(' Use DTM:                                          %d\n', this.flag_dtm)];
-            str = [str sprintf(' Folder containing DTM data:                       %s\n', this.dtm_dir)];
+            str = [str sprintf(' Folder containing DTM data:                       %s\n', File_Name_Processor.getRelDirPath(this.dtm_dir, this.prj_home))];
             str = [str sprintf(' STD of DEM model [m]:                             %g\n', this.std_dtm)];
             str = [str sprintf(' Height of the antenna above ground [m]:           %g\n\n', this.antenna_h)];
             
@@ -1339,9 +1338,14 @@ classdef Main_Settings < Settings_Interface & IO_Settings & Mode_Settings
                 file_path = this.cur_ini;
             end
             this.setFilePath(file_path);
-            this.importIniFile@Settings_Interface(file_path);
-            this.updateExternals();
-            this.postImportInit();            
+            if (exist(file_path, 'file') == 2)
+                this.importIniFile@Settings_Interface(file_path);
+                this.updateExternals();
+                this.postImportInit();
+                this.logger.addStatusOk(sprintf('File "%s" found, settings imported!', file_path));
+            else
+                this.logger.addWarning(sprintf('File "%s" not found, settings not imported!', file_path));
+            end
         end
         
         function importLegacyFile(this, file_path)

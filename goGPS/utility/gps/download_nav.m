@@ -114,7 +114,7 @@ filename = [filename '.Z'];
 try
     mget(ftp_server,filename,down_dir);
     if (isunix())
-        system(['uncompress -f ' down_dir filename]);
+        system(['uncompress -f ' down_dir filesep filename]);
     else
         try
             [status, result] = system(['".\utility\thirdParty\7z1602-extra\7za.exe" -y x ' '"' down_dir filename '"' ' -o' '"' down_dir '"']); %#ok<ASGLU>

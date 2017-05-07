@@ -211,7 +211,7 @@ classdef FTP_Downloader < handle
                                         if compressed
                                             try
                                                 if (isunix())
-                                                    system(['uncompress -f ' local_dir file_name]);
+                                                    system(['uncompress -f ' local_dir filesep file_name]);
                                                     compressed = false;
                                                 else
                                                     try

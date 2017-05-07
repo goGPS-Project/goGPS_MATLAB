@@ -47,8 +47,8 @@ classdef IO_Settings < Settings_Interface
         
         % PROJECT                
         PRJ_NAME = 'Defauld DD';  % Name of the project
-        PRJ_HOME = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep]; % Location of the project <relative path from goGPS folder> 
-        CUR_INI = [IO_Settings.DEFAULT_DIR_IN 'project' filesep 'default_DD' filesep 'Config' filesep 'settings.ini']; % Location of the current ini file
+        PRJ_HOME = [fileparts(which('goGPS.m')) filesep '..' filesep 'data' filesep 'project' filesep 'default_DD' filesep]; % Location of the project <relative path from goGPS folder> 
+        CUR_INI = [IO_Settings.PRJ_HOME 'Config' filesep 'settings.ini']; % Location of the current ini file
         
         % DEPRECATE
         INPUT_FILE_INI_PATH = ''; % deprecate INI - it contains some additional setting (yet not imported in the new settings system)
@@ -60,7 +60,7 @@ classdef IO_Settings < Settings_Interface
         SSS_ID_START = '0';  % first session id (char of sss_id_list)
         SSS_ID_STOP = '0';   % last session id (char of sss_id_list)
         
-        OBS_DIR = '../data/project/default_DD/RINEX/' % 
+        OBS_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'RINEX'] 
         OBS_NAME = {'yamatogawa_master.obs' 'yamatogawa_rover.obs'} ;
         REC_TARGET = 0;
         REC_MASTER = 1;
@@ -117,7 +117,6 @@ classdef IO_Settings < Settings_Interface
         DTM_DIR = [IO_Settings.DEFAULT_DIR_IN 'reference' filesep 'DTM' filesep]; % Path to DTM folder containing DTM files
         % UI IMAGES
         IMG_DIR = [IO_Settings.DEFAULT_DIR_IN 'img' filesep];  % Path to images used by the interface
-        IMG_LOGO64 = [IO_Settings.IMG_DIR 'goGPS_logo_64.png'];     % Location of the goGPS logo 64x64
         OUT_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % Directory containing the output of the project
         OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
         RUN_COUNTER = 0;     % This parameter store the current run number
@@ -127,8 +126,8 @@ classdef IO_Settings < Settings_Interface
     
     properties (Constant, Access = 'protected')
         % id to string of out modes
-        DEFAULT_DIR_IN = ['..' filesep 'data' filesep];
-        DEFAULT_DIR_OUT = ['..' filesep 'data' filesep];  
+        DEFAULT_DIR_IN = ['..' filesep '..' filesep ];
+        DEFAULT_DIR_OUT = ['..' filesep '..' filesep];  
     end
     
     properties (Constant, Access = 'public')
@@ -285,10 +284,7 @@ classdef IO_Settings < Settings_Interface
 
         % Path to images used by the interface
         img_dir = IO_Settings.IMG_DIR;
-        
-        % Location of the goGPS logo 64x64
-        img_logo64 = IO_Settings.IMG_LOGO64;      
-        
+                
         %------------------------------------------------------------------
         % OUTPUT
         %------------------------------------------------------------------
@@ -317,7 +313,6 @@ classdef IO_Settings < Settings_Interface
         function this = IO_Settings()
             % Creator of IO_settings - verbosity level (true/false) can be set or ini file
             this.initLogger();
-            this.img_logo64 = [this.img_dir 'goGPS_logo_64.png'];
         end                
     end
     
@@ -337,7 +332,11 @@ classdef IO_Settings < Settings_Interface
             if isa(settings, 'Ini_Manager')
                 % PROJECT
                 this.prj_name   = fnp.checkPath(settings.getData('prj_name'));
-                this.prj_home   = fnp.checkPath(settings.getData('prj_home'));                
+                this.prj_home   = fnp.getFullDirPath(settings.getData('prj_home'), pwd);
+                if ~exist(this.prj_home, 'dir')
+                    this.logger.addWarning(sprintf('Project home "%s" does not exist\nusing prj_home = "%s"', this.prj_home, pwd));
+                    this.prj_home = pwd;
+                end
                 % COMPUTATION CENTERS
                 this.preferred_archive = fnp.checkPath(settings.getData('preferred_archive'));
                 this.preferred_gps = fnp.checkPath(settings.getData('preferred_gps'));
@@ -360,10 +359,10 @@ classdef IO_Settings < Settings_Interface
                 this.sss_id_list = settings.getData('sss_id_list');
                 this.sss_id_start = settings.getData('sss_id_start');
                 this.sss_id_stop = settings.getData('sss_id_stop');                
-                this.obs_dir = fnp.checkPath(settings.getData('obs_dir'));
+                this.obs_dir = fnp.getFullDirPath(settings.getData('obs_dir'), this.prj_home, pwd);
                 this.obs_name = fnp.checkPath(settings.getData('obs_name'));
                 this.obs_type = settings.getData('obs_type');
-                this.atx_dir    = fnp.checkPath(settings.getData('atx_dir'));
+                this.atx_dir    = fnp.getFullDirPath(settings.getData('atx_dir'), this.prj_home, pwd);
                 this.atx_name   = fnp.checkPath(settings.getData('atx_name'));
                 % GEOMETRY               
                 tmp_xyz_ant = zeros(3, this.getTargetCount());
@@ -377,30 +376,33 @@ classdef IO_Settings < Settings_Interface
                 clear tmp tmp_xyz_ant;
                 this.xyz_ev_point = settings.getData('xyz_ev_point');
                 % SATELLITES
-                this.eph_dir    = fnp.checkPath(settings.getData('eph_dir'));
+                this.eph_dir    = fnp.getFullDirPath(settings.getData('eph_dir'), this.prj_home, pwd);
                 this.eph_name   = fnp.checkPath(settings.getData('eph_name'));
-                this.clk_dir    = fnp.checkPath(settings.getData('clk_dir'));
+                this.clk_dir    = fnp.getFullDirPath(settings.getData('clk_dir'), this.prj_home, pwd);
                 this.clk_name   = fnp.checkPath(settings.getData('clk_name'));
-                this.crx_dir    = fnp.checkPath(settings.getData('crx_dir'));
-                this.dcb_dir    = fnp.checkPath(settings.getData('dcb_dir'));
-                this.ems_dir    = fnp.checkPath(settings.getData('ems_dir'));
+                this.crx_dir    = fnp.getFullDirPath(settings.getData('crx_dir'), this.prj_home, pwd);
+                this.dcb_dir    = fnp.getFullDirPath(settings.getData('dcb_dir'), this.prj_home, pwd);
+                this.ems_dir    = fnp.getFullDirPath(settings.getData('ems_dir'), this.prj_home, pwd);
                 % STATIONS
-                this.crd_dir    = fnp.checkPath(settings.getData('crd_dir'));
+                this.crd_dir    = fnp.getFullDirPath(settings.getData('crd_dir'), this.prj_home, pwd);
                 this.crd_name    = fnp.checkPath(settings.getData('crd_name'));
-                this.met_dir    = fnp.checkPath(settings.getData('met_dir'));
+                this.met_dir    = fnp.getFullDirPath(settings.getData('met_dir'), this.prj_home, pwd);
                 this.met_name    = fnp.checkPath(settings.getData('met_name'));
-                this.ocean_dir  = fnp.checkPath(settings.getData('ocean_dir'));
+                this.ocean_dir  = fnp.getFullDirPath(settings.getData('ocean_dir'), this.prj_home, pwd);
                 this.ocean_name  = fnp.checkPath(settings.getData('ocean_name'));
                 % REFERENCE
                 this.ref_graph_file  = fnp.checkPath(settings.getData('ref_graph_file'));
-                this.geoid_dir  = fnp.checkPath(settings.getData('geoid_dir'));
+                this.geoid_dir  = fnp.getFullDirPath(settings.getData('geoid_dir'), this.prj_home, pwd);
                 this.geoid_name = fnp.checkPath(settings.getData('geoid_name'));
-                this.dtm_dir    = fnp.checkPath(settings.getData('dtm_dir'));
+                this.dtm_dir    = fnp.getFullDirPath(settings.getData('dtm_dir'), this.prj_home, pwd);
                 % UI
-                this.img_dir    = fnp.checkPath(settings.getData('img_dir'));
-                this.img_logo64 = fnp.checkPath(settings.getData('img_logo64'));
+                this.img_dir    = fnp.getFullDirPath(settings.getData('img_dir'), this.prj_home, pwd);
                 % OUTPUT
-                this.out_dir = fnp.checkPath(settings.getData('out_dir'));
+                this.out_dir = fnp.getFullDirPath(settings.getData('out_dir'), this.prj_home, pwd);
+                if ~exist(this.out_dir, 'dir')
+                    % fallback of fallback
+                    this.out_dir = fnp.getFullDirPath(settings.getData('out_dir'), this.prj_home);
+                end
                 this.out_prefix = fnp.checkPath(settings.getData('out_prefix'));
                 this.run_counter = settings.getData('run_counter');
             else
@@ -460,7 +462,6 @@ classdef IO_Settings < Settings_Interface
                 this.dtm_dir    = settings.dtm_dir;
                 % UI
                 this.img_dir    = settings.img_dir;
-                this.img_logo64 = settings.img_logo64;
                 % OUTPUT
                 this.out_dir = settings.out_dir;
                 this.out_prefix = settings.out_prefix;
@@ -478,9 +479,11 @@ classdef IO_Settings < Settings_Interface
             if (nargin == 1)
                 str = '';
             end            
+            fnp = File_Name_Processor;
+            
             str = [str '---- PROJECT --------------------------------------------------------------' 10 10];
             str = [str sprintf(' Project name:                                     %s\n', this.prj_name)];
-            str = [str sprintf(' Project home:                                     %s\n', this.prj_home)];
+            str = [str sprintf(' Project home:                                     %s\n', fnp.getRelDirPath(this.prj_home, pwd))];
             str = [str sprintf(' Path to the current project ini file:             %s\n\n', this.cur_ini)];
             str = [str '---- DEPRECATE ------------------------------------------------------------' 10 10];
             str = [str sprintf(' Deprecate ini (of additional parameters):         %s\n\n', this.input_file_ini_path)];            
@@ -493,7 +496,7 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf(' Character sequence to be used for the sessions    %s \n', this.sss_id_list)];
             str = [str sprintf(' First session char                                %c \n', this.sss_id_start)];
             str = [str sprintf(' Last session char                                 %c \n\n', this.sss_id_start)];            
-            str = [str sprintf(' Directory of the observation files                %s \n', this.obs_dir)];
+            str = [str sprintf(' Directory of the observation files                %s \n', fnp.getRelDirPath(this.obs_dir, this.prj_home))];
             str = [str sprintf(' Name of the observation files                     %s \n', strCell2Str(this.obs_name, ', '))];
             str = [str sprintf(' Array of observation types                        %s \n\n', strCell2Str(this.OBS_TYPE_LIST(this.obs_type + 1), ', '))];            
             str = [str sprintf(' Directory of antennas (atx) files                 %s \n', this.atx_dir)];
@@ -522,30 +525,29 @@ classdef IO_Settings < Settings_Interface
             str = [str sprintf('  erp name:                                        %s\n', this.custom_name_erp)];
             str = [str sprintf('  clk name:                                        %s\n\n', this.custom_name_clk)];
             str = [str '---- INPUT FOLDERS: SATELLITE ---------------------------------------------' 10 10];
-            str = [str sprintf(' Directory of Ephemeris files:                     %s\n', this.eph_dir)];
+            str = [str sprintf(' Directory of Ephemeris files:                     %s\n', fnp.getRelDirPath(this.eph_dir, this.prj_home))];
             str = [str sprintf(' Name of Ephemeris files:                          %s\n', this.eph_name)];
-            str = [str sprintf(' Directory of Satellite clock offsets:             %s\n', this.clk_dir)];
+            str = [str sprintf(' Directory of Satellite clock offsets:             %s\n', fnp.getRelDirPath(this.clk_dir, this.prj_home))];
             str = [str sprintf(' Name of Satellite clock offsets:                  %s\n', this.clk_name)];
-            str = [str sprintf(' Directory of CRX (satellite problems):            %s\n', this.crx_dir)];
-            str = [str sprintf(' Directory of DCB (Differential Code Biases):      %s\n', this.dcb_dir)];
-            str = [str sprintf(' Directory of EMS (EGNOS Message Server):          %s\n\n', this.ems_dir)];
+            str = [str sprintf(' Directory of CRX (satellite problems):            %s\n', fnp.getRelDirPath(this.crx_dir, this.prj_home))];
+            str = [str sprintf(' Directory of DCB (Differential Code Biases):      %s\n', fnp.getRelDirPath(this.dcb_dir, this.prj_home))];
+            str = [str sprintf(' Directory of EMS (EGNOS Message Server):          %s\n\n', fnp.getRelDirPath(this.ems_dir, this.prj_home))];
             str = [str '---- INPUT FOLDERS: STATIONS ----------------------------------------------' 10 10];
-            str = [str sprintf(' Directory of coordinates file:                    %s\n', this.crd_dir)];
+            str = [str sprintf(' Directory of coordinates file:                    %s\n', fnp.getRelDirPath(this.crd_dir, this.prj_home))];
             str = [str sprintf(' Name of coordinate (CRD) file:                    %s\n', this.crd_name)];
-            str = [str sprintf(' Directory of meteorological data:                 %s\n', this.met_dir)];
+            str = [str sprintf(' Directory of meteorological data:                 %s\n', fnp.getRelDirPath(this.met_dir, this.prj_home))];
             str = [str sprintf(' Name of meteorological (met) files:               %s\n', strCell2Str(this.met_name))];
-            str = [str sprintf(' Directory of ocean loading files:                 %s\n', this.ocean_dir)];
+            str = [str sprintf(' Directory of ocean loading files:                 %s\n', fnp.getRelDirPath(this.ocean_dir, this.prj_home))];
             str = [str sprintf(' Name of ocean loading file:                       %s\n\n', this.ocean_name)];
             str = [str '---- INPUT FOLDERS: REFERENCE ---------------------------------------------' 10 10];
             str = [str sprintf(' File contraining the reference graph:             %s\n', this.ref_graph_file)];
-            str = [str sprintf(' Directory of Geoid models:                        %s\n', this.geoid_dir)];
+            str = [str sprintf(' Directory of Geoid models:                        %s\n', fnp.getRelDirPath(this.geoid_dir, this.prj_home))];
             str = [str sprintf(' Name of the Geoid map file:                       %s\n', this.geoid_name)];
-            str = [str sprintf(' Directory of DTM data:                            %s\n\n', this.dtm_dir)];
+            str = [str sprintf(' Directory of DTM data:                            %s\n\n', fnp.getRelDirPath(this.dtm_dir, this.prj_home))];
             str = [str '---- INPUT FOLDERS: UI ----------------------------------------------------' 10 10];
-            str = [str sprintf(' Directory of images for UI:                       %s\n', this.img_dir)];
-            str = [str sprintf('  - Image of the goGPS logo:                       %s\n\n', this.img_logo64)];
+            str = [str sprintf(' Directory of images for UI:                       %s\n\n', fnp.getRelDirPath(this.img_dir, this.prj_home))];
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
-            str = [str sprintf(' Directory containing the output of the project:   %s\n', this.out_dir)];
+            str = [str sprintf(' Directory containing the output of the project:   %s\n', fnp.getRelDirPath(this.out_dir, this.prj_home))];
             str = [str sprintf(' Prefix of each run:                               %s\n', this.out_prefix)];
             str = [str sprintf(' Run counter:                                      %d\n\n', this.run_counter)];
         end
@@ -560,12 +562,15 @@ classdef IO_Settings < Settings_Interface
             if (nargin == 1)
                 str_cell = {};
             end
+            
+            fnp = File_Name_Processor;
+            
             % PROJECT
             str_cell = Ini_Manager.toIniStringSection('PROJECT', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of the project', str_cell);
             str_cell = Ini_Manager.toIniString('prj_name', this.prj_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Home of the project', str_cell);
-            str_cell = Ini_Manager.toIniString('prj_home', this.prj_home, str_cell);
+            str_cell = Ini_Manager.toIniString('prj_home', fnp.getRelDirPath(this.prj_home, pwd), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % DEPRECATE
             str_cell = Ini_Manager.toIniStringSection('DEPRECATE', str_cell);
@@ -591,14 +596,14 @@ classdef IO_Settings < Settings_Interface
             str_cell = File_Name_Processor.toIniStringComment(str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory containing the data (static)', str_cell);
-            str_cell = Ini_Manager.toIniString('obs_dir', this.obs_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('obs_dir', fnp.getRelDirPath(this.obs_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('File name of the receivers (can contain special keywords)', str_cell);
             str_cell = Ini_Manager.toIniString('obs_name', this.obs_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment(sprintf('Array of observations type (%s)', strCell2EnumStr(this.OBS_TYPE_LIST,', ')), str_cell);
             str_cell = Ini_Manager.toIniString('obs_type', this.obs_type, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of PCO - PCV antex (ATX) files', str_cell);
-            str_cell = Ini_Manager.toIniString('atx_dir', this.atx_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('atx_dir', fnp.getRelDirPath(this.atx_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('PCO - PCV antex (ATX) file', str_cell);
             str_cell = Ini_Manager.toIniString('atx_name', this.atx_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -654,38 +659,38 @@ classdef IO_Settings < Settings_Interface
             % SATELLITES
             str_cell = Ini_Manager.toIniStringSection('INPUT_SATELLITE', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of Ephemeris files', str_cell);
-            str_cell = Ini_Manager.toIniString('eph_dir', this.eph_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('eph_dir', fnp.getRelDirPath(this.eph_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of Ephemeris files - special keywords can be used', str_cell);
             str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
             str_cell = Ini_Manager.toIniString('eph_name', this.eph_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of clock offset files', str_cell);
-            str_cell = Ini_Manager.toIniString('clk_dir', this.clk_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('clk_dir', fnp.getRelDirPath(this.clk_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('If not found, goGPS will try to download them following COMPUTATION_CENTER section', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of clock offset files - special keywords can be used', str_cell);
             str_cell = Ini_Manager.toIniString('clk_name', this.clk_name, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of CRX files (containing satellite problems)', str_cell);
-            str_cell = Ini_Manager.toIniString('crx_dir', this.crx_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('crx_dir', fnp.getRelDirPath(this.crx_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of DCB files (Differential Code Biases)', str_cell);
-            str_cell = Ini_Manager.toIniString('dcb_dir', this.dcb_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('dcb_dir', fnp.getRelDirPath(this.dcb_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of EMS files (EGNOS Message Server).', str_cell);
-            str_cell = Ini_Manager.toIniString('ems_dir', this.ems_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('ems_dir', fnp.getRelDirPath(this.ems_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % STATIONS
             str_cell = Ini_Manager.toIniStringSection('INPUT_STATIONS', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of coordinates files', str_cell);
-            str_cell = Ini_Manager.toIniString('crd_dir', this.crd_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('crd_dir', fnp.getRelDirPath(this.crd_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of coordinates (CRD) file', str_cell);
             str_cell = Ini_Manager.toIniString('crd_name', this.crd_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of metereological data', str_cell);
-            str_cell = Ini_Manager.toIniString('met_dir', this.met_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('met_dir', fnp.getRelDirPath(this.met_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Meteorological file', str_cell);
             str_cell = Ini_Manager.toIniString('met_name', this.met_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of ocean loading files', str_cell);
-            str_cell = Ini_Manager.toIniString('ocean_dir', this.ocean_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('ocean_dir', fnp.getRelDirPath(this.ocean_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Name of ocean loading file', str_cell);
             str_cell = Ini_Manager.toIniString('ocean_name', this.ocean_name, str_cell);           
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
@@ -694,24 +699,23 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringComment('File containing a graph of path constraints', str_cell);
             str_cell = Ini_Manager.toIniString('ref_graph_file', this.ref_graph_file, str_cell);            
             str_cell = Ini_Manager.toIniStringComment('Directory of Geoid files', str_cell);
-            str_cell = Ini_Manager.toIniString('geoid_dir', this.geoid_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('geoid_dir', fnp.getRelDirPath(this.geoid_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Filename in Geoid dir containing the map of ondulation of the geoid', str_cell);
             str_cell = Ini_Manager.toIniString('geoid_name', this.geoid_name, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of DTM data', str_cell);
-            str_cell = Ini_Manager.toIniString('dtm_dir', this.dtm_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('dtm_dir', fnp.getRelDirPath(this.dtm_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % UI
             str_cell = Ini_Manager.toIniStringSection('INPUT_UI', str_cell);
             str_cell = Ini_Manager.toIniStringComment('Directory of images for UI', str_cell);
-            str_cell = Ini_Manager.toIniString('img_dir', this.img_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('img_dir', fnp.getRelDirPath(this.img_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniStringComment('Path to the image of the logo 64x64 px', str_cell);
-            str_cell = Ini_Manager.toIniString('img_logo64', this.img_logo64, str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
             % OUTPUT
             str_cell = Ini_Manager.toIniStringSection('OUTPUT', str_cell);
 
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
-            str_cell = Ini_Manager.toIniString('out_dir', this.out_dir, str_cell);
+            str_cell = Ini_Manager.toIniString('out_dir', fnp.getRelDirPath(this.out_dir, this.prj_home), str_cell);
             str_cell = Ini_Manager.toIniString('out_prefix', this.out_prefix, str_cell);
             str_cell = Ini_Manager.toIniStringComment('Current run number', str_cell);
             str_cell = Ini_Manager.toIniString('run_counter', this.run_counter, str_cell);
@@ -752,6 +756,11 @@ classdef IO_Settings < Settings_Interface
     %  GETTERS
     % =========================================================================
     methods
+        function file_dir = getHomeDir(this)
+            % Get the base directory containing the project
+            file_dir = this.prj_home;
+        end
+        
         function base_rinex_dir = getRinexBaseDir(this)
             % Get the base directory containing RINEX files
             base_rinex_dir = this.obs_dir();
@@ -816,13 +825,7 @@ classdef IO_Settings < Settings_Interface
             % SYNTAX: dir = this.getImgDir()
             out = this.img_dir;
         end
-        
-        function dir = getLogo(this)
-            % Get the logo of goGPS to be shown on the UI
-            % SYNTAX: dir = this.getLogo()
-            dir = this.img_logo64;
-        end
-        
+                
         function out = getNavArchive(this)
             % Get the list of archives to use for the search of navigational files
             out = this.preferred_archive;            
@@ -914,13 +917,13 @@ classdef IO_Settings < Settings_Interface
         function out = getNavEphPath(this)
             % Get the path to the navigational files
             % SYNTAX: nav_path = this.getNavEphPath()
-            out = File_Name_Processor.checkPath(fullfile(this.eph_dir, this.eph_name));
+            out = File_Name_Processor.checkPath(fullfile(this.eph_dir, filesep, this.eph_name));
         end
         
         function out = getNavClkPath(this)
             % Get the path to the clock files
             % SYNTAX: nav_path = this.getNavClkPath()
-            out = File_Name_Processor.checkPath(fullfile(this.clk_dir, this.clk_name));
+            out = File_Name_Processor.checkPath(fullfile(this.clk_dir, filesep, this.clk_name));
         end
         
         function out = getCrdFile(this)
@@ -1073,7 +1076,7 @@ classdef IO_Settings < Settings_Interface
                 this.obs_name = {this.obs_name};
             end
             for i = 1 : numel(this.obs_name)
-                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.obs_dir, this.obs_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.obs_dir, filesep, this.obs_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
         
@@ -1110,7 +1113,7 @@ classdef IO_Settings < Settings_Interface
             % Get the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(fullfile(this.eph_dir, this.eph_name));
+            file_name = fnp.checkPath(fullfile(this.eph_dir, filesep, this.eph_name));
             step_sec = fnp.getStepSec(file_name);
             
             date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
@@ -1122,7 +1125,7 @@ classdef IO_Settings < Settings_Interface
             % Get the full name of the clock offset files (replacing special keywords)
             % SYNTAX: clk_full_name = getClkFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(fullfile(this.clk_dir, this.clk_name));
+            file_name = fnp.checkPath(fullfile(this.clk_dir, filesep, this.clk_name));
             step_sec = fnp.getStepSec(file_name);
             
             date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
@@ -1318,6 +1321,12 @@ classdef IO_Settings < Settings_Interface
             end
         end
         
+        function setPrjHome(this, prj_home)
+            % Set home folder of the project
+            % SYNTAX: dir = this.setPrjHome(prj_home)
+            this.prj_home = prj_home;
+        end
+        
         function setDeprecateIniPath(this, new_path)
             % Set the legacy deprecate ini of the input files
             % SYNTAX: dir = this.setDeprecateIniPath(new_path)
@@ -1389,7 +1398,7 @@ classdef IO_Settings < Settings_Interface
             % Check if a string field of the object is a valid string
             % To make the function works it is needed to have defined the default
             % value of the field as a constant with same name but upper case
-            % SYNTAX: this.checkStringField(string_field_name, <empty_is_valid == false>, <check_existence == false>);            
+            % SYNTAX: this.Field(string_field_name, <empty_is_valid == false>, <check_existence == false>);            
             switch nargin
                 case 2, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)));
                 case 3, this.(field_name) = this.checkCellString(field_name, this.(field_name), this.(upper(field_name)), empty_is_valid);
@@ -1411,6 +1420,20 @@ classdef IO_Settings < Settings_Interface
             end
         end
         
+        function checkPathField(this, field_name, empty_is_valid, check_existence)
+            % Check if a string path field of the object is a valid path
+            % To make the function works it is needed to have defined the default
+            % value of the field as a constant with same name but upper case
+            % SYNTAX: this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);  
+            fnp = File_Name_Processor();
+            switch nargin
+                case 2, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home));
+                case 3, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid);
+                case 4, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid, check_existence);
+                otherwise, error('Settings checkStringField called with the wrong number of parameters');
+            end
+        end
+
         function checkNumericField(this, field_name, limits, valid_val)
             % Check if a numeric field of the object is valid
             % To make the function works it is needed to have defined the default
@@ -1566,7 +1589,7 @@ classdef IO_Settings < Settings_Interface
             this.checkStringField('sss_id_start', false);
             this.checkStringField('sss_id_stop', false);
 
-            this.checkStringField('obs_dir', false, true);
+            this.checkPathField('obs_dir', false, true);
             this.checkCellStringField('obs_name', false);
             
             if numel(this.obs_name) > numel(this.obs_type)
@@ -1580,31 +1603,30 @@ classdef IO_Settings < Settings_Interface
                 this.obs_type = this.obs_type(1:numel(this.obs_name));
             end
             
-            this.checkStringField('atx_dir', false);
+            this.checkPathField('atx_dir', false);
             this.checkStringField('atx_name', false);
 
             this.checkStringField('input_file_ini_path', true);
             
-            this.checkStringField('eph_dir', false, true);
+            this.checkPathField('eph_dir', false, true);
             % When the ephemeris file inserted here is not found -> the automatic downloader will dowload the proper file
             this.checkStringField('eph_name', true);           
-            this.checkStringField('clk_dir', false, true);
+            this.checkPathField('clk_dir', false, true);
             this.checkStringField('clk_name', true);
-            this.checkStringField('crx_dir', false);
-            this.checkStringField('dcb_dir', false);
-            this.checkStringField('ems_dir', true);
+            this.checkPathField('crx_dir', false);
+            this.checkPathField('dcb_dir', false);
+            this.checkPathField('ems_dir', true);
 
-            this.checkStringField('crd_dir', false);
-            this.checkStringField('met_dir', false);
+            this.checkPathField('crd_dir', false);
+            this.checkPathField('met_dir', false);
             this.checkStringField('ocean_dir', false);
 
             this.checkStringField('ref_graph_file', true);
-            this.checkStringField('geoid_dir', false);
+            this.checkPathField('geoid_dir', false);
             this.checkStringField('geoid_name', false);
-            this.checkStringField('dtm_dir', true);
+            this.checkPathField('dtm_dir', true);
 
-            this.checkStringField('img_dir', false, true);
-            this.checkStringField('img_logo64', false, true);
+            this.checkPathField('img_dir', false, true);
 
             this.checkStringField('out_prefix', true);
             this.checkNumericField('run_counter',[0 1e6]);
@@ -1740,7 +1762,7 @@ classdef IO_Settings < Settings_Interface
             end            
         end
         
-        function eph_ok = checkNavEphFiles(this, date_start, date_stop)
+        function eph_ok = checkNavEphFiles(this)
             % check whether or not all the ephemeris files are available
             eph_ok = true;
 

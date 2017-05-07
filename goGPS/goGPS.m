@@ -45,6 +45,9 @@ global report
 %
 % clear java
 
+%cd(fileparts(which('goGPS')));
+%pwd
+
 % close all windows
 close all
 fclose('all');
@@ -56,10 +59,14 @@ fclose('all');
 warning off; %#ok<WNOFF>
 
 % include all subdirectories
-addpath(genpath(pwd));
+if (~isdeployed)
+    addpath(genpath(pwd));
+end
 
 core = Core.getInstance();
 core.showTextHeader();
+
+logger = Logger.getInstance();
 
 % Pointer to the global settings:
 gs = Go_State.getInstance();
@@ -88,7 +95,6 @@ if mode_user == 1
 else
     w_bar.setOutputType(0); % 0 means text, 1 means GUI, 5 both    
 end
-logger = Logger.getInstance();
 
 %----------------------------------------------------------------------------------------------
 % INTERFACE STARTUP

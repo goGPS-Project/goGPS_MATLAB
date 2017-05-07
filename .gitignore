@@ -110,6 +110,8 @@
 !/data/old/settings/
 /data/old/settings/*
 !/data/old/settings/goGPS_iniDefaultKeywords.ini
+last_settings.ini
+/goGPS/bin
 /goGPS/reserved
 /goGPS/positioning/lambda/lambda_v3
 de421.bin

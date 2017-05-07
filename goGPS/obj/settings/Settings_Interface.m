@@ -84,6 +84,15 @@ classdef Settings_Interface < handle
             % Import from an INI file the content of the Settings object
             % SYNTAX: this.importIniFile(file_path);
             ini = Ini_Manager(file_path);
+            prj_home = ini.getData('prj_home');
+            if ~isempty(prj_home) && ~exist(prj_home, 'dir')
+                fnp = File_Name_Processor;
+                [path_str, ~, ~] = fileparts(fnp.getFullDirPath(file_path));
+                prj_home = fnp.getFullDirPath(strcat(path_str, [filesep '..' filesep]), pwd);
+                if exist(prj_home, 'dir')
+                    ini.setData('prj_home', prj_home);
+                end
+            end
             this.import(ini);
         end
         
@@ -182,9 +191,9 @@ classdef Settings_Interface < handle
                 checked_val = default_val;
             else
                 if iscell(checked_val)
-                    this.logger.addWarning(sprintf('The settings field %s is not valid => using default %s', field_name, Ini_Manager.strCell2Str(checked_val)));
+                    this.logger.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, Ini_Manager.strCell2Str(checked_val)));
                 else
-                    this.logger.addWarning(sprintf('The settings field %s is not valid => using default %s', field_name, checked_val));
+                    this.logger.addWarning(sprintf('The value "%s" of the settings field %s is not valid => using default "%s"', field_val, field_name, checked_val));
                 end
             end
         end
