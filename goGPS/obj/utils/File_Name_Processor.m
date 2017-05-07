@@ -176,7 +176,106 @@ classdef File_Name_Processor < handle
         end        
     end
     
-    methods (Static)                
+    methods (Static) 
+        function dir_path = getFullDirPath(dir_path, dir_base, dir_fallback)
+            % Get the full path given the relative one and the relative dir_base
+            % SYNTAX: dir_path = getFullDirPath(dir_path, <dir_base default = pwd>, fallback_dir_base);
+            
+            if nargin == 1
+                dir_base = pwd;
+            end
+                        
+            dir_path_bk = dir_path;
+            
+            fnp = File_Name_Processor;
+            dir_path = fnp.checkPath(dir_path);
+            if isunix                                
+                if ~isempty(dir_path)
+                    if (dir_path(1) == '/')
+                        dir_path = fnp.checkPath(dir_path);
+                    else
+                        if ~isempty(dir_base)
+                            if (dir_base(1) ~= '/')
+                                dir_base = fnp.getFullDirPath(dir_base, pwd);
+                            end
+                        end
+                        dir_path = fnp.checkPath([dir_base filesep dir_path]);                        
+                    end
+                end
+            else 
+                if length(dir_path) > 1
+                    if (dir_path(2) == ':')
+                        dir_path = fnp.checkPath(dir_path);
+                    else
+                        if length(dir_base) > 1
+                            if (dir_base(2) == ':')
+                                dir_base = fnp.getFullDirPath(dir_base, pwd);
+                            end
+                        end
+                        dir_path = fnp.checkPath([dir_base filesep dir_path]);
+                    end
+                end
+            end
+            
+            % remove './'
+            dir_path = strrep(dir_path, [filesep '.' filesep], filesep);
+
+            % extract sub folder names
+            list = regexp(dir_path,['[^' iif(filesep == '\', '\\', filesep) ']*'],'match');
+            
+            % search for "../"
+            dir_up = find(strcmp(list,'..'));
+            offset = 0;
+            for i = dir_up
+                list((i - 1 : i) - offset) = []; 
+                offset = offset + 2;
+            end
+            
+            % restore full path start
+            if isunix
+                dir_path = [filesep strCell2Str(list, filesep)];
+            else
+                dir_path = strrep(strCell2Str(list, filesep), [':' filesep], [':' filesep filesep]);
+            end  
+            
+            % Fallback if not exist
+            if (nargin == 3)
+                if ~exist(dir_path, 'file')
+                    dir_path = fnp.getFullDirPath(dir_path_bk, dir_fallback);
+                end
+            end
+
+        end
+        
+        function dir_path = getRelDirPath(dir_path, dir_base)
+            % Get the full path given the relative one and the relative dir_base
+            % SYNTAX: dir_path = getRelativeDirPath(dir_path, <dir_base default = pwd>);
+            
+            if nargin == 1
+                dir_base = pwd;
+            end
+            
+            fnp = File_Name_Processor;
+            dir_base = fnp.getFullDirPath(dir_base, pwd);
+            dir_path = fnp.getFullDirPath(dir_path, dir_base);
+            list_base = regexp(dir_base, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
+            list_path = regexp(dir_path, ['[^' iif(filesep == '\', '\\', filesep) ']*'], 'match');
+            n_dir_base = numel(list_base);
+            n_dir_path = numel(list_path);
+            i = 0;
+            while (i < n_dir_base) && (i < n_dir_path) && strcmp(list_base{i+1}, list_path{i+1})
+                i = i + 1;
+            end
+            if (n_dir_base -i) > 0
+                list_path = [{repmat(['..' filesep],1, n_dir_base - i)} list_path(i+1:end)];
+            else    
+                list_path = list_path(i+1:end);
+            end
+            
+            dir_path = strrep(strCell2Str(list_path, filesep), [filesep filesep], filesep);
+            %dir_path = File_Name_Processor.getFullDirPath(dir_path);
+        end
+        
         function file_name = keyRep(file_name, key, substitution)
             % Substitute a key in the file_name with another value
             file_name = strrep(file_name,key, substitution);
@@ -238,7 +337,7 @@ classdef File_Name_Processor < handle
             
             if not(isempty(path))
                 if (iscell(path))
-                    % for each line of the cell+
+                    % for each line of the cell
                     universal_path = cell(size(path));
                     for c = 1 : length(path)
                         universal_path{c} = regexprep(path{c}, '(\\(?![ ]))|(\/)', filesep);
