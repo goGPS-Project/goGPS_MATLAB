@@ -618,7 +618,7 @@ classdef Ini_Manager < handle
                     p = 1;
                     while ((p <= length(this.section{s}.key)) && (p ~= 0))
                         if (strcmp(this.section{s}.key{p}.name,key))
-                            this.section{s}.key{k}.data = data;
+                            this.section{s}.key{p}.data = data;
                             p = 0;      % Stop searching key
                         else
                             p = p+1;    % go on with the search of the key
