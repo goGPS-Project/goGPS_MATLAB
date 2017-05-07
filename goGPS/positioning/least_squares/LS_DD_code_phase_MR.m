@@ -213,7 +213,7 @@ if n  == 1
     yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
     pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
 
-elseif n = 2
+elseif n == 2
     yaw   = atand(Rfloat(2,1)/Rfloat(1,1))
     pitch = atand(-Rfloat(3,1)/sqrt(Rfloat(1,1)^2+Rfloat(2,1)^2))
     roll  = asind(Rfloat(3,2)/cosd(pitch))
