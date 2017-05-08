@@ -1426,6 +1426,7 @@ classdef IO_Settings < Settings_Interface
             % value of the field as a constant with same name but upper case
             % SYNTAX: this.checkPathField(string_field_name, <empty_is_valid == false>, <check_existence == false>);  
             fnp = File_Name_Processor();
+            this.(field_name) = fnp.getFullDirPath(this.(field_name), this.prj_home);
             switch nargin
                 case 2, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home));
                 case 3, this.(field_name) = this.checkString(field_name, this.(field_name), fnp.getFullDirPath(this.(upper(field_name)), this.prj_home), empty_is_valid);
