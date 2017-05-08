@@ -153,7 +153,9 @@ fprintf('\n\nprogram demo_jpl\n');
 
 fprintf('\n\nephemeris file     ');
 
-disp(ephname);
+gs = Go_State.getInstance();
+go_dir = gs.getLocalStorageDir();
+disp(fullfile(go_dir, ephname));
 
 fprintf('\ntarget body    ');
 

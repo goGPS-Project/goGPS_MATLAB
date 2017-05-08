@@ -17,12 +17,15 @@ setmod(2);
 setdt(5.877122033683494);
 xp = 171209e-6; yp = 414328e-6;
 
+gs = Go_State.getInstance();
+go_dir = gs.getLocalStorageDir();
+
 %if the binary JPL ephemeris file is not available, generate it
-if (~exist('./utility/sun_moon/jpl_ephem/de421.bin','file'))
+if (exist(fullfile(go_dir, 'de421.bin'),'file') ~= 2)
     fprintf('Warning: file "de421.bin" not found in directory ./utility/sun_moon/jpl_ephem/ ... generating a new "de421.bin" file\n')
     fprintf('         (this procedure may take a while, but it will be done only once on each installation):\n')
     fprintf('-------------------------------------------------------------------\n\n')
-    asc2eph(421, {'ascp1900.421', 'ascp2050.421'}, './utility/sun_moon/jpl_ephem/de421.bin');
+    asc2eph(421, {'ascp1900.421', 'ascp2050.421'}, fullfile(go_dir, 'de421.bin'));
     fprintf('-------------------------------------------------------------------\n\n')
 end
 

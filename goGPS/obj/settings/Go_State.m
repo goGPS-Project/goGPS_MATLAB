@@ -63,6 +63,8 @@ classdef Go_State < Settings_Interface
         geoid;                                           % parameters of the reference geoid
         
         reference = struct('path' , [], 'adj_mat', []);  % reference path for constrained solution, and adjacency matrix
+        
+        local_storage = '';
     end
     
     properties % Public Access
@@ -78,6 +80,21 @@ classdef Go_State < Settings_Interface
         % Singleton superclass.
         function this = Go_State()
             this.initLogger();
+            
+            if ispc()
+                home = [getenv('HOMEDRIVE') getenv('HOMEPATH')];
+                this.local_storage = [home 'AppData\Local\goGPS'];
+            else
+                home = getenv('HOME');
+                if ismac()
+                    this.local_storage = [home '/Library/Application Support/goGPS'];
+                else
+                    this.local_storage = [home '.goGPS'];
+                end
+            end
+            if ~(exist(this.local_storage, 'dir'))
+                mkdir(this.local_storage)
+            end
         end
     end
     
@@ -201,7 +218,7 @@ classdef Go_State < Settings_Interface
     end
     
     methods (Access = private)
-        function initRef(this)   
+        function initRef(this)
             % load external ref_path
             
             %-------------------------------------------------------------------------------------------
@@ -232,7 +249,7 @@ classdef Go_State < Settings_Interface
             end            
         end
         
-                function initGeoid(this)
+        function initGeoid(this)
             % load external geoid
             try                
                 geoid_file = this.cur_settings.getGeoidFile();
@@ -264,6 +281,11 @@ classdef Go_State < Settings_Interface
     %  ADDITIONAL GETTERS
     % =========================================================================
     methods
+        function [go_dir] = getLocalStorageDir(this)
+            % Get local storage
+            go_dir = this.local_storage;
+        end
+        
         function [ref_path, mat_path] = getReferencePath(this)
             % Get reference path
             if (nargout == 2)
@@ -281,8 +303,7 @@ classdef Go_State < Settings_Interface
                 this.initGeoid();
             end
             geoid = this.geoid;
-        end
-        
+        end        
     end
         
     % =========================================================================

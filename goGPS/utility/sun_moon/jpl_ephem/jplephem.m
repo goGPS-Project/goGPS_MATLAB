@@ -65,8 +65,10 @@ if (iephem == 1)
     pvsun = zeros(6, 1);
 
     % read header file data
-
-    fid = fopen(ephname, 'r');
+    
+    gs = Go_State.getInstance();
+    go_dir = gs.getLocalStorageDir();
+    fid = fopen(fullfile(go_dir, ephname), 'r');
 
     ttl = fread(fid, 252);
 
