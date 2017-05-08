@@ -68,6 +68,7 @@ function [ error ] = asc2eph( denum, INFILE, OUTFILE )
   % *****  The user must choose one of the following statements  *****
   %            ( Usually NRECL = 4 is used on Unix platforms)
 
+  logger = Logger.getInstance();
   NRECL = 4;
   %NRECL = 1;
 
@@ -135,7 +136,7 @@ function [ error ] = asc2eph( denum, INFILE, OUTFILE )
     INFILE = {INFILE};
   end
   for yr = 1:length(INFILE)
-    [ scan, error ] = read_asc( denum, INFILE{yr} );
+    [ scan, error ] = read_asc( denum, INFILE{yr});
     len = length(scan);
     if len == 0 || error
       continue;

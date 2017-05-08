@@ -8,7 +8,7 @@ day = epoch(:,3) + epoch(:,4)/24 + epoch(:,5)/1440 + epoch(:,6)/86400;
 
 sun_id = 11; moon_id = 10; earth_id = 3;
 
-readleap; iephem = 1; ephname = 'de421.bin'; km = 1; inutate = 1; ob2000 = 0.0d0;
+readleap; iephem = 1; ephname = 'de436.bin'; km = 1; inutate = 1; ob2000 = 0.0d0;
 
 tmatrix = j2000_icrs(1);
 
@@ -21,11 +21,11 @@ gs = Go_State.getInstance();
 go_dir = gs.getLocalStorageDir();
 
 %if the binary JPL ephemeris file is not available, generate it
-if (exist(fullfile(go_dir, 'de421.bin'),'file') ~= 2)
-    fprintf('Warning: file "de421.bin" not found in directory ./utility/sun_moon/jpl_ephem/ ... generating a new "de421.bin" file\n')
+if (exist(fullfile(go_dir, 'de436.bin'),'file') ~= 2)
+    fprintf('Warning: file "de436.bin" not found in at %s\n         ... generating a new "de436.bin" file\n',fullfile(go_dir, 'de436.bin'));
     fprintf('         (this procedure may take a while, but it will be done only once on each installation):\n')
     fprintf('-------------------------------------------------------------------\n\n')
-    asc2eph(421, {'ascp1900.421', 'ascp2050.421'}, fullfile(go_dir, 'de421.bin'));
+    asc2eph(436, {'ascp01950.436', 'ascp02050.436'}, fullfile(go_dir, 'de436.bin'));
     fprintf('-------------------------------------------------------------------\n\n')
 end
 

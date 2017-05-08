@@ -30,7 +30,7 @@ function rrd = jpleph_mice (et, ntarg, ncent)
 % global
 
 %   iephem  = initialization flag (1 = initialize)
-%   ephname = name of ephemeris binary data file (de421.bsp, etc.)
+%   ephname = name of ephemeris binary data file (de436.bsp, etc.)
 %   km      = state vector units flag (1 = km & km/sec, 0 = au & au/day)
 %   au      = numerical value of astronomical unit (kilometers)
 

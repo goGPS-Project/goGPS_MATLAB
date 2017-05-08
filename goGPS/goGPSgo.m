@@ -14,7 +14,7 @@ function goGPSgo(ini_settings_file, use_gui) %#ok<INUSD>
 %   goGPSgo('../data/project/default_PPP/config/settings.ini');
 % 
 % COMPILATION STRING:
-%   tic; mcc -d ./bin/ -m goGPSgo; toc;
+%   tic; mcc -v -d ./bin/ -m goGPSgo -a tai-utc.dat -a cls.csv -a icpl.csv -a nals.csv -a napl.csv; toc;
 %
 
 %--- * --. --- --. .--. ... * ---------------------------------------------

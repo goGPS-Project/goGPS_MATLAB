@@ -51,7 +51,7 @@ cname = cellstr(pdata);
 
 % define name of ephemeris binary file
 
-ephname = 'de421.bin';
+ephname = 'de436.bin';
 
 % initialize ephemeris function
 

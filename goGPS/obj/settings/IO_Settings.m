@@ -917,13 +917,13 @@ classdef IO_Settings < Settings_Interface
         function out = getNavEphPath(this)
             % Get the path to the navigational files
             % SYNTAX: nav_path = this.getNavEphPath()
-            out = File_Name_Processor.checkPath(fullfile(this.eph_dir, filesep, this.eph_name));
+            out = File_Name_Processor.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
         end
         
         function out = getNavClkPath(this)
             % Get the path to the clock files
             % SYNTAX: nav_path = this.getNavClkPath()
-            out = File_Name_Processor.checkPath(fullfile(this.clk_dir, filesep, this.clk_name));
+            out = File_Name_Processor.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
         end
         
         function out = getCrdFile(this)
@@ -1076,7 +1076,7 @@ classdef IO_Settings < Settings_Interface
                 this.obs_name = {this.obs_name};
             end
             for i = 1 : numel(this.obs_name)
-                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(fullfile(this.obs_dir, filesep, this.obs_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
+                this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
         
@@ -1113,7 +1113,7 @@ classdef IO_Settings < Settings_Interface
             % Get the full name of the ephemerides files (replacing special keywords)
             % SYNTAX: eph_full_name = getEphFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(fullfile(this.eph_dir, filesep, this.eph_name));
+            file_name = fnp.checkPath(strcat(this.eph_dir, filesep, this.eph_name));
             step_sec = fnp.getStepSec(file_name);
             
             date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin
@@ -1125,7 +1125,7 @@ classdef IO_Settings < Settings_Interface
             % Get the full name of the clock offset files (replacing special keywords)
             % SYNTAX: clk_full_name = getClkFileName(this, date_start, date_stop)
             fnp = File_Name_Processor();
-            file_name = fnp.checkPath(fullfile(this.clk_dir, filesep, this.clk_name));
+            file_name = fnp.checkPath(strcat(this.clk_dir, filesep, this.clk_name));
             step_sec = fnp.getStepSec(file_name);
             
             date_start = date_start.getCopy; date_start.addIntSeconds(-step_sec); % Get navigational files with 6 hours of margin

@@ -15,7 +15,7 @@ global iephem km ephname au
 
 readleap;
 
-% de421 value for astronomical unit (kilometers)
+% de436 value for astronomical unit (kilometers)
 
 au = 149597870.699626200;
 
@@ -53,7 +53,7 @@ cname = cellstr(pdata);
 
 % define name of ephemeris binary file
 
-ephname = 'de421.bsp';
+ephname = 'de436.bsp';
 
 % initialize ephemeris function
 
@@ -185,5 +185,5 @@ svprint(r, v);
 
 % unload ephemeris
 
-cspice_unload('de421.bsp');
+cspice_unload('de436.bsp');
 
