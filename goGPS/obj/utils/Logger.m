@@ -198,8 +198,10 @@ classdef Logger < handle
                 color_mode = this.color_mode;
             end
             this.opStatus(0, color_mode);
+            text = strrep(text, char(10), char([10, 32]));
+            text = strrep(text, '\n', char([10, 32]));
+            text = strrep(text, '\', '\\');
             if (color_mode)
-                text = strrep(text, '\', '\\');
                 cprintf('text', [text '\n']);
             else
                 fprintf([text '\n']);
