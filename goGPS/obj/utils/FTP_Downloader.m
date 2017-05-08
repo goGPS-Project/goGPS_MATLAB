@@ -163,7 +163,7 @@ classdef FTP_Downloader < handle
                     
                     % convert file_name in a cell array
                     if ~iscell(this.file_name)
-                        this.file_name{1} = this.file_name;
+                        this.file_name = {this.file_name};
                     end
                                         
                     n_files = numel(this.file_name);
@@ -273,6 +273,24 @@ classdef FTP_Downloader < handle
                 flag = ~isempty(link);
             catch
                 flag = false;
+            end
+        end
+        
+        function [file, status, compressed] = urlRead(ftp_addr, ftp_port, remote_dir, file_name, local_dir)
+            % download and read an ftp file
+            % SYNTAX: [file, status, compressed] = urlRead(ftp_addr, ftp_port, remote_dir, file_name, local_dir)
+            status = -1;
+            compressed = false;
+            try
+                ftpd = FTP_Downloader(ftp_addr, ftp_port, remote_dir, file_name,  local_dir);
+                [status, compressed] = ftpd.download(remote_dir, file_name, local_dir);
+                fid = fopen(fullfile(local_dir, file_name), 'r');
+                file = fread(fid);
+                fclose(fid);
+            catch ex
+                file = '';
+                logger = Logger.getInstance();
+                logger.addError(ex.message);
             end
         end
     end
