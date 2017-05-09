@@ -76,9 +76,13 @@ classdef File_Name_Processor < handle
             % Constructor
         end
                 
-        function file_name_out = dateKeyRep(this, file_name, date)
+        function file_name_out = dateKeyRep(this, file_name, date, session)
             % substitute time placeholder with the proper format
-            % SYNTAX: file_name = this.dateKeyRep(file_name, date)
+            % SYNTAX: file_name = this.dateKeyRep(file_name, date, session)
+            narginchk(3,4)
+            if (nargin < 4)
+                session = '0';
+            end
             [gps_week, gps_sow, gps_dow] = date.getGpsWeek();
             file_name_out = strrep(file_name, this.GPS_WEEK, sprintf('%04d', gps_week(1)));
             file_name_out = strrep(file_name_out, this.GPS_WD, sprintf('%04d%01d', gps_week(1), gps_dow(1)));
@@ -88,7 +92,9 @@ classdef File_Name_Processor < handle
             [year, doy] = date.getDOY();
             file_name_out = strrep(file_name_out, this.GPS_YY, sprintf('%02d', mod(year,100)));
             file_name_out = strrep(file_name_out, this.GPS_YYYY, sprintf('%04d', year));
-            file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));            
+            file_name_out = strrep(file_name_out, this.GPS_DOY, sprintf('%03d', doy));   
+            file_name_out = strrep(file_name_out, this.GPS_SESSION, session);
+
         end
         
         function step_sec = getStepSec(this, file_name)

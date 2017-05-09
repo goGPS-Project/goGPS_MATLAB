@@ -293,7 +293,8 @@ for s = 1 : num_session
     cur_date_stop = fr.last_epoch.last();
 
     % updating the file path of the output -> special key are now supported
-    filerootOUT = fnp.dateKeyRep(state.getOutPath(), cur_date_start);
+    state.updateOutPath(cur_date_start);
+    filerootOUT = state.getFullOutPath();
 
     % create a new directory when required
     dir_name = fileparts(filerootOUT);
@@ -367,7 +368,7 @@ for s = 1 : num_session
             end
         end
 
-        report.opt.outfolder = filerootOUT;
+        report.opt.outfolder = state.getOutDir();
         report.opt.mode = mode;
         report.opt.flag_SP3 = flag_SP3;
         report.opt.flag_ms_pos = flag_ms_pos;

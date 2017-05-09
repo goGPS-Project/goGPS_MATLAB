@@ -119,7 +119,7 @@ classdef IO_Settings < Settings_Interface
         IMG_DIR = [IO_Settings.DEFAULT_DIR_IN 'img' filesep];  % Path to images used by the interface
         OUT_DIR = [IO_Settings.DEFAULT_DIR_OUT  'project' filesep 'default_DD' filesep 'out' filesep]; % Directory containing the output of the project
         OUT_PREFIX = 'out';  % Every time a solution is computed a folder with prefix followed by the run number is created
-        RUN_COUNTER = 0;     % This parameter store the current run number
+        RUN_COUNTER = [];     % This parameter store the current run number
         
         % EXTERNAL INFO as imported from the input ini file does not have default values
     end
@@ -288,15 +288,14 @@ classdef IO_Settings < Settings_Interface
         %------------------------------------------------------------------
         % OUTPUT
         %------------------------------------------------------------------
-        
-        % Directory containing the output of the project
-        out_dir = IO_Settings.OUT_DIR;
-        
-        % Every time a solution is computed a folder with prefix followed by the run number is created
-        out_prefix = IO_Settings.OUT_PREFIX;
+                
+        out_dir = IO_Settings.OUT_DIR;        % Directory containing the output of the project
+        out_prefix = IO_Settings.OUT_PREFIX;  % Every time a solution is computed a folder with prefix followed by the run number is created      
+        out_full_path;                        % Full prefix of the putput files generated during runtime from the provided parameters
         
         % This parameter store the current run number
         run_counter = IO_Settings.RUN_COUNTER;
+        run_counter_is_set = false; % When importing the run counter, check if is set -> when set overwrite output        
         
         %------------------------------------------------------------------
         % EXTERNAL INFO as imported from INPUT FILE INI
@@ -405,6 +404,7 @@ classdef IO_Settings < Settings_Interface
                 end
                 this.out_prefix = fnp.checkPath(settings.getData('out_prefix'));
                 this.run_counter = settings.getData('run_counter');
+                this.run_counter_is_set = ~isempty(this.run_counter);
             else
                 % PROJECT
                 this.prj_name   = settings.prj_name;
@@ -466,6 +466,7 @@ classdef IO_Settings < Settings_Interface
                 this.out_dir = settings.out_dir;
                 this.out_prefix = settings.out_prefix;
                 this.run_counter = settings.run_counter;
+                this.run_counter_is_set = ~isempty(this.run_counter);                
             end
             this.check();  
             this.updateExternals();
@@ -549,7 +550,12 @@ classdef IO_Settings < Settings_Interface
             str = [str '---- OUTPUT SETTINGS ------------------------------------------------------' 10 10];
             str = [str sprintf(' Directory containing the output of the project:   %s\n', fnp.getRelDirPath(this.out_dir, this.prj_home))];
             str = [str sprintf(' Prefix of each run:                               %s\n', this.out_prefix)];
-            str = [str sprintf(' Run counter:                                      %d\n\n', this.run_counter)];
+            str = [str sprintf(' Run counter:                                      %d\n', this.run_counter)];
+            if (this.run_counter_is_set)
+                str = [str sprintf(' Run counter has been set manually => overwriting output\n\n')];
+            else
+                str = [str sprintf(' Run counter has not been previously set \n => it will be set automatically to avoid overwriting of the oputputs\n\n')];
+            end
         end
         
         function str_cell = export(this, str_cell)
@@ -715,10 +721,14 @@ classdef IO_Settings < Settings_Interface
             str_cell = Ini_Manager.toIniStringSection('OUTPUT', str_cell);
 
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Base dir that is going to store the ouput data files',str_cell);
             str_cell = Ini_Manager.toIniString('out_dir', fnp.getRelDirPath(this.out_dir, this.prj_home), str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Prefix ("name") to add to the output (can contain special keywords / subfolders)',str_cell);
             str_cell = Ini_Manager.toIniString('out_prefix', this.out_prefix, str_cell);
-            str_cell = Ini_Manager.toIniStringComment('Current run number', str_cell);
-            str_cell = Ini_Manager.toIniString('run_counter', this.run_counter, str_cell);
+            str_cell = Ini_Manager.toIniStringComment('Current run number, when empty it will be automatically updated to avoid overwrite', str_cell);            
+            str_cell = Ini_Manager.toIniStringComment('the run_counter value is added as a 3 digit number to the output file name (after the prefix)', str_cell);            
+            str_cell = Ini_Manager.toIniStringComment('WARNING: when set it will be used, and can cause overwrites', str_cell);
+            str_cell = Ini_Manager.toIniString('run_counter', iif(this.run_counter_is_set, this.run_counter, []), str_cell);
             str_cell = Ini_Manager.toIniStringNewLine(str_cell);            
         end
     end    
@@ -1008,27 +1018,62 @@ classdef IO_Settings < Settings_Interface
             out_prefix = fnp.checkPath(this.out_prefix);
         end
         
-        function out = getOutPath(this)
-            % Get the path of the out folder composed with the prefix and the count number
-            % SYNTAX: out_prefix = this.getOutPath()
+        function updateOutPath(this, date, session)
+            % Update the full prefix of the putput files (replacing special keywords)            
+            % SYNTAX: this.updateOutPath(date, session);
+            % NOTE: when no date is specified special keywords are substituted considering a date 0 (0000/00/00 00:00:00)
+            %       when no session is specified special keywords are substituted considering a session "0" (char)
+
             fnp = File_Name_Processor;
-            out = fnp.checkPath([this.out_dir filesep this.out_prefix '_' num2str(this.run_counter,'%03d') ]);
+
+            % get the output prefix    
+            narginchk(1,3);
+            
+            if (nargin < 2)
+                date = GPS_Time(0);
+            end
+            if (nargin < 3)
+                session = '0';
+            end
+            
+            this.out_full_path = fnp.dateKeyRep(fnp.checkPath([this.out_dir filesep this.out_prefix]), date, session);
+            
+            if ~(this.run_counter_is_set)
+                % make sure to have the name of the file and the name of the
+                % output folder
+                [~, out_prefix, ~] = fileparts(this.out_full_path); %#ok<PROPLC>
+                % list all the files that match the prefix
+                file_list = dir([this.out_full_path '*']);
+                % if there are no files in the putput folder
+                if isempty(file_list)
+                    this.run_counter = this.RUN_COUNTER; % set the counter of the output == 0
+                else
+                    % put the cell of the file in a single string
+                    file_list = fnp.checkPath(strCell2Str({file_list(:).name},''));
+                    % parse with regexp for output numbers -> get the maximum
+                    this.run_counter = max(str2double(unique(regexp(file_list, [ '(?<=' out_prefix '_)[0-9]*(?=_)'], 'match')))) + 1; %#ok<PROPLC>
+                    this.run_counter = iif(isempty(this.run_counter), this.RUN_COUNTER, this.run_counter);
+                end
+            end
+            this.out_full_path = [ this.out_full_path '_' sprintf('%03d', this.run_counter)];
+        end
+
+        function out = getFullOutPath(this)
+            % Get the path of the out folder composed with the prefix and the count number
+            % update the run counter if necessary
+            % SYNTAX: out_prefix = this.getOutPath()
+            
+            if isempty(this.out_full_path)
+                this.logger.addWarning('Output prefix has not yet been computed! It should have been done before.');
+                this.updateOutPath();
+            end
+            out = this.out_full_path;
         end
         
         function counter = getRunCounter(this)
-            % Get the current run counter
+            % Get the currGPS_Time(0)ent run counter
             % SYNTAX: counter = getRunCounter(this)
             counter = this.run_counter;
-        end
-        
-        function out_prefix = getFullOutPrefix(this, date_start, date_stop, session_list, session_start, session_stop)
-            % Get the full path of the outputs
-            % SYNTAX: out_prefix = this.getFullOutPrefix()
-            fnp = File_Name_Processor;
-            out_prefix = fnp.checklPath(strcat(this.getOutDir, filesep, this.out_prefix));
-            if nargin > 1
-                out_prefix = fnp.dateKeyRepBatch(out_prefix, date_start, date_stop, session_list, session_start, session_stop);
-            end            
         end
         
     end
@@ -1079,7 +1124,7 @@ classdef IO_Settings < Settings_Interface
                 this.obs_full_name{i} = fnp.dateKeyRepBatch(fnp.checkPath(strcat(this.obs_dir, filesep, this.obs_name{i})), this.sss_date_start,  this.sss_date_stop, this.sss_id_list, this.sss_id_start, this.sss_id_stop);
             end
         end
-        
+                            
         function updateNavFileName(this)
             % Update the full name of the navigational files (replacing special keywords)
             % SYNTAX: this.updateNavFileName();
@@ -1630,7 +1675,10 @@ classdef IO_Settings < Settings_Interface
             this.checkPathField('img_dir', false, true);
 
             this.checkStringField('out_prefix', true);
-            this.checkNumericField('run_counter',[0 1e6]);
+            
+            if (this.run_counter_is_set) || ~(isempty(this.run_counter()))
+                this.checkNumericField('run_counter',[0 1e6]);
+            end
             
             % Check size of xyz antenna
             if (size(this.xyz_ant,2) ~= this.getTargetCount())
