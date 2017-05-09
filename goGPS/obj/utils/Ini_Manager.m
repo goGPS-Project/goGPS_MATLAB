@@ -122,7 +122,7 @@ classdef Ini_Manager < handle
         end
 
         % Distructor ------------------------------------------------------
-        function delete(this)
+        function delete(this) %#ok<INUSD>
             % Empty Destructor
         end
 
@@ -429,7 +429,7 @@ classdef Ini_Manager < handle
             if (section == 0)
                 for s = 1:length(this.section)
                     for p = 1:length(this.section{s}.key)
-                        keyList{l} = this.section{s}.key{p}.name;
+                        keyList{l} = this.section{s}.key{p}.name; %#ok<AGROW>
                         l = l+1;
                     end
                 end
@@ -438,7 +438,7 @@ classdef Ini_Manager < handle
                 while ((s<=length(this.section)) && (s ~= 0))
                     if (strcmp(this.section{s}.name,section))
                         for p = 1:length(this.section{s}.key)
-                            keyList{l} = this.section{s}.key{p}.name;
+                            keyList{l} = this.section{s}.key{p}.name; %#ok<AGROW>
                             l = l+1;
                         end
                         s = 0;      % Stop searching
@@ -829,7 +829,7 @@ classdef Ini_Manager < handle
                 else
                     % if it is not an array of string...
                     if (ischar(tmpData))
-                        cprintf('text','"%s" = "%s"\n',key, num2str(tmpData));
+                        cprintf('text','"%s" = "%s"\n',key, tmpData);
                     else
                         cprintf('text','"%s" = %s\n',key, num2str(tmpData));
                     end
@@ -917,14 +917,13 @@ classdef Ini_Manager < handle
                             this.section{s}.key = [];
                         end
                         this.section{s}.key{p}.name = parName{1};
-
                         % Get the DATA!
                         strData = regexp(this.raw_data{r}, '(?<=\=).*', 'match');
                         if (isempty(strData))
                             this.section{s}.key{p}.data = [];
                         else
-                            tmpData = str2num(strData{1});
-                            if (~isempty(tmpData))   % It's a number!
+                            tmpData = str2num(strData{1}); %#ok<ST2NM>
+                            if (~isempty(tmpData) && isnumeric(tmpData))   % It's a number!
                                 this.section{s}.key{p}.data = tmpData;
                             else
                                 % It's a string!
@@ -1030,7 +1029,7 @@ classdef Ini_Manager < handle
                     cell_str{numel(cell_str) + 1} = [variable_name ' = ' sprintf(format,value)];
                 end
             else % generic converter (may not work properly)
-                toString = @(var) strtrim(regexprep(evalc(['disp(var)']), '\n', ''));
+                toString = @(var) strtrim(regexprep(evalc('disp(var)'), '\n', ''));
                 if iscell(value)
                     if ~isempty(value) && ischar(value{1})
                         cell_str{numel(cell_str) + 1} = [variable_name ' = [' Ini_Manager.strCell2Str(value) ']'];
