@@ -128,9 +128,9 @@ classdef Logger < handle
             end
             text = strrep(text, char(10), char([10, 32 * ones(1,7)]));
             text = strrep(text, '\n', char([10, 32 * ones(1,7)]));
-            text = strrep(text, '\', '\\');
             if (verbosity_level <= this.verbosity)
                 if this.color_mode
+                    text = strrep(text, '\', '\\');
                     cprintf('Green','   **  ');
                     cprintf('text', strcat(text, '\n'));
                 else
@@ -138,6 +138,7 @@ classdef Logger < handle
                 end
             end
         end
+        
         function addMessage(this, text, verbosity_level)
             % Send a message through the standard interface
             if (nargin < 3)
@@ -146,7 +147,6 @@ classdef Logger < handle
             if (verbosity_level <= this.verbosity)
                 text = strrep(text, char(10), char([10, 32]));
                 text = strrep(text, '\n', char([10, 32]));
-                text = strrep(text, '\', '\\');
                 fprintf(' %s\n', text);
             end
         end
